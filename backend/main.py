@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes.players import router as players_router
-from routes.drills import router as drills_router
-from routes.events import router as events_router
+from backend.routes.players import router as players_router
+from backend.routes.drills import router as drills_router
+from backend.routes.events import router as events_router
 
 app = FastAPI()
 
