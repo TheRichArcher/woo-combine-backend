@@ -17,11 +17,12 @@ DRILL_WEIGHTS = {
     "agility": 0.2,
 }
 
-def calculate_composite_score(player: Player, session: Session) -> float:
+def calculate_composite_score(player: Player, session: Session, weights: dict = None) -> float:
     results = session.query(DrillResult).filter(DrillResult.player_id == player.id).all()
     drill_map = {r.type: r.value for r in results}
     score = 0.0
-    for drill, weight in DRILL_WEIGHTS.items():
+    use_weights = weights if weights is not None else DRILL_WEIGHTS
+    for drill, weight in use_weights.items():
         value = drill_map.get(drill, 0)
         score += value * weight
     return score
@@ -128,3 +129,45 @@ def reset_players(event_id: UUID = Query(...), db: Session = Depends(get_db)):
     db.query(Player).filter(Player.event_id == event_id).delete()
     db.commit()
     return {"status": "reset", "event_id": str(event_id)}
+
+@router.get("/rankings")
+def get_rankings(
+    age_group: str = Query(...),
+    weight_40m_dash: float = Query(None, alias="weight_40m_dash"),
+    weight_vertical_jump: float = Query(None, alias="weight_vertical_jump"),
+    weight_catching: float = Query(None, alias="weight_catching"),
+    weight_throwing: float = Query(None, alias="weight_throwing"),
+    weight_agility: float = Query(None, alias="weight_agility"),
+    db: Session = Depends(get_db),
+):
+    # Parse weights if all are provided
+    custom_weights = None
+    weight_params = [weight_40m_dash, weight_vertical_jump, weight_catching, weight_throwing, weight_agility]
+    drill_keys = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
+    if all(w is not None for w in weight_params):
+        # Validate all are numbers between 0 and 1
+        if not all(isinstance(w, float) and 0 <= w <= 1 for w in weight_params):
+            raise HTTPException(status_code=400, detail="All weights must be numbers between 0 and 1.")
+        total = sum(weight_params)
+        if abs(total - 1.0) > 1e-6:
+            raise HTTPException(status_code=400, detail="Weights must sum to 1.0.")
+        custom_weights = dict(zip(drill_keys, weight_params))
+    elif any(w is not None for w in weight_params):
+        raise HTTPException(status_code=400, detail="Either provide all weights or none.")
+
+    players = db.query(Player).filter(Player.age_group == age_group).all()
+    ranked = []
+    for player in players:
+        composite_score = calculate_composite_score(player, db, custom_weights)
+        ranked.append({
+            "player_id": player.id,
+            "name": player.name,
+            "number": player.number,
+            "composite_score": composite_score
+        })
+    # Sort by composite_score descending
+    ranked.sort(key=lambda x: x["composite_score"], reverse=True)
+    # Assign rank (1-based, no ties/skips)
+    for idx, player in enumerate(ranked, start=1):
+        player["rank"] = idx
+    return ranked

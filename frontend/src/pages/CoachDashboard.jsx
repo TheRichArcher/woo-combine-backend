@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useEvent } from "../context/EventContext";
 
+const DRILL_WEIGHTS = {
+  "40m_dash": 0.3,
+  "vertical_jump": 0.2,
+  "catching": 0.15,
+  "throwing": 0.15,
+  "agility": 0.2,
+};
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash" },
   { key: "vertical_jump", label: "Vertical Jump" },
@@ -11,32 +18,25 @@ const DRILLS = [
 
 export default function CoachDashboard() {
   const { selectedEvent } = useEvent();
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [weights, setWeights] = useState({
-    "40m_dash": 0.3,
-    "vertical_jump": 0.2,
-    "catching": 0.15,
-    "throwing": 0.15,
-    "agility": 0.2,
-  });
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  const [rankings, setRankings] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [players, setPlayers] = useState([]); // for age group list only
+  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
+  const [weightError, setWeightError] = useState("");
 
+  // Fetch all players to get available age groups
   useEffect(() => {
     async function fetchPlayers() {
       if (!selectedEvent) return;
-      setLoading(true);
-      setError(null);
       try {
         const res = await fetch(`/players?event_id=${selectedEvent.id}`);
         if (!res.ok) throw new Error("Failed to fetch players");
         const data = await res.json();
         setPlayers(data);
       } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
+        setPlayers([]);
       }
     }
     fetchPlayers();
@@ -45,35 +45,93 @@ export default function CoachDashboard() {
   // Get unique age groups from players
   const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
 
-  // Filter players by selected age group
-  const filteredPlayers = players.filter(p => p.age_group === selectedAgeGroup);
-
-  // Recalculate composite score for each player using current weights
-  const rankedPlayers = filteredPlayers.map(player => {
-    let score = 0;
-    for (const drill of DRILLS) {
-      const value = player[drill.key] ?? 0;
-      score += value * weights[drill.key];
+  // Fetch rankings when age group changes (with default weights)
+  useEffect(() => {
+    if (!selectedAgeGroup) {
+      setRankings([]);
+      return;
     }
-    return { ...player, recalculated_score: score };
-  }).sort((a, b) => b.recalculated_score - a.recalculated_score);
+    setLoading(true);
+    setError(null);
+    setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
+    fetch(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch rankings");
+        return res.json();
+      })
+      .then(data => {
+        setRankings(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setRankings([]);
+        setLoading(false);
+      });
+  }, [selectedAgeGroup]);
 
+  // Handle slider change
   const handleSlider = (key, value) => {
-    setWeights(w => ({ ...w, [key]: value / 100 }));
+    setWeights(w => ({ ...w, [key]: value }));
+  };
+
+  // Reset to default weights
+  const handleReset = () => {
+    setWeights({ ...DRILL_WEIGHTS });
+    setWeightError("");
+  };
+
+  // Validate weights and fetch rankings
+  const handleUpdateRankings = () => {
+    const vals = DRILLS.map(d => parseFloat(weights[d.key]));
+    const sum = vals.reduce((a, b) => a + b, 0);
+    if (vals.some(v => isNaN(v) || v < 0 || v > 1)) {
+      setWeightError("All weights must be between 0 and 1.");
+      return;
+    }
+    if (Math.abs(sum - 1.0) > 1e-6) {
+      setWeightError("Weights must sum to 1.00");
+      return;
+    }
+    setWeightError("");
+    setLoading(true);
+    setError(null);
+    const params = new URLSearchParams({ age_group: selectedAgeGroup });
+    params.append("weight_40m_dash", weights["40m_dash"]);
+    params.append("weight_vertical_jump", weights["vertical_jump"]);
+    params.append("weight_catching", weights["catching"]);
+    params.append("weight_throwing", weights["throwing"]);
+    params.append("weight_agility", weights["agility"]);
+    fetch(`/rankings?${params.toString()}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch rankings");
+        return res.json();
+      })
+      .then(data => {
+        setRankings(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setRankings([]);
+        setLoading(false);
+      });
   };
 
   // CSV Export logic
   const handleExportCsv = () => {
-    if (!selectedAgeGroup || rankedPlayers.length === 0) return;
-    let csv = "Rank,Name,Jersey #,Score\n";
-    rankedPlayers.forEach((player, idx) => {
-      csv += `${idx + 1},"${player.name}",${player.number},${player.recalculated_score.toFixed(2)}\n`;
+    if (!selectedAgeGroup || rankings.length === 0) return;
+    let csv = 'Rank,Name,Jersey Number,Composite Score\n';
+    rankings.forEach(player => {
+      csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
     });
-    const blob = new Blob([csv], { type: "text/csv" });
+    const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+    const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
+    const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = `rankings-${selectedAgeGroup}.csv`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -88,23 +146,6 @@ export default function CoachDashboard() {
       </div>
       <h1 className="text-3xl font-bold mb-6 text-center">Coach Dashboard</h1>
       <div className="bg-white rounded shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Adjust Drill Weights</h2>
-        {DRILLS.map(drill => (
-          <div key={drill.key} className="mb-4 flex items-center">
-            <label className="w-40 font-medium">{drill.label}</label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={Math.round(weights[drill.key] * 100)}
-              onChange={e => handleSlider(drill.key, Number(e.target.value))}
-              className="mx-4 flex-1"
-            />
-            <span className="w-12 text-right">{Math.round(weights[drill.key] * 100)}%</span>
-          </div>
-        ))}
-      </div>
-      <div className="bg-white rounded shadow p-6 mb-8">
         <h2 className="text-xl font-semibold mb-4">Select Age Group</h2>
         <select
           value={selectedAgeGroup}
@@ -117,13 +158,47 @@ export default function CoachDashboard() {
           ))}
         </select>
       </div>
+      {/* Drill Weight Controls */}
+      <div className="bg-white rounded shadow p-6 mb-8">
+        <h2 className="text-xl font-semibold mb-4">Adjust Drill Weighting</h2>
+        {DRILLS.map(drill => (
+          <div key={drill.key} className="mb-4 flex items-center">
+            <label className="w-40 font-medium">{drill.label}</label>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={weights[drill.key]}
+              onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
+              className="mx-4 flex-1"
+            />
+            <span className="w-12 text-right">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+          </div>
+        ))}
+        <div className="flex gap-4 mt-4">
+          <button
+            onClick={handleReset}
+            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
+          >
+            Reset to Default
+          </button>
+          <button
+            onClick={handleUpdateRankings}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Update Rankings
+          </button>
+        </div>
+        {weightError && <div className="text-red-500 mt-2">{weightError}</div>}
+      </div>
       {loading ? (
-        <div>Loading players...</div>
+        <div>Loading rankings...</div>
       ) : error ? (
         <div className="text-red-500">Error: {error}</div>
       ) : selectedAgeGroup === "" ? (
         <div className="text-gray-500">Please select an age group to view rankings.</div>
-      ) : rankedPlayers.length === 0 ? (
+      ) : rankings.length === 0 ? (
         <div>No players found for this age group.</div>
       ) : (
         <div className="bg-white rounded shadow p-6">
@@ -132,8 +207,10 @@ export default function CoachDashboard() {
             <button
               onClick={handleExportCsv}
               className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+              disabled={rankings.length === 0}
+              style={{ display: rankings.length === 0 ? 'none' : 'inline-block' }}
             >
-              Export CSV
+              Export Rankings as CSV
             </button>
           </div>
           <table className="w-full text-left">
@@ -146,14 +223,14 @@ export default function CoachDashboard() {
               </tr>
             </thead>
             <tbody>
-              {rankedPlayers.map((player, index) => (
-                <tr key={player.id} className="border-t">
-                  <td className={`py-2 px-2 font-bold ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
-                    {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+              {rankings.map((player) => (
+                <tr key={player.player_id} className="border-t">
+                  <td className={`py-2 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
+                    {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
                   </td>
                   <td className="py-2 px-2">{player.name}</td>
                   <td className="py-2 px-2">{player.number}</td>
-                  <td className="py-2 px-2 font-mono">{player.recalculated_score.toFixed(2)}</td>
+                  <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
