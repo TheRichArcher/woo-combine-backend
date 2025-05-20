@@ -22,6 +22,13 @@ class DrillResult(Base):
     value = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+class Event(Base):
+    __tablename__ = 'events'
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    date = Column(DateTime, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
 # Pydantic schemas for API
 class PlayerSchema(BaseModel):
     id: int
@@ -38,6 +45,14 @@ class DrillResultSchema(BaseModel):
     player_id: int
     type: str
     value: float
+    created_at: datetime
+    class Config:
+        orm_mode = True
+
+class EventSchema(BaseModel):
+    id: int
+    name: str
+    date: datetime
     created_at: datetime
     class Config:
         orm_mode = True 
