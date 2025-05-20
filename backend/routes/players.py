@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
-from ..db import SessionLocal
-from ..models import Player, PlayerSchema, DrillResult
+from backend.db import SessionLocal
+from backend.models import Player, PlayerSchema, DrillResult
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID

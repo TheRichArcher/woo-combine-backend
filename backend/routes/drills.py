@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from ..db import SessionLocal
-from ..models import DrillResult
+from backend.db import SessionLocal
+from backend.models import DrillResult
 from typing import List
 from pydantic import BaseModel
 
