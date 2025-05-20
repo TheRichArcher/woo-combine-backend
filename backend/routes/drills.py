@@ -35,7 +35,7 @@ def create_drill_result(result: DrillResultCreate, db: Session = Depends(get_db)
     db.refresh(db_result)
     return DrillResultSchema.from_orm(db_result)
 
-@router.get("/drill-results", response_model=List[DrillResultSchema])
+@router.get("/drill-results/", response_model=List[DrillResultSchema])
 def get_all_drill_results(db: Session = Depends(get_db)):
     results = db.query(DrillResult).all()
     return [DrillResultSchema.from_orm(r) for r in results]
