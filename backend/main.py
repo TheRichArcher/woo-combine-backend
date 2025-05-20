@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from frontend.backend.routes import players, drills, events
+from backend.routes import players, drills, events
 
 app = FastAPI()
 
