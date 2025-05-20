@@ -38,7 +38,7 @@ class PlayerSchema(BaseModel):
     photo_url: str | None = None
     created_at: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class DrillResultSchema(BaseModel):
     id: int
@@ -47,7 +47,7 @@ class DrillResultSchema(BaseModel):
     value: float
     created_at: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class EventSchema(BaseModel):
     id: int
@@ -55,4 +55,4 @@ class EventSchema(BaseModel):
     date: datetime
     created_at: datetime
     class Config:
-        orm_mode = True 
+        from_attributes = True 

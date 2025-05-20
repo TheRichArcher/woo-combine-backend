@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.db import SessionLocal
-from backend.models import Event, Base
+from backend.models import Event
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
@@ -24,7 +24,7 @@ class EventRead(BaseModel):
     name: str
     date: datetime
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 @router.get("/events", response_model=List[EventRead])
 def list_events(db: Session = Depends(get_db)):

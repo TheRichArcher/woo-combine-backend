@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.players import router as players_router
 from backend.routes.drills import router as drills_router
 from backend.routes.events import router as events_router
+import logging
 
 app = FastAPI()
 
@@ -20,6 +21,14 @@ app.include_router(events_router)
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    try:
+        return {"status": "ok"}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
+
+@app.on_event("startup")
+async def startup_event():
+    logging.basicConfig(level=logging.INFO)
+    logging.info("🚀 Backend startup complete.")
 
 # from routes import players, drills, auth  # To be registered later 
