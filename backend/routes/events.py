@@ -20,7 +20,7 @@ class EventCreate(BaseModel):
     date: datetime
 
 class EventRead(BaseModel):
-    id: str
+    id: int
     name: str
     date: datetime
     class Config:
