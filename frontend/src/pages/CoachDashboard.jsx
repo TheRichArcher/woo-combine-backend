@@ -139,104 +139,108 @@ export default function CoachDashboard() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-8">
-      <div className="mb-4 text-lg font-semibold flex items-center gap-2">
-        <span role="img" aria-label="event">🏷️</span>
-        Managing: {selectedEvent?.name} – {selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : ""}
-      </div>
-      <h1 className="text-3xl font-bold mb-6 text-center">Coach Dashboard</h1>
-      <div className="bg-white rounded shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Select Age Group</h2>
-        <select
-          value={selectedAgeGroup}
-          onChange={e => setSelectedAgeGroup(e.target.value)}
-          className="border rounded px-3 py-2 w-full max-w-xs"
-        >
-          <option value="">Select Age Group</option>
-          {ageGroups.map(group => (
-            <option key={group} value={group}>{group}</option>
-          ))}
-        </select>
-      </div>
-      {/* Drill Weight Controls */}
-      <div className="bg-white rounded shadow p-6 mb-8">
-        <h2 className="text-xl font-semibold mb-4">Adjust Drill Weighting</h2>
-        {DRILLS.map(drill => (
-          <div key={drill.key} className="mb-4 flex items-center">
-            <label className="w-40 font-medium">{drill.label}</label>
-            <input
-              type="range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={weights[drill.key]}
-              onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-              className="mx-4 flex-1"
-            />
-            <span className="w-12 text-right">{parseFloat(weights[drill.key]).toFixed(2)}</span>
-          </div>
-        ))}
-        <div className="flex gap-4 mt-4">
-          <button
-            onClick={handleReset}
-            className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400"
-          >
-            Reset to Default
-          </button>
-          <button
-            onClick={handleUpdateRankings}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Update Rankings
-          </button>
+    <div className="font-sans min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto p-4">
+        <div className="mb-4 text-lg font-semibold flex items-center gap-2">
+          <span role="img" aria-label="event">🏷️</span>
+          Managing: {selectedEvent?.name} – {selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : ""}
         </div>
-        {weightError && <div className="text-red-500 mt-2">{weightError}</div>}
-      </div>
-      {loading ? (
-        <div>Loading rankings...</div>
-      ) : error ? (
-        <div className="text-red-500">Error: {error}</div>
-      ) : selectedAgeGroup === "" ? (
-        <div className="text-gray-500">Please select an age group to view rankings.</div>
-      ) : rankings.length === 0 ? (
-        <div>No players found for this age group.</div>
-      ) : (
-        <div className="bg-white rounded shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Rankings ({selectedAgeGroup})</h2>
+        <h1 className="text-3xl font-bold mb-4 text-center">Coach Dashboard</h1>
+        <div className="bg-white rounded shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Select Age Group</h2>
+          <select
+            value={selectedAgeGroup}
+            onChange={e => setSelectedAgeGroup(e.target.value)}
+            className="border rounded p-2 w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          >
+            <option value="">Select Age Group</option>
+            {ageGroups.map(group => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+          </select>
+        </div>
+        {/* Drill Weight Controls */}
+        <div className="bg-white rounded shadow p-6 mb-8">
+          <h2 className="text-xl font-semibold mb-4">Adjust Drill Weighting</h2>
+          <div className="grid gap-4 md:grid-cols-2">
+            {DRILLS.map(drill => (
+              <div key={drill.key} className="flex items-center gap-4">
+                <label className="w-40 font-semibold">{drill.label}</label>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={weights[drill.key]}
+                  onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
+                  className="flex-1 accent-blue-600"
+                />
+                <span className="w-12 text-right font-mono">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-4 mt-6">
             <button
-              onClick={handleExportCsv}
-              className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
-              disabled={rankings.length === 0}
-              style={{ display: rankings.length === 0 ? 'none' : 'inline-block' }}
+              onClick={handleReset}
+              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
             >
-              Export Rankings as CSV
+              Reset to Default
+            </button>
+            <button
+              onClick={handleUpdateRankings}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700"
+            >
+              Update Rankings
             </button>
           </div>
-          <table className="w-full text-left">
-            <thead>
-              <tr>
-                <th className="py-2 px-2">Rank</th>
-                <th className="py-2 px-2">Name</th>
-                <th className="py-2 px-2">Jersey #</th>
-                <th className="py-2 px-2">Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rankings.map((player) => (
-                <tr key={player.player_id} className="border-t">
-                  <td className={`py-2 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                    {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
-                  </td>
-                  <td className="py-2 px-2">{player.name}</td>
-                  <td className="py-2 px-2">{player.number}</td>
-                  <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {weightError && <div className="text-red-500 mt-2">{weightError}</div>}
         </div>
-      )}
+        {loading ? (
+          <div>Loading rankings...</div>
+        ) : error ? (
+          <div className="text-red-500">Error: {error}</div>
+        ) : selectedAgeGroup === "" ? (
+          <div className="text-gray-500">Please select an age group to view rankings.</div>
+        ) : rankings.length === 0 ? (
+          <div>No players found for this age group.</div>
+        ) : (
+          <div className="bg-white rounded shadow p-6 overflow-x-auto">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+              <h2 className="text-xl font-semibold">Rankings ({selectedAgeGroup})</h2>
+              <button
+                onClick={handleExportCsv}
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700"
+                disabled={rankings.length === 0}
+                style={{ display: rankings.length === 0 ? 'none' : 'inline-block' }}
+              >
+                Export Rankings as CSV
+              </button>
+            </div>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr>
+                  <th className="py-2 px-2">Rank</th>
+                  <th className="py-2 px-2">Name</th>
+                  <th className="py-2 px-2">Jersey #</th>
+                  <th className="py-2 px-2">Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankings.map((player) => (
+                  <tr key={player.player_id} className="border-t">
+                    <td className={`py-2 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
+                      {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
+                    </td>
+                    <td className="py-2 px-2">{player.name}</td>
+                    <td className="py-2 px-2">{player.number}</td>
+                    <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
