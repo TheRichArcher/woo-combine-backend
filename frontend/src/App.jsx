@@ -1,11 +1,11 @@
 import React from "react";
-import TestTailwind from "./pages/TestTailwind";
+import CoachDashboard from "./pages/CoachDashboard";
 import { EventProvider } from "./context/EventContext";
 
 function App() {
   return (
     <EventProvider>
-      <TestTailwind />
+      <CoachDashboard />
     </EventProvider>
   );
 }
