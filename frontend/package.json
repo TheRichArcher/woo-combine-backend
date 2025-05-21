@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "postbuild": "npx tailwindcss -i ./src/index.css -o ./dist/output.css --content \"./src/**/*.{js,jsx}\""
+    "postbuild": "npx tailwindcss -i ./src/index.css -o ./dist/output.css --content \"./src/**/*.{js,jsx}\" && cp public/_redirects dist/_redirects && cp public/_headers dist/_headers"
   },
   "dependencies": {
     "firebase": "^11.8.0",
