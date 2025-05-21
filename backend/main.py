@@ -23,13 +23,14 @@ app.include_router(events_router)
 
 # Path to the folder that contains index.html (adjust if different)
 DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
-
-# Mount at root: serve index.html for unknown paths (SPA fallback)
-app.mount(
-    "/",
-    StaticFiles(directory=DIST_DIR, html=True),
-    name="spa",
-)
+if DIST_DIR.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=DIST_DIR, html=True),
+        name="spa",
+    )
+else:
+    logging.warning(f"WARNING: {DIST_DIR} does not exist. Frontend will not be served.")
 
 @app.get("/health")
 def health_check():
