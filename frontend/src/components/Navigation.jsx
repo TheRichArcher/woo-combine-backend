@@ -9,7 +9,7 @@ export default function Navigation() {
   return (
     <nav className="bg-cmf-contrast text-cmf-accent p-4 shadow-md">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
-        <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow">Central Mass Flag</div>
+        <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow">Woo-Combine</div>
         <div className="flex items-center space-x-2 sm:space-x-4">
           <NavLink
             to="/dashboard"

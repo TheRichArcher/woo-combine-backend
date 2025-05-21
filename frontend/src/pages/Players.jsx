@@ -52,14 +52,14 @@ export default function Players() {
         <span role="img" aria-label="event">🏷️</span>
         Managing: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}
       </div>
-      <h1 className="text-3xl font-bold mb-6 text-center">Players</h1>
+      <h1 className="text-3xl font-extrabold mb-6 text-center text-cmf-primary drop-shadow">Woo-Combine: Players</h1>
       {Object.keys(grouped).sort().map(ageGroup => {
         const sortedPlayers = grouped[ageGroup].slice().sort((a, b) => b.composite_score - a.composite_score);
         return (
           <div key={ageGroup} className="mb-8">
-            <h2 className="text-xl font-semibold mb-2">Age Group: {ageGroup}</h2>
-            <div className="bg-white rounded shadow p-4">
-              <table className="w-full text-left">
+            <h2 className="text-xl font-bold mb-2 text-cmf-secondary">Age Group: {ageGroup}</h2>
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <table className="w-full text-left text-sm">
                 <thead>
                   <tr>
                     <th className="py-2 px-2">Rank</th>
@@ -82,7 +82,7 @@ export default function Players() {
                         <td className="py-2 px-2">
                           <button
                             onClick={() => toggleForm(player.id)}
-                            className="text-blue-500 underline text-sm"
+                            className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
                           >
                             {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
                           </button>
@@ -90,7 +90,7 @@ export default function Players() {
                       </tr>
                       {expandedPlayerIds[player.id] && (
                         <tr>
-                          <td colSpan={5}>
+                          <td colSpan={5} className="bg-cmf-light">
                             <DrillInputForm
                               playerId={player.id}
                               onSuccess={fetchPlayers}

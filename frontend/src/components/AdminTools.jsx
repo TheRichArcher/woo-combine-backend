@@ -130,25 +130,25 @@ export default function AdminTools() {
   if (!isAdmin) return null;
 
   return (
-    <div className="bg-white rounded shadow p-6 mt-12 max-w-md mx-auto">
-      <div className="mb-4 text-lg font-semibold flex items-center gap-2">
+    <div className="bg-white rounded-xl shadow-lg p-6 mt-12 max-w-md mx-auto">
+      <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-cmf-primary">
         <span role="img" aria-label="event">🏷️</span>
         Managing: {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
       </div>
       {/* Reset Tool */}
       <div className="mb-8">
-        <label className="block mb-1 font-medium">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
+        <label className="block mb-1 font-bold">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
         <input
           type="text"
           value={confirmInput}
           onChange={e => setConfirmInput(e.target.value)}
-          className="w-full border rounded px-3 py-2"
+          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           disabled={status === "success"}
         />
         <button
           disabled={confirmInput !== "REMOVE" || status === "loading" || status === "success" || !selectedEvent}
           onClick={handleReset}
-          className="bg-red-500 text-white px-4 py-2 rounded disabled:opacity-50 mt-2"
+          className="bg-red-500 text-white font-bold px-4 py-2 rounded-lg shadow mt-2 disabled:opacity-50 hover:bg-red-600 transition"
         >
           {status === "loading" ? "Resetting..." : "Reset All Players"}
         </button>
@@ -157,14 +157,14 @@ export default function AdminTools() {
       </div>
       {/* CSV Upload Tool */}
       <div className="mb-4">
-        <label className="block mb-1 font-medium">Bulk CSV Upload</label>
+        <label className="block mb-1 font-bold">Bulk CSV Upload</label>
         <input
           type="file"
           accept=".csv"
           onChange={handleCsv}
           className="mb-2"
         />
-        {csvFileName && <div className="text-xs text-gray-500 mb-2">{csvFileName}</div>}
+        {csvFileName && <div className="text-xs text-cmf-secondary mb-2">{csvFileName}</div>}
         {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join("; ")}</div>}
         {csvRows.length > 0 && csvErrors.length === 0 && (
           <div className="overflow-x-auto max-h-64 border rounded mb-2">
@@ -194,7 +194,7 @@ export default function AdminTools() {
           </div>
         )}
         <button
-          className="bg-blue-500 text-white px-4 py-2 rounded disabled:opacity-50"
+          className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition"
           disabled={!allRowsValid || uploadStatus === "loading" || !selectedEvent}
           onClick={handleUpload}
         >
