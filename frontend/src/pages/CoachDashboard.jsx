@@ -141,6 +141,10 @@ export default function CoachDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 container space-y-6">
+        {/* PHASE 3 TAILWIND TEST BANNER */}
+        <div className="bg-blue-100 text-center text-xl p-4 rounded font-bold mb-6">
+          🏗️ Woo-Combine UI Build: Phase 3 (Tailwind Styling In Progress)
+        </div>
         {/* Header & Title Block */}
         <header className="space-y-1 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-gray-800">Woo Combine: Coach Dashboard</h1>
