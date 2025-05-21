@@ -139,28 +139,28 @@ export default function CoachDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="min-h-screen bg-cmf-light text-cmf-contrast font-sans">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 container space-y-6">
         {/* PHASE 3 TAILWIND TEST BANNER */}
-        <div className="bg-blue-100 text-center text-xl p-4 rounded font-bold mb-6">
+        <div className="bg-cmf-primary/10 text-center text-xl p-4 rounded font-bold mb-6 text-cmf-primary">
           🏗️ Woo-Combine UI Build: Phase 3 (Tailwind Styling In Progress)
         </div>
         {/* Header & Title Block */}
         <header className="space-y-1 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-gray-800">Woo Combine: Coach Dashboard</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-4xl font-extrabold tracking-tight text-cmf-primary drop-shadow">Woo Combine: Coach Dashboard</h1>
+          <p className="text-base text-cmf-secondary">
             {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
           </p>
         </header>
         {/* Age Group Dropdown */}
-        <section className="bg-white rounded shadow p-6">
+        <section className="bg-white rounded-xl shadow-lg p-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Age Group</label>
+              <label className="block text-sm font-bold text-cmf-contrast mb-1">Select Age Group</label>
               <select
                 value={selectedAgeGroup}
                 onChange={e => setSelectedAgeGroup(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-cmf-secondary shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
               >
                 <option value="">Select Age Group</option>
                 {ageGroups.map(group => (
@@ -173,12 +173,12 @@ export default function CoachDashboard() {
           </div>
         </section>
         {/* Drill Weight Controls */}
-        <div className="bg-white rounded shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Adjust Drill Weighting</h2>
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <h2 className="text-2xl font-bold mb-4 text-cmf-secondary">Adjust Drill Weighting</h2>
           <div className="grid gap-4 md:grid-cols-2">
             {DRILLS.map(drill => (
               <div key={drill.key} className="flex items-center gap-4">
-                <label className="w-40 font-semibold">{drill.label}</label>
+                <label className="w-40 font-semibold text-cmf-contrast">{drill.label}</label>
                 <input
                   type="range"
                   min={0}
@@ -186,22 +186,22 @@ export default function CoachDashboard() {
                   step={0.01}
                   value={weights[drill.key]}
                   onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-                  className="flex-1 accent-blue-600"
+                  className="flex-1 accent-cmf-primary h-2 rounded-lg bg-cmf-secondary/20"
                 />
-                <span className="w-12 text-right font-mono">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+                <span className="w-12 text-right font-mono text-cmf-primary">{parseFloat(weights[drill.key]).toFixed(2)}</span>
               </div>
             ))}
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mt-6">
             <button
               onClick={handleReset}
-              className="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
+              className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-primary focus:outline-none focus:ring-2 focus:ring-cmf-primary transition"
             >
               Reset to Default
             </button>
             <button
               onClick={handleUpdateRankings}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-700"
+              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary focus:outline-none focus:ring-2 focus:ring-cmf-secondary transition"
             >
               Update Rankings
             </button>

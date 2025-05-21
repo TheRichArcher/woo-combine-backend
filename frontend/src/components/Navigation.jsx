@@ -7,14 +7,14 @@ export default function Navigation() {
   const { user } = useAuth();
 
   return (
-    <nav className="bg-gray-800 text-white p-4">
+    <nav className="bg-cmf-contrast text-cmf-accent p-4 shadow-md">
       <div className="container mx-auto flex flex-wrap items-center justify-between">
-        <div className="text-xl font-bold">Woo-Combine</div>
-        <div className="flex items-center space-x-4">
+        <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow">Central Mass Flag</div>
+        <div className="flex items-center space-x-2 sm:space-x-4">
           <NavLink
             to="/dashboard"
             className={({ isActive }) =>
-              `px-3 py-2 rounded-md ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`
+              `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
             }
           >
             Dashboard
@@ -22,7 +22,7 @@ export default function Navigation() {
           <NavLink
             to="/players"
             className={({ isActive }) =>
-              `px-3 py-2 rounded-md ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`
+              `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
             }
           >
             Players
@@ -31,7 +31,7 @@ export default function Navigation() {
             <NavLink
               to="/admin"
               className={({ isActive }) =>
-                `px-3 py-2 rounded-md ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`
+                `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
               }
             >
               Admin
@@ -42,7 +42,7 @@ export default function Navigation() {
               <NavLink
                 to="/login"
                 className={({ isActive }) =>
-                  `px-3 py-2 rounded-md ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`
+                  `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
                 }
               >
                 Login
@@ -50,7 +50,7 @@ export default function Navigation() {
               <NavLink
                 to="/signup"
                 className={({ isActive }) =>
-                  `px-3 py-2 rounded-md ${isActive ? 'bg-gray-900' : 'hover:bg-gray-700'}`
+                  `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
                 }
               >
                 Sign Up
@@ -59,7 +59,7 @@ export default function Navigation() {
           ) : (
             <button
               onClick={() => auth.signOut()}
-              className="px-3 py-2 rounded-md hover:bg-gray-700"
+              className="px-3 py-2 rounded-lg font-semibold transition hover:bg-cmf-primary/10 hover:text-cmf-primary"
             >
               Logout
             </button>
