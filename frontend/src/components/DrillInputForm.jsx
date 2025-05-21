@@ -46,14 +46,14 @@ export default function DrillInputForm({ playerId, onSuccess }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded shadow w-full max-w-md mx-auto mb-6">
-      <h2 className="text-xl font-semibold mb-4">Submit Drill Result</h2>
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-auto mb-6">
+      <h2 className="text-xl font-bold mb-4 text-cmf-primary">Submit Drill Result</h2>
       <div className="mb-4">
-        <label className="block mb-1">Drill Type</label>
+        <label className="block mb-1 font-semibold">Drill Type</label>
         <select
           value={type}
           onChange={e => setType(e.target.value)}
-          className="w-full border rounded px-3 py-2"
+          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           required
         >
           <option value="">Select a drill</option>
@@ -63,13 +63,13 @@ export default function DrillInputForm({ playerId, onSuccess }) {
         </select>
       </div>
       <div className="mb-4">
-        <label className="block mb-1">Value</label>
+        <label className="block mb-1 font-semibold">Value</label>
         <input
           type="number"
           step="any"
           value={value}
           onChange={e => setValue(e.target.value)}
-          className="w-full border rounded px-3 py-2"
+          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           required
         />
       </div>
@@ -77,7 +77,7 @@ export default function DrillInputForm({ playerId, onSuccess }) {
       {success && <div className="text-green-600 mb-2 text-sm">{success}</div>}
       <button
         type="submit"
-        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+        className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-2 rounded-lg shadow transition"
         disabled={loading}
       >
         {loading ? "Submitting..." : "Submit Result"}
