@@ -139,27 +139,35 @@ export default function CoachDashboard() {
   };
 
   return (
-    <div className="font-sans min-h-screen bg-gray-50">
-      <div className="bg-yellow-200 text-black p-2 mb-2 text-center font-bold rounded">Visibly Updated</div>
-      <div className="max-w-4xl mx-auto p-4">
-        <div className="mb-4 text-lg font-semibold flex items-center gap-2">
-          <span role="img" aria-label="event">🏷️</span>
-          Managing: {selectedEvent?.name} – {selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : ""}
-        </div>
-        <h1 className="text-3xl font-bold mb-4 text-center">Coach Dashboard</h1>
-        <div className="bg-white rounded shadow p-6 mb-8">
-          <h2 className="text-xl font-semibold mb-4">Select Age Group</h2>
-          <select
-            value={selectedAgeGroup}
-            onChange={e => setSelectedAgeGroup(e.target.value)}
-            className="border rounded p-2 w-full max-w-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value="">Select Age Group</option>
-            {ageGroups.map(group => (
-              <option key={group} value={group}>{group}</option>
-            ))}
-          </select>
-        </div>
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+      <div className="max-w-4xl mx-auto p-4 sm:p-6 container space-y-6">
+        {/* Header & Title Block */}
+        <header className="space-y-1 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-800">Woo Combine: Coach Dashboard</h1>
+          <p className="text-sm text-gray-500">
+            {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
+          </p>
+        </header>
+        {/* Age Group Dropdown */}
+        <section className="bg-white rounded shadow p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Age Group</label>
+              <select
+                value={selectedAgeGroup}
+                onChange={e => setSelectedAgeGroup(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value="">Select Age Group</option>
+                {ageGroups.map(group => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
+            {/* Placeholder for future filters */}
+            <div></div>
+          </div>
+        </section>
         {/* Drill Weight Controls */}
         <div className="bg-white rounded shadow p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">Adjust Drill Weighting</h2>
