@@ -24,9 +24,11 @@ app.include_router(events_router)
 
 # Path to the folder that contains index.html (adjust if different)
 DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+ASSETS_DIR = DIST_DIR / "assets"
 
-# Serve /assets/* etc. if Vite didn't already mount them
-app.mount("/assets", StaticFiles(directory=DIST_DIR / "assets"), name="assets")
+# Only mount /assets if the directory exists
+if ASSETS_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=ASSETS_DIR), name="assets")
 
 @app.get("/{full_path:path}", include_in_schema=False)
 async def spa_fallback(full_path: str):
