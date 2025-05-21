@@ -1,3 +1,5 @@
+console.log('TAILWIND CONFIG __dirname:', __dirname);
+
 module.exports = {
   content: [
     "./frontend/index.html",
