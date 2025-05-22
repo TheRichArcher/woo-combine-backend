@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import QRCode from 'qrcode.react';
+import QRCode from 'react-qr-code';
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -72,7 +72,9 @@ export default function CreateLeague() {
               <div className="text-2xl font-mono bg-gray-100 rounded p-2 inline-block mt-1">{joinCode}</div>
             </div>
             <div className="mb-4">
-              <QRCode value={`https://woo-combine.com/join/${joinCode}`} size={180} />
+              <div className="flex justify-center">
+                <QRCode value={`https://woo-combine.com/join/${joinCode}`} size={180} />
+              </div>
               <div className="text-xs mt-2">Scan to join: <br />https://woo-combine.com/join/{joinCode}</div>
             </div>
             <div className="text-green-600 font-semibold">Share this code or QR with coaches to join your league!</div>
