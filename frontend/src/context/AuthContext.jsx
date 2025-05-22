@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user) {
       // Fetch leagues for this user
-      fetch(`${API}/users/${user.uid}/leagues`)
+      fetch(`${API}/leagues/me?user_id=${user.uid}`)
         .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch leagues'))
         .then(data => {
           setLeagues(data.leagues || []);
