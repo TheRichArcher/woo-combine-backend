@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import EventSelector from "../components/EventSelector";
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -147,6 +148,7 @@ export default function CoachDashboard() {
   return (
     <div className="min-h-screen bg-cmf-light text-cmf-contrast font-sans">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 container space-y-6">
+        <EventSelector />
         {/* Header & Title Block */}
         <header className="space-y-1 text-center">
           <h1 className="text-4xl font-extrabold tracking-tight text-cmf-primary drop-shadow">Woo Combine: Coach Dashboard</h1>

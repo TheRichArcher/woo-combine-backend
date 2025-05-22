@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
+import EventSelector from "./EventSelector";
 
 const REQUIRED_HEADERS = [
   "name",
@@ -171,6 +172,7 @@ export default function AdminTools() {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mt-12 max-w-md mx-auto">
+      <EventSelector />
       <AdminOnboardingCallout />
       <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-cmf-primary">
         <span role="img" aria-label="event">🏷️</span>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import EventSelector from "../components/EventSelector";
 
 const API = import.meta.env.VITE_API_URL;
 
@@ -67,6 +68,7 @@ export default function Players() {
 
   return (
     <div className="max-w-2xl mx-auto py-8">
+      <EventSelector />
       <div className="mb-4 text-lg font-semibold flex items-center gap-2">
         <span role="img" aria-label="event">🏷️</span>
         Managing: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}
