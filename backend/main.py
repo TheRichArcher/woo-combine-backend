@@ -7,7 +7,7 @@ from backend.routes.leagues import router as leagues_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import os
 
 app = FastAPI()
@@ -62,6 +62,6 @@ async def startup_event():
 # TEMPORARY: Add league_id column if missing
 engine = create_engine(os.environ["DATABASE_URL"])
 with engine.connect() as conn:
-    conn.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;")
+    conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;"))
 
 # from routes import players, drills, auth  # To be registered later 
