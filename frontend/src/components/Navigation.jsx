@@ -41,6 +41,16 @@ export default function Navigation() {
           </NavLink>
           {user && (
             <NavLink
+              to="/create-league"
+              className={({ isActive }) =>
+                `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
+              }
+            >
+              Create or Join League
+            </NavLink>
+          )}
+          {user && (
+            <NavLink
               to="/admin"
               className={({ isActive }) =>
                 `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const EventContext = createContext();
 
@@ -48,11 +49,26 @@ export function EventProvider({ children }) {
 
   // Fallback UI for missing league
   function LeagueFallback() {
+    const navigate = useNavigate();
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No League Selected</h2>
-          <p className="text-cmf-secondary">Please join or create a league to continue.</p>
+          <p className="text-cmf-secondary mb-4">Please join or create a league to continue.</p>
+          <div className="flex gap-4 justify-center">
+            <button
+              className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold"
+              onClick={() => navigate('/create-league')}
+            >
+              Create League
+            </button>
+            <button
+              className="bg-cmf-secondary text-white px-4 py-2 rounded font-semibold"
+              onClick={() => navigate('/join')}
+            >
+              Join League
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import QRCode from 'qrcode.react';
 
 const API = import.meta.env.VITE_API_URL;
 
 export default function CreateLeague() {
-  const { user } = useAuth();
+  const { user, addLeague } = useAuth();
+  const navigate = useNavigate();
   const [leagueName, setLeagueName] = useState('');
   const [joinCode, setJoinCode] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -29,6 +31,10 @@ export default function CreateLeague() {
       if (!res.ok) throw new Error('Failed to create league');
       const data = await res.json();
       setJoinCode(data.join_code);
+      if (addLeague) {
+        addLeague({ id: data.join_code, name: leagueName, role: 'organizer' });
+        navigate('/dashboard');
+      }
     } catch (err) {
       setError(err.message || 'Error creating league');
     } finally {

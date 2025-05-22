@@ -9,6 +9,8 @@ import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import RequireAuth from "./context/RequireAuth";
+import CreateLeague from "./pages/CreateLeague";
+import JoinLeague from "./pages/JoinLeague";
 
 function App() {
   return (
@@ -46,6 +48,8 @@ function App() {
                 />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
+                <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
+                <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
               </Routes>
             </div>
           </div>
