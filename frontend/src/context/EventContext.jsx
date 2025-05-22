@@ -9,11 +9,16 @@ export function EventProvider({ children }) {
   const { selectedLeagueId } = useAuth();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [noLeague, setNoLeague] = useState(false);
 
   // Load events from backend
   useEffect(() => {
     async function fetchEvents() {
-      if (!selectedLeagueId) return;
+      if (!selectedLeagueId) {
+        setNoLeague(true);
+        return;
+      }
+      setNoLeague(false);
       try {
         const url = `${API}/events?league_id=${selectedLeagueId}`;
         const res = await fetch(url);
@@ -41,8 +46,20 @@ export function EventProvider({ children }) {
     }
   }, [selectedEvent]);
 
+  // Fallback UI for missing league
+  function LeagueFallback() {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
+          <h2 className="text-2xl font-bold text-yellow-600 mb-4">No League Selected</h2>
+          <p className="text-cmf-secondary">Please join or create a league to continue.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <EventContext.Provider value={{ events, selectedEvent, setSelectedEvent, setEvents }}>
+    <EventContext.Provider value={{ events, selectedEvent, setSelectedEvent, setEvents, noLeague, LeagueFallback }}>
       {children}
     </EventContext.Provider>
   );

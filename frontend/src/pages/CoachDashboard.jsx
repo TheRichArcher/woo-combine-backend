@@ -20,7 +20,7 @@ const DRILLS = [
 const API = import.meta.env.VITE_API_URL;
 
 export default function CoachDashboard() {
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, noLeague, LeagueFallback } = useEvent();
   const { user, selectedLeagueId } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
@@ -141,6 +141,8 @@ export default function CoachDashboard() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  if (noLeague) return <LeagueFallback />;
 
   return (
     <div className="min-h-screen bg-cmf-light text-cmf-contrast font-sans">
