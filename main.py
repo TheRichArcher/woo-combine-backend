@@ -11,6 +11,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Register routers
+from backend.routes import leagues, players, drills, events
+app.include_router(leagues.router)
+app.include_router(players.router)
+app.include_router(drills.router)
+app.include_router(events.router)
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
