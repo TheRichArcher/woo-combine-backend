@@ -1,6 +1,6 @@
 """Add league_id to Event
 
-Revision ID: 0d1bed3193cd
+Revision ID: 0d1bed3193cdX
 Revises: c9496434813f
 Create Date: 2025-05-22 11:47:34.307814
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '0d1bed3193cd'
+revision: str = '0d1bed3193cdX'
 down_revision: Union[str, None] = 'c9496434813f'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
