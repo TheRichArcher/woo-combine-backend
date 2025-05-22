@@ -70,4 +70,16 @@ def join_league(code: str, req: JoinLeagueRequest, db: Session = Depends(get_db)
     user_league = UserLeague(user_id=req.user_id, league_id=code, role=RoleEnum.coach)
     db.add(user_league)
     db.commit()
-    return {"joined": True, "league_id": code, "league_name": league.name} 
+    return {"joined": True, "league_id": code, "league_name": league.name}
+
+def verify_user_in_league(user_id: str, league_id: str, db: Session) -> bool:
+    return db.query(UserLeague).filter_by(user_id=user_id, league_id=league_id).first() is not None
+
+@router.get('/leagues/me')
+def get_my_leagues(user_id: str, db: Session = Depends(get_db)):
+    user_leagues = db.query(UserLeague).filter_by(user_id=user_id).all()
+    return [{
+        'league_id': ul.league_id,
+        'league_name': ul.league.name,
+        'role': ul.role.value
+    } for ul in user_leagues] 

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from backend.db import SessionLocal
-from backend.models import Player, PlayerSchema, DrillResult
+from backend.models import Player, PlayerSchema, DrillResult, Event, UserLeague
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID
+from backend.routes.leagues import verify_user_in_league
 
 router = APIRouter()
 
@@ -35,7 +36,12 @@ def get_db():
         db.close()
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(event_id: UUID = Query(...), db: Session = Depends(get_db)):
+def get_players(event_id: UUID = Query(...), user_id: str = Query(...), db: Session = Depends(get_db)):
+    event = db.query(Event).filter_by(id=event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not verify_user_in_league(user_id, event.league_id, db):
+        raise HTTPException(status_code=403, detail="User not in league")
     players = db.query(Player).filter(Player.event_id == event_id).all()
     result = []
     for player in players:
@@ -70,7 +76,12 @@ class UploadRequest(BaseModel):
     players: List[Dict[str, Any]]
 
 @router.post("/players/upload")
-def upload_players(req: UploadRequest, db: Session = Depends(get_db)):
+def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = Depends(get_db)):
+    event = db.query(Event).filter_by(id=req.event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not verify_user_in_league(user_id, event.league_id, db):
+        raise HTTPException(status_code=403, detail="User not in league")
     event_id = req.event_id
     players = req.players
     required_fields = ["name", "number", "age_group"]

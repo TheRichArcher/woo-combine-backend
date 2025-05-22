@@ -30,6 +30,8 @@ class Event(Base):
     name = Column(String, nullable=False)
     date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+    league_id = Column(String, ForeignKey('leagues.id'), nullable=False)
+    league = relationship('League', back_populates='events')
 
 class User(Base):
     __tablename__ = 'users'
@@ -45,6 +47,7 @@ class League(Base):
     created_by_user_id = Column(String, ForeignKey('users.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     users = relationship('UserLeague', back_populates='league')
+    events = relationship('Event', back_populates='league')
 
 class RoleEnum(enum.Enum):
     organizer = 'organizer'
