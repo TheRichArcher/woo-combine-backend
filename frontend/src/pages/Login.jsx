@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase";
 import { useAuth } from "../context/AuthContext";
@@ -9,6 +9,12 @@ export default function Login() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { user, loading, error } = useAuth();
+
+  useEffect(() => {
+    if (user) {
+      window.location.href = "/dashboard";
+    }
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
