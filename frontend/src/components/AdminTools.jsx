@@ -127,10 +127,39 @@ export default function AdminTools() {
     }
   };
 
-  if (!isAdmin) return null;
+  // Onboarding callout for admin
+  const AdminOnboardingCallout = () => (
+    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded">
+      <strong>Welcome, Admin.</strong> Manage your combine tools below.
+    </div>
+  );
+
+  if (!isAdmin) {
+    console.log('[AdminTools] Non-admin user attempted to access admin tools.');
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Admin Access Required</h2>
+          <p className="text-cmf-secondary">You do not have permission to view this page.<br/>Please log in with an admin account.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedEvent) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
+          <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
+          <p className="text-cmf-secondary">Please select or create an event to use admin tools.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mt-12 max-w-md mx-auto">
+      <AdminOnboardingCallout />
       <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-cmf-primary">
         <span role="img" aria-label="event">🏷️</span>
         Managing: {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}

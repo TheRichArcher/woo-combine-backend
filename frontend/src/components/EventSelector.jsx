@@ -39,24 +39,30 @@ export default function EventSelector() {
   };
 
   return (
-    <div className="flex items-center gap-4 mb-6">
-      <select
-        value={selectedEvent?.id || ""}
-        onChange={handleSelect}
-        className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-      >
-        {events.map(ev => (
-          <option key={ev.id} value={ev.id}>
-            {ev.name} – {new Date(ev.date).toLocaleDateString()}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={() => setShowModal(true)}
-        className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition"
-      >
-        Create New Event
-      </button>
+    <div className="flex flex-col gap-2 mb-6">
+      {events.length === 0 && (
+        <div className="text-center text-cmf-secondary text-lg font-semibold py-2">No events found. Please create a new event.</div>
+      )}
+      <div className="flex items-center gap-4">
+        <select
+          value={selectedEvent?.id || ""}
+          onChange={handleSelect}
+          className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+          disabled={events.length === 0}
+        >
+          {events.map(ev => (
+            <option key={ev.id} value={ev.id}>
+              {ev.name} – {new Date(ev.date).toLocaleDateString()}
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => setShowModal(true)}
+          className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition"
+        >
+          Create New Event
+        </button>
+      </div>
       {showModal && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
