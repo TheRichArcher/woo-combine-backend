@@ -14,6 +14,10 @@ export function AuthProvider({ children }) {
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
   const [role, setRole] = useState(null); // 'organizer' | 'coach'
 
+  useEffect(() => {
+    console.log('[AuthContext] user:', user, 'loading:', loading, 'error:', error);
+  }, [user, loading, error]);
+
   // Fetch leagues/roles from backend after login
   useEffect(() => {
     if (user) {
