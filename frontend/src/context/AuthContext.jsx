@@ -45,6 +45,18 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem('selectedLeagueId');
   }, [selectedLeagueId]);
 
+  // Subscribe to Firebase Auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+    }, (err) => {
+      setError(err);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Add league after join
   const addLeague = (league) => {
     setLeagues(prev => {
