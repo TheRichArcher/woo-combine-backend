@@ -4,6 +4,8 @@ import { onAuthStateChanged } from "firebase/auth";
 
 const AuthContext = createContext();
 
+const API = import.meta.env.VITE_API_URL;
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user) {
       // Fetch leagues for this user
-      fetch(`/users/${user.uid}/leagues`)
+      fetch(`${API}/users/${user.uid}/leagues`)
         .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch leagues'))
         .then(data => {
           setLeagues(data.leagues || []);

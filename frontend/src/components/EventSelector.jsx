@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useEvent } from "../context/EventContext";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function EventSelector() {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
   const [showModal, setShowModal] = useState(false);
@@ -19,7 +21,7 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/events", {
+      const res = await fetch(`${API}/events`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, date }),

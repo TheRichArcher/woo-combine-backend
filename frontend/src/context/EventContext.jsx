@@ -2,6 +2,8 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 
 const EventContext = createContext();
 
+const API = import.meta.env.VITE_API_URL;
+
 export function EventProvider({ children }) {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -10,7 +12,7 @@ export function EventProvider({ children }) {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const res = await fetch("/events");
+        const res = await fetch(`${API}/events`);
         const data = await res.json();
         setEvents(data);
         // Auto-select from localStorage or default to first event

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ export default function JoinLeague() {
     setError('');
     setSuccess(false);
     try {
-      const res = await fetch(`/leagues/join/${joinCode}`, {
+      const res = await fetch(`${API}/leagues/join/${joinCode}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

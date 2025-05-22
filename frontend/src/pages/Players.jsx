@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Players() {
   const { selectedEvent } = useEvent();
   const [players, setPlayers] = useState([]);
@@ -24,7 +26,7 @@ export default function Players() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/players?event_id=${selectedEvent.id}`);
+      const res = await fetch(`${API}/players?event_id=${selectedEvent.id}`);
       if (!res.ok) throw new Error("Failed to fetch players");
       const data = await res.json();
       setPlayers(data);

@@ -16,6 +16,8 @@ const DRILLS = [
   { key: "agility", label: "Agility" },
 ];
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function CoachDashboard() {
   const { selectedEvent } = useEvent();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
@@ -31,7 +33,7 @@ export default function CoachDashboard() {
     async function fetchPlayers() {
       if (!selectedEvent) return;
       try {
-        const res = await fetch(`/players?event_id=${selectedEvent.id}`);
+        const res = await fetch(`${API}/players?event_id=${selectedEvent.id}`);
         if (!res.ok) throw new Error("Failed to fetch players");
         const data = await res.json();
         setPlayers(data);
@@ -54,7 +56,7 @@ export default function CoachDashboard() {
     setLoading(true);
     setError(null);
     setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-    fetch(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
+    fetch(`${API}/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch rankings");
         return res.json();
@@ -102,7 +104,7 @@ export default function CoachDashboard() {
     params.append("weight_catching", weights["catching"]);
     params.append("weight_throwing", weights["throwing"]);
     params.append("weight_agility", weights["agility"]);
-    fetch(`/rankings?${params.toString()}`)
+    fetch(`${API}/rankings?${params.toString()}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch rankings");
         return res.json();

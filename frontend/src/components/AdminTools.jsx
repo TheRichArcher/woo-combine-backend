@@ -14,6 +14,8 @@ const REQUIRED_HEADERS = [
 ];
 const AGE_GROUPS = ["7-8", "9-10", "11-12"];
 
+const API = import.meta.env.VITE_API_URL;
+
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
   const headers = lines[0].split(",").map(h => h.trim());
@@ -62,7 +64,7 @@ export default function AdminTools() {
     setStatus("loading");
     setErrorMsg("");
     try {
-      const res = await fetch(`/players/reset?event_id=${selectedEvent.id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/players/reset?event_id=${selectedEvent.id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Reset failed");
       setStatus("success");
       setConfirmInput("");
@@ -102,7 +104,7 @@ export default function AdminTools() {
     setUploadMsg("");
     setBackendErrors([]);
     try {
-      const res = await fetch("/players/upload", {
+      const res = await fetch(`${API}/players/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ event_id: selectedEvent.id, players: csvRows.map(({ errors, ...row }) => row) }),

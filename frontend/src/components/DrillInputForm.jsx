@@ -8,6 +8,8 @@ const DRILL_TYPES = [
   { value: "agility", label: "Agility" },
 ];
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function DrillInputForm({ playerId, onSuccess }) {
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
@@ -25,7 +27,7 @@ export default function DrillInputForm({ playerId, onSuccess }) {
     }
     setLoading(true);
     try {
-      const res = await fetch("/drill-results/", {
+      const res = await fetch(`${API}/drill-results/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ player_id: playerId, type, value: parseFloat(value) }),
