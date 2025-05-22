@@ -23,12 +23,15 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/events`, {
+      const res = await fetch(`${API}/events?user_id=${user?.uid}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, date, user_id: user?.uid, league_id: selectedLeagueId }),
+        body: JSON.stringify({ name, date, league_id: selectedLeagueId }),
       });
-      if (!res.ok) throw new Error("Failed to create event");
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to create event");
+      }
       const newEvent = await res.json();
       setEvents(prev => [newEvent, ...prev]);
       setSelectedEvent(newEvent);
