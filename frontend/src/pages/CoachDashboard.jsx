@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useEvent } from "../context/EventContext";
+import { useAuth } from "../context/AuthContext";
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -20,6 +21,7 @@ const API = import.meta.env.VITE_API_URL;
 
 export default function CoachDashboard() {
   const { selectedEvent } = useEvent();
+  const { user, selectedLeagueId } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -31,9 +33,9 @@ export default function CoachDashboard() {
   // Fetch all players to get available age groups
   useEffect(() => {
     async function fetchPlayers() {
-      if (!selectedEvent) return;
+      if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const res = await fetch(`${API}/players?event_id=${selectedEvent.id}`);
+        const res = await fetch(`${API}/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
         if (!res.ok) throw new Error("Failed to fetch players");
         const data = await res.json();
         setPlayers(data);
@@ -42,21 +44,21 @@ export default function CoachDashboard() {
       }
     }
     fetchPlayers();
-  }, [selectedEvent]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   // Get unique age groups from players
   const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
 
   // Fetch rankings when age group changes (with default weights)
   useEffect(() => {
-    if (!selectedAgeGroup) {
+    if (!selectedAgeGroup || !user || !selectedLeagueId) {
       setRankings([]);
       return;
     }
     setLoading(true);
     setError(null);
     setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-    fetch(`${API}/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
+    fetch(`${API}/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&user_id=${user.uid}&league_id=${selectedLeagueId}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch rankings");
         return res.json();
@@ -70,7 +72,7 @@ export default function CoachDashboard() {
         setRankings([]);
         setLoading(false);
       });
-  }, [selectedAgeGroup]);
+  }, [selectedAgeGroup, user, selectedLeagueId]);
 
   // Handle slider change
   const handleSlider = (key, value) => {
@@ -98,7 +100,7 @@ export default function CoachDashboard() {
     setWeightError("");
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ age_group: selectedAgeGroup });
+    const params = new URLSearchParams({ age_group: selectedAgeGroup, user_id: user.uid, league_id: selectedLeagueId });
     params.append("weight_40m_dash", weights["40m_dash"]);
     params.append("weight_vertical_jump", weights["vertical_jump"]);
     params.append("weight_catching", weights["catching"]);

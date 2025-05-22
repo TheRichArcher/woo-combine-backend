@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
+import { useAuth } from "../context/AuthContext";
 
 const API = import.meta.env.VITE_API_URL;
 
 export default function Players() {
   const { selectedEvent } = useEvent();
+  const { user, selectedLeagueId } = useAuth();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,14 +21,14 @@ export default function Players() {
   );
 
   const fetchPlayers = async () => {
-    if (!selectedEvent) {
-      console.log('[Players] No event selected, skipping player fetch.');
+    if (!selectedEvent || !user || !selectedLeagueId) {
+      console.log('[Players] No event/user/league selected, skipping player fetch.');
       return;
     }
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/players?event_id=${selectedEvent.id}`);
+      const res = await fetch(`${API}/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
       if (!res.ok) throw new Error("Failed to fetch players");
       const data = await res.json();
       setPlayers(data);

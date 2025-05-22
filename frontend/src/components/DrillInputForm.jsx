@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useAuth } from "../context/AuthContext";
 
 const DRILL_TYPES = [
   { value: "40m_dash", label: "40M Dash" },
@@ -11,6 +12,7 @@ const DRILL_TYPES = [
 const API = import.meta.env.VITE_API_URL;
 
 export default function DrillInputForm({ playerId, onSuccess }) {
+  const { user, selectedLeagueId } = useAuth();
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +32,7 @@ export default function DrillInputForm({ playerId, onSuccess }) {
       const res = await fetch(`${API}/drill-results/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: playerId, type, value: parseFloat(value) }),
+        body: JSON.stringify({ player_id: playerId, type, value: parseFloat(value), user_id: user?.uid, league_id: selectedLeagueId }),
       });
       if (!res.ok) {
         const data = await res.json();

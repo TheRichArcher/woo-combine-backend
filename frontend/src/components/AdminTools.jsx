@@ -60,11 +60,11 @@ export default function AdminTools() {
   const [backendErrors, setBackendErrors] = useState([]);
 
   const handleReset = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || !user || !selectedLeagueId) return;
     setStatus("loading");
     setErrorMsg("");
     try {
-      const res = await fetch(`${API}/players/reset?event_id=${selectedEvent.id}`, { method: "DELETE" });
+      const res = await fetch(`${API}/players/reset?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Reset failed");
       setStatus("success");
       setConfirmInput("");
@@ -99,7 +99,7 @@ export default function AdminTools() {
   const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.errors.length === 0);
 
   const handleUpload = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent || !user || !selectedLeagueId) return;
     setUploadStatus("loading");
     setUploadMsg("");
     setBackendErrors([]);
@@ -107,7 +107,7 @@ export default function AdminTools() {
       const res = await fetch(`${API}/players/upload`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_id: selectedEvent.id, players: csvRows.map(({ errors, ...row }) => row) }),
+        body: JSON.stringify({ event_id: selectedEvent.id, players: csvRows.map(({ errors, ...row }) => row), user_id: user.uid, league_id: selectedLeagueId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Upload failed");
