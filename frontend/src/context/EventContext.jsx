@@ -7,7 +7,7 @@ const EventContext = createContext();
 const API = import.meta.env.VITE_API_URL;
 
 export function EventProvider({ children }) {
-  const { selectedLeagueId } = useAuth();
+  const { selectedLeagueId, user } = useAuth();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [noLeague, setNoLeague] = useState(false);
@@ -15,13 +15,13 @@ export function EventProvider({ children }) {
   // Load events from backend
   useEffect(() => {
     async function fetchEvents() {
-      if (!selectedLeagueId) {
+      if (!selectedLeagueId || !user) {
         setNoLeague(true);
         return;
       }
       setNoLeague(false);
       try {
-        const url = `${API}/events?league_id=${selectedLeagueId}`;
+        const url = `${API}/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
         const res = await fetch(url);
         const data = await res.json();
         setEvents(data);
@@ -38,7 +38,7 @@ export function EventProvider({ children }) {
       }
     }
     fetchEvents();
-  }, [selectedLeagueId]);
+  }, [selectedLeagueId, user]);
 
   // Sync selectedEvent to localStorage
   useEffect(() => {
