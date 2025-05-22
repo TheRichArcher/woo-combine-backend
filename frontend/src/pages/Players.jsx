@@ -3,8 +3,7 @@ import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
-
-const API = import.meta.env.VITE_API_URL;
+import api from '../lib/api';
 
 export default function Players() {
   const { selectedEvent } = useEvent();
@@ -29,9 +28,7 @@ export default function Players() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${API}/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
-      if (!res.ok) throw new Error("Failed to fetch players");
-      const data = await res.json();
+      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
       setPlayers(data);
     } catch (err) {
       setError(err.message);

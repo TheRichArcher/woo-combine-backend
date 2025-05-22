@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
-
-const API = import.meta.env.VITE_API_URL;
+import api from '../lib/api';
 
 export default function EventSelector() {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
@@ -23,16 +22,11 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/events?user_id=${user?.uid}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, date, league_id: selectedLeagueId }),
+      const { data: newEvent } = await api.post(`/events?user_id=${user?.uid}`, {
+        name,
+        date,
+        league_id: selectedLeagueId
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.detail || "Failed to create event");
-      }
-      const newEvent = await res.json();
       setEvents(prev => [newEvent, ...prev]);
       setSelectedEvent(newEvent);
       setShowModal(false);

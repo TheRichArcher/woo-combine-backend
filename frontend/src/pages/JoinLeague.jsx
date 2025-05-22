@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
-
-const API = import.meta.env.VITE_API_URL;
+import api from '../lib/api';
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -24,16 +23,10 @@ export default function JoinLeague() {
     setError('');
     setSuccess(false);
     try {
-      const res = await fetch(`${API}/leagues/join/${joinCode}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user?.uid,
-          email: user?.email,
-        }),
+      const { data } = await api.post(`/leagues/join/${joinCode}`, {
+        user_id: user?.uid,
+        email: user?.email,
       });
-      if (!res.ok) throw new Error('Failed to join league');
-      const data = await res.json();
       setLeagueName(data.league_name);
       setSuccess(true);
       if (addLeague) addLeague({ id: joinCode, name: data.league_name, role: 'coach' });

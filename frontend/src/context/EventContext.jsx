@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import api from '../lib/api';
 
 const EventContext = createContext();
-
-const API = import.meta.env.VITE_API_URL;
 
 export function EventProvider({ children }) {
   const { selectedLeagueId, user } = useAuth();
@@ -21,9 +20,8 @@ export function EventProvider({ children }) {
       }
       setNoLeague(false);
       try {
-        const url = `${API}/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const url = `/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
+        const { data } = await api.get(url);
         setEvents(data);
         // Auto-select from localStorage or default to first event
         const stored = localStorage.getItem("selectedEventId");

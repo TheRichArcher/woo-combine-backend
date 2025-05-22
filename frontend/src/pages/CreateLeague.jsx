@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import QRCode from 'react-qr-code';
-
-const API = import.meta.env.VITE_API_URL;
+import api from '../lib/api';
 
 export default function CreateLeague() {
   const { user, addLeague } = useAuth();
@@ -19,17 +18,11 @@ export default function CreateLeague() {
     setError('');
     setJoinCode(null);
     try {
-      const res = await fetch(`${API}/leagues`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: leagueName,
-          user_id: user?.uid,
-          email: user?.email,
-        }),
+      const { data } = await api.post('/leagues', {
+        name: leagueName,
+        user_id: user?.uid,
+        email: user?.email,
       });
-      if (!res.ok) throw new Error('Failed to create league');
-      const data = await res.json();
       setJoinCode(data.join_code);
       if (addLeague) {
         addLeague({ id: data.join_code, name: leagueName, role: 'organizer' });

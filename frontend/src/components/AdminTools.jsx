@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
+import api from '../lib/api';
 
 const REQUIRED_HEADERS = [
   "name",
@@ -14,8 +15,6 @@ const REQUIRED_HEADERS = [
   "agility",
 ];
 const AGE_GROUPS = ["7-8", "9-10", "11-12"];
-
-const API = import.meta.env.VITE_API_URL;
 
 function parseCsv(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -65,8 +64,7 @@ export default function AdminTools() {
     setStatus("loading");
     setErrorMsg("");
     try {
-      const res = await fetch(`${API}/players/reset?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Reset failed");
+      await api.delete(`/players/reset?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
       setStatus("success");
       setConfirmInput("");
     } catch (err) {
@@ -105,13 +103,12 @@ export default function AdminTools() {
     setUploadMsg("");
     setBackendErrors([]);
     try {
-      const res = await fetch(`${API}/players/upload`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event_id: selectedEvent.id, players: csvRows.map(({ errors, ...row }) => row), user_id: user.uid, league_id: selectedLeagueId }),
+      const { data } = await api.post(`/players/upload`, {
+        event_id: selectedEvent.id,
+        players: csvRows.map(({ errors, ...row }) => row),
+        user_id: user.uid,
+        league_id: selectedLeagueId
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Upload failed");
       if (data.errors && data.errors.length > 0) {
         setBackendErrors(data.errors);
         setUploadStatus("error");
