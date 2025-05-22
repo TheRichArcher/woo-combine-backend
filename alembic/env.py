@@ -7,6 +7,8 @@ from alembic import context
 
 import sys
 import os
+from dotenv import load_dotenv
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 from backend.models import Base
 
@@ -30,6 +32,11 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', 'backend', '.env'))
+
+db_url = os.environ.get('DATABASE_URL')
+if db_url:
+    config.set_main_option('sqlalchemy.url', db_url)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

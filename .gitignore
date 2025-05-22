@@ -106,4 +106,7 @@ cython_debug/
 node_modules/
 
 # Local backup
-README.local.bak 
+README.local.bak
+
+# Ignore backend environment variables
+backend/.env 
