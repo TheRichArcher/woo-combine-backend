@@ -9,8 +9,18 @@ export default function Players() {
   const [error, setError] = useState(null);
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
 
+  // Onboarding callout
+  const OnboardingCallout = () => (
+    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded">
+      <strong>Tip:</strong> Select an event to manage players and record results.
+    </div>
+  );
+
   const fetchPlayers = async () => {
-    if (!selectedEvent) return;
+    if (!selectedEvent) {
+      console.log('[Players] No event selected, skipping player fetch.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -41,7 +51,12 @@ export default function Players() {
     return acc;
   }, {});
 
-  if (!selectedEvent) return <div>Loading event...</div>;
+  if (!selectedEvent) return (
+    <div className="flex flex-col items-center justify-center min-h-[40vh]">
+      <OnboardingCallout />
+      <div className="text-center text-cmf-secondary text-xl font-semibold py-8">No event selected.<br/>Please choose an event to view players.</div>
+    </div>
+  );
   if (loading) return <div>Loading players...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
   if (players.length === 0) return <div>No players found.</div>;
