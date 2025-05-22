@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import QRCode from 'qrcode.react/qr-code';
+import QRCode from 'qrcode.react';
 
 const API = import.meta.env.VITE_API_URL;
 
