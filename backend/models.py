@@ -1,7 +1,9 @@
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Table, Enum
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from datetime import datetime
+import enum
 
 Base = declarative_base()
 
@@ -28,6 +30,35 @@ class Event(Base):
     name = Column(String, nullable=False)
     date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class User(Base):
+    __tablename__ = 'users'
+    id = Column(String, primary_key=True, index=True)  # Firebase UID
+    email = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    leagues = relationship('UserLeague', back_populates='user')
+
+class League(Base):
+    __tablename__ = 'leagues'
+    id = Column(String, primary_key=True, index=True)  # Short join code
+    name = Column(String, nullable=False)
+    created_by_user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    users = relationship('UserLeague', back_populates='league')
+
+class RoleEnum(enum.Enum):
+    organizer = 'organizer'
+    coach = 'coach'
+
+class UserLeague(Base):
+    __tablename__ = 'user_leagues'
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    league_id = Column(String, ForeignKey('leagues.id'), nullable=False)
+    role = Column(Enum(RoleEnum), nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    user = relationship('User', back_populates='leagues')
+    league = relationship('League', back_populates='users')
 
 # Pydantic schemas for API
 class PlayerSchema(BaseModel):

@@ -8,20 +8,64 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [leagues, setLeagues] = useState([]); // [{id, name, role}]
+  const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
+  const [role, setRole] = useState(null); // 'organizer' | 'coach'
 
+  // Fetch leagues/roles from backend after login
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    }, (err) => {
-      setError(err);
-      setLoading(false);
+    if (user) {
+      // Fetch leagues for this user
+      fetch(`/users/${user.uid}/leagues`)
+        .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch leagues'))
+        .then(data => {
+          setLeagues(data.leagues || []);
+          // Set role for selected league
+          const league = data.leagues?.find(l => l.id === selectedLeagueId) || data.leagues?.[0];
+          setRole(league?.role || null);
+          if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
+        })
+        .catch(() => setLeagues([]));
+    } else {
+      setLeagues([]);
+      setRole(null);
+      setSelectedLeagueId('');
+    }
+  }, [user]);
+
+  // Persist selectedLeagueId
+  useEffect(() => {
+    if (selectedLeagueId) localStorage.setItem('selectedLeagueId', selectedLeagueId);
+    else localStorage.removeItem('selectedLeagueId');
+  }, [selectedLeagueId]);
+
+  // Add league after join
+  const addLeague = (league) => {
+    setLeagues(prev => {
+      if (prev.some(l => l.id === league.id)) return prev;
+      return [...prev, league];
     });
-    return () => unsubscribe();
-  }, []);
+    setSelectedLeagueId(league.id);
+    setRole(league.role);
+  };
+
+  // Check if user is organizer for selected league
+  const isOrganizer = () => {
+    return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      error,
+      leagues,
+      selectedLeagueId,
+      setSelectedLeagueId,
+      role,
+      addLeague,
+      isOrganizer,
+    }}>
       {children}
     </AuthContext.Provider>
   );

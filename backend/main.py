@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.players import router as players_router
 from backend.routes.drills import router as drills_router
 from backend.routes.events import router as events_router
+from backend.routes.leagues import router as leagues_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -20,6 +21,7 @@ app.add_middleware(
 app.include_router(players_router)
 app.include_router(drills_router)
 app.include_router(events_router)
+app.include_router(leagues_router)
 
 # Path to the folder that contains index.html (adjust if different)
 DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
