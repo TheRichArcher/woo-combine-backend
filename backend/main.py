@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.players import router as players_router
 from backend.routes.drills import router as drills_router
@@ -44,6 +44,13 @@ def health_check():
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "details": str(e)}
+
+@app.get("/cors-test")
+def cors_test(request: Request):
+    return {
+        "message": "CORS test endpoint",
+        "headers": dict(request.headers)
+    }
 
 @app.on_event("startup")
 async def startup_event():
