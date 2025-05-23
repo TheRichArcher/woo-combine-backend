@@ -18,6 +18,7 @@ function App() {
       <AuthProvider>
         <EventProvider>
           <div className="min-h-screen bg-gray-50">
+            <div style={{ background: 'purple', color: 'white', padding: 12 }}>TEST APP LAYOUT</div>
             <Navigation />
             <div className="container mx-auto px-4 py-8">
               <Routes>
