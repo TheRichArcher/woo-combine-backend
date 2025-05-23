@@ -61,7 +61,18 @@ export default function Players() {
   );
   if (loading) return <div>Loading players...</div>;
   if (error) return <div className="text-red-500">Error: {error}</div>;
-  if (players.length === 0) return <div>No players found.</div>;
+  if (players.length === 0) return (
+    <div className="flex flex-col items-center justify-center min-h-[40vh]">
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+        <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found yet</h2>
+        <p className="text-cmf-secondary mb-4">You can upload a CSV or add them manually to get started.</p>
+        <div className="flex gap-4 justify-center">
+          <a href="#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
+          <a href="#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="max-w-2xl mx-auto py-8">
