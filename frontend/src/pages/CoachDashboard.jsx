@@ -3,6 +3,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
+import { Settings } from 'lucide-react';
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -132,46 +133,44 @@ export default function CoachDashboard() {
     URL.revokeObjectURL(url);
   };
 
+  // Format event date
+  const formattedDate = selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : '';
+
   if (noLeague) return <LeagueFallback />;
 
   return (
-    <div className="min-h-screen bg-cmf-light text-cmf-contrast font-sans">
-      <div className="max-w-4xl mx-auto p-4 sm:p-6 container space-y-6">
+    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-6">
         <EventSelector />
         {/* Header & Title Block */}
-        <header className="space-y-1 text-center">
-          <h1 className="text-4xl font-extrabold tracking-tight text-cmf-primary drop-shadow">Woo Combine: Coach Dashboard</h1>
-          <p className="text-base text-cmf-secondary">
-            {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
-          </p>
-        </header>
+        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">
+          {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
+        </h1>
         {/* Age Group Dropdown */}
-        <section className="bg-white rounded-xl shadow-lg p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
-            <div>
-              <label className="block text-sm font-bold text-cmf-contrast mb-1">Select Age Group</label>
-              <select
-                value={selectedAgeGroup}
-                onChange={e => setSelectedAgeGroup(e.target.value)}
-                className="mt-1 block w-full rounded-md border-cmf-secondary shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
-              >
-                <option value="">Select Age Group</option>
-                {ageGroups.map(group => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </div>
-            {/* Placeholder for future filters */}
-            <div></div>
-          </div>
-        </section>
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+          <label className="block text-sm font-bold text-gray-700 mb-1">Select Age Group</label>
+          <select
+            value={selectedAgeGroup}
+            onChange={e => setSelectedAgeGroup(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cyan-600 focus:border-cyan-600 sm:text-sm"
+          >
+            <option value="">Select Age Group</option>
+            {ageGroups.map(group => (
+              <option key={group} value={group}>{group}</option>
+            ))}
+          </select>
+        </div>
         {/* Drill Weight Controls */}
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-4 text-cmf-secondary">Adjust Drill Weighting</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+        <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-4 h-4 text-cyan-600" />
+            <h2 className="text-sm font-medium text-gray-800">Adjust Drill Weighting</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             {DRILLS.map(drill => (
-              <div key={drill.key} className="flex items-center gap-4">
-                <label className="w-40 font-semibold text-cmf-contrast">{drill.label}</label>
+              <div key={drill.key}>
+                <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
                 <input
                   type="range"
                   min={0}
@@ -179,28 +178,29 @@ export default function CoachDashboard() {
                   step={0.01}
                   value={weights[drill.key]}
                   onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-                  className="flex-1 accent-cmf-primary h-2 rounded-lg bg-cmf-secondary/20"
+                  className="w-full accent-cyan-600 h-2 rounded-lg bg-gray-100"
                 />
-                <span className="w-12 text-right font-mono text-cmf-primary">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+                <span className="block text-right font-mono text-cyan-700 text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
               </div>
             ))}
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 mt-6">
+          <div className="flex flex-wrap gap-4 justify-center mt-6">
             <button
               onClick={handleReset}
-              className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-primary focus:outline-none focus:ring-2 focus:ring-cmf-primary transition"
+              className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
             >
               Reset to Default
             </button>
             <button
               onClick={handleUpdateRankings}
-              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary focus:outline-none focus:ring-2 focus:ring-cmf-secondary transition"
+              className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
             >
               Update Rankings
             </button>
           </div>
-          {weightError && <div className="text-red-500 mt-2">{weightError}</div>}
+          {weightError && <div className="text-red-500 mt-2 text-sm">{weightError}</div>}
         </div>
+        {/* Rankings Table and Loading/Error States remain unchanged, but inside the new container */}
         {loading ? (
           <div>Loading rankings...</div>
         ) : error ? (
