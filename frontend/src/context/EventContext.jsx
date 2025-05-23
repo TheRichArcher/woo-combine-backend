@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import { useNavigate } from "react-router-dom";
+import api from '../lib/api';
 
 const EventContext = createContext();
-
-const API = import.meta.env.VITE_API_URL;
 
 export function EventProvider({ children }) {
   const { selectedLeagueId, user } = useAuth();
@@ -21,9 +20,8 @@ export function EventProvider({ children }) {
       }
       setNoLeague(false);
       try {
-        const url = `${API}/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const url = `/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
+        const { data } = await api.get(url);
         setEvents(data);
         // Auto-select from localStorage or default to first event
         const stored = localStorage.getItem("selectedEventId");
@@ -52,18 +50,19 @@ export function EventProvider({ children }) {
     const navigate = useNavigate();
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
-          <h2 className="text-2xl font-bold text-yellow-600 mb-4">No League Selected</h2>
-          <p className="text-cmf-secondary mb-4">Please join or create a league to continue.</p>
-          <div className="flex gap-4 justify-center">
+        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-cmf-primary">
+          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No League Selected</h2>
+          <p className="text-cmf-secondary mb-2">If you were invited by a coach, enter your code or scan the QR they sent you.</p>
+          <p className="text-cmf-secondary mb-4">You can join an existing league or create a new one to get started.</p>
+          <div className="flex gap-4 justify-center mt-2">
             <button
-              className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold"
+              className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold transition hover:bg-cmf-secondary"
               onClick={() => navigate('/create-league')}
             >
               Create League
             </button>
             <button
-              className="bg-cmf-secondary text-white px-4 py-2 rounded font-semibold"
+              className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold transition hover:bg-cmf-secondary"
               onClick={() => navigate('/join')}
             >
               Join League

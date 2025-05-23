@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
+import api from '../lib/api';
 
 const AuthContext = createContext();
-
-const API = import.meta.env.VITE_API_URL;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -22,12 +21,11 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (user) {
       // Fetch leagues for this user
-      fetch(`${API}/leagues/me?user_id=${user.uid}`)
-        .then(res => res.ok ? res.json() : Promise.reject('Failed to fetch leagues'))
-        .then(data => {
-          setLeagues(data.leagues || []);
+      api.get(`/leagues/me?user_id=${user.uid}`)
+        .then(res => {
+          setLeagues(res.data.leagues || []);
           // Set role for selected league
-          const league = data.leagues?.find(l => l.id === selectedLeagueId) || data.leagues?.[0];
+          const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
           setRole(league?.role || null);
           if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
         })

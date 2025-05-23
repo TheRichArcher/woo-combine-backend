@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
+import api from '../lib/api';
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -17,8 +18,6 @@ const DRILLS = [
   { key: "throwing", label: "Throwing" },
   { key: "agility", label: "Agility" },
 ];
-
-const API = import.meta.env.VITE_API_URL;
 
 export default function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
@@ -36,9 +35,7 @@ export default function CoachDashboard() {
     async function fetchPlayers() {
       if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const res = await fetch(`${API}/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
-        if (!res.ok) throw new Error("Failed to fetch players");
-        const data = await res.json();
+        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
         setPlayers(data);
       } catch (err) {
         setPlayers([]);
@@ -59,13 +56,9 @@ export default function CoachDashboard() {
     setLoading(true);
     setError(null);
     setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-    fetch(`${API}/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&user_id=${user.uid}&league_id=${selectedLeagueId}`)
+    api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&user_id=${user.uid}&league_id=${selectedLeagueId}`)
       .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch rankings");
-        return res.json();
-      })
-      .then(data => {
-        setRankings(data);
+        setRankings(res.data);
         setLoading(false);
       })
       .catch(err => {
@@ -107,13 +100,9 @@ export default function CoachDashboard() {
     params.append("weight_catching", weights["catching"]);
     params.append("weight_throwing", weights["throwing"]);
     params.append("weight_agility", weights["agility"]);
-    fetch(`${API}/rankings?${params.toString()}`)
+    api.get(`/rankings?${params.toString()}`)
       .then(res => {
-        if (!res.ok) throw new Error("Failed to fetch rankings");
-        return res.json();
-      })
-      .then(data => {
-        setRankings(data);
+        setRankings(res.data);
         setLoading(false);
       })
       .catch(err => {

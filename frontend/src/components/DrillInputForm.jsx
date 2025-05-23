@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import api from '../lib/api';
 
 const DRILL_TYPES = [
   { value: "40m_dash", label: "40M Dash" },
@@ -8,8 +9,6 @@ const DRILL_TYPES = [
   { value: "throwing", label: "Throwing" },
   { value: "agility", label: "Agility" },
 ];
-
-const API = import.meta.env.VITE_API_URL;
 
 export default function DrillInputForm({ playerId, onSuccess }) {
   const { user, selectedLeagueId } = useAuth();
@@ -29,15 +28,13 @@ export default function DrillInputForm({ playerId, onSuccess }) {
     }
     setLoading(true);
     try {
-      const res = await fetch(`${API}/drill-results/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: playerId, type, value: parseFloat(value), user_id: user?.uid, league_id: selectedLeagueId }),
+      await api.post(`/drill-results/`, {
+        player_id: playerId,
+        type,
+        value: parseFloat(value),
+        user_id: user?.uid,
+        league_id: selectedLeagueId
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to submit result");
-      }
       setSuccess("Drill result submitted!");
       setType("");
       setValue("");
