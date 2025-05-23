@@ -4,7 +4,7 @@ import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import { Upload } from 'lucide-react';
+import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
 
 const REQUIRED_HEADERS = [
   "name",
@@ -431,86 +431,92 @@ export default function AdminTools() {
         </div>
         {/* Manual Add Player Form */}
         {showManualForm && (
-          <form className="mt-4 p-4 border rounded bg-white" onSubmit={handleManualSubmit}>
-            <h3 className="font-bold mb-2 text-cmf-primary">Add Player Manually</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" />
-              <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
-              <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1">
-                <option value="">Age Group</option>
-                {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-              </select>
-              <label className="flex items-center gap-1">
-                <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1 flex-1" />
-                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input name="vertical_jump" value={manualPlayer["vertical_jump"]} onChange={handleManualChange} placeholder="Vertical Jump" className="border rounded px-2 py-1 flex-1" />
-                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input name="catching" value={manualPlayer["catching"]} onChange={handleManualChange} placeholder="Catching" className="border rounded px-2 py-1 flex-1" />
-                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input name="throwing" value={manualPlayer["throwing"]} onChange={handleManualChange} placeholder="Throwing" className="border rounded px-2 py-1 flex-1" />
-                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-              </label>
-              <label className="flex items-center gap-1">
-                <input name="agility" value={manualPlayer["agility"]} onChange={handleManualChange} placeholder="Agility" className="border rounded px-2 py-1 flex-1" />
-                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-              </label>
-            </div>
-            {manualErrors.length > 0 && <div className="text-red-500 text-sm mt-2">{manualErrors.join(", ")}</div>}
-            <div className="flex gap-2 mt-2">
-              <button type="submit" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition" disabled={manualStatus === 'loading'}>
-                {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
-              </button>
-              <button type="button" className="bg-gray-200 text-cmf-secondary font-bold px-4 py-2 rounded shadow hover:bg-gray-300 transition" onClick={() => setShowManualForm(false)}>
-                Cancel
-              </button>
-            </div>
-            {manualStatus === 'success' && <div className="text-green-600 mt-2">{manualMsg}</div>}
-            {manualStatus === 'error' && <div className="text-red-500 mt-2">{manualMsg}</div>}
-          </form>
+          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
+            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><UserPlus className="w-4 h-4" />Manual Add</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Player Manually</h3>
+            <form onSubmit={handleManualSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" />
+                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
+                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1">
+                  <option value="">Age Group</option>
+                  {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+                <label className="flex items-center gap-1">
+                  <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1 flex-1" />
+                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+                </label>
+                <label className="flex items-center gap-1">
+                  <input name="vertical_jump" value={manualPlayer["vertical_jump"]} onChange={handleManualChange} placeholder="Vertical Jump" className="border rounded px-2 py-1 flex-1" />
+                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+                </label>
+                <label className="flex items-center gap-1">
+                  <input name="catching" value={manualPlayer["catching"]} onChange={handleManualChange} placeholder="Catching" className="border rounded px-2 py-1 flex-1" />
+                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+                </label>
+                <label className="flex items-center gap-1">
+                  <input name="throwing" value={manualPlayer["throwing"]} onChange={handleManualChange} placeholder="Throwing" className="border rounded px-2 py-1 flex-1" />
+                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+                </label>
+                <label className="flex items-center gap-1">
+                  <input name="agility" value={manualPlayer["agility"]} onChange={handleManualChange} placeholder="Agility" className="border rounded px-2 py-1 flex-1" />
+                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+                </label>
+              </div>
+              {manualErrors.length > 0 && <div className="text-red-500 text-sm mt-2">{manualErrors.join(", ")}</div>}
+              <div className="flex gap-2 mt-4 flex-wrap justify-center">
+                <button type="submit" className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" disabled={manualStatus === 'loading'}>
+                  <UserPlus className="w-4 h-4" />{manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
+                </button>
+                <button type="button" className="bg-gray-200 text-cyan-700 rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-gray-300 transition flex items-center gap-2" onClick={() => setShowManualForm(false)}>
+                  Cancel
+                </button>
+              </div>
+              {manualStatus === 'success' && <div className="text-green-600 mt-2">{manualMsg}</div>}
+              {manualStatus === 'error' && <div className="text-red-500 mt-2">{manualMsg}</div>}
+            </form>
+          </div>
         )}
         {/* Reset Tool */}
-        <div className="mb-8">
-          <label className="block mb-1 font-bold">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
+        <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
+          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><RefreshCcw className="w-4 h-4" />Reset Players</div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove All Players from Event</h3>
+          <label className="block mb-1 font-medium">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
           <input
             type="text"
             value={confirmInput}
             onChange={e => setConfirmInput(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border-cyan-200 rounded px-3 py-2 focus:ring-cyan-600 focus:border-cyan-600 mb-2"
             disabled={status === "success"}
           />
           <button
             disabled={confirmInput !== "REMOVE" || status === "loading" || status === "success" || !selectedEvent}
             onClick={handleReset}
-            className="bg-red-500 text-white font-bold px-4 py-2 rounded-lg shadow mt-2 disabled:opacity-50 hover:bg-red-600 transition"
+            className="bg-red-500 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm mt-2 disabled:opacity-50 hover:bg-red-600 transition flex items-center gap-2"
           >
-            {status === "loading" ? "Resetting..." : "Reset All Players"}
+            <RefreshCcw className="w-4 h-4" />{status === "loading" ? "Resetting..." : "Reset All Players"}
           </button>
           {status === "success" && <div className="text-green-600 mt-4">Reset successful!</div>}
           {status === "error" && <div className="text-red-500 mt-4">{errorMsg}</div>}
         </div>
         {/* Invite to League Section */}
         {role === 'organizer' && selectedLeagueId && (
-          <div className="bg-cmf-light border-cmf-primary border-2 rounded-xl p-4 mb-6 flex flex-col items-center text-center">
-            <h2 className="text-xl font-bold mb-2">Invite Coaches to Join Your League</h2>
-            <div className="text-sm text-cmf-secondary mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
-            <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
-              <div className="text-2xl font-mono bg-gray-100 rounded p-2 select-all">{joinCode}</div>
-              <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}>📋 Copy Code</button>
-              <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}>🔗 Copy Invite Link</button>
-              <button className="bg-cmf-secondary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => setShowQr(true)}>📱 Show QR Code</button>
+          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6 flex flex-col items-center text-center">
+            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><Users className="w-4 h-4" />Invite Coaches</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Share League Access</h3>
+            <div className="text-sm text-gray-600 mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-2 w-full justify-center">
+              <div className="font-mono text-lg bg-gray-100 text-gray-800 px-4 py-2 rounded-lg border flex-1 select-all">{joinCode}</div>
+              <button className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}><Copy className="w-4 h-4" />Copy Code</button>
+              <button className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}><Link2 className="w-4 h-4" />Copy Invite Link</button>
+              <button className="bg-cyan-700 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-800 transition flex items-center gap-2" onClick={() => setShowQr(true)}><QrCode className="w-4 h-4" />Show QR</button>
             </div>
             {showQr && (
               <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-                <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center">
+                <div className="bg-white rounded-2xl p-6 shadow-lg flex flex-col items-center">
                   <QRCode value={inviteLink} size={200} />
                   <div className="mt-2 text-xs">Scan to join: <br />{inviteLink}</div>
-                  <button className="mt-4 bg-cmf-primary text-white px-4 py-2 rounded font-semibold" onClick={() => setShowQr(false)}>Close</button>
+                  <button className="mt-4 bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => setShowQr(false)}><QrCode className="w-4 h-4" />Close</button>
                 </div>
               </div>
             )}
