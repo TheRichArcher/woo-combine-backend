@@ -2,19 +2,7 @@ services:
   - type: web
     name: woo-combine-backend
     env: python
-    buildCommand: |
-      # --- back-end ---
-      pip install -r requirements.txt
-
-      # --- front-end ---
-      npm ci --prefix frontend
-      npm run build --prefix frontend
-      echo "==== WORKSPACE ROOT ===="
-      ls -l
-      echo "==== FRONTEND DIR ===="
-      ls -l frontend
-      echo "==== FRONTEND DIST DIR ===="
-      ls -l frontend/dist || true
+    buildCommand: pip install -r requirements.txt
     startCommand: "alembic upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port 10000"
     envVars:
       - key: PYTHON_VERSION
