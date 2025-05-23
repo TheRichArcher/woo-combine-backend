@@ -52,8 +52,9 @@ export function EventProvider({ children }) {
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No League Selected</h2>
-          <p className="text-cmf-secondary mb-4">Please join or create a league to continue.</p>
-          <div className="flex gap-4 justify-center">
+          <p className="text-cmf-secondary mb-2">If you were invited by a coach, enter your code or scan the QR they sent you.</p>
+          <p className="text-cmf-secondary mb-4">You can join an existing league or create a new one to get started.</p>
+          <div className="flex gap-4 justify-center mt-2">
             <button
               className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold"
               onClick={() => navigate('/create-league')}

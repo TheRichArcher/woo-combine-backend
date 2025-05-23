@@ -59,6 +59,16 @@ export default function Navigation() {
               Admin
             </NavLink>
           )}
+          {user && (
+            <NavLink
+              to="/join"
+              className={({ isActive }) =>
+                `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'bg-cmf-primary text-white' : 'bg-cmf-accent text-cmf-primary hover:bg-cmf-primary/10 hover:text-cmf-primary'} border border-cmf-primary ml-2`
+              }
+            >
+              Join League
+            </NavLink>
+          )}
           {!user ? (
             <>
               <NavLink

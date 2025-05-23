@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
+import QRCode from 'react-qr-code';
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -14,7 +15,10 @@ export default function JoinLeague() {
   const [leagueName, setLeagueName] = useState('');
 
   useEffect(() => {
-    if (urlCode) setJoinCode(urlCode);
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    if (codeParam) setJoinCode(codeParam.toUpperCase());
+    else if (urlCode) setJoinCode(urlCode);
   }, [urlCode]);
 
   const handleSubmit = async (e) => {
@@ -41,15 +45,18 @@ export default function JoinLeague() {
     <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light">
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
         <h1 className="text-2xl font-bold mb-4">Join a League</h1>
+        <div className="mb-2 text-cmf-secondary">Enter the code provided by your organizer to join their league.</div>
+        <div className="mb-4 text-xs text-cmf-secondary">Need help? Ask your organizer for a code or QR invite.</div>
         {!success ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <input
               type="text"
-              className="border rounded px-3 py-2 w-full"
+              className="border rounded px-3 py-2 w-full text-center font-mono text-lg tracking-widest"
               placeholder="Enter Join Code"
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
               required
+              autoFocus
             />
             <button
               type="submit"

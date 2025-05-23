@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
+import QRCode from 'react-qr-code';
 
 const REQUIRED_HEADERS = [
   "name",
@@ -45,7 +46,7 @@ function validateRow(row, headers) {
 }
 
 export default function AdminTools() {
-  const { user, role, selectedLeagueId } = useAuth();
+  const { user, role, selectedLeagueId, leagues } = useAuth();
   const { selectedEvent } = useEvent();
 
   // Reset tool state
@@ -83,6 +84,12 @@ export default function AdminTools() {
   const [playerCount, setPlayerCount] = useState(0);
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
   const fileInputRef = useRef();
+
+  // Invite to League section state
+  const [showQr, setShowQr] = useState(false);
+  const league = leagues?.find(l => l.id === selectedLeagueId);
+  const joinCode = league?.id || '';
+  const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
 
   const handleReset = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
@@ -482,6 +489,28 @@ export default function AdminTools() {
         {status === "success" && <div className="text-green-600 mt-4">Reset successful!</div>}
         {status === "error" && <div className="text-red-500 mt-4">{errorMsg}</div>}
       </div>
+      {/* Invite to League Section */}
+      {role === 'organizer' && selectedLeagueId && (
+        <div className="bg-cmf-light border-cmf-primary border-2 rounded-xl p-4 mb-6 flex flex-col items-center text-center">
+          <h2 className="text-xl font-bold mb-2">Invite Coaches to Join Your League</h2>
+          <div className="text-sm text-cmf-secondary mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
+          <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
+            <div className="text-2xl font-mono bg-gray-100 rounded p-2 select-all">{joinCode}</div>
+            <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}>📋 Copy Code</button>
+            <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}>🔗 Copy Invite Link</button>
+            <button className="bg-cmf-secondary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => setShowQr(true)}>📱 Show QR Code</button>
+          </div>
+          {showQr && (
+            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+              <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center">
+                <QRCode value={inviteLink} size={200} />
+                <div className="mt-2 text-xs">Scan to join: <br />{inviteLink}</div>
+                <button className="mt-4 bg-cmf-primary text-white px-4 py-2 rounded font-semibold" onClick={() => setShowQr(false)}>Close</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 } 
