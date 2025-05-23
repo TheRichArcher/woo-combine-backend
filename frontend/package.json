@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@zxing/browser": "^0.1.5",
+    "axios": "^1.9.0",
     "firebase": "^11.8.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
