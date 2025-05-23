@@ -4,6 +4,7 @@ import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
+import { Upload } from 'lucide-react';
 
 const REQUIRED_HEADERS = [
   "name",
@@ -306,121 +307,126 @@ export default function AdminTools() {
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6 mt-6 max-w-xl mx-auto">
-      <EventSelector />
-      {/* Player Upload Summary Badge */}
-      {selectedEvent && (
-        <div className="flex items-center gap-3 mb-4">
-          <span className="inline-flex items-center bg-cmf-primary/10 border border-cmf-primary text-cmf-primary font-bold px-4 py-2 rounded-full text-base">
-            <span role="img" aria-label="player">🧍</span>
-            {playerCountLoading ? (
-              <span className="ml-2 animate-pulse">Loading...</span>
-            ) : (
-              <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
-            )}
-          </span>
-        </div>
-      )}
-      <AdminOnboardingCallout />
-      <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-cmf-primary">
-        <span role="img" aria-label="event">🏷️</span>
-        Managing: {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
-      </div>
-      {/* Step 2: Add Players Section */}
-      <div id="player-upload-section" className="mb-8 p-4 border-2 border-cmf-primary rounded-xl bg-cmf-primary/5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-2 gap-2">
-          <h2 className="text-xl font-bold text-cmf-primary">Step 2: Add Players to Your Event</h2>
-          <div className="flex gap-2">
-            <button
-              className="bg-cmf-secondary text-white font-bold px-3 py-1 rounded shadow hover:bg-cmf-primary transition"
-              onClick={handleSampleDownload}
-            >📄 Download Sample CSV</button>
-            <button
-              className="bg-cmf-primary text-white font-bold px-3 py-1 rounded shadow hover:bg-cmf-secondary transition"
-              onClick={() => setShowManualForm(v => !v)}
-            >+ Add Player Manually</button>
+    <div className="max-w-lg mx-auto px-4 mt-8">
+      <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
+        <EventSelector />
+        {/* Player Upload Summary Badge */}
+        {selectedEvent && (
+          <div className="flex items-center gap-3 mb-4">
+            <span className="inline-flex items-center bg-cmf-primary/10 border border-cmf-primary text-cmf-primary font-bold px-4 py-2 rounded-full text-base">
+              <span role="img" aria-label="player">🧍</span>
+              {playerCountLoading ? (
+                <span className="ml-2 animate-pulse">Loading...</span>
+              ) : (
+                <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
+              )}
+            </span>
           </div>
+        )}
+        <AdminOnboardingCallout />
+        <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-gray-900">
+          <span role="img" aria-label="event">🏷️</span>
+          Managing: {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
         </div>
-        <div className="text-cmf-secondary mb-2">
-          Uploading to: <span className="font-bold">{selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
-        </div>
-        {/* CSV Upload Area */}
-        <div className="mb-2">
-          <label className="block mb-1 font-bold">Upload CSV File</label>
-          <div className="border-2 border-dashed border-cmf-primary rounded-lg p-4 bg-white flex flex-col items-center">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCsv}
-              className="mb-2 cursor-pointer"
-              style={{ maxWidth: 300 }}
-            />
-            {csvFileName && <div className="text-xs text-cmf-secondary mb-2">{csvFileName}</div>}
-            {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join("; ")}</div>}
-            {csvRows.length > 0 && csvErrors.length === 0 && (
-              <div className="overflow-x-auto max-h-64 border rounded mb-2 w-full">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr>
-                      <th className="px-2 py-1">{/* Validation Icon */}</th>
-                      <th className="px-2 py-1">#</th>
-                      {csvHeaders.map(h => (
-                        <th key={h} className="px-2 py-1">
-                          {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
-                          {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
-                            <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
-                          )}
-                        </th>
-                      ))}
-                      <th className="px-2 py-1">Errors</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {csvRows.map((row, i) => {
-                      const backendError = backendErrors.find(e => e.row === i + 1);
-                      const hasErrors = row.errors.length || backendError;
-                      return (
-                        <tr key={i} className={hasErrors ? "bg-red-50" : ""}>
-                          <td className="px-2 py-1 text-center">
-                            {hasErrors ? (
-                              <span
-                                className="text-red-500 cursor-pointer"
-                                title={[...row.errors, backendError?.message].filter(Boolean).join(", ")}
-                              >❌</span>
-                            ) : (
-                              <span className="text-green-600">✅</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-1 font-mono">{i + 1}</td>
-                          {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
-                          <td className="px-2 py-1 text-red-500">
-                            {[...row.errors, backendError?.message].filter(Boolean).join(", ")}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-            {/* Reupload Button */}
-            {csvRows.length > 0 && (
+        {/* Step 2: Add Players Section */}
+        <div id="player-upload-section" className="mb-8">
+          <div className="mb-2">
+            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 2</div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">Add Players to Your Event</h2>
+            <div className="flex gap-2 mb-2">
               <button
-                className="mt-2 bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition"
-                onClick={handleReupload}
-                type="button"
-              >🔁 Upload Another CSV</button>
-            )}
-            <button
-              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition mt-2"
-              disabled={!allRowsValid || uploadStatus === "loading" || !selectedEvent}
-              onClick={handleUpload}
-            >
-              {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
-            </button>
-            {uploadStatus === "success" && <div className="text-green-600 mt-2">{uploadMsg}</div>}
-            {uploadStatus === "error" && <div className="text-red-500 mt-2">{uploadMsg}</div>}
+                className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition"
+                onClick={handleSampleDownload}
+              >
+                <Upload className="inline-block mr-2 w-4 h-4" />Sample CSV
+              </button>
+              <button
+                className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition"
+                onClick={() => setShowManualForm(v => !v)}
+              >
+                + Add Player Manually
+              </button>
+            </div>
+            <div className="text-sm text-gray-600 mb-2">
+              Uploading to: <span className="font-bold">{selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
+            </div>
+            {/* CSV Upload Dropzone */}
+            <div className="border-dashed border-2 border-blue-300 bg-blue-50 p-5 rounded-xl text-center text-sm text-gray-600 flex flex-col items-center">
+              <Upload className="w-8 h-8 text-blue-400 mb-2" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCsv}
+                className="mb-2 cursor-pointer"
+                style={{ maxWidth: 300 }}
+              />
+              {csvFileName && <div className="text-xs text-gray-500 mb-2">{csvFileName}</div>}
+              {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join('; ')}</div>}
+              {csvRows.length > 0 && csvErrors.length === 0 && (
+                <div className="overflow-x-auto max-h-64 border rounded mb-2 w-full">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr>
+                        <th className="px-2 py-1">{/* Validation Icon */}</th>
+                        <th className="px-2 py-1">#</th>
+                        {csvHeaders.map(h => (
+                          <th key={h} className="px-2 py-1">
+                            {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
+                            {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
+                              <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
+                            )}
+                          </th>
+                        ))}
+                        <th className="px-2 py-1">Errors</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {csvRows.map((row, i) => {
+                        const backendError = backendErrors.find(e => e.row === i + 1);
+                        const hasErrors = row.errors.length || backendError;
+                        return (
+                          <tr key={i} className={hasErrors ? "bg-red-50" : ""}>
+                            <td className="px-2 py-1 text-center">
+                              {hasErrors ? (
+                                <span
+                                  className="text-red-500 cursor-pointer"
+                                  title={[...row.errors, backendError?.message].filter(Boolean).join(", ")}
+                                >❌</span>
+                              ) : (
+                                <span className="text-green-600">✅</span>
+                              )}
+                            </td>
+                            <td className="px-2 py-1 font-mono">{i + 1}</td>
+                            {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
+                            <td className="px-2 py-1 text-red-500">
+                              {[...row.errors, backendError?.message].filter(Boolean).join(", ")}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {/* Reupload Button */}
+              {csvRows.length > 0 && (
+                <button
+                  className="mt-2 bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition"
+                  onClick={handleReupload}
+                  type="button"
+                >🔁 Upload Another CSV</button>
+              )}
+              <button
+                className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition mt-2"
+                disabled={!allRowsValid || uploadStatus === "loading" || !selectedEvent}
+                onClick={handleUpload}
+              >
+                {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
+              </button>
+              {uploadStatus === "success" && <div className="text-green-600 mt-2">{uploadMsg}</div>}
+              {uploadStatus === "error" && <div className="text-red-500 mt-2">{uploadMsg}</div>}
+            </div>
           </div>
         </div>
         {/* Manual Add Player Form */}
@@ -468,49 +474,49 @@ export default function AdminTools() {
             {manualStatus === 'error' && <div className="text-red-500 mt-2">{manualMsg}</div>}
           </form>
         )}
-      </div>
-      {/* Reset Tool */}
-      <div className="mb-8">
-        <label className="block mb-1 font-bold">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
-        <input
-          type="text"
-          value={confirmInput}
-          onChange={e => setConfirmInput(e.target.value)}
-          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-          disabled={status === "success"}
-        />
-        <button
-          disabled={confirmInput !== "REMOVE" || status === "loading" || status === "success" || !selectedEvent}
-          onClick={handleReset}
-          className="bg-red-500 text-white font-bold px-4 py-2 rounded-lg shadow mt-2 disabled:opacity-50 hover:bg-red-600 transition"
-        >
-          {status === "loading" ? "Resetting..." : "Reset All Players"}
-        </button>
-        {status === "success" && <div className="text-green-600 mt-4">Reset successful!</div>}
-        {status === "error" && <div className="text-red-500 mt-4">{errorMsg}</div>}
-      </div>
-      {/* Invite to League Section */}
-      {role === 'organizer' && selectedLeagueId && (
-        <div className="bg-cmf-light border-cmf-primary border-2 rounded-xl p-4 mb-6 flex flex-col items-center text-center">
-          <h2 className="text-xl font-bold mb-2">Invite Coaches to Join Your League</h2>
-          <div className="text-sm text-cmf-secondary mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
-          <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
-            <div className="text-2xl font-mono bg-gray-100 rounded p-2 select-all">{joinCode}</div>
-            <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}>📋 Copy Code</button>
-            <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}>🔗 Copy Invite Link</button>
-            <button className="bg-cmf-secondary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => setShowQr(true)}>📱 Show QR Code</button>
-          </div>
-          {showQr && (
-            <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-              <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center">
-                <QRCode value={inviteLink} size={200} />
-                <div className="mt-2 text-xs">Scan to join: <br />{inviteLink}</div>
-                <button className="mt-4 bg-cmf-primary text-white px-4 py-2 rounded font-semibold" onClick={() => setShowQr(false)}>Close</button>
-              </div>
-            </div>
-          )}
+        {/* Reset Tool */}
+        <div className="mb-8">
+          <label className="block mb-1 font-bold">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
+          <input
+            type="text"
+            value={confirmInput}
+            onChange={e => setConfirmInput(e.target.value)}
+            className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+            disabled={status === "success"}
+          />
+          <button
+            disabled={confirmInput !== "REMOVE" || status === "loading" || status === "success" || !selectedEvent}
+            onClick={handleReset}
+            className="bg-red-500 text-white font-bold px-4 py-2 rounded-lg shadow mt-2 disabled:opacity-50 hover:bg-red-600 transition"
+          >
+            {status === "loading" ? "Resetting..." : "Reset All Players"}
+          </button>
+          {status === "success" && <div className="text-green-600 mt-4">Reset successful!</div>}
+          {status === "error" && <div className="text-red-500 mt-4">{errorMsg}</div>}
         </div>
-      )}
+        {/* Invite to League Section */}
+        {role === 'organizer' && selectedLeagueId && (
+          <div className="bg-cmf-light border-cmf-primary border-2 rounded-xl p-4 mb-6 flex flex-col items-center text-center">
+            <h2 className="text-xl font-bold mb-2">Invite Coaches to Join Your League</h2>
+            <div className="text-sm text-cmf-secondary mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
+            <div className="flex flex-col sm:flex-row items-center gap-4 mb-2">
+              <div className="text-2xl font-mono bg-gray-100 rounded p-2 select-all">{joinCode}</div>
+              <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}>📋 Copy Code</button>
+              <button className="bg-cmf-primary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}>🔗 Copy Invite Link</button>
+              <button className="bg-cmf-secondary text-white px-3 py-1 rounded font-semibold ml-2" onClick={() => setShowQr(true)}>📱 Show QR Code</button>
+            </div>
+            {showQr && (
+              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+                <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center">
+                  <QRCode value={inviteLink} size={200} />
+                  <div className="mt-2 text-xs">Scan to join: <br />{inviteLink}</div>
+                  <button className="mt-4 bg-cmf-primary text-white px-4 py-2 rounded font-semibold" onClick={() => setShowQr(false)}>Close</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 } 
