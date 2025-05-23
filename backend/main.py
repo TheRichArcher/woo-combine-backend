@@ -16,7 +16,6 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://woo-combine.com",
-        "http://localhost:3000",
         "http://localhost:5173"
     ],
     allow_credentials=True,
