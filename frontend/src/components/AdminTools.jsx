@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
@@ -79,6 +79,11 @@ export default function AdminTools() {
   const [manualStatus, setManualStatus] = useState('idle');
   const [manualMsg, setManualMsg] = useState('');
 
+  // Player count state
+  const [playerCount, setPlayerCount] = useState(0);
+  const [playerCountLoading, setPlayerCountLoading] = useState(false);
+  const fileInputRef = useRef();
+
   const handleReset = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setStatus("loading");
@@ -117,17 +122,39 @@ export default function AdminTools() {
 
   const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.errors.length === 0);
 
+  // Fetch player count for summary badge
+  const fetchPlayerCount = async () => {
+    if (!selectedEvent || !user || !selectedLeagueId) return;
+    setPlayerCountLoading(true);
+    try {
+      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
+      setPlayerCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      setPlayerCount(0);
+    } finally {
+      setPlayerCountLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPlayerCount();
+    // eslint-disable-next-line
+  }, [selectedEvent]);
+
+  // Call this after upload or manual add
+  const handlePostUploadSuccess = () => {
+    fetchPlayerCount();
+  };
+
   const handleUpload = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setUploadStatus("loading");
     setUploadMsg("");
     setBackendErrors([]);
     try {
-      const { data } = await api.post(`/players/upload`, {
+      const { data } = await api.post(`/players/upload?user_id=${user.uid}`, {
         event_id: selectedEvent.id,
-        players: csvRows.map(({ errors, ...row }) => row),
-        user_id: user.uid,
-        league_id: selectedLeagueId
+        players: csvRows.map(({ errors, ...row }) => row)
       });
       if (data.errors && data.errors.length > 0) {
         setBackendErrors(data.errors);
@@ -139,6 +166,7 @@ export default function AdminTools() {
         setCsvRows([]);
         setCsvHeaders([]);
         setCsvFileName("");
+        handlePostUploadSuccess();
       }
     } catch (err) {
       setUploadStatus("error");
@@ -172,13 +200,13 @@ export default function AdminTools() {
     }
     setManualStatus('loading');
     try {
-      const { data } = await api.post(`/players`, {
-        ...manualPlayer,
+      const playerPayload = {
+        name: manualPlayer.name,
         number: Number(manualPlayer.number),
-        event_id: selectedEvent.id,
-        user_id: user.uid,
-        league_id: selectedLeagueId
-      });
+        age_group: manualPlayer.age_group,
+      };
+      if (manualPlayer.photo_url) playerPayload.photo_url = manualPlayer.photo_url;
+      const { data } = await api.post(`/players`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
       setManualPlayer({
@@ -192,6 +220,7 @@ export default function AdminTools() {
         agility: '',
       });
       setShowManualForm(false);
+      handlePostUploadSuccess();
     } catch (err) {
       setManualStatus('error');
       setManualMsg(err.message || 'Failed to add player.');
@@ -221,6 +250,19 @@ export default function AdminTools() {
       <strong>Welcome, Admin.</strong> Manage your combine tools below.
     </div>
   );
+
+  // Drill score tooltip
+  const drillTip = "Score range: 1–10. Use decimals for precision (e.g., 7.5)";
+
+  // Reupload button handler
+  const handleReupload = () => {
+    setCsvRows([]);
+    setCsvHeaders([]);
+    setCsvErrors([]);
+    setCsvFileName("");
+    setBackendErrors([]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   // Role-based access logic
   if (!selectedLeagueId) {
@@ -259,6 +301,19 @@ export default function AdminTools() {
   return (
     <div className="bg-white rounded-xl shadow-lg p-6 mt-6 max-w-xl mx-auto">
       <EventSelector />
+      {/* Player Upload Summary Badge */}
+      {selectedEvent && (
+        <div className="flex items-center gap-3 mb-4">
+          <span className="inline-flex items-center bg-cmf-primary/10 border border-cmf-primary text-cmf-primary font-bold px-4 py-2 rounded-full text-base">
+            <span role="img" aria-label="player">🧍</span>
+            {playerCountLoading ? (
+              <span className="ml-2 animate-pulse">Loading...</span>
+            ) : (
+              <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
+            )}
+          </span>
+        </div>
+      )}
       <AdminOnboardingCallout />
       <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-cmf-primary">
         <span role="img" aria-label="event">🏷️</span>
@@ -287,6 +342,7 @@ export default function AdminTools() {
           <label className="block mb-1 font-bold">Upload CSV File</label>
           <div className="border-2 border-dashed border-cmf-primary rounded-lg p-4 bg-white flex flex-col items-center">
             <input
+              ref={fileInputRef}
               type="file"
               accept=".csv"
               onChange={handleCsv}
@@ -300,16 +356,35 @@ export default function AdminTools() {
                 <table className="w-full text-xs">
                   <thead>
                     <tr>
+                      <th className="px-2 py-1">{/* Validation Icon */}</th>
                       <th className="px-2 py-1">#</th>
-                      {csvHeaders.map(h => <th key={h} className="px-2 py-1">{h}</th>)}
+                      {csvHeaders.map(h => (
+                        <th key={h} className="px-2 py-1">
+                          {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
+                          {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
+                            <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
+                          )}
+                        </th>
+                      ))}
                       <th className="px-2 py-1">Errors</th>
                     </tr>
                   </thead>
                   <tbody>
                     {csvRows.map((row, i) => {
                       const backendError = backendErrors.find(e => e.row === i + 1);
+                      const hasErrors = row.errors.length || backendError;
                       return (
-                        <tr key={i} className={row.errors.length || backendError ? "bg-red-50" : ""}>
+                        <tr key={i} className={hasErrors ? "bg-red-50" : ""}>
+                          <td className="px-2 py-1 text-center">
+                            {hasErrors ? (
+                              <span
+                                className="text-red-500 cursor-pointer"
+                                title={[...row.errors, backendError?.message].filter(Boolean).join(", ")}
+                              >❌</span>
+                            ) : (
+                              <span className="text-green-600">✅</span>
+                            )}
+                          </td>
                           <td className="px-2 py-1 font-mono">{i + 1}</td>
                           {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
                           <td className="px-2 py-1 text-red-500">
@@ -322,8 +397,16 @@ export default function AdminTools() {
                 </table>
               </div>
             )}
+            {/* Reupload Button */}
+            {csvRows.length > 0 && (
+              <button
+                className="mt-2 bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition"
+                onClick={handleReupload}
+                type="button"
+              >🔁 Upload Another CSV</button>
+            )}
             <button
-              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition"
+              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition mt-2"
               disabled={!allRowsValid || uploadStatus === "loading" || !selectedEvent}
               onClick={handleUpload}
             >
@@ -344,11 +427,26 @@ export default function AdminTools() {
                 <option value="">Age Group</option>
                 {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
               </select>
-              <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1" />
-              <input name="vertical_jump" value={manualPlayer["vertical_jump"]} onChange={handleManualChange} placeholder="Vertical Jump" className="border rounded px-2 py-1" />
-              <input name="catching" value={manualPlayer["catching"]} onChange={handleManualChange} placeholder="Catching" className="border rounded px-2 py-1" />
-              <input name="throwing" value={manualPlayer["throwing"]} onChange={handleManualChange} placeholder="Throwing" className="border rounded px-2 py-1" />
-              <input name="agility" value={manualPlayer["agility"]} onChange={handleManualChange} placeholder="Agility" className="border rounded px-2 py-1" />
+              <label className="flex items-center gap-1">
+                <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1 flex-1" />
+                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input name="vertical_jump" value={manualPlayer["vertical_jump"]} onChange={handleManualChange} placeholder="Vertical Jump" className="border rounded px-2 py-1 flex-1" />
+                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input name="catching" value={manualPlayer["catching"]} onChange={handleManualChange} placeholder="Catching" className="border rounded px-2 py-1 flex-1" />
+                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input name="throwing" value={manualPlayer["throwing"]} onChange={handleManualChange} placeholder="Throwing" className="border rounded px-2 py-1 flex-1" />
+                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+              </label>
+              <label className="flex items-center gap-1">
+                <input name="agility" value={manualPlayer["agility"]} onChange={handleManualChange} placeholder="Agility" className="border rounded px-2 py-1 flex-1" />
+                <span className="cursor-pointer" title={drillTip}>ℹ️</span>
+              </label>
             </div>
             {manualErrors.length > 0 && <div className="text-red-500 text-sm mt-2">{manualErrors.join(", ")}</div>}
             <div className="flex gap-2 mt-2">
