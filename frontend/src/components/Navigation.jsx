@@ -19,7 +19,7 @@ export default function Navigation() {
 
   return (
     <nav className="bg-cmf-contrast text-cmf-accent p-4 shadow-md relative">
-      <div className="container mx-auto flex items-center justify-between">
+      <div className="w-full px-4 sm:px-6 max-w-screen-xl mx-auto flex items-center justify-between">
         {/* Left: Logo, League Dropdown, Create Event */}
         <div className="flex items-center gap-4 min-w-0">
           <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow whitespace-nowrap">Woo-Combine</div>
@@ -37,7 +37,7 @@ export default function Navigation() {
           {/* Optionally add Create New Event button here if needed */}
         </div>
         {/* Right: Desktop nav links */}
-        <div className="hidden sm:flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+        <div className="hidden sm:flex items-center space-x-4 flex-grow justify-end">
           <NavLink to="/dashboard" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Dashboard</NavLink>
           <NavLink to="/players" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Players</NavLink>
           {user && (
