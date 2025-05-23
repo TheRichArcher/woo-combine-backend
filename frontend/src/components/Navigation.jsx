@@ -37,8 +37,16 @@ export default function Navigation() {
         </div>
         {/* Right: Desktop nav links */}
         <div className="hidden sm:flex items-center space-x-4 min-w-0">
-          <NavLink to="/dashboard" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Dashboard</NavLink>
-          <NavLink to="/players" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Players</NavLink>
+          <div style={{ backgroundColor: 'yellow' }}>RIGHT NAV DEBUG</div>
+          <ul>
+            <li>Dashboard</li>
+            <li>Players</li>
+            <li>Admin</li>
+            <li>Create or Join League</li>
+            <li>Login</li>
+            <li>Sign Up</li>
+            <li>Logout</li>
+          </ul>
           {user && (
             <NavLink to="/create-league" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Create or Join League</NavLink>
           )}
