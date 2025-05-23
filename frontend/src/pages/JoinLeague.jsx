@@ -3,6 +3,12 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
+import dynamic from 'next/dynamic';
+
+let QrReader = null;
+try {
+  QrReader = require('react-qr-reader').default;
+} catch {}
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -13,6 +19,8 @@ export default function JoinLeague() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [leagueName, setLeagueName] = useState('');
+  const [showQrScanner, setShowQrScanner] = useState(false);
+  const [qrError, setQrError] = useState('');
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -41,8 +49,56 @@ export default function JoinLeague() {
     }
   };
 
+  const handleScan = data => {
+    if (data) {
+      // Extract code from URL or plain code
+      let code = '';
+      try {
+        const url = new URL(data);
+        code = url.searchParams.get('code') || url.pathname.split('/').pop();
+      } catch {
+        code = data;
+      }
+      if (code) {
+        setShowQrScanner(false);
+        navigate(`/join?code=${encodeURIComponent(code)}`);
+      }
+    }
+  };
+  const handleError = err => {
+    setQrError('Camera error: ' + (err?.message || err));
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light relative">
+      {/* Floating QR Scan Button */}
+      <button
+        className="fixed bottom-6 right-6 z-50 bg-cmf-primary text-white rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold hover:bg-cmf-secondary transition"
+        onClick={() => setShowQrScanner(true)}
+        aria-label="Scan QR to Join"
+        style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}
+      >
+        <span role="img" aria-label="scan">📷</span> Scan QR to Join
+      </button>
+      {/* QR Scanner Modal */}
+      {showQrScanner && QrReader && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center max-w-xs w-full">
+            <h2 className="text-lg font-bold mb-2">Scan League QR Code</h2>
+            <div className="w-full h-64 mb-2">
+              <QrReader
+                delay={300}
+                onError={handleError}
+                onScan={handleScan}
+                style={{ width: '100%', height: '100%' }}
+                facingMode="environment"
+              />
+            </div>
+            {qrError && <div className="text-red-500 text-sm mb-2">{qrError}</div>}
+            <button className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold mt-2" onClick={() => setShowQrScanner(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
       <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
         <h1 className="text-2xl font-bold mb-4">Join a League</h1>
         <div className="mb-2 text-cmf-secondary">Enter the code provided by your organizer to join their league.</div>
