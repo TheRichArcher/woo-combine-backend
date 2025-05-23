@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import QrReader from 'react-qr-reader';
+import { BrowserQRCodeReader } from '@zxing/browser';
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -16,6 +16,8 @@ export default function JoinLeague() {
   const [leagueName, setLeagueName] = useState('');
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [qrError, setQrError] = useState('');
+  const videoRef = useRef(null);
+  const qrReaderRef = useRef(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -23,6 +25,39 @@ export default function JoinLeague() {
     if (codeParam) setJoinCode(codeParam.toUpperCase());
     else if (urlCode) setJoinCode(urlCode);
   }, [urlCode]);
+
+  // Start QR scanner when modal opens
+  useEffect(() => {
+    if (showQrScanner && videoRef.current) {
+      setQrError('');
+      qrReaderRef.current = new BrowserQRCodeReader();
+      qrReaderRef.current.decodeFromVideoDevice(
+        undefined,
+        videoRef.current,
+        (result, err) => {
+          if (result) {
+            let code = '';
+            try {
+              const url = new URL(result.getText());
+              code = url.searchParams.get('code') || url.pathname.split('/').pop();
+            } catch {
+              code = result.getText();
+            }
+            setShowQrScanner(false);
+            qrReaderRef.current.reset();
+            navigate(`/join?code=${encodeURIComponent(code)}`);
+          } else if (err && !(err instanceof NotFoundException)) {
+            setQrError('Camera error: ' + (err?.message || err));
+          }
+        }
+      );
+    }
+    return () => {
+      if (qrReaderRef.current) {
+        qrReaderRef.current.reset();
+      }
+    };
+  }, [showQrScanner, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,26 +79,6 @@ export default function JoinLeague() {
     }
   };
 
-  const handleScan = data => {
-    if (data) {
-      // Extract code from URL or plain code
-      let code = '';
-      try {
-        const url = new URL(data);
-        code = url.searchParams.get('code') || url.pathname.split('/').pop();
-      } catch {
-        code = data;
-      }
-      if (code) {
-        setShowQrScanner(false);
-        navigate(`/join?code=${encodeURIComponent(code)}`);
-      }
-    }
-  };
-  const handleError = err => {
-    setQrError('Camera error: ' + (err?.message || err));
-  };
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light relative">
       {/* Floating QR Scan Button */}
@@ -80,14 +95,8 @@ export default function JoinLeague() {
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center max-w-xs w-full">
             <h2 className="text-lg font-bold mb-2">Scan League QR Code</h2>
-            <div className="w-full h-64 mb-2">
-              <QrReader
-                delay={300}
-                onError={handleError}
-                onScan={handleScan}
-                style={{ width: '100%', height: '100%' }}
-                facingMode="environment"
-              />
+            <div className="w-full h-64 mb-2 flex items-center justify-center">
+              <video ref={videoRef} className="w-full h-full rounded" style={{ objectFit: 'cover' }} />
             </div>
             {qrError && <div className="text-red-500 text-sm mb-2">{qrError}</div>}
             <button className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold mt-2" onClick={() => setShowQrScanner(false)}>Cancel</button>
