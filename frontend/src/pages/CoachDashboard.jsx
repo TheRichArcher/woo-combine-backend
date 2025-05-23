@@ -140,7 +140,7 @@ export default function CoachDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-6">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
         {/* Header & Title Block */}
         <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
