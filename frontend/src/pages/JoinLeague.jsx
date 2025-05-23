@@ -3,12 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import dynamic from 'next/dynamic';
-
-let QrReader = null;
-try {
-  QrReader = require('react-qr-reader').default;
-} catch {}
+import QrReader from 'react-qr-reader';
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -81,7 +76,7 @@ export default function JoinLeague() {
         <span role="img" aria-label="scan">📷</span> Scan QR to Join
       </button>
       {/* QR Scanner Modal */}
-      {showQrScanner && QrReader && (
+      {showQrScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 shadow-lg flex flex-col items-center max-w-xs w-full">
             <h2 className="text-lg font-bold mb-2">Scan League QR Code</h2>
