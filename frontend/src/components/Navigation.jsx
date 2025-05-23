@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+console.log('NAVIGATION IS MOUNTED');
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../firebase';
