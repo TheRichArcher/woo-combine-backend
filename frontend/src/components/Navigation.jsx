@@ -19,17 +19,13 @@ export default function Navigation() {
 
   return (
     <nav className="bg-cmf-contrast text-cmf-accent p-4 shadow-md relative">
-      <div className="container mx-auto flex flex-wrap items-center justify-between">
-        <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow">Woo-Combine</div>
-        {/* Hamburger for mobile */}
-        <button className="sm:hidden p-2" onClick={() => setMobileOpen(v => !v)} aria-label="Open menu">
-          <Menu className="w-7 h-7 text-cmf-primary" />
-        </button>
-        {/* Desktop nav */}
-        <div className="hidden sm:flex items-center space-x-2 sm:space-x-4">
+      <div className="container mx-auto flex items-center justify-between">
+        {/* Left: Logo, League Dropdown, Create Event */}
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="text-2xl font-extrabold tracking-wide text-cmf-primary drop-shadow whitespace-nowrap">Woo-Combine</div>
           {leagues && leagues.length > 0 && (
             <select
-              className="border rounded px-2 py-1 bg-white text-cmf-primary font-semibold mr-2"
+              className="border rounded px-2 py-1 bg-white text-cmf-primary font-semibold"
               value={selectedLeagueId}
               onChange={e => setSelectedLeagueId(e.target.value)}
             >
@@ -38,70 +34,31 @@ export default function Navigation() {
               ))}
             </select>
           )}
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-            }
-          >
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/players"
-            className={({ isActive }) =>
-              `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-            }
-          >
-            Players
-          </NavLink>
+          {/* Optionally add Create New Event button here if needed */}
+        </div>
+        {/* Right: Desktop nav links */}
+        <div className="hidden sm:flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+          <NavLink to="/dashboard" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Dashboard</NavLink>
+          <NavLink to="/players" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Players</NavLink>
           {user && (
-            <NavLink
-              to="/create-league"
-              className={({ isActive }) =>
-                `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-              }
-            >
-              Create or Join League
-            </NavLink>
+            <NavLink to="/create-league" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Create or Join League</NavLink>
           )}
           {user && (
-            <NavLink
-              to="/admin"
-              className={({ isActive }) =>
-                `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-              }
-            >
-              Admin
-            </NavLink>
+            <NavLink to="/admin" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Admin</NavLink>
           )}
           {!user ? (
             <>
-              <NavLink
-                to="/login"
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-                }
-              >
-                Login
-              </NavLink>
-              <NavLink
-                to="/signup"
-                className={({ isActive }) =>
-                  `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`
-                }
-              >
-                Sign Up
-              </NavLink>
+              <NavLink to="/login" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Login</NavLink>
+              <NavLink to="/signup" className={({ isActive }) => `px-3 py-2 rounded-lg font-semibold transition ${isActive ? 'text-cmf-primary underline underline-offset-4' : 'hover:bg-cmf-primary/10 hover:text-cmf-primary'}`}>Sign Up</NavLink>
             </>
           ) : (
-            <button
-              onClick={() => auth.signOut()}
-              className="px-3 py-2 rounded-lg font-semibold transition hover:bg-cmf-primary/10 hover:text-cmf-primary"
-            >
-              Logout
-            </button>
+            <button onClick={() => auth.signOut()} className="px-3 py-2 rounded-lg font-semibold transition hover:bg-cmf-primary/10 hover:text-cmf-primary">Logout</button>
           )}
         </div>
+        {/* Hamburger for mobile */}
+        <button className="sm:hidden p-2 ml-2" onClick={() => setMobileOpen(v => !v)} aria-label="Open menu">
+          <Menu className="w-7 h-7 text-cmf-primary" />
+        </button>
       </div>
       {/* Mobile nav menu - move outside container for stacking */}
       {mobileOpen && (
