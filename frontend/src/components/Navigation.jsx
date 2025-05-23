@@ -1,7 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Navigation() {
+  const { user, role } = useAuth();
   return (
     <nav className="bg-white shadow-md p-4">
       <div className="flex flex-row justify-between items-center max-w-screen-xl mx-auto">
@@ -11,7 +13,9 @@ export default function Navigation() {
         <div className="flex flex-row gap-6 bg-yellow-100 px-4 py-2 rounded">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Dashboard</Link>
           <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Players</Link>
-          <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
+          {user && (role === 'organizer' || role === 'admin') && (
+            <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
+          )}
         </div>
       </div>
     </nav>
