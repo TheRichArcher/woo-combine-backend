@@ -35,7 +35,7 @@ export default function SignupForm() {
   if (user) { navigate("/dashboard"); return null; }
 
   return (
-    <div className="w-full max-w-md flex flex-col items-center">
+    <div className="w-full max-w-md flex flex-col items-center relative">
       {/* Back Arrow */}
       <button
         className="absolute left-4 top-4 text-cyan-700 hover:text-cyan-900 text-2xl focus:outline-none"
@@ -46,11 +46,19 @@ export default function SignupForm() {
       >
         &#8592;
       </button>
+      {/* Help Link Top-Right */}
+      <Link
+        to="/help"
+        className="absolute right-4 top-4 text-xs text-cyan-700 hover:underline font-semibold"
+        style={{ right: 0, top: 0, position: 'absolute' }}
+      >
+        Need Help?
+      </Link>
       {/* Logo */}
       <img
         src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
         alt="Woo-Combine Logo"
-        className="w-20 h-20 mx-auto mb-4 mt-6"
+        className="w-20 h-20 mx-auto mb-4 mt-8"
         style={{ objectFit: 'contain' }}
       />
       {/* Heading */}
@@ -63,7 +71,7 @@ export default function SignupForm() {
             placeholder="First Name"
             value={firstName}
             onChange={e => setFirstName(e.target.value)}
-            className="flex-1 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            className="flex-1 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
             required
           />
           <input
@@ -71,7 +79,7 @@ export default function SignupForm() {
             placeholder="Last Name"
             value={lastName}
             onChange={e => setLastName(e.target.value)}
-            className="flex-1 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            className="flex-1 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
             required
           />
         </div>
@@ -80,7 +88,7 @@ export default function SignupForm() {
           placeholder="Email"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
           required
         />
         <div className="relative w-full mb-6">
@@ -89,7 +97,7 @@ export default function SignupForm() {
             placeholder="Create Password"
             value={password}
             onChange={e => setPassword(e.target.value)}
-            className="w-full px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition pr-12"
+            className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition pr-12"
             required
           />
           <button
@@ -106,7 +114,7 @@ export default function SignupForm() {
         {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
         <button
           type="submit"
-          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-lg shadow transition mb-4"
+          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-4"
           disabled={submitting}
         >
           {submitting ? "Signing up..." : "Sign Up"}
@@ -117,7 +125,6 @@ export default function SignupForm() {
           <Link to="/terms" className="underline hover:text-cyan-700">Terms & Conditions</Link> and{' '}
           <Link to="/privacy" className="underline hover:text-cyan-700">Privacy Policy</Link>.
         </div>
-        <Link to="/help" className="text-xs text-cyan-700 hover:underline">Need Help?</Link>
       </form>
     </div>
   );

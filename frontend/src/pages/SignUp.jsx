@@ -15,8 +15,9 @@ export default function SignUp() {
     <WelcomeLayout
       footerLinks={footerLinks}
       contentClassName="min-h-[70vh]"
+      hideHeader={true}
     >
-      <div className="w-full max-w-md bg-white/90 backdrop-blur rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
         <SignupForm />
       </div>
     </WelcomeLayout>

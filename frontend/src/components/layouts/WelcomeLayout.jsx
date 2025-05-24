@@ -5,6 +5,7 @@
  * without PM approval. This layout is benchmarked to Mojo UX.
  *
  * @param contentClassName - Optional. Extra classes for the <main> content area (e.g. to brighten or blur background for forms).
+ * @param hideHeader - Optional. If true, hides the top-left Woo-Combine logo header (for distraction-free onboarding screens).
  */
 import React from "react";
 import Logo from "../Logo";
@@ -12,12 +13,14 @@ import Logo from "../Logo";
 // This is the canonical onboarding layout for Woo-Combine. Changes to visual hierarchy or branding must be reviewed.
 // TODO: Can swap gradient for background video after MVP
 
-export default function WelcomeLayout({ children, footerLinks, backgroundColor, contentClassName }) {
+export default function WelcomeLayout({ children, footerLinks, backgroundColor, contentClassName, hideHeader }) {
   return (
     <div className={`min-h-screen flex flex-col ${backgroundColor || "bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700"} relative`}>
-      <header className="absolute top-0 left-0 p-6">
-        <Logo className="text-white drop-shadow-lg" />
-      </header>
+      {!hideHeader && (
+        <header className="absolute top-0 left-0 p-6">
+          <Logo className="text-white drop-shadow-lg" />
+        </header>
+      )}
       <main className={`flex flex-1 flex-col justify-center items-center px-4 ${contentClassName || ""}`}>
         {children}
       </main>
