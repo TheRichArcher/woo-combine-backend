@@ -32,14 +32,14 @@ export default function SignupForm() {
   if (user) { navigate("/dashboard"); return null; }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm flex flex-col items-center">
+    <form onSubmit={handleSubmit} className="w-full max-w-sm flex flex-col items-center">
       <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Sign Up</h2>
       <input
         type="text"
         placeholder="Name"
         value={name}
         onChange={e => setName(e.target.value)}
-        className="w-full mb-4 px-3 py-2 border border-cyan-200 rounded focus:ring-cyan-700 focus:border-cyan-700"
+        className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
         required
       />
       <input
@@ -47,7 +47,7 @@ export default function SignupForm() {
         placeholder="Email"
         value={email}
         onChange={e => setEmail(e.target.value)}
-        className="w-full mb-4 px-3 py-2 border border-cyan-200 rounded focus:ring-cyan-700 focus:border-cyan-700"
+        className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
         required
       />
       <input
@@ -55,14 +55,14 @@ export default function SignupForm() {
         placeholder="Password"
         value={password}
         onChange={e => setPassword(e.target.value)}
-        className="w-full mb-4 px-3 py-2 border border-cyan-200 rounded focus:ring-cyan-700 focus:border-cyan-700"
+        className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-lg focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
         required
       />
       {formError && <div className="text-red-500 mb-4 text-sm">{formError}</div>}
       {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
       <button
         type="submit"
-        className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-2 rounded-lg shadow transition"
+        className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-lg shadow transition mb-2"
         disabled={submitting}
       >
         {submitting ? "Signing up..." : "Sign Up"}

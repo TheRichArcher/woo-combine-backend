@@ -12,8 +12,13 @@ export default function SignUp() {
     </div>
   );
   return (
-    <WelcomeLayout footerLinks={footerLinks}>
-      <SignupForm />
+    <WelcomeLayout
+      footerLinks={footerLinks}
+      contentClassName="min-h-[70vh]"
+    >
+      <div className="w-full max-w-md bg-white/90 backdrop-blur rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+        <SignupForm />
+      </div>
     </WelcomeLayout>
   );
 } 
