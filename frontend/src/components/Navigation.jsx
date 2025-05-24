@@ -1,3 +1,13 @@
+// Navigation.jsx
+//
+// All navigation layout, logic, and role-based visibility are centralized in this file.
+// Do NOT scatter nav logic or conditional rendering elsewhere (e.g., App.jsx, Routes.jsx, Dashboard.jsx).
+// If you use custom Tailwind classes or override tailwind.config.js, document it here.
+//
+// The Admin nav link is only visible to users with 'organizer' or 'admin' roles (see comment below).
+//
+// Any changes to nav logic, layout, or visibility must go through checkpoint approval.
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +28,10 @@ export default function Navigation() {
         <div className="flex items-center gap-x-6 min-w-0 sm:flex">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Dashboard</Link>
           <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Players</Link>
+          {/*
+            Admin nav link is only visible to users with 'organizer' or 'admin' roles.
+            Do not remove or alter this logic without understanding the role system.
+          */}
           {user && (role === 'organizer' || role === 'admin') && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
           )}
