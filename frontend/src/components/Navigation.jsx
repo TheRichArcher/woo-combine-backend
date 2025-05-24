@@ -12,6 +12,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Menu } from 'lucide-react';
+import Logo from "./Logo";
 
 export default function Navigation() {
   const { user, role } = useAuth();
@@ -23,7 +24,7 @@ export default function Navigation() {
     <nav className="bg-white shadow-md p-4">
       <div className="flex flex-row justify-between items-center max-w-screen-xl mx-auto">
         {/* Left: Logo */}
-        <div className="font-extrabold text-2xl text-cyan-700 min-w-0">Woo-Combine</div>
+        <Logo />
         {/* Right: Desktop Nav Items */}
         <div className="flex items-center gap-x-6 min-w-0 sm:flex">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Dashboard</Link>

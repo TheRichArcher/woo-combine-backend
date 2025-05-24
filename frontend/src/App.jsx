@@ -11,6 +11,7 @@ import SignUp from "./pages/SignUp";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
+import Welcome from "./pages/Welcome";
 
 function App() {
   return (
@@ -18,40 +19,53 @@ function App() {
       <AuthProvider>
         <EventProvider>
           <div className="min-h-screen bg-gray-50">
-            <Navigation />
-            <div className="container mx-auto px-4 py-8">
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route
-                  path="/dashboard"
-                  element={
-                    <RequireAuth>
-                      <CoachDashboard />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/players"
-                  element={
-                    <RequireAuth>
-                      <Players />
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/admin"
-                  element={
-                    <RequireAuth>
-                      <AdminTools />
-                    </RequireAuth>
-                  }
-                />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
-                <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
-              </Routes>
-            </div>
+            <Routes>
+              <Route path="/" element={<Navigate to="/welcome" replace />} />
+              <Route path="/welcome" element={<Welcome />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <>
+                      <Navigation />
+                      <div className="container mx-auto px-4 py-8">
+                        <CoachDashboard />
+                      </div>
+                    </>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/players"
+                element={
+                  <RequireAuth>
+                    <>
+                      <Navigation />
+                      <div className="container mx-auto px-4 py-8">
+                        <Players />
+                      </div>
+                    </>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/admin"
+                element={
+                  <RequireAuth>
+                    <>
+                      <Navigation />
+                      <div className="container mx-auto px-4 py-8">
+                        <AdminTools />
+                      </div>
+                    </>
+                  </RequireAuth>
+                }
+              />
+              <Route path="/login" element={<><Navigation /><div className="container mx-auto px-4 py-8"><Login /></div></>} />
+              <Route path="/signup" element={<><Navigation /><div className="container mx-auto px-4 py-8"><SignUp /></div></>} />
+              <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
+              <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
+            </Routes>
           </div>
         </EventProvider>
       </AuthProvider>
