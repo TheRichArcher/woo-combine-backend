@@ -13,9 +13,9 @@ export default function Navigation() {
     <nav className="bg-white shadow-md p-4">
       <div className="flex flex-row justify-between items-center max-w-screen-xl mx-auto">
         {/* Left: Logo */}
-        <div className="font-extrabold text-2xl text-cyan-700 bg-green-100 px-4 py-2 rounded">Woo-Combine</div>
+        <div className="font-extrabold text-2xl text-cyan-700 min-w-0">Woo-Combine</div>
         {/* Right: Desktop Nav Items */}
-        <div className="hidden sm:flex items-center gap-x-6 bg-yellow-100 px-4 py-2 rounded">
+        <div className="flex items-center gap-x-6 min-w-0 sm:flex">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Dashboard</Link>
           <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Players</Link>
           {user && (role === 'organizer' || role === 'admin') && (
