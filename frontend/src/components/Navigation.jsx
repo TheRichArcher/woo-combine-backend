@@ -9,14 +9,16 @@
 // Any changes to nav logic, layout, or visibility must go through checkpoint approval.
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth, useLogout } from '../context/AuthContext';
 import { Menu } from 'lucide-react';
 import Logo from "./Logo";
 
 export default function Navigation() {
   const { user, role } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const logout = useLogout();
+  const navigate = useNavigate();
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -36,6 +38,14 @@ export default function Navigation() {
           {user && (role === 'organizer' || role === 'admin') && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
           )}
+          {user && (
+            <button
+              onClick={async () => { await logout(); navigate("/welcome"); }}
+              className="text-lg font-semibold text-gray-800 hover:text-cyan-700 px-2"
+            >
+              Log Out
+            </button>
+          )}
         </div>
         {/* Hamburger for mobile */}
         <button className="sm:hidden p-2 ml-2" onClick={() => setMobileOpen(v => !v)} aria-label="Open menu">
@@ -50,6 +60,14 @@ export default function Navigation() {
             <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Players</Link>
             {user && (role === 'organizer' || role === 'admin') && (
               <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Admin</Link>
+            )}
+            {user && (
+              <button
+                onClick={async () => { await logout(); navigate("/welcome"); }}
+                className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2"
+              >
+                Log Out
+              </button>
             )}
           </div>
         </div>

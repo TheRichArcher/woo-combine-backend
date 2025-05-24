@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import api from '../lib/api';
 
 const AuthContext = createContext();
@@ -89,4 +89,12 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   return useContext(AuthContext);
+}
+
+export function useLogout() {
+  const { setUser } = useAuth();
+  return async function logout() {
+    await signOut(auth);
+    setUser(null);
+  };
 } 

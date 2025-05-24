@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function SignupForm() {
   const [name, setName] = useState("");
@@ -10,6 +11,7 @@ export default function SignupForm() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { user, loading, error } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +29,7 @@ export default function SignupForm() {
   };
 
   if (loading) return <div>Loading...</div>;
-  if (user) return <div>Already logged in!</div>;
+  if (user) { navigate("/dashboard"); return null; }
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-8 rounded-xl shadow-lg w-full max-w-sm flex flex-col items-center">
