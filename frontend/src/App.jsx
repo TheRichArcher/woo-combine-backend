@@ -61,8 +61,8 @@ function App() {
                   </RequireAuth>
                 }
               />
-              <Route path="/login" element={<><Navigation /><div className="container mx-auto px-4 py-8"><Login /></div></>} />
-              <Route path="/signup" element={<><Navigation /><div className="container mx-auto px-4 py-8"><SignUp /></div></>} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<SignUp />} />
               <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
               <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
             </Routes>
