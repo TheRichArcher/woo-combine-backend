@@ -6,9 +6,9 @@ import LoginForm from "../components/Welcome/LoginForm";
 export default function Login() {
   const footerLinks = (
     <div className="flex flex-col sm:flex-row gap-2 text-white/80 text-base">
-      <Link to="/signup" className="hover:underline">Need an account? <span className="font-semibold text-white">Sign Up</span></Link>
+      <Link to="/signup" className="hover:underline">Don’t have an account? <span className="font-semibold text-white">Let’s Get Started</span></Link>
       <span className="hidden sm:inline">&middot;</span>
-      <Link to="/claim" className="hover:underline">Need to claim an account? <span className="font-semibold text-white">Claim</span></Link>
+      <Link to="/forgot-password" className="hover:underline">Forgot password?</Link>
     </div>
   );
   return (
