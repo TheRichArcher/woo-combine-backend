@@ -65,13 +65,13 @@ export default function SignupForm() {
       <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Let's Get Started</h2>
       <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
         {/* Name fields */}
-        <div className="flex flex-row gap-4 w-full mb-6">
+        <div className="flex flex-row gap-4 w-full mb-6 min-w-0">
           <input
             type="text"
             placeholder="First Name"
             value={firstName}
             onChange={e => setFirstName(e.target.value)}
-            className="flex-1 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
             required
           />
           <input
@@ -79,7 +79,7 @@ export default function SignupForm() {
             placeholder="Last Name"
             value={lastName}
             onChange={e => setLastName(e.target.value)}
-            className="flex-1 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
             required
           />
         </div>
