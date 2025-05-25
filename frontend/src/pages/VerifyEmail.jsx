@@ -70,24 +70,23 @@ export default function VerifyEmail() {
   return (
     <WelcomeLayout contentClassName="min-h-[70vh]" hideHeader={true} showOverlay={false}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center relative">
-        {/* Back Arrow in Circle */}
-        <button
-          className="absolute left-4 top-4 w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none z-10"
-          type="button"
-          aria-label="Back to welcome"
-          onClick={() => navigate("/welcome")}
-          style={{ left: 0, top: 0, position: 'absolute' }}
-        >
-          <ArrowLeft size={20} />
-        </button>
-        {/* Help Link Top-Right */}
-        <button
-          className="absolute right-4 top-4 text-xs text-cyan-700 hover:underline font-semibold z-10"
-          style={{ right: 0, top: 0, position: 'absolute' }}
-          onClick={() => navigate("/help")}
-        >
-          Need Help?
-        </button>
+        {/* Header Row: Back + Help, match /signup */}
+        <div className="w-full flex flex-row justify-between items-center pt-2 pb-2 px-2 mb-2">
+          <button
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none"
+            type="button"
+            aria-label="Back to welcome"
+            onClick={() => navigate("/welcome")}
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <button
+            className="text-xs text-cyan-700 hover:underline font-semibold"
+            onClick={() => navigate("/help")}
+          >
+            Need Help?
+          </button>
+        </div>
         {/* Logo */}
         <img
           src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
