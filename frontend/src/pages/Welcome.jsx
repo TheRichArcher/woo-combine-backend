@@ -14,7 +14,7 @@ export default function Welcome() {
     </div>
   );
   return (
-    <WelcomeLayout footerLinks={footerLinks} showOverlay={false}>
+    <WelcomeLayout showOverlay={false}>
       <WelcomeContent />
     </WelcomeLayout>
   );
