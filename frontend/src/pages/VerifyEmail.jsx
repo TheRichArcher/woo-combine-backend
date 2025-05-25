@@ -1,36 +1,74 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { useAuth } from "../context/AuthContext";
 import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { auth } from "../firebase";
 
 export default function VerifyEmail() {
   const { user } = useAuth();
   const [resendStatus, setResendStatus] = useState("");
   const [resending, setResending] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
 
+  // Auto-refresh every 10s to check verification
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          navigate("/dashboard");
+        }
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [navigate]);
+
+  // Manual check
+  const handleCheckAgain = async () => {
+    setChecking(true);
+    try {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        if (auth.currentUser.emailVerified) {
+          navigate("/dashboard");
+        } else {
+          setResendStatus("Still not verified. Please check your email.");
+        }
+      }
+    } catch (err) {
+      setResendStatus("Error checking verification status.");
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  // Resend email
   const handleResend = async () => {
-    if (!user) return;
     setResending(true);
     setResendStatus("");
     try {
-      await sendEmailVerification(user);
-      setResendStatus("Verification email sent!");
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+        await sendEmailVerification(auth.currentUser);
+        setResendStatus("Verification email sent!");
+      } else {
+        setResendStatus("User not found. Please log in again.");
+      }
     } catch (err) {
-      setResendStatus("Failed to resend. Try again later.");
+      setResendStatus(err?.message || "Failed to resend. Try again later.");
+      console.error("Resend verification error:", err);
     } finally {
       setResending(false);
     }
   };
 
+  // UI: align header row and buttons like /signup
   return (
-    <WelcomeLayout
-      contentClassName="min-h-[70vh]"
-      hideHeader={true}
-      showOverlay={false}
-    >
+    <WelcomeLayout contentClassName="min-h-[70vh]" hideHeader={true} showOverlay={false}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center relative">
         {/* Back Arrow in Circle */}
         <button
@@ -44,7 +82,7 @@ export default function VerifyEmail() {
         </button>
         {/* Help Link Top-Right */}
         <button
-          className="absolute right-4 top-4 text-xs text-cyan-700 hover:underline font-semibold"
+          className="absolute right-4 top-4 text-xs text-cyan-700 hover:underline font-semibold z-10"
           style={{ right: 0, top: 0, position: 'absolute' }}
           onClick={() => navigate("/help")}
         >
@@ -54,7 +92,7 @@ export default function VerifyEmail() {
         <img
           src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
           alt="Woo-Combine Logo"
-          className="w-20 h-20 mx-auto mb-4 mt-8"
+          className="w-20 h-20 mx-auto mb-4 mt-2"
           style={{ objectFit: 'contain' }}
         />
         {/* Title */}
@@ -69,28 +107,47 @@ export default function VerifyEmail() {
         </p>
         {/* Buttons */}
         <button
-          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-3"
+          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold px-6 py-3 rounded-full shadow transition mb-3"
           style={{ maxWidth: 320 }}
-          onClick={() => console.log('TODO: Open mail client')}
+          onClick={() => {
+            try {
+              window.location.href = 'mailto:';
+            } catch {
+              setShowTooltip(true);
+            }
+          }}
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
         >
           Open Email App
         </button>
+        {showTooltip && (
+          <div className="text-xs text-gray-500 mb-2 text-center w-full">If nothing happens, please open your email app manually.</div>
+        )}
         <button
-          className="w-full bg-white border border-cyan-700 text-cyan-700 font-bold py-3 rounded-full shadow transition mb-3 disabled:opacity-60"
+          className="w-full bg-white border border-cyan-700 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
           style={{ maxWidth: 320 }}
           onClick={handleResend}
           disabled={resending}
         >
           {resending ? "Resending..." : "Resend Email"}
         </button>
+        <button
+          className="w-full bg-white border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
+          style={{ maxWidth: 320 }}
+          onClick={handleCheckAgain}
+          disabled={checking}
+        >
+          {checking ? "Checking..." : "Check Again"}
+        </button>
         <a
           href="/help"
-          className="w-full text-sm text-gray-500 underline hover:text-cyan-700 text-center block mb-2"
+          className="w-full text-sm text-gray-500 underline hover:text-cyan-700 text-center block mb-6"
           style={{ maxWidth: 320 }}
         >
           Contact Support
         </a>
-        {resendStatus && <div className="text-green-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
+        {resendStatus && <div className="text-red-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
       </div>
     </WelcomeLayout>
   );
