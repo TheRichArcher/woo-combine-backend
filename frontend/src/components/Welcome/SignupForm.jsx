@@ -65,7 +65,7 @@ export default function SignupForm() {
       <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Let's Get Started</h2>
       <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
         {/* Name fields */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full mb-6">
+        <div className="flex flex-row gap-4 w-full mb-6">
           <input
             type="text"
             placeholder="First Name"
