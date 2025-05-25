@@ -13,7 +13,6 @@ export default function SignUp() {
   );
   return (
     <WelcomeLayout
-      footerLinks={footerLinks}
       contentClassName="min-h-[70vh]"
       hideHeader={true}
       showOverlay={false}
