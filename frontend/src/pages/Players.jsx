@@ -60,7 +60,20 @@ export default function Players() {
     </div>
   );
   if (loading) return <div>Loading players...</div>;
-  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (error) {
+    if (error.includes('422')) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+            <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found</h2>
+            <p className="text-cmf-secondary mb-4">Use the Admin tab to upload or import players to get started.</p>
+            <a href="/admin" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Go to Admin</a>
+          </div>
+        </div>
+      );
+    }
+    return <div className="text-red-500">Error: {error}</div>;
+  }
   if (players.length === 0) return (
     <div className="flex flex-col items-center justify-center min-h-[40vh]">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">

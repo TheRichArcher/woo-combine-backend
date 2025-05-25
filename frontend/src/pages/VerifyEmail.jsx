@@ -104,30 +104,15 @@ export default function VerifyEmail() {
         <p className="text-gray-700 text-center mb-6">
           Please check your inbox and confirm your email to continue.
         </p>
-        {/* Buttons */}
-        <button
-          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold px-6 py-3 rounded-full shadow transition mb-3"
-          style={{ maxWidth: 320 }}
-          onClick={() => {
-            try {
-              window.location.href = 'mailto:';
-            } catch {
-              setShowTooltip(true);
-            }
-          }}
-          onMouseEnter={() => setShowTooltip(true)}
-          onMouseLeave={() => setShowTooltip(false)}
-        >
-          Open Email App
-        </button>
-        {showTooltip && (
-          <div className="text-xs text-gray-500 mb-2 text-center w-full">If nothing happens, please open your email app manually.</div>
-        )}
+        {/* Instruction instead of Open Email App button */}
+        <div className="w-full text-center text-cyan-700 font-semibold mb-3 text-base">
+          Please check your email inbox in another tab or app.
+        </div>
         <button
           className="w-full bg-white border border-cyan-700 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
           style={{ maxWidth: 320 }}
           onClick={handleResend}
-          disabled={resending}
+          disabled={resending || !auth.currentUser}
         >
           {resending ? "Resending..." : "Resend Email"}
         </button>
@@ -147,6 +132,7 @@ export default function VerifyEmail() {
           Contact Support
         </a>
         {resendStatus && <div className="text-red-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
+        {!auth.currentUser && <div className="text-red-600 text-sm mt-1 text-center w-full">User session expired. Please log in again.</div>}
       </div>
     </WelcomeLayout>
   );
