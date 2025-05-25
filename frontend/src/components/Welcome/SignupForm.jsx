@@ -3,7 +3,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 export default function SignupForm() {
   const [firstName, setFirstName] = useState("");
@@ -36,15 +36,15 @@ export default function SignupForm() {
 
   return (
     <div className="w-full max-w-md flex flex-col items-center relative">
-      {/* Back Arrow */}
+      {/* Back Arrow in Circle */}
       <button
-        className="absolute left-4 top-4 text-cyan-700 hover:text-cyan-900 text-2xl focus:outline-none"
+        className="absolute left-4 top-4 w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none z-10"
         type="button"
         aria-label="Back to welcome"
         onClick={() => navigate("/welcome")}
         style={{ left: 0, top: 0, position: 'absolute' }}
       >
-        &#8592;
+        <ArrowLeft size={20} />
       </button>
       {/* Help Link Top-Right */}
       <Link
