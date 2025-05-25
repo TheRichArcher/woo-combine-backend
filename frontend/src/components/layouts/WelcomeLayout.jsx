@@ -6,6 +6,7 @@
  *
  * @param contentClassName - Optional. Extra classes for the <main> content area (e.g. to brighten or blur background for forms).
  * @param hideHeader - Optional. If true, hides the top-left Woo-Combine logo header (for distraction-free onboarding screens).
+ * @param showOverlay - Optional. If false, disables the dark overlay (for card-based onboarding screens). Default: true.
  */
 import React from "react";
 import Logo from "../Logo";
@@ -13,7 +14,7 @@ import Logo from "../Logo";
 // This is the canonical onboarding layout for Woo-Combine. Changes to visual hierarchy or branding must be reviewed.
 // TODO: Can swap gradient for background video after MVP
 
-export default function WelcomeLayout({ children, footerLinks, backgroundColor, contentClassName, hideHeader }) {
+export default function WelcomeLayout({ children, footerLinks, backgroundColor, contentClassName, hideHeader, showOverlay = true }) {
   return (
     <div className={`min-h-screen flex flex-col ${backgroundColor || "bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700"} relative`}>
       {!hideHeader && (
@@ -27,7 +28,9 @@ export default function WelcomeLayout({ children, footerLinks, backgroundColor, 
       <footer className="w-full flex flex-col items-center gap-2 pb-8 mt-auto">
         {footerLinks}
       </footer>
-      <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      {showOverlay !== false && (
+        <div className="absolute inset-0 bg-black/40 pointer-events-none" />
+      )}
     </div>
   );
 } 
