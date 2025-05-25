@@ -21,11 +21,21 @@ export default function SignupForm() {
     setFormError("");
     setSubmitting(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // Redirect to dashboard or home (stub)
-      // window.location.href = "/dashboard";
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      // Send verification email
+      if (cred.user) {
+        try {
+          await import("firebase/auth").then(mod => mod.sendEmailVerification(cred.user));
+          console.log("Verification email sent to:", cred.user.email);
+        } catch (emailErr) {
+          console.error("Failed to send verification email:", emailErr);
+        }
+      }
+      // Redirect to verify email screen
+      navigate("/verify-email");
     } catch (err) {
       setFormError(err.message);
+      console.error("Signup error:", err);
     } finally {
       setSubmitting(false);
     }

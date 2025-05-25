@@ -12,6 +12,7 @@ import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function App() {
   return (
@@ -65,6 +66,7 @@ function App() {
               <Route path="/signup" element={<SignUp />} />
               <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
               <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
             </Routes>
           </div>
         </EventProvider>

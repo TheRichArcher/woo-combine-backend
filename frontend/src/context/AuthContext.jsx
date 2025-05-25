@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import api from '../lib/api';
+import { useNavigate } from "react-router-dom";
 
 const AuthContext = createContext();
 
@@ -12,6 +13,7 @@ export function AuthProvider({ children }) {
   const [leagues, setLeagues] = useState([]); // [{id, name, role}]
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
   const [role, setRole] = useState(null); // 'organizer' | 'coach'
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log('[AuthContext] user:', user, 'loading:', loading, 'error:', error);
@@ -19,8 +21,7 @@ export function AuthProvider({ children }) {
 
   // Fetch leagues/roles from backend after login
   useEffect(() => {
-    if (user) {
-      // Fetch leagues for this user
+    if (user && user.emailVerified) {
       api.get(`/leagues/me?user_id=${user.uid}`)
         .then(res => {
           setLeagues(res.data.leagues || []);
@@ -43,17 +44,34 @@ export function AuthProvider({ children }) {
     else localStorage.removeItem('selectedLeagueId');
   }, [selectedLeagueId]);
 
-  // Subscribe to Firebase Auth state changes
+  // Subscribe to Firebase Auth state changes and enforce email verification
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setLoading(false);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await firebaseUser.reload();
+        setUser({ ...firebaseUser });
+        setLoading(false);
+        // If not verified, redirect to /verify-email
+        if (!firebaseUser.emailVerified) {
+          if (window.location.pathname !== '/verify-email') {
+            navigate('/verify-email');
+          }
+        } else {
+          // If verified and on /verify-email, redirect to dashboard
+          if (window.location.pathname === '/verify-email') {
+            navigate('/dashboard');
+          }
+        }
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
     }, (err) => {
       setError(err);
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [navigate]);
 
   // Add league after join
   const addLeague = (league) => {
