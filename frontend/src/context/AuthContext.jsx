@@ -93,6 +93,8 @@ export function AuthProvider({ children }) {
     return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
   };
 
+  const selectedLeague = leagues.find(l => l.id === selectedLeagueId) || null;
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -104,6 +106,7 @@ export function AuthProvider({ children }) {
       role,
       addLeague,
       isOrganizer,
+      selectedLeague,
     }}>
       {children}
     </AuthContext.Provider>

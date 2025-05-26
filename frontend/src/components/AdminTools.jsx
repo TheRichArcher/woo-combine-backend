@@ -47,7 +47,7 @@ function validateRow(row, headers) {
 }
 
 export default function AdminTools() {
-  const { user, role, selectedLeagueId, leagues } = useAuth();
+  const { user, role, selectedLeagueId, leagues, selectedLeague } = useAuth();
   const { selectedEvent } = useEvent();
 
   // Reset tool state
@@ -272,19 +272,8 @@ export default function AdminTools() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Role-based access logic
-  if (!selectedLeagueId) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
-          <h2 className="text-2xl font-bold text-yellow-600 mb-4">No League Selected</h2>
-          <p className="text-cmf-secondary">Please select a league to use admin tools.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (role !== 'organizer') {
+  // Only show admin tools if user is league organizer
+  if (!selectedLeague || !user || user.uid !== selectedLeague.created_by) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">

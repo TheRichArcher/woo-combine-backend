@@ -15,7 +15,7 @@ import { Menu } from 'lucide-react';
 import Logo from "./Logo";
 
 export default function Navigation() {
-  const { user, role } = useAuth();
+  const { user, role, selectedLeague } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const logout = useLogout();
   const navigate = useNavigate();
@@ -32,10 +32,10 @@ export default function Navigation() {
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Dashboard</Link>
           <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Players</Link>
           {/*
-            Admin nav link is only visible to users with 'organizer' or 'admin' roles.
-            Do not remove or alter this logic without understanding the role system.
+            Admin nav link is only visible to users with 'organizer' or 'admin' roles,
+            or if the user is the league creator (organizer).
           */}
-          {user && (role === 'organizer' || role === 'admin') && (
+          {user && selectedLeague && user.uid === selectedLeague.created_by && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
           )}
           {user && (
@@ -58,7 +58,7 @@ export default function Navigation() {
           <div className="flex flex-col items-center py-4 space-y-2">
             <Link to="/dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Dashboard</Link>
             <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Players</Link>
-            {user && (role === 'organizer' || role === 'admin') && (
+            {user && selectedLeague && user.uid === selectedLeague.created_by && (
               <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Admin</Link>
             )}
             {user && (
