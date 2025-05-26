@@ -5,6 +5,7 @@ from backend.models import Event, UserLeague
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
+import traceback
 
 router = APIRouter()
 
@@ -39,10 +40,22 @@ def list_events(user_id: str, db: Session = Depends(get_db)):
 @router.post("/events", response_model=EventRead)
 def create_event(event: EventCreate, user_id: str, db: Session = Depends(get_db)):
     from backend.routes.leagues import verify_user_in_league
-    if not verify_user_in_league(user_id, event.league_id, db):
-        raise HTTPException(status_code=403, detail="User not in league")
-    db_event = Event(name=event.name, date=event.date, league_id=event.league_id)
-    db.add(db_event)
-    db.commit()
-    db.refresh(db_event)
-    return db_event 
+    print("Received event create request")
+    print("User ID:", user_id)
+    print("League ID:", event.league_id)
+    try:
+        if not verify_user_in_league(user_id, event.league_id, db):
+            print("User not in league, aborting")
+            raise HTTPException(status_code=403, detail="User not in league")
+        print("Inserting into DB...")
+        db_event = Event(name=event.name, date=event.date, league_id=event.league_id)
+        db.add(db_event)
+        db.commit()
+        db.refresh(db_event)
+        print("Event creation complete")
+        return db_event
+    except Exception as e:
+        print("Exception during event creation:", e)
+        print(traceback.format_exc())
+        from fastapi.responses import JSONResponse
+        return JSONResponse(status_code=500, content={"error": "Failed to create event"}) 
