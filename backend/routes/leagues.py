@@ -86,6 +86,7 @@ def get_my_leagues(user_id: str, db: Session = Depends(get_db)):
             'id': league.id,
             'name': league.name,
             'season': getattr(league, 'season', None),
-            'team_code': league.id
+            'team_code': league.id,
+            'created_by': getattr(league, 'created_by_user_id', None)
         })
     return {'leagues': leagues} 
