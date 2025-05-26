@@ -8,11 +8,13 @@ export default function SelectLeague() {
   const { user, selectedLeagueId, setSelectedLeagueId } = useAuth();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!user) {
       console.error('[SelectLeague] No user found in context.');
+      setFetchError('No user found. Please log in again.');
       return;
     }
     console.log('[SelectLeague] Fetching leagues for user:', user.uid);
@@ -21,10 +23,16 @@ export default function SelectLeague() {
         console.log('[SelectLeague] GET /leagues response:', res.data);
         setLeagues(res.data.leagues || []);
         console.log('[SelectLeague] leagues array:', res.data.leagues || []);
+        if (!res.data.leagues || res.data.leagues.length === 0) {
+          setFetchError('No leagues linked to this account. Try creating a new one.');
+        } else {
+          setFetchError(null);
+        }
       })
       .catch((err) => {
         console.error('[SelectLeague] Error fetching leagues:', err);
         setLeagues([]);
+        setFetchError('Could not fetch leagues. Please try again later.');
       })
       .finally(() => setLoading(false));
   }, [user]);
@@ -41,6 +49,8 @@ export default function SelectLeague() {
         <h2 className="text-2xl font-extrabold text-center text-cyan-700 mb-6">Select Team</h2>
         {loading ? (
           <div>Loading...</div>
+        ) : fetchError ? (
+          <div className="text-center text-cyan-700 font-semibold mb-8">{fetchError}</div>
         ) : leagues.length === 0 ? (
           <div className="text-center text-cyan-700 font-semibold mb-8">No teams found. Create or join a team below.</div>
         ) : (

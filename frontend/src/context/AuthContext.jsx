@@ -41,7 +41,12 @@ export function AuthProvider({ children }) {
   // Persist selectedLeagueId
   useEffect(() => {
     if (selectedLeagueId) localStorage.setItem('selectedLeagueId', selectedLeagueId);
-    else localStorage.removeItem('selectedLeagueId');
+    else {
+      // Restore from localStorage if not set
+      const saved = localStorage.getItem('selectedLeagueId');
+      if (saved) setSelectedLeagueId(saved);
+      else localStorage.removeItem('selectedLeagueId');
+    }
   }, [selectedLeagueId]);
 
   // Subscribe to Firebase Auth state changes and enforce email verification
