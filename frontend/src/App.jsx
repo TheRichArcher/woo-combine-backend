@@ -13,6 +13,7 @@ import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
 import VerifyEmail from "./pages/VerifyEmail";
+import SelectLeague from "./pages/SelectLeague";
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
               <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
               <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
             </Routes>
           </div>
         </EventProvider>
