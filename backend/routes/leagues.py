@@ -77,9 +77,15 @@ def verify_user_in_league(user_id: str, league_id: str, db: Session) -> bool:
 
 @router.get('/leagues/me')
 def get_my_leagues(user_id: str, db: Session = Depends(get_db)):
+    print(f"Fetching leagues for user_id: {user_id}")
     user_leagues = db.query(UserLeague).filter_by(user_id=user_id).all()
-    return [{
-        'league_id': ul.league_id,
-        'league_name': ul.league.name,
-        'role': ul.role.value
-    } for ul in user_leagues] 
+    leagues = []
+    for ul in user_leagues:
+        league = ul.league
+        leagues.append({
+            'id': league.id,
+            'name': league.name,
+            'season': getattr(league, 'season', None),
+            'team_code': league.id
+        })
+    return {'leagues': leagues} 
