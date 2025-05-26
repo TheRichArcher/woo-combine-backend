@@ -11,10 +11,21 @@ export default function SelectLeague() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.error('[SelectLeague] No user found in context.');
+      return;
+    }
+    console.log('[SelectLeague] Fetching leagues for user:', user.uid);
     api.get(`/leagues?user_id=${user.uid}`)
-      .then(res => setLeagues(res.data.leagues || []))
-      .catch(() => setLeagues([]))
+      .then(res => {
+        console.log('[SelectLeague] GET /leagues response:', res.data);
+        setLeagues(res.data.leagues || []);
+        console.log('[SelectLeague] leagues array:', res.data.leagues || []);
+      })
+      .catch((err) => {
+        console.error('[SelectLeague] Error fetching leagues:', err);
+        setLeagues([]);
+      })
       .finally(() => setLoading(false));
   }, [user]);
 
