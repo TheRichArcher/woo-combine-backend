@@ -136,6 +136,19 @@ export default function CoachDashboard() {
   // Format event date
   const formattedDate = selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : '';
 
+  // If no players, show CTA and hide Coach View
+  if (players.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
+          <h2 className="text-2xl font-bold text-cyan-700 mb-4">No players found</h2>
+          <p className="text-cyan-700 mb-4">Import players or add manually before setting drill weights.</p>
+          <a href="/admin" className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition">Go to Admin</a>
+        </div>
+      </div>
+    );
+  }
+
   if (noLeague) return <LeagueFallback />;
 
   return (

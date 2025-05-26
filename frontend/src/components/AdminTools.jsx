@@ -272,7 +272,7 @@ export default function AdminTools() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Only show admin tools if user is league organizer
+  // Only show admin tools if user is league organizer (created_by)
   if (!selectedLeague || !user || user.uid !== selectedLeague.created_by) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
