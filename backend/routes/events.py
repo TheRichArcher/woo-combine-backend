@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 import traceback
+import time
+from fastapi.responses import JSONResponse
 
 router = APIRouter()
 
@@ -40,22 +42,29 @@ def list_events(user_id: str, db: Session = Depends(get_db)):
 @router.post("/events", response_model=EventRead)
 def create_event(event: EventCreate, user_id: str, db: Session = Depends(get_db)):
     from backend.routes.leagues import verify_user_in_league
-    print("Received event create request")
-    print("User ID:", user_id)
-    print("League ID:", event.league_id)
+    start_time = time.time()
+    now_str = datetime.datetime.now().isoformat()
+    print(f"[{now_str}] Received request to create event")
+    print(f"[{now_str}] User ID: {user_id}")
+    print(f"[{now_str}] League ID: {event.league_id}")
+    print(f"[{now_str}] Request payload: {event.dict()}")
     try:
         if not verify_user_in_league(user_id, event.league_id, db):
-            print("User not in league, aborting")
-            raise HTTPException(status_code=403, detail="User not in league")
-        print("Inserting into DB...")
+            print(f"[{now_str}] User not in league, aborting")
+            return JSONResponse(status_code=403, content={"error": "User not in league"})
+        print(f"[{now_str}] Inserting event to database")
         db_event = Event(name=event.name, date=event.date, league_id=event.league_id)
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
-        print("Event creation complete")
+        print(f"[{now_str}] Event insert successful")
+        duration = time.time() - start_time
+        print(f"[{now_str}] Returning response")
+        print(f"[{now_str}] Event creation completed in {duration:.2f}s")
         return db_event
     except Exception as e:
-        print("Exception during event creation:", e)
+        print(f"[{now_str}] Event insert failed: {e}")
         print(traceback.format_exc())
-        from fastapi.responses import JSONResponse
-        return JSONResponse(status_code=500, content={"error": "Failed to create event"}) 
+        duration = time.time() - start_time
+        print(f"[{now_str}] Returning error response after {duration:.2f}s")
+        return JSONResponse(status_code=500, content={"error": "Internal server error", "details": str(e)}) 
