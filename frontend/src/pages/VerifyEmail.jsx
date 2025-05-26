@@ -51,16 +51,23 @@ export default function VerifyEmail() {
     setResending(true);
     setResendStatus("");
     try {
+      console.log("[VerifyEmail] auth.currentUser:", auth.currentUser);
       if (auth.currentUser) {
         await auth.currentUser.reload();
+        // Log emailVerified and token expiration
+        const tokenResult = await auth.currentUser.getIdTokenResult();
+        console.log("[VerifyEmail] emailVerified:", auth.currentUser.emailVerified);
+        console.log("[VerifyEmail] token expiration:", tokenResult.expirationTime);
         await sendEmailVerification(auth.currentUser);
         setResendStatus("Verification email sent!");
       } else {
         setResendStatus("User not found. Please log in again.");
       }
     } catch (err) {
-      setResendStatus(err?.message || "Failed to resend. Try again later.");
+      setResendStatus((err?.message || "Failed to resend. Try again later.") + (err?.code ? ` (code: ${err.code})` : ""));
       console.error("Resend verification error:", err);
+      if (err.code) console.error("[Firebase Error Code]", err.code);
+      if (err.message) console.error("[Firebase Error Message]", err.message);
     } finally {
       setResending(false);
     }
