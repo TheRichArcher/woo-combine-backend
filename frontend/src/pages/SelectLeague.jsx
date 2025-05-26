@@ -30,7 +30,7 @@ export default function SelectLeague() {
         }
       })
       .catch((err) => {
-        console.error('[SelectLeague] Error fetching leagues:', err);
+        console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
         setLeagues([]);
         setFetchError('Could not fetch leagues. Please try again later.');
       })
