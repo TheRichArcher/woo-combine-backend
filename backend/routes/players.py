@@ -38,8 +38,10 @@ def get_db():
         db.close()
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(event_id: UUID = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_players(request: Request, event_id: UUID = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     try:
+        if 'user_id' in request.query_params:
+            raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
         event = db.query(Event).filter_by(id=event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")

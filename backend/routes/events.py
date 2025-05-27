@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from backend.db import SessionLocal
 from backend.models import Event, UserLeague
@@ -34,9 +34,11 @@ class EventRead(BaseModel):
         from_attributes = True
 
 @router.get("/events", response_model=List[EventRead])
-def list_events(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def list_events(request: Request, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     from backend.routes.leagues import verify_user_in_league
     try:
+        if 'user_id' in request.query_params:
+            raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
         user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
         league_ids = [ul.league_id for ul in user_leagues]
         events = db.query(Event).filter(Event.league_id.in_(league_ids)).order_by(Event.date.desc()).all()
