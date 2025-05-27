@@ -20,8 +20,11 @@ export function EventProvider({ children }) {
       }
       setNoLeague(false);
       try {
-        const url = `/events?league_id=${selectedLeagueId}&user_id=${user.uid}`;
-        const { data } = await api.get(url);
+        const token = await user.getIdToken();
+        const url = `/events?league_id=${selectedLeagueId}`;
+        const { data } = await api.get(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setEvents(data);
         // Auto-select from localStorage or default to first event
         const stored = localStorage.getItem("selectedEventId");

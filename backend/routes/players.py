@@ -6,6 +6,8 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID
 from backend.routes.leagues import verify_user_in_league
+from backend.auth import get_current_user
+import logging
 
 router = APIRouter()
 
@@ -36,20 +38,24 @@ def get_db():
         db.close()
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(event_id: UUID = Query(...), user_id: str = Query(...), db: Session = Depends(get_db)):
-    event = db.query(Event).filter_by(id=event_id).first()
-    if not event:
-        raise HTTPException(status_code=404, detail="Event not found")
-    if not verify_user_in_league(user_id, event.league_id, db):
-        raise HTTPException(status_code=403, detail="User not in league")
-    players = db.query(Player).filter(Player.event_id == event_id).all()
-    result = []
-    for player in players:
-        composite_score = calculate_composite_score(player, db)
-        player_dict = PlayerSchema.from_orm(player).dict()
-        player_dict["composite_score"] = composite_score
-        result.append(player_dict)
-    return result
+def get_players(event_id: UUID = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    try:
+        event = db.query(Event).filter_by(id=event_id).first()
+        if not event:
+            raise HTTPException(status_code=404, detail="Event not found")
+        if not verify_user_in_league(current_user.id, event.league_id, db):
+            raise HTTPException(status_code=403, detail="User not in league")
+        players = db.query(Player).filter(Player.event_id == event_id).all()
+        result = []
+        for player in players:
+            composite_score = calculate_composite_score(player, db)
+            player_dict = PlayerSchema.from_orm(player).dict()
+            player_dict["composite_score"] = composite_score
+            result.append(player_dict)
+        return result
+    except Exception as e:
+        logging.error(f"Error in /players: {e}")
+        raise HTTPException(status_code=503, detail=f"Internal error: {e}")
 
 from pydantic import BaseModel
 class PlayerCreate(BaseModel):

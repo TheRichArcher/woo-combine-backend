@@ -8,6 +8,8 @@ from datetime import datetime
 import traceback
 import time
 from fastapi.responses import JSONResponse
+from backend.auth import get_current_user
+import logging
 
 router = APIRouter()
 
@@ -32,12 +34,16 @@ class EventRead(BaseModel):
         from_attributes = True
 
 @router.get("/events", response_model=List[EventRead])
-def list_events(user_id: str, db: Session = Depends(get_db)):
+def list_events(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     from backend.routes.leagues import verify_user_in_league
-    user_leagues = db.query(UserLeague).filter_by(user_id=user_id).all()
-    league_ids = [ul.league_id for ul in user_leagues]
-    events = db.query(Event).filter(Event.league_id.in_(league_ids)).order_by(Event.date.desc()).all()
-    return events
+    try:
+        user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
+        league_ids = [ul.league_id for ul in user_leagues]
+        events = db.query(Event).filter(Event.league_id.in_(league_ids)).order_by(Event.date.desc()).all()
+        return events
+    except Exception as e:
+        logging.error(f"Error in /events: {e}")
+        raise HTTPException(status_code=503, detail=f"Internal error: {e}")
 
 @router.post("/events", response_model=EventRead)
 def create_event(event: EventCreate, user_id: str, db: Session = Depends(get_db)):
