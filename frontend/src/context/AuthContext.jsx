@@ -76,7 +76,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         await firebaseUser.reload();
-        setUser({ ...firebaseUser });
+        setUser(firebaseUser);
         setLoading(false);
         // If not verified, redirect to /verify-email
         if (!firebaseUser.emailVerified) {
