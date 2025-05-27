@@ -36,7 +36,10 @@ export default function CoachDashboard() {
     async function fetchPlayers() {
       if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
+        const token = await user.getIdToken();
+        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setPlayers(data);
       } catch (err) {
         setPlayers([]);
@@ -95,7 +98,7 @@ export default function CoachDashboard() {
     setWeightError("");
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ age_group: selectedAgeGroup, user_id: user.uid, league_id: selectedLeagueId });
+    const params = new URLSearchParams({ age_group: selectedAgeGroup, league_id: selectedLeagueId });
     params.append("weight_40m_dash", weights["40m_dash"]);
     params.append("weight_vertical_jump", weights["vertical_jump"]);
     params.append("weight_catching", weights["catching"]);

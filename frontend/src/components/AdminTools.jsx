@@ -165,7 +165,10 @@ export default function AdminTools() {
     };
     console.log("Uploading players:", payload);
     try {
-      const res = await api.post(`/players/bulk?user_id=${user.uid}`, payload);
+      const token = await user.getIdToken();
+      const res = await api.post(`/players/bulk`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       console.log("Upload response:", res);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {

@@ -28,12 +28,14 @@ export default function DrillInputForm({ playerId, onSuccess }) {
     }
     setLoading(true);
     try {
+      const token = await user.getIdToken();
       await api.post(`/drill-results/`, {
         player_id: playerId,
         type,
         value: parseFloat(value),
-        user_id: user?.uid,
         league_id: selectedLeagueId
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setSuccess("Drill result submitted!");
       setType("");

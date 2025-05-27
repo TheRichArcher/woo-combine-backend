@@ -22,7 +22,7 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
-      const { data: newEvent } = await api.post(`/events?user_id=${user?.uid}`, {
+      const { data: newEvent } = await api.post(`/events`, {
         name,
         date,
         league_id: selectedLeagueId
