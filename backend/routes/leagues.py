@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from backend.db import SessionLocal
 from backend.models import League, User, UserLeague, RoleEnum
@@ -76,9 +76,14 @@ def verify_user_in_league(user_id: str, league_id: str, db: Session) -> bool:
     return db.query(UserLeague).filter_by(user_id=user_id, league_id=league_id).first() is not None
 
 @router.get('/leagues/me')
-def get_my_leagues(user_id: str, db: Session = Depends(get_db)):
-    print(f"Fetching leagues for user_id: {user_id}")
-    user_leagues = db.query(UserLeague).filter_by(user_id=user_id).all()
+def get_my_leagues(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    print("Headers:", request.headers)
+    print("User:", current_user.id if current_user else "None")
+    user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
     leagues = []
     for ul in user_leagues:
         league = ul.league

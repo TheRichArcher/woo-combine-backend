@@ -21,22 +21,45 @@ export function AuthProvider({ children }) {
 
   // Fetch leagues/roles from backend after login
   useEffect(() => {
-    if (user && user.emailVerified) {
-      api.get(`/leagues/me?user_id=${user.uid}`)
-        .then(res => {
-          setLeagues(res.data.leagues || []);
-          // Set role for selected league
-          const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
-          setRole(league?.role || null);
-          if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
-        })
-        .catch(() => setLeagues([]));
-    } else {
+    const fetchLeagues = async () => {
+      if (!user || !user.emailVerified) {
+        setLeagues([]);
+        setRole(null);
+        setSelectedLeagueId('');
+        return;
+      }
+      try {
+        setError(null);
+        setLeagues([]); // clear before fetch
+        setRole(null);
+        // Get Firebase token
+        const token = await user.getIdToken();
+        console.log("Attempting to fetch leagues with token:", token);
+        const res = await api.get('/leagues/me', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { user_id: user.uid }
+        });
+        console.log("Leagues loaded:", res.data.leagues);
+        setLeagues(res.data.leagues || []);
+        // Set role for selected league
+        const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
+        setRole(league?.role || null);
+        if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
+      } catch (err) {
+        setLeagues([]);
+        setRole(null);
+        setError(err);
+        console.error("Error fetching leagues:", err.response?.data || err.message);
+      }
+    };
+    if (!loading && user && user.emailVerified) {
+      fetchLeagues();
+    } else if (!user || !user.emailVerified) {
       setLeagues([]);
       setRole(null);
       setSelectedLeagueId('');
     }
-  }, [user]);
+  }, [loading, user]);
 
   // Persist selectedLeagueId
   useEffect(() => {

@@ -159,18 +159,22 @@ export default function AdminTools() {
     setUploadStatus("loading");
     setUploadMsg("");
     setBackendErrors([]);
+    const payload = {
+      event_id: selectedEvent.id,
+      players: csvRows.map(({ errors, ...row }) => row)
+    };
+    console.log("Uploading players:", payload);
     try {
-      const { data } = await api.post(`/players/upload?user_id=${user.uid}`, {
-        event_id: selectedEvent.id,
-        players: csvRows.map(({ errors, ...row }) => row)
-      });
+      const res = await api.post(`/players/bulk?user_id=${user.uid}`, payload);
+      console.log("Upload response:", res);
+      const { data } = res;
       if (data.errors && data.errors.length > 0) {
         setBackendErrors(data.errors);
         setUploadStatus("error");
         setUploadMsg("Some rows failed to upload. See errors below.");
       } else {
         setUploadStatus("success");
-        setUploadMsg(`Upload successful! ${data.added} players added.`);
+        setUploadMsg(`✅ Upload successful! ${data.added} players added.`);
         setCsvRows([]);
         setCsvHeaders([]);
         setCsvFileName("");
@@ -178,7 +182,7 @@ export default function AdminTools() {
       }
     } catch (err) {
       setUploadStatus("error");
-      setUploadMsg(err.message || "Upload failed.");
+      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
     }
   };
 
@@ -420,14 +424,21 @@ export default function AdminTools() {
         </div>
         {/* Manual Add Player Form */}
         {showManualForm && (
-          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
+          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6" id="manual-add-form-section">
             <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><UserPlus className="w-4 h-4" />Manual Add</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Player Manually</h3>
-            <form onSubmit={handleManualSubmit}>
+            <form onSubmit={async (e) => {
+              await handleManualSubmit(e);
+              // After submit, scroll to the form and show success
+              if (manualStatus === 'success') {
+                const el = document.getElementById('manual-add-form-section');
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" />
-                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
-                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1">
+                <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" required />
+                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" required />
+                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1" required>
                   <option value="">Age Group</option>
                   {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
@@ -461,8 +472,8 @@ export default function AdminTools() {
                   Cancel
                 </button>
               </div>
-              {manualStatus === 'success' && <div className="text-green-600 mt-2">{manualMsg}</div>}
-              {manualStatus === 'error' && <div className="text-red-500 mt-2">{manualMsg}</div>}
+              {manualStatus === 'success' && <div className="text-green-600 mt-2">✅ {manualMsg}</div>}
+              {manualStatus === 'error' && <div className="text-red-500 mt-2">❌ {manualMsg}</div>}
             </form>
           </div>
         )}
