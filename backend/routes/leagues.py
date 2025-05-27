@@ -5,6 +5,7 @@ from backend.models import League, User, UserLeague, RoleEnum
 from pydantic import BaseModel
 from datetime import datetime
 import random, string
+from backend.auth import get_current_user
 
 router = APIRouter()
 
