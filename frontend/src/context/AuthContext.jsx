@@ -36,8 +36,7 @@ export function AuthProvider({ children }) {
         const token = await user.getIdToken();
         console.log("Attempting to fetch leagues with token:", token);
         const res = await api.get('/leagues/me', {
-          headers: { Authorization: `Bearer ${token}` },
-          params: { user_id: user.uid }
+          headers: { Authorization: `Bearer ${token}` }
         });
         console.log("Leagues loaded:", res.data.leagues);
         setLeagues(res.data.leagues || []);
