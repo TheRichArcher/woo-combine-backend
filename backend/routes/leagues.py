@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import random, string
 from backend.auth import get_current_user
+import logging
 
 router = APIRouter()
 
@@ -76,23 +77,31 @@ def join_league(code: str, req: JoinLeagueRequest, db: Session = Depends(get_db)
 def verify_user_in_league(user_id: str, league_id: str, db: Session) -> bool:
     return db.query(UserLeague).filter_by(user_id=user_id, league_id=league_id).first() is not None
 
+@router.get('/leagues')
+def leagues_root():
+    raise HTTPException(status_code=400, detail="Use /leagues/me to fetch user leagues.")
+
 @router.get('/leagues/me')
 def get_my_leagues(
     request: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    print("Headers:", request.headers)
-    print("User:", current_user.id if current_user else "None")
-    user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
-    leagues = []
-    for ul in user_leagues:
-        league = ul.league
-        leagues.append({
-            'id': league.id,
-            'name': league.name,
-            'season': getattr(league, 'season', None),
-            'team_code': league.id,
-            'created_by': getattr(league, 'created_by_user_id', None)
-        })
-    return {'leagues': leagues} 
+    try:
+        print("Headers:", request.headers)
+        print("User:", current_user.id if current_user else "None")
+        user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
+        leagues = []
+        for ul in user_leagues:
+            league = ul.league
+            leagues.append({
+                'id': league.id,
+                'name': league.name,
+                'season': getattr(league, 'season', None),
+                'team_code': league.id,
+                'created_by': getattr(league, 'created_by_user_id', None)
+            })
+        return {'leagues': leagues}
+    except Exception as e:
+        logging.error(f"Error in /leagues/me: {e}")
+        raise HTTPException(status_code=503, detail=f"Internal error: {e}") 
