@@ -1,0 +1,5 @@
+/_redirects
+  Content-Type: text/plain; charset=utf-8
+
+# Ensure proper content type for Render SPA routing
+
