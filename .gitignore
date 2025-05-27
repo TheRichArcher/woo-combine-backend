@@ -109,4 +109,7 @@ node_modules/
 README.local.bak
 
 # Ignore backend environment variables
-backend/.env 
+backend/.env
+
+# Virtual environment
+.venv/ 

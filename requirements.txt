@@ -64,3 +64,4 @@ urllib3==2.3.0
 uvicorn==0.34.2
 virtualenv==20.29.1
 firebase-admin==6.5.0
+google-cloud-firestore
