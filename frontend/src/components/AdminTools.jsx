@@ -205,8 +205,8 @@ export default function AdminTools() {
   const validateManual = () => {
     const errors = [];
     if (!manualPlayer.name) errors.push("Missing name");
-    if (!manualPlayer.number || isNaN(Number(manualPlayer.number))) errors.push("Invalid number");
-    if (!AGE_GROUPS.includes(manualPlayer.age_group)) errors.push("Invalid age group");
+    if (manualPlayer.number && isNaN(Number(manualPlayer.number))) errors.push("Invalid number");
+    if (manualPlayer.age_group && !AGE_GROUPS.includes(manualPlayer.age_group)) errors.push("Invalid age group");
     ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
       if (manualPlayer[drill] && isNaN(Number(manualPlayer[drill]))) errors.push(`Invalid ${drill}`);
     });
@@ -453,8 +453,8 @@ export default function AdminTools() {
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" required />
-                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" required />
-                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1" required>
+                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
+                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1">
                   <option value="">Age Group</option>
                   {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
                 </select>
