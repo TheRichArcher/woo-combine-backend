@@ -21,44 +21,22 @@ export function AuthProvider({ children }) {
 
   // Fetch leagues/roles from backend after login
   useEffect(() => {
-    const fetchLeagues = async () => {
-      if (!user || !user.emailVerified) {
-        setLeagues([]);
-        setRole(null);
-        setSelectedLeagueId('');
-        return;
-      }
-      try {
-        setError(null);
-        setLeagues([]); // clear before fetch
-        setRole(null);
-        // Get Firebase token
-        const token = await user.getIdToken();
-        console.log("Attempting to fetch leagues with token:", token);
-        const res = await api.get('/leagues/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        console.log("Leagues loaded:", res.data.leagues);
-        setLeagues(res.data.leagues || []);
-        // Set role for selected league
-        const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
-        setRole(league?.role || null);
-        if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
-      } catch (err) {
-        setLeagues([]);
-        setRole(null);
-        setError(err);
-        console.error("Error fetching leagues:", err.response?.data || err.message);
-      }
-    };
-    if (!loading && user && user.emailVerified) {
-      fetchLeagues();
-    } else if (!user || !user.emailVerified) {
+    if (user && user.emailVerified) {
+      api.get(`/leagues/me?user_id=${user.uid}`)
+        .then(res => {
+          setLeagues(res.data.leagues || []);
+          // Set role for selected league
+          const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
+          setRole(league?.role || null);
+          if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
+        })
+        .catch(() => setLeagues([]));
+    } else {
       setLeagues([]);
       setRole(null);
       setSelectedLeagueId('');
     }
-  }, [loading, user]);
+  }, [user]);
 
   // Persist selectedLeagueId
   useEffect(() => {
@@ -76,7 +54,7 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         await firebaseUser.reload();
-        setUser(firebaseUser);
+        setUser({ ...firebaseUser });
         setLoading(false);
         // If not verified, redirect to /verify-email
         if (!firebaseUser.emailVerified) {
@@ -115,8 +93,6 @@ export function AuthProvider({ children }) {
     return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
   };
 
-  const selectedLeague = leagues.find(l => l.id === selectedLeagueId) || null;
-
   return (
     <AuthContext.Provider value={{
       user,
@@ -128,7 +104,6 @@ export function AuthProvider({ children }) {
       role,
       addLeague,
       isOrganizer,
-      selectedLeague,
     }}>
       {children}
     </AuthContext.Provider>

@@ -22,7 +22,7 @@ export default function LoginForm() {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await cred.user.reload();
       if (cred.user.emailVerified) {
-        navigate("/select-league");
+        navigate("/dashboard");
       } else {
         navigate("/verify-email");
       }

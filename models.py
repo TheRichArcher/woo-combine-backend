@@ -40,4 +40,8 @@ class DrillResultSchema(BaseModel):
     value: float
     created_at: datetime
     class Config:
-        orm_mode = True 
+        orm_mode = True
+
+class Test(Base):
+    __tablename__ = 'test'
+    id = Column(Integer, primary_key=True) 

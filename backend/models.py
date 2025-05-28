@@ -33,7 +33,7 @@ class Event(Base):
     name = Column(String, nullable=False)
     date = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    league_id = Column(String, ForeignKey('leagues.id'), nullable=False)
+    league_id = Column(String, ForeignKey('leagues.id'), nullable=True)
     league = relationship('League', back_populates='events')
 
 class User(Base):
