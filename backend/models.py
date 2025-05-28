@@ -4,15 +4,18 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
+import uuid
 
 Base = declarative_base()
 
 class Player(Base):
     __tablename__ = 'players'
     id = Column(Integer, primary_key=True, index=True)
+    uuid = Column(PG_UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
     name = Column(String, nullable=False)
-    number = Column(Integer, nullable=False)
-    age_group = Column(String, nullable=False)
+    number = Column(Integer, nullable=True)
+    age_group = Column(String, nullable=True)
     photo_url = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -66,9 +69,10 @@ class UserLeague(Base):
 # Pydantic schemas for API
 class PlayerSchema(BaseModel):
     id: int
+    uuid: uuid.UUID
     name: str
-    number: int
-    age_group: str
+    number: int | None = None
+    age_group: str | None = None
     photo_url: str | None = None
     created_at: datetime
     class Config:

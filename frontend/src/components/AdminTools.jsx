@@ -31,19 +31,28 @@ function parseCsv(text) {
 
 function validateRow(row, headers) {
   const errors = [];
+  const warnings = [];
   const obj = {};
   headers.forEach((header, i) => {
     obj[header] = row[i] ?? "";
   });
-  // Validate required fields
+  // Only require name
   if (!obj.name) errors.push("Missing name");
-  if (!obj.number || isNaN(Number(obj.number))) errors.push("Invalid number");
-  if (!AGE_GROUPS.includes(obj.age_group)) errors.push("Invalid age group");
-  // Drill fields
+  // Number is optional, but if present, must be a number
+  if (obj.number && isNaN(Number(obj.number))) errors.push("Invalid number");
+  // Age group is optional, but if present, must be valid
+  if (obj.age_group && !AGE_GROUPS.includes(obj.age_group)) errors.push("Invalid age group");
+  // Drill fields: warn if missing, error if present but invalid
   ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
-    if (obj[drill] && isNaN(Number(obj[drill]))) errors.push(`Invalid ${drill}`);
+    if (obj[drill]) {
+      if (isNaN(Number(obj[drill]))) errors.push(`Invalid ${drill}`);
+    } else {
+      warnings.push(`Missing ${drill.replace(/_/g, ' ')} (optional)`);
+    }
   });
-  return { ...obj, errors };
+  obj.errors = errors;
+  obj.warnings = warnings;
+  return obj;
 }
 
 export default function AdminTools() {
@@ -361,7 +370,7 @@ export default function AdminTools() {
               {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join('; ')}</div>}
               {csvRows.length > 0 && csvErrors.length === 0 && (
                 <div className="overflow-x-auto max-h-64 border rounded mb-2 w-full">
-                  <table className="w-full text-xs">
+                  <table className="min-w-full text-xs">
                     <thead>
                       <tr>
                         <th className="px-2 py-1">{/* Validation Icon */}</th>
@@ -375,6 +384,7 @@ export default function AdminTools() {
                           </th>
                         ))}
                         <th className="px-2 py-1">Errors</th>
+                        <th className="px-2 py-1">Warnings</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -397,6 +407,9 @@ export default function AdminTools() {
                             {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
                             <td className="px-2 py-1 text-red-500">
                               {[...row.errors, backendError?.message].filter(Boolean).join(", ")}
+                            </td>
+                            <td className="px-2 py-1 text-yellow-600">
+                              {row.warnings && row.warnings.length > 0 ? row.warnings.join(", ") : ""}
                             </td>
                           </tr>
                         );

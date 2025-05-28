@@ -62,8 +62,8 @@ def get_players(request: Request, event_id: UUID = Query(...), db: Session = Dep
 from pydantic import BaseModel
 class PlayerCreate(BaseModel):
     name: str
-    number: int
-    age_group: str
+    number: int | None = None
+    age_group: str | None = None
     photo_url: str | None = None
 
 @router.post("/players", response_model=PlayerSchema)
@@ -92,7 +92,7 @@ def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = 
         raise HTTPException(status_code=403, detail="User not in league")
     event_id = req.event_id
     players = req.players
-    required_fields = ["name", "number", "age_group"]
+    required_fields = ["name"]
     drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
     errors = []
     added = 0
@@ -101,12 +101,15 @@ def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = 
         for field in required_fields:
             if not player.get(field):
                 row_errors.append(f"Missing {field}")
-        try:
-            number = int(player.get("number", ""))
-        except Exception:
-            row_errors.append("Invalid number")
-        if player.get("age_group") not in ["7-8", "9-10", "11-12"]:
-            row_errors.append("Invalid age_group")
+        # number and age_group are optional, but if present, validate
+        if player.get("number") not in (None, ""):
+            try:
+                int(player.get("number"))
+            except Exception:
+                row_errors.append("Invalid number")
+        if player.get("age_group") not in (None, ""):
+            if player.get("age_group") not in ["7-8", "9-10", "11-12"]:
+                row_errors.append("Invalid age_group")
         for drill in drill_fields:
             val = player.get(drill, "")
             if val != "" and val is not None:
@@ -119,8 +122,8 @@ def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = 
             continue
         db_player = Player(
             name=player["name"],
-            number=int(player["number"]),
-            age_group=player["age_group"],
+            number=int(player["number"]) if player.get("number") not in (None, "") else None,
+            age_group=player["age_group"] if player.get("age_group") not in (None, "") else None,
             photo_url=None,
             event_id=event_id,
         )
