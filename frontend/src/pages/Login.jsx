@@ -10,9 +10,14 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      navigate("/select-league");
+      const leagueId = selectedLeagueId || localStorage.getItem('selectedLeagueId');
+      if (leagueId) {
+        navigate("/dashboard");
+      } else {
+        navigate("/select-league");
+      }
     }
-  }, [user, navigate]);
+  }, [user, selectedLeagueId, navigate]);
 
   return (
     <WelcomeLayout
