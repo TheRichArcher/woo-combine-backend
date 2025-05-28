@@ -18,9 +18,9 @@ export default function SelectLeague() {
       return;
     }
     console.log('[SelectLeague] Fetching leagues for user:', user.uid);
-    api.get(`/leagues?user_id=${user.uid}`)
+    api.get(`/leagues/me`)
       .then(res => {
-        console.log('[SelectLeague] GET /leagues response:', res.data);
+        console.log('[SelectLeague] GET /leagues/me response:', res.data);
         setLeagues(res.data.leagues || []);
         console.log('[SelectLeague] leagues array:', res.data.leagues || []);
         if (!res.data.leagues || res.data.leagues.length === 0) {
