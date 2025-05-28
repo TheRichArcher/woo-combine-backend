@@ -62,9 +62,9 @@ async def startup_event():
     print("=== DEBUG: WooCombine backend main.py loaded ===")
 
 # TEMPORARY: Add league_id column if missing
-engine = create_engine(os.environ["DATABASE_URL"])
-with engine.connect() as conn:
-    conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;"))
+# engine = create_engine(os.environ["DATABASE_URL"])
+# with engine.connect() as conn:
+#     conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;"))
 
 # from routes import players, drills, auth  # To be registered later 
 
