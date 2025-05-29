@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const ROLE_OPTIONS = [
   { key: "organizer", label: "🏈 League Operator", desc: "Full access to admin tools and player management." },
@@ -22,9 +23,14 @@ export default function SelectRole() {
   React.useEffect(() => {
     const checkUser = async () => {
       try {
-        if (!user) return;
-        await user.reload();
-        if (!user.emailVerified) {
+        const auth = getAuth();
+        await auth.currentUser?.reload();
+        const refreshedUser = auth.currentUser;
+        if (!refreshedUser) return;
+        if (process.env.NODE_ENV === "development") {
+          console.log("[SelectRole] Refreshed user:", refreshedUser);
+        }
+        if (!refreshedUser.emailVerified) {
           setEmailCheck(true);
         }
       } catch (err) {
@@ -43,12 +49,14 @@ export default function SelectRole() {
 
   const handleContinue = async () => {
     setError("");
-    if (!user) {
+    const auth = getAuth();
+    await auth.currentUser?.reload();
+    const refreshedUser = auth.currentUser;
+    if (!refreshedUser) {
       setError("No user found. Please log in again.");
       return;
     }
-    await user.reload();
-    if (!user.emailVerified) {
+    if (!refreshedUser.emailVerified) {
       setEmailCheck(true);
       setError("Please verify your email to continue.");
       return;
@@ -59,15 +67,16 @@ export default function SelectRole() {
     }
     setLoading(true);
     try {
-      await setDoc(doc(db, "users", user.uid), {
-        id: user.uid,
-        email: user.email,
+      await setDoc(doc(db, "users", refreshedUser.uid), {
+        id: refreshedUser.uid,
+        email: refreshedUser.email,
         role: selectedRole,
         created_at: serverTimestamp(),
       }, { merge: true });
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to save role.");
+      console.error("🔥 Failed to check user state or save role:", err);
     } finally {
       setLoading(false);
     }
@@ -76,17 +85,22 @@ export default function SelectRole() {
   const handleResend = async () => {
     setError("");
     try {
-      await user.sendEmailVerification();
+      const auth = getAuth();
+      const refreshedUser = auth.currentUser;
+      await refreshedUser.sendEmailVerification();
       setError("Verification email sent. Please check your inbox.");
     } catch (err) {
       setError(err.message || "Failed to send verification email.");
+      console.error("🔥 Failed to send verification email:", err);
     }
   };
 
   const handleCheckAgain = async () => {
     setError("");
-    await user.reload();
-    if (user.emailVerified) {
+    const auth = getAuth();
+    await auth.currentUser?.reload();
+    const refreshedUser = auth.currentUser;
+    if (refreshedUser && refreshedUser.emailVerified) {
       setEmailCheck(false);
       setError("");
     } else {
