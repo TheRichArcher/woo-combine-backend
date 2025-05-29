@@ -64,9 +64,14 @@ export function AuthProvider({ children }) {
             navigate('/verify-email');
           }
         } else {
-          // If verified and on /verify-email, redirect to dashboard
-          if (window.location.pathname === '/verify-email') {
-            navigate('/dashboard');
+          // If verified and on /verify-email, redirect to dashboard or select-role
+          const db = getFirestore();
+          const docRef = doc(db, "users", firebaseUser.uid);
+          const snap = await getDoc(docRef);
+          if (!snap.exists() || !snap.data().role) {
+            navigate("/select-role");
+          } else {
+            navigate("/dashboard");
           }
         }
       } else {

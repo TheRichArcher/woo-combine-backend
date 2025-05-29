@@ -27,10 +27,12 @@ export default function LoginForm() {
         navigate("/verify-email");
       }
     } catch (err) {
-      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+      if (err.code === "auth/invalid-credential") {
+        setFormError("Account not found. Please sign up before logging in.");
+      } else if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
         setFormError("Invalid email or password.");
       } else {
-        setFormError(err.message);
+        setFormError("Login failed. Please try again.");
       }
     } finally {
       setSubmitting(false);

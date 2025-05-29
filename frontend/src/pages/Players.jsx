@@ -58,8 +58,14 @@ export default function Players() {
 
   if (!selectedEvent) return (
     <div className="flex flex-col items-center justify-center min-h-[40vh]">
-      <OnboardingCallout />
-      <div className="text-center text-cmf-secondary text-xl font-semibold py-8">No event selected.<br/>Please choose an event to view players.</div>
+      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+        <h2 className="text-2xl font-bold text-cmf-primary mb-4">No event selected</h2>
+        <p className="text-cmf-secondary mb-4">
+          {userRole === "organizer"
+            ? "Create an event to manage players and drills."
+            : "Ask your league operator to assign you to an event."}
+        </p>
+      </div>
     </div>
   );
   if (loading) return <div>Loading players...</div>;
