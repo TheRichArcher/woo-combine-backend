@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { Settings } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -30,6 +31,7 @@ export default function CoachDashboard() {
   const [players, setPlayers] = useState([]); // for age group list only
   const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
   const [weightError, setWeightError] = useState("");
+  const navigate = useNavigate();
 
   // Fetch all players to get available age groups
   useEffect(() => {
@@ -139,6 +141,17 @@ export default function CoachDashboard() {
   // Format event date
   const formattedDate = selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : '';
 
+  // Scroll to import section if hash is present
+  useEffect(() => {
+    const anchor = window.location.hash;
+    if (anchor) {
+      const el = document.querySelector(anchor);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, []);
+
   // If no players, show CTA and hide Coach View
   if (players.length === 0) {
     const handleImport = () => {
@@ -147,7 +160,7 @@ export default function CoachDashboard() {
     };
     const handleGoToAdmin = () => {
       if (userRole === 'organizer' && user && userRole && !loading) {
-        window.location.href = '/admin';
+        navigate('/admin');
       }
     };
     return (
