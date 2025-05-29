@@ -15,8 +15,31 @@ export default function SelectRole() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailCheck, setEmailCheck] = useState(false);
+  const [checkingUser, setCheckingUser] = useState(true);
   const navigate = useNavigate();
   const db = getFirestore();
+
+  React.useEffect(() => {
+    const checkUser = async () => {
+      try {
+        if (!user) return;
+        await user.reload();
+        if (!user.emailVerified) {
+          setEmailCheck(true);
+        }
+      } catch (err) {
+        console.error("Error in SelectRole user check:", err);
+        setError("Failed to check user state.");
+      } finally {
+        setCheckingUser(false);
+      }
+    };
+    checkUser();
+  }, [user]);
+
+  if (!user || checkingUser) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   const handleContinue = async () => {
     setError("");
