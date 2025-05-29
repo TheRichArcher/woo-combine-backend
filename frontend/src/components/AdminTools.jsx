@@ -56,7 +56,7 @@ function validateRow(row, headers) {
 }
 
 export default function AdminTools() {
-  const { user, role, selectedLeagueId, leagues, selectedLeague } = useAuth();
+  const { user, role, userRole, selectedLeagueId, leagues, selectedLeague } = useAuth();
   const { selectedEvent } = useEvent();
 
   // Reset tool state
@@ -288,8 +288,7 @@ export default function AdminTools() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Only show admin tools if user is league organizer (created_by)
-  if (!selectedLeague || !user || user.uid !== selectedLeague.created_by) {
+  if (userRole !== 'organizer') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">

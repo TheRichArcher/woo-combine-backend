@@ -15,7 +15,7 @@ import { Menu } from 'lucide-react';
 import Logo from "./Logo";
 
 export default function Navigation() {
-  const { user, role } = useAuth();
+  const { user, userRole } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const logout = useLogout();
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function Navigation() {
             Admin nav link is only visible to users with 'organizer' or 'admin' roles.
             Do not remove or alter this logic without understanding the role system.
           */}
-          {user && (role === 'organizer' || role === 'admin') && (
+          {userRole === 'organizer' && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
           )}
           {user && (
@@ -58,7 +58,7 @@ export default function Navigation() {
           <div className="flex flex-col items-center py-4 space-y-2">
             <Link to="/dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Dashboard</Link>
             <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Players</Link>
-            {user && (role === 'organizer' || role === 'admin') && (
+            {userRole === 'organizer' && (
               <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Admin</Link>
             )}
             {user && (

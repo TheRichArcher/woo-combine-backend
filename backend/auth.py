@@ -29,14 +29,23 @@ ADMIN_EMAILS = {"usagrich@aol.com"}
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> User:
+) -> dict:
     token = credentials.credentials
     try:
         decoded_token = auth.verify_id_token(token)
         logging.info(f"Decoded Firebase token: {decoded_token}")
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
-        return User(id=uid, email=email)
+        # Fetch role from Firestore
+        db = firestore.Client()
+        user_doc = db.collection("users").document(uid).get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=403, detail="User not found in Firestore")
+        user_data = user_doc.to_dict()
+        role = user_data.get("role")
+        if not role:
+            raise HTTPException(status_code=403, detail="User role not set in Firestore")
+        return {"uid": uid, "email": email, "role": role}
     except firebase_exceptions.FirebaseError as e:
         logging.error(f"Firebase token verification failed: {e}")
         raise HTTPException(
@@ -48,4 +57,11 @@ def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Unexpected error in get_current_user: {e}",
-        ) 
+        )
+
+def require_role(*allowed_roles):
+    def wrapper(user=Depends(get_current_user)):
+        if user["role"] not in allowed_roles:
+            raise HTTPException(status_code=403, detail="Access denied")
+        return user
+    return wrapper 

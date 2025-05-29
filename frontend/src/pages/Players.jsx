@@ -7,7 +7,7 @@ import api from '../lib/api';
 
 export default function Players() {
   const { selectedEvent } = useEvent();
-  const { user, selectedLeagueId } = useAuth();
+  const { user, selectedLeagueId, userRole } = useAuth();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -125,21 +125,25 @@ export default function Players() {
                         <td className="py-2 px-2">{player.number}</td>
                         <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
                         <td className="py-2 px-2">
-                          <button
-                            onClick={() => toggleForm(player.id)}
-                            className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
-                          >
-                            {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
-                          </button>
+                          {userRole === 'organizer' && (
+                            <button
+                              onClick={() => toggleForm(player.id)}
+                              className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
+                            >
+                              {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
+                            </button>
+                          )}
                         </td>
                       </tr>
                       {expandedPlayerIds[player.id] && (
                         <tr>
                           <td colSpan={5} className="bg-cmf-light">
-                            <DrillInputForm
-                              playerId={player.id}
-                              onSuccess={fetchPlayers}
-                            />
+                            {userRole === 'organizer' && (
+                              <DrillInputForm
+                                playerId={player.id}
+                                onSuccess={fetchPlayers}
+                              />
+                            )}
                           </td>
                         </tr>
                       )}

@@ -2,7 +2,7 @@ from logging.config import fileConfig
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from models import Base
+from backend.models import Base
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool

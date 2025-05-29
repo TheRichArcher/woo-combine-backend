@@ -3,6 +3,7 @@ import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
+import { getFirestore, doc, getDoc } from "firebase/firestore";
 
 const AuthContext = createContext();
 
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
   const [leagues, setLeagues] = useState([]); // [{id, name, role}]
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
   const [role, setRole] = useState(null); // 'organizer' | 'coach'
+  const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,6 +80,28 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!user) {
+      setUserRole(null);
+      return;
+    }
+    const db = getFirestore();
+    const fetchRole = async () => {
+      try {
+        const docRef = doc(db, "users", user.uid);
+        const snap = await getDoc(docRef);
+        if (snap.exists()) {
+          setUserRole(snap.data().role || null);
+        } else {
+          setUserRole(null);
+        }
+      } catch {
+        setUserRole(null);
+      }
+    };
+    fetchRole();
+  }, [user]);
+
   // Add league after join
   const addLeague = (league) => {
     setLeagues(prev => {
@@ -104,6 +128,7 @@ export function AuthProvider({ children }) {
       role,
       addLeague,
       isOrganizer,
+      userRole,
     }}>
       {children}
     </AuthContext.Provider>

@@ -22,7 +22,7 @@ const DRILLS = [
 
 export default function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
-  const { user, selectedLeagueId } = useAuth();
+  const { user, selectedLeagueId, userRole } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -178,44 +178,46 @@ export default function CoachDashboard() {
           </select>
         </div>
         {/* Drill Weight Controls */}
-        <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings className="w-4 h-4 text-cyan-600" />
-            <h2 className="text-sm font-medium text-gray-800">Adjust Drill Weighting</h2>
+        {userRole === 'organizer' && (
+          <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings className="w-4 h-4 text-cyan-600" />
+              <h2 className="text-sm font-medium text-gray-800">Adjust Drill Weighting</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+              {DRILLS.map(drill => (
+                <div key={drill.key}>
+                  <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={weights[drill.key]}
+                    onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
+                    className="w-full accent-cyan-600 h-2 rounded-lg bg-gray-100"
+                  />
+                  <span className="block text-right font-mono text-cyan-700 text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-4 justify-center mt-6">
+              <button
+                onClick={handleReset}
+                className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
+              >
+                Reset to Default
+              </button>
+              <button
+                onClick={handleUpdateRankings}
+                className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
+              >
+                Update Rankings
+              </button>
+            </div>
+            {weightError && <div className="text-red-500 mt-2 text-sm">{weightError}</div>}
           </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-            {DRILLS.map(drill => (
-              <div key={drill.key}>
-                <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={weights[drill.key]}
-                  onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-                  className="w-full accent-cyan-600 h-2 rounded-lg bg-gray-100"
-                />
-                <span className="block text-right font-mono text-cyan-700 text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-4 justify-center mt-6">
-            <button
-              onClick={handleReset}
-              className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
-            >
-              Reset to Default
-            </button>
-            <button
-              onClick={handleUpdateRankings}
-              className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
-            >
-              Update Rankings
-            </button>
-          </div>
-          {weightError && <div className="text-red-500 mt-2 text-sm">{weightError}</div>}
-        </div>
+        )}
         {/* Rankings Table and Loading/Error States remain unchanged, but inside the new container */}
         {loading ? (
           <div>Loading rankings...</div>

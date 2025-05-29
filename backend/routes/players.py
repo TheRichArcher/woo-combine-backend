@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID
 from backend.routes.leagues import verify_user_in_league
-from backend.auth import get_current_user
+from backend.auth import get_current_user, require_role
 import logging
 
 router = APIRouter()
@@ -84,11 +84,11 @@ class UploadRequest(BaseModel):
     players: List[Dict[str, Any]]
 
 @router.post("/players/upload")
-def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = Depends(get_db)):
+def upload_players(req: UploadRequest, db: Session = Depends(get_db), user=Depends(require_role("organizer"))):
     event = db.query(Event).filter_by(id=req.event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if not verify_user_in_league(user_id, event.league_id, db):
+    if not verify_user_in_league(user.id, event.league_id, db):
         raise HTTPException(status_code=403, detail="User not in league")
     event_id = req.event_id
     players = req.players
@@ -145,7 +145,7 @@ def upload_players(req: UploadRequest, user_id: str = Query(...), db: Session = 
     return {"added": added, "errors": errors}
 
 @router.delete("/players/reset")
-def reset_players(event_id: UUID = Query(...), db: Session = Depends(get_db)):
+def reset_players(event_id: UUID = Query(...), db: Session = Depends(get_db), user=Depends(require_role("organizer"))):
     # Delete all drill results for the event
     db.query(DrillResult).filter(DrillResult.event_id == event_id).delete()
     db.query(Player).filter(Player.event_id == event_id).delete()
@@ -193,3 +193,15 @@ def get_rankings(
     for idx, player in enumerate(ranked, start=1):
         player["rank"] = idx
     return ranked
+
+@router.post("/players/bulk")
+def bulk_upload_players(user=Depends(require_role("organizer"))):
+    raise NotImplementedError("Bulk upload endpoint not yet implemented.")
+
+@router.post("/rankings/weights")
+def set_custom_weights(user=Depends(require_role("coach", "organizer"))):
+    raise NotImplementedError("Custom weights endpoint not yet implemented.")
+
+@router.get("/admin")
+def admin_dashboard(user=Depends(require_role("organizer"))):
+    raise NotImplementedError("Admin dashboard endpoint not yet implemented.")
