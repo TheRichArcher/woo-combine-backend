@@ -109,20 +109,20 @@ export default function VerifyEmail() {
         </p>
         <div className="text-lg font-bold text-cyan-700 text-center mb-2 break-all">{user?.email || "your email"}</div>
         <p className="text-gray-700 text-center mb-6">
-          Please check your inbox and confirm your email to continue.
+          Please check your inbox and confirm your email to continue.<br/>
+          <span className="text-cyan-700 font-semibold">Didn't receive the email? Check your spam folder or promotions tab.</span>
         </p>
-        {/* Instruction instead of Open Email App button */}
+        {/* CTA to go to app after verifying */}
         <div className="w-full text-center text-cyan-700 font-semibold mb-3 text-base">
-          Please check your email inbox in another tab or app.
+          Once you've verified your email, click below to continue.
         </div>
-        <button
-          className="w-full bg-white border border-cyan-700 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
+        <a
+          href="https://woo-combine.com"
+          className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
           style={{ maxWidth: 320 }}
-          onClick={handleResend}
-          disabled={resending || !auth.currentUser}
         >
-          {resending ? "Resending..." : "Resend Email"}
-        </button>
+          Go to App
+        </a>
         <button
           className="w-full bg-white border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
           style={{ maxWidth: 320 }}
