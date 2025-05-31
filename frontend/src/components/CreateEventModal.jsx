@@ -15,6 +15,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    console.log({ name, date, league_id: selectedLeagueId });
     try {
       const { data: newEvent } = await api.post(`/events`, {
         name,
@@ -63,10 +64,14 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
           <button
             type="submit"
             className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:bg-cmf-secondary transition"
-            disabled={loading}
+            disabled={loading || !selectedLeagueId}
+            title={!selectedLeagueId ? 'You must have a league selected to create an event.' : ''}
           >
             {loading ? "Creating..." : "Create Event"}
           </button>
+          {!selectedLeagueId && (
+            <div className="text-red-500 text-xs mt-2">No league selected. Please refresh or re-login if this persists.</div>
+          )}
         </form>
       </div>
     </div>

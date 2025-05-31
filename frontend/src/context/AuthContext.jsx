@@ -30,7 +30,13 @@ export function AuthProvider({ children }) {
           // Set role for selected league
           const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
           setRole(league?.role || null);
-          if (league && !selectedLeagueId) setSelectedLeagueId(league.id);
+          // Always set selectedLeagueId to first league if not set or invalid
+          if (res.data.leagues && res.data.leagues.length > 0) {
+            if (!selectedLeagueId || !res.data.leagues.some(l => l.id === selectedLeagueId)) {
+              setSelectedLeagueId(res.data.leagues[0].id);
+              localStorage.setItem('selectedLeagueId', res.data.leagues[0].id);
+            }
+          }
         })
         .catch(() => setLeagues([]));
     } else {
@@ -119,6 +125,7 @@ export function AuthProvider({ children }) {
       return [...prev, league];
     });
     setSelectedLeagueId(league.id);
+    localStorage.setItem('selectedLeagueId', league.id);
     setRole(league.role);
   };
 
