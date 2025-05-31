@@ -11,11 +11,22 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
 
   if (!open) return null;
 
+  if (!selectedLeagueId) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
+        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative text-center">
+          <h2 className="text-xl font-bold mb-4 text-cmf-primary">Create New Event</h2>
+          <div className="text-gray-700 text-base py-8">Please wait while your league loads…</div>
+        </div>
+      </div>
+    );
+  }
+
   const handleCreate = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    console.log({ name, date, league_id: selectedLeagueId });
+    console.log("Submitting event", { name, date, league_id: selectedLeagueId });
     try {
       const { data: newEvent } = await api.post(`/events`, {
         name,
@@ -64,14 +75,10 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
           <button
             type="submit"
             className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:bg-cmf-secondary transition"
-            disabled={loading || !selectedLeagueId}
-            title={!selectedLeagueId ? 'You must have a league selected to create an event.' : ''}
+            disabled={loading}
           >
             {loading ? "Creating..." : "Create Event"}
           </button>
-          {!selectedLeagueId && (
-            <div className="text-red-500 text-xs mt-2">No league selected. Please refresh or re-login if this persists.</div>
-          )}
         </form>
       </div>
     </div>
