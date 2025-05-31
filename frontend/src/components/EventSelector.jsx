@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function EventSelector() {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
