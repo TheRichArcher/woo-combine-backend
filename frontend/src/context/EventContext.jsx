@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
-import LeagueFallback from './LeagueFallback';
+import LeagueFallback from './LeagueFallback.jsx';
 
 const EventContext = createContext();
 
