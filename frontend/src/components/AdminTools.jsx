@@ -5,6 +5,7 @@ import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 const REQUIRED_HEADERS = [
   "name",
@@ -58,6 +59,7 @@ function validateRow(row, headers) {
 export default function AdminTools() {
   const { user, role, userRole, selectedLeagueId, leagues, selectedLeague } = useAuth();
   const { selectedEvent } = useEvent();
+  const navigate = useNavigate();
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
@@ -113,6 +115,13 @@ export default function AdminTools() {
     window.addEventListener('hashchange', scrollToSection);
     return () => window.removeEventListener('hashchange', scrollToSection);
   }, []);
+
+  // QA logging
+  useEffect(() => {
+    console.log('[AdminTools] mount');
+    console.log('[AdminTools] userRole:', userRole);
+    console.log('[AdminTools] selectedEvent:', selectedEvent);
+  }, [userRole, selectedEvent]);
 
   const handleReset = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
@@ -317,7 +326,13 @@ export default function AdminTools() {
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
-          <p className="text-cmf-secondary">Please select or create an event to use admin tools.</p>
+          <p className="text-cmf-secondary mb-4">Please create or select an event to use admin tools.</p>
+          <button
+            className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition"
+            onClick={() => navigate('/dashboard')}
+          >
+            + Create or Select Event
+          </button>
         </div>
       </div>
     );
