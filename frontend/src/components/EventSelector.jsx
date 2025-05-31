@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import { useEvent } from "../context/EventContext";
-import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
+import { useAuth } from "../contexts/AuthContext";
 
 export default function EventSelector() {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
-  const { user, selectedLeagueId } = useAuth();
+  const { selectedLeagueId } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");

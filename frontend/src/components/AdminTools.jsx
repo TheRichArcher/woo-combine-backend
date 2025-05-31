@@ -5,7 +5,6 @@ import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
 import CreateEventModal from "./CreateEventModal";
 
 const REQUIRED_HEADERS = [
@@ -32,35 +31,23 @@ function parseCsv(text) {
 }
 
 function validateRow(row, headers) {
-  const errors = [];
-  const warnings = [];
+  const rowWarnings = [];
   const obj = {};
   headers.forEach((header, i) => {
     obj[header] = row[i] ?? "";
   });
-  // Only require name
-  if (!obj.name) errors.push("Missing name");
-  // Number is optional, but if present, must be a number
-  if (obj.number && isNaN(Number(obj.number))) errors.push("Invalid number");
-  // Age group is optional, but if present, must be valid
-  if (obj.age_group && !AGE_GROUPS.includes(obj.age_group)) errors.push("Invalid age group");
-  // Drill fields: warn if missing, error if present but invalid
+  if (!obj.name) rowWarnings.push("Missing name");
+  if (obj.number && isNaN(Number(obj.number))) rowWarnings.push("Invalid number");
+  if (obj.age_group && !["7-8", "9-10", "11-12"].includes(obj.age_group)) rowWarnings.push("Invalid age group");
   ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
-    if (obj[drill]) {
-      if (isNaN(Number(obj[drill]))) errors.push(`Invalid ${drill}`);
-    } else {
-      warnings.push(`Missing ${drill.replace(/_/g, ' ')} (optional)`);
-    }
+    if (obj[drill] && isNaN(Number(obj[drill]))) rowWarnings.push(`Invalid ${drill}`);
   });
-  obj.errors = errors;
-  obj.warnings = warnings;
-  return obj;
+  return { ...obj, warnings: rowWarnings };
 }
 
 export default function AdminTools() {
-  const { user, role, userRole, selectedLeagueId, leagues, selectedLeague } = useAuth();
-  const { selectedEvent, events, setEvents, setSelectedEvent } = useEvent();
-  const navigate = useNavigate();
+  const { user, role, userRole, selectedLeagueId, leagues } = useAuth();
+  const { selectedEvent, setEvents, setSelectedEvent } = useEvent();
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
@@ -75,7 +62,6 @@ export default function AdminTools() {
 
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle | loading | success | error
   const [uploadMsg, setUploadMsg] = useState("");
-  const [backendErrors, setBackendErrors] = useState([]);
 
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -162,7 +148,7 @@ export default function AdminTools() {
     reader.readAsText(file);
   };
 
-  const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.errors.length === 0);
+  const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.warnings.length === 0);
 
   // Fetch player count for summary badge
   const fetchPlayerCount = async () => {
@@ -192,10 +178,9 @@ export default function AdminTools() {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setUploadStatus("loading");
     setUploadMsg("");
-    setBackendErrors([]);
     const payload = {
       event_id: selectedEvent.id,
-      players: csvRows.map(({ errors, ...row }) => row)
+      players: csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; })
     };
     console.log("Uploading players:", payload);
     try {
@@ -206,7 +191,6 @@ export default function AdminTools() {
       console.log("Upload response:", res);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
-        setBackendErrors(data.errors);
         setUploadStatus("error");
         setUploadMsg("Some rows failed to upload. See errors below.");
       } else {
@@ -255,7 +239,7 @@ export default function AdminTools() {
         age_group: manualPlayer.age_group,
       };
       if (manualPlayer.photo_url) playerPayload.photo_url = manualPlayer.photo_url;
-      const { data } = await api.post(`/players`, playerPayload);
+      await api.post(`/players`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
       setManualPlayer({
@@ -309,7 +293,6 @@ export default function AdminTools() {
     setCsvHeaders([]);
     setCsvErrors([]);
     setCsvFileName("");
-    setBackendErrors([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -426,21 +409,19 @@ export default function AdminTools() {
                             )}
                           </th>
                         ))}
-                        <th className="px-2 py-1">Errors</th>
                         <th className="px-2 py-1">Warnings</th>
                       </tr>
                     </thead>
                     <tbody>
                       {csvRows.map((row, i) => {
-                        const backendError = backendErrors.find(e => e.row === i + 1);
-                        const hasErrors = row.errors.length || backendError;
+                        const hasWarnings = row.warnings.length > 0;
                         return (
-                          <tr key={i} className={hasErrors ? "bg-red-50" : ""}>
+                          <tr key={i} className={hasWarnings ? "bg-yellow-50" : ""}>
                             <td className="px-2 py-1 text-center">
-                              {hasErrors ? (
+                              {hasWarnings ? (
                                 <span
-                                  className="text-red-500 cursor-pointer"
-                                  title={[...row.errors, backendError?.message].filter(Boolean).join(", ")}
+                                  className="text-yellow-500 cursor-pointer"
+                                  title={row.warnings.join(", ")}
                                 >❌</span>
                               ) : (
                                 <span className="text-green-600">✅</span>
@@ -448,9 +429,6 @@ export default function AdminTools() {
                             </td>
                             <td className="px-2 py-1 font-mono">{i + 1}</td>
                             {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
-                            <td className="px-2 py-1 text-red-500">
-                              {[...row.errors, backendError?.message].filter(Boolean).join(", ")}
-                            </td>
                             <td className="px-2 py-1 text-yellow-600">
                               {row.warnings && row.warnings.length > 0 ? row.warnings.join(", ") : ""}
                             </td>

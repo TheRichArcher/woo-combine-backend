@@ -43,7 +43,7 @@ export default function CoachDashboard() {
           headers: { Authorization: `Bearer ${token}` }
         });
         setPlayers(data);
-      } catch (err) {
+      } catch {
         setPlayers([]);
       }
     }
@@ -67,7 +67,7 @@ export default function CoachDashboard() {
         setRankings(res.data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err.message);
         setRankings([]);
         setLoading(false);
@@ -111,7 +111,7 @@ export default function CoachDashboard() {
         setRankings(res.data);
         setLoading(false);
       })
-      .catch(err => {
+      .catch((err) => {
         setError(err.message);
         setRankings([]);
         setLoading(false);
@@ -155,9 +155,6 @@ export default function CoachDashboard() {
   // If no players, show CTA and hide Coach View
   if (players.length === 0) {
     const handleImport = () => {
-      navigate('/admin#player-upload-section');
-    };
-    const handleGoToAdmin = () => {
       navigate('/admin#player-upload-section');
     };
     return (

@@ -2,7 +2,6 @@ import React from "react";
 import { useAuth } from "../context/AuthContext";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
-import { useEvent } from "../context/EventContext";
 import EventSelector from "../components/EventSelector";
 
 export default function Dashboard() {

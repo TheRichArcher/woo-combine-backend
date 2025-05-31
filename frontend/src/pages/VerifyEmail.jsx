@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { useAuth } from "../context/AuthContext";
-import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "../firebase";
@@ -9,9 +8,7 @@ import { auth } from "../firebase";
 export default function VerifyEmail() {
   const { user } = useAuth();
   const [resendStatus, setResendStatus] = useState("");
-  const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
 
   // Auto-refresh every 10s to check verification
@@ -39,37 +36,10 @@ export default function VerifyEmail() {
           setResendStatus("Still not verified. Please check your email.");
         }
       }
-    } catch (err) {
+    } catch {
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);
-    }
-  };
-
-  // Resend email
-  const handleResend = async () => {
-    setResending(true);
-    setResendStatus("");
-    try {
-      console.log("[VerifyEmail] auth.currentUser:", auth.currentUser);
-      if (auth.currentUser) {
-        await auth.currentUser.reload();
-        // Log emailVerified and token expiration
-        const tokenResult = await auth.currentUser.getIdTokenResult();
-        console.log("[VerifyEmail] emailVerified:", auth.currentUser.emailVerified);
-        console.log("[VerifyEmail] token expiration:", tokenResult.expirationTime);
-        await sendEmailVerification(auth.currentUser);
-        setResendStatus("Verification email sent!");
-      } else {
-        setResendStatus("User not found. Please log in again.");
-      }
-    } catch (err) {
-      setResendStatus((err?.message || "Failed to resend. Try again later.") + (err?.code ? ` (code: ${err.code})` : ""));
-      console.error("Resend verification error:", err);
-      if (err.code) console.error("[Firebase Error Code]", err.code);
-      if (err.message) console.error("[Firebase Error Message]", err.message);
-    } finally {
-      setResending(false);
     }
   };
 

@@ -47,7 +47,7 @@ export default function JoinLeague() {
             setShowQrScanner(false);
             qrReaderRef.current.reset();
             navigate(`/join?code=${encodeURIComponent(code)}`);
-          } else if (err && !(err instanceof NotFoundException)) {
+          } else if (err) {
             setQrError('Camera error: ' + (err?.message || err));
           }
         }

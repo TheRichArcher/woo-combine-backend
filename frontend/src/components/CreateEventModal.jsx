@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 
 export default function CreateEventModal({ open, onClose, onCreated }) {
-  const { selectedLeagueId, user } = useAuth();
+  const { selectedLeagueId } = useAuth();
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);

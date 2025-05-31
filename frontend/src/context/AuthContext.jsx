@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { auth } from "../firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
+import { useLogout } from './logout';
 
 const AuthContext = createContext();
 
@@ -44,7 +45,7 @@ export function AuthProvider({ children }) {
       setRole(null);
       setSelectedLeagueId('');
     }
-  }, [user]);
+  }, [user, selectedLeagueId]);
 
   // Persist selectedLeagueId
   useEffect(() => {
@@ -156,10 +157,4 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-export function useLogout() {
-  const { setUser } = useAuth();
-  return async function logout() {
-    await signOut(auth);
-    setUser(null);
-  };
-} 
+export { useLogout }; 
