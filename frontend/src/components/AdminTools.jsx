@@ -6,6 +6,7 @@ import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import CreateEventModal from "./CreateEventModal";
 
 const REQUIRED_HEADERS = [
   "name",
@@ -58,7 +59,7 @@ function validateRow(row, headers) {
 
 export default function AdminTools() {
   const { user, role, userRole, selectedLeagueId, leagues, selectedLeague } = useAuth();
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, events, setEvents, setSelectedEvent } = useEvent();
   const navigate = useNavigate();
 
   // Reset tool state
@@ -102,6 +103,8 @@ export default function AdminTools() {
   const league = leagues?.find(l => l.id === selectedLeagueId);
   const joinCode = league?.id || '';
   const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
+
+  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
   // Scroll to player upload section if hash is present or changes
   useEffect(() => {
@@ -326,11 +329,27 @@ export default function AdminTools() {
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
-          <p className="text-cmf-secondary mb-4">Please create or select an event to use admin tools.</p>
-          <div className="text-gray-700 font-semibold mt-4">
-            Please use the <span className="text-cyan-700">Admin menu above</span> to create your first event.
-          </div>
+          <p className="text-cmf-secondary mb-4">Before importing players, you'll need to create an event.</p>
+          <button
+            className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition"
+            onClick={() => setShowCreateEvent(true)}
+          >
+            + Create New Event
+          </button>
         </div>
+        <CreateEventModal
+          open={showCreateEvent}
+          onClose={() => setShowCreateEvent(false)}
+          onCreated={event => {
+            setEvents(prev => [event, ...prev]);
+            setSelectedEvent(event);
+            setShowCreateEvent(false);
+            setTimeout(() => {
+              const section = document.getElementById('player-upload-section');
+              if (section) section.scrollIntoView({ behavior: 'smooth' });
+            }, 300);
+          }}
+        />
       </div>
     );
   }
