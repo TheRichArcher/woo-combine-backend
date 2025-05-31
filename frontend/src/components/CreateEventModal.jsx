@@ -19,7 +19,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       const { data: newEvent } = await api.post(`/events`, {
         name,
         date,
-        league_id: user?.league_id
+        league_id: selectedLeagueId
       });
       setName("");
       setDate("");
