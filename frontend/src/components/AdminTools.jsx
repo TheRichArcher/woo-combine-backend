@@ -101,6 +101,14 @@ export default function AdminTools() {
   const joinCode = league?.id || '';
   const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
 
+  // Scroll to player upload section if hash is present
+  useEffect(() => {
+    if (window.location.hash === '#player-upload-section') {
+      const section = document.getElementById('player-upload-section');
+      if (section) section.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, []);
+
   const handleReset = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setStatus("loading");

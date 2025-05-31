@@ -155,8 +155,8 @@ export default function CoachDashboard() {
   // If no players, show CTA and hide Coach View
   if (players.length === 0) {
     const handleImport = () => {
-      // Scroll to or open import section, or navigate as needed
-      window.location.hash = '#player-upload-section';
+      // Navigate to /admin and scroll to player upload section
+      navigate('/admin#player-upload-section');
     };
     const handleGoToAdmin = () => {
       if (userRole === 'organizer' && user && userRole && !loading) {
@@ -171,7 +171,11 @@ export default function CoachDashboard() {
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
             <button onClick={handleImport} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">📥 Import Players</button>
-            <button onClick={handleGoToAdmin} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">⚙️ Open Admin Tools</button>
+            {userRole === 'organizer' ? (
+              <button onClick={handleGoToAdmin} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">⚙️ Open Admin Tools</button>
+            ) : (
+              <span className="text-gray-400 text-sm mt-2">Admin tools are only available to organizers.</span>
+            )}
           </div>
         </div>
       </div>
