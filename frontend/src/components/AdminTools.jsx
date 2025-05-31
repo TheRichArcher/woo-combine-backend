@@ -327,12 +327,9 @@ export default function AdminTools() {
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
           <p className="text-cmf-secondary mb-4">Please create or select an event to use admin tools.</p>
-          <button
-            className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition"
-            onClick={() => navigate('/dashboard')}
-          >
-            + Create or Select Event
-          </button>
+          <div className="text-gray-700 font-semibold mt-4">
+            Please use the <span className="text-cyan-700">Admin menu above</span> to create your first event.
+          </div>
         </div>
       </div>
     );
