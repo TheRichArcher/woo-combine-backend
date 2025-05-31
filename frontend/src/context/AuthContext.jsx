@@ -71,7 +71,12 @@ export function AuthProvider({ children }) {
           if (!snap.exists() || !snap.data().role) {
             navigate("/select-role");
           } else {
-            navigate("/dashboard");
+            // Only redirect to dashboard if on onboarding routes
+            const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/welcome", "/"];
+            if (onboardingRoutes.includes(window.location.pathname)) {
+              navigate("/dashboard");
+            }
+            // Otherwise, stay on the current route (e.g., /admin)
           }
         }
       } else {
