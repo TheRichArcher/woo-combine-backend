@@ -155,13 +155,10 @@ export default function CoachDashboard() {
   // If no players, show CTA and hide Coach View
   if (players.length === 0) {
     const handleImport = () => {
-      // Navigate to /admin and scroll to player upload section
       navigate('/admin#player-upload-section');
     };
     const handleGoToAdmin = () => {
-      if (userRole === 'organizer' && user && userRole && !loading) {
-        navigate('/admin');
-      }
+      navigate('/admin#player-upload-section');
     };
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
@@ -170,11 +167,9 @@ export default function CoachDashboard() {
           <p className="text-cyan-700 mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
-            <button onClick={handleImport} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">📥 Import Players</button>
-            {userRole === 'organizer' ? (
-              <button onClick={handleGoToAdmin} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">⚙️ Open Admin Tools</button>
-            ) : (
-              <span className="text-gray-400 text-sm mt-2">Admin tools are only available to organizers.</span>
+            {/* Only show for organizers */}
+            {userRole === 'organizer' && (
+              <button onClick={handleImport} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">📥 Import Players</button>
             )}
           </div>
         </div>

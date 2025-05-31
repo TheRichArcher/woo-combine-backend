@@ -101,12 +101,17 @@ export default function AdminTools() {
   const joinCode = league?.id || '';
   const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
 
-  // Scroll to player upload section if hash is present
+  // Scroll to player upload section if hash is present or changes
   useEffect(() => {
-    if (window.location.hash === '#player-upload-section') {
-      const section = document.getElementById('player-upload-section');
-      if (section) section.scrollIntoView({ behavior: 'smooth' });
-    }
+    const scrollToSection = () => {
+      if (window.location.hash === '#player-upload-section') {
+        const section = document.getElementById('player-upload-section');
+        if (section) section.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+    scrollToSection();
+    window.addEventListener('hashchange', scrollToSection);
+    return () => window.removeEventListener('hashchange', scrollToSection);
   }, []);
 
   const handleReset = async () => {
