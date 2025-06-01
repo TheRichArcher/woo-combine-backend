@@ -1,3 +1,5 @@
+# Firestore is now used for all database operations. See backend/firestore_client.py for the client setup.
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os

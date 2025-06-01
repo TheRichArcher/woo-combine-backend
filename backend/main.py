@@ -4,10 +4,10 @@ from backend.routes.players import router as players_router
 from backend.routes.drills import router as drills_router
 from backend.routes.events import router as events_router
 from backend.routes.leagues import router as leagues_router
+# Firestore is now the primary data store. See backend/firestore_client.py for setup.
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, text
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -63,13 +63,6 @@ async def startup_event():
     logging.basicConfig(level=logging.INFO)
     logging.info("🚀 Backend startup complete.")
     print("=== DEBUG: WooCombine backend main.py loaded ===")
-
-# TEMPORARY: Add league_id column if missing
-# engine = create_engine(os.environ["DATABASE_URL"])
-# with engine.connect() as conn:
-#     conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;"))
-
-# from routes import players, drills, auth  # To be registered later 
 
 class DebugHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):

@@ -1,3 +1,6 @@
+# Firestore is now used for all data storage.
+# See the approved Firestore schema for collections and document structure.
+
 from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Table, Enum
 from sqlalchemy.ext.declarative import declarative_base

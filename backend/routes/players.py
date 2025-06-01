@@ -8,6 +8,8 @@ from uuid import UUID
 from backend.routes.leagues import verify_user_in_league
 from backend.auth import get_current_user, require_role
 import logging
+from backend.firestore_client import db
+from datetime import datetime
 
 router = APIRouter()
 
@@ -205,3 +207,25 @@ def set_custom_weights(user=Depends(require_role("coach", "organizer"))):
 @router.get("/admin")
 def admin_dashboard(user=Depends(require_role("organizer"))):
     raise NotImplementedError("Admin dashboard endpoint not yet implemented.")
+
+@router.get('/leagues/{league_id}/players')
+def list_players(league_id: str, current_user=Depends(get_current_user)):
+    players_ref = db.collection("leagues").document(league_id).collection("players")
+    players = [dict(p.to_dict(), id=p.id) for p in players_ref.stream()]
+    return {"players": players}
+
+@router.post('/leagues/{league_id}/players')
+def add_player(league_id: str, req: dict, current_user=Depends(get_current_user)):
+    players_ref = db.collection("leagues").document(league_id).collection("players")
+    player_doc = players_ref.document()
+    player_doc.set({
+        **req,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    return {"player_id": player_doc.id}
+
+@router.get('/leagues/{league_id}/players/{player_id}/drill_results')
+def list_drill_results(league_id: str, player_id: str, current_user=Depends(get_current_user)):
+    drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")
+    results = [dict(r.to_dict(), id=r.id) for r in drill_results_ref.stream()]
+    return {"drill_results": results}

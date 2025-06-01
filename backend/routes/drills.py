@@ -8,6 +8,9 @@ from backend.routes.leagues import verify_user_in_league
 
 router = APIRouter()
 
+# Drill endpoints are now managed as subcollections under players in Firestore.
+# Implement additional drill-related endpoints here if needed in the future.
+
 def get_db():
     db = SessionLocal()
     try:
