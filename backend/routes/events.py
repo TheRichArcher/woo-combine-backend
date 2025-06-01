@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from backend.db import SessionLocal
 from backend.models import Event, UserLeague
@@ -34,43 +34,48 @@ class EventRead(BaseModel):
         from_attributes = True
 
 @router.get("/events", response_model=List[EventRead])
-def list_events(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def list_events(db: Session = Depends(get_db), current_user = Depends(get_current_user), request: Request = None):
     from backend.routes.leagues import verify_user_in_league
+    now_str = datetime.datetime.now().isoformat()
+    log_data = {"timestamp": now_str, "user_id": getattr(current_user, 'id', None), "path": str(request.url) if request else None}
     try:
         user_leagues = db.query(UserLeague).filter_by(user_id=current_user.id).all()
         league_ids = [ul.league_id for ul in user_leagues]
         events = db.query(Event).filter(Event.league_id.in_(league_ids)).order_by(Event.date.desc()).all()
+        logging.info(f"[EVENTS LIST] {log_data} count={len(events)}")
         return events
     except Exception as e:
-        logging.error(f"Error in /events: {e}")
+        logging.error(f"[EVENTS LIST ERROR] {str(e)} | {log_data}")
         raise HTTPException(status_code=503, detail=f"Internal error: {e}")
 
 @router.post("/events", response_model=EventRead)
-def create_event(event: EventCreate, user_id: str, db: Session = Depends(get_db)):
+def create_event(event: EventCreate, user_id: str, db: Session = Depends(get_db), request: Request = None):
     from backend.routes.leagues import verify_user_in_league
     start_time = time.time()
     now_str = datetime.datetime.now().isoformat()
-    print(f"[{now_str}] Received request to create event")
-    print(f"[{now_str}] User ID: {user_id}")
-    print(f"[{now_str}] League ID: {event.league_id}")
-    print(f"[{now_str}] Request payload: {event.dict()}")
+    log_data = {
+        "timestamp": now_str,
+        "user_id": user_id,
+        "league_id": event.league_id,
+        "event_payload": event.dict(),
+        "path": str(request.url) if request else None
+    }
+    logging.info(f"[EVENT CREATE] {log_data}")
     try:
         if not verify_user_in_league(user_id, event.league_id, db):
-            print(f"[{now_str}] User not in league, aborting")
-            return JSONResponse(status_code=403, content={"error": "User not in league"})
-        print(f"[{now_str}] Inserting event to database")
+            logging.warning(f"User {user_id} not in league {event.league_id}")
+            raise HTTPException(status_code=403, detail="User not in league")
         db_event = Event(name=event.name, date=event.date, league_id=event.league_id)
         db.add(db_event)
         db.commit()
         db.refresh(db_event)
-        print(f"[{now_str}] Event insert successful")
         duration = time.time() - start_time
-        print(f"[{now_str}] Returning response")
-        print(f"[{now_str}] Event creation completed in {duration:.2f}s")
+        logging.info(f"[EVENT CREATED] user_id={user_id} league_id={event.league_id} event_id={db_event.id} duration={duration:.2f}s")
         return db_event
+    except HTTPException as he:
+        logging.error(f"[EVENT CREATE ERROR] {he.detail} | {log_data}")
+        raise
     except Exception as e:
-        print(f"[{now_str}] Event insert failed: {e}")
-        print(traceback.format_exc())
         duration = time.time() - start_time
-        print(f"[{now_str}] Returning error response after {duration:.2f}s")
-        return JSONResponse(status_code=500, content={"error": "Internal server error", "details": str(e)}) 
+        logging.error(f"[EVENT CREATE ERROR] {str(e)} | {log_data} | duration={duration:.2f}s")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}") 
