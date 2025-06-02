@@ -28,10 +28,9 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     setError("");
     console.log("Submitting event", { name, date, league_id: selectedLeagueId });
     try {
-      const { data: newEvent } = await api.post(`/events`, {
+      const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date,
-        league_id: selectedLeagueId
+        date
       });
       setName("");
       setDate("");
