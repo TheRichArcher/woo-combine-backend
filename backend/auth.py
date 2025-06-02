@@ -39,10 +39,12 @@ def get_current_user(
         db = firestore.Client()
         user_doc = db.collection("users").document(uid).get()
         if not user_doc.exists:
+            logging.warning(f"User with UID {uid} not found in Firestore.")
             raise HTTPException(status_code=403, detail="User not found in Firestore")
         user_data = user_doc.to_dict()
         role = user_data.get("role")
         if not role:
+            logging.warning(f"User with UID {uid} found in Firestore but missing 'role' field.")
             raise HTTPException(status_code=403, detail="User role not set in Firestore")
         return {"uid": uid, "email": email, "role": role}
     except firebase_exceptions.FirebaseError as e:
