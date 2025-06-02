@@ -408,26 +408,28 @@ export default function AdminTools() {
               />
               {csvFileName && <div className="text-xs text-gray-500 mb-2">{csvFileName}</div>}
               {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join('; ')}</div>}
-              {csvRows.length > 0 && csvErrors.length === 0 && (
+              {Array.isArray(csvRows) && csvRows.length > 0 && csvErrors.length === 0 && (
                 <div className="overflow-x-auto max-h-64 border rounded mb-2 w-full">
                   <table className="min-w-full text-xs">
                     <thead>
                       <tr>
                         <th className="px-2 py-1">{/* Validation Icon */}</th>
                         <th className="px-2 py-1">#</th>
-                        {csvHeaders.map(h => (
-                          <th key={h} className="px-2 py-1">
-                            {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
-                            {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
-                              <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
-                            )}
-                          </th>
-                        ))}
+                        {Array.isArray(csvHeaders) && csvHeaders.length > 0 && (
+                          csvHeaders.map(h => (
+                            <th key={h} className="px-2 py-1">
+                              {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
+                              {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
+                                <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
+                              )}
+                            </th>
+                          ))
+                        )}
                         <th className="px-2 py-1">Warnings</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {csvRows.map((row, i) => {
+                      {Array.isArray(csvRows) && csvRows.length > 0 && csvRows.map((row, i) => {
                         const hasWarnings = row.warnings.length > 0;
                         return (
                           <tr key={i} className={hasWarnings ? "bg-yellow-50" : ""}>
@@ -442,7 +444,7 @@ export default function AdminTools() {
                               )}
                             </td>
                             <td className="px-2 py-1 font-mono">{i + 1}</td>
-                            {csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
+                            {Array.isArray(csvHeaders) && csvHeaders.length > 0 && csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
                             <td className="px-2 py-1 text-yellow-600">
                               {row.warnings && row.warnings.length > 0 ? row.warnings.join(", ") : ""}
                             </td>
@@ -454,7 +456,7 @@ export default function AdminTools() {
                 </div>
               )}
               {/* Reupload Button */}
-              {csvRows.length > 0 && (
+              {Array.isArray(csvRows) && csvRows.length > 0 && (
                 <button
                   className="mt-2 bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition"
                   onClick={handleReupload}
