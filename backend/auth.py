@@ -15,9 +15,8 @@ from backend.models import User
 # Initialize Firebase app once using environment secret
 if not firebase_admin._apps:
     try:
-        firebase_json = os.environ["FIREBASE_SERVICE_JSON"]
-        cred_data = json.loads(firebase_json)
-        cred = credentials.Certificate(cred_data)
+        cred_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
+        cred = credentials.Certificate(cred_path)
         firebase_admin.initialize_app(cred)
     except Exception as e:
         raise RuntimeError(f"Failed to initialize Firebase Admin SDK: {e}")
