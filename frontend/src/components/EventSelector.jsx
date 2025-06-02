@@ -13,6 +13,7 @@ export default function EventSelector() {
   const [error, setError] = useState("");
 
   const handleSelect = (e) => {
+    if (!Array.isArray(events)) return;
     const ev = events.find(ev => ev.id === e.target.value);
     if (ev) setSelectedEvent(ev);
   };
@@ -52,9 +53,9 @@ export default function EventSelector() {
           value={selectedEvent?.id || ""}
           onChange={handleSelect}
           className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-          disabled={events.length === 0}
+          disabled={!Array.isArray(events) || events.length === 0}
         >
-          {events.map(ev => {
+          {Array.isArray(events) && events.map(ev => {
             let dateLabel = "Invalid Date";
             if (ev.date && !isNaN(Date.parse(ev.date))) {
               dateLabel = new Date(ev.date).toLocaleDateString();

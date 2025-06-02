@@ -24,6 +24,10 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
 
   const handleCreate = async (e) => {
     e.preventDefault();
+    if (!user || !selectedLeagueId) {
+      setError("User or league not loaded. Please try again.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {

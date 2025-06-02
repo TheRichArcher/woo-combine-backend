@@ -26,13 +26,13 @@ export function EventProvider({ children }) {
         const { data } = await api.get(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setEvents(data);
+        setEvents(Array.isArray(data) ? data : []);
         // Auto-select from localStorage or default to first event
         const stored = localStorage.getItem("selectedEventId");
-        const found = data.find(e => e.id === stored);
+        const found = Array.isArray(data) ? data.find(e => e.id === stored) : null;
         if (found) {
           setSelectedEvent(found);
-        } else if (data.length > 0) {
+        } else if (Array.isArray(data) && data.length > 0) {
           setSelectedEvent(data[0]);
         }
       } catch {

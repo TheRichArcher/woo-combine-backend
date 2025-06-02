@@ -324,25 +324,25 @@ export default function AdminTools() {
           open={showCreateEvent}
           onClose={() => setShowCreateEvent(false)}
           onCreated={async event => {
-            // Re-fetch events from backend and select the new event by ID
             setShowCreateEvent(false);
+            if (!user || !selectedLeagueId) return;
             try {
               const token = await user.getIdToken();
               const url = `/leagues/${selectedLeagueId}/events`;
               const { data } = await api.get(url, {
                 headers: { Authorization: `Bearer ${token}` }
               });
-              setEvents(data);
-              const found = data.find(e => e.id === event.id);
+              if (Array.isArray(data)) setEvents(data);
+              else setEvents([]);
+              const found = Array.isArray(data) ? data.find(e => e.id === event.id) : null;
               if (found) setSelectedEvent(found);
-              else setSelectedEvent(data[0]);
+              else if (Array.isArray(data) && data.length > 0) setSelectedEvent(data[0]);
               setTimeout(() => {
                 const section = document.getElementById('player-upload-section');
                 if (section) section.scrollIntoView({ behavior: 'smooth' });
               }, 300);
             } catch {
-              // fallback: select the event optimistically
-              setEvents(prev => [event, ...prev]);
+              setEvents(prev => Array.isArray(prev) ? [event, ...prev] : [event]);
               setSelectedEvent(event);
             }
           }}
