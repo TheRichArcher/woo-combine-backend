@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 
 export default function CreateEventModal({ open, onClose, onCreated }) {
-  const { selectedLeagueId } = useAuth();
+  const { selectedLeagueId, user } = useAuth();
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,11 +26,13 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     e.preventDefault();
     setLoading(true);
     setError("");
-    console.log("Submitting event", { name, date, league_id: selectedLeagueId });
     try {
+      const token = await user.getIdToken();
       const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setName("");
       setDate("");

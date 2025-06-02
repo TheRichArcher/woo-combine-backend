@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function EventSelector() {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
-  const { selectedLeagueId } = useAuth();
+  const { selectedLeagueId, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
@@ -22,9 +22,12 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
+      const token = await user.getIdToken();
       const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setEvents(prev => [newEvent, ...prev]);
       setSelectedEvent(newEvent);
