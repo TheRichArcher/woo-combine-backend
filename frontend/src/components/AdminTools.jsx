@@ -334,7 +334,7 @@ export default function AdminTools() {
               });
               if (Array.isArray(data)) setEvents(data);
               else setEvents([]);
-              const found = Array.isArray(data) ? data.find(e => e.id === event.id) : null;
+              const found = Array.isArray(data) ? data.find(e => e.event_id === event.event_id) : null;
               if (found) setSelectedEvent(found);
               else if (Array.isArray(data) && data.length > 0) setSelectedEvent(data[0]);
               setTimeout(() => {
