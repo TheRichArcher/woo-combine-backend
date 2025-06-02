@@ -323,14 +323,28 @@ export default function AdminTools() {
         <CreateEventModal
           open={showCreateEvent}
           onClose={() => setShowCreateEvent(false)}
-          onCreated={event => {
-            setEvents(prev => [event, ...prev]);
-            setSelectedEvent(event);
+          onCreated={async event => {
+            // Re-fetch events from backend and select the new event by ID
             setShowCreateEvent(false);
-            setTimeout(() => {
-              const section = document.getElementById('player-upload-section');
-              if (section) section.scrollIntoView({ behavior: 'smooth' });
-            }, 300);
+            try {
+              const token = await user.getIdToken();
+              const url = `/leagues/${selectedLeagueId}/events`;
+              const { data } = await api.get(url, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              setEvents(data);
+              const found = data.find(e => e.id === event.id);
+              if (found) setSelectedEvent(found);
+              else setSelectedEvent(data[0]);
+              setTimeout(() => {
+                const section = document.getElementById('player-upload-section');
+                if (section) section.scrollIntoView({ behavior: 'smooth' });
+              }, 300);
+            } catch {
+              // fallback: select the event optimistically
+              setEvents(prev => [event, ...prev]);
+              setSelectedEvent(event);
+            }
           }}
         />
       </div>
