@@ -11,33 +11,15 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
 
   if (!open) return null;
 
-  if (!selectedLeagueId) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-        <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative text-center">
-          <h2 className="text-xl font-bold mb-4 text-cmf-primary">Create New Event</h2>
-          <div className="text-gray-700 text-base py-8">Please wait while your league loads…</div>
-        </div>
-      </div>
-    );
-  }
-
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!user || !selectedLeagueId) {
-      setError("User or league not loaded. Please try again.");
-      return;
-    }
     setLoading(true);
     setError("");
     try {
-      const token = await user.getIdToken();
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
-      const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
+      const { data: newEvent } = await api.post(`/events`, {
         name,
-        date: isoDate
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
+        date,
+        league_id: user?.league_id
       });
       setName("");
       setDate("");
