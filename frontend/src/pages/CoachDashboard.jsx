@@ -139,7 +139,7 @@ export default function CoachDashboard() {
   };
 
   // Format event date
-  const formattedDate = selectedEvent ? new Date(selectedEvent.date).toLocaleDateString() : '';
+  const formattedDate = selectedEvent && selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : 'Invalid Date';
 
   // Scroll to import section if hash is present
   useEffect(() => {

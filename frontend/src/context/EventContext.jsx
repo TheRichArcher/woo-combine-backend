@@ -21,7 +21,8 @@ export function EventProvider({ children }) {
       setNoLeague(false);
       try {
         const token = await user.getIdToken();
-        const url = `/events?league_id=${selectedLeagueId}`;
+        if (!selectedLeagueId) throw new Error('No league selected');
+        const url = `/leagues/${selectedLeagueId}/events`;
         const { data } = await api.get(url, {
           headers: { Authorization: `Bearer ${token}` }
         });

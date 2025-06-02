@@ -56,7 +56,7 @@ export default function Players() {
     return acc;
   }, {});
 
-  if (!selectedEvent) return (
+  if (!selectedEvent || !selectedEvent.id) return (
     <div className="flex flex-col items-center justify-center min-h-[40vh]">
       <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
         <h2 className="text-2xl font-bold text-cmf-primary mb-4">No event selected</h2>
@@ -101,7 +101,7 @@ export default function Players() {
       <EventSelector />
       <div className="mb-4 text-lg font-semibold flex items-center gap-2">
         <span role="img" aria-label="event">🏷️</span>
-        Managing: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}
+        Managing: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}
       </div>
       <h1 className="text-3xl font-extrabold mb-6 text-center text-cmf-primary drop-shadow">Woo-Combine: Players</h1>
       {Object.keys(grouped).sort().map(ageGroup => {

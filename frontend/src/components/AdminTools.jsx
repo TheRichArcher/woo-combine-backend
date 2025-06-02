@@ -307,7 +307,7 @@ export default function AdminTools() {
     );
   }
 
-  if (!selectedEvent) {
+  if (!selectedEvent || !selectedEvent.id) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
@@ -349,7 +349,7 @@ export default function AdminTools() {
               {playerCountLoading ? (
                 <span className="ml-2 animate-pulse">Loading...</span>
               ) : (
-                <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
+                <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</span>
               )}
             </span>
           </div>
@@ -357,7 +357,7 @@ export default function AdminTools() {
         <AdminOnboardingCallout />
         <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-gray-900">
           <span role="img" aria-label="event">🏷️</span>
-          Managing: {selectedEvent ? `${selectedEvent.name} – ${new Date(selectedEvent.date).toLocaleDateString()}` : "No event selected"}
+          Managing: {selectedEvent ? `${selectedEvent.name} – ${selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}` : "No event selected"}
         </div>
         {/* Step 2: Add Players Section */}
         <div id="player-upload-section" className="mb-8">

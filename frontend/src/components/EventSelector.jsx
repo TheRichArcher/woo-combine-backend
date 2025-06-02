@@ -23,9 +23,10 @@ export default function EventSelector() {
     setError("");
     try {
       const token = await user.getIdToken();
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
       const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date
+        date: isoDate
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -53,11 +54,17 @@ export default function EventSelector() {
           className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           disabled={events.length === 0}
         >
-          {events.map(ev => (
-            <option key={ev.id} value={ev.id}>
-              {ev.name} – {new Date(ev.date).toLocaleDateString()}
-            </option>
-          ))}
+          {events.map(ev => {
+            let dateLabel = "Invalid Date";
+            if (ev.date && !isNaN(Date.parse(ev.date))) {
+              dateLabel = new Date(ev.date).toLocaleDateString();
+            }
+            return (
+              <option key={ev.id} value={ev.id}>
+                {ev.name} – {dateLabel}
+              </option>
+            );
+          })}
         </select>
         <button
           onClick={() => setShowModal(true)}

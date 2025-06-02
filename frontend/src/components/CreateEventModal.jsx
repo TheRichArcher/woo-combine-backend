@@ -28,9 +28,10 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     setError("");
     try {
       const token = await user.getIdToken();
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
       const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date
+        date: isoDate
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
