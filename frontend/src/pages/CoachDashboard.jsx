@@ -23,7 +23,7 @@ const DRILLS = [
 
 export default function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
-  const { user, selectedLeagueId, userRole } = useAuth();
+  const { user, selectedLeagueId, userRole, leagues } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -152,11 +152,30 @@ export default function CoachDashboard() {
     }
   }, []);
 
-  // If no players, show CTA and hide Coach View
+  // If no players, show onboarding/fallback actions
   if (players.length === 0) {
     const handleImport = () => {
       navigate('/admin#player-upload-section');
     };
+    const handleCreateLeague = () => {
+      navigate('/create-league');
+    };
+    // If user has no leagues, show Create League
+    if (!leagues || leagues.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
+            <h2 className="text-2xl font-bold text-cyan-700 mb-4">Welcome to Woo-Combine!</h2>
+            <p className="text-cyan-700 mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
+            <p className="text-gray-700 mb-4">To get started, you can:</p>
+            <div className="flex flex-col gap-3 items-center">
+              <button onClick={handleCreateLeague} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">➕ Create a League</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // If user has leagues, show Import Players for organizers
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
@@ -164,9 +183,10 @@ export default function CoachDashboard() {
           <p className="text-cyan-700 mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
-            {/* Only show for organizers */}
-            {userRole === 'organizer' && (
+            {userRole === 'organizer' ? (
               <button onClick={handleImport} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">📥 Import Players</button>
+            ) : (
+              <span className="text-gray-500">Waiting for organizer to import players.</span>
             )}
           </div>
         </div>
