@@ -18,10 +18,13 @@ export default function CreateLeague() {
     setError('');
     setJoinCode(null);
     try {
+      const token = await user.getIdToken();
       const { data } = await api.post('/leagues', {
         name: leagueName,
         user_id: user?.uid,
         email: user?.email,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       setJoinCode(data.join_code);
       if (addLeague) {
