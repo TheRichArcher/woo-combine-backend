@@ -27,6 +27,9 @@ export default function SelectRole() {
         await auth.currentUser?.reload();
         const refreshedUser = auth.currentUser;
         if (!refreshedUser) return;
+        if (process.env.NODE_ENV === "development") {
+          console.log("[SelectRole] Refreshed user:", refreshedUser);
+        }
         if (!refreshedUser.emailVerified) {
           setEmailCheck(true);
         }
