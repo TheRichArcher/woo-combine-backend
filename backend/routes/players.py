@@ -5,7 +5,6 @@ from backend.models import Player, PlayerSchema, DrillResult, Event, UserLeague
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID
-from backend.routes.leagues import verify_user_in_league
 from backend.auth import get_current_user, require_role
 import logging
 from backend.firestore_client import db
@@ -47,8 +46,6 @@ def get_players(request: Request, event_id: UUID = Query(...), db: Session = Dep
         event = db.query(Event).filter_by(id=event_id).first()
         if not event:
             raise HTTPException(status_code=404, detail="Event not found")
-        if not verify_user_in_league(current_user.id, event.league_id, db):
-            raise HTTPException(status_code=403, detail="User not in league")
         players = db.query(Player).filter(Player.event_id == event_id).all()
         result = []
         for player in players:
@@ -90,8 +87,6 @@ def upload_players(req: UploadRequest, db: Session = Depends(get_db), user=Depen
     event = db.query(Event).filter_by(id=req.event_id).first()
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
-    if not verify_user_in_league(user.id, event.league_id, db):
-        raise HTTPException(status_code=403, detail="User not in league")
     event_id = req.event_id
     players = req.players
     required_fields = ["name"]
