@@ -33,6 +33,8 @@ def get_current_user(
     try:
         decoded_token = auth.verify_id_token(token)
         logging.info(f"Decoded Firebase token: {decoded_token}")
+        if not decoded_token.get("email_verified"):
+            raise HTTPException(status_code=403, detail="Email not verified")
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         # Fetch role from Firestore
