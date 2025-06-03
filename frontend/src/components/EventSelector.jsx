@@ -3,7 +3,7 @@ import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 
-export default function EventSelector() {
+export default function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
   const { selectedLeagueId, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -15,7 +15,10 @@ export default function EventSelector() {
   const handleSelect = (e) => {
     if (!Array.isArray(events)) return;
     const ev = events.find(ev => ev.id === e.target.value);
-    if (ev) setSelectedEvent(ev);
+    if (ev) {
+      setSelectedEvent(ev);
+      if (onEventSelected) onEventSelected(ev);
+    }
   };
 
   const handleCreate = async (e) => {
@@ -33,6 +36,7 @@ export default function EventSelector() {
       setShowModal(false);
       setName("");
       setDate("");
+      if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
       setError(err.message);
     } finally {

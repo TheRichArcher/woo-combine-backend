@@ -59,9 +59,12 @@ export default function Players() {
         <h2 className="text-2xl font-bold text-cmf-primary mb-4">No event selected</h2>
         <p className="text-cmf-secondary mb-4">
           {userRole === "organizer"
-            ? "Create an event to manage players and drills."
+            ? "Select or create an event to manage players and drills."
             : "Ask your league operator to assign you to an event."}
         </p>
+        <div className="mb-4">
+          <EventSelector />
+        </div>
       </div>
     </div>
   );

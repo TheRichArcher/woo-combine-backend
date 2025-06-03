@@ -309,38 +309,11 @@ export default function AdminTools() {
       <div className="flex flex-col items-center justify-center min-h-[40vh]">
         <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
           <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
-          <p className="text-cmf-secondary mb-4">Before importing players, you'll need to create an event.</p>
-          <button
-            className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition"
-            onClick={() => setShowCreateEvent(true)}
-          >
-            + Create New Event
-          </button>
+          <p className="text-cmf-secondary mb-4">Before importing players, you'll need to select or create an event.</p>
+          <div className="mb-4">
+            <EventSelector />
+          </div>
         </div>
-        <CreateEventModal
-          open={showCreateEvent}
-          onClose={() => setShowCreateEvent(false)}
-          onCreated={async event => {
-            setShowCreateEvent(false);
-            if (!user || !selectedLeagueId) return;
-            try {
-              const url = `/leagues/${selectedLeagueId}/events`;
-              const { data } = await api.get(url);
-              if (Array.isArray(data)) setEvents(data);
-              else setEvents([]);
-              const found = Array.isArray(data) ? data.find(e => e.event_id === event.event_id) : null;
-              if (found) setSelectedEvent(found);
-              else if (Array.isArray(data) && data.length > 0) setSelectedEvent(data[0]);
-              setTimeout(() => {
-                const section = document.getElementById('player-upload-section');
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-              }, 300);
-            } catch {
-              setEvents(prev => Array.isArray(prev) ? [event, ...prev] : [event]);
-              setSelectedEvent(event);
-            }
-          }}
-        />
       </div>
     );
   }

@@ -13,17 +13,21 @@ export default function VerifyEmail() {
   const [checking, setChecking] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
+  const [isVerified, setIsVerified] = useState(false);
 
   // Auto-refresh every 10s to check verification
   useEffect(() => {
-    const interval = setInterval(async () => {
+    const checkVerified = async () => {
       if (auth.currentUser) {
         await auth.currentUser.reload();
+        setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
           navigate("/dashboard");
         }
       }
-    }, 10000);
+    };
+    checkVerified();
+    const interval = setInterval(checkVerified, 10000);
     return () => clearInterval(interval);
   }, [navigate]);
 
@@ -113,24 +117,29 @@ export default function VerifyEmail() {
           <span className="text-cyan-700 font-semibold">Didn't receive the email? Check your spam folder or promotions tab.</span>
         </p>
         {/* CTA to go to app after verifying */}
-        <div className="w-full text-center text-cyan-700 font-semibold mb-3 text-base">
-          Once you've verified your email, click below to continue.
-        </div>
-        <a
-          href="https://woo-combine.com"
-          className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
-          style={{ maxWidth: 320 }}
-        >
-          Go to App
-        </a>
-        <button
-          className="w-full bg-white border border-gray-300 text-gray-700 font-bold px-6 py-3 rounded-full shadow transition mb-5 disabled:opacity-60"
-          style={{ maxWidth: 320 }}
-          onClick={handleCheckAgain}
-          disabled={checking}
-        >
-          {checking ? "Checking..." : "Check Again"}
-        </button>
+        {isVerified ? (
+          <a
+            href="/dashboard"
+            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
+            style={{ maxWidth: 320 }}
+          >
+            Go to App
+          </a>
+        ) : (
+          <button
+            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
+            style={{ maxWidth: 320 }}
+            onClick={handleCheckAgain}
+            disabled={checking}
+          >
+            {checking ? "Checking..." : "Check Again"}
+          </button>
+        )}
+        {!isVerified && (
+          <div className="text-red-600 text-sm mt-1 text-center w-full">
+            We haven't detected your email verification yet. Please check your inbox and try again.
+          </div>
+        )}
         <a
           href="/help"
           className="w-full text-sm text-gray-500 underline hover:text-cyan-700 text-center block mb-6"

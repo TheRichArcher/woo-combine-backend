@@ -26,7 +26,7 @@ export default function CreateLeague() {
       setJoinCode(data.join_code);
       if (addLeague) {
         addLeague({ id: data.join_code, name: leagueName, role: 'organizer' });
-        navigate('/dashboard');
+        navigate('/onboarding/event');
       }
     } catch (err) {
       setError(err.message || 'Error creating league');

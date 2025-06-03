@@ -15,6 +15,7 @@ import Welcome from "./pages/Welcome";
 import VerifyEmail from "./pages/VerifyEmail";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
+import OnboardingEvent from "./pages/OnboardingEvent";
 
 function App() {
   return (
@@ -71,6 +72,7 @@ function App() {
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
               <Route path="/select-role" element={<SelectRole />} />
+              <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
             </Routes>
           </div>
         </EventProvider>
