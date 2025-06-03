@@ -32,6 +32,18 @@ export default function VerifyEmail() {
     return () => clearInterval(interval);
   }, [navigate]);
 
+  // Auto-redirect to /welcome if session expired
+  useEffect(() => {
+    if (!auth.currentUser) {
+      const timeout = setTimeout(() => {
+        localStorage.clear();
+        sessionStorage.clear();
+        navigate('/welcome', { replace: true });
+      }, 2500);
+      return () => clearTimeout(timeout);
+    }
+  }, [navigate]);
+
   // Manual check
   const handleCheckAgain = async () => {
     setChecking(true);
@@ -151,14 +163,26 @@ export default function VerifyEmail() {
         </a>
         {resendStatus && <div className="text-red-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
         {!auth.currentUser && <div className="text-red-600 text-sm mt-1 text-center w-full">User session expired. Please log in again.</div>}
-        {/* Log Out Button */}
-        <button
-          className="w-full bg-gray-200 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
-          style={{ maxWidth: 320 }}
-          onClick={async () => { await logout(); navigate('/welcome'); }}
-        >
-          Log Out
-        </button>
+        {/* Return to Welcome Button if session expired */}
+        {!auth.currentUser && (
+          <button
+            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
+            style={{ maxWidth: 320 }}
+            onClick={() => { localStorage.clear(); sessionStorage.clear(); navigate('/welcome', { replace: true }); }}
+          >
+            Return to Welcome
+          </button>
+        )}
+        {/* Log Out Button (only if session is active) */}
+        {auth.currentUser && (
+          <button
+            className="w-full bg-gray-200 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
+            style={{ maxWidth: 320 }}
+            onClick={async () => { await logout(); navigate('/welcome'); }}
+          >
+            Log Out
+          </button>
+        )}
       </div>
     </WelcomeLayout>
   );
