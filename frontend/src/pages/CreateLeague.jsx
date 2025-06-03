@@ -72,4 +72,8 @@ export function CreateLeagueForm({ onCreated }) {
       )}
     </div>
   );
+}
+
+export default function CreateLeague() {
+  return <CreateLeagueForm />;
 } 
