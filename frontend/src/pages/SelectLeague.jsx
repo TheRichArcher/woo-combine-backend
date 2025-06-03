@@ -75,12 +75,13 @@ export default function SelectLeague() {
         )}
         {/* Fixed bottom buttons */}
         <div className="fixed left-0 right-0 bottom-0 flex flex-col gap-3 items-center bg-white py-4 z-10 border-t border-gray-200">
-          <button
+          {/* Remove Create a Team button for first-time organizers */}
+          {/* <button
             className="w-11/12 max-w-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 rounded-full shadow mb-1"
             onClick={() => navigate('/create-league')}
           >
             Create a Team
-          </button>
+          </button> */}
           <button
             className="w-11/12 max-w-lg border-2 border-blue-600 text-blue-700 font-bold text-lg py-3 rounded-full shadow"
             onClick={() => navigate('/join-league')}

@@ -5,6 +5,7 @@ import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { Settings } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
+import { CreateLeagueForm } from './CreateLeague';
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -154,20 +155,15 @@ export default function CoachDashboard() {
     const handleImport = () => {
       navigate('/admin#player-upload-section');
     };
-    const handleCreateLeague = () => {
-      navigate('/create-league');
-    };
-    // If user has no leagues, show Create League
+    // If user has no leagues, show inline CreateLeagueForm
     if (!leagues || leagues.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
           <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
             <h2 className="text-2xl font-bold text-cyan-700 mb-4">Welcome to Woo-Combine!</h2>
             <p className="text-cyan-700 mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
-            <p className="text-gray-700 mb-4">To get started, you can:</p>
-            <div className="flex flex-col gap-3 items-center">
-              <button onClick={handleCreateLeague} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">➕ Create a League</button>
-            </div>
+            <p className="text-gray-700 mb-4">To get started, create your first league below:</p>
+            <CreateLeagueForm onCreated={() => navigate('/onboarding/event')} />
           </div>
         </div>
       );
