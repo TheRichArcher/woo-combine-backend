@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useLogout } from "../context/AuthContext";
 import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -14,6 +14,7 @@ export default function VerifyEmail() {
   const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
   const [isVerified, setIsVerified] = useState(false);
+  const logout = useLogout();
 
   // Auto-refresh every 10s to check verification
   useEffect(() => {
@@ -37,6 +38,7 @@ export default function VerifyEmail() {
     try {
       if (auth.currentUser) {
         await auth.currentUser.reload();
+        setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
           navigate("/dashboard");
         } else {
@@ -149,6 +151,14 @@ export default function VerifyEmail() {
         </a>
         {resendStatus && <div className="text-red-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
         {!auth.currentUser && <div className="text-red-600 text-sm mt-1 text-center w-full">User session expired. Please log in again.</div>}
+        {/* Log Out Button */}
+        <button
+          className="w-full bg-gray-200 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
+          style={{ maxWidth: 320 }}
+          onClick={async () => { await logout(); navigate('/welcome'); }}
+        >
+          Log Out
+        </button>
       </div>
     </WelcomeLayout>
   );
