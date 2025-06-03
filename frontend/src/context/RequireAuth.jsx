@@ -9,5 +9,9 @@ export default function RequireAuth({ children }) {
     window.location.href = "/login";
     return null;
   }
+  if (!user.emailVerified) {
+    window.location.href = "/verify-email";
+    return null;
+  }
   return children;
 } 
