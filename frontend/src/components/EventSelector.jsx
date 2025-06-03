@@ -23,13 +23,10 @@ export default function EventSelector() {
     setLoading(true);
     setError("");
     try {
-      const token = await user.getIdToken();
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
       const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date: isoDate
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setEvents(prev => [newEvent, ...prev]);
       setSelectedEvent(newEvent);

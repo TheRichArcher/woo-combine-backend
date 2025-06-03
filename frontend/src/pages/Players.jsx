@@ -28,10 +28,7 @@ export default function Players() {
     setLoading(true);
     setError(null);
     try {
-      const token = await user.getIdToken();
-      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
       setPlayers(data);
     } catch (err) {
       setError(err.message);

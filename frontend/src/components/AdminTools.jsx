@@ -184,10 +184,7 @@ export default function AdminTools() {
     };
     console.log("Uploading players:", payload);
     try {
-      const token = await user.getIdToken();
-      const res = await api.post(`/players/bulk`, payload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post(`/players/bulk`, payload);
       console.log("Upload response:", res);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
@@ -327,11 +324,8 @@ export default function AdminTools() {
             setShowCreateEvent(false);
             if (!user || !selectedLeagueId) return;
             try {
-              const token = await user.getIdToken();
               const url = `/leagues/${selectedLeagueId}/events`;
-              const { data } = await api.get(url, {
-                headers: { Authorization: `Bearer ${token}` }
-              });
+              const { data } = await api.get(url);
               if (Array.isArray(data)) setEvents(data);
               else setEvents([]);
               const found = Array.isArray(data) ? data.find(e => e.event_id === event.event_id) : null;

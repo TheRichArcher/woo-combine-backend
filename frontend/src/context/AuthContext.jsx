@@ -27,10 +27,7 @@ export function AuthProvider({ children }) {
     if (user && user.emailVerified) {
       (async () => {
         try {
-          const token = await user.getIdToken();
-          const res = await api.get(`/leagues/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await api.get(`/leagues/me`);
           setLeagues(res.data.leagues || []);
           // Set role for selected league
           const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];

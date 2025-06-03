@@ -38,10 +38,7 @@ export default function CoachDashboard() {
     async function fetchPlayers() {
       if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const token = await user.getIdToken();
-        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
         setPlayers(data);
       } catch {
         setPlayers([]);
