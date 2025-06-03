@@ -18,23 +18,26 @@ export default function SelectLeague() {
       return;
     }
     console.log('[SelectLeague] Fetching leagues for user:', user.uid);
-    api.get(`/leagues/me?user_id=${user.uid}`)
-      .then(res => {
-        console.log('[SelectLeague] GET /leagues/me response:', res.data);
+    (async () => {
+      try {
+        const token = await user.getIdToken();
+        const res = await api.get(`/leagues/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         setLeagues(res.data.leagues || []);
-        console.log('[SelectLeague] leagues array:', res.data.leagues || []);
         if (!res.data.leagues || res.data.leagues.length === 0) {
           setFetchError('No leagues linked to this account. Try creating a new one.');
         } else {
           setFetchError(null);
         }
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
         setLeagues([]);
         setFetchError('Could not fetch leagues. Please try again later.');
-      })
-      .finally(() => setLoading(false));
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [user]);
 
   const handleSelect = (league) => {

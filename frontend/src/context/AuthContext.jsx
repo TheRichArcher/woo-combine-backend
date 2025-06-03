@@ -25,8 +25,12 @@ export function AuthProvider({ children }) {
   // Fetch leagues/roles from backend after login
   useEffect(() => {
     if (user && user.emailVerified) {
-      api.get(`/leagues/me?user_id=${user.uid}`)
-        .then(res => {
+      (async () => {
+        try {
+          const token = await user.getIdToken();
+          const res = await api.get(`/leagues/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
           setLeagues(res.data.leagues || []);
           // Set role for selected league
           const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
@@ -38,8 +42,10 @@ export function AuthProvider({ children }) {
               localStorage.setItem('selectedLeagueId', res.data.leagues[0].id);
             }
           }
-        })
-        .catch(() => setLeagues([]));
+        } catch {
+          setLeagues([]);
+        }
+      })();
     } else {
       setLeagues([]);
       setRole(null);
