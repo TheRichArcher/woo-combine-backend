@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../firebase';
 
 /*
  * Centralised axios instance
@@ -25,6 +26,31 @@ api.interceptors.response.use(
     const delay = Math.pow(2, config.retryCount) * 1000; // Exponential backoff
     await new Promise(resolve => setTimeout(resolve, delay));
     return api(config);
+  }
+);
+
+// Attach Authorization header to all requests if user is authenticated
+api.interceptors.request.use(async (config) => {
+  const user = auth.currentUser;
+  if (user) {
+    const token = await user.getIdToken();
+    config.headers = config.headers || {};
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
+// Surface backend error messages and log context
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response && error.response.data && error.response.data.detail) {
+      // Optionally, you can surface this toasts, modals, etc.
+      console.error('API Error:', error.response.data.detail);
+    } else {
+      console.error('API Error:', error.message);
+    }
+    return Promise.reject(error);
   }
 );
 
