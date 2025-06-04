@@ -10,6 +10,15 @@ from google.cloud import firestore
 from datetime import datetime
 import logging
 
+# Initialize Firebase Admin SDK if not already initialized
+if not firebase_admin._apps:
+    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if cred_path:
+        cred = credentials.Certificate(cred_path)
+    else:
+        cred = credentials.ApplicationDefault()
+    firebase_admin.initialize_app(cred)
+
 security = HTTPBearer()
 
 def get_current_user(
