@@ -23,10 +23,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# app.include_router(players_router)
-# app.include_router(drills_router)
-# app.include_router(events_router)
-# app.include_router(leagues_router)
+app.include_router(players_router)
+app.include_router(drills_router)
+app.include_router(events_router)
+app.include_router(leagues_router)
 
 @app.get("/health")
 def health_check():
