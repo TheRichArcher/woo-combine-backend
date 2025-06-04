@@ -11,6 +11,7 @@ const ROLE_OPTIONS = [
 ];
 
 export default function SelectRole() {
+  console.log('[SelectRole] component rendered');
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
@@ -48,6 +49,7 @@ export default function SelectRole() {
   }
 
   const handleContinue = async () => {
+    console.log('[SelectRole] handleContinue called');
     setError("");
     const auth = getAuth();
     await auth.currentUser?.reload();
@@ -67,17 +69,24 @@ export default function SelectRole() {
     }
     setLoading(true);
     try {
+      console.log('[SelectRole] Attempting to write user doc:', {
+        uid: refreshedUser.uid,
+        email: refreshedUser.email,
+        role: selectedRole
+      });
       await setDoc(doc(db, "users", refreshedUser.uid), {
         id: refreshedUser.uid,
         email: refreshedUser.email,
         role: selectedRole,
         created_at: serverTimestamp(),
       }, { merge: true });
+      console.log('[SelectRole] Successfully wrote user doc for UID:', refreshedUser.uid);
       await refreshedUser.getIdToken(true);
-      navigate("/dashboard");
+      // Force a reload so AuthContext picks up the new Firestore doc and role
+      window.location.replace("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to save role.");
-      console.error("🔥 Failed to check user state or save role:", err);
+      console.error("🔥 Firestore write failed in SelectRole for UID:", refreshedUser?.uid, err);
     } finally {
       setLoading(false);
     }
