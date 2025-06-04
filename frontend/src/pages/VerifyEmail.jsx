@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "../firebase";
 
 export default function VerifyEmail() {
-  const { user } = useAuth();
+  const { user, setUser } = useAuth();
   const [resendStatus, setResendStatus] = useState("");
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -23,6 +23,9 @@ export default function VerifyEmail() {
         await auth.currentUser.reload();
         setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
+          // Force refresh of ID token after verification
+          await auth.currentUser.getIdToken(true);
+          setUser(auth.currentUser);
           navigate("/dashboard");
         }
       }
@@ -30,7 +33,7 @@ export default function VerifyEmail() {
     checkVerified();
     const interval = setInterval(checkVerified, 10000);
     return () => clearInterval(interval);
-  }, [navigate]);
+  }, [navigate, setUser]);
 
   // Auto-redirect to /welcome if session expired
   useEffect(() => {
@@ -52,6 +55,9 @@ export default function VerifyEmail() {
         await auth.currentUser.reload();
         setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
+          // Force refresh of ID token after verification
+          await auth.currentUser.getIdToken(true);
+          setUser(auth.currentUser);
           navigate("/dashboard");
         } else {
           setResendStatus("Still not verified. Please check your email.");
