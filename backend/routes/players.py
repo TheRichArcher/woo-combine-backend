@@ -1,7 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from sqlalchemy.orm import Session
-from backend.db import SessionLocal
-from backend.models import Player, PlayerSchema, DrillResult, Event, UserLeague
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from uuid import UUID
@@ -9,6 +6,7 @@ from backend.auth import get_current_user, require_role
 import logging
 from backend.firestore_client import db
 from datetime import datetime
+from backend.models import PlayerSchema
 
 router = APIRouter()
 
@@ -21,37 +19,39 @@ DRILL_WEIGHTS = {
     "agility": 0.2,
 }
 
-def calculate_composite_score(player: Player, session: Session, weights: dict = None) -> float:
-    results = session.query(DrillResult).filter(DrillResult.player_id == player.id).all()
-    drill_map = {r.type: r.value for r in results}
-    score = 0.0
-    use_weights = weights if weights is not None else DRILL_WEIGHTS
-    for drill, weight in use_weights.items():
-        value = drill_map.get(drill, 0)
-        score += value * weight
-    return score
+# def calculate_composite_score(player: Player, session: Session, weights: dict = None) -> float:
+#     results = session.query(DrillResult).filter(DrillResult.player_id == player.id).all()
+#     drill_map = {r.type: r.value for r in results}
+#     score = 0.0
+#     use_weights = weights if weights is not None else DRILL_WEIGHTS
+#     for drill, weight in use_weights.items():
+#         value = drill_map.get(drill, 0)
+#         score += value * weight
+#     return score
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
+
+# All Firestore logic should be used below this point
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(request: Request, event_id: UUID = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def get_players(request: Request, event_id: UUID = Query(...), current_user = Depends(get_current_user)):
     try:
         if 'user_id' in request.query_params:
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
-        event = db.query(Event).filter_by(id=event_id).first()
-        if not event:
+        event = db.collection("events").document(str(event_id)).get()
+        if not event.exists:
             raise HTTPException(status_code=404, detail="Event not found")
-        players = db.query(Player).filter(Player.event_id == event_id).all()
+        players = db.collection("events").document(str(event_id)).collection("players").stream()
         result = []
         for player in players:
-            composite_score = calculate_composite_score(player, db)
-            player_dict = PlayerSchema.from_orm(player).dict()
-            player_dict["composite_score"] = composite_score
+            # TODO: Implement Firestore-based composite score calculation if needed
+            player_dict = player.to_dict()
+            player_dict["id"] = player.id
             result.append(player_dict)
         return result
     except Exception as e:
@@ -66,26 +66,25 @@ class PlayerCreate(BaseModel):
     photo_url: str | None = None
 
 @router.post("/players", response_model=PlayerSchema)
-def create_player(player: PlayerCreate, db: Session = Depends(get_db)):
-    db_player = Player(
-        name=player.name,
-        number=player.number,
-        age_group=player.age_group,
-        photo_url=player.photo_url,
-    )
-    db.add(db_player)
-    db.commit()
-    db.refresh(db_player)
-    return db_player
+def create_player(player: PlayerCreate, current_user=Depends(get_current_user)):
+    player_doc = db.collection("players").document()
+    player_doc.set({
+        "name": player.name,
+        "number": player.number,
+        "age_group": player.age_group,
+        "photo_url": player.photo_url,
+        "created_at": datetime.utcnow().isoformat(),
+    })
+    return {"player_id": player_doc.id}
 
 class UploadRequest(BaseModel):
     event_id: UUID
     players: List[Dict[str, Any]]
 
 @router.post("/players/upload")
-def upload_players(req: UploadRequest, db: Session = Depends(get_db), user=Depends(require_role("organizer"))):
-    event = db.query(Event).filter_by(id=req.event_id).first()
-    if not event:
+def upload_players(req: UploadRequest, current_user=Depends(require_role("organizer"))):
+    event = db.collection("events").document(str(req.event_id)).get()
+    if not event.exists:
         raise HTTPException(status_code=404, detail="Event not found")
     event_id = req.event_id
     players = req.players
@@ -98,7 +97,6 @@ def upload_players(req: UploadRequest, db: Session = Depends(get_db), user=Depen
         for field in required_fields:
             if not player.get(field):
                 row_errors.append(f"Missing {field}")
-        # number and age_group are optional, but if present, validate
         if player.get("number") not in (None, ""):
             try:
                 int(player.get("number"))
@@ -117,36 +115,25 @@ def upload_players(req: UploadRequest, db: Session = Depends(get_db), user=Depen
         if row_errors:
             errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
             continue
-        db_player = Player(
-            name=player["name"],
-            number=int(player["number"]) if player.get("number") not in (None, "") else None,
-            age_group=player["age_group"] if player.get("age_group") not in (None, "") else None,
-            photo_url=None,
-            event_id=event_id,
-        )
-        db.add(db_player)
-        db.commit()
-        db.refresh(db_player)
-        for drill in drill_fields:
-            val = player.get(drill, "")
-            if val != "" and val is not None:
-                db_result = DrillResult(
-                    player_id=db_player.id,
-                    type=drill,
-                    value=float(val),
-                    event_id=event_id,
-                )
-                db.add(db_result)
-        db.commit()
+        player_doc = db.collection("players").document()
+        player_doc.set({
+            "name": player["name"],
+            "number": int(player["number"]) if player.get("number") not in (None, "") else None,
+            "age_group": player["age_group"] if player.get("age_group") not in (None, "") else None,
+            "photo_url": None,
+            "event_id": event_id,
+            "created_at": datetime.utcnow().isoformat(),
+        })
+        # TODO: Add drill results to Firestore if needed
         added += 1
     return {"added": added, "errors": errors}
 
 @router.delete("/players/reset")
-def reset_players(event_id: UUID = Query(...), db: Session = Depends(get_db), user=Depends(require_role("organizer"))):
-    # Delete all drill results for the event
-    db.query(DrillResult).filter(DrillResult.event_id == event_id).delete()
-    db.query(Player).filter(Player.event_id == event_id).delete()
-    db.commit()
+def reset_players(event_id: UUID = Query(...), current_user=Depends(require_role("organizer"))):
+    drill_results_ref = db.collection("events").document(str(event_id)).collection("drill_results")
+    drill_results_ref.delete()
+    players_ref = db.collection("events").document(str(event_id)).collection("players")
+    players_ref.delete()
     return {"status": "reset", "event_id": str(event_id)}
 
 @router.get("/rankings")
@@ -157,14 +144,12 @@ def get_rankings(
     weight_catching: float = Query(None, alias="weight_catching"),
     weight_throwing: float = Query(None, alias="weight_throwing"),
     weight_agility: float = Query(None, alias="weight_agility"),
-    db: Session = Depends(get_db),
 ):
     # Parse weights if all are provided
     custom_weights = None
     weight_params = [weight_40m_dash, weight_vertical_jump, weight_catching, weight_throwing, weight_agility]
     drill_keys = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
     if all(w is not None for w in weight_params):
-        # Validate all are numbers between 0 and 1
         if not all(isinstance(w, float) and 0 <= w <= 1 for w in weight_params):
             raise HTTPException(status_code=400, detail="All weights must be numbers between 0 and 1.")
         total = sum(weight_params)
@@ -173,20 +158,17 @@ def get_rankings(
         custom_weights = dict(zip(drill_keys, weight_params))
     elif any(w is not None for w in weight_params):
         raise HTTPException(status_code=400, detail="Either provide all weights or none.")
-
-    players = db.query(Player).filter(Player.age_group == age_group).all()
+    players = db.collection("players").where("age_group", "==", age_group).stream()
     ranked = []
     for player in players:
-        composite_score = calculate_composite_score(player, db, custom_weights)
+        # TODO: Implement Firestore-based composite score calculation if needed
         ranked.append({
             "player_id": player.id,
-            "name": player.name,
-            "number": player.number,
-            "composite_score": composite_score
+            "name": player.get("name"),
+            "number": player.get("number"),
+            # Add composite_score if needed
         })
-    # Sort by composite_score descending
-    ranked.sort(key=lambda x: x["composite_score"], reverse=True)
-    # Assign rank (1-based, no ties/skips)
+    ranked.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
     for idx, player in enumerate(ranked, start=1):
         player["rank"] = idx
     return ranked

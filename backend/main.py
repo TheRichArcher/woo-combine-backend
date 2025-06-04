@@ -7,7 +7,6 @@ from backend.routes.leagues import router as leagues_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import create_engine, text
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -17,11 +16,7 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        # Production frontend
         "https://woo-combine.com",
-        # Uncomment for local development:
-        # "http://localhost:3000",
-        # "http://127.0.0.1:3000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -57,19 +52,6 @@ def cors_test(request: Request):
         "message": "CORS test endpoint",
         "headers": dict(request.headers)
     }
-
-@app.on_event("startup")
-async def startup_event():
-    logging.basicConfig(level=logging.INFO)
-    logging.info("🚀 Backend startup complete.")
-    print("=== DEBUG: WooCombine backend main.py loaded ===")
-
-# TEMPORARY: Add league_id column if missing
-# engine = create_engine(os.environ["DATABASE_URL"])
-# with engine.connect() as conn:
-#     conn.execute(text("ALTER TABLE events ADD COLUMN IF NOT EXISTS league_id VARCHAR;"))
-
-# from routes import players, drills, auth  # To be registered later 
 
 class DebugHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
