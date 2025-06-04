@@ -28,17 +28,6 @@ app.add_middleware(
 # app.include_router(events_router)
 # app.include_router(leagues_router)
 
-# Path to the folder that contains index.html (adjust if different)
-DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
-if DIST_DIR.exists():
-    app.mount(
-        "/",
-        StaticFiles(directory=DIST_DIR, html=True),
-        name="spa",
-    )
-else:
-    logging.warning(f"WARNING: {DIST_DIR} does not exist. Frontend will not be served.")
-
 @app.get("/health")
 def health_check():
     try:
@@ -59,4 +48,15 @@ class DebugHeaderMiddleware(BaseHTTPMiddleware):
         response.headers["X-Debug-Header"] = "true"
         return response
 
-app.add_middleware(DebugHeaderMiddleware) 
+app.add_middleware(DebugHeaderMiddleware)
+
+# Path to the folder that contains index.html (adjust if different)
+DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
+if DIST_DIR.exists():
+    app.mount(
+        "/",
+        StaticFiles(directory=DIST_DIR, html=True),
+        name="spa",
+    )
+else:
+    logging.warning(f"WARNING: {DIST_DIR} does not exist. Frontend will not be served.") 
