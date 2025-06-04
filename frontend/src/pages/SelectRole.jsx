@@ -73,6 +73,7 @@ export default function SelectRole() {
         role: selectedRole,
         created_at: serverTimestamp(),
       }, { merge: true });
+      await refreshedUser.getIdToken(true);
       navigate("/dashboard");
     } catch (err) {
       setError(err.message || "Failed to save role.");
