@@ -10,22 +10,6 @@ from google.cloud import firestore
 from datetime import datetime
 import logging
 
-from backend.models import User
-
-# Initialize Firebase app once using environment secret
-if not firebase_admin._apps:
-    try:
-        cred_path = os.environ["GOOGLE_APPLICATION_CREDENTIALS"]
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred)
-    except Exception as e:
-        raise RuntimeError(f"Failed to initialize Firebase Admin SDK: {e}")
-
-security = HTTPBearer()
-
-# List of admin emails
-ADMIN_EMAILS = {"usagrich@aol.com"}
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
