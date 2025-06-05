@@ -3,75 +3,164 @@ from backend.firestore_client import db
 from backend.auth import get_current_user
 from datetime import datetime
 import logging
+import concurrent.futures
 
 router = APIRouter()
+
+def execute_with_timeout(func, timeout=10, *args, **kwargs):
+    """Execute a function with timeout protection"""
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(func, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
+            raise HTTPException(
+                status_code=504,
+                detail=f"Database operation timed out after {timeout} seconds"
+            )
 
 @router.get('/leagues/me')
 def get_my_leagues(current_user=Depends(get_current_user)):
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
     user_id = current_user["uid"]
-    leagues_ref = db.collection("leagues")
-    leagues = []
-    for league in leagues_ref.stream():
-        member_ref = league.reference.collection("members").document(user_id)
-        member_doc = member_ref.get()
-        if member_doc.exists:
-            league_data = league.to_dict()
-            league_data["id"] = league.id
-            league_data["role"] = member_doc.to_dict().get("role")
-            leagues.append(league_data)
-    if not leagues:
-        logging.warning(f"No leagues found for user {user_id}")
-        raise HTTPException(status_code=404, detail="No leagues found for this user.")
-    logging.info(f"Returning leagues for user {user_id}: {leagues}")
-    return {"leagues": leagues}
+    
+    try:
+        leagues_ref = db.collection("leagues")
+        leagues = []
+        
+        # Add timeout to Firestore stream operation
+        all_leagues = execute_with_timeout(lambda: list(leagues_ref.stream()), timeout=15)
+        
+        for league in all_leagues:
+            member_ref = league.reference.collection("members").document(user_id)
+            # Add timeout to member document lookup
+            member_doc = execute_with_timeout(member_ref.get, timeout=5)
+            
+            if member_doc.exists:
+                league_data = league.to_dict()
+                league_data["id"] = league.id
+                league_data["role"] = member_doc.to_dict().get("role")
+                leagues.append(league_data)
+                
+        if not leagues:
+            logging.warning(f"No leagues found for user {user_id}")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
+            
+        logging.info(f"Returning leagues for user {user_id}: {leagues}")
+        return {"leagues": leagues}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error in get_my_leagues: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve leagues")
 
 @router.post('/leagues')
 def create_league(req: dict, current_user=Depends(get_current_user)):
     logging.info(f"[POST] /leagues called by user: {current_user} with req: {req}")
     user_id = current_user["uid"]
     name = req.get("name")
-    league_ref = db.collection("leagues").document()
-    league_ref.set({
-        "name": name,
-        "created_by_user_id": user_id,
-        "created_at": datetime.utcnow().isoformat(),
-    })
-    league_ref.collection("members").document(user_id).set({
-        "role": "organizer",
-        "joined_at": datetime.utcnow().isoformat(),
-    })
-    logging.info(f"League created with id {league_ref.id} by user {user_id}")
-    return {"league_id": league_ref.id}
+    
+    if not name:
+        raise HTTPException(status_code=400, detail="League name is required")
+    
+    try:
+        league_ref = db.collection("leagues").document()
+        
+        # Add timeout to league creation
+        execute_with_timeout(
+            lambda: league_ref.set({
+                "name": name,
+                "created_by_user_id": user_id,
+                "created_at": datetime.utcnow().isoformat(),
+            }),
+            timeout=10
+        )
+        
+        # Add timeout to member creation
+        execute_with_timeout(
+            lambda: league_ref.collection("members").document(user_id).set({
+                "role": "organizer",
+                "joined_at": datetime.utcnow().isoformat(),
+            }),
+            timeout=10
+        )
+        
+        logging.info(f"League created with id {league_ref.id} by user {user_id}")
+        return {"league_id": league_ref.id}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error creating league: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to create league")
 
 @router.post('/leagues/join/{code}')
 def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
     user_id = current_user["uid"]
     role = req.get("role", "coach")
-    league_ref = db.collection("leagues").document(code)
-    if not league_ref.get().exists:
-        logging.warning(f"League not found: {code}")
-        raise HTTPException(status_code=404, detail="League not found")
-    member_ref = league_ref.collection("members").document(user_id)
-    if member_ref.get().exists:
-        logging.warning(f"User {user_id} already in league {code}")
-        raise HTTPException(status_code=400, detail="User already in league")
-    member_ref.set({
-        "role": role,
-        "joined_at": datetime.utcnow().isoformat(),
-    })
-    logging.info(f"User {user_id} joined league {code} as {role}")
-    return {"joined": True, "league_id": code}
+    
+    try:
+        league_ref = db.collection("leagues").document(code)
+        
+        # Add timeout to league existence check
+        league_doc = execute_with_timeout(league_ref.get, timeout=5)
+        if not league_doc.exists:
+            logging.warning(f"League not found: {code}")
+            raise HTTPException(status_code=404, detail="League not found")
+        
+        member_ref = league_ref.collection("members").document(user_id)
+        
+        # Add timeout to member existence check
+        existing_member = execute_with_timeout(member_ref.get, timeout=5)
+        if existing_member.exists:
+            logging.warning(f"User {user_id} already in league {code}")
+            raise HTTPException(status_code=400, detail="User already in league")
+        
+        # Add timeout to member creation
+        execute_with_timeout(
+            lambda: member_ref.set({
+                "role": role,
+                "joined_at": datetime.utcnow().isoformat(),
+            }),
+            timeout=10
+        )
+        
+        logging.info(f"User {user_id} joined league {code} as {role}")
+        return {"joined": True, "league_id": code}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error joining league: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to join league")
 
 @router.get('/leagues/{league_id}/teams')
 def list_teams(league_id: str, current_user=Depends(get_current_user)):
-    teams_ref = db.collection("leagues").document(league_id).collection("teams")
-    teams = [dict(t.to_dict(), id=t.id) for t in teams_ref.stream()]
-    return {"teams": teams}
+    try:
+        teams_ref = db.collection("leagues").document(league_id).collection("teams")
+        # Add timeout to teams retrieval
+        teams_stream = execute_with_timeout(lambda: list(teams_ref.stream()), timeout=10)
+        teams = [dict(t.to_dict(), id=t.id) for t in teams_stream]
+        return {"teams": teams}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error retrieving teams: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve teams")
 
 @router.get('/leagues/{league_id}/invitations')
 def list_invitations(league_id: str, current_user=Depends(get_current_user)):
-    invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
-    invitations = [dict(i.to_dict(), id=i.id) for i in invitations_ref.stream()]
-    return {"invitations": invitations} 
+    try:
+        invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
+        # Add timeout to invitations retrieval
+        invitations_stream = execute_with_timeout(lambda: list(invitations_ref.stream()), timeout=10)
+        invitations = [dict(i.to_dict(), id=i.id) for i in invitations_stream]
+        return {"invitations": invitations}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error retrieving invitations: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve invitations") 
