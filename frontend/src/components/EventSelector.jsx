@@ -4,13 +4,13 @@ import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 
 export default function EventSelector({ onEventSelected }) {
-  const { events, selectedEvent, setSelectedEvent, setEvents } = useEvent();
+  const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
   const { selectedLeagueId, user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState("");
 
   const handleSelect = (e) => {
     if (!Array.isArray(events)) return;
@@ -23,8 +23,8 @@ export default function EventSelector({ onEventSelected }) {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
+    setCreateLoading(true);
+    setCreateError("");
     try {
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
@@ -48,11 +48,41 @@ export default function EventSelector({ onEventSelected }) {
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
       console.error('Event creation error:', err);
-      setError(err.response?.data?.detail || err.message || 'Failed to create event');
+      setCreateError(err.response?.data?.detail || err.message || 'Failed to create event');
     } finally {
-      setLoading(false);
+      setCreateLoading(false);
     }
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="text-center text-gray-500 py-4">
+          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full"></div>
+          <div className="mt-2">Loading events...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state with retry option
+  if (error) {
+    return (
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="text-center text-red-500 py-4 bg-red-50 rounded-lg border border-red-200">
+          <div className="mb-2">⚠️ Failed to load events</div>
+          <div className="text-sm text-red-400 mb-3">{error}</div>
+          <button
+            onClick={refreshEvents}
+            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition text-sm"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-2 mb-6">
@@ -86,41 +116,50 @@ export default function EventSelector({ onEventSelected }) {
           Create New Event
         </button>
       </div>
+
+      {/* Create Event Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-2 right-2 text-gray-400 hover:text-cmf-primary text-2xl font-bold"
-            >
-              ×
-            </button>
-            <h2 className="text-xl font-bold mb-4 text-cmf-primary">Create New Event</h2>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+            <h3 className="text-lg font-bold mb-4">Create New Event</h3>
             <form onSubmit={handleCreate}>
-              <label className="block mb-2 font-semibold">Event Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
-                required
-              />
-              <label className="block mb-2 font-semibold">Event Date</label>
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
-                required
-              />
-              {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
-              <button
-                type="submit"
-                className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:bg-cmf-secondary transition"
-                disabled={loading}
-              >
-                {loading ? "Creating..." : "Create Event"}
-              </button>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Event Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Event Date</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  required
+                />
+              </div>
+              {createError && <div className="text-red-500 text-sm mb-4">{createError}</div>}
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={createLoading}
+                  className="bg-cmf-primary text-white px-4 py-2 rounded hover:bg-cmf-secondary transition disabled:opacity-50"
+                >
+                  {createLoading ? "Creating..." : "Create"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowModal(false)}
+                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
+                >
+                  Cancel
+                </button>
+              </div>
             </form>
           </div>
         </div>

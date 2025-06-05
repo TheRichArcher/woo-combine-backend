@@ -10,20 +10,35 @@ export function EventProvider({ children }) {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [noLeague, setNoLeague] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Load events from backend
   useEffect(() => {
     async function fetchEvents() {
       if (!selectedLeagueId || !user) {
         setNoLeague(true);
+        setEvents([]);
+        setSelectedEvent(null);
         return;
       }
+      
       setNoLeague(false);
+      setLoading(true);
+      setError(null);
+      
       try {
-        const token = await user.getIdToken();
-        if (!selectedLeagueId) throw new Error('No league selected');
+        // Add timeout protection and retry logic
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        
         const url = `/leagues/${selectedLeagueId}/events`;
-        const { data } = await api.get(url);
+        const { data } = await api.get(url, {
+          signal: controller.signal,
+          retry: 2 // Add retry attempts
+        });
+        
+        clearTimeout(timeoutId);
         
         // Fix: Backend returns {events: [...]} not just [...]
         const eventsList = data.events || [];
@@ -36,12 +51,28 @@ export function EventProvider({ children }) {
           setSelectedEvent(found);
         } else if (Array.isArray(eventsList) && eventsList.length > 0) {
           setSelectedEvent(eventsList[0]);
+        } else {
+          setSelectedEvent(null);
         }
+        
+        setError(null);
       } catch (error) {
         console.error('Failed to fetch events:', error);
         setEvents([]);
+        setSelectedEvent(null);
+        
+        if (error.name === 'AbortError') {
+          setError('Request timed out. Please try again.');
+        } else if (error.response?.status === 401) {
+          setError('Authentication failed. Please refresh the page.');
+        } else {
+          setError(error.response?.data?.detail || error.message || 'Failed to load events');
+        }
+      } finally {
+        setLoading(false);
       }
     }
+    
     fetchEvents();
   }, [selectedLeagueId, user]);
 
@@ -52,9 +83,41 @@ export function EventProvider({ children }) {
     }
   }, [selectedEvent]);
 
+  // Refresh function for error recovery
+  const refreshEvents = async () => {
+    if (!selectedLeagueId || !user) return;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const url = `/leagues/${selectedLeagueId}/events`;
+      const { data } = await api.get(url, { retry: 2 });
+      
+      const eventsList = data.events || [];
+      setEvents(Array.isArray(eventsList) ? eventsList : []);
+      setError(null);
+    } catch (error) {
+      console.error('Failed to refresh events:', error);
+      setError(error.response?.data?.detail || error.message || 'Failed to refresh events');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <EventContext.Provider value={{ events, selectedEvent, setSelectedEvent, setEvents, noLeague, LeagueFallback }}>
-      {children}
+    <EventContext.Provider value={{ 
+      events, 
+      selectedEvent, 
+      setSelectedEvent, 
+      setEvents, 
+      noLeague, 
+      loading, 
+      error, 
+      refreshEvents,
+      LeagueFallback 
+    }}>
+      {noLeague ? <LeagueFallback /> : children}
     </EventContext.Provider>
   );
 }
