@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+from google.cloud import firestore
 
 app = FastAPI()
 
@@ -41,6 +42,19 @@ def cors_test(request: Request):
         "message": "CORS test endpoint",
         "headers": dict(request.headers)
     }
+
+@app.get("/test-firestore")
+def test_firestore():
+    try:
+        db = firestore.Client()
+        test_ref = db.collection("test").document("connectivity-check")
+        test_ref.set({"status": "ok"})
+        doc = test_ref.get()
+        data = doc.to_dict() if doc.exists else None
+        return {"success": True, "data": data}
+    except Exception as e:
+        import traceback
+        return {"success": False, "error": str(e), "trace": traceback.format_exc()}
 
 class DebugHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
