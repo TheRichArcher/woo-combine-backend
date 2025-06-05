@@ -2,8 +2,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routes.players import router as players_router
 from backend.routes.leagues import router as leagues_router
-# from backend.routes.drills import router as drills_router
-# from backend.routes.events import router as events_router
+from backend.routes.drills import router as drills_router
+from backend.routes.events import router as events_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -27,10 +27,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(players_router)
-app.include_router(leagues_router)
-# app.include_router(drills_router)
-# app.include_router(events_router)
+app.include_router(players_router, prefix="", tags=["Players"])
+app.include_router(leagues_router, prefix="", tags=["Leagues"])
+app.include_router(drills_router, prefix="", tags=["Drills"])
+app.include_router(events_router, prefix="", tags=["Events"])
 
 @app.get("/health")
 def health_check():
