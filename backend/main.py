@@ -11,6 +11,7 @@ import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from google.cloud import firestore
+from datetime import datetime
 
 logging.basicConfig(level=logging.INFO)
 
@@ -57,6 +58,138 @@ def test_firestore():
     except Exception as e:
         import traceback
         return {"success": False, "error": str(e), "trace": traceback.format_exc()}
+
+@app.get("/debug/system")
+def debug_system():
+    """System health and configuration check"""
+    try:
+        import sys
+        import platform
+        
+        return {
+            "python_version": sys.version,
+            "platform": platform.platform(),
+            "fastapi_running": True,
+            "logging_level": logging.getLogger().level,
+            "environment_vars": {
+                "GOOGLE_APPLICATION_CREDENTIALS": bool(os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")),
+                "PORT": os.environ.get("PORT", "Not set")
+            }
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "trace": traceback.format_exc()}
+
+@app.get("/debug/firestore-ops")
+def debug_firestore_operations():
+    """Test various Firestore operations to isolate issues"""
+    results = {}
+    try:
+        db = firestore.Client()
+        
+        # Test 1: Client creation
+        results["client_creation"] = "SUCCESS"
+        
+        # Test 2: Collection reference
+        test_collection = db.collection("debug_test")
+        results["collection_reference"] = "SUCCESS"
+        
+        # Test 3: Document write
+        doc_ref = test_collection.document("test_doc")
+        doc_ref.set({"timestamp": datetime.utcnow().isoformat(), "test": True})
+        results["document_write"] = "SUCCESS"
+        
+        # Test 4: Document read
+        doc = doc_ref.get()
+        if doc.exists:
+            results["document_read"] = "SUCCESS"
+            results["document_data"] = doc.to_dict()
+        else:
+            results["document_read"] = "FAILED - Document not found"
+        
+        # Test 5: Collection query
+        docs = list(test_collection.limit(1).stream())
+        results["collection_query"] = f"SUCCESS - Found {len(docs)} documents"
+        
+        # Test 6: Document delete
+        doc_ref.delete()
+        results["document_delete"] = "SUCCESS"
+        
+        return {"success": True, "operations": results}
+    except Exception as e:
+        import traceback
+        results["error"] = str(e)
+        results["trace"] = traceback.format_exc()
+        return {"success": False, "operations": results}
+
+@app.get("/debug/auth")
+def debug_auth():
+    """Test authentication without requiring actual auth"""
+    try:
+        from backend.auth import security
+        from firebase_admin import auth as admin_auth
+        
+        return {
+            "firebase_admin_initialized": bool(admin_auth._apps),
+            "security_configured": bool(security),
+            "auth_module_loaded": True
+        }
+    except Exception as e:
+        import traceback
+        return {"error": str(e), "trace": traceback.format_exc()}
+
+@app.post("/debug/test-league-creation")
+def debug_league_creation():
+    """Test league creation without auth for debugging"""
+    try:
+        logging.info("[DEBUG] Starting test league creation")
+        
+        db = firestore.Client()
+        logging.info("[DEBUG] Firestore client created")
+        
+        test_name = f"Debug League {datetime.utcnow().isoformat()}"
+        test_user_id = "debug_user_123"
+        
+        logging.info(f"[DEBUG] Creating league with name: {test_name}")
+        
+        # Create league document
+        league_ref = db.collection("leagues").document()
+        logging.info(f"[DEBUG] League document reference created: {league_ref.id}")
+        
+        league_ref.set({
+            "name": test_name,
+            "created_by_user_id": test_user_id,
+            "created_at": datetime.utcnow().isoformat(),
+        })
+        logging.info("[DEBUG] League document written to Firestore")
+        
+        # Create member document
+        member_ref = league_ref.collection("members").document(test_user_id)
+        logging.info("[DEBUG] Creating member document")
+        
+        member_ref.set({
+            "role": "organizer",
+            "joined_at": datetime.utcnow().isoformat(),
+        })
+        logging.info("[DEBUG] Member document written to Firestore")
+        
+        logging.info(f"[DEBUG] League creation completed successfully: {league_ref.id}")
+        
+        return {
+            "success": True,
+            "league_id": league_ref.id,
+            "message": "League created successfully without authentication"
+        }
+        
+    except Exception as e:
+        import traceback
+        logging.error(f"[DEBUG] League creation failed: {str(e)}")
+        logging.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
+        return {
+            "success": False,
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
 
 class DebugHeaderMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
