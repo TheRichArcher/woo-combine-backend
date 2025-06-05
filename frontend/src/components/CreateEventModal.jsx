@@ -16,17 +16,27 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     setLoading(true);
     setError("");
     try {
-      const { data: newEvent } = await api.post(`/events`, {
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
+      
+      const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date,
-        league_id: user?.league_id
+        date: isoDate
       });
+      
+      const newEvent = {
+        id: response.data.event_id,
+        name: name,
+        date: isoDate,
+        created_at: new Date().toISOString()
+      };
+      
       setName("");
       setDate("");
       if (onCreated) onCreated(newEvent);
       if (onClose) onClose();
     } catch (err) {
-      setError(err.message);
+      console.error('Event creation error:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to create event');
     } finally {
       setLoading(false);
     }

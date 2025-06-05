@@ -24,16 +24,21 @@ export function EventProvider({ children }) {
         if (!selectedLeagueId) throw new Error('No league selected');
         const url = `/leagues/${selectedLeagueId}/events`;
         const { data } = await api.get(url);
-        setEvents(Array.isArray(data) ? data : []);
+        
+        // Fix: Backend returns {events: [...]} not just [...]
+        const eventsList = data.events || [];
+        setEvents(Array.isArray(eventsList) ? eventsList : []);
+        
         // Auto-select from localStorage or default to first event
         const stored = localStorage.getItem("selectedEventId");
-        const found = Array.isArray(data) ? data.find(e => e.id === stored) : null;
+        const found = Array.isArray(eventsList) ? eventsList.find(e => e.id === stored) : null;
         if (found) {
           setSelectedEvent(found);
-        } else if (Array.isArray(data) && data.length > 0) {
-          setSelectedEvent(data[0]);
+        } else if (Array.isArray(eventsList) && eventsList.length > 0) {
+          setSelectedEvent(eventsList[0]);
         }
-      } catch {
+      } catch (error) {
+        console.error('Failed to fetch events:', error);
         setEvents([]);
       }
     }

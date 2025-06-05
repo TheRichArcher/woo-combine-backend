@@ -27,10 +27,19 @@ export default function EventSelector({ onEventSelected }) {
     setError("");
     try {
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
-      const { data: newEvent } = await api.post(`/leagues/${selectedLeagueId}/events`, {
+      const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date: isoDate
       });
+      
+      // Fix: Backend returns {event_id: ...}, so we need to create the full event object
+      const newEvent = {
+        id: response.data.event_id,
+        name: name,
+        date: isoDate,
+        created_at: new Date().toISOString()
+      };
+      
       setEvents(prev => [newEvent, ...prev]);
       setSelectedEvent(newEvent);
       setShowModal(false);
@@ -38,7 +47,8 @@ export default function EventSelector({ onEventSelected }) {
       setDate("");
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
-      setError(err.message);
+      console.error('Event creation error:', err);
+      setError(err.response?.data?.detail || err.message || 'Failed to create event');
     } finally {
       setLoading(false);
     }
@@ -56,6 +66,7 @@ export default function EventSelector({ onEventSelected }) {
           className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           disabled={!Array.isArray(events) || events.length === 0}
         >
+          <option value="">Select an event...</option>
           {Array.isArray(events) && events.map(ev => {
             let dateLabel = "Invalid Date";
             if (ev.date && !isNaN(Date.parse(ev.date))) {
