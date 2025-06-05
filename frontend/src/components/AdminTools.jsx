@@ -36,12 +36,28 @@ function validateRow(row, headers) {
   headers.forEach((header, i) => {
     obj[header] = row[i] ?? "";
   });
+  
+  // Only require name - everything else is optional
   if (!obj.name) rowWarnings.push("Missing name");
-  if (obj.number && isNaN(Number(obj.number))) rowWarnings.push("Invalid number");
-  if (obj.age_group && !["7-8", "9-10", "11-12"].includes(obj.age_group)) rowWarnings.push("Invalid age group");
+  
+  // Only validate number if it's provided
+  if (obj.number && obj.number.trim() !== "" && isNaN(Number(obj.number))) {
+    rowWarnings.push("Invalid number");
+  }
+  
+  // Only validate age group if it's provided
+  if (obj.age_group && obj.age_group.trim() !== "" && !["7-8", "9-10", "11-12"].includes(obj.age_group)) {
+    rowWarnings.push("Invalid age group");
+  }
+  
+  // Only validate drill scores if they're provided (not empty)
   ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
-    if (obj[drill] && isNaN(Number(obj[drill]))) rowWarnings.push(`Invalid ${drill}`);
+    const value = obj[drill];
+    if (value && value.trim() !== "" && isNaN(Number(value))) {
+      rowWarnings.push(`Invalid ${drill}`);
+    }
   });
+  
   return { ...obj, warnings: rowWarnings };
 }
 
@@ -149,6 +165,10 @@ export default function AdminTools() {
   };
 
   const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.warnings.length === 0);
+
+  // Allow upload if we have valid players (even with missing drill data)
+  const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
+  const onlyMinorWarnings = csvRows.every(r => r.warnings.every(w => !w.includes("Missing name")));
 
   // Fetch player count for summary badge
   const fetchPlayerCount = async () => {
@@ -398,12 +418,15 @@ export default function AdminTools() {
                     <tbody>
                       {Array.isArray(csvRows) && csvRows.length > 0 && csvRows.map((row, i) => {
                         const hasWarnings = row.warnings.length > 0;
+                        const hasCriticalErrors = row.warnings.some(w => w.includes("Missing name") || w.includes("Invalid"));
+                        const isUploadable = row.name && row.name.trim() !== "";
+                        
                         return (
-                          <tr key={i} className={hasWarnings ? "bg-yellow-50" : ""}>
+                          <tr key={i} className={hasCriticalErrors ? "bg-red-50" : hasWarnings ? "bg-yellow-50" : ""}>
                             <td className="px-2 py-1 text-center">
-                              {hasWarnings ? (
+                              {!isUploadable ? (
                                 <span
-                                  className="text-yellow-500 cursor-pointer"
+                                  className="text-red-500 cursor-pointer"
                                   title={row.warnings.join(", ")}
                                 >❌</span>
                               ) : (
@@ -432,7 +455,7 @@ export default function AdminTools() {
               )}
               <button
                 className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition mt-2"
-                disabled={!allRowsValid || uploadStatus === "loading" || !selectedEvent}
+                disabled={!hasValidPlayers || uploadStatus === "loading" || !selectedEvent}
                 onClick={handleUpload}
               >
                 {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
