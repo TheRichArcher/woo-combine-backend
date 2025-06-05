@@ -127,16 +127,82 @@ def debug_auth():
     """Test authentication without requiring actual auth"""
     try:
         from backend.auth import security
-        from firebase_admin import auth as admin_auth
+        import firebase_admin
         
         return {
-            "firebase_admin_initialized": bool(admin_auth._apps),
+            "firebase_admin_initialized": len(firebase_admin._apps) > 0,
+            "firebase_apps_count": len(firebase_admin._apps),
             "security_configured": bool(security),
             "auth_module_loaded": True
         }
     except Exception as e:
         import traceback
         return {"error": str(e), "trace": traceback.format_exc()}
+
+@app.post("/debug/test-auth-flow")
+def debug_auth_flow(request_body: dict):
+    """Test authentication flow step by step to isolate hanging point"""
+    try:
+        import firebase_admin
+        from firebase_admin import auth as admin_auth
+        
+        # Get token from request
+        token = request_body.get("token")
+        if not token:
+            return {"error": "No token provided in request body"}
+        
+        logging.info("[DEBUG AUTH] Starting token verification")
+        
+        # Step 1: Test Firebase token verification
+        try:
+            decoded_token = admin_auth.verify_id_token(token)
+            logging.info(f"[DEBUG AUTH] Token verification SUCCESS: {decoded_token.get('uid')}")
+        except Exception as e:
+            logging.error(f"[DEBUG AUTH] Token verification FAILED: {str(e)}")
+            return {
+                "step": "firebase_token_verification", 
+                "status": "FAILED",
+                "error": str(e)
+            }
+        
+        # Step 2: Test Firestore user lookup
+        try:
+            from google.cloud import firestore
+            db = firestore.Client()
+            uid = decoded_token["uid"]
+            logging.info(f"[DEBUG AUTH] Starting Firestore lookup for UID: {uid}")
+            
+            user_doc = db.collection("users").document(uid).get()
+            logging.info(f"[DEBUG AUTH] Firestore lookup SUCCESS: exists={user_doc.exists}")
+            
+            return {
+                "step": "complete",
+                "status": "SUCCESS", 
+                "firebase_verification": "SUCCESS",
+                "firestore_lookup": "SUCCESS",
+                "user_exists": user_doc.exists,
+                "uid": uid
+            }
+            
+        except Exception as e:
+            logging.error(f"[DEBUG AUTH] Firestore lookup FAILED: {str(e)}")
+            return {
+                "step": "firestore_lookup",
+                "status": "FAILED", 
+                "firebase_verification": "SUCCESS",
+                "firestore_lookup": "FAILED",
+                "error": str(e)
+            }
+            
+    except Exception as e:
+        import traceback
+        logging.error(f"[DEBUG AUTH] Overall auth flow FAILED: {str(e)}")
+        return {
+            "step": "setup",
+            "status": "FAILED",
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
 
 @app.post("/debug/test-league-creation")
 def debug_league_creation():
@@ -185,6 +251,51 @@ def debug_league_creation():
         import traceback
         logging.error(f"[DEBUG] League creation failed: {str(e)}")
         logging.error(f"[DEBUG] Traceback: {traceback.format_exc()}")
+        return {
+            "success": False,
+            "error": str(e),
+            "trace": traceback.format_exc()
+        }
+
+@app.post("/debug/test-token-direct")
+def test_token_directly(request_body: dict):
+    """Test token verification directly without middleware dependencies"""
+    try:
+        token = request_body.get("token")
+        if not token:
+            return {"error": "No token provided"}
+        
+        logging.info(f"[DEBUG TOKEN] Testing token directly: {token[:20]}...")
+        
+        # Import and test token verification with timeout
+        from firebase_admin import auth as admin_auth
+        import concurrent.futures
+        
+        try:
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(admin_auth.verify_id_token, token)
+                decoded_token = future.result(timeout=10)
+                
+            return {
+                "success": True,
+                "uid": decoded_token.get("uid"),
+                "email": decoded_token.get("email"),
+                "email_verified": decoded_token.get("email_verified"),
+                "message": "Token verification successful"
+            }
+        except concurrent.futures.TimeoutError:
+            return {
+                "success": False,
+                "error": "Token verification timed out after 10 seconds"
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Token verification failed: {str(e)}"
+            }
+            
+    except Exception as e:
+        import traceback
         return {
             "success": False,
             "error": str(e),
