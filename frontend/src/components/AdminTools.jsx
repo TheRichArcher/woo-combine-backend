@@ -204,7 +204,7 @@ export default function AdminTools() {
     };
     console.log("Uploading players:", payload);
     try {
-      const res = await api.post(`/players/bulk`, payload);
+      const res = await api.post(`/players/upload`, payload);
       console.log("Upload response:", res);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {

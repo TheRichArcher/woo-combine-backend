@@ -161,19 +161,33 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
                 
             player_doc = db.collection("players").document()
             
+            # Prepare player data with drill scores
+            player_data = {
+                "name": player["name"],
+                "number": int(player["number"]) if player.get("number") not in (None, "") else None,
+                "age_group": player["age_group"] if player.get("age_group") not in (None, "") else None,
+                "photo_url": None,
+                "event_id": event_id,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+            
+            # Add drill scores if provided
+            for drill in drill_fields:
+                value = player.get(drill, "")
+                if value and value.strip() != "":
+                    try:
+                        player_data[drill] = float(value)
+                    except ValueError:
+                        # This shouldn't happen due to validation, but just in case
+                        player_data[drill] = None
+                else:
+                    player_data[drill] = None
+            
             # Add timeout to player creation
             execute_with_timeout(
-                lambda: player_doc.set({
-                    "name": player["name"],
-                    "number": int(player["number"]) if player.get("number") not in (None, "") else None,
-                    "age_group": player["age_group"] if player.get("age_group") not in (None, "") else None,
-                    "photo_url": None,
-                    "event_id": event_id,
-                    "created_at": datetime.utcnow().isoformat(),
-                }),
+                lambda: player_doc.set(player_data),
                 timeout=10
             )
-            # TODO: Add drill results to Firestore if needed
             added += 1
             
         return {"added": added, "errors": errors}
