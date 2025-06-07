@@ -42,7 +42,7 @@ export default function SignupForm() {
   };
 
   if (loading) return <div>Loading...</div>;
-  if (user) { navigate("/dashboard"); return null; }
+  // Let AuthContext handle navigation for existing users to prevent flashes
 
   return (
     <div className="w-full max-w-md flex flex-col items-center relative">

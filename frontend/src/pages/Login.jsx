@@ -1,23 +1,10 @@
-import React, { useEffect } from "react";
+import React from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoginForm from "../components/Welcome/LoginForm";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 export default function Login() {
-  const { user, selectedLeagueId } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      const leagueId = selectedLeagueId || localStorage.getItem('selectedLeagueId');
-      if (leagueId) {
-        navigate("/dashboard");
-      } else {
-        navigate("/select-league");
-      }
-    }
-  }, [user, selectedLeagueId, navigate]);
+  // Remove duplicate navigation logic - let AuthContext handle all routing
+  // This prevents flashes and duplicate redirect logic
 
   return (
     <WelcomeLayout

@@ -21,11 +21,11 @@ export default function LoginForm() {
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await cred.user.reload();
-      if (cred.user.emailVerified) {
-        navigate("/dashboard");
-      } else {
+      if (!cred.user.emailVerified) {
         navigate("/verify-email");
       }
+      // Let AuthContext handle the navigation logic for verified users
+      // This prevents the flash between dashboard and select-role
     } catch (err) {
       if (err.code === "auth/invalid-credential") {
         setFormError("Account not found. Please sign up before logging in.");
