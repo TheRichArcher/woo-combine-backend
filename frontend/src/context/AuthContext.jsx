@@ -11,6 +11,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [roleChecking, setRoleChecking] = useState(false);
   const [error, setError] = useState(null);
   const [leagues, setLeagues] = useState([]); // [{id, name, role}]
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
@@ -19,8 +20,8 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log('[AuthContext] user:', user, 'loading:', loading, 'error:', error);
-  }, [user, loading, error]);
+    console.log('[AuthContext] user:', user, 'loading:', loading, 'roleChecking:', roleChecking, 'error:', error);
+  }, [user, loading, roleChecking, error]);
 
   // Fetch leagues/roles from backend after login
   useEffect(() => {
@@ -64,36 +65,64 @@ export function AuthProvider({ children }) {
   // Subscribe to Firebase Auth state changes and enforce email verification
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('[AuthContext] Auth state changed:', firebaseUser?.email, 'verified:', firebaseUser?.emailVerified);
+      console.log('[AuthContext] Current pathname:', window.location.pathname);
+      
       if (firebaseUser) {
         await firebaseUser.reload();
         setUser(firebaseUser);
         setLoading(false);
         // If not verified, redirect to /verify-email
         if (!firebaseUser.emailVerified) {
+          console.log('[AuthContext] User not verified, redirecting to verify-email');
           if (window.location.pathname !== '/verify-email') {
             navigate('/verify-email');
           }
         } else {
+          console.log('[AuthContext] User verified, checking role in Firestore...');
+          setRoleChecking(true);
+          
           // If verified and on /verify-email, redirect to dashboard or select-role
           const db = getFirestore();
           const docRef = doc(db, "users", firebaseUser.uid);
-          const snap = await getDoc(docRef);
-          if (!snap.exists() || !snap.data().role) {
-            navigate("/select-role");
-          } else {
-            // Only redirect to dashboard if on onboarding routes
-            const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
-            if (onboardingRoutes.includes(window.location.pathname)) {
-              navigate("/dashboard");
+          
+          try {
+            const snap = await getDoc(docRef);
+            console.log('[AuthContext] Firestore check complete. Document exists:', snap.exists());
+            console.log('[AuthContext] Role data:', snap.exists() ? snap.data() : null);
+            
+            if (!snap.exists() || !snap.data().role) {
+              console.log('[AuthContext] No role found, navigating to select-role');
+              console.log('[AuthContext] Current path before redirect:', window.location.pathname);
+              navigate("/select-role");
+            } else {
+              console.log('[AuthContext] Role found:', snap.data().role);
+              // Only redirect to dashboard if on onboarding routes
+              const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
+              if (onboardingRoutes.includes(window.location.pathname)) {
+                console.log('[AuthContext] On onboarding route, navigating to dashboard');
+                navigate("/dashboard");
+              } else {
+                console.log('[AuthContext] Not on onboarding route, staying on:', window.location.pathname);
+              }
+              // Otherwise, stay on the current route (e.g., /admin, /welcome)
             }
-            // Otherwise, stay on the current route (e.g., /admin, /welcome)
+          } catch (error) {
+            console.error('[AuthContext] Firestore role check failed:', error);
+            console.log('[AuthContext] Firestore error, defaulting to select-role');
+            navigate("/select-role");
+          } finally {
+            setRoleChecking(false);
           }
         }
       } else {
+        console.log('[AuthContext] No user, clearing state');
         setUser(null);
         setLoading(false);
+        setRoleChecking(false);
       }
     }, (err) => {
+      console.error('[AuthContext] Auth state change error:', err);
       setError(err);
       setLoading(false);
     });
@@ -103,6 +132,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (!user) {
       setUserRole(null);
+      setRoleChecking(false);
       return;
     }
     const db = getFirestore();
@@ -142,6 +172,7 @@ export function AuthProvider({ children }) {
     <AuthContext.Provider value={{
       user,
       loading,
+      roleChecking,
       error,
       leagues,
       selectedLeagueId,
@@ -151,7 +182,16 @@ export function AuthProvider({ children }) {
       isOrganizer,
       userRole,
     }}>
-      {children}
+      {(loading || roleChecking) ? (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
+            <div className="mt-4 text-gray-600">
+              {loading ? "Loading..." : "Checking account..."}
+            </div>
+          </div>
+        </div>
+      ) : children}
     </AuthContext.Provider>
   );
 }
