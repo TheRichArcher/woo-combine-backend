@@ -84,7 +84,7 @@ export default function SelectLeague() {
           </button> */}
           <button
             className="w-11/12 max-w-lg border-2 border-blue-600 text-blue-700 font-bold text-lg py-3 rounded-full shadow"
-            onClick={() => navigate('/join-league')}
+            onClick={() => navigate('/join')}
           >
             Join a Team
           </button>
