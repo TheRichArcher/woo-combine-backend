@@ -75,5 +75,15 @@ export function CreateLeagueForm({ onCreated }) {
 }
 
 export default function CreateLeague() {
-  return <CreateLeagueForm />;
+  console.log('[CreateLeague] Component rendering');
+  console.log('[CreateLeague] Current location:', window.location.pathname);
+  
+  return (
+    <div>
+      <div className="text-xs text-gray-500 mb-4">
+        Debug: CreateLeague component loaded successfully
+      </div>
+      <CreateLeagueForm />
+    </div>
+  );
 } 

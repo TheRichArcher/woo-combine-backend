@@ -8,16 +8,39 @@ export default function LeagueFallback() {
   const logout = useLogout();
   const [feedback, setFeedback] = useState("");
   
-  const handleCreateLeague = () => {
-    console.log('[LeagueFallback] Navigating to create-league');
+  const handleCreateLeague = async () => {
+    console.log('[LeagueFallback] Create League button clicked');
     console.log('[LeagueFallback] Current user:', user);
     console.log('[LeagueFallback] User verified:', user?.emailVerified);
+    console.log('[LeagueFallback] User UID:', user?.uid);
+    console.log('[LeagueFallback] Current window location:', window.location.href);
+    
     setFeedback("Redirecting to Create League...");
+    
     try {
+      console.log('[LeagueFallback] About to call navigate...');
+      
+      // Add a small delay to see if that helps
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('[LeagueFallback] Calling navigate to /create-league');
       navigate('/create-league');
+      
+      console.log('[LeagueFallback] Navigate call completed');
+      
+      // Check if navigation actually happened
+      setTimeout(() => {
+        console.log('[LeagueFallback] Location after navigate attempt:', window.location.href);
+        if (window.location.pathname !== '/create-league') {
+          console.warn('[LeagueFallback] Navigation failed - still on:', window.location.pathname);
+          setFeedback("Navigation failed. Please try refreshing the page.");
+        }
+      }, 500);
+      
     } catch (error) {
       console.error('[LeagueFallback] Create league navigation error:', error);
-      setFeedback("Navigation error. Please try again.");
+      console.error('[LeagueFallback] Error stack:', error.stack);
+      setFeedback(`Navigation error: ${error.message}`);
     }
   };
   
@@ -71,6 +94,29 @@ export default function LeagueFallback() {
             onClick={handleJoinLeague}
           >
             Join League
+          </button>
+        </div>
+        
+        {/* Debug buttons for testing */}
+        <div className="mt-4 text-xs">
+          <button
+            className="bg-gray-500 text-white rounded px-2 py-1 text-xs mr-2"
+            onClick={() => {
+              console.log('[DEBUG] Direct window.location test');
+              window.location.href = '/create-league';
+            }}
+          >
+            Test Direct Navigation
+          </button>
+          <button
+            className="bg-gray-500 text-white rounded px-2 py-1 text-xs"
+            onClick={() => {
+              console.log('[DEBUG] React Router Link test');
+              window.history.pushState({}, '', '/create-league');
+              window.dispatchEvent(new PopStateEvent('popstate'));
+            }}
+          >
+            Test History Push
           </button>
         </div>
         
