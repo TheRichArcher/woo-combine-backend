@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
 import LeagueFallback from './LeagueFallback.jsx';
+import { useLocation } from 'react-router-dom';
 
 const EventContext = createContext();
 
@@ -12,6 +13,10 @@ export function EventProvider({ children }) {
   const [noLeague, setNoLeague] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const location = useLocation();
+
+  // Pages that don't require a league selection
+  const noLeagueRequiredPages = ['/welcome', '/login', '/signup', '/verify-email', '/select-role', '/select-league', '/claim'];
 
   // Load events from backend
   useEffect(() => {
@@ -105,6 +110,9 @@ export function EventProvider({ children }) {
     }
   };
 
+  // Only show LeagueFallback on pages that require a league
+  const shouldShowLeagueFallback = noLeague && !noLeagueRequiredPages.includes(location.pathname);
+
   return (
     <EventContext.Provider value={{ 
       events, 
@@ -117,7 +125,7 @@ export function EventProvider({ children }) {
       refreshEvents,
       LeagueFallback 
     }}>
-      {noLeague ? <LeagueFallback /> : children}
+      {shouldShowLeagueFallback ? <LeagueFallback /> : children}
     </EventContext.Provider>
   );
 }
