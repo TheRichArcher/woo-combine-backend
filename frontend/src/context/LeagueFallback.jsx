@@ -1,12 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth, useLogout } from "../context/AuthContext";
 
 export default function LeagueFallback() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const logout = useLogout();
   const [feedback, setFeedback] = useState("");
   
   const handleCreateLeague = () => {
     console.log('[LeagueFallback] Navigating to create-league');
+    console.log('[LeagueFallback] Current user:', user);
+    console.log('[LeagueFallback] User verified:', user?.emailVerified);
     setFeedback("Redirecting to Create League...");
     try {
       navigate('/create-league');
@@ -18,12 +23,26 @@ export default function LeagueFallback() {
   
   const handleJoinLeague = () => {
     console.log('[LeagueFallback] Navigating to join');
+    console.log('[LeagueFallback] Current user:', user);
+    console.log('[LeagueFallback] User verified:', user?.emailVerified);
     setFeedback("Redirecting to Join League...");
     try {
       navigate('/join');
     } catch (error) {
       console.error('[LeagueFallback] Join league navigation error:', error);
       setFeedback("Navigation error. Please try again.");
+    }
+  };
+
+  const handleLogout = async () => {
+    console.log('[LeagueFallback] Logging out');
+    setFeedback("Logging out...");
+    try {
+      await logout();
+      navigate('/welcome');
+    } catch (error) {
+      console.error('[LeagueFallback] Logout error:', error);
+      setFeedback("Logout error. Please refresh the page.");
     }
   };
 
@@ -52,6 +71,19 @@ export default function LeagueFallback() {
             onClick={handleJoinLeague}
           >
             Join League
+          </button>
+        </div>
+        
+        {/* Logout Button */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="text-xs text-gray-500 mb-2">
+            Logged in as: {user?.email || 'Unknown'}
+          </div>
+          <button
+            className="bg-red-500 text-white rounded-full px-4 py-2 text-sm font-medium shadow-sm hover:bg-red-600 transition"
+            onClick={handleLogout}
+          >
+            Log Out
           </button>
         </div>
         

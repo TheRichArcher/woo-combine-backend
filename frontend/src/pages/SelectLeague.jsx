@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from '../lib/api';
 
 export default function SelectLeague() {
   const { user, selectedLeagueId, setSelectedLeagueId } = useAuth();
+  const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -43,45 +44,72 @@ export default function SelectLeague() {
     navigate('/dashboard');
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/welcome');
+    } catch (error) {
+      console.error('[SelectLeague] Logout error:', error);
+    }
+  };
+
   return (
-    <WelcomeLayout hideHeader={true} showOverlay={false} contentClassName="min-h-[70vh]">
-      <div className="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-2xl p-4 sm:p-8 flex flex-col items-center relative">
-        <h2 className="text-2xl font-extrabold text-center text-cyan-700 mb-6">Select Team</h2>
-        {loading ? (
-          <div>Loading...</div>
-        ) : fetchError ? (
-          <div className="text-center text-cyan-700 font-semibold mb-8">{fetchError}</div>
-        ) : leagues.length === 0 ? (
-          <div className="text-center text-cyan-700 font-semibold mb-8">No teams found. Create or join a team below.</div>
-        ) : (
-          <div className="w-full flex flex-col gap-4 mb-24">
-            {leagues.map(league => (
-              <div
-                key={league.id}
-                className={`rounded-2xl p-5 flex flex-col relative shadow-lg cursor-pointer border-2 ${selectedLeagueId === league.id ? 'border-cyan-500' : 'border-transparent'} bg-gradient-to-br from-pink-500 to-fuchsia-500`}
-                onClick={() => handleSelect(league)}
-              >
-                <div className="flex flex-row justify-between items-center mb-2">
-                  <span className="bg-white/80 text-cyan-700 font-mono text-xs px-3 py-1 rounded-full border border-cyan-200">Team Code<br/>{league.code || league.id}</span>
-                  {selectedLeagueId === league.id && (
-                    <span className="ml-2 text-green-600 text-xl font-bold">&#10003;</span>
-                  )}
-                </div>
-                <div className="text-white text-xl font-bold mb-1">{league.name}</div>
-                <div className="text-white/90 text-base font-semibold">{league.season || league.event || ''}</div>
-              </div>
-            ))}
+    <WelcomeLayout
+      backgroundColor="bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700"
+      contentClassName="min-h-screen"
+      hideHeader={true}
+      showOverlay={false}
+    >
+      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700 relative">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl mx-4 flex flex-col">
+          {/* Header */}
+          <div className="text-center py-6 px-6 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Select Your League</h1>
+            <p className="text-gray-600 text-sm">Choose which league you'd like to access, or join a new one.</p>
           </div>
-        )}
-        {/* Fixed bottom buttons */}
+          
+          {/* Content */}
+          <div className="p-6 flex-1">
+            {loading ? (
+              <div className="text-center py-8 text-gray-500">Loading leagues...</div>
+            ) : fetchError ? (
+              <div className="text-center py-8">
+                <div className="text-red-600 mb-4">{fetchError}</div>
+              </div>
+            ) : leagues.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">No leagues found. Create or join one below.</div>
+            ) : (
+              <div className="space-y-3">
+                {leagues.map(league => (
+                  <button
+                    key={league.id}
+                    onClick={() => handleSelect(league)}
+                    className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-blue-50 hover:border-blue-300 transition"
+                  >
+                    <div className="font-semibold text-gray-900">{league.name}</div>
+                    <div className="text-sm text-gray-500 capitalize">Role: {league.role}</div>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* User Info and Logout */}
+            <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+              <div className="text-xs text-gray-500 mb-2">
+                Logged in as: {user?.email || 'Unknown'}
+              </div>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Log out and switch accounts
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Bottom Actions */}
         <div className="fixed left-0 right-0 bottom-0 flex flex-col gap-3 items-center bg-white py-4 z-10 border-t border-gray-200">
-          {/* Remove Create a Team button for first-time organizers */}
-          {/* <button
-            className="w-11/12 max-w-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3 rounded-full shadow mb-1"
-            onClick={() => navigate('/create-league')}
-          >
-            Create a Team
-          </button> */}
           <button
             className="w-11/12 max-w-lg border-2 border-blue-600 text-blue-700 font-bold text-lg py-3 rounded-full shadow"
             onClick={() => navigate('/join')}

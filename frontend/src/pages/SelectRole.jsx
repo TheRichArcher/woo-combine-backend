@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from "react";
+import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
+import WelcomeLayout from "../components/layouts/WelcomeLayout";
 
 const ROLE_OPTIONS = [
   { key: "organizer", label: "🏈 League Operator", desc: "Full access to admin tools and player management." },
@@ -19,6 +20,7 @@ export default function SelectRole() {
   const [emailCheck, setEmailCheck] = useState(false);
   const [checkingUser, setCheckingUser] = useState(true);
   const navigate = useNavigate();
+  const logout = useLogout();
   const db = getFirestore();
 
   React.useEffect(() => {
@@ -118,6 +120,16 @@ export default function SelectRole() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/welcome');
+    } catch (error) {
+      console.error('[SelectRole] Logout error:', error);
+      setError("Logout failed. Please try again.");
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light">
       <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full flex flex-col items-center">
@@ -149,6 +161,13 @@ export default function SelectRole() {
           disabled={loading}
         >
           {loading ? "Saving..." : "Continue"}
+        </button>
+        <button
+          className="w-full bg-cmf-secondary text-white font-bold py-3 rounded-xl shadow mt-2 disabled:opacity-50"
+          onClick={handleLogout}
+          disabled={loading}
+        >
+          {loading ? "Logging out..." : "Logout"}
         </button>
       </div>
     </div>
