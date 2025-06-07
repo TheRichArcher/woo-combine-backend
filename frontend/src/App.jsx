@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import Navigation from "./components/Navigation";
@@ -67,6 +67,7 @@ function App() {
               />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/claim" element={<div className="min-h-screen flex items-center justify-center bg-gray-100"><div className="bg-white p-8 rounded-lg shadow-lg text-center"><h2 className="text-2xl font-bold mb-4">Account Claim</h2><p className="text-gray-600 mb-4">Account claiming feature coming soon.</p><Link to="/welcome" className="text-cyan-700 hover:underline">← Back to Welcome</Link></div></div>} />
               <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
               <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
               <Route path="/verify-email" element={<VerifyEmail />} />

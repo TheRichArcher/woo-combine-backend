@@ -82,11 +82,11 @@ export function AuthProvider({ children }) {
             navigate("/select-role");
           } else {
             // Only redirect to dashboard if on onboarding routes
-            const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/welcome", "/"];
+            const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
             if (onboardingRoutes.includes(window.location.pathname)) {
               navigate("/dashboard");
             }
-            // Otherwise, stay on the current route (e.g., /admin)
+            // Otherwise, stay on the current route (e.g., /admin, /welcome)
           }
         }
       } else {
