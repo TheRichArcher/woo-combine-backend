@@ -102,8 +102,8 @@ export default function LeagueFallback() {
           <button
             className="bg-gray-500 text-white rounded px-2 py-1 text-xs mr-2"
             onClick={() => {
-              console.log('[DEBUG] Direct window.location test');
-              window.location.href = '/create-league';
+              console.log('[DEBUG] Direct navigation test using navigate()');
+              navigate('/create-league');
             }}
           >
             Test Direct Navigation

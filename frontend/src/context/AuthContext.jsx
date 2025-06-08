@@ -154,7 +154,8 @@ export function AuthProvider({ children }) {
         } else {
           setUserRole(null);
         }
-      } catch {
+      } catch (error) {
+        console.error('[AuthContext] Firestore role fetch failed:', error);
         setUserRole(null);
       }
     };

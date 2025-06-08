@@ -177,8 +177,17 @@ export default function AdminTools() {
     try {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
-    } catch {
-      setPlayerCount(0);
+    } catch (error) {
+      console.log('[AdminTools] Player count API response:', error.response?.status, error.response?.data?.detail);
+      if (error.response?.status === 404) {
+        // 404 means no players found yet - normal for new events
+        console.log('[AdminTools] No players found for event yet (normal for new events)');
+        setPlayerCount(0);
+      } else {
+        // Other errors are actual problems
+        console.error('[AdminTools] Player count fetch error:', error);
+        setPlayerCount(0);
+      }
     } finally {
       setPlayerCountLoading(false);
     }

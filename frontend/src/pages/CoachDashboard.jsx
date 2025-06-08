@@ -41,8 +41,17 @@ export default function CoachDashboard() {
       try {
         const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
         setPlayers(data);
-      } catch {
-        setPlayers([]);
+      } catch (error) {
+        console.log('[CoachDashboard] Players API response:', error.response?.status, error.response?.data?.detail);
+        if (error.response?.status === 404) {
+          // 404 means no players found yet - normal for new events
+          console.log('[CoachDashboard] No players found for event yet (normal for new events)');
+          setPlayers([]);
+        } else {
+          // Other errors are actual problems
+          console.error('[CoachDashboard] Players fetch error:', error);
+          setPlayers([]);
+        }
       }
     }
     fetchPlayers();
@@ -66,8 +75,17 @@ export default function CoachDashboard() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
-        setRankings([]);
+        console.log('[CoachDashboard] Rankings API response:', err.response?.status, err.response?.data?.detail);
+        if (err.response?.status === 404) {
+          // 404 means no rankings found yet - normal for new events or age groups
+          console.log('[CoachDashboard] No rankings found for age group yet (normal for new events)');
+          setError(null); // Don't show as error, just empty state
+          setRankings([]);
+        } else {
+          // Other errors are actual problems
+          console.error('[CoachDashboard] Rankings fetch error:', err);
+          setError(err.message);
+        }
         setLoading(false);
       });
   }, [selectedAgeGroup, user, selectedLeagueId]);
@@ -110,8 +128,17 @@ export default function CoachDashboard() {
         setLoading(false);
       })
       .catch((err) => {
-        setError(err.message);
-        setRankings([]);
+        console.log('[CoachDashboard] Custom weights rankings API response:', err.response?.status, err.response?.data?.detail);
+        if (err.response?.status === 404) {
+          // 404 means no rankings found yet - normal for new events or age groups
+          console.log('[CoachDashboard] No rankings found for custom weights yet (normal for new events)');
+          setError(null); // Don't show as error, just empty state
+          setRankings([]);
+        } else {
+          // Other errors are actual problems
+          console.error('[CoachDashboard] Custom weights rankings fetch error:', err);
+          setError(err.message);
+        }
         setLoading(false);
       });
   };

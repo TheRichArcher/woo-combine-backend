@@ -31,7 +31,17 @@ export default function Players() {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
       setPlayers(data);
     } catch (err) {
-      setError(err.message);
+      console.log('[Players] API response:', err.response?.status, err.response?.data?.detail);
+      if (err.response?.status === 404) {
+        // 404 means no players found yet - normal for new events
+        console.log('[Players] No players found for event yet (normal for new events)');
+        setError(null); // Don't show as error, just empty state
+        setPlayers([]);
+      } else {
+        // Other errors are actual problems
+        console.error('[Players] Fetch error:', err);
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
