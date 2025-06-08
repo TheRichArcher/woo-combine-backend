@@ -21,11 +21,11 @@ export function CreateLeagueForm({ onCreated }) {
         user_id: user?.uid,
         email: user?.email,
       });
-      setJoinCode(data.join_code);
+      setJoinCode(data.league_id);
       if (addLeague) {
-        addLeague({ id: data.join_code, name: leagueName, role: 'organizer' });
+        addLeague({ id: data.league_id, name: leagueName, role: 'organizer' });
       }
-      if (onCreated) onCreated(data.join_code);
+      if (onCreated) onCreated(data.league_id);
     } catch (err) {
       setError(err.message || 'Error creating league');
     } finally {
