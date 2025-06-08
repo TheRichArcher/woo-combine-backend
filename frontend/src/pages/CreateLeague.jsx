@@ -11,25 +11,32 @@ export function CreateLeagueForm({ onCreated }) {
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
+    console.log('[CreateLeague] Form submit triggered!', e);
+    console.log('[CreateLeague] League name:', leagueName);
+    console.log('[CreateLeague] User:', user);
     e.preventDefault();
     setLoading(true);
     setError('');
     setJoinCode(null);
     try {
+      console.log('[CreateLeague] About to make API call to /leagues');
       const { data } = await api.post('/leagues', {
         name: leagueName,
         user_id: user?.uid,
         email: user?.email,
       });
+      console.log('[CreateLeague] API call successful, response:', data);
       setJoinCode(data.league_id);
       if (addLeague) {
         addLeague({ id: data.league_id, name: leagueName, role: 'organizer' });
       }
       if (onCreated) onCreated(data.league_id);
     } catch (err) {
+      console.error('[CreateLeague] API call failed:', err);
       setError(err.message || 'Error creating league');
     } finally {
       setLoading(false);
+      console.log('[CreateLeague] Form submission completed');
     }
   };
 
@@ -50,6 +57,11 @@ export function CreateLeagueForm({ onCreated }) {
             type="submit"
             className="bg-cmf-primary text-white px-4 py-2 rounded w-full font-semibold"
             disabled={loading}
+            onClick={(e) => {
+              console.log('[CreateLeague] Button clicked!', e);
+              console.log('[CreateLeague] Button disabled:', loading);
+              console.log('[CreateLeague] League name at click:', leagueName);
+            }}
           >
             {loading ? 'Creating...' : 'Create League'}
           </button>
