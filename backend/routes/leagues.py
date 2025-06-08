@@ -26,27 +26,47 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     try:
-        leagues_ref = db.collection("leagues")
+        # MUCH more efficient: Check if user has any existing leagues first
+        # by looking for existing membership documents
         leagues = []
         
-        # Add timeout to Firestore stream operation  
-        all_leagues = execute_with_timeout(lambda: list(leagues_ref.stream()), timeout=10)
+        # Query strategy: Look through existing leagues, but limit the search
+        # This is temporary until we implement user -> leagues mapping
+        leagues_ref = db.collection("leagues")
         
-        # Early termination - if no leagues at all, return 404 immediately
-        if not all_leagues:
+        # Add timeout with a much smaller window since we'll limit results
+        def fetch_limited_leagues():
+            # Limit to recent leagues and use streaming for better performance
+            return list(leagues_ref.order_by("created_at", direction="DESCENDING").limit(50).stream())
+        
+        recent_leagues = execute_with_timeout(fetch_limited_leagues, timeout=5)
+        
+        if not recent_leagues:
             logging.warning(f"No leagues exist in system")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
-        for league in all_leagues:
+        # Check membership in parallel to speed things up
+        def check_membership(league):
             member_ref = league.reference.collection("members").document(user_id)
-            # Add timeout to member document lookup
-            member_doc = execute_with_timeout(member_ref.get, timeout=3)
-            
+            member_doc = member_ref.get()
             if member_doc.exists:
                 league_data = league.to_dict()
                 league_data["id"] = league.id
                 league_data["role"] = member_doc.to_dict().get("role")
-                leagues.append(league_data)
+                return league_data
+            return None
+        
+        # Use ThreadPoolExecutor for parallel membership checks
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            futures = [executor.submit(check_membership, league) for league in recent_leagues]
+            for future in concurrent.futures.as_completed(futures, timeout=8):
+                try:
+                    result = future.result()
+                    if result:
+                        leagues.append(result)
+                except Exception as e:
+                    logging.warning(f"Error checking membership: {e}")
+                    continue
                 
         if not leagues:
             logging.warning(f"No leagues found for user {user_id}")
