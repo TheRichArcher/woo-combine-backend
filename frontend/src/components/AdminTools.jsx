@@ -133,7 +133,7 @@ export default function AdminTools() {
     setStatus("loading");
     setErrorMsg("");
     try {
-      await api.delete(`/players/reset?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
+      await api.delete(`/players/reset?event_id=${selectedEvent.id}`);
       setStatus("success");
       setConfirmInput("");
     } catch (err) {
@@ -175,7 +175,7 @@ export default function AdminTools() {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setPlayerCountLoading(true);
     try {
-      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&user_id=${user.uid}&league_id=${selectedLeagueId}`);
+      const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
     } catch (error) {
       console.log('[AdminTools] Player count API response:', error.response?.status, error.response?.data?.detail);

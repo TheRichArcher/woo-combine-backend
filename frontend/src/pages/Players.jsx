@@ -28,7 +28,7 @@ export default function Players() {
     setLoading(true);
     setError(null);
     try {
-      const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
+      const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(data);
     } catch (err) {
       console.log('[Players] API response:', err.response?.status, err.response?.data?.detail);

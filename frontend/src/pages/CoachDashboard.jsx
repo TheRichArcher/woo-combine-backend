@@ -39,7 +39,7 @@ export default function CoachDashboard() {
     async function fetchPlayers() {
       if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const { data } = await api.get(`/players?event_id=${selectedEvent.id}&league_id=${selectedLeagueId}`);
+        const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
         setPlayers(data);
       } catch (error) {
         console.log('[CoachDashboard] Players API response:', error.response?.status, error.response?.data?.detail);
@@ -69,7 +69,7 @@ export default function CoachDashboard() {
     setLoading(true);
     setError(null);
     setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-    api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&user_id=${user.uid}&league_id=${selectedLeagueId}`)
+            api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
       .then(res => {
         setRankings(res.data);
         setLoading(false);

@@ -11,5 +11,7 @@ services:
         value: 1.7.1
       - key: GOOGLE_APPLICATION_CREDENTIALS
         value: /path/to/serviceAccount.json
+      - key: VITE_API_BASE
+        value: https://woo-combine-backend.onrender.com
       # (Optional) - key: FIREBASE_PROJECT_ID
       # (Optional)   value: your-firebase-project-id 
