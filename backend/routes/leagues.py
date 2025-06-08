@@ -26,27 +26,25 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     try:
-        # Efficient query: Use collection group to find user memberships directly
-        # This is MUCH faster than fetching all leagues and checking each one
-        def fetch_user_memberships():
-            # Query all member documents across all leagues where user_id matches
-            members_query = db.collection_group("members").where("__name__", "==", user_id)
-            return list(members_query.stream())
-        
-        # Execute with reduced timeout since this is now efficient
-        member_docs = execute_with_timeout(fetch_user_memberships, timeout=8)
-        
+        leagues_ref = db.collection("leagues")
         leagues = []
-        for member_doc in member_docs:
-            # Get the league reference from the member document path
-            league_ref = member_doc.reference.parent.parent
+        
+        # Add timeout to Firestore stream operation  
+        all_leagues = execute_with_timeout(lambda: list(leagues_ref.stream()), timeout=10)
+        
+        # Early termination - if no leagues at all, return 404 immediately
+        if not all_leagues:
+            logging.warning(f"No leagues exist in system")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
+        
+        for league in all_leagues:
+            member_ref = league.reference.collection("members").document(user_id)
+            # Add timeout to member document lookup
+            member_doc = execute_with_timeout(member_ref.get, timeout=3)
             
-            # Fetch league data with timeout
-            league_doc = execute_with_timeout(league_ref.get, timeout=3)
-            
-            if league_doc.exists:
-                league_data = league_doc.to_dict()
-                league_data["id"] = league_doc.id
+            if member_doc.exists:
+                league_data = league.to_dict()
+                league_data["id"] = league.id
                 league_data["role"] = member_doc.to_dict().get("role")
                 leagues.append(league_data)
                 
