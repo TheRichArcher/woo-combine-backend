@@ -16,7 +16,7 @@ export function EventProvider({ children }) {
   const location = useLocation();
 
   // Pages that don't require a league selection
-  const noLeagueRequiredPages = ['/welcome', '/login', '/signup', '/verify-email', '/select-role', '/select-league', '/claim'];
+  const noLeagueRequiredPages = ['/welcome', '/login', '/signup', '/verify-email', '/select-role', '/select-league', '/claim', '/create-league', '/join'];
 
   // Load events from backend
   useEffect(() => {
