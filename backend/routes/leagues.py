@@ -3,22 +3,8 @@ from backend.firestore_client import db
 from backend.auth import get_current_user
 from datetime import datetime
 import logging
-import concurrent.futures
 
 router = APIRouter()
-
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
-    """Execute a function with timeout protection"""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"Database operation timed out after {timeout} seconds"
-            )
 
 @router.get('/leagues/me')
 def get_my_leagues(current_user=Depends(get_current_user)):
@@ -29,11 +15,8 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         leagues_ref = db.collection("leagues")
         leagues = []
         
-        # Add timeout protection to prevent hanging
-        def fetch_leagues():
-            return list(leagues_ref.limit(100).stream())
-        
-        all_leagues = execute_with_timeout(fetch_leagues, timeout=8)
+        # Simple approach: get first 50 leagues and check membership
+        all_leagues = list(leagues_ref.limit(50).stream())
         
         if not all_leagues:
             logging.warning(f"No leagues exist in system")
@@ -42,12 +25,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         for league in all_leagues:
             try:
                 member_ref = league.reference.collection("members").document(user_id)
-                
-                # Add timeout protection to member check
-                def check_member():
-                    return member_ref.get()
-                
-                member_doc = execute_with_timeout(check_member, timeout=3)
+                member_doc = member_ref.get()
                 if member_doc.exists:
                     league_data = league.to_dict()
                     league_data["id"] = league.id
@@ -82,14 +60,14 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
     try:
         league_ref = db.collection("leagues").document()
         
-        # Simple league creation without timeout wrapper
+        # Simple league creation
         league_ref.set({
             "name": name,
             "created_by_user_id": user_id,
             "created_at": datetime.utcnow().isoformat(),
         })
         
-        # Simple member creation without timeout wrapper
+        # Simple member creation
         league_ref.collection("members").document(user_id).set({
             "role": "organizer",
             "joined_at": datetime.utcnow().isoformat(),
@@ -144,7 +122,6 @@ def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
 def list_teams(league_id: str, current_user=Depends(get_current_user)):
     try:
         teams_ref = db.collection("leagues").document(league_id).collection("teams")
-        # Simple teams retrieval
         teams_stream = list(teams_ref.stream())
         teams = [dict(t.to_dict(), id=t.id) for t in teams_stream]
         return {"teams": teams}
@@ -156,7 +133,6 @@ def list_teams(league_id: str, current_user=Depends(get_current_user)):
 def list_invitations(league_id: str, current_user=Depends(get_current_user)):
     try:
         invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
-        # Simple invitations retrieval
         invitations_stream = list(invitations_ref.stream())
         invitations = [dict(i.to_dict(), id=i.id) for i in invitations_stream]
         return {"invitations": invitations}
