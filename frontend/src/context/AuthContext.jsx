@@ -23,9 +23,9 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] user:', user, 'loading:', loading, 'roleChecking:', roleChecking, 'error:', error);
   }, [user, loading, roleChecking, error]);
 
-  // Fetch leagues/roles from backend after login
+  // Fetch leagues/roles from backend after login - but only for users who completed onboarding
   useEffect(() => {
-    if (user && user.emailVerified) {
+    if (user && user.emailVerified && userRole) {
       (async () => {
         try {
           const res = await api.get(`/leagues/me`);
@@ -58,7 +58,7 @@ export function AuthProvider({ children }) {
       setRole(null);
       setSelectedLeagueId('');
     }
-  }, [user, selectedLeagueId]);
+  }, [user, selectedLeagueId, userRole]);
 
   // Persist selectedLeagueId
   useEffect(() => {
