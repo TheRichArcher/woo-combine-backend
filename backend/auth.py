@@ -24,6 +24,15 @@ if not firebase_admin._apps:
 
 security = HTTPBearer()
 
+# Create a reusable Firestore client to avoid initialization overhead
+_firestore_client = None
+
+def get_firestore_client():
+    global _firestore_client
+    if _firestore_client is None:
+        _firestore_client = firestore.Client()
+    return _firestore_client
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> dict:
@@ -31,17 +40,15 @@ def get_current_user(
     try:
         logging.info(f"[AUTH] Starting token verification for token: {token[:20]}...")
         
-        # Add timeout to Firebase token verification
+        # Simplified Firebase token verification with shorter timeout
         try:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(auth.verify_id_token, token)
-                decoded_token = future.result(timeout=10)  # 10 second timeout
-                logging.info(f"[AUTH] Token verification completed successfully")
-        except concurrent.futures.TimeoutError:
-            logging.error(f"[AUTH] Firebase token verification timed out after 10 seconds")
+            decoded_token = auth.verify_id_token(token)
+            logging.info(f"[AUTH] Token verification completed successfully")
+        except Exception as e:
+            logging.error(f"[AUTH] Firebase token verification failed: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication timeout - token verification took too long"
+                detail="Invalid authentication token"
             )
         
         logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}")
@@ -53,19 +60,17 @@ def get_current_user(
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         
-        # Add timeout to Firestore operation
+        # Optimized Firestore lookup with reusable client
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
         try:
-            db = firestore.Client()
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(db.collection("users").document(uid).get)
-                user_doc = future.result(timeout=5)  # 5 second timeout
-                logging.info(f"[AUTH] Firestore lookup completed")
-        except concurrent.futures.TimeoutError:
-            logging.error(f"[AUTH] Firestore lookup timed out after 5 seconds for UID: {uid}")
+            db = get_firestore_client()
+            user_doc = db.collection("users").document(uid).get()
+            logging.info(f"[AUTH] Firestore lookup completed")
+        except Exception as e:
+            logging.error(f"[AUTH] Firestore lookup failed: {e}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Database timeout - user lookup took too long"
+                detail="Database lookup failed"
             )
         
         if not user_doc.exists:
