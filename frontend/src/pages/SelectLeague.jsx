@@ -29,9 +29,18 @@ export default function SelectLeague() {
           setFetchError(null);
         }
       } catch (err) {
-        console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
-        setLeagues([]);
-        setFetchError('Could not fetch leagues. Please try again later.');
+        console.log('[SelectLeague] API response:', err.response?.status, err.response?.data?.detail);
+        if (err.response?.status === 404) {
+          // 404 means user has no leagues yet - this is normal
+          console.log('[SelectLeague] User has no leagues yet (normal for new users)');
+          setLeagues([]);
+          setFetchError('No leagues linked to this account. Try creating a new one.');
+        } else {
+          // Other errors are actual problems
+          console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
+          setLeagues([]);
+          setFetchError('Could not fetch leagues. Please try again later.');
+        }
       } finally {
         setLoading(false);
       }

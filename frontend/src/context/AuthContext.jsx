@@ -40,8 +40,17 @@ export function AuthProvider({ children }) {
               localStorage.setItem('selectedLeagueId', res.data.leagues[0].id);
             }
           }
-        } catch {
-          setLeagues([]);
+        } catch (error) {
+          console.log('[AuthContext] League fetch result:', error.response?.status, error.response?.data?.detail);
+          if (error.response?.status === 404) {
+            // 404 means user has no leagues yet - this is normal for new users
+            console.log('[AuthContext] User has no leagues yet (normal for new users)');
+            setLeagues([]);
+          } else {
+            // Other errors are actual problems
+            console.error('[AuthContext] Error fetching leagues:', error);
+            setLeagues([]);
+          }
         }
       })();
     } else {
