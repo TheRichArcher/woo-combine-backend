@@ -1,6 +1,6 @@
 import firebase_admin
 from firebase_admin import auth, credentials
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from firebase_admin import exceptions as firebase_exceptions
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional
@@ -22,7 +22,7 @@ if not firebase_admin._apps:
         cred = credentials.ApplicationDefault()
     firebase_admin.initialize_app(cred)
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # Create a reusable Firestore client to avoid initialization overhead
 _firestore_client = None
@@ -34,8 +34,22 @@ def get_firestore_client():
     return _firestore_client
 
 def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> dict:
+    # Skip authentication for OPTIONS requests (CORS preflight)
+    if request.method == "OPTIONS":
+        logging.info("[AUTH] Skipping authentication for OPTIONS request")
+        return {"uid": "options", "email": "options@system", "role": "system"}
+    
+    # Check if credentials are provided
+    if not credentials:
+        logging.error("[AUTH] No credentials provided")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials required"
+        )
+        
     token = credentials.credentials
     try:
         logging.info(f"[AUTH] Starting token verification for token: {token[:20]}...")
