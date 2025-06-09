@@ -6,12 +6,74 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "../firebase";
 
+// Mailbox SVG Component (similar to MOJO design)
+const MailboxIcon = () => (
+  <svg
+    width="120"
+    height="120"
+    viewBox="0 0 120 120"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    className="mx-auto mb-8"
+  >
+    {/* Mailbox body */}
+    <rect
+      x="25"
+      y="40"
+      width="60"
+      height="35"
+      rx="8"
+      fill="#e5e7eb"
+      stroke="#9ca3af"
+      strokeWidth="2"
+    />
+    {/* Mailbox flag */}
+    <rect
+      x="75"
+      y="35"
+      width="15"
+      height="8"
+      rx="2"
+      fill="#ec4899"
+    />
+    {/* Mailbox post */}
+    <rect
+      x="52"
+      y="75"
+      width="6"
+      height="25"
+      fill="#9ca3af"
+    />
+    {/* Ground grass */}
+    <ellipse cx="35" cy="100" rx="8" ry="3" fill="#10b981" />
+    <ellipse cx="55" cy="102" rx="6" ry="2" fill="#10b981" />
+    <ellipse cx="75" cy="100" rx="7" ry="3" fill="#10b981" />
+    {/* Envelope in mailbox */}
+    <rect
+      x="35"
+      y="48"
+      width="20"
+      height="12"
+      rx="2"
+      fill="white"
+      stroke="#6366f1"
+      strokeWidth="2"
+    />
+    {/* Envelope lines */}
+    <line x1="37" y1="52" x2="53" y2="52" stroke="#6366f1" strokeWidth="1" />
+    <line x1="37" y1="55" x2="48" y2="55" stroke="#6366f1" strokeWidth="1" />
+    {/* Magic sparkles */}
+    <circle cx="20" cy="30" r="2" fill="#fbbf24" />
+    <circle cx="95" cy="25" r="1.5" fill="#fbbf24" />
+    <circle cx="15" cy="60" r="1" fill="#fbbf24" />
+  </svg>
+);
+
 export default function VerifyEmail() {
   const { user, setUser } = useAuth();
   const [resendStatus, setResendStatus] = useState("");
   const [resending, setResending] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
   const navigate = useNavigate();
   const [isVerified, setIsVerified] = useState(false);
   const logout = useLogout();
@@ -75,36 +137,34 @@ export default function VerifyEmail() {
     setResending(true);
     setResendStatus("");
     try {
-      console.log("[VerifyEmail] auth.currentUser:", auth.currentUser);
       if (auth.currentUser) {
         await auth.currentUser.reload();
-        // Log emailVerified and token expiration
-        const tokenResult = await auth.currentUser.getIdTokenResult();
-        console.log("[VerifyEmail] emailVerified:", auth.currentUser.emailVerified);
-        console.log("[VerifyEmail] token expiration:", tokenResult.expirationTime);
         await sendEmailVerification(auth.currentUser);
         setResendStatus("Verification email sent!");
       } else {
         setResendStatus("User not found. Please log in again.");
       }
     } catch (err) {
-      setResendStatus((err?.message || "Failed to resend. Try again later.") + (err?.code ? ` (code: ${err.code})` : ""));
+      setResendStatus("Failed to resend. Try again later.");
       console.error("Resend verification error:", err);
-      if (err.code) console.error("[Firebase Error Code]", err.code);
-      if (err.message) console.error("[Firebase Error Message]", err.message);
     } finally {
       setResending(false);
     }
   };
 
-  // UI: align header row and buttons like /signup
+  // Open email app (attempt to open default email client)
+  const handleOpenEmailApp = () => {
+    // Try to open the default email client
+    window.location.href = 'mailto:';
+  };
+
   return (
-    <WelcomeLayout contentClassName="min-h-[70vh]" hideHeader={true} showOverlay={false}>
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center relative">
-        {/* Header Row: Back + Help, match /signup */}
-        <div className="w-full flex flex-row justify-between items-center pt-2 pb-2 px-2 mb-2">
+    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl mx-4 flex flex-col relative min-h-[600px]">
+        {/* Header Row: Back + Help */}
+        <div className="w-full flex flex-row justify-between items-center p-6 pb-2">
           <button
-            className="w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none"
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-900 focus:outline-none transition"
             type="button"
             aria-label="Back to welcome"
             onClick={() => navigate("/welcome")}
@@ -112,83 +172,141 @@ export default function VerifyEmail() {
             <ArrowLeft size={20} />
           </button>
           <button
-            className="text-xs text-cyan-700 hover:underline font-semibold"
+            className="text-sm text-cyan-600 hover:text-cyan-800 font-medium"
             onClick={() => navigate("/help")}
           >
             Need Help?
           </button>
         </div>
-        {/* Logo */}
-        <img
-          src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
-          alt="Woo-Combine Logo"
-          className="w-20 h-20 mx-auto mb-4 mt-8"
-          style={{ objectFit: 'contain' }}
-        />
-        {/* Title */}
-        <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Verify Your Email</h2>
-        {/* Subtext */}
-        <p className="text-gray-700 text-center mb-2">
-          We've sent a verification link to your email address:
-        </p>
-        <div className="text-lg font-bold text-cyan-700 text-center mb-2 break-all">{user?.email || "your email"}</div>
-        <p className="text-gray-700 text-center mb-6">
-          Please check your inbox and confirm your email to continue.<br/>
-          <span className="text-cyan-700 font-semibold">Didn't receive the email? Check your spam folder or promotions tab.</span>
-        </p>
-        {/* CTA to go to app after verifying */}
-        {isVerified ? (
-          <a
-            href="/dashboard"
-            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
-            style={{ maxWidth: 320 }}
-          >
-            Go to App
-          </a>
-        ) : (
-          <button
-            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-5 block text-center"
-            style={{ maxWidth: 320 }}
-            onClick={handleCheckAgain}
-            disabled={checking}
-          >
-            {checking ? "Checking..." : "Check Again"}
-          </button>
-        )}
-        {!isVerified && (
-          <div className="text-red-600 text-sm mt-1 text-center w-full">
-            We haven't detected your email verification yet. Please check your inbox and try again.
+
+        {/* Content */}
+        <div className="flex-1 flex flex-col px-6 pb-6">
+          {/* Logo */}
+          <div className="text-center mt-4 mb-6">
+            <img
+              src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+              alt="Woo-Combine Logo"
+              className="w-16 h-16 mx-auto mb-4"
+              style={{ objectFit: 'contain' }}
+            />
           </div>
-        )}
-        <a
-          href="/help"
-          className="w-full text-sm text-gray-500 underline hover:text-cyan-700 text-center block mb-6"
-          style={{ maxWidth: 320 }}
-        >
-          Contact Support
-        </a>
-        {resendStatus && <div className="text-red-600 text-sm mt-1 text-center w-full">{resendStatus}</div>}
-        {!auth.currentUser && <div className="text-red-600 text-sm mt-1 text-center w-full">User session expired. Please log in again.</div>}
-        {/* Return to Welcome Button if session expired */}
-        {!auth.currentUser && (
+
+          {/* Main Title - Bold like MOJO */}
+          <h1 className="text-2xl font-black text-gray-900 text-center mb-6 tracking-tight">
+            CHECK YOUR EMAIL
+          </h1>
+
+          {/* Description - Clear and concise like MOJO */}
+          <div className="text-center mb-6">
+            <p className="text-gray-700 text-base leading-relaxed mb-4">
+              We sent an email to{' '}
+              <span className="font-semibold text-gray-900 break-all">
+                {user?.email || "your email address"}
+              </span>{' '}
+              with a link to verify your WooCombine account.
+            </p>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              It might take a few minutes. If you don't see our email in your inbox, please check your spam or 
+              promo folders. If you see multiple emails, make sure you're selecting the most recent verification email.
+            </p>
+          </div>
+
+          {/* Mailbox Illustration */}
+          <div className="flex-1 flex items-center justify-center py-4">
+            <MailboxIcon />
+          </div>
+
+          {/* Primary Action Button - Like MOJO's "Open Email App" */}
+          <div className="mt-8 space-y-4">
+            {isVerified ? (
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                Continue to App
+              </button>
+            ) : (
+              <button
+                onClick={handleOpenEmailApp}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                Open Email App
+              </button>
+            )}
+
+            {/* Check Again Button (secondary action) */}
+            {!isVerified && (
+              <button
+                onClick={handleCheckAgain}
+                disabled={checking}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200 disabled:opacity-50"
+              >
+                {checking ? "Checking..." : "I've verified my email"}
+              </button>
+            )}
+
+            {/* Status Messages */}
+            {!isVerified && (
+              <div className="text-red-600 text-sm text-center">
+                We haven't detected your email verification yet. Please check your inbox and try again.
+              </div>
+            )}
+            
+            {resendStatus && (
+              <div className={`text-sm text-center ${resendStatus.includes('sent') ? 'text-green-600' : 'text-red-600'}`}>
+                {resendStatus}
+              </div>
+            )}
+
+            {!auth.currentUser && (
+              <div className="text-red-600 text-sm text-center">
+                User session expired. Please log in again.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Bottom Actions - Like MOJO */}
+        <div className="px-6 pb-6 pt-4 border-t border-gray-100 space-y-3">
           <button
-            className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
-            style={{ maxWidth: 320 }}
-            onClick={() => { localStorage.clear(); sessionStorage.clear(); navigate('/welcome', { replace: true }); }}
+            onClick={handleResend}
+            disabled={resending}
+            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
           >
-            Return to Welcome
+            {resending ? "Sending..." : "Resend Email"}
           </button>
-        )}
-        {/* Log Out Button (only if session is active) */}
-        {auth.currentUser && (
+          
           <button
-            className="w-full bg-gray-200 text-cyan-700 font-bold px-6 py-3 rounded-full shadow transition mb-2 block text-center mt-2"
-            style={{ maxWidth: 320 }}
-            onClick={async () => { await logout(); navigate('/welcome'); }}
+            onClick={() => navigate("/help")}
+            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200"
           >
-            Log Out
+            Contact Support
           </button>
-        )}
+
+          {/* Session Management */}
+          {!auth.currentUser ? (
+            <button
+              onClick={() => { 
+                localStorage.clear(); 
+                sessionStorage.clear(); 
+                navigate('/welcome', { replace: true }); 
+              }}
+              className="w-full text-gray-500 hover:text-gray-700 font-medium py-2 transition-colors duration-200"
+            >
+              Return to Welcome
+            </button>
+          ) : (
+            <button
+              onClick={async () => { 
+                await logout(); 
+                navigate('/welcome'); 
+              }}
+              className="w-full text-gray-500 hover:text-gray-700 font-medium py-2 transition-colors duration-200"
+            >
+              Log Out
+            </button>
+          )}
+        </div>
       </div>
     </WelcomeLayout>
   );
