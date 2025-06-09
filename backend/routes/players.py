@@ -139,26 +139,32 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
             for field in required_fields:
                 if not player.get(field):
                     row_errors.append(f"Missing {field}")
+            # More flexible number validation
             if player.get("number") not in (None, ""):
                 try:
-                    int(player.get("number"))
-                except Exception:
-                    row_errors.append("Invalid number")
-            if player.get("age_group") not in (None, ""):
-                if player.get("age_group") not in ["7-8", "9-10", "11-12"]:
-                    row_errors.append("Invalid age_group")
+                    # Allow empty strings or convert to int
+                    if str(player.get("number")).strip() != "":
+                        int(player.get("number"))
+                except (ValueError, TypeError):
+                    row_errors.append(f"Invalid number: '{player.get('number')}')")
+            # Allow any age group format - don't restrict to specific values
+            # if player.get("age_group") not in (None, ""):
+            #     if player.get("age_group") not in ["7-8", "9-10", "11-12"]:
+            #         row_errors.append("Invalid age_group")
+            # More flexible drill validation - only validate non-empty values
             for drill in drill_fields:
                 val = player.get(drill, "")
-                if val != "" and val is not None:
+                if val not in ("", None) and str(val).strip() != "":
                     try:
                         float(val)
-                    except Exception:
-                        row_errors.append(f"Invalid {drill}")
+                    except (ValueError, TypeError):
+                        row_errors.append(f"Invalid {drill}: '{val}' (must be a number)")
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
                 
-            player_doc = db.collection("players").document()
+            # CRITICAL FIX: Store players in event subcollection where they're retrieved from
+            player_doc = db.collection("events").document(event_id).collection("players").document()
             
             # Prepare player data with drill scores
             player_data = {
@@ -189,6 +195,10 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
             )
             added += 1
             
+        logging.info(f"Player upload completed: {added} added, {len(errors)} errors")
+        if errors:
+            logging.warning(f"Upload errors: {errors}")
+        
         return {"added": added, "errors": errors}
     except HTTPException:
         raise
