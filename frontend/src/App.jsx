@@ -3,6 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import Navigation from "./components/Navigation";
+import Home from "./pages/Home";
+import Roster from "./pages/Roster";
+import Schedule from "./pages/Schedule";
 import CoachDashboard from "./pages/CoachDashboard";
 import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
@@ -28,6 +31,30 @@ function App() {
               <Route path="/welcome" element={<Welcome />} />
               <Route
                 path="/dashboard"
+                element={
+                  <RequireAuth>
+                    <Home />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/roster"
+                element={
+                  <RequireAuth>
+                    <Roster />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/schedule"
+                element={
+                  <RequireAuth>
+                    <Schedule />
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/coach-dashboard"
                 element={
                   <RequireAuth>
                     <>
