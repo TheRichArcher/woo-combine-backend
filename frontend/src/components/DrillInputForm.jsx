@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
+import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 
 const DRILL_TYPES = [
@@ -12,6 +13,7 @@ const DRILL_TYPES = [
 
 export default function DrillInputForm({ playerId, onSuccess }) {
   const { user, selectedLeagueId } = useAuth();
+  const { selectedEvent } = useEvent();
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,13 +28,17 @@ export default function DrillInputForm({ playerId, onSuccess }) {
       setError("Please select a drill type and enter a value.");
       return;
     }
+    if (!selectedEvent) {
+      setError("No event selected. Please select an event first.");
+      return;
+    }
     setLoading(true);
     try {
       await api.post(`/drill-results/`, {
         player_id: playerId,
         type,
         value: parseFloat(value),
-        league_id: selectedLeagueId
+        event_id: selectedEvent.id
       });
       setSuccess("Drill result submitted!");
       setType("");

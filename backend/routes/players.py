@@ -99,9 +99,18 @@ class PlayerCreate(BaseModel):
     photo_url: str | None = None
 
 @router.post("/players", response_model=PlayerSchema)
-def create_player(player: PlayerCreate, current_user=Depends(get_current_user)):
+def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
-        player_doc = db.collection("players").document()
+        # Validate that the event exists
+        event = execute_with_timeout(
+            db.collection("events").document(str(event_id)).get,
+            timeout=5
+        )
+        if not event.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Create player in the event subcollection
+        player_doc = db.collection("events").document(str(event_id)).collection("players").document()
         
         # Add timeout to player creation
         execute_with_timeout(
@@ -110,6 +119,7 @@ def create_player(player: PlayerCreate, current_user=Depends(get_current_user)):
                 "number": player.number,
                 "age_group": player.age_group,
                 "photo_url": player.photo_url,
+                "event_id": event_id,
                 "created_at": datetime.utcnow().isoformat(),
             }),
             timeout=10
@@ -217,15 +227,37 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
 
 @router.delete("/players/reset")
 def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
-    drill_results_ref = db.collection("events").document(str(event_id)).collection("drill_results")
-    drill_results_ref.delete()
-    players_ref = db.collection("events").document(str(event_id)).collection("players")
-    players_ref.delete()
-    return {"status": "reset", "event_id": str(event_id)}
+    try:
+        # First, get all players in the event
+        players_ref = db.collection("events").document(str(event_id)).collection("players")
+        players_stream = execute_with_timeout(
+            lambda: list(players_ref.stream()),
+            timeout=15
+        )
+        
+        # Delete drill results for each player
+        for player in players_stream:
+            drill_results_ref = player.reference.collection("drill_results")
+            drill_results_stream = execute_with_timeout(
+                lambda: list(drill_results_ref.stream()),
+                timeout=10
+            )
+            for drill_result in drill_results_stream:
+                drill_result.reference.delete()
+        
+        # Then delete all players
+        for player in players_stream:
+            player.reference.delete()
+        
+        return {"status": "reset", "event_id": str(event_id)}
+    except Exception as e:
+        logging.error(f"Error resetting players: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset players")
 
 @router.get("/rankings")
 def get_rankings(
     age_group: str = Query(...),
+    event_id: str = Query(...),
     weight_40m_dash: float = Query(None, alias="weight_40m_dash"),
     weight_vertical_jump: float = Query(None, alias="weight_vertical_jump"),
     weight_catching: float = Query(None, alias="weight_catching"),
@@ -233,6 +265,14 @@ def get_rankings(
     weight_agility: float = Query(None, alias="weight_agility"),
 ):
     try:
+        # Validate that the event exists
+        event = execute_with_timeout(
+            db.collection("events").document(str(event_id)).get,
+            timeout=5
+        )
+        if not event.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+            
         # Parse weights if all are provided
         custom_weights = None
         weight_params = [weight_40m_dash, weight_vertical_jump, weight_catching, weight_throwing, weight_agility]
@@ -247,15 +287,19 @@ def get_rankings(
         elif any(w is not None for w in weight_params):
             raise HTTPException(status_code=400, detail="Either provide all weights or none.")
             
-        # Add timeout to players query
+        # Query players from the event subcollection and filter by age group
         players_stream = execute_with_timeout(
-            lambda: list(db.collection("players").where("age_group", "==", age_group).stream()),
+            lambda: list(db.collection("events").document(str(event_id)).collection("players").stream()),
             timeout=15
         )
         
         ranked = []
         for player in players_stream:
             player_data = player.to_dict()
+            # Filter by age group
+            if player_data.get("age_group") != age_group:
+                continue
+                
             composite_score = calculate_composite_score(player_data, custom_weights)
             ranked.append({
                 "player_id": player.id,

@@ -265,7 +265,7 @@ export default function AdminTools() {
         age_group: manualPlayer.age_group,
       };
       if (manualPlayer.photo_url) playerPayload.photo_url = manualPlayer.photo_url;
-      await api.post(`/players`, playerPayload);
+      await api.post(`/players?event_id=${selectedEvent.id}`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
       setManualPlayer({

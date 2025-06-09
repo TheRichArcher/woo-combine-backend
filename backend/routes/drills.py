@@ -16,14 +16,21 @@ class DrillResultCreate(BaseModel):
     player_id: str
     type: str
     value: float
-    league_id: str
+    event_id: str
 
 @router.post("/drill-results/", response_model=dict)
 def create_drill_result(result: DrillResultCreate, current_user=Depends(get_current_user)):
     """Create a new drill result for a player"""
     try:
-        # Validate that the player exists
-        player_ref = db.collection("players").document(result.player_id)
+        # Validate that the event exists
+        event_ref = db.collection("events").document(result.event_id)
+        event_doc = event_ref.get()
+        
+        if not event_doc.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Validate that the player exists in the event
+        player_ref = event_ref.collection("players").document(result.player_id)
         player_doc = player_ref.get()
         
         if not player_doc.exists:
@@ -34,7 +41,7 @@ def create_drill_result(result: DrillResultCreate, current_user=Depends(get_curr
             "player_id": result.player_id,
             "type": result.type,
             "value": result.value,
-            "league_id": result.league_id,
+            "event_id": result.event_id,
             "created_at": datetime.utcnow().isoformat(),
             "created_by": current_user["uid"]
         }
@@ -45,7 +52,7 @@ def create_drill_result(result: DrillResultCreate, current_user=Depends(get_curr
         doc_ref.set(drill_result_data)
         
         # Also update the player's main drill score field for easier querying
-        drill_field_name = f"drill_{result.type}"
+        drill_field_name = result.type
         
         # Update player document with the new drill score
         player_ref.update({

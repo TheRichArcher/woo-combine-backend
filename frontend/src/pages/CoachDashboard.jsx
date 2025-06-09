@@ -62,14 +62,14 @@ export default function CoachDashboard() {
 
   // Fetch rankings when age group changes (with default weights)
   useEffect(() => {
-    if (!selectedAgeGroup || !user || !selectedLeagueId) {
+    if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
       setRankings([]);
       return;
     }
     setLoading(true);
     setError(null);
     setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-            api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}`)
+            api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&event_id=${selectedEvent.id}`)
       .then(res => {
         setRankings(res.data);
         setLoading(false);
@@ -88,7 +88,7 @@ export default function CoachDashboard() {
         }
         setLoading(false);
       });
-  }, [selectedAgeGroup, user, selectedLeagueId]);
+  }, [selectedAgeGroup, user, selectedLeagueId, selectedEvent]);
 
   // Handle slider change
   const handleSlider = (key, value) => {
@@ -116,7 +116,7 @@ export default function CoachDashboard() {
     setWeightError("");
     setLoading(true);
     setError(null);
-    const params = new URLSearchParams({ age_group: selectedAgeGroup, league_id: selectedLeagueId });
+    const params = new URLSearchParams({ age_group: selectedAgeGroup, event_id: selectedEvent.id });
     params.append("weight_40m_dash", weights["40m_dash"]);
     params.append("weight_vertical_jump", weights["vertical_jump"]);
     params.append("weight_catching", weights["catching"]);
