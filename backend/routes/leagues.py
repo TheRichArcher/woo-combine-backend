@@ -3,8 +3,22 @@ from backend.firestore_client import db
 from backend.auth import get_current_user
 from datetime import datetime
 import logging
+import concurrent.futures
 
 router = APIRouter()
+
+def execute_with_timeout(func, timeout=10, *args, **kwargs):
+    """Execute a function with timeout protection"""
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(func, *args, **kwargs)
+        try:
+            return future.result(timeout=timeout)
+        except concurrent.futures.TimeoutError:
+            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
+            raise HTTPException(
+                status_code=504,
+                detail=f"Database operation timed out after {timeout} seconds"
+            )
 
 @router.get('/leagues/me')
 def get_my_leagues(current_user=Depends(get_current_user)):
@@ -60,22 +74,30 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
     try:
         league_ref = db.collection("leagues").document()
         
-        # Simple league creation
-        league_ref.set({
-            "name": name,
-            "created_by_user_id": user_id,
-            "created_at": datetime.utcnow().isoformat(),
-        })
+        # Add timeout protection to league creation
+        execute_with_timeout(
+            lambda: league_ref.set({
+                "name": name,
+                "created_by_user_id": user_id,
+                "created_at": datetime.utcnow().isoformat(),
+            }),
+            timeout=10
+        )
         
-        # Simple member creation
-        league_ref.collection("members").document(user_id).set({
-            "role": "organizer",
-            "joined_at": datetime.utcnow().isoformat(),
-        })
+        # Add timeout protection to member creation
+        execute_with_timeout(
+            lambda: league_ref.collection("members").document(user_id).set({
+                "role": "organizer",
+                "joined_at": datetime.utcnow().isoformat(),
+            }),
+            timeout=10
+        )
         
         logging.info(f"League created with id {league_ref.id} by user {user_id}")
         return {"league_id": league_ref.id}
         
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"Error creating league: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create league")
