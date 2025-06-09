@@ -46,18 +46,30 @@ def create_event(league_id: str, req: dict, current_user=Depends(get_current_use
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
         
+        # Create event in league subcollection (for league-specific queries)
         events_ref = db.collection("leagues").document(league_id).collection("events")
         event_ref = events_ref.document()
         
-        # Add timeout to event creation
+        event_data = {
+            "name": name,
+            "date": date,
+            "league_id": league_id,  # Add league_id reference
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        
+        # Store event in league subcollection
         execute_with_timeout(
-            lambda: event_ref.set({
-                "name": name,
-                "date": date,
-                "created_at": datetime.utcnow().isoformat(),
-            }),
+            lambda: event_ref.set(event_data),
             timeout=10
         )
+        
+        # ALSO store event in top-level events collection (for players endpoints)
+        top_level_event_ref = db.collection("events").document(event_ref.id)
+        execute_with_timeout(
+            lambda: top_level_event_ref.set(event_data),
+            timeout=10
+        )
+        
         return {"event_id": event_ref.id}
     except HTTPException:
         raise
