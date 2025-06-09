@@ -67,12 +67,26 @@ def get_current_user(
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         
-        # Optimized Firestore lookup with reusable client
+        # Optimized Firestore lookup with timeout protection
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
         try:
             db = get_firestore_client()
-            user_doc = db.collection("users").document(uid).get()
-            logging.info(f"[AUTH] Firestore lookup completed")
+            
+            # Add timeout protection to Firestore lookup
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: db.collection("users").document(uid).get())
+                try:
+                    user_doc = future.result(timeout=5)  # 5 second timeout for auth lookup
+                    logging.info(f"[AUTH] Firestore lookup completed")
+                except concurrent.futures.TimeoutError:
+                    logging.error(f"[AUTH] Firestore lookup timed out after 5 seconds for UID: {uid}")
+                    raise HTTPException(
+                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                        detail="Authentication service temporarily unavailable"
+                    )
+            
+        except HTTPException:
+            raise
         except Exception as e:
             logging.error(f"[AUTH] Firestore lookup failed: {e}")
             raise HTTPException(
