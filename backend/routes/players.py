@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Dict, Any
 from pydantic import BaseModel
-from uuid import UUID
 from backend.auth import get_current_user, require_role
 import logging
 from backend.firestore_client import db
@@ -51,7 +50,7 @@ def execute_with_timeout(func, timeout=10, *args, **kwargs):
             )
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(request: Request, event_id: UUID = Query(...), current_user = Depends(get_current_user)):
+def get_players(request: Request, event_id: str = Query(...), current_user = Depends(get_current_user)):
     try:
         if 'user_id' in request.query_params:
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
@@ -114,7 +113,7 @@ def create_player(player: PlayerCreate, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to create player")
 
 class UploadRequest(BaseModel):
-    event_id: UUID
+    event_id: str
     players: List[Dict[str, Any]]
 
 @router.post("/players/upload")
@@ -198,7 +197,7 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
         raise HTTPException(status_code=500, detail="Failed to upload players")
 
 @router.delete("/players/reset")
-def reset_players(event_id: UUID = Query(...), current_user=Depends(require_role("organizer"))):
+def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
     drill_results_ref = db.collection("events").document(str(event_id)).collection("drill_results")
     drill_results_ref.delete()
     players_ref = db.collection("events").document(str(event_id)).collection("players")
