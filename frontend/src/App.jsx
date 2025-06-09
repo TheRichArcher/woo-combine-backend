@@ -33,7 +33,10 @@ function App() {
                 path="/dashboard"
                 element={
                   <RequireAuth>
-                    <Home />
+                    <>
+                      <Navigation />
+                      <Home />
+                    </>
                   </RequireAuth>
                 }
               />

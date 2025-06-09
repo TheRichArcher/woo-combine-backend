@@ -16,7 +16,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         {/* Welcome Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
