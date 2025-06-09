@@ -14,6 +14,7 @@ const DRILL_WEIGHTS = {
   "throwing": 0.15,
   "agility": 0.2,
 };
+
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash" },
   { key: "vertical_jump", label: "Vertical Jump" },
@@ -21,6 +22,30 @@ const DRILLS = [
   { key: "throwing", label: "Throwing" },
   { key: "agility", label: "Agility" },
 ];
+
+// Preset weight configurations
+const WEIGHT_PRESETS = {
+  balanced: {
+    name: "Balanced",
+    description: "Equal emphasis on all skills",
+    weights: { "40m_dash": 0.2, "vertical_jump": 0.2, "catching": 0.2, "throwing": 0.2, "agility": 0.2 }
+  },
+  speed: {
+    name: "Speed Focused",
+    description: "Emphasizes speed and athleticism",
+    weights: { "40m_dash": 0.4, "vertical_jump": 0.3, "catching": 0.1, "throwing": 0.1, "agility": 0.1 }
+  },
+  skills: {
+    name: "Skills Focused", 
+    description: "Emphasizes catching and throwing",
+    weights: { "40m_dash": 0.1, "vertical_jump": 0.1, "catching": 0.35, "throwing": 0.35, "agility": 0.1 }
+  },
+  athletic: {
+    name: "Athletic",
+    description: "Emphasizes physical abilities",
+    weights: { "40m_dash": 0.25, "vertical_jump": 0.25, "catching": 0.15, "throwing": 0.15, "agility": 0.2 }
+  }
+};
 
 export default function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
@@ -31,8 +56,41 @@ export default function CoachDashboard() {
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
   const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
-  const [weightError, setWeightError] = useState("");
+  const [activePreset, setActivePreset] = useState("athletic"); // Default preset
   const navigate = useNavigate();
+
+  // Convert weights to percentages for display
+  const getPercentages = () => {
+    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const percentages = {};
+    DRILLS.forEach(drill => {
+      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+    });
+    return percentages;
+  };
+
+  // Convert percentage back to normalized weights
+  const updateWeightsFromPercentage = (drillKey, percentage) => {
+    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    
+    if (total === 0) return; // Prevent division by zero
+    
+    // Normalize to sum to 1.0
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      newWeights[drill.key] = newPercentages[drill.key] / total;
+    });
+    
+    setWeights(newWeights);
+    setActivePreset(null); // Clear preset when manually adjusted
+  };
+
+  // Apply a preset
+  const applyPreset = (presetKey) => {
+    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
+    setActivePreset(presetKey);
+  };
 
   // Fetch all players to get available age groups
   useEffect(() => {
@@ -60,88 +118,51 @@ export default function CoachDashboard() {
   // Get unique age groups from players
   const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
 
-  // Fetch rankings when age group changes (with default weights)
+  // Auto-update rankings when weights or age group changes
   useEffect(() => {
-    if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
-      setRankings([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    setWeights({ ...DRILL_WEIGHTS }); // Reset weights to default on age group change
-            api.get(`/rankings?age_group=${encodeURIComponent(selectedAgeGroup)}&event_id=${selectedEvent.id}`)
-      .then(res => {
+    const updateRankings = async () => {
+      if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
+        setRankings([]);
+        return;
+      }
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const params = new URLSearchParams({ 
+          age_group: selectedAgeGroup, 
+          event_id: selectedEvent.id 
+        });
+        
+        // Add weight parameters
+        params.append("weight_40m_dash", weights["40m_dash"]);
+        params.append("weight_vertical_jump", weights["vertical_jump"]);
+        params.append("weight_catching", weights["catching"]);
+        params.append("weight_throwing", weights["throwing"]);
+        params.append("weight_agility", weights["agility"]);
+        
+        const res = await api.get(`/rankings?${params.toString()}`);
         setRankings(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.log('[CoachDashboard] Rankings API response:', err.response?.status, err.response?.data?.detail);
         if (err.response?.status === 404) {
-          // 404 means no rankings found yet - normal for new events or age groups
-          console.log('[CoachDashboard] No rankings found for age group yet (normal for new events)');
-          setError(null); // Don't show as error, just empty state
+          console.log('[CoachDashboard] No rankings found yet (normal for new events)');
+          setError(null);
           setRankings([]);
         } else {
-          // Other errors are actual problems
           console.error('[CoachDashboard] Rankings fetch error:', err);
           setError(err.message);
         }
+      } finally {
         setLoading(false);
-      });
-  }, [selectedAgeGroup, user, selectedLeagueId, selectedEvent]);
+      }
+    };
 
-  // Handle slider change
-  const handleSlider = (key, value) => {
-    setWeights(w => ({ ...w, [key]: value }));
-  };
-
-  // Reset to default weights
-  const handleReset = () => {
-    setWeights({ ...DRILL_WEIGHTS });
-    setWeightError("");
-  };
-
-  // Validate weights and fetch rankings
-  const handleUpdateRankings = () => {
-    const vals = DRILLS.map(d => parseFloat(weights[d.key]));
-    const sum = vals.reduce((a, b) => a + b, 0);
-    if (vals.some(v => isNaN(v) || v < 0 || v > 1)) {
-      setWeightError("All weights must be between 0 and 1.");
-      return;
-    }
-    if (Math.abs(sum - 1.0) > 1e-6) {
-      setWeightError("Weights must sum to 1.00");
-      return;
-    }
-    setWeightError("");
-    setLoading(true);
-    setError(null);
-    const params = new URLSearchParams({ age_group: selectedAgeGroup, event_id: selectedEvent.id });
-    params.append("weight_40m_dash", weights["40m_dash"]);
-    params.append("weight_vertical_jump", weights["vertical_jump"]);
-    params.append("weight_catching", weights["catching"]);
-    params.append("weight_throwing", weights["throwing"]);
-    params.append("weight_agility", weights["agility"]);
-    api.get(`/rankings?${params.toString()}`)
-      .then(res => {
-        setRankings(res.data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.log('[CoachDashboard] Custom weights rankings API response:', err.response?.status, err.response?.data?.detail);
-        if (err.response?.status === 404) {
-          // 404 means no rankings found yet - normal for new events or age groups
-          console.log('[CoachDashboard] No rankings found for custom weights yet (normal for new events)');
-          setError(null); // Don't show as error, just empty state
-          setRankings([]);
-        } else {
-          // Other errors are actual problems
-          console.error('[CoachDashboard] Custom weights rankings fetch error:', err);
-          setError(err.message);
-        }
-        setLoading(false);
-      });
-  };
+    // Debounce the API call to avoid too many requests
+    const timeoutId = setTimeout(updateRankings, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent]);
 
   // CSV Export logic
   const handleExportCsv = () => {
@@ -216,6 +237,8 @@ export default function CoachDashboard() {
 
   if (noLeague) return <LeagueFallback />;
 
+  const percentages = getPercentages();
+
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
@@ -239,87 +262,127 @@ export default function CoachDashboard() {
             ))}
           </select>
         </div>
-        {/* Drill Weight Controls */}
+        
+        {/* Improved Drill Weight Controls */}
         {userRole === 'organizer' && (
           <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
               <Settings className="w-4 h-4 text-cmf-primary" />
-              <h2 className="text-sm font-medium text-gray-800">Adjust Drill Weighting</h2>
+              <h2 className="text-sm font-medium text-gray-800">Ranking Priorities</h2>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              {DRILLS.map(drill => (
-                <div key={drill.key}>
-                  <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1}
-                    step={0.01}
-                    value={weights[drill.key]}
-                    onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-                    className="w-full accent-cmf-primary h-2 rounded-lg bg-gray-100"
-                  />
-                  <span className="block text-right font-mono text-cmf-secondary text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
-                </div>
-              ))}
+            
+            {/* Preset Buttons */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                  <button
+                    key={key}
+                    onClick={() => applyPreset(key)}
+                    className={`p-3 text-left rounded-lg border-2 transition-all ${
+                      activePreset === key 
+                        ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                    }`}
+                  >
+                    <div className="font-medium text-sm">{preset.name}</div>
+                    <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex flex-wrap gap-4 justify-center mt-6">
-              <button
-                onClick={handleReset}
-                className="rounded-full bg-cmf-primary hover:bg-cmf-secondary text-white px-5 py-2 text-sm font-medium shadow-sm transition"
-              >
-                Reset to Default
-              </button>
-              <button
-                onClick={handleUpdateRankings}
-                className="rounded-full bg-cmf-primary hover:bg-cmf-secondary text-white px-5 py-2 text-sm font-medium shadow-sm transition"
-              >
-                Update Rankings
-              </button>
+
+            {/* Custom Adjustments */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Custom Adjustments:
+                {activePreset && (
+                  <span className="ml-2 text-xs text-gray-500">
+                    (Currently using {WEIGHT_PRESETS[activePreset].name})
+                  </span>
+                )}
+              </label>
+              
+              <div className="space-y-4">
+                {DRILLS.map(drill => (
+                  <div key={drill.key} className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={percentages[drill.key]}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
+                        />
+                        <div className="w-12 text-right">
+                          <span className="text-sm font-mono text-cmf-primary">
+                            {percentages[drill.key]}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-4 text-xs text-gray-500 text-center">
+                Rankings update automatically as you adjust priorities
+              </div>
             </div>
-            {weightError && <div className="text-red-500 mt-2 text-sm">{weightError}</div>}
           </div>
         )}
-        {/* Rankings Table and Loading/Error States remain unchanged, but inside the new container */}
+        
+        {/* Rankings Table and Loading/Error States */}
         {loading ? (
-          <div>Loading rankings...</div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
+            <div className="text-gray-500">Updating rankings...</div>
+          </div>
         ) : error ? (
-          <div className="text-red-500">Error: {error}</div>
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+            <strong>Error:</strong> {error}
+          </div>
         ) : selectedAgeGroup === "" ? (
-          <div className="text-gray-500">Please select an age group to view rankings.</div>
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-500">
+            Please select an age group to view rankings.
+          </div>
         ) : rankings.length === 0 ? (
-          <div>No players found for this age group.</div>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
+            No players found for this age group.
+          </div>
         ) : (
-          <div className="bg-white rounded shadow p-6 overflow-x-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
               <h2 className="text-xl font-semibold">Rankings ({selectedAgeGroup})</h2>
               <button
                 onClick={handleExportCsv}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
                 disabled={rankings.length === 0}
-                style={{ display: rankings.length === 0 ? 'none' : 'inline-block' }}
               >
-                Export Rankings as CSV
+                Export as CSV
               </button>
             </div>
             <table className="w-full text-left text-sm">
               <thead>
-                <tr>
-                  <th className="py-2 px-2">Rank</th>
-                  <th className="py-2 px-2">Name</th>
-                  <th className="py-2 px-2">Jersey #</th>
-                  <th className="py-2 px-2">Score</th>
+                <tr className="border-b border-gray-200">
+                  <th className="py-3 px-2">Rank</th>
+                  <th className="py-3 px-2">Name</th>
+                  <th className="py-3 px-2">Jersey #</th>
+                  <th className="py-3 px-2">Score</th>
                 </tr>
               </thead>
               <tbody>
                 {rankings.map((player) => (
-                  <tr key={player.player_id} className="border-t">
-                    <td className={`py-2 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
+                  <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
+                    <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
                       {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
                     </td>
-                    <td className="py-2 px-2">{player.name}</td>
-                    <td className="py-2 px-2">{player.number}</td>
-                    <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
+                    <td className="py-3 px-2">{player.name}</td>
+                    <td className="py-3 px-2">{player.number}</td>
+                    <td className="py-3 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
