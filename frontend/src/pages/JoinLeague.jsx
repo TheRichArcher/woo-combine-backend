@@ -1,4 +1,4 @@
-// Force redeploy: Trivial comment to bust cache and ensure latest code is deployed
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -43,7 +43,7 @@ export default function JoinLeague() {
               code = url.searchParams.get('code') || url.pathname.split('/').pop();
             } catch (urlError) {
               // If URL parsing fails, treat the raw text as the code
-              console.log('[JoinLeague] QR scan - treating raw text as join code:', result.getText());
+      
               code = result.getText();
             }
             setShowQrScanner(false);

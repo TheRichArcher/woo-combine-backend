@@ -11,20 +11,15 @@ export function CreateLeagueForm({ onCreated }) {
   const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
-    console.log('[CreateLeague] Form submit triggered!', e);
-    console.log('[CreateLeague] League name:', leagueName);
-    console.log('[CreateLeague] User:', user);
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      console.log('[CreateLeague] About to make API call to /leagues');
       const { data } = await api.post('/leagues', {
         name: leagueName,
         user_id: user?.uid,
         email: user?.email,
       });
-      console.log('[CreateLeague] API call successful, response:', data);
       
       if (addLeague) {
         addLeague({ id: data.league_id, name: leagueName, role: 'organizer' });
@@ -32,14 +27,11 @@ export function CreateLeagueForm({ onCreated }) {
       if (onCreated) onCreated(data.league_id);
       
       // Redirect to event creation/selection page
-      console.log('[CreateLeague] Redirecting to onboarding event page');
       navigate('/onboarding/event');
     } catch (err) {
-      console.error('[CreateLeague] API call failed:', err);
       setError(err.message || 'Error creating league');
     } finally {
       setLoading(false);
-      console.log('[CreateLeague] Form submission completed');
     }
   };
 
@@ -60,11 +52,6 @@ export function CreateLeagueForm({ onCreated }) {
           type="submit"
           className="bg-cmf-primary text-white px-4 py-2 rounded w-full font-semibold"
           disabled={loading}
-          onClick={(e) => {
-            console.log('[CreateLeague] Button clicked!', e);
-            console.log('[CreateLeague] Button disabled:', loading);
-            console.log('[CreateLeague] League name at click:', leagueName);
-          }}
         >
           {loading ? 'Creating...' : 'Create League & Continue'}
         </button>
@@ -75,14 +62,8 @@ export function CreateLeagueForm({ onCreated }) {
 }
 
 export default function CreateLeague() {
-  console.log('[CreateLeague] Component rendering');
-  console.log('[CreateLeague] Current location:', window.location.pathname);
-  
   return (
     <div>
-      <div className="text-xs text-gray-500 mb-4">
-        Debug: CreateLeague component loaded successfully
-      </div>
       <CreateLeagueForm />
     </div>
   );
