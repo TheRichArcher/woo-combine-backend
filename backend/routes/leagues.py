@@ -7,7 +7,7 @@ import concurrent.futures
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
+def execute_with_timeout(func, timeout=20, *args, **kwargs):
     """Execute a function with timeout protection"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
@@ -81,7 +81,7 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
                 "created_by_user_id": user_id,
                 "created_at": datetime.utcnow().isoformat(),
             }),
-            timeout=10
+            timeout=20
         )
         
         # Add timeout protection to member creation
@@ -90,7 +90,7 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
                 "role": "organizer",
                 "joined_at": datetime.utcnow().isoformat(),
             }),
-            timeout=10
+            timeout=20
         )
         
         logging.info(f"League created with id {league_ref.id} by user {user_id}")
