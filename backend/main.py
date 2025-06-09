@@ -21,6 +21,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://woo-combine.com",
+        "http://localhost:5173",  # Allow local development
+        "http://localhost:3000",  # Alternative dev port
     ],
     allow_credentials=False,
     allow_methods=["*"],

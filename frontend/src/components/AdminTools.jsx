@@ -278,7 +278,7 @@ export default function AdminTools() {
         throwing: '',
         agility: '',
       });
-      setShowManualForm(false);
+      // Don't hide form immediately - let user see next steps
       handlePostUploadSuccess();
     } catch (err) {
       setManualStatus('error');
@@ -469,7 +469,38 @@ export default function AdminTools() {
               >
                 {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
               </button>
-              {uploadStatus === "success" && <div className="text-green-600 mt-2">{uploadMsg}</div>}
+              {uploadStatus === "success" && (
+                <div className="mt-4">
+                  <div className="text-green-600 mb-4 font-semibold">{uploadMsg}</div>
+                  {/* Next Steps Section */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-green-800 mb-3">🎉 What's Next?</h3>
+                    <p className="text-green-700 text-sm mb-4">
+                      Your players have been successfully uploaded! Here's what you can do now:
+                    </p>
+                    <div className="grid gap-2">
+                      <button
+                        onClick={handleReupload}
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
+                      >
+                        📂 Upload More Players (CSV or Manual)
+                      </button>
+                      <a
+                        href="/players"
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
+                      >
+                        👥 View & Manage Players (Add Drill Results)
+                      </a>
+                      <a
+                        href="/coach"
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
+                      >
+                        📊 View Dashboard & Rankings
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
               {uploadStatus === "error" && <div className="text-red-500 mt-2">{uploadMsg}</div>}
             </div>
           </div>
@@ -524,7 +555,51 @@ export default function AdminTools() {
                   Cancel
                 </button>
               </div>
-              {manualStatus === 'success' && <div className="text-green-600 mt-2">✅ {manualMsg}</div>}
+              {manualStatus === 'success' && (
+                <div className="mt-4">
+                  <div className="text-green-600 mb-4 font-semibold">✅ {manualMsg}</div>
+                  {/* Next Steps Section */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h3 className="text-lg font-semibold text-green-800 mb-3">🎉 What's Next?</h3>
+                    <p className="text-green-700 text-sm mb-4">
+                      Player added successfully! Here's what you can do now:
+                    </p>
+                    <div className="grid gap-2">
+                      <button
+                        onClick={() => {
+                          setManualStatus('idle');
+                          setManualMsg('');
+                        }}
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
+                      >
+                        ➕ Add Another Player
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowManualForm(false);
+                          setManualStatus('idle');
+                          setManualMsg('');
+                        }}
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
+                      >
+                        📂 Upload Players via CSV
+                      </button>
+                      <a
+                        href="/players"
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
+                      >
+                        👥 View & Manage Players (Add Drill Results)
+                      </a>
+                      <a
+                        href="/coach"
+                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
+                      >
+                        📊 View Dashboard & Rankings
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
               {manualStatus === 'error' && <div className="text-red-500 mt-2">❌ {manualMsg}</div>}
             </form>
           </div>
