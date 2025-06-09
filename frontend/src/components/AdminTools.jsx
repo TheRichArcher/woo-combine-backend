@@ -319,6 +319,8 @@ export default function AdminTools() {
     setCsvHeaders([]);
     setCsvErrors([]);
     setCsvFileName("");
+    setUploadStatus("idle");
+    setUploadMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 

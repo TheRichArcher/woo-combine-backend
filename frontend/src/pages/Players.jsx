@@ -99,8 +99,8 @@ export default function Players() {
         <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found yet</h2>
         <p className="text-cmf-secondary mb-4">You can upload a CSV or add them manually to get started.</p>
         <div className="flex gap-4 justify-center">
-          <a href="#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
-          <a href="#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
+          <a href="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
+          <a href="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
         </div>
       </div>
     </div>
@@ -115,7 +115,12 @@ export default function Players() {
       </div>
       <h1 className="text-3xl font-extrabold mb-6 text-center text-cmf-primary drop-shadow">Woo-Combine: Players</h1>
       {Object.keys(grouped).sort().map(ageGroup => {
-        const sortedPlayers = grouped[ageGroup].slice().sort((a, b) => b.composite_score - a.composite_score);
+        const sortedPlayers = grouped[ageGroup].slice().sort((a, b) => {
+          // Handle null composite scores - put null values at the end
+          const scoreA = a.composite_score || 0;
+          const scoreB = b.composite_score || 0;
+          return scoreB - scoreA;
+        });
         return (
           <div key={ageGroup} className="mb-8">
             <h2 className="text-xl font-bold mb-2 text-cmf-secondary">Age Group: {ageGroup}</h2>
@@ -139,7 +144,9 @@ export default function Players() {
                         </td>
                         <td className="py-2 px-2">{player.name}</td>
                         <td className="py-2 px-2">{player.number}</td>
-                        <td className="py-2 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
+                        <td className="py-2 px-2 font-mono">
+                          {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                        </td>
                         <td className="py-2 px-2">
                           {userRole === 'organizer' && (
                             <button
