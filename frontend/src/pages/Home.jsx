@@ -41,9 +41,32 @@ export default function Home() {
     return email.substring(0, 2).toUpperCase();
   };
 
-  const handleEventResponse = (eventId, response) => {
-    // TODO: Implement event response logic
-    console.log(`Event ${eventId} response: ${response}`);
+  const [eventResponses, setEventResponses] = useState({});
+
+  const handleEventResponse = async (eventId, response) => {
+    try {
+      // Update local state immediately for better UX
+      setEventResponses(prev => ({
+        ...prev,
+        [eventId]: response
+      }));
+
+      // TODO: Replace with actual API call when backend endpoint exists
+      // await api.post(`/events/${eventId}/response`, { response });
+      
+      console.log(`Event ${eventId} response: ${response}`);
+      
+      // Show success feedback
+      // You could add a toast notification here if you have a toast system
+      
+    } catch (error) {
+      // Revert local state on error
+      setEventResponses(prev => ({
+        ...prev,
+        [eventId]: null
+      }));
+      console.error('Failed to submit event response:', error);
+    }
   };
 
   return (
@@ -141,15 +164,27 @@ export default function Home() {
                       <div className="flex space-x-2">
                         <button
                           onClick={() => handleEventResponse(event.id, 'yes')}
-                          className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-green-500 transition-colors"
+                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            eventResponses[event.id] === 'yes' 
+                              ? 'border-green-500 bg-green-500' 
+                              : 'border-gray-300 hover:border-green-500'
+                          }`}
                         >
-                          <Check className="w-5 h-5 text-green-500" />
+                          <Check className={`w-5 h-5 ${
+                            eventResponses[event.id] === 'yes' ? 'text-white' : 'text-green-500'
+                          }`} />
                         </button>
                         <button
                           onClick={() => handleEventResponse(event.id, 'no')}
-                          className="w-10 h-10 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-red-500 transition-colors"
+                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-colors ${
+                            eventResponses[event.id] === 'no' 
+                              ? 'border-red-500 bg-red-500' 
+                              : 'border-gray-300 hover:border-red-500'
+                          }`}
                         >
-                          <X className="w-5 h-5 text-red-500" />
+                          <X className={`w-5 h-5 ${
+                            eventResponses[event.id] === 'no' ? 'text-white' : 'text-red-500'
+                          }`} />
                         </button>
                       </div>
                     </div>

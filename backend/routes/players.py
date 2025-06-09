@@ -19,15 +19,23 @@ DRILL_WEIGHTS = {
     "agility": 0.2,
 }
 
-# def calculate_composite_score(player: Player, session: Session, weights: dict = None) -> float:
-#     results = session.query(DrillResult).filter(DrillResult.player_id == player.id).all()
-#     drill_map = {r.type: r.value for r in results}
-#     score = 0.0
-#     use_weights = weights if weights is not None else DRILL_WEIGHTS
-#     for drill, weight in use_weights.items():
-#         value = drill_map.get(drill, 0)
-#         score += value * weight
-#     return score
+def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
+    """Calculate composite score for a player based on their drill results"""
+    use_weights = weights if weights is not None else DRILL_WEIGHTS
+    score = 0.0
+    
+    for drill, weight in use_weights.items():
+        # Get drill value from player data (stored as drill_[type] or just [type])
+        value = player_data.get(drill, 0) or player_data.get(f"drill_{drill}", 0)
+        if value is None:
+            value = 0
+        try:
+            score += float(value) * weight
+        except (ValueError, TypeError):
+            # Skip invalid values
+            continue
+    
+    return round(score, 2)
 
 # def get_db():
 #     db = SessionLocal()
@@ -71,9 +79,10 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
         
         result = []
         for player in players_stream:
-            # TODO: Implement Firestore-based composite score calculation if needed
             player_dict = player.to_dict()
             player_dict["id"] = player.id
+            # Calculate and add composite score
+            player_dict["composite_score"] = calculate_composite_score(player_dict)
             result.append(player_dict)
         return result
     except HTTPException:
@@ -246,12 +255,13 @@ def get_rankings(
         
         ranked = []
         for player in players_stream:
-            # TODO: Implement Firestore-based composite score calculation if needed
+            player_data = player.to_dict()
+            composite_score = calculate_composite_score(player_data, custom_weights)
             ranked.append({
                 "player_id": player.id,
-                "name": player.get("name"),
-                "number": player.get("number"),
-                # Add composite_score if needed
+                "name": player_data.get("name"),
+                "number": player_data.get("number"),
+                "composite_score": composite_score
             })
         ranked.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
         for idx, player in enumerate(ranked, start=1):
