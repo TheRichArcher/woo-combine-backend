@@ -29,20 +29,20 @@ export default function Navigation() {
         <Logo />
         {/* Right: Desktop Nav Items */}
         <div className="flex items-center gap-x-6 min-w-0 sm:flex">
-          <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Home</Link>
-          <Link to="/coach-dashboard" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Coach Dashboard</Link>
-          <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Players</Link>
+          <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Home</Link>
+          <Link to="/coach-dashboard" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Coach Dashboard</Link>
+          <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Players</Link>
           {/*
             Admin nav link is only visible to users with 'organizer' or 'admin' roles.
             Do not remove or alter this logic without understanding the role system.
           */}
           {userRole === 'organizer' && (
-            <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cyan-700">Admin</Link>
+            <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Admin</Link>
           )}
           {user && (
             <button
               onClick={async () => { await logout(); navigate("/welcome"); }}
-              className="text-lg font-semibold text-gray-800 hover:text-cyan-700 px-2"
+              className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-2"
             >
               Log Out
             </button>
@@ -50,23 +50,23 @@ export default function Navigation() {
         </div>
         {/* Hamburger for mobile */}
         <button className="sm:hidden p-2 ml-2" onClick={() => setMobileOpen(v => !v)} aria-label="Open menu">
-          <Menu className="w-7 h-7 text-cyan-700" />
+          <Menu className="w-7 h-7 text-cmf-secondary" />
         </button>
       </div>
       {/* Mobile nav menu */}
       {mobileOpen && (
         <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col items-center py-4 space-y-2">
-            <Link to="/dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Home</Link>
-            <Link to="/coach-dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Coach Dashboard</Link>
-            <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Players</Link>
+            <Link to="/dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Home</Link>
+            <Link to="/coach-dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Coach Dashboard</Link>
+            <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Players</Link>
             {userRole === 'organizer' && (
-              <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2" onClick={closeMobile}>Admin</Link>
+              <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Admin</Link>
             )}
             {user && (
               <button
                 onClick={async () => { await logout(); navigate("/welcome"); }}
-                className="block text-lg font-semibold text-gray-800 hover:text-cyan-700 px-4 py-2"
+                className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2"
               >
                 Log Out
               </button>

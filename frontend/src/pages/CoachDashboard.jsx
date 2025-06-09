@@ -186,9 +186,9 @@ export default function CoachDashboard() {
     if (!leagues || leagues.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
-          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
-            <h2 className="text-2xl font-bold text-cyan-700 mb-4">Welcome to Woo-Combine!</h2>
-            <p className="text-cyan-700 mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
+                  <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
+          <p className="text-cmf-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
             <p className="text-gray-700 mb-4">To get started, create your first league below:</p>
             <CreateLeagueForm onCreated={() => navigate('/onboarding/event')} />
           </div>
@@ -198,13 +198,13 @@ export default function CoachDashboard() {
     // If user has leagues, show Import Players for organizers
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cyan-200">
-          <h2 className="text-2xl font-bold text-cyan-700 mb-4">Welcome to Woo-Combine!</h2>
-          <p className="text-cyan-700 mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
+          <p className="text-cmf-secondary mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
             {userRole === 'organizer' ? (
-              <button onClick={handleImport} className="bg-cyan-700 text-white font-bold px-4 py-2 rounded shadow hover:bg-cyan-800 transition w-full max-w-xs">📥 Import Players</button>
+              <button onClick={handleImport} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">📥 Import Players</button>
             ) : (
               <span className="text-gray-500">Waiting for organizer to import players.</span>
             )}
@@ -231,7 +231,7 @@ export default function CoachDashboard() {
           <select
             value={selectedAgeGroup}
             onChange={e => setSelectedAgeGroup(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cyan-600 focus:border-cyan-600 sm:text-sm"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
           >
             <option value="">Select Age Group</option>
             {ageGroups.map(group => (
@@ -243,7 +243,7 @@ export default function CoachDashboard() {
         {userRole === 'organizer' && (
           <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Settings className="w-4 h-4 text-cyan-600" />
+              <Settings className="w-4 h-4 text-cmf-primary" />
               <h2 className="text-sm font-medium text-gray-800">Adjust Drill Weighting</h2>
             </div>
             <div className="grid grid-cols-2 gap-x-6 gap-y-4">
@@ -257,22 +257,22 @@ export default function CoachDashboard() {
                     step={0.01}
                     value={weights[drill.key]}
                     onChange={e => handleSlider(drill.key, parseFloat(e.target.value))}
-                    className="w-full accent-cyan-600 h-2 rounded-lg bg-gray-100"
+                    className="w-full accent-cmf-primary h-2 rounded-lg bg-gray-100"
                   />
-                  <span className="block text-right font-mono text-cyan-700 text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
+                  <span className="block text-right font-mono text-cmf-secondary text-xs mt-1">{parseFloat(weights[drill.key]).toFixed(2)}</span>
                 </div>
               ))}
             </div>
             <div className="flex flex-wrap gap-4 justify-center mt-6">
               <button
                 onClick={handleReset}
-                className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
+                className="rounded-full bg-cmf-primary hover:bg-cmf-secondary text-white px-5 py-2 text-sm font-medium shadow-sm transition"
               >
                 Reset to Default
               </button>
               <button
                 onClick={handleUpdateRankings}
-                className="rounded-full bg-cyan-600 hover:bg-cyan-700 text-white px-5 py-2 text-sm font-medium shadow-sm transition"
+                className="rounded-full bg-cmf-primary hover:bg-cmf-secondary text-white px-5 py-2 text-sm font-medium shadow-sm transition"
               >
                 Update Rankings
               </button>

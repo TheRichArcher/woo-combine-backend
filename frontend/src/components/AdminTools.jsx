@@ -376,13 +376,13 @@ export default function AdminTools() {
             <h2 className="text-lg font-semibold text-gray-900 mb-2">Add Players to Your Event</h2>
             <div className="flex gap-2 mb-2">
               <button
-                className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition"
+                className="bg-cmf-primary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-secondary transition"
                 onClick={handleSampleDownload}
               >
                 <Upload className="inline-block mr-2 w-4 h-4" />Sample CSV
               </button>
               <button
-                className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition"
+                className="bg-cmf-primary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-secondary transition"
                 onClick={() => setShowManualForm(v => !v)}
               >
                 + Add Player Manually

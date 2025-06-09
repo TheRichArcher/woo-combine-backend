@@ -109,7 +109,7 @@ export default function Schedule() {
               {selectedEvent?.name || "Lil' Ballers Fall 24"}
             </h1>
             <div className="flex items-center justify-center mt-1">
-              <div className="w-4 h-3 bg-blue-600 mr-2 flex items-center justify-center">
+              <div className="w-4 h-3 bg-cmf-primary mr-2 flex items-center justify-center">
                 <span className="text-white text-xs font-bold">🏳️</span>
               </div>
               <p className="text-sm text-gray-600">Central Mass Flag (Worcester)</p>

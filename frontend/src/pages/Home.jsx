@@ -71,7 +71,7 @@ export default function Home() {
             
             {/* League Name */}
             <div className="flex items-center justify-center mt-1">
-              <div className="w-4 h-3 bg-blue-600 mr-2 flex items-center justify-center">
+              <div className="w-4 h-3 bg-cmf-primary mr-2 flex items-center justify-center">
                 <span className="text-white text-xs font-bold">🏳️</span>
               </div>
               <p className="text-sm text-gray-600">Central Mass Flag (Worcester)</p>
@@ -93,7 +93,7 @@ export default function Home() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900">Up Next</h2>
           <div className="flex space-x-2">
-            <Calendar className="w-6 h-6 text-blue-500" />
+            <Calendar className="w-6 h-6 text-cmf-primary" />
             <div className="w-6 h-6 text-gray-400">➕</div>
           </div>
         </div>
@@ -181,7 +181,7 @@ export default function Home() {
               <div className="text-2xl">🔄</div>
             </div>
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
-              <Clipboard className="w-8 h-8 text-blue-500" />
+              <Clipboard className="w-8 h-8 text-cmf-primary" />
             </div>
             <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
               <div className="text-2xl">🏠</div>
