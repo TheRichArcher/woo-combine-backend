@@ -8,7 +8,7 @@ import { auth } from '../firebase';
  */
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
-  withCredentials: true,          // keep if you use cookies / auth headers
+  withCredentials: false,         // not needed since we use Authorization headers
   timeout: 10000                  // reduced to 10 seconds to prevent long hangs
 });
 

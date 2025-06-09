@@ -22,16 +22,9 @@ if not firebase_admin._apps:
         cred = credentials.ApplicationDefault()
     firebase_admin.initialize_app(cred)
 
+from backend.firestore_client import get_firestore_client
+
 security = HTTPBearer(auto_error=False)
-
-# Create a reusable Firestore client to avoid initialization overhead
-_firestore_client = None
-
-def get_firestore_client():
-    global _firestore_client
-    if _firestore_client is None:
-        _firestore_client = firestore.Client()
-    return _firestore_client
 
 def get_current_user(
     request: Request,
