@@ -365,28 +365,62 @@ export default function CoachDashboard() {
                 Export as CSV
               </button>
             </div>
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="py-3 px-2">Rank</th>
-                  <th className="py-3 px-2">Name</th>
-                  <th className="py-3 px-2">Jersey #</th>
-                  <th className="py-3 px-2">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rankings.map((player) => (
-                  <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
-                    <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                      {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
-                    </td>
-                    <td className="py-3 px-2">{player.name}</td>
-                    <td className="py-3 px-2">{player.number}</td>
-                    <td className="py-3 px-2 font-mono">{player.composite_score.toFixed(2)}</td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-3 px-2">Rank</th>
+                    <th className="py-3 px-2">Name</th>
+                    <th className="py-3 px-2">Jersey #</th>
+                    <th className="py-3 px-2">Overall Score</th>
+                    <th className="py-3 px-2 text-center">40M Dash</th>
+                    <th className="py-3 px-2 text-center">Vertical</th>
+                    <th className="py-3 px-2 text-center">Catching</th>
+                    <th className="py-3 px-2 text-center">Throwing</th>
+                    <th className="py-3 px-2 text-center">Agility</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rankings.map((player) => {
+                    // Calculate individual drill rankings
+                    const drillRankings = {};
+                    DRILLS.forEach(drill => {
+                      const drillRanks = rankings
+                        .filter(p => p[drill.key] != null)
+                        .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
+                        .sort((a, b) => b.score - a.score);
+                      const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
+                      drillRankings[drill.key] = rank > 0 ? rank : null;
+                    });
+
+                    return (
+                      <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
+                        <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
+                          {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
+                        </td>
+                        <td className="py-3 px-2">{player.name}</td>
+                        <td className="py-3 px-2">{player.number}</td>
+                        <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
+                        {DRILLS.map(drill => (
+                          <td key={drill.key} className="py-3 px-2 text-center">
+                            {player[drill.key] != null ? (
+                              <div className="flex flex-col">
+                                <span className="font-mono text-sm">{player[drill.key]}</span>
+                                <span className="text-xs text-gray-500">
+                                  #{drillRankings[drill.key] || '-'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

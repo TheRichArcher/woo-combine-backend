@@ -305,7 +305,13 @@ def get_rankings(
                 "player_id": player.id,
                 "name": player_data.get("name"),
                 "number": player_data.get("number"),
-                "composite_score": composite_score
+                "composite_score": composite_score,
+                # Include individual drill scores
+                "40m_dash": player_data.get("40m_dash"),
+                "vertical_jump": player_data.get("vertical_jump"), 
+                "catching": player_data.get("catching"),
+                "throwing": player_data.get("throwing"),
+                "agility": player_data.get("agility")
             })
         ranked.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
         for idx, player in enumerate(ranked, start=1):
