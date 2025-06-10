@@ -1,6 +1,9 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function WelcomeContent({ variant = 'default' }) {
+  const navigate = useNavigate();
+  
   const getContent = () => {
     switch (variant) {
       case 'mojo-style':
@@ -36,7 +39,7 @@ export default function WelcomeContent({ variant = 'default' }) {
       </p>
       <button
         className="bg-cyan-700 hover:bg-cyan-800 text-white text-xl font-semibold px-10 py-4 rounded-lg shadow-lg mb-8 transition-colors duration-150"
-        onClick={() => window.location.assign("/signup")}
+                    onClick={() => navigate("/signup")}
       >
         {content.buttonText}
       </button>

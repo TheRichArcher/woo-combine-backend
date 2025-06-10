@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 
 // Simple feature flags system - in production this could be from a service like LaunchDarkly
@@ -22,6 +22,7 @@ const useFeatureFlags = () => {
 };
 
 export default function Welcome() {
+  const navigate = useNavigate();
   const { welcomeVariant } = useFeatureFlags();
   
   const getContent = () => {
@@ -78,7 +79,7 @@ export default function Welcome() {
           {/* Primary CTA Button */}
           <button
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] mb-6"
-            onClick={() => window.location.assign("/signup")}
+            onClick={() => navigate("/signup")}
           >
             {content.buttonText}
           </button>

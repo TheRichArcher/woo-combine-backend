@@ -95,8 +95,8 @@ export default function SelectRole() {
       }, { merge: true });
       console.log('[SelectRole] Successfully wrote user doc for UID:', refreshedUser.uid);
       await refreshedUser.getIdToken(true);
-      // Force a reload so AuthContext picks up the new Firestore doc and role
-      window.location.replace("/dashboard");
+      // Use React Router navigation instead of page reload to prevent flashing
+      navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.message || "Failed to save role.");
       console.error("🔥 Firestore write failed in SelectRole for UID:", refreshedUser?.uid, err);

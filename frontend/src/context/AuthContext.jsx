@@ -51,14 +51,32 @@ export function AuthProvider({ children }) {
     console.log('[AuthContext] Starting background initialization...');
     
     try {
-      // Check user role in Firestore
+      // Check user role in Firestore with retries for immediate post-signup scenarios
       console.log('[AuthContext] Checking role in Firestore...');
       const db = getFirestore();
       const docRef = doc(db, "users", firebaseUser.uid);
-      const snap = await getDoc(docRef);
+      
+      let snap;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      // Retry logic for role check (handles cases where role was just set)
+      while (retryCount < maxRetries) {
+        snap = await getDoc(docRef);
+        
+        if (snap.exists() && snap.data().role) {
+          break; // Role found, exit retry loop
+        }
+        
+        retryCount++;
+        if (retryCount < maxRetries) {
+          console.log(`[AuthContext] Role not found, retry ${retryCount}/${maxRetries} in 1s...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
       
       if (!snap.exists() || !snap.data().role) {
-        console.log('[AuthContext] No role found, redirecting to select-role');
+        console.log('[AuthContext] No role found after retries, redirecting to select-role');
         setUserRole(null);
         setLeagues([]);
         setRole(null);
