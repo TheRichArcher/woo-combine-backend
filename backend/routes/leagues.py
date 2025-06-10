@@ -48,21 +48,37 @@ def get_my_leagues(current_user=Depends(get_current_user)):
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
         # Check membership with individual timeouts for each league
+        logging.info(f"🔍 Checking membership for user {user_id} in {len(all_leagues)} leagues")
+        
         for league in all_leagues:
             try:
+                league_id = league.id
+                league_name = league.to_dict().get("name", "Unknown")
+                
+                logging.info(f"  📋 Checking league: {league_name} (ID: {league_id})")
+                
                 member_ref = league.reference.collection("members").document(user_id)
                 # Add timeout to each membership check to prevent hanging
                 member_doc = execute_with_timeout(
                     lambda: member_ref.get(),
                     timeout=2  # 2 second timeout per membership check
                 )
+                
                 if member_doc.exists:
+                    member_data = member_doc.to_dict()
+                    role = member_data.get("role", "unknown")
+                    
                     league_data = league.to_dict()
-                    league_data["id"] = league.id
-                    league_data["role"] = member_doc.to_dict().get("role")
+                    league_data["id"] = league_id
+                    league_data["role"] = role
                     leagues.append(league_data)
+                    
+                    logging.info(f"  ✅ Found membership: {league_name} (role: {role})")
+                else:
+                    logging.info(f"  ❌ No membership found in: {league_name}")
+                    
             except Exception as e:
-                logging.warning(f"Error checking membership for league {league.id}: {e}")
+                logging.warning(f"  ⚠️ Error checking membership for league {league.id}: {e}")
                 continue
                     
         if not leagues:
@@ -100,16 +116,46 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
             timeout=20
         )
         
-        # Add timeout protection to member creation
-        execute_with_timeout(
-            lambda: league_ref.collection("members").document(user_id).set({
+        # Add timeout protection to member creation with detailed logging
+        try:
+            member_ref = league_ref.collection("members").document(user_id)
+            member_data = {
                 "role": "organizer",
                 "joined_at": datetime.utcnow().isoformat(),
-            }),
-            timeout=20
-        )
+                "email": current_user.get("email"),
+                "name": current_user.get("name", "Unknown")
+            }
+            
+            execute_with_timeout(
+                lambda: member_ref.set(member_data),
+                timeout=20
+            )
+            
+            logging.info(f"✅ Member document created for user {user_id} in league {league_ref.id}")
+            
+            # Verify the membership was created successfully
+            verify_member = execute_with_timeout(
+                lambda: member_ref.get(),
+                timeout=10
+            )
+            
+            if verify_member.exists:
+                logging.info(f"✅ Member document verified for user {user_id} in league {league_ref.id}")
+            else:
+                logging.error(f"❌ Member document verification FAILED for user {user_id} in league {league_ref.id}")
+                raise HTTPException(status_code=500, detail="Failed to verify league membership creation")
+                
+        except Exception as e:
+            logging.error(f"❌ Failed to create membership for user {user_id} in league {league_ref.id}: {str(e)}")
+            # Clean up the league if membership creation fails
+            try:
+                league_ref.delete()
+                logging.info(f"🧹 Cleaned up league {league_ref.id} due to membership creation failure")
+            except:
+                pass
+            raise HTTPException(status_code=500, detail=f"Failed to create league membership: {str(e)}")
         
-        logging.info(f"League created with id {league_ref.id} by user {user_id}")
+        logging.info(f"🎉 League created with id {league_ref.id} by user {user_id} with verified membership")
         return {"league_id": league_ref.id}
         
     except HTTPException:

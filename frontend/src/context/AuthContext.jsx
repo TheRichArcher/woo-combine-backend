@@ -70,45 +70,62 @@ export function AuthProvider({ children }) {
       setUserRole(userRole);
       console.log('[AuthContext] Role found:', userRole);
 
-      // Fetch leagues in background
+      // Fetch leagues in background with retry logic for race conditions
       console.log('[AuthContext] Fetching leagues in background...');
+      let userLeagues = [];
+      
       try {
+        // First attempt
         const res = await api.get(`/leagues/me`);
-        const userLeagues = res.data.leagues || [];
+        userLeagues = res.data.leagues || [];
         setLeagues(userLeagues);
         
-        // Set up selected league and role
-        let targetLeagueId = selectedLeagueId;
-        
-        if (userLeagues.length > 0) {
-          // If no league selected or selected league doesn't exist, use first available
-          if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
-            targetLeagueId = userLeagues[0].id;
-          }
-          
-          setSelectedLeagueId(targetLeagueId);
-          localStorage.setItem('selectedLeagueId', targetLeagueId);
-          
-          const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
-          setRole(selectedLeague?.role || null);
-        } else {
-          console.log('[AuthContext] User has no leagues yet (normal for new users)');
-          setSelectedLeagueId('');
-          setRole(null);
-          localStorage.removeItem('selectedLeagueId');
-        }
       } catch (error) {
-        console.log('[AuthContext] League fetch error:', error.response?.status, error.response?.data?.detail);
         if (error.response?.status === 404) {
-          console.log('[AuthContext] User has no leagues yet (normal for new users)');
-          setLeagues([]);
-          setSelectedLeagueId('');
-          setRole(null);
-          localStorage.removeItem('selectedLeagueId');
+          // 404 could be a race condition - retry after short delay
+          console.log('[AuthContext] League fetch returned 404, retrying after delay (possible race condition)...');
+          
+          try {
+            // Wait 2 seconds for Firestore consistency
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const retryRes = await api.get(`/leagues/me`);
+            userLeagues = retryRes.data.leagues || [];
+            setLeagues(userLeagues);
+            console.log('[AuthContext] Retry successful, found leagues:', userLeagues.length);
+            
+          } catch (retryError) {
+            if (retryError.response?.status === 404) {
+              console.log('[AuthContext] User confirmed to have no leagues after retry');
+              userLeagues = [];
+              setLeagues([]);
+            } else {
+              throw retryError; // Re-throw non-404 errors
+            }
+          }
         } else {
-          console.error('[AuthContext] Error fetching leagues:', error);
-          setLeagues([]);
+          throw error; // Re-throw non-404 errors
         }
+      }
+        
+      // Set up selected league and role
+      let targetLeagueId = selectedLeagueId;
+      
+      if (userLeagues.length > 0) {
+        // If no league selected or selected league doesn't exist, use first available
+        if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
+          targetLeagueId = userLeagues[0].id;
+        }
+        
+        setSelectedLeagueId(targetLeagueId);
+        localStorage.setItem('selectedLeagueId', targetLeagueId);
+        
+        const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
+        setRole(selectedLeague?.role || null);
+      } else {
+        console.log('[AuthContext] User has no leagues yet (normal for new users)');
+        setSelectedLeagueId('');
+        setRole(null);
+        localStorage.removeItem('selectedLeagueId');
       }
 
       // Navigation logic - only redirect from onboarding routes
