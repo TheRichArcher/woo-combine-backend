@@ -398,158 +398,170 @@ export default function Players() {
   }, {});
 
   if (!selectedEvent || !selectedEvent.id) return (
-    <div className="flex flex-col items-center justify-center min-h-[40vh]">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-        <h2 className="text-2xl font-bold text-cmf-primary mb-4">No event selected</h2>
-        <p className="text-cmf-secondary mb-4">
-          {userRole === "organizer"
-            ? "Select or create an event to manage players and drills."
-            : "Ask your league operator to assign you to an event."}
-        </p>
-        <div className="mb-4">
-          <EventSelector />
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No event selected</h2>
+          <p className="text-cmf-secondary mb-4">
+            {userRole === "organizer"
+              ? "Select or create an event to manage players and drills."
+              : "Ask your league operator to assign you to an event."}
+          </p>
+          <div className="mb-4">
+            <EventSelector />
+          </div>
         </div>
       </div>
     </div>
   );
-  if (loading) return <div>Loading players...</div>;
+  if (loading) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div>Loading players...</div>
+    </div>
+  );
   if (error) {
     if (error.includes('422')) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[40vh]">
-          <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-            <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found</h2>
-            <p className="text-cmf-secondary mb-4">Use the Admin tab to upload or import players to get started.</p>
-            <a href="/admin" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Go to Admin</a>
+        <div className="min-h-screen bg-gray-50">
+          <div className="flex flex-col items-center justify-center min-h-[40vh]">
+            <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+              <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found</h2>
+              <p className="text-cmf-secondary mb-4">Use the Admin tab to upload or import players to get started.</p>
+              <a href="/admin" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Go to Admin</a>
+            </div>
           </div>
         </div>
       );
     }
-    return <div className="text-red-500">Error: {error}</div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-500">Error: {error}</div>
+      </div>
+    );
   }
   if (players.length === 0) return (
-    <div className="flex flex-col items-center justify-center min-h-[40vh]">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-        <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found yet</h2>
-        <p className="text-cmf-secondary mb-4">You can upload a CSV or add them manually to get started.</p>
-        <div className="flex gap-4 justify-center">
-          <a href="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
-          <a href="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found yet</h2>
+          <p className="text-cmf-secondary mb-4">You can upload a CSV or add them manually to get started.</p>
+          <div className="flex gap-4 justify-center">
+            <a href="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
+            <a href="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
+          </div>
         </div>
       </div>
     </div>
   );
 
   return (
-    <>
-      <div className="max-w-2xl mx-auto py-8">
+    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
-        <div className="mb-4 text-lg font-semibold flex items-center gap-2">
-          <span role="img" aria-label="event">🏷️</span>
-          Managing: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}
-        </div>
-        <h1 className="text-3xl font-extrabold mb-6 text-center text-cmf-primary drop-shadow">Woo-Combine: Players</h1>
-        {Object.keys(grouped).sort().map(ageGroup => {
-          const sortedPlayers = grouped[ageGroup].slice().sort((a, b) => {
-            // Handle null composite scores - put null values at the end
-            const scoreA = a.composite_score || 0;
-            const scoreB = b.composite_score || 0;
-            return scoreB - scoreA;
-          });
-          return (
-            <div key={ageGroup} className="mb-8">
-              <h2 className="text-xl font-bold mb-2 text-cmf-secondary">Age Group: {ageGroup}</h2>
-              <div className="bg-white rounded-xl shadow-lg p-4">
-                <table className="w-full text-left text-sm">
-                  <thead>
-                    <tr>
-                      <th className="py-2 px-2">Rank</th>
-                      <th className="py-2 px-2">Name</th>
-                      <th className="py-2 px-2">Player #</th>
-                      <th className="py-2 px-2">Composite Score</th>
-                      <th className="py-2 px-2">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedPlayers.map((player, index) => (
-                      <React.Fragment key={player.id}>
-                        <tr className="border-t hover:bg-gray-50">
-                          <td className={`py-2 px-2 font-bold ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
-                            {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
-                          </td>
-                          <td className="py-2 px-2">{player.name}</td>
-                          <td className="py-2 px-2">{player.number || 'N/A'}</td>
-                          <td className="py-2 px-2 font-mono">
-                            {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
-                          </td>
-                          <td className="py-2 px-2">
-                            <div className="flex gap-2 flex-wrap">
-                              <button
-                                onClick={() => setSelectedPlayer(player)}
-                                className="text-blue-600 underline text-sm font-bold hover:text-blue-800 transition"
-                                disabled={!player.composite_score}
-                              >
-                                View Stats
-                              </button>
-                              {userRole === 'organizer' && (
-                                <>
+        <OnboardingCallout />
+        {/* Main Heading */}
+        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">WooCombine: Players</div>
+        <h1 className="text-lg font-semibold text-gray-900 mb-4">
+          Managing: {selectedEvent.name} – {new Date(selectedEvent.event_date).toLocaleDateString()}
+        </h1>
+
+                 {/* Player Stats Modals */}
+         {selectedPlayer && (
+           <PlayerStatsModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+         )}
+         {editingPlayer && (
+           <EditPlayerModal
+             player={editingPlayer}
+             onClose={() => setEditingPlayer(null)}
+             onUpdate={fetchPlayers}
+           />
+         )}
+
+        {/* Age Group Sections */}
+        {Object.keys(grouped).length === 0 ? (
+          <div className="text-center py-8 text-gray-500">No players found for this event.</div>
+        ) : (
+          Object.entries(grouped)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([ageGroup, ageGroupPlayers]) => {
+              // Sort by composite_score descending, then by name
+              const sortedPlayers = ageGroupPlayers.sort((a, b) => {
+                if (a.composite_score !== b.composite_score) {
+                  return (b.composite_score || 0) - (a.composite_score || 0);
+                }
+                return a.name.localeCompare(b.name);
+              });
+
+              return (
+                <div key={ageGroup} className="bg-white rounded-2xl shadow-sm border border-gray-200 py-4 px-5 mb-6">
+                  <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2">
+                    <span>Age Group: {ageGroup}</span>
+                  </div>
+                  <div className="overflow-hidden rounded-lg border border-gray-200">
+                    <table className="min-w-full bg-white">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player #</th>
+                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Composite Score</th>
+                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {sortedPlayers.map((player, index) => (
+                          <React.Fragment key={player.id}>
+                            <tr className="border-t hover:bg-gray-50">
+                              <td className={`py-2 px-2 font-bold ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
+                                {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                              </td>
+                              <td className="py-2 px-2">{player.name}</td>
+                              <td className="py-2 px-2">{player.number || 'N/A'}</td>
+                              <td className="py-2 px-2 font-mono">
+                                {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                              </td>
+                              <td className="py-2 px-2">
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => setSelectedPlayer(player)}
+                                    className="text-blue-600 hover:text-blue-900 text-sm underline"
+                                    disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                                  >
+                                    View Stats
+                                  </button>
                                   <button
                                     onClick={() => setEditingPlayer(player)}
-                                    className="text-green-600 underline text-sm font-bold hover:text-green-800 transition"
+                                    className="text-green-600 hover:text-green-900 text-sm underline"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => toggleForm(player.id)}
-                                    className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
+                                    className="text-cyan-600 hover:text-cyan-900 text-sm underline"
                                   >
-                                    {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
+                                    Add Result
                                   </button>
-                                </>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                        {expandedPlayerIds[player.id] && (
-                          <tr>
-                            <td colSpan={5} className="bg-cmf-light">
-                              {userRole === 'organizer' && (
-                                <DrillInputForm
-                                  playerId={player.id}
-                                  onSuccess={fetchPlayers}
-                                />
-                              )}
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          );
-        })}
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Drill Entry Form Row */}
+                            {expandedPlayerIds[player.id] && (
+                                                             <tr className="bg-blue-50">
+                                 <td colSpan="5" className="py-4 px-2">
+                                   <DrillEntryForm player={player} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                                 </td>
+                               </tr>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              );
+            })
+        )}
       </div>
-
-      {/* Player Details Modal */}
-      {selectedPlayer && (
-        <PlayerDetailsModal 
-          player={selectedPlayer} 
-          allPlayers={players}
-          onClose={() => setSelectedPlayer(null)} 
-        />
-      )}
-
-      {/* Edit Player Modal */}
-      {editingPlayer && (
-        <EditPlayerModal 
-          player={editingPlayer} 
-          allPlayers={players}
-          onClose={() => setEditingPlayer(null)}
-          onSave={fetchPlayers}
-        />
-      )}
-    </>
+    </div>
   );
 } 

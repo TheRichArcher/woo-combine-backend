@@ -324,10 +324,12 @@ export default function AdminTools() {
 
   if (userRole !== 'organizer') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Admin Access Required</h2>
-          <p className="text-cmf-secondary">You do not have permission to view this page.<br/>Organizer access required.</p>
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Admin Access Required</h2>
+            <p className="text-cmf-secondary">You do not have permission to view this page.<br/>Organizer access required.</p>
+          </div>
         </div>
       </div>
     );
@@ -335,12 +337,14 @@ export default function AdminTools() {
 
   if (!selectedEvent || !selectedEvent.id) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[40vh]">
-        <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
-          <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
-          <p className="text-cmf-secondary mb-4">Before importing players, you'll need to select or create an event.</p>
-          <div className="mb-4">
-            <EventSelector />
+      <div className="min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
+          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
+            <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
+            <p className="text-cmf-secondary mb-4">Before importing players, you'll need to select or create an event.</p>
+            <div className="mb-4">
+              <EventSelector />
+            </div>
           </div>
         </div>
       </div>
@@ -348,7 +352,8 @@ export default function AdminTools() {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 mt-8">
+    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
       <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
         <EventSelector />
         {/* Player Upload Summary Badge */}
@@ -670,6 +675,7 @@ export default function AdminTools() {
             )}
           </div>
         )}
+      </div>
       </div>
     </div>
   );

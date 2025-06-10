@@ -4,6 +4,7 @@ import EventSelector from "../components/EventSelector";
 import EventJoinCode from "../components/EventJoinCode";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import WelcomeLayout from "../components/layouts/WelcomeLayout";
 
 export default function OnboardingEvent() {
   const navigate = useNavigate();
@@ -26,27 +27,35 @@ export default function OnboardingEvent() {
   // If showing join code, display that instead
   if (showJoinCode && createdEvent) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light px-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+      <WelcomeLayout
+        contentClassName="min-h-screen"
+        hideHeader={true}
+        showOverlay={false}
+      >
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
           <EventJoinCode event={createdEvent} league={selectedLeague} />
           <div className="mt-6 pt-4 border-t border-gray-200">
             <button
               onClick={handleContinueToAdmin}
-              className="bg-cmf-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-cmf-secondary transition w-full"
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
             >
               Continue to Import Players
             </button>
           </div>
         </div>
-      </div>
+      </WelcomeLayout>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light px-4">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
+    <WelcomeLayout
+      contentClassName="min-h-screen"
+      hideHeader={true}
+      showOverlay={false}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Select or Create an Event</h1>
-        <p className="mb-6 text-cmf-secondary">Choose an existing event or create a new combine event for your league.</p>
+        <p className="mb-6 text-gray-600">Choose an existing event or create a new combine event for your league.</p>
         <EventSelector onEventSelected={handleEventCreated} />
         
         {selectedEvent && (
@@ -56,13 +65,13 @@ export default function OnboardingEvent() {
             </p>
             <button
               onClick={handleContinueToAdmin}
-              className="bg-cmf-primary text-white px-6 py-3 rounded-lg font-semibold hover:bg-cmf-secondary transition w-full"
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
             >
               Continue to Import Players
             </button>
           </div>
         )}
       </div>
-    </div>
+    </WelcomeLayout>
   );
 } 

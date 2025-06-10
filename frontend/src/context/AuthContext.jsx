@@ -9,9 +9,10 @@ import { useLogout } from './logout';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  // Simplified state - single loading state for all checks
+  // Optimized state management with faster initial checks
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false); // New: faster auth check
   const [error, setError] = useState(null);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
@@ -19,42 +20,39 @@ export function AuthProvider({ children }) {
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
-  // Comprehensive initialization function that does ALL checks before showing UI
-  const initializeUser = async (firebaseUser) => {
-    console.log('[AuthContext] Starting comprehensive user initialization...');
+  // Fast initial auth check - just Firebase auth state
+  const quickAuthCheck = async (firebaseUser) => {
+    console.log('[AuthContext] Quick auth check for:', firebaseUser?.email);
+    
+    if (!firebaseUser) {
+      console.log('[AuthContext] No user, quick clear');
+      setUser(null);
+      setAuthChecked(true);
+      return false;
+    }
+
+    setUser(firebaseUser);
+    setAuthChecked(true);
+    
+    // Quick email verification check
+    if (!firebaseUser.emailVerified) {
+      console.log('[AuthContext] User not verified, redirecting quickly');
+      if (window.location.pathname !== '/verify-email') {
+        navigate('/verify-email');
+      }
+      return false;
+    }
+
+    return true; // User is authenticated and verified
+  };
+
+  // Comprehensive initialization - can run in background after quick check
+  const completeInitialization = async (firebaseUser) => {
+    console.log('[AuthContext] Starting background initialization...');
     
     try {
-      if (!firebaseUser) {
-        console.log('[AuthContext] No user, clearing state');
-        setUser(null);
-        setUserRole(null);
-        setLeagues([]);
-        setRole(null);
-        setSelectedLeagueId('');
-        localStorage.removeItem('selectedLeagueId');
-        setInitializing(false);
-        return;
-      }
-
-      // Force reload to get latest email verification status
-      await firebaseUser.reload();
-      setUser(firebaseUser);
-      
-      // Check email verification
-      if (!firebaseUser.emailVerified) {
-        console.log('[AuthContext] User not verified, redirecting to verify-email');
-        setUserRole(null);
-        setLeagues([]);
-        setRole(null);
-        setInitializing(false);
-        if (window.location.pathname !== '/verify-email') {
-          navigate('/verify-email');
-        }
-        return;
-      }
-
       // Check user role in Firestore
-      console.log('[AuthContext] User verified, checking role in Firestore...');
+      console.log('[AuthContext] Checking role in Firestore...');
       const db = getFirestore();
       const docRef = doc(db, "users", firebaseUser.uid);
       const snap = await getDoc(docRef);
@@ -64,7 +62,6 @@ export function AuthProvider({ children }) {
         setUserRole(null);
         setLeagues([]);
         setRole(null);
-        setInitializing(false);
         navigate("/select-role");
         return;
       }
@@ -73,8 +70,8 @@ export function AuthProvider({ children }) {
       setUserRole(userRole);
       console.log('[AuthContext] Role found:', userRole);
 
-      // Fetch leagues for users who have completed onboarding
-      console.log('[AuthContext] Fetching leagues...');
+      // Fetch leagues in background
+      console.log('[AuthContext] Fetching leagues in background...');
       try {
         const res = await api.get(`/leagues/me`);
         const userLeagues = res.data.leagues || [];
@@ -110,12 +107,11 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('selectedLeagueId');
         } else {
           console.error('[AuthContext] Error fetching leagues:', error);
-          // Don't fail initialization for league fetch errors
           setLeagues([]);
         }
       }
 
-      // All checks complete - now decide where to navigate
+      // Navigation logic - only redirect from onboarding routes
       const currentPath = window.location.pathname;
       const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
       
@@ -127,27 +123,41 @@ export function AuthProvider({ children }) {
       }
 
     } catch (error) {
-      console.error('[AuthContext] User initialization failed:', error);
+      console.error('[AuthContext] Background initialization failed:', error);
       setError(error);
-      // On error, still try to navigate to a safe route
       navigate("/select-role");
-    } finally {
-      console.log('[AuthContext] User initialization complete');
-      setInitializing(false);
     }
   };
 
-  // Single auth state listener that triggers comprehensive initialization
+  // Main auth state listener with optimized flow
   useEffect(() => {
-    console.log('[AuthContext] Setting up auth state listener');
+    console.log('[AuthContext] Setting up optimized auth state listener');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('[AuthContext] Auth state changed:', firebaseUser?.email, 'verified:', firebaseUser?.emailVerified);
-      setInitializing(true);
-      await initializeUser(firebaseUser);
+      
+      // Step 1: Quick auth check (shows UI faster)
+      const isAuthenticated = await quickAuthCheck(firebaseUser);
+      
+      if (!isAuthenticated) {
+        setInitializing(false); // Stop loading for unauthenticated/unverified users
+        return;
+      }
+
+      // Step 2: Complete initialization in background (user sees page faster)
+      try {
+        await completeInitialization(firebaseUser);
+      } catch (error) {
+        console.error('[AuthContext] Initialization error:', error);
+        setError(error);
+      } finally {
+        setInitializing(false); // Always stop loading
+      }
+      
     }, (err) => {
       console.error('[AuthContext] Auth state change error:', err);
       setError(err);
       setInitializing(false);
+      setAuthChecked(true);
     });
 
     return () => unsubscribe();
@@ -178,17 +188,31 @@ export function AuthProvider({ children }) {
     return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
   };
 
-  // Show single, consistent loading screen during ALL initialization
-  if (initializing) {
+  // Optimized loading screen - only show for true initialization, not quick auth checks
+  if (initializing && !authChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
           <div className="mt-4 text-gray-600">
-            Initializing WooCombine...
+            Loading WooCombine...
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            Checking authentication and loading your data
+            Checking authentication
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show lighter loading for background data loading (user can see page)
+  if (initializing && authChecked && user && user.emailVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-6 h-6 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
+          <div className="mt-3 text-gray-600">
+            Loading your data...
           </div>
         </div>
       </div>
