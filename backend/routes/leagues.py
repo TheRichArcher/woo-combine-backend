@@ -26,32 +26,30 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
     user_id = current_user["uid"]
     
-    try:
+    def _get_leagues_operation():
         # More efficient approach: Use user's document to track league memberships
         # This avoids the N+1 query problem of checking every league in the system
-        
-        # First, try to find leagues by looking for the user in members subcollections
-        # We'll use a collection group query which is much more efficient
         
         leagues = []
         
         # Use timeout-protected queries to prevent hanging
         leagues_ref = db.collection("leagues")
         
-        # Get leagues ordered by creation time (newest first) to include recently created leagues
+        # Get a smaller set of most recent leagues to check (much faster)
         all_leagues = execute_with_timeout(
-            lambda: list(leagues_ref.order_by("created_at", direction=Query.DESCENDING).limit(50).stream()),
-            timeout=10
+            lambda: list(leagues_ref.order_by("created_at", direction=Query.DESCENDING).limit(15).stream()),
+            timeout=5  # Shorter timeout for initial query
         )
         
         if not all_leagues:
             logging.warning(f"No leagues exist in system")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
-        # Check membership with individual timeouts for each league
+        # Check membership with individual timeouts for each league (with much shorter timeouts)
         logging.info(f"🔍 Checking membership for user {user_id} in {len(all_leagues)} leagues")
         
-        for league in all_leagues:
+        # Use concurrent checking to speed up the process
+        def check_league_membership(league):
             try:
                 league_id = league.id
                 league_name = league.to_dict().get("name", "Unknown")
@@ -59,10 +57,10 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                 logging.info(f"  📋 Checking league: {league_name} (ID: {league_id})")
                 
                 member_ref = league.reference.collection("members").document(user_id)
-                # Add timeout to each membership check to prevent hanging
+                # Much shorter timeout per membership check
                 member_doc = execute_with_timeout(
                     lambda: member_ref.get(),
-                    timeout=2  # 2 second timeout per membership check
+                    timeout=1  # 1 second timeout per membership check
                 )
                 
                 if member_doc.exists:
@@ -72,15 +70,22 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                     league_data = league.to_dict()
                     league_data["id"] = league_id
                     league_data["role"] = role
-                    leagues.append(league_data)
                     
                     logging.info(f"  ✅ Found membership: {league_name} (role: {role})")
+                    return league_data
                 else:
                     logging.info(f"  ❌ No membership found in: {league_name}")
+                    return None
                     
             except Exception as e:
                 logging.warning(f"  ⚠️ Error checking membership for league {league.id}: {e}")
-                continue
+                return None
+        
+        # Process leagues sequentially but with much shorter timeouts
+        for league in all_leagues:
+            result = check_league_membership(league)
+            if result:
+                leagues.append(result)
                     
         if not leagues:
             logging.warning(f"No leagues found for user {user_id}")
@@ -88,6 +93,11 @@ def get_my_leagues(current_user=Depends(get_current_user)):
             
         logging.info(f"Returning {len(leagues)} leagues for user {user_id}")
         return {"leagues": leagues}
+    
+    try:
+        # Wrap the entire operation in a 25-second timeout (well under frontend's 30s limit)
+        result = execute_with_timeout(_get_leagues_operation, timeout=25)
+        return result
         
     except HTTPException:
         raise
