@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { BrowserQRCodeReader } from '@zxing/browser';
+import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function JoinLeague() {
   const { user, addLeague } = useAuth();
@@ -83,16 +83,21 @@ export default function JoinLeague() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light relative">
+    <WelcomeLayout
+      contentClassName="min-h-[70vh]"
+      hideHeader={true}
+      showOverlay={false}
+    >
       {/* Floating QR Scan Button */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-cmf-primary text-white rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold hover:bg-cmf-secondary transition"
+        className="fixed bottom-6 right-6 z-50 bg-cyan-600 hover:bg-cyan-700 text-white rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold transition"
         onClick={() => setShowQrScanner(true)}
         aria-label="Scan QR to Join"
         style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}
       >
         <span role="img" aria-label="scan">📷</span> Scan QR to Join
       </button>
+      
       {/* QR Scanner Modal */}
       {showQrScanner && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
@@ -102,19 +107,36 @@ export default function JoinLeague() {
               <video ref={videoRef} className="w-full h-full rounded" style={{ objectFit: 'cover' }} />
             </div>
             {qrError && <div className="text-red-500 text-sm mb-2">{qrError}</div>}
-            <button className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold mt-2" onClick={() => setShowQrScanner(false)}>Cancel</button>
+            <button 
+              className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded font-semibold mt-2 transition" 
+              onClick={() => setShowQrScanner(false)}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <h1 className="text-2xl font-bold mb-4">Join a League</h1>
-        <div className="mb-2 text-cmf-secondary">Enter the code provided by your organizer to join their league.</div>
-        <div className="mb-4 text-xs text-cmf-secondary">Need help? Ask your organizer for a code or QR invite.</div>
+      
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <img
+            src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+            alt="Woo-Combine Logo"
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ objectFit: 'contain' }}
+          />
+        </div>
+
+        <h1 className="text-2xl font-bold mb-4 text-gray-900">Join a League</h1>
+        <div className="mb-2 text-gray-600">Enter the code provided by your organizer to join their league.</div>
+        <div className="mb-4 text-xs text-gray-500">Need help? Ask your organizer for a code or QR invite.</div>
+        
         {!success ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 w-full">
             <input
               type="text"
-              className="border rounded px-3 py-2 w-full text-center font-mono text-lg tracking-widest"
+              className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition text-center font-mono text-lg tracking-widest"
               placeholder="Enter Join Code"
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
@@ -123,7 +145,7 @@ export default function JoinLeague() {
             />
             <button
               type="submit"
-              className="bg-cmf-primary text-white px-4 py-2 rounded w-full font-semibold"
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               disabled={loading}
             >
               {loading ? 'Joining...' : 'Join League'}
@@ -131,11 +153,11 @@ export default function JoinLeague() {
             {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
           </form>
         ) : (
-          <div>
+          <div className="text-center w-full">
             <div className="mb-4 text-green-600 font-semibold">Successfully joined league!</div>
             <div className="mb-2">Welcome to <span className="font-bold">{leagueName}</span></div>
             <button
-              className="bg-cmf-primary text-white px-4 py-2 rounded font-semibold mt-4"
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] mt-4"
               onClick={() => navigate('/dashboard')}
             >
               Go to Dashboard
@@ -143,6 +165,6 @@ export default function JoinLeague() {
           </div>
         )}
       </div>
-    </div>
+    </WelcomeLayout>
   );
 } 

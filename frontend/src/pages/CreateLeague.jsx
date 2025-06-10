@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export function CreateLeagueForm({ onCreated }) {
   const { user, addLeague } = useAuth();
@@ -36,13 +37,23 @@ export function CreateLeagueForm({ onCreated }) {
   };
 
   return (
-    <div className="w-full max-w-md text-center mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Create a New League</h1>
+    <div className="w-full max-w-md text-center">
+      {/* Logo */}
+      <div className="text-center mb-6">
+        <img
+          src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+          alt="Woo-Combine Logo"
+          className="w-16 h-16 mx-auto mb-4"
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+
+      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New League</h1>
       <p className="text-gray-600 mb-6">Create your league and then set up your first combine event.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
-          className="border rounded px-3 py-2 w-full"
+          className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
           placeholder="League Name"
           value={leagueName}
           onChange={e => setLeagueName(e.target.value)}
@@ -50,7 +61,7 @@ export function CreateLeagueForm({ onCreated }) {
         />
         <button
           type="submit"
-          className="bg-cmf-primary text-white px-4 py-2 rounded w-full font-semibold"
+          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           disabled={loading}
         >
           {loading ? 'Creating...' : 'Create League & Continue'}
@@ -63,8 +74,14 @@ export function CreateLeagueForm({ onCreated }) {
 
 export default function CreateLeague() {
   return (
-    <div>
-      <CreateLeagueForm />
-    </div>
+    <WelcomeLayout
+      contentClassName="min-h-[70vh]"
+      hideHeader={true}
+      showOverlay={false}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+        <CreateLeagueForm />
+      </div>
+    </WelcomeLayout>
   );
 } 
