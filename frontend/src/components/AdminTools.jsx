@@ -492,7 +492,7 @@ export default function AdminTools() {
                         👥 View & Manage Players (Add Drill Results)
                       </a>
                       <a
-                        href="/coach"
+                        href="/coach-dashboard"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         📊 View Dashboard & Rankings
@@ -612,7 +612,7 @@ export default function AdminTools() {
                         👥 View & Manage Players (Add Drill Results)
                       </a>
                       <a
-                        href="/coach"
+                        href="/coach-dashboard"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         📊 View Dashboard & Rankings
