@@ -357,6 +357,8 @@ export default function Players() {
   const fetchPlayers = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
       console.log('[Players] No event/user/league selected, skipping player fetch.');
+      setPlayers([]); // Ensure players is always an array
+      setLoading(false);
       return;
     }
     setLoading(true);
@@ -391,9 +393,10 @@ export default function Players() {
   };
 
   // Group players by age_group
-  const grouped = players.reduce((acc, player) => {
-    acc[player.age_group] = acc[player.age_group] || [];
-    acc[player.age_group].push(player);
+  const grouped = (players || []).reduce((acc, player) => {
+    const ageGroup = player.age_group || 'Unassigned';
+    acc[ageGroup] = acc[ageGroup] || [];
+    acc[ageGroup].push(player);
     return acc;
   }, {});
 
@@ -467,13 +470,14 @@ export default function Players() {
 
                  {/* Player Stats Modals */}
          {selectedPlayer && (
-           <PlayerStatsModal player={selectedPlayer} onClose={() => setSelectedPlayer(null)} />
+           <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
          )}
          {editingPlayer && (
            <EditPlayerModal
              player={editingPlayer}
+             allPlayers={players}
              onClose={() => setEditingPlayer(null)}
-             onUpdate={fetchPlayers}
+             onSave={fetchPlayers}
            />
          )}
 
@@ -548,7 +552,7 @@ export default function Players() {
                             {expandedPlayerIds[player.id] && (
                                                              <tr className="bg-blue-50">
                                  <td colSpan="5" className="py-4 px-2">
-                                   <DrillEntryForm player={player} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                                   <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
                                  </td>
                                </tr>
                             )}
