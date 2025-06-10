@@ -12,17 +12,19 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-cmf-light">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md text-center">
-        <EventSelector />
-        <h1 className="text-3xl font-extrabold mb-4 text-cmf-primary drop-shadow">Welcome to Woo-Combine!</h1>
-        {user && <p className="mb-4">Logged in as <span className="font-mono">{user.email}</span></p>}
-        <button
-          onClick={handleLogout}
-          className="bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-4 py-2 rounded-lg shadow transition"
-        >
-          Log Out
-        </button>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+        <div className="bg-white rounded-2xl shadow-lg p-8 w-full text-center border-2 border-cmf-primary/30">
+          <EventSelector />
+          <h1 className="text-2xl font-bold mb-4 text-cmf-secondary">Welcome to Woo-Combine!</h1>
+          {user && <p className="mb-4 text-gray-600">Logged in as <span className="font-mono">{user.email}</span></p>}
+          <button
+            onClick={handleLogout}
+            className="bg-cmf-primary hover:bg-cmf-secondary text-white font-bold px-4 py-2 rounded-lg shadow transition"
+          >
+            Log Out
+          </button>
+        </div>
       </div>
     </div>
   );

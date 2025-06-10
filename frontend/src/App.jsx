@@ -19,6 +19,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
+import WelcomeLayout from "./components/layouts/WelcomeLayout";
 
 function App() {
   return (
@@ -97,9 +98,27 @@ function App() {
               />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
-              <Route path="/claim" element={<div className="min-h-screen flex items-center justify-center bg-gray-100"><div className="bg-white p-8 rounded-lg shadow-lg text-center"><h2 className="text-2xl font-bold mb-4">Account Claim</h2><p className="text-gray-600 mb-4">Account claiming feature coming soon.</p><Link to="/welcome" className="text-cyan-700 hover:underline">← Back to Welcome</Link></div></div>} />
-              <Route path="/create-league" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><CreateLeague /></div></RequireAuth>} />
-              <Route path="/join" element={<RequireAuth><Navigation /><div className="container mx-auto px-4 py-8"><JoinLeague /></div></RequireAuth>} />
+              <Route path="/claim" element={
+                <WelcomeLayout
+                  contentClassName="min-h-screen"
+                  hideHeader={true}
+                  showOverlay={false}
+                >
+                  <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+                    <img
+                      src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+                      alt="Woo-Combine Logo"
+                      className="w-16 h-16 mx-auto mb-6"
+                      style={{ objectFit: 'contain' }}
+                    />
+                    <h2 className="text-2xl font-bold mb-4">Account Claim</h2>
+                    <p className="text-gray-600 mb-6">Account claiming feature coming soon.</p>
+                    <Link to="/welcome" className="text-cyan-600 hover:text-cyan-700 underline font-semibold">← Back to Welcome</Link>
+                  </div>
+                </WelcomeLayout>
+              } />
+              <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
+              <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
               <Route path="/select-role" element={<SelectRole />} />
