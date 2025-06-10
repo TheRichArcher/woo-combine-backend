@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -355,7 +355,7 @@ export default function Players() {
     </div>
   );
 
-  const fetchPlayers = async () => {
+  const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
       console.log('[Players] No event/user/league selected, skipping player fetch.');
       setPlayers([]); // Ensure players is always an array
@@ -382,7 +382,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();

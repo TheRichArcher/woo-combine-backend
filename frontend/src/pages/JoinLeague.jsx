@@ -41,9 +41,8 @@ export default function JoinLeague() {
             try {
               const url = new URL(result.getText());
               code = url.searchParams.get('code') || url.pathname.split('/').pop();
-            } catch (urlError) {
+            } catch {
               // If URL parsing fails, treat the raw text as the code
-      
               code = result.getText();
             }
             setShowQrScanner(false);

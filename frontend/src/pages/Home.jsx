@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 
 export default function Home() {
-  const { user, userRole } = useAuth();
+  const { user: _user, userRole } = useAuth();
   const { selectedEvent } = useEvent();
   const navigate = useNavigate();
 

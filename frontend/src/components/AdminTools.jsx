@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
@@ -165,7 +165,7 @@ export default function AdminTools() {
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
 
   // Fetch player count for summary badge
-  const fetchPlayerCount = async () => {
+  const fetchPlayerCount = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setPlayerCountLoading(true);
     try {
@@ -185,7 +185,7 @@ export default function AdminTools() {
     } finally {
       setPlayerCountLoading(false);
     }
-  };
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayerCount();
