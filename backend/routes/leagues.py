@@ -27,76 +27,84 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     def _get_leagues_operation():
-        # More efficient approach: Use user's document to track league memberships
-        # This avoids the N+1 query problem of checking every league in the system
+        # PROPER SCALABLE SOLUTION: Use collection group query
+        # This scales to millions of leagues with O(log n) complexity
         
-        leagues = []
+        logging.info(f"🔍 Using collection group query to find memberships for user {user_id}")
         
-        # Use timeout-protected queries to prevent hanging
-        leagues_ref = db.collection("leagues")
+        # Single query to find ALL user memberships across ALL leagues
+        # This is how production apps handle this - one efficient query instead of N queries
+        members_query = db.collection_group('members').where('__name__', '==', user_id)
         
-        # Get a smaller set of most recent leagues to check (much faster)
-        all_leagues = execute_with_timeout(
-            lambda: list(leagues_ref.order_by("created_at", direction=Query.DESCENDING).limit(15).stream()),
-            timeout=5  # Shorter timeout for initial query
+        user_memberships = execute_with_timeout(
+            lambda: list(members_query.stream()),
+            timeout=10  # Single query with reasonable timeout
         )
         
-        if not all_leagues:
-            logging.warning(f"No leagues exist in system")
+        if not user_memberships:
+            logging.warning(f"No memberships found for user {user_id}")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
-        # Check membership with individual timeouts for each league (with much shorter timeouts)
-        logging.info(f"🔍 Checking membership for user {user_id} in {len(all_leagues)} leagues")
+        logging.info(f"🎯 Found {len(user_memberships)} memberships for user {user_id}")
         
-        # Use concurrent checking to speed up the process
-        def check_league_membership(league):
-            try:
-                league_id = league.id
-                league_name = league.to_dict().get("name", "Unknown")
+        # Get league IDs from membership document paths
+        league_ids = []
+        membership_roles = {}
+        
+        for membership in user_memberships:
+            # Extract league ID from document path: /leagues/{league_id}/members/{user_id}
+            league_id = membership.reference.parent.parent.id
+            member_data = membership.to_dict()
+            role = member_data.get("role", "unknown")
+            
+            league_ids.append(league_id)
+            membership_roles[league_id] = role
+            
+            logging.info(f"  ✅ Membership found in league {league_id} with role: {role}")
+        
+        # Batch get league details for all found memberships
+        # Much more efficient than individual gets
+        leagues = []
+        if league_ids:
+            logging.info(f"📦 Batch fetching details for {len(league_ids)} leagues")
+            
+            # Get league documents in batches (Firestore limit is 10 per batch)
+            batch_size = 10
+            for i in range(0, len(league_ids), batch_size):
+                batch_ids = league_ids[i:i + batch_size]
                 
-                logging.info(f"  📋 Checking league: {league_name} (ID: {league_id})")
+                # Create document references for batch get
+                league_refs = [db.collection("leagues").document(league_id) for league_id in batch_ids]
                 
-                member_ref = league.reference.collection("members").document(user_id)
-                # Much shorter timeout per membership check
-                member_doc = execute_with_timeout(
-                    lambda: member_ref.get(),
-                    timeout=1  # 1 second timeout per membership check
+                # Batch get with timeout protection
+                league_docs = execute_with_timeout(
+                    lambda: db.get_all(league_refs),
+                    timeout=5
                 )
                 
-                if member_doc.exists:
-                    member_data = member_doc.to_dict()
-                    role = member_data.get("role", "unknown")
-                    
-                    league_data = league.to_dict()
-                    league_data["id"] = league_id
-                    league_data["role"] = role
-                    
-                    logging.info(f"  ✅ Found membership: {league_name} (role: {role})")
-                    return league_data
-                else:
-                    logging.info(f"  ❌ No membership found in: {league_name}")
-                    return None
-                    
-            except Exception as e:
-                logging.warning(f"  ⚠️ Error checking membership for league {league.id}: {e}")
-                return None
+                # Process batch results
+                for league_doc in league_docs:
+                    if league_doc.exists:
+                        league_data = league_doc.to_dict()
+                        league_data["id"] = league_doc.id
+                        league_data["role"] = membership_roles[league_doc.id]
+                        leagues.append(league_data)
+                        
+                        logging.info(f"  📋 League details loaded: {league_data.get('name', 'Unknown')}")
         
-        # Process leagues sequentially but with much shorter timeouts
-        for league in all_leagues:
-            result = check_league_membership(league)
-            if result:
-                leagues.append(result)
-                    
         if not leagues:
-            logging.warning(f"No leagues found for user {user_id}")
+            logging.warning(f"No valid leagues found for user {user_id}")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
             
-        logging.info(f"Returning {len(leagues)} leagues for user {user_id}")
+        # Sort by creation date (newest first) for consistent ordering
+        leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        
+        logging.info(f"🎉 Returning {len(leagues)} leagues for user {user_id} (scalable solution)")
         return {"leagues": leagues}
     
     try:
-        # Wrap the entire operation in a 25-second timeout (well under frontend's 30s limit)
-        result = execute_with_timeout(_get_leagues_operation, timeout=25)
+        # Wrap the entire operation in a 15-second timeout (scalable solution should be much faster)
+        result = execute_with_timeout(_get_leagues_operation, timeout=15)
         return result
         
     except HTTPException:
