@@ -17,10 +17,10 @@ const REQUIRED_HEADERS = [
   "throwing",
   "agility",
 ];
-const AGE_GROUPS = ["7-8", "9-10", "11-12"];
 const SAMPLE_ROWS = [
   ["Jane Smith", "23", "9-10", "6.1", "19", "8", "7", "6.8"],
-  ["Alex Lee", "45", "11-12", "5.8", "21", "9", "8", "7.2"],
+  ["Alex Lee", "45", "U12", "5.8", "21", "9", "8", "7.2"],
+  ["Sam Jones", "7", "6U", "7.2", "15", "6", "6", "5.9"],
 ];
 
 function parseCsv(text) {
@@ -45,10 +45,8 @@ function validateRow(row, headers) {
     rowWarnings.push("Invalid number");
   }
   
-  // Only validate age group if it's provided
-  if (obj.age_group && obj.age_group.trim() !== "" && !["7-8", "9-10", "11-12"].includes(obj.age_group)) {
-    rowWarnings.push("Invalid age group");
-  }
+  // Age group is flexible - any text is allowed
+  // No validation needed for age group format
   
   // Only validate drill scores if they're provided (not empty)
   ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
@@ -241,7 +239,7 @@ export default function AdminTools() {
     const errors = [];
     if (!manualPlayer.name) errors.push("Missing name");
     if (manualPlayer.number && isNaN(Number(manualPlayer.number))) errors.push("Invalid number");
-    if (manualPlayer.age_group && !AGE_GROUPS.includes(manualPlayer.age_group)) errors.push("Invalid age group");
+    // Age group is flexible - any text is allowed
     ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
       if (manualPlayer[drill] && isNaN(Number(manualPlayer[drill]))) errors.push(`Invalid ${drill}`);
     });
@@ -523,10 +521,31 @@ export default function AdminTools() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" required />
                 <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
-                <select name="age_group" value={manualPlayer.age_group} onChange={handleManualChange} className="border rounded px-2 py-1">
-                  <option value="">Age Group</option>
-                  {AGE_GROUPS.map(g => <option key={g} value={g}>{g}</option>)}
-                </select>
+                <input 
+                  name="age_group" 
+                  value={manualPlayer.age_group} 
+                  onChange={handleManualChange} 
+                  placeholder="Age Group (e.g., 6U, U8, 7-8)" 
+                  className="border rounded px-2 py-1"
+                  list="manual-age-group-suggestions"
+                />
+                <datalist id="manual-age-group-suggestions">
+                  <option value="6U" />
+                  <option value="U6" />
+                  <option value="8U" />
+                  <option value="U8" />
+                  <option value="10U" />
+                  <option value="U10" />
+                  <option value="12U" />
+                  <option value="U12" />
+                  <option value="5-6" />
+                  <option value="7-8" />
+                  <option value="9-10" />
+                  <option value="11-12" />
+                  <option value="13-14" />
+                  <option value="15-16" />
+                  <option value="17-18" />
+                </datalist>
                 <label className="flex items-center gap-1">
                   <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1 flex-1" />
                   <span className="cursor-pointer" title={drillTip}>ℹ️</span>

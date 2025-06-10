@@ -23,7 +23,7 @@ const DRILL_WEIGHTS = {
 };
 
 // Edit Player Modal Component
-function EditPlayerModal({ player, onClose, onSave }) {
+function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: player?.name || '',
     number: player?.number || '',
@@ -31,6 +31,13 @@ function EditPlayerModal({ player, onClose, onSave }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  // Get existing age groups from all players for suggestions
+  const existingAgeGroups = [...new Set(
+    allPlayers
+      .map(p => p.age_group)
+      .filter(ag => ag && ag.trim() !== '')
+  )].sort();
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -50,7 +57,7 @@ function EditPlayerModal({ player, onClose, onSave }) {
       const updateData = {
         name: formData.name.trim(),
         number: formData.number ? parseInt(formData.number) : null,
-        age_group: formData.age_group || null
+        age_group: formData.age_group.trim() || null
       };
 
       await api.put(`/players/${player.id}?event_id=${player.event_id}`, updateData);
@@ -121,25 +128,44 @@ function EditPlayerModal({ player, onClose, onSave }) {
             />
           </div>
 
-          {/* Age Group */}
+          {/* Age Group - Flexible Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Age Group
             </label>
-            <select
+            <input
+              type="text"
+              list="age-group-suggestions"
               value={formData.age_group}
               onChange={(e) => handleInputChange('age_group', e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-            >
-              <option value="">Select Age Group</option>
-              <option value="6-7">6-7</option>
-              <option value="8-9">8-9</option>
-              <option value="10-11">10-11</option>
-              <option value="12-13">12-13</option>
-              <option value="14-15">14-15</option>
-              <option value="16-17">16-17</option>
-              <option value="18+">18+</option>
-            </select>
+              placeholder="e.g., 6U, U8, 7-8, 9-10 years old"
+            />
+            {/* Datalist for suggestions based on existing age groups */}
+            <datalist id="age-group-suggestions">
+              {existingAgeGroups.map(ageGroup => (
+                <option key={ageGroup} value={ageGroup} />
+              ))}
+              {/* Common format suggestions */}
+              <option value="6U" />
+              <option value="U6" />
+              <option value="8U" />
+              <option value="U8" />
+              <option value="10U" />
+              <option value="U10" />
+              <option value="12U" />
+              <option value="U12" />
+              <option value="5-6" />
+              <option value="7-8" />
+              <option value="9-10" />
+              <option value="11-12" />
+              <option value="13-14" />
+              <option value="15-16" />
+              <option value="17-18" />
+            </datalist>
+            <p className="text-xs text-gray-500 mt-1">
+              Type any format your league uses (6U, U8, 7-8 years old, etc.)
+            </p>
           </div>
 
           {/* Action Buttons */}
@@ -519,6 +545,7 @@ export default function Players() {
       {editingPlayer && (
         <EditPlayerModal 
           player={editingPlayer} 
+          allPlayers={players}
           onClose={() => setEditingPlayer(null)}
           onSave={fetchPlayers}
         />
