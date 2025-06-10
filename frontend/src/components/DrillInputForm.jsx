@@ -12,7 +12,7 @@ const DRILL_TYPES = [
 ];
 
 export default function DrillInputForm({ playerId, onSuccess }) {
-  const { user, selectedLeagueId } = useAuth();
+  const { user: _user, selectedLeagueId: _selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const [type, setType] = useState("");
   const [value, setValue] = useState("");

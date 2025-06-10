@@ -62,7 +62,7 @@ function validateRow(row, headers) {
 
 export default function AdminTools() {
   const { user, role, userRole, selectedLeagueId, leagues } = useAuth();
-  const { selectedEvent, setEvents, setSelectedEvent } = useEvent();
+  const { selectedEvent } = useEvent();
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
@@ -104,8 +104,6 @@ export default function AdminTools() {
   const league = leagues?.find(l => l.id === selectedLeagueId);
   const joinCode = league?.id || '';
   const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
-
-  const [showCreateEvent, setShowCreateEvent] = useState(false);
 
   // Scroll to player upload section if hash is present or changes
   useEffect(() => {
@@ -163,11 +161,8 @@ export default function AdminTools() {
     reader.readAsText(file);
   };
 
-  const allRowsValid = csvErrors.length === 0 && csvRows.length > 0 && csvRows.every(r => r.warnings.length === 0);
-
   // Allow upload if we have valid players (even with missing drill data)
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
-  const onlyMinorWarnings = csvRows.every(r => r.warnings.every(w => !w.includes("Missing name")));
 
   // Fetch player count for summary badge
   const fetchPlayerCount = async () => {
@@ -194,7 +189,7 @@ export default function AdminTools() {
 
   useEffect(() => {
     fetchPlayerCount();
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, fetchPlayerCount]);
 
   // Call this after upload or manual add
   const handlePostUploadSuccess = () => {

@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
-  const { selectedLeagueId, user } = useAuth();
+  const { selectedLeagueId, user: _user } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");

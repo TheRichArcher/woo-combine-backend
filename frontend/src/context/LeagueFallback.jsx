@@ -24,8 +24,9 @@ export default function LeagueFallback() {
     setFeedback("Redirecting to Join League...");
     try {
       navigate('/join');
-    } catch (_) {
+    } catch (error) {
       setFeedback("Navigation error. Please try again.");
+      console.error('[LeagueFallback] Join navigation error:', error);
     }
   };
 
@@ -34,8 +35,9 @@ export default function LeagueFallback() {
     try {
       await logout();
       navigate('/welcome');
-    } catch (_) {
+    } catch (error) {
       setFeedback("Logout error. Please refresh the page.");
+      console.error('[LeagueFallback] Logout error:', error);
     }
   };
 

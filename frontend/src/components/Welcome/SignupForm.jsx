@@ -13,7 +13,7 @@ export default function SignupForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const { user, loading, error } = useAuth();
+  const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
