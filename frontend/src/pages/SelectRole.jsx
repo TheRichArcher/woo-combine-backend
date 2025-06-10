@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
@@ -30,7 +30,7 @@ export default function SelectRole() {
         await auth.currentUser?.reload();
         const refreshedUser = auth.currentUser;
         if (!refreshedUser) return;
-        if (process.env.NODE_ENV === "development") {
+        if (import.meta.env.DEV) {
           console.log("[SelectRole] Refreshed user:", refreshedUser);
         }
         if (!refreshedUser.emailVerified) {

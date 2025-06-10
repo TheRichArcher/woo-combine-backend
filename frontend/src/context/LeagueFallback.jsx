@@ -15,8 +15,8 @@ export default function LeagueFallback() {
     
     try {
       navigate('/create-league');
-    } catch (error) {
-      setFeedback(`Navigation error: ${error.message}`);
+    } catch (err) {
+      setFeedback(`Navigation error: ${err.message}`);
     }
   };
   
@@ -24,7 +24,7 @@ export default function LeagueFallback() {
     setFeedback("Redirecting to Join League...");
     try {
       navigate('/join');
-    } catch (error) {
+    } catch (_) {
       setFeedback("Navigation error. Please try again.");
     }
   };
@@ -34,7 +34,7 @@ export default function LeagueFallback() {
     try {
       await logout();
       navigate('/welcome');
-    } catch (error) {
+    } catch (_) {
       setFeedback("Logout error. Please refresh the page.");
     }
   };
