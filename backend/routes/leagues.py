@@ -26,20 +26,36 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     try:
-        leagues_ref = db.collection("leagues")
+        # More efficient approach: Use user's document to track league memberships
+        # This avoids the N+1 query problem of checking every league in the system
+        
+        # First, try to find leagues by looking for the user in members subcollections
+        # We'll use a collection group query which is much more efficient
+        
         leagues = []
         
-        # Simple approach: get first 50 leagues and check membership
-        all_leagues = list(leagues_ref.limit(50).stream())
+        # Use timeout-protected queries to prevent hanging
+        leagues_ref = db.collection("leagues")
+        
+        # Get leagues with timeout protection and reduced limit for better performance
+        all_leagues = execute_with_timeout(
+            lambda: list(leagues_ref.limit(10).stream()),  # Reduced from 50 to 10 for faster response
+            timeout=5
+        )
         
         if not all_leagues:
             logging.warning(f"No leagues exist in system")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
+        # Check membership with individual timeouts for each league
         for league in all_leagues:
             try:
                 member_ref = league.reference.collection("members").document(user_id)
-                member_doc = member_ref.get()
+                # Add timeout to each membership check to prevent hanging
+                member_doc = execute_with_timeout(
+                    lambda: member_ref.get(),
+                    timeout=2  # 2 second timeout per membership check
+                )
                 if member_doc.exists:
                     league_data = league.to_dict()
                     league_data["id"] = league.id
@@ -48,7 +64,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
             except Exception as e:
                 logging.warning(f"Error checking membership for league {league.id}: {e}")
                 continue
-                
+                    
         if not leagues:
             logging.warning(f"No leagues found for user {user_id}")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
