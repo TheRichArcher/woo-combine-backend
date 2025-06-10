@@ -6,6 +6,7 @@ import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
+import { Link } from 'react-router-dom';
 
 const REQUIRED_HEADERS = [
   "name",
@@ -193,8 +194,7 @@ export default function AdminTools() {
 
   useEffect(() => {
     fetchPlayerCount();
-    // eslint-disable-next-line
-  }, [selectedEvent]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   // Call this after upload or manual add
   const handlePostUploadSuccess = () => {
@@ -490,18 +490,18 @@ export default function AdminTools() {
                       >
                         📂 Upload More Players (CSV or Manual)
                       </button>
-                      <a
-                        href="/players"
+                      <Link
+                        to="/players"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         👥 View & Manage Players (Add Drill Results)
-                      </a>
-                      <a
-                        href="/coach-dashboard"
+                      </Link>
+                      <Link
+                        to="/coach-dashboard"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         📊 View Dashboard & Rankings
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -610,18 +610,18 @@ export default function AdminTools() {
                       >
                         📂 Upload Players via CSV
                       </button>
-                      <a
-                        href="/players"
+                      <Link
+                        to="/players"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         👥 View & Manage Players (Add Drill Results)
-                      </a>
-                      <a
-                        href="/coach-dashboard"
+                      </Link>
+                      <Link
+                        to="/coach-dashboard"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
                         📊 View Dashboard & Rankings
-                      </a>
+                      </Link>
                     </div>
                   </div>
                 </div>

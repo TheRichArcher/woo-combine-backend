@@ -59,7 +59,7 @@ export default function Welcome() {
         {/* Logo */}
         <div className="text-center mb-6">
           <img
-            src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+            src="/favicon/woocombine-logo.png"
             alt="Woo-Combine Logo"
             className="w-16 h-16 mx-auto mb-4"
             style={{ objectFit: 'contain' }}

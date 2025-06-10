@@ -106,7 +106,7 @@ function App() {
                 >
                   <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
                     <img
-                      src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+                      src="/favicon/woocombine-logo.png"
                       alt="Woo-Combine Logo"
                       className="w-16 h-16 mx-auto mb-6"
                       style={{ objectFit: 'contain' }}

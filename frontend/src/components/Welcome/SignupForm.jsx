@@ -66,7 +66,7 @@ export default function SignupForm() {
       </Link>
       {/* Logo */}
       <img
-        src="/favicon/ChatGPT Image May 21, 2025, 05_33_34 PM.png"
+        src="/favicon/woocombine-logo.png"
         alt="Woo-Combine Logo"
         className="w-20 h-20 mx-auto mb-4 mt-8"
         style={{ objectFit: 'contain' }}

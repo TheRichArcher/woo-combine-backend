@@ -366,17 +366,11 @@ def get_rankings(
         logging.error(f"Error getting rankings: {e}")
         raise HTTPException(status_code=500, detail="Failed to get rankings")
 
-@router.post("/players/bulk")
-def bulk_upload_players(user=Depends(require_role("organizer"))):
-    raise NotImplementedError("Bulk upload endpoint not yet implemented.")
-
-@router.post("/rankings/weights")
-def set_custom_weights(user=Depends(require_role("coach", "organizer"))):
-    raise NotImplementedError("Custom weights endpoint not yet implemented.")
-
-@router.get("/admin")
-def admin_dashboard(user=Depends(require_role("organizer"))):
-    raise NotImplementedError("Admin dashboard endpoint not yet implemented.")
+# Note: Bulk upload, custom weights, and admin dashboard endpoints 
+# were removed as they are not currently used by the frontend.
+# The bulk upload functionality is handled by the existing /players/upload endpoint.
+# Custom weights are handled client-side in the rankings component.
+# Admin functionality is handled by the frontend /admin route.
 
 @router.get('/leagues/{league_id}/players')
 def list_players(league_id: str, current_user=Depends(get_current_user)):

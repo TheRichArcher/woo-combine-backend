@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash", unit: "sec" },
@@ -385,8 +386,7 @@ export default function Players() {
 
   useEffect(() => {
     fetchPlayers();
-    // eslint-disable-next-line
-  }, [selectedEvent]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   const toggleForm = (id) => {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -430,7 +430,7 @@ export default function Players() {
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
               <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found</h2>
               <p className="text-cmf-secondary mb-4">Use the Admin tab to upload or import players to get started.</p>
-              <a href="/admin" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Go to Admin</a>
+              <Link to="/admin" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Go to Admin</Link>
             </div>
           </div>
         </div>
@@ -449,8 +449,8 @@ export default function Players() {
           <h2 className="text-2xl font-bold text-cmf-primary mb-4">No players found yet</h2>
           <p className="text-cmf-secondary mb-4">You can upload a CSV or add them manually to get started.</p>
           <div className="flex gap-4 justify-center">
-            <a href="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</a>
-            <a href="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</a>
+            <Link to="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-secondary transition">Upload CSV</Link>
+            <Link to="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition">Add Player</Link>
           </div>
         </div>
       </div>
