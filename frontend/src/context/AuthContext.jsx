@@ -9,158 +9,158 @@ import { useLogout } from './logout';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+  // Simplified state - single loading state for all checks
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [roleChecking, setRoleChecking] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState(null);
-  const [leagues, setLeagues] = useState([]); // [{id, name, role}]
+  const [leagues, setLeagues] = useState([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
-  const [role, setRole] = useState(null); // 'organizer' | 'coach'
+  const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    console.log('[AuthContext] user:', user, 'loading:', loading, 'roleChecking:', roleChecking, 'error:', error);
-  }, [user, loading, roleChecking, error]);
-
-  // Fetch leagues/roles from backend after login - but only for users who completed onboarding
-  useEffect(() => {
-    if (user && user.emailVerified && userRole) {
-      (async () => {
-        try {
-          const res = await api.get(`/leagues/me`);
-          setLeagues(res.data.leagues || []);
-          // Set role for selected league
-          const league = res.data.leagues?.find(l => l.id === selectedLeagueId) || res.data.leagues?.[0];
-          setRole(league?.role || null);
-          // Always set selectedLeagueId to first league if not set or invalid
-          if (res.data.leagues && res.data.leagues.length > 0) {
-            if (!selectedLeagueId || !res.data.leagues.some(l => l.id === selectedLeagueId)) {
-              setSelectedLeagueId(res.data.leagues[0].id);
-              localStorage.setItem('selectedLeagueId', res.data.leagues[0].id);
-            }
-          }
-        } catch (error) {
-          console.log('[AuthContext] League fetch result:', error.response?.status, error.response?.data?.detail);
-          if (error.response?.status === 404) {
-            // 404 means user has no leagues yet - this is normal for new users
-            console.log('[AuthContext] User has no leagues yet (normal for new users)');
-            setLeagues([]);
-          } else {
-            // Other errors are actual problems
-            console.error('[AuthContext] Error fetching leagues:', error);
-            setLeagues([]);
-          }
-        }
-      })();
-    } else {
-      setLeagues([]);
-      setRole(null);
-      setSelectedLeagueId('');
-    }
-  }, [user, selectedLeagueId, userRole]);
-
-  // Persist selectedLeagueId
-  useEffect(() => {
-    if (selectedLeagueId) localStorage.setItem('selectedLeagueId', selectedLeagueId);
-    else {
-      // Restore from localStorage if not set
-      const saved = localStorage.getItem('selectedLeagueId');
-      if (saved) setSelectedLeagueId(saved);
-      else localStorage.removeItem('selectedLeagueId');
-    }
-  }, [selectedLeagueId]);
-
-  // Subscribe to Firebase Auth state changes and enforce email verification
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('[AuthContext] Auth state changed:', firebaseUser?.email, 'verified:', firebaseUser?.emailVerified);
-      console.log('[AuthContext] Current pathname:', window.location.pathname);
-      
-      if (firebaseUser) {
-        await firebaseUser.reload();
-        setUser(firebaseUser);
-        setLoading(false);
-        // If not verified, redirect to /verify-email
-        if (!firebaseUser.emailVerified) {
-          console.log('[AuthContext] User not verified, redirecting to verify-email');
-          if (window.location.pathname !== '/verify-email') {
-            navigate('/verify-email');
-          }
-        } else {
-          console.log('[AuthContext] User verified, checking role in Firestore...');
-          setRoleChecking(true);
-          
-          // If verified and on /verify-email, redirect to dashboard or select-role
-          const db = getFirestore();
-          const docRef = doc(db, "users", firebaseUser.uid);
-          
-          try {
-            const snap = await getDoc(docRef);
-            console.log('[AuthContext] Firestore check complete. Document exists:', snap.exists());
-            console.log('[AuthContext] Role data:', snap.exists() ? snap.data() : null);
-            
-            if (!snap.exists() || !snap.data().role) {
-              console.log('[AuthContext] No role found, navigating to select-role');
-              console.log('[AuthContext] Current path before redirect:', window.location.pathname);
-              navigate("/select-role");
-            } else {
-              console.log('[AuthContext] Role found:', snap.data().role);
-              // Only redirect to dashboard if on onboarding routes
-              const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
-              if (onboardingRoutes.includes(window.location.pathname)) {
-                console.log('[AuthContext] On onboarding route, navigating to dashboard');
-                navigate("/dashboard");
-              } else {
-                console.log('[AuthContext] Not on onboarding route, staying on:', window.location.pathname);
-              }
-              // Otherwise, stay on the current route (e.g., /admin, /welcome)
-            }
-          } catch (error) {
-            console.error('[AuthContext] Firestore role check failed:', error);
-            console.log('[AuthContext] Firestore error, defaulting to select-role');
-            navigate("/select-role");
-          } finally {
-            setRoleChecking(false);
-          }
-        }
-      } else {
+  // Comprehensive initialization function that does ALL checks before showing UI
+  const initializeUser = async (firebaseUser) => {
+    console.log('[AuthContext] Starting comprehensive user initialization...');
+    
+    try {
+      if (!firebaseUser) {
         console.log('[AuthContext] No user, clearing state');
         setUser(null);
-        setLoading(false);
-        setRoleChecking(false);
+        setUserRole(null);
+        setLeagues([]);
+        setRole(null);
+        setSelectedLeagueId('');
+        localStorage.removeItem('selectedLeagueId');
+        setInitializing(false);
+        return;
       }
+
+      // Force reload to get latest email verification status
+      await firebaseUser.reload();
+      setUser(firebaseUser);
+      
+      // Check email verification
+      if (!firebaseUser.emailVerified) {
+        console.log('[AuthContext] User not verified, redirecting to verify-email');
+        setUserRole(null);
+        setLeagues([]);
+        setRole(null);
+        setInitializing(false);
+        if (window.location.pathname !== '/verify-email') {
+          navigate('/verify-email');
+        }
+        return;
+      }
+
+      // Check user role in Firestore
+      console.log('[AuthContext] User verified, checking role in Firestore...');
+      const db = getFirestore();
+      const docRef = doc(db, "users", firebaseUser.uid);
+      const snap = await getDoc(docRef);
+      
+      if (!snap.exists() || !snap.data().role) {
+        console.log('[AuthContext] No role found, redirecting to select-role');
+        setUserRole(null);
+        setLeagues([]);
+        setRole(null);
+        setInitializing(false);
+        navigate("/select-role");
+        return;
+      }
+
+      const userRole = snap.data().role;
+      setUserRole(userRole);
+      console.log('[AuthContext] Role found:', userRole);
+
+      // Fetch leagues for users who have completed onboarding
+      console.log('[AuthContext] Fetching leagues...');
+      try {
+        const res = await api.get(`/leagues/me`);
+        const userLeagues = res.data.leagues || [];
+        setLeagues(userLeagues);
+        
+        // Set up selected league and role
+        let targetLeagueId = selectedLeagueId;
+        
+        if (userLeagues.length > 0) {
+          // If no league selected or selected league doesn't exist, use first available
+          if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
+            targetLeagueId = userLeagues[0].id;
+          }
+          
+          setSelectedLeagueId(targetLeagueId);
+          localStorage.setItem('selectedLeagueId', targetLeagueId);
+          
+          const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
+          setRole(selectedLeague?.role || null);
+        } else {
+          console.log('[AuthContext] User has no leagues yet (normal for new users)');
+          setSelectedLeagueId('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
+        }
+      } catch (error) {
+        console.log('[AuthContext] League fetch error:', error.response?.status, error.response?.data?.detail);
+        if (error.response?.status === 404) {
+          console.log('[AuthContext] User has no leagues yet (normal for new users)');
+          setLeagues([]);
+          setSelectedLeagueId('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
+        } else {
+          console.error('[AuthContext] Error fetching leagues:', error);
+          // Don't fail initialization for league fetch errors
+          setLeagues([]);
+        }
+      }
+
+      // All checks complete - now decide where to navigate
+      const currentPath = window.location.pathname;
+      const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
+      
+      if (onboardingRoutes.includes(currentPath)) {
+        console.log('[AuthContext] On onboarding route, navigating to dashboard');
+        navigate("/dashboard");
+      } else {
+        console.log('[AuthContext] Staying on current route:', currentPath);
+      }
+
+    } catch (error) {
+      console.error('[AuthContext] User initialization failed:', error);
+      setError(error);
+      // On error, still try to navigate to a safe route
+      navigate("/select-role");
+    } finally {
+      console.log('[AuthContext] User initialization complete');
+      setInitializing(false);
+    }
+  };
+
+  // Single auth state listener that triggers comprehensive initialization
+  useEffect(() => {
+    console.log('[AuthContext] Setting up auth state listener');
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('[AuthContext] Auth state changed:', firebaseUser?.email, 'verified:', firebaseUser?.emailVerified);
+      setInitializing(true);
+      await initializeUser(firebaseUser);
     }, (err) => {
       console.error('[AuthContext] Auth state change error:', err);
       setError(err);
-      setLoading(false);
+      setInitializing(false);
     });
+
     return () => unsubscribe();
   }, [navigate]);
 
+  // Persist selectedLeagueId changes
   useEffect(() => {
-    if (!user) {
-      setUserRole(null);
-      setRoleChecking(false);
-      return;
+    if (selectedLeagueId) {
+      localStorage.setItem('selectedLeagueId', selectedLeagueId);
+    } else {
+      localStorage.removeItem('selectedLeagueId');
     }
-    const db = getFirestore();
-    const fetchRole = async () => {
-      try {
-        const docRef = doc(db, "users", user.uid);
-        const snap = await getDoc(docRef);
-        if (snap.exists()) {
-          setUserRole(snap.data().role || null);
-        } else {
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error('[AuthContext] Firestore role fetch failed:', error);
-        setUserRole(null);
-      }
-    };
-    fetchRole();
-  }, [user]);
+  }, [selectedLeagueId]);
 
   // Add league after join
   const addLeague = (league) => {
@@ -178,11 +178,28 @@ export function AuthProvider({ children }) {
     return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
   };
 
+  // Show single, consistent loading screen during ALL initialization
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
+          <div className="mt-4 text-gray-600">
+            Initializing WooCombine...
+          </div>
+          <div className="mt-2 text-sm text-gray-500">
+            Checking authentication and loading your data
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{
       user,
-      loading,
-      roleChecking,
+      loading: initializing, // For backward compatibility
+      roleChecking: false, // No longer used
       error,
       leagues,
       selectedLeagueId,
@@ -192,16 +209,7 @@ export function AuthProvider({ children }) {
       isOrganizer,
       userRole,
     }}>
-      {(loading || roleChecking) ? (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center">
-            <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
-            <div className="mt-4 text-gray-600">
-              {loading ? "Loading..." : "Checking account..."}
-            </div>
-          </div>
-        </div>
-      ) : children}
+      {children}
     </AuthContext.Provider>
   );
 }
