@@ -313,8 +313,13 @@ export default function VerifyEmail() {
           ) : (
             <button
               onClick={async () => { 
-                await logout(); 
-                navigate('/welcome'); 
+                try {
+                  await logout(); 
+                  navigate('/welcome'); 
+                } catch (error) {
+                  console.error('Logout failed:', error);
+                  navigate('/welcome'); // Still navigate even if logout fails
+                }
               }}
               className="w-full text-gray-500 hover:text-gray-700 font-medium py-2 transition-colors duration-200"
             >

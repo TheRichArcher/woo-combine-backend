@@ -41,7 +41,15 @@ export default function Navigation() {
           )}
           {user && (
             <button
-              onClick={async () => { await logout(); navigate("/welcome"); }}
+              onClick={async () => { 
+                try {
+                  await logout(); 
+                  navigate("/welcome"); 
+                } catch (error) {
+                  console.error('Logout failed:', error);
+                  navigate("/welcome"); // Still navigate even if logout fails
+                }
+              }}
               className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-2"
             >
               Log Out
@@ -65,7 +73,15 @@ export default function Navigation() {
             )}
             {user && (
               <button
-                onClick={async () => { await logout(); navigate("/welcome"); }}
+                onClick={async () => { 
+                  try {
+                    await logout(); 
+                    navigate("/welcome"); 
+                  } catch (error) {
+                    console.error('Logout failed:', error);
+                    navigate("/welcome"); // Still navigate even if logout fails
+                  }
+                }}
                 className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2"
               >
                 Log Out
