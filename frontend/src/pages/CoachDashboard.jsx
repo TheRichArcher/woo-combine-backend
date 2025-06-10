@@ -167,7 +167,7 @@ export default function CoachDashboard() {
   // CSV Export logic
   const handleExportCsv = () => {
     if (!selectedAgeGroup || rankings.length === 0) return;
-    let csv = 'Rank,Name,Jersey Number,Composite Score\n';
+    let csv = 'Rank,Name,Player Number,Composite Score\n';
     rankings.forEach(player => {
       csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
     });
@@ -371,7 +371,7 @@ export default function CoachDashboard() {
                   <tr className="border-b border-gray-200">
                     <th className="py-3 px-2">Rank</th>
                     <th className="py-3 px-2">Name</th>
-                    <th className="py-3 px-2">Jersey #</th>
+                    <th className="py-3 px-2">Player #</th>
                     <th className="py-3 px-2">Overall Score</th>
                     <th className="py-3 px-2 text-center">40M Dash</th>
                     <th className="py-3 px-2 text-center">Vertical</th>

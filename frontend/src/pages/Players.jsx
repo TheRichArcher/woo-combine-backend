@@ -4,7 +4,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award } from 'lucide-react';
+import { X, TrendingUp, Award, Edit } from 'lucide-react';
 
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash", unit: "sec" },
@@ -21,6 +21,149 @@ const DRILL_WEIGHTS = {
   "throwing": 0.15,
   "agility": 0.2,
 };
+
+// Edit Player Modal Component
+function EditPlayerModal({ player, onClose, onSave }) {
+  const [formData, setFormData] = useState({
+    name: player?.name || '',
+    number: player?.number || '',
+    age_group: player?.age_group || ''
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setError(''); // Clear error when user types
+  };
+
+  const handleSave = async () => {
+    if (!formData.name.trim()) {
+      setError('Player name is required');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    
+    try {
+      const updateData = {
+        name: formData.name.trim(),
+        number: formData.number ? parseInt(formData.number) : null,
+        age_group: formData.age_group || null
+      };
+
+      await api.put(`/players/${player.id}?event_id=${player.event_id}`, updateData);
+      onSave(); // Refresh the players list
+      onClose();
+    } catch (err) {
+      console.error('Error updating player:', err);
+      setError(err.response?.data?.detail || 'Failed to update player');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!player) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        {/* Header */}
+        <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Edit className="w-5 h-5" />
+            <h2 className="text-xl font-bold">Edit Player</h2>
+          </div>
+          <button 
+            onClick={onClose}
+            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="p-6 space-y-4">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+              {error}
+            </div>
+          )}
+
+          {/* Player Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Player Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              placeholder="Enter player name"
+            />
+          </div>
+
+          {/* Player Number */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Player Number
+            </label>
+            <input
+              type="number"
+              value={formData.number}
+              onChange={(e) => handleInputChange('number', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              placeholder="Enter player number"
+              min="1"
+              max="999"
+            />
+          </div>
+
+          {/* Age Group */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Age Group
+            </label>
+            <select
+              value={formData.age_group}
+              onChange={(e) => handleInputChange('age_group', e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+            >
+              <option value="">Select Age Group</option>
+              <option value="6-7">6-7</option>
+              <option value="8-9">8-9</option>
+              <option value="10-11">10-11</option>
+              <option value="12-13">12-13</option>
+              <option value="14-15">14-15</option>
+              <option value="16-17">16-17</option>
+              <option value="18+">18+</option>
+            </select>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex gap-3 pt-4">
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 bg-cmf-primary hover:bg-cmf-secondary text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // Player Details Modal Component
 function PlayerDetailsModal({ player, allPlayers, onClose }) {
@@ -60,7 +203,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">{player.name}</h2>
-            <p className="text-cmf-light">Jersey #{player.number} • Age Group: {player.age_group}</p>
+            <p className="text-cmf-light">Player #{player.number} • Age Group: {player.age_group}</p>
           </div>
           <button 
             onClick={onClose}
@@ -176,6 +319,7 @@ export default function Players() {
   const [error, setError] = useState(null);
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
   const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const [editingPlayer, setEditingPlayer] = useState(null);
 
   // Onboarding callout
   const OnboardingCallout = () => (
@@ -295,7 +439,7 @@ export default function Players() {
                     <tr>
                       <th className="py-2 px-2">Rank</th>
                       <th className="py-2 px-2">Name</th>
-                      <th className="py-2 px-2">Jersey #</th>
+                      <th className="py-2 px-2">Player #</th>
                       <th className="py-2 px-2">Composite Score</th>
                       <th className="py-2 px-2">Actions</th>
                     </tr>
@@ -308,12 +452,12 @@ export default function Players() {
                             {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                           </td>
                           <td className="py-2 px-2">{player.name}</td>
-                          <td className="py-2 px-2">{player.number}</td>
+                          <td className="py-2 px-2">{player.number || 'N/A'}</td>
                           <td className="py-2 px-2 font-mono">
                             {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
                           </td>
                           <td className="py-2 px-2">
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               <button
                                 onClick={() => setSelectedPlayer(player)}
                                 className="text-blue-600 underline text-sm font-bold hover:text-blue-800 transition"
@@ -322,12 +466,20 @@ export default function Players() {
                                 View Stats
                               </button>
                               {userRole === 'organizer' && (
-                                <button
-                                  onClick={() => toggleForm(player.id)}
-                                  className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
-                                >
-                                  {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => setEditingPlayer(player)}
+                                    className="text-green-600 underline text-sm font-bold hover:text-green-800 transition"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => toggleForm(player.id)}
+                                    className="text-cmf-primary underline text-sm font-bold hover:text-cmf-secondary transition"
+                                  >
+                                    {expandedPlayerIds[player.id] ? "Hide Form" : "Add Result"}
+                                  </button>
+                                </>
                               )}
                             </div>
                           </td>
@@ -360,6 +512,15 @@ export default function Players() {
           player={selectedPlayer} 
           allPlayers={players}
           onClose={() => setSelectedPlayer(null)} 
+        />
+      )}
+
+      {/* Edit Player Modal */}
+      {editingPlayer && (
+        <EditPlayerModal 
+          player={editingPlayer} 
+          onClose={() => setEditingPlayer(null)}
+          onSave={fetchPlayers}
         />
       )}
     </>

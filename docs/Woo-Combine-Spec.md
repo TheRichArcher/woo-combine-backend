@@ -28,7 +28,7 @@ Name
 
 Age group (e.g., 7-8, 9-10, 11-12)
 
-Jersey number
+Player number
 
 Optional photo
 

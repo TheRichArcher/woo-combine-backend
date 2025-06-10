@@ -152,10 +152,25 @@ export default function VerifyEmail() {
     }
   };
 
-  // Open email app (attempt to open default email client)
+  // Open email app (attempt to open default email client without composing)
   const handleOpenEmailApp = () => {
-    // Try to open the default email client
-    window.location.href = 'mailto:';
+    const userAgent = navigator.userAgent.toLowerCase();
+    
+    try {
+      if (userAgent.includes('iphone') || userAgent.includes('ipad')) {
+        // iOS - open Mail app
+        window.location.href = 'message://';
+      } else if (userAgent.includes('android')) {
+        // Android - open default email app
+        window.location.href = 'intent://view#Intent;scheme=mailto;end';
+      } else {
+        // Desktop - provide helpful instructions instead of opening new email
+        alert('Please open your email app manually to check for the verification email.\n\nLook for an email from WooCombine and click the verification link inside.');
+      }
+    } catch (error) {
+      // Fallback if URL schemes don't work
+      alert('Please open your email app manually to check for the verification email.\n\nLook for an email from WooCombine and click the verification link inside.');
+    }
   };
 
   return (

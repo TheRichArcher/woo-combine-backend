@@ -131,6 +131,49 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
         logging.error(f"Error creating player: {e}")
         raise HTTPException(status_code=500, detail="Failed to create player")
 
+@router.put("/players/{player_id}")
+def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
+    try:
+        # Validate that the event exists
+        event = execute_with_timeout(
+            db.collection("events").document(str(event_id)).get,
+            timeout=5
+        )
+        if not event.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        # Get the player document
+        player_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
+        player_doc = execute_with_timeout(
+            player_ref.get,
+            timeout=5
+        )
+        
+        if not player_doc.exists:
+            raise HTTPException(status_code=404, detail="Player not found")
+        
+        # Update player data
+        update_data = {
+            "name": player.name,
+            "number": player.number,
+            "age_group": player.age_group,
+            "photo_url": player.photo_url,
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        
+        # Add timeout to player update
+        execute_with_timeout(
+            lambda: player_ref.update(update_data),
+            timeout=10
+        )
+        
+        return {"player_id": player_id, "updated": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating player: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update player")
+
 class UploadRequest(BaseModel):
     event_id: str
     players: List[Dict[str, Any]]
