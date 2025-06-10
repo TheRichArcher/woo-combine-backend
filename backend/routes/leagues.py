@@ -6,6 +6,8 @@ import logging
 import concurrent.futures
 from google.cloud.firestore import Query
 
+# Fixed: Removed FieldPath import to resolve deployment issues
+
 router = APIRouter()
 
 def execute_with_timeout(func, timeout=20, *args, **kwargs):
