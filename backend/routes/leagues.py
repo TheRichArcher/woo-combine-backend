@@ -4,6 +4,7 @@ from backend.auth import get_current_user
 from datetime import datetime
 import logging
 import concurrent.futures
+from google.cloud.firestore import Query
 
 router = APIRouter()
 
@@ -37,10 +38,10 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         # Use timeout-protected queries to prevent hanging
         leagues_ref = db.collection("leagues")
         
-        # Get leagues with timeout protection and reduced limit for better performance
+        # Get leagues ordered by creation time (newest first) to include recently created leagues
         all_leagues = execute_with_timeout(
-            lambda: list(leagues_ref.limit(10).stream()),  # Reduced from 50 to 10 for faster response
-            timeout=5
+            lambda: list(leagues_ref.order_by("created_at", direction=Query.DESCENDING).limit(50).stream()),
+            timeout=10
         )
         
         if not all_leagues:

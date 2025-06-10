@@ -86,8 +86,8 @@ export function AuthProvider({ children }) {
           console.log('[AuthContext] League fetch returned 404, retrying after delay (possible race condition)...');
           
           try {
-            // Wait 2 seconds for Firestore consistency
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Wait 3 seconds for Firestore consistency and ordering
+            await new Promise(resolve => setTimeout(resolve, 3000));
             const retryRes = await api.get(`/leagues/me`);
             userLeagues = retryRes.data.leagues || [];
             setLeagues(userLeagues);
@@ -99,11 +99,15 @@ export function AuthProvider({ children }) {
               userLeagues = [];
               setLeagues([]);
             } else {
-              throw retryError; // Re-throw non-404 errors
+              console.error('[AuthContext] Retry error:', retryError);
+              userLeagues = [];
+              setLeagues([]);
             }
           }
         } else {
-          throw error; // Re-throw non-404 errors
+          console.error('[AuthContext] Non-404 error:', error);
+          userLeagues = [];
+          setLeagues([]);
         }
       }
         
