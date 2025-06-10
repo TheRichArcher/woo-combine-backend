@@ -4,7 +4,7 @@ from backend.auth import get_current_user
 from datetime import datetime
 import logging
 import concurrent.futures
-from google.cloud.firestore import Query
+from google.cloud.firestore import Query, FieldPath
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         
         # Single query to find ALL user memberships across ALL leagues
         # This is how production apps handle this - one efficient query instead of N queries
-        members_query = db.collection_group('members').where('__name__', '==', user_id)
+        members_query = db.collection_group('members').where(filter=(FieldPath.document_id(), '==', user_id))
         
         user_memberships = execute_with_timeout(
             lambda: list(members_query.stream()),

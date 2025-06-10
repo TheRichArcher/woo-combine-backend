@@ -69,6 +69,7 @@ export default function LoginForm() {
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          autoComplete="email"
           required
         />
         <div className="relative w-full mb-6">
@@ -78,6 +79,7 @@ export default function LoginForm() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition pr-12"
+            autoComplete="current-password"
             required
           />
           <button

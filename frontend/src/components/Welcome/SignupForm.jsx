@@ -82,6 +82,7 @@ export default function SignupForm() {
             value={firstName}
             onChange={e => setFirstName(e.target.value)}
             className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            autoComplete="given-name"
             required
           />
           <input
@@ -90,6 +91,7 @@ export default function SignupForm() {
             value={lastName}
             onChange={e => setLastName(e.target.value)}
             className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            autoComplete="family-name"
             required
           />
         </div>
@@ -99,6 +101,7 @@ export default function SignupForm() {
           value={email}
           onChange={e => setEmail(e.target.value)}
           className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          autoComplete="email"
           required
         />
         <div className="relative w-full mb-6">
@@ -108,6 +111,7 @@ export default function SignupForm() {
             value={password}
             onChange={e => setPassword(e.target.value)}
             className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition pr-12"
+            autoComplete="new-password"
             required
           />
           <button
