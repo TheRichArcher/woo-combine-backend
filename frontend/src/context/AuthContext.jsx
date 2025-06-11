@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [authChecked, setAuthChecked] = useState(false); // New: faster auth check
+  const [roleChecked, setRoleChecked] = useState(false); // NEW: role verification complete
   const [error, setError] = useState(null);
   const [leagues, setLeagues] = useState([]);
   const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
@@ -72,6 +73,7 @@ export function AuthProvider({ children }) {
         setUserRole(null);
         setLeagues([]);
         setRole(null);
+        setRoleChecked(true); // Role check complete - no role found
         navigate("/select-role");
         return;
       }
@@ -135,6 +137,9 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('selectedLeagueId');
       }
 
+      // Mark role check as complete
+      setRoleChecked(true);
+
       // Navigation logic - only redirect from onboarding routes, not between authenticated pages
       const currentPath = window.location.pathname;
       const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
@@ -149,6 +154,7 @@ export function AuthProvider({ children }) {
     } catch (error) {
       console.error('[AuthContext] Background initialization failed:', error);
       setError(error);
+      setRoleChecked(true); // Role check complete - even if failed
       navigate("/select-role");
     }
   }, [navigate, selectedLeagueId, setUserRole, setLeagues, setRole, setSelectedLeagueId, setError]);
@@ -156,10 +162,14 @@ export function AuthProvider({ children }) {
   // Main auth state listener with optimized flow
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Reset role check state for each auth change
+      setRoleChecked(false);
+      
       // Step 1: Quick auth check (shows UI faster)
       const isAuthenticated = await quickAuthCheck(firebaseUser);
       
       if (!isAuthenticated) {
+        setRoleChecked(true); // No role needed for unauthenticated users
         setInitializing(false); // Stop loading for unauthenticated/unverified users
         return;
       }
@@ -178,6 +188,7 @@ export function AuthProvider({ children }) {
           navigate("/dashboard");
         }
         
+        setRoleChecked(true); // User already has role
         setInitializing(false);
         return;
       }
@@ -226,23 +237,13 @@ export function AuthProvider({ children }) {
     return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
   };
 
-  // Optimized loading screen - only show for true initialization, not quick auth checks
-  if (initializing && !authChecked) {
+  // Show loading screen until BOTH auth and role checks are complete
+  if (initializing || (user && user.emailVerified && !roleChecked)) {
+    const isAuthPhase = !authChecked;
     return (
       <LoadingScreen 
-        title="Loading WooCombine..."
-        subtitle="Checking authentication"
-        size="large"
-      />
-    );
-  }
-
-  // Show lighter loading for background data loading (user can see page)
-  if (initializing && authChecked && user && user.emailVerified) {
-    return (
-      <LoadingScreen 
-        title="Loading your data..."
-        subtitle="Setting up your dashboard"
+        title={isAuthPhase ? "Loading WooCombine..." : "Loading your data..."}
+        subtitle={isAuthPhase ? "Checking authentication" : "Verifying your account"}
         size="large"
       />
     );
