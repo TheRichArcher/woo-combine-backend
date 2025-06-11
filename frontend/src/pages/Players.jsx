@@ -4,7 +4,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award, Edit } from 'lucide-react';
+import { X, TrendingUp, Award, Edit, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
@@ -21,6 +21,30 @@ const DRILL_WEIGHTS = {
   "catching": 0.15,
   "throwing": 0.15,
   "agility": 0.2,
+};
+
+// Preset weight configurations for individual player analysis
+const WEIGHT_PRESETS = {
+  balanced: {
+    name: "Balanced",
+    description: "Equal emphasis on all skills",
+    weights: { "40m_dash": 0.2, "vertical_jump": 0.2, "catching": 0.2, "throwing": 0.2, "agility": 0.2 }
+  },
+  speed: {
+    name: "Speed Focused",
+    description: "Emphasizes speed and athleticism",
+    weights: { "40m_dash": 0.4, "vertical_jump": 0.3, "catching": 0.1, "throwing": 0.1, "agility": 0.1 }
+  },
+  skills: {
+    name: "Skills Focused", 
+    description: "Emphasizes catching and throwing",
+    weights: { "40m_dash": 0.1, "vertical_jump": 0.1, "catching": 0.35, "throwing": 0.35, "agility": 0.1 }
+  },
+  athletic: {
+    name: "Athletic",
+    description: "Default weighting system",
+    weights: { "40m_dash": 0.3, "vertical_jump": 0.2, "catching": 0.15, "throwing": 0.15, "agility": 0.2 }
+  }
 };
 
 // Edit Player Modal Component
@@ -192,11 +216,47 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-// Player Details Modal Component
+// Player Details Modal Component with Interactive Weight Controls
 function PlayerDetailsModal({ player, allPlayers, onClose }) {
+  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
+  const [activePreset, setActivePreset] = useState("athletic");
+
   if (!player) return null;
 
-  // Calculate individual drill rankings
+  // Convert weights to percentages for display
+  const getPercentages = () => {
+    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const percentages = {};
+    DRILLS.forEach(drill => {
+      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+    });
+    return percentages;
+  };
+
+  // Convert percentage back to normalized weights
+  const updateWeightsFromPercentage = (drillKey, percentage) => {
+    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    
+    if (total === 0) return; // Prevent division by zero
+    
+    // Normalize to sum to 1.0
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      newWeights[drill.key] = newPercentages[drill.key] / total;
+    });
+    
+    setWeights(newWeights);
+    setActivePreset(null); // Clear preset when manually adjusted
+  };
+
+  // Apply a preset
+  const applyPreset = (presetKey) => {
+    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
+    setActivePreset(presetKey);
+  };
+
+  // Calculate individual drill rankings (same age group only)
   const drillRankings = {};
   DRILLS.forEach(drill => {
     const drillRanks = allPlayers
@@ -207,10 +267,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     drillRankings[drill.key] = rank > 0 ? rank : null;
   });
 
-  // Calculate weighted score breakdown
+  // Calculate weighted score breakdown with current weights
   const weightedBreakdown = DRILLS.map(drill => {
     const rawScore = player[drill.key] || 0;
-    const weight = DRILL_WEIGHTS[drill.key];
+    const weight = weights[drill.key];
     const weightedScore = rawScore * weight;
     return {
       ...drill,
@@ -222,10 +282,22 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
   });
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + item.weightedScore, 0);
+  const percentages = getPercentages();
+
+  // Calculate this player's rank with current weights among same age group players
+  const ageGroupPlayers = allPlayers.filter(p => p.age_group === player.age_group);
+  const playersWithScores = ageGroupPlayers.map(p => {
+    const score = DRILLS.reduce((sum, drill) => {
+      return sum + (p[drill.key] || 0) * weights[drill.key];
+    }, 0);
+    return { ...p, currentScore: score };
+  }).sort((a, b) => b.currentScore - a.currentScore);
+  
+  const currentRank = playersWithScores.findIndex(p => p.id === player.id) + 1;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
           <div>
@@ -240,29 +312,98 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </button>
         </div>
 
-        {/* Overall Score */}
+        {/* Overall Score with Real-time Updates */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-4 mb-4">
             <Award className="w-8 h-8 text-yellow-500" />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Overall Ranking</h3>
               <p className="text-2xl font-bold text-cmf-primary">
-                {player.composite_score ? player.composite_score.toFixed(2) : 'N/A'} points
+                {totalWeightedScore.toFixed(2)} points
+              </p>
+              <p className="text-sm text-gray-500">
+                Updates in real-time as you adjust weights
               </p>
             </div>
           </div>
           
-          {/* Age Group Rank */}
+          {/* Age Group Rank with Current Weights */}
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600">Age Group Rank:</span>
+              <span className="text-sm font-medium text-gray-600">Current Age Group Rank:</span>
               <span className="text-lg font-bold text-cmf-secondary">
-                #{allPlayers
-                  .filter(p => p.age_group === player.age_group && p.composite_score != null)
-                  .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
-                  .findIndex(p => p.id === player.id) + 1} 
-                of {allPlayers.filter(p => p.age_group === player.age_group).length}
+                #{currentRank} of {ageGroupPlayers.length}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Interactive Weight Controls */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-5 h-5 text-cmf-primary" />
+            <h3 className="text-lg font-semibold text-gray-900">Adjust Weight Priorities</h3>
+          </div>
+          
+          {/* Preset Buttons */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  onClick={() => applyPreset(key)}
+                  className={`p-3 text-left rounded-lg border-2 transition-all ${
+                    activePreset === key 
+                      ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
+                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                  }`}
+                >
+                  <div className="font-medium text-sm">{preset.name}</div>
+                  <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Custom Weight Sliders */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Custom Adjustments:
+              {activePreset && (
+                <span className="ml-2 text-xs text-gray-500">
+                  (Currently using {WEIGHT_PRESETS[activePreset].name})
+                </span>
+              )}
+            </label>
+            
+            <div className="space-y-4">
+              {DRILLS.map(drill => (
+                <div key={drill.key} className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={percentages[drill.key]}
+                        onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                        className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
+                      />
+                      <div className="w-12 text-right">
+                        <span className="text-sm font-mono text-cmf-primary">
+                          {percentages[drill.key]}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              Scores and rankings update automatically as you adjust priorities
             </div>
           </div>
         </div>
@@ -329,7 +470,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
               </span>
             </div>
             <p className="text-xs text-gray-600 mt-1">
-              Calculated using current drill weights
+              Calculated using your custom drill weights • Rank: #{currentRank}
             </p>
           </div>
         </div>
