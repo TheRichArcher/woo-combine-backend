@@ -348,10 +348,26 @@ export default function Players() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
 
-  // Onboarding callout
+  // Interactive onboarding callout
   const OnboardingCallout = () => (
-    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded">
-      <strong>Tip:</strong> Select an event to manage players and record results.
+    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded cursor-pointer hover:bg-cmf-primary/15 transition"
+         onClick={() => {
+           // Scroll to event selector to help users find it
+           const eventSelector = document.querySelector('[class*="EventSelector"]') || 
+                                 document.querySelector('select') ||
+                                 document.querySelector('[data-event-selector]');
+           if (eventSelector) {
+             eventSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
+             eventSelector.focus();
+           }
+         }}>
+      <div className="flex items-center gap-2">
+        <span className="text-lg">💡</span>
+        <div>
+          <strong>Tip:</strong> Select an event above to manage players and record results.
+          <div className="text-sm opacity-75 mt-1">👆 Click here or scroll up to find the event selector</div>
+        </div>
+      </div>
     </div>
   );
 

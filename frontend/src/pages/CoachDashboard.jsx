@@ -365,7 +365,62 @@ export default function CoachDashboard() {
                 Export as CSV
               </button>
             </div>
-            <div className="overflow-x-auto">
+            {/* Mobile-First Card Layout */}
+            <div className="sm:hidden">
+              {rankings.map((player) => {
+                // Calculate individual drill rankings
+                const drillRankings = {};
+                DRILLS.forEach(drill => {
+                  const drillRanks = rankings
+                    .filter(p => p[drill.key] != null)
+                    .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
+                    .sort((a, b) => b.score - a.score);
+                  const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
+                  drillRankings[drill.key] = rank > 0 ? rank : null;
+                });
+
+                return (
+                  <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 mb-3 border">
+                    {/* Player Header */}
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
+                            {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
+                          </span>
+                          <span className="font-semibold">{player.name}</span>
+                        </div>
+                        <div className="text-sm text-gray-600">Player #{player.number}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Overall Score</div>
+                        <div className="font-mono font-bold text-lg text-cmf-primary">{player.composite_score.toFixed(2)}</div>
+                      </div>
+                    </div>
+                    
+                    {/* Drill Results Grid */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {DRILLS.map(drill => (
+                        <div key={drill.key} className="bg-white rounded p-2">
+                          <div className="font-medium text-gray-700">{drill.label}</div>
+                          {player[drill.key] != null ? (
+                            <div>
+                              <span className="font-mono">{player[drill.key]}</span>
+                              <span className="text-gray-500 ml-1">#{drillRankings[drill.key] || '-'}</span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">No score</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table Layout */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">

@@ -85,7 +85,7 @@ export default function EventSelector({ onEventSelected }) {
   }
 
   return (
-    <div className="flex flex-col gap-2 mb-6">
+    <div className="flex flex-col gap-2 mb-6" data-event-selector>
       {events.length === 0 && (
         <div className="text-center text-cmf-secondary text-lg font-semibold py-2">No events found. Please create a new event.</div>
       )}
@@ -95,6 +95,7 @@ export default function EventSelector({ onEventSelected }) {
           onChange={handleSelect}
           className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
           disabled={!Array.isArray(events) || events.length === 0}
+          data-event-selector-dropdown
         >
           <option value="">Select an event...</option>
           {Array.isArray(events) && events.map(ev => {

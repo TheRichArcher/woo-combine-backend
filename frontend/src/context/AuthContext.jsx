@@ -150,13 +150,17 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('selectedLeagueId');
       }
 
-      // Navigation logic - only redirect from onboarding routes
+      // Navigation logic - only redirect from onboarding routes, not between authenticated pages
       const currentPath = window.location.pathname;
       const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
+      const authenticatedRoutes = ["/dashboard", "/coach-dashboard", "/players", "/admin", "/roster", "/schedule"];
       
       if (onboardingRoutes.includes(currentPath)) {
         console.log('[AuthContext] On onboarding route, navigating to dashboard');
         navigate("/dashboard");
+      } else if (authenticatedRoutes.includes(currentPath)) {
+        console.log('[AuthContext] Already on authenticated route, staying at:', currentPath);
+        // Don't redirect - user is already on a valid authenticated page
       } else {
         console.log('[AuthContext] Staying on current route:', currentPath);
       }
@@ -183,6 +187,16 @@ export function AuthProvider({ children }) {
       }
 
       // Step 2: Complete initialization in background (user sees page faster)
+      // But skip if we already have role and leagues loaded for the same user
+      const shouldSkipInitialization = userRole && leagues.length > 0 && 
+                                      user && user.uid === firebaseUser.uid;
+      
+      if (shouldSkipInitialization) {
+        console.log('[AuthContext] User already initialized, skipping full initialization');
+        setInitializing(false);
+        return;
+      }
+
       try {
         await completeInitialization(firebaseUser);
       } catch (error) {
@@ -200,7 +214,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [navigate]);
+  }, [navigate, userRole, leagues.length, user]);
 
   // Persist selectedLeagueId changes
   useEffect(() => {
