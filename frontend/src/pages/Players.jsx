@@ -297,9 +297,9 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full h-[90vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[85vh] flex flex-col">
         {/* Compact Header */}
-        <div className="bg-cmf-primary text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0">
+        <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
             <p className="text-cmf-light text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
@@ -321,28 +321,28 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex">
             {/* Left Column: Drill Results */}
-            <div className="flex-1 p-6">
+            <div className="flex-1 p-4">
               <div className="h-full flex flex-col">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-cmf-primary" />
                   Drill Performance & Weight Control
                 </h3>
           
-                <div className="grid grid-cols-1 gap-3 flex-1">
+                <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto">
             {weightedBreakdown.map(drill => (
-                    <div key={drill.key} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                    <div key={drill.key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
                       {/* Compact Drill Row */}
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
                           <div className="min-w-0">
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
                             <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-cmf-primary">
+                      <span className="text-base font-bold text-cmf-primary">
                         {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
                       </span>
                       {drill.rank && (
-                                <span className="bg-cmf-primary text-white px-2 py-0.5 rounded-full text-xs font-medium">
-                          Rank #{drill.rank}
+                                <span className="bg-cmf-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
+                          #{drill.rank}
                         </span>
                       )}
                     </div>
@@ -350,12 +350,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-600">Contribution</div>
-                          <div className="text-lg font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
+                          <div className="text-base font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
                   </div>
                 </div>
                 
                       {/* Weight Slider Row */}
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-600 w-16">
                           {percentages[drill.key]}%
                         </span>
@@ -382,10 +382,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </div>
           
                 {/* Total Score at Bottom */}
-                <div className="mt-4 p-3 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20">
+                <div className="mt-2 p-2 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900">Total Composite Score:</span>
-              <span className="text-xl font-bold text-cmf-primary">
+              <span className="font-semibold text-gray-900 text-sm">Total Composite Score:</span>
+              <span className="text-lg font-bold text-cmf-primary">
                       {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
               </span>
                   </div>
@@ -394,41 +394,41 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-80 bg-gray-50 p-6 border-l border-gray-200">
+            <div className="w-80 bg-gray-50 p-4 border-l border-gray-200">
               <div className="h-full flex flex-col">
                 {/* Quick Presets */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <Settings className="w-5 h-5 text-cmf-primary" />
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-cmf-primary" />
                     Weight Scenarios
                   </h3>
                   
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-1">
                     {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
                       <button
                         key={key}
                         onClick={() => applyPreset(key)}
-                        className={`p-3 text-left rounded-lg border-2 transition-all ${
+                        className={`p-2 text-left rounded-lg border-2 transition-all ${
                           activePreset === key 
                             ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
                         <div className="font-medium text-sm">{preset.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
+                        <div className="text-xs text-gray-500">{preset.description}</div>
                       </button>
                     ))}
                   </div>
                 </div>
                 
                 {/* Real-time Ranking Analysis */}
-                <div className="bg-white rounded-lg p-4 border border-gray-200">
-                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 overflow-y-auto">
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                     <Award className="w-4 h-4 text-yellow-500" />
                     Ranking Analysis
                   </h4>
                   
-                  <div className="space-y-3 text-sm">
+                  <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -457,8 +457,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                   </div>
                 </div>
                 
-                <div className="mt-4 text-xs text-gray-500 text-center">
-                  💡 Adjust sliders on the left to see real-time changes
+                <div className="mt-2 text-xs text-gray-500 text-center flex-shrink-0">
+                  💡 Adjust sliders for real-time changes
                 </div>
               </div>
             </div>
