@@ -338,15 +338,15 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </div>
         </div>
 
-        {/* Interactive Weight Controls */}
+        {/* Quick Preset Controls */}
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2 mb-4">
             <Settings className="w-5 h-5 text-cmf-primary" />
-            <h3 className="text-lg font-semibold text-gray-900">Adjust Weight Priorities</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Weight Scenarios</h3>
           </div>
           
           {/* Preset Buttons */}
-          <div className="mb-6">
+          <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
@@ -365,46 +365,9 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
               ))}
             </div>
           </div>
-
-          {/* Custom Weight Sliders */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              Custom Adjustments:
-              {activePreset && (
-                <span className="ml-2 text-xs text-gray-500">
-                  (Currently using {WEIGHT_PRESETS[activePreset].name})
-                </span>
-              )}
-            </label>
-            
-            <div className="space-y-4">
-              {DRILLS.map(drill => (
-                <div key={drill.key} className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min={0}
-                        max={100}
-                        value={percentages[drill.key]}
-                        onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                        className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
-                      />
-                      <div className="w-12 text-right">
-                        <span className="text-sm font-mono text-cmf-primary">
-                          {percentages[drill.key]}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-4 text-xs text-gray-500 text-center">
-              Scores and rankings update automatically as you adjust priorities
-            </div>
+          
+          <div className="text-xs text-gray-500 text-center">
+            💡 Adjust individual weights below each drill for precise control
           </div>
         </div>
 
@@ -417,12 +380,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           
           <div className="space-y-4">
             {weightedBreakdown.map(drill => (
-              <div key={drill.key} className="bg-gray-50 rounded-lg p-4">
-                <div className="flex justify-between items-start mb-2">
+              <div key={drill.key} className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 hover:border-cmf-primary/30 transition-colors">
+                {/* Drill Header with Score and Rank */}
+                <div className="flex justify-between items-start mb-3">
                   <div>
-                    <h4 className="font-semibold text-gray-900">{drill.label}</h4>
+                    <h4 className="font-semibold text-gray-900 text-lg">{drill.label}</h4>
                     <div className="flex items-center gap-4 mt-1">
-                      <span className="text-lg font-bold text-cmf-primary">
+                      <span className="text-xl font-bold text-cmf-primary">
                         {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
                       </span>
                       {drill.rank && (
@@ -432,25 +396,51 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       )}
                     </div>
                   </div>
-                </div>
-                
-                {/* Weight and Contribution */}
-                <div className="grid grid-cols-2 gap-4 mt-3 text-sm">
-                  <div>
-                    <span className="text-gray-600">Weight: </span>
-                    <span className="font-medium">{(drill.weight * 100).toFixed(0)}%</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Contribution: </span>
-                    <span className="font-medium">{drill.weightedScore.toFixed(2)} pts</span>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-600">Contribution</div>
+                    <div className="text-lg font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
                   </div>
                 </div>
                 
-                {/* Visual Progress Bar */}
+                {/* Interactive Weight Slider */}
+                <div className="mb-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Weight Priority: {(drill.weight * 100).toFixed(0)}%
+                    </label>
+                    <span className="text-xs text-gray-500">
+                      {activePreset ? `(${WEIGHT_PRESETS[activePreset].name} preset)` : 'Custom'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={percentages[drill.key]}
+                      onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                      className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
+                    />
+                    <div className="w-12 text-right">
+                      <span className="text-sm font-mono text-cmf-primary font-bold">
+                        {percentages[drill.key]}%
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    ← Less Impact &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; More Impact →
+                  </div>
+                </div>
+                
+                {/* Visual Impact Bar */}
                 <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
+                    <span>Impact on Overall Score</span>
+                    <span>{drill.weightedScore.toFixed(2)} / {totalWeightedScore.toFixed(2)} pts</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
                     <div 
-                      className="bg-cmf-primary h-2 rounded-full transition-all duration-300"
+                      className="bg-gradient-to-r from-cmf-primary to-cmf-secondary h-3 rounded-full transition-all duration-300"
                       style={{ 
                         width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
                       }}
