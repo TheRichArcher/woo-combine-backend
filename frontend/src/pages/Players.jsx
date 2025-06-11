@@ -297,12 +297,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full h-[90vh] flex flex-col">
+        {/* Compact Header */}
+        <div className="bg-cmf-primary text-white px-6 py-4 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold">{player.name}</h2>
-            <p className="text-cmf-light">Player #{player.number} • Age Group: {player.age_group}</p>
+            <h2 className="text-xl font-bold">{player.name}</h2>
+            <p className="text-cmf-light text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
+          </div>
+          <div className="text-right mr-4">
+            <div className="text-sm opacity-75">Overall Score</div>
+            <div className="text-2xl font-bold">{totalWeightedScore.toFixed(2)} pts</div>
+            <div className="text-xs opacity-75">Rank #{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
             onClick={onClose}
@@ -312,156 +317,151 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </button>
         </div>
 
-        {/* Overall Score with Real-time Updates */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-4 mb-4">
-            <Award className="w-8 h-8 text-yellow-500" />
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Overall Ranking</h3>
-              <p className="text-2xl font-bold text-cmf-primary">
-                {totalWeightedScore.toFixed(2)} points
-              </p>
-              <p className="text-sm text-gray-500">
-                Updates in real-time as you adjust weights
-              </p>
-            </div>
-          </div>
-          
-          {/* Age Group Rank with Current Weights */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600">Current Age Group Rank:</span>
-              <span className="text-lg font-bold text-cmf-secondary">
-                #{currentRank} of {ageGroupPlayers.length}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick Preset Controls */}
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <Settings className="w-5 h-5 text-cmf-primary" />
-            <h3 className="text-lg font-semibold text-gray-900">Weight Scenarios</h3>
-          </div>
-          
-          {/* Preset Buttons */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
-            <div className="grid grid-cols-2 gap-2">
-              {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-                <button
-                  key={key}
-                  onClick={() => applyPreset(key)}
-                  className={`p-3 text-left rounded-lg border-2 transition-all ${
-                    activePreset === key 
-                      ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <div className="font-medium text-sm">{preset.name}</div>
-                  <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          <div className="text-xs text-gray-500 text-center">
-            💡 Adjust individual weights below each drill for precise control
-          </div>
-        </div>
-
-        {/* Individual Drill Results */}
-        <div className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="w-5 h-5 text-cmf-primary" />
-            <h3 className="text-lg font-semibold text-gray-900">Drill Performance</h3>
-          </div>
-          
-          <div className="space-y-4">
-            {weightedBreakdown.map(drill => (
-              <div key={drill.key} className="bg-gray-50 rounded-lg p-4 border-2 border-gray-200 hover:border-cmf-primary/30 transition-colors">
-                {/* Drill Header with Score and Rank */}
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h4 className="font-semibold text-gray-900 text-lg">{drill.label}</h4>
-                    <div className="flex items-center gap-4 mt-1">
-                      <span className="text-xl font-bold text-cmf-primary">
-                        {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
-                      </span>
-                      {drill.rank && (
-                        <span className="bg-cmf-primary text-white px-2 py-1 rounded-full text-xs font-medium">
-                          Rank #{drill.rank}
+        {/* Main Content - No Scrolling Needed */}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full flex">
+            {/* Left Column: Drill Results */}
+            <div className="flex-1 p-6">
+              <div className="h-full flex flex-col">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                  Drill Performance & Weight Control
+                </h3>
+                
+                <div className="grid grid-cols-1 gap-3 flex-1">
+                  {weightedBreakdown.map(drill => (
+                    <div key={drill.key} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      {/* Compact Drill Row */}
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="min-w-0">
+                            <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-cmf-primary">
+                                {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
+                              </span>
+                              {drill.rank && (
+                                <span className="bg-cmf-primary text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                                  Rank #{drill.rank}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-xs text-gray-600">Contribution</div>
+                          <div className="text-lg font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
+                        </div>
+                      </div>
+                      
+                      {/* Weight Slider Row */}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-600 w-16">
+                          {percentages[drill.key]}%
                         </span>
-                      )}
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={percentages[drill.key]}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          className="flex-1 accent-cmf-primary h-2 rounded-lg"
+                        />
+                        {/* Visual Impact Indicator */}
+                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
+                            style={{ 
+                              width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
+                            }}
+                          ></div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-gray-600">Contribution</div>
-                    <div className="text-lg font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
-                  </div>
+                  ))}
                 </div>
                 
-                {/* Interactive Weight Slider */}
-                <div className="mb-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Weight Priority: {(drill.weight * 100).toFixed(0)}%
-                    </label>
-                    <span className="text-xs text-gray-500">
-                      {activePreset ? `(${WEIGHT_PRESETS[activePreset].name} preset)` : 'Custom'}
+                {/* Total Score at Bottom */}
+                <div className="mt-4 p-3 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-gray-900">Total Composite Score:</span>
+                    <span className="text-xl font-bold text-cmf-primary">
+                      {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
                     </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={percentages[drill.key]}
-                      onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                      className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
-                    />
-                    <div className="w-12 text-right">
-                      <span className="text-sm font-mono text-cmf-primary font-bold">
-                        {percentages[drill.key]}%
-                      </span>
-                    </div>
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    ← Less Impact &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; More Impact →
-                  </div>
-                </div>
-                
-                {/* Visual Impact Bar */}
-                <div className="mt-3">
-                  <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                    <span>Impact on Overall Score</span>
-                    <span>{drill.weightedScore.toFixed(2)} / {totalWeightedScore.toFixed(2)} pts</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div 
-                      className="bg-gradient-to-r from-cmf-primary to-cmf-secondary h-3 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
-                      }}
-                    ></div>
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-          
-          {/* Total Calculation */}
-          <div className="mt-6 p-4 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20">
-            <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900">Total Composite Score:</span>
-              <span className="text-xl font-bold text-cmf-primary">
-                {totalWeightedScore.toFixed(2)} pts
-              </span>
             </div>
-            <p className="text-xs text-gray-600 mt-1">
-              Calculated using your custom drill weights • Rank: #{currentRank}
-            </p>
+
+            {/* Right Column: Weight Presets & Analysis */}
+            <div className="w-80 bg-gray-50 p-6 border-l border-gray-200">
+              <div className="h-full flex flex-col">
+                {/* Quick Presets */}
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Settings className="w-5 h-5 text-cmf-primary" />
+                    Weight Scenarios
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 gap-2">
+                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        onClick={() => applyPreset(key)}
+                        className={`p-3 text-left rounded-lg border-2 transition-all ${
+                          activePreset === key 
+                            ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{preset.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Real-time Ranking Analysis */}
+                <div className="bg-white rounded-lg p-4 border border-gray-200">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    Ranking Analysis
+                  </h4>
+                  
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Age Group Rank:</span>
+                      <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Overall Score:</span>
+                      <span className="font-bold text-cmf-secondary">{totalWeightedScore.toFixed(2)} pts</span>
+                    </div>
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="text-xs text-gray-500 mb-2">Score Breakdown:</div>
+                      {weightedBreakdown.map(drill => (
+                        <div key={drill.key} className="flex justify-between text-xs">
+                          <span className="text-gray-600">{drill.label}:</span>
+                          <span className="font-mono">{drill.weightedScore.toFixed(2)} pts</span>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="text-xs text-gray-500">
+                        {activePreset ? `Using ${WEIGHT_PRESETS[activePreset].name} preset` : 'Using custom weights'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-4 text-xs text-gray-500 text-center">
+                  💡 Adjust sliders on the left to see real-time changes
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
