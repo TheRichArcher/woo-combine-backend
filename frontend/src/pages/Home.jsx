@@ -8,11 +8,33 @@ export default function Home() {
   const { user: _user, userRole } = useAuth();
   const { selectedEvent } = useEvent();
   const navigate = useNavigate();
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   // Format event date
   const formattedDate = selectedEvent && selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) 
     ? new Date(selectedEvent.date).toLocaleDateString() 
     : 'No date set';
+
+  // Handle navigation with loading state to prevent flashing
+  const handleNavigation = (path) => {
+    setIsNavigating(true);
+    // Use setTimeout to ensure state update happens before navigation
+    setTimeout(() => {
+      navigate(path);
+    }, 0);
+  };
+
+  // Don't render anything if we're navigating (prevents flash)
+  if (isNavigating) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin inline-block w-6 h-6 border-4 border-gray-300 border-t-cmf-primary rounded-full"></div>
+          <div className="mt-3 text-gray-600">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,13 +57,13 @@ export default function Home() {
             {userRole === 'organizer' && (
               <>
                 <button
-                  onClick={() => navigate('/admin')}
+                  onClick={() => handleNavigation('/admin')}
                   className="bg-cmf-secondary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-primary transition flex items-center justify-center"
                 >
                   📊 Manage Event
                 </button>
                 <button
-                  onClick={() => navigate('/coach-dashboard')}
+                  onClick={() => handleNavigation('/coach-dashboard')}
                   className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
                 >
                   🏆 View Rankings
@@ -50,7 +72,7 @@ export default function Home() {
             )}
             {userRole === 'coach' && (
               <button
-                onClick={() => navigate('/coach-dashboard')}
+                onClick={() => handleNavigation('/coach-dashboard')}
                 className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
               >
                 🏆 Coach Dashboard
@@ -58,7 +80,7 @@ export default function Home() {
             )}
             {userRole === 'player' && selectedEvent && (
               <button
-                onClick={() => navigate('/drill-input')}
+                onClick={() => handleNavigation('/drill-input')}
                 className="bg-cmf-secondary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-primary transition flex items-center justify-center"
               >
                 📝 Submit Drill Results
