@@ -28,64 +28,62 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
     user_id = current_user["uid"]
     
-    def _get_leagues_operation():
-        # Optimized approach: check membership efficiently with reduced timeouts
-        # This approach works well for moderate numbers of leagues
+    try:
+        # PROPER ARCHITECTURE: Direct user membership lookup (like MojoSport)
+        # Get user's memberships directly - O(1) operation, not O(n)
+        logging.info(f"🚀 Direct membership lookup for user {user_id}")
         
-        logging.info(f"🔍 Finding leagues with membership for user {user_id}")
-        
-        # Get recent leagues first (most likely to contain user) with smaller limit for speed
-        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(15)
-        
-        all_leagues = execute_with_timeout(
-            lambda: list(leagues_query.stream()),
-            timeout=5  # Reduced from 10s
+        user_memberships_ref = db.collection('user_memberships').document(user_id)
+        user_doc = execute_with_timeout(
+            user_memberships_ref.get,
+            timeout=3
         )
         
-        # Check membership in each league with faster timeouts
-        user_leagues = []
+        if not user_doc.exists:
+            logging.warning(f"No memberships document found for user {user_id}")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
-        for league_doc in all_leagues:
-            league_id = league_doc.id
-            
-            # Check if user is a member of this league
-            try:
-                member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
-                member_doc = execute_with_timeout(
-                    lambda: member_ref.get(),
-                    timeout=1  # Reduced from 2s
-                )
+        membership_data = user_doc.to_dict()
+        league_memberships = membership_data.get('leagues', {})
+        
+        if not league_memberships:
+            logging.warning(f"No league memberships found for user {user_id}")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
+        
+        # Batch get all league details in parallel (much faster than individual queries)
+        league_ids = list(league_memberships.keys())
+        logging.info(f"📊 Batch fetching {len(league_ids)} leagues for user {user_id}")
+        
+        # Use batch get for maximum efficiency
+        league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
+        league_docs = execute_with_timeout(
+            lambda: db.get_all(league_refs),
+            timeout=3
+        )
+        
+        user_leagues = []
+        for league_doc in league_docs:
+            if league_doc.exists:
+                league_data = league_doc.to_dict()
+                league_data["id"] = league_doc.id
                 
-                if member_doc.exists:
-                    # User is a member, get league data and role
-                    league_data = league_doc.to_dict()
-                    league_data["id"] = league_id
-                    
-                    member_data = member_doc.to_dict()
-                    role = member_data.get("role", "unknown")
-                    league_data["role"] = role
-                    
-                    user_leagues.append(league_data)
-                    logging.info(f"  ✅ Membership found in league {league_id} ({league_data.get('name', 'Unknown')}) with role: {role}")
-                    
-            except Exception as e:
-                logging.warning(f"Error checking membership in league {league_id}: {str(e)}")
-                continue
+                # Get role from membership data
+                membership_info = league_memberships.get(league_doc.id, {})
+                role = membership_info.get("role", "unknown")
+                league_data["role"] = role
+                
+                user_leagues.append(league_data)
+                logging.info(f"  ✅ League {league_doc.id} ({league_data.get('name', 'Unknown')}) with role: {role}")
         
         if not user_leagues:
-            logging.warning(f"No memberships found for user {user_id}")
+            logging.warning(f"No valid leagues found for user {user_id}")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
             
-        # Sort by creation date (newest first) for consistent ordering
+        # Sort by creation date (newest first)
         user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         
-        logging.info(f"🎉 Returning {len(user_leagues)} leagues for user {user_id}")
+        logging.info(f"🎉 Instantly returned {len(user_leagues)} leagues for user {user_id}")
         return {"leagues": user_leagues}
-    
-    try:
-        # Wrap the entire operation in a reduced timeout for faster response
-        result = execute_with_timeout(_get_leagues_operation, timeout=10)
-        return result
         
     except HTTPException:
         raise
@@ -140,6 +138,27 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
             
             if verify_member.exists:
                 logging.info(f"✅ Member document verified for user {user_id} in league {league_ref.id}")
+                
+                # CRITICAL: Add to user_memberships for instant lookup (like MojoSport)
+                try:
+                    user_memberships_ref = db.collection('user_memberships').document(user_id)
+                    membership_update = {
+                        f"leagues.{league_ref.id}": {
+                            "role": "organizer",
+                            "joined_at": datetime.utcnow().isoformat(),
+                            "league_name": name
+                        }
+                    }
+                    
+                    execute_with_timeout(
+                        lambda: user_memberships_ref.set(membership_update, merge=True),
+                        timeout=10
+                    )
+                    logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {league_ref.id}")
+                    
+                except Exception as e:
+                    logging.error(f"⚠️ Failed to update user_memberships (non-critical): {str(e)}")
+                    # Don't fail the whole operation for this
             else:
                 logging.error(f"❌ Member document verification FAILED for user {user_id} in league {league_ref.id}")
                 raise HTTPException(status_code=500, detail="Failed to verify league membership creation")
@@ -187,10 +206,33 @@ def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
             raise HTTPException(status_code=400, detail="User already in league")
         
         # Simple member creation
+        join_time = datetime.utcnow().isoformat()
         member_ref.set({
             "role": role,
-            "joined_at": datetime.utcnow().isoformat(),
+            "joined_at": join_time,
         })
+        
+        # CRITICAL: Add to user_memberships for instant lookup (like MojoSport)
+        try:
+            league_data = league_doc.to_dict()
+            user_memberships_ref = db.collection('user_memberships').document(user_id)
+            membership_update = {
+                f"leagues.{code}": {
+                    "role": role,
+                    "joined_at": join_time,
+                    "league_name": league_data.get("name", "Unknown League")
+                }
+            }
+            
+            execute_with_timeout(
+                lambda: user_memberships_ref.set(membership_update, merge=True),
+                timeout=10
+            )
+            logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {code}")
+            
+        except Exception as e:
+            logging.error(f"⚠️ Failed to update user_memberships (non-critical): {str(e)}")
+            # Don't fail the whole operation for this
         
         logging.info(f"User {user_id} joined league {code} as {role}")
         return {"joined": True, "league_id": code}
