@@ -17,34 +17,15 @@ export default function SelectRole() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailCheck, setEmailCheck] = useState(false);
   const [checkingUser, setCheckingUser] = useState(true);
   const navigate = useNavigate();
   const logout = useLogout();
   const db = getFirestore();
 
   React.useEffect(() => {
-    const checkUser = async () => {
-      try {
-        const auth = getAuth();
-        await auth.currentUser?.reload();
-        const refreshedUser = auth.currentUser;
-        if (!refreshedUser) return;
-        if (import.meta.env.DEV) {
-          console.log("[SelectRole] Refreshed user:", refreshedUser);
-        }
-        if (!refreshedUser.emailVerified) {
-          setEmailCheck(true);
-        }
-      } catch (err) {
-        console.error("Error in SelectRole user check:", err);
-        setError("Failed to check user state.");
-      } finally {
-        setCheckingUser(false);
-      }
-    };
-    checkUser();
-  }, [user]);
+    // Simple initialization since RequireAuth already handles all auth checks
+    setCheckingUser(false);
+  }, []);
 
   if (!user || checkingUser) {
     return (
@@ -64,72 +45,48 @@ export default function SelectRole() {
   const handleContinue = async () => {
     console.log('[SelectRole] handleContinue called');
     setError("");
-    const auth = getAuth();
-    await auth.currentUser?.reload();
-    const refreshedUser = auth.currentUser;
-    if (!refreshedUser) {
+    
+    if (!user) {
       setError("No user found. Please log in again.");
       return;
     }
-    if (!refreshedUser.emailVerified) {
-      setEmailCheck(true);
-      setError("Please verify your email to continue.");
-      return;
-    }
+    
     if (!selectedRole) {
       setError("Please select a role.");
       return;
     }
+    
     setLoading(true);
     try {
       console.log('[SelectRole] Attempting to write user doc:', {
-        uid: refreshedUser.uid,
-        email: refreshedUser.email,
+        uid: user.uid,
+        email: user.email,
         role: selectedRole
       });
-      await setDoc(doc(db, "users", refreshedUser.uid), {
-        id: refreshedUser.uid,
-        email: refreshedUser.email,
+      
+      await setDoc(doc(db, "users", user.uid), {
+        id: user.uid,
+        email: user.email,
         role: selectedRole,
         created_at: serverTimestamp(),
       }, { merge: true });
-      console.log('[SelectRole] Successfully wrote user doc for UID:', refreshedUser.uid);
-      await refreshedUser.getIdToken(true);
-      // Use React Router navigation instead of page reload to prevent flashing
+      
+      console.log('[SelectRole] Successfully wrote user doc for UID:', user.uid);
+      
+      // Refresh the user's ID token to pick up any custom claims
+      await user.getIdToken(true);
+      
+      // Navigate to dashboard - AuthContext will handle the role setting
       navigate("/dashboard", { replace: true });
     } catch (err) {
       setError(err.message || "Failed to save role.");
-      console.error("🔥 Firestore write failed in SelectRole for UID:", refreshedUser?.uid, err);
+      console.error("🔥 Firestore write failed in SelectRole for UID:", user?.uid, err);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResend = async () => {
-    setError("");
-    try {
-      const auth = getAuth();
-      const refreshedUser = auth.currentUser;
-      await refreshedUser.sendEmailVerification();
-      setError("Verification email sent. Please check your inbox.");
-    } catch (err) {
-      setError(err.message || "Failed to send verification email.");
-      console.error("🔥 Failed to send verification email:", err);
-    }
-  };
 
-  const handleCheckAgain = async () => {
-    setError("");
-    const auth = getAuth();
-    await auth.currentUser?.reload();
-    const refreshedUser = auth.currentUser;
-    if (refreshedUser && refreshedUser.emailVerified) {
-      setEmailCheck(false);
-      setError("");
-    } else {
-      setError("Still not verified. Please check your email and try again.");
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -187,30 +144,7 @@ export default function SelectRole() {
           </div>
         )}
 
-        {/* Email Verification Section */}
-        {emailCheck && (
-          <div className="w-full mb-6 text-center">
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded mb-4">
-              <div className="font-semibold mb-2">Please verify your email to continue.</div>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50" 
-                onClick={handleResend} 
-                disabled={loading}
-              >
-                Resend Email
-              </button>
-              <button 
-                className="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50" 
-                onClick={handleCheckAgain} 
-                disabled={loading}
-              >
-                Check Again
-              </button>
-            </div>
-          </div>
-        )}
+
 
         {/* Action Buttons */}
         <div className="w-full space-y-3">

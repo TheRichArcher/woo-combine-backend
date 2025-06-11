@@ -121,7 +121,11 @@ function App() {
               <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
-              <Route path="/select-role" element={<SelectRole />} />
+              <Route path="/select-role" element={
+                <RequireAuth>
+                  <SelectRole />
+                </RequireAuth>
+              } />
               <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
             </Routes>
           </div>

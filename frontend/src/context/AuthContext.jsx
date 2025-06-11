@@ -261,16 +261,21 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={{
       user,
+      setUser,
       loading: initializing, // For backward compatibility
       roleChecking: false, // No longer used
       error,
+      setError,
       leagues,
+      setLeagues,
       selectedLeagueId,
       setSelectedLeagueId,
       role,
+      setRole,
+      userRole,
+      setUserRole,
       addLeague,
       isOrganizer,
-      userRole,
     }}>
       {children}
     </AuthContext.Provider>
