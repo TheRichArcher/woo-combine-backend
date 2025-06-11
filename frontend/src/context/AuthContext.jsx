@@ -194,6 +194,16 @@ export function AuthProvider({ children }) {
       
       if (shouldSkipInitialization) {
         console.log('[AuthContext] User already initialized, skipping full initialization');
+        
+        // CRITICAL: Even when skipping initialization, check if user is on wrong page
+        const currentPath = window.location.pathname;
+        const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
+        
+        if (onboardingRoutes.includes(currentPath)) {
+          console.log('[AuthContext] User already authenticated but on onboarding route, redirecting to dashboard');
+          navigate("/dashboard");
+        }
+        
         setInitializing(false);
         return;
       }

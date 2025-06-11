@@ -4,8 +4,9 @@ import { useEvent } from "../context/EventContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode } from 'lucide-react';
+import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
+import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 
 const REQUIRED_HEADERS = [
@@ -104,6 +105,9 @@ export default function AdminTools() {
   const league = leagues?.find(l => l.id === selectedLeagueId);
   const joinCode = league?.id || '';
   const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
+
+  // Edit Event Modal state
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
 
   // Scroll to player upload section if hash is present or changes
   useEffect(() => {
@@ -365,6 +369,27 @@ export default function AdminTools() {
           </div>
         )}
         <AdminOnboardingCallout />
+        
+        {/* Edit Event Details Section */}
+        <div className="mb-6">
+          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 1</div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Event Details</h2>
+          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+            <div className="space-y-2 text-sm">
+              <p><strong>Name:</strong> {selectedEvent.name}</p>
+              <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</p>
+              <p><strong>Location:</strong> {selectedEvent.location || 'Location TBD'}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowEditEventModal(true)}
+            className="bg-cmf-secondary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-primary transition flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Event Details
+          </button>
+        </div>
+        
         <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-gray-900">
           <span role="img" aria-label="event">🏷️</span>
           Managing: {selectedEvent ? `${selectedEvent.name} – ${selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}` : "No event selected"}
@@ -672,6 +697,17 @@ export default function AdminTools() {
         )}
       </div>
       </div>
+      
+      {/* Edit Event Modal */}
+      <EditEventModal
+        open={showEditEventModal}
+        onClose={() => setShowEditEventModal(false)}
+        event={selectedEvent}
+        onUpdated={() => {
+          // Optionally refresh data or show success message
+          setShowEditEventModal(false);
+        }}
+      />
     </div>
   );
 } 

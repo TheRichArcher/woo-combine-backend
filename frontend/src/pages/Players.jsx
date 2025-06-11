@@ -324,12 +324,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             <div className="flex-1 p-6">
               <div className="h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cmf-primary" />
+            <TrendingUp className="w-5 h-5 text-cmf-primary" />
                   Drill Performance & Weight Control
                 </h3>
-                
+          
                 <div className="grid grid-cols-1 gap-3 flex-1">
-                  {weightedBreakdown.map(drill => (
+            {weightedBreakdown.map(drill => (
                     <div key={drill.key} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                       {/* Compact Drill Row */}
                       <div className="flex items-center justify-between mb-2">
@@ -337,23 +337,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                           <div className="min-w-0">
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
                             <div className="flex items-center gap-2">
-                              <span className="text-lg font-bold text-cmf-primary">
-                                {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
-                              </span>
-                              {drill.rank && (
+                      <span className="text-lg font-bold text-cmf-primary">
+                        {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
+                      </span>
+                      {drill.rank && (
                                 <span className="bg-cmf-primary text-white px-2 py-0.5 rounded-full text-xs font-medium">
-                                  Rank #{drill.rank}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                          Rank #{drill.rank}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-600">Contribution</div>
                           <div className="text-lg font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
-                        </div>
-                      </div>
-                      
+                  </div>
+                </div>
+                
                       {/* Weight Slider Row */}
                       <div className="flex items-center gap-3">
                         <span className="text-xs font-medium text-gray-600 w-16">
@@ -369,25 +369,25 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                         />
                         {/* Visual Impact Indicator */}
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
+                    <div 
                             className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                            style={{ 
-                              width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      style={{ 
+                        width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
+                      }}
+                    ></div>
+                  </div>
                 </div>
-                
+              </div>
+            ))}
+          </div>
+          
                 {/* Total Score at Bottom */}
                 <div className="mt-4 p-3 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-gray-900">Total Composite Score:</span>
-                    <span className="text-xl font-bold text-cmf-primary">
+            <div className="flex justify-between items-center">
+              <span className="font-semibold text-gray-900">Total Composite Score:</span>
+              <span className="text-xl font-bold text-cmf-primary">
                       {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
-                    </span>
+              </span>
                   </div>
                 </div>
               </div>

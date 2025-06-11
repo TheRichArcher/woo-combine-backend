@@ -6,7 +6,7 @@ export function useLogout() {
   const { setUser, setLeagues, setSelectedLeagueId, setRole, setUserRole, setError } = useAuth();
   return async function logout() {
     try {
-      await signOut(auth);
+    await signOut(auth);
       // Clear all auth state
       setUser(null);
       setLeagues([]);
@@ -20,7 +20,7 @@ export function useLogout() {
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear state even if signOut fails
-      setUser(null);
+    setUser(null);
       setLeagues([]);
       setSelectedLeagueId('');
       setRole(null);

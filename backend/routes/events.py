@@ -77,4 +77,43 @@ def create_event(league_id: str, req: dict, current_user=Depends(get_current_use
         raise
     except Exception as e:
         logging.error(f"Error creating event: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create event") 
+        raise HTTPException(status_code=500, detail="Failed to create event")
+
+@router.put('/leagues/{league_id}/events/{event_id}')
+def update_event(league_id: str, event_id: str, req: dict, current_user=Depends(get_current_user)):
+    try:
+        name = req.get("name")
+        date = req.get("date")
+        location = req.get("location")
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Event name is required")
+        
+        # Prepare update data
+        update_data = {
+            "name": name,
+            "date": date,
+            "location": location or "",
+            "updated_at": datetime.utcnow().isoformat(),
+        }
+        
+        # Update event in league subcollection
+        league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
+        execute_with_timeout(
+            lambda: league_event_ref.update(update_data),
+            timeout=10
+        )
+        
+        # Also update in top-level events collection
+        top_level_event_ref = db.collection("events").document(event_id)
+        execute_with_timeout(
+            lambda: top_level_event_ref.update(update_data),
+            timeout=10
+        )
+        
+        return {"message": "Event updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating event: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update event") 

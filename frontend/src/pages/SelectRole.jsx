@@ -25,7 +25,7 @@ export default function SelectRole() {
 
   React.useEffect(() => {
     // Simple initialization since RequireAuth already handles all auth checks
-    setCheckingUser(false);
+        setCheckingUser(false);
   }, []);
 
   if (!user || checkingUser) {
