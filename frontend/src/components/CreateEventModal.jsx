@@ -6,6 +6,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   const { selectedLeagueId, user: _user } = useAuth();
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
+  const [location, setLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -20,7 +21,8 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date: isoDate
+        date: isoDate,
+        location
       });
       
       const newEvent = {
@@ -32,6 +34,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       
       setName("");
       setDate("");
+      setLocation("");
       if (onCreated) onCreated(newEvent);
       if (onClose) onClose();
     } catch (err) {
@@ -68,6 +71,14 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
             onChange={e => setDate(e.target.value)}
             className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
             required
+          />
+          <label className="block mb-2 font-semibold">Location</label>
+          <input
+            type="text"
+            value={location}
+            onChange={e => setLocation(e.target.value)}
+            placeholder="e.g., Central Park Football Field"
+            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
           />
           {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
           <button

@@ -42,6 +42,7 @@ def create_event(league_id: str, req: dict, current_user=Depends(get_current_use
     try:
         name = req.get("name")
         date = req.get("date")
+        location = req.get("location")
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
@@ -53,6 +54,7 @@ def create_event(league_id: str, req: dict, current_user=Depends(get_current_use
         event_data = {
             "name": name,
             "date": date,
+            "location": location or "",
             "league_id": league_id,  # Add league_id reference
             "created_at": datetime.utcnow().isoformat(),
         }

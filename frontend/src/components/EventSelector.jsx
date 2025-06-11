@@ -9,6 +9,7 @@ export default function EventSelector({ onEventSelected }) {
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
+  const [location, setLocation] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
@@ -29,7 +30,8 @@ export default function EventSelector({ onEventSelected }) {
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
-        date: isoDate
+        date: isoDate,
+        location
       });
       
       // Fix: Backend returns {event_id: ...}, so we need to create the full event object
@@ -45,6 +47,7 @@ export default function EventSelector({ onEventSelected }) {
       setShowModal(false);
       setName("");
       setDate("");
+      setLocation("");
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
       console.error('Event creation error:', err);
@@ -142,6 +145,16 @@ export default function EventSelector({ onEventSelected }) {
                   onChange={(e) => setDate(e.target.value)}
                   className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
                   required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Location</label>
+                <input
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  placeholder="e.g., Central Park Football Field"
+                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
                 />
               </div>
               {createError && <div className="text-red-500 text-sm mb-4">{createError}</div>}
