@@ -72,10 +72,10 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
             raise HTTPException(status_code=404, detail="Event not found")
             
         # Add timeout to players retrieval
-        players_stream = execute_with_timeout(
-            lambda: list(db.collection("events").document(str(event_id)).collection("players").stream()),
-            timeout=15
-        )
+        def get_players_stream():
+            return list(db.collection("events").document(str(event_id)).collection("players").stream())
+        
+        players_stream = execute_with_timeout(get_players_stream, timeout=15)
         
         result = []
         for player in players_stream:
@@ -89,7 +89,7 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
         raise
     except Exception as e:
         logging.error(f"Error in /players: {e}")
-        raise HTTPException(status_code=503, detail=f"Internal error: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve players")
 
 from pydantic import BaseModel
 class PlayerCreate(BaseModel):
