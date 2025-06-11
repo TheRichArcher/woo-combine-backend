@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import api from '../lib/api';
 
 export default function SelectLeague() {
-  const { user, selectedLeagueId, setSelectedLeagueId } = useAuth();
+  const { user, setSelectedLeagueId } = useAuth();
   const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +18,6 @@ export default function SelectLeague() {
       setFetchError('No user found. Please log in again.');
       return;
     }
-    console.log('[SelectLeague] Fetching leagues for user:', user.uid);
     (async () => {
       try {
         const res = await api.get(`/leagues/me`);
@@ -29,10 +28,8 @@ export default function SelectLeague() {
           setFetchError(null);
         }
       } catch (err) {
-        console.log('[SelectLeague] API response:', err.response?.status, err.response?.data?.detail);
         if (err.response?.status === 404) {
           // 404 means user has no leagues yet - this is normal
-          console.log('[SelectLeague] User has no leagues yet (normal for new users)');
           setLeagues([]);
           setFetchError('No leagues linked to this account. Try creating a new one.');
         } else {

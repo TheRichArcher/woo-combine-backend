@@ -100,10 +100,8 @@ export default function CoachDashboard() {
         const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
         setPlayers(data);
       } catch (error) {
-        console.log('[CoachDashboard] Players API response:', error.response?.status, error.response?.data?.detail);
         if (error.response?.status === 404) {
           // 404 means no players found yet - normal for new events
-          console.log('[CoachDashboard] No players found for event yet (normal for new events)');
           setPlayers([]);
         } else {
           // Other errors are actual problems
@@ -145,9 +143,7 @@ export default function CoachDashboard() {
         const res = await api.get(`/rankings?${params.toString()}`);
         setRankings(res.data);
       } catch (err) {
-        console.log('[CoachDashboard] Rankings API response:', err.response?.status, err.response?.data?.detail);
         if (err.response?.status === 404) {
-          console.log('[CoachDashboard] No rankings found yet (normal for new events)');
           setError(null);
           setRankings([]);
         } else {

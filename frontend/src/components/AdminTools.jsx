@@ -124,9 +124,7 @@ export default function AdminTools() {
 
   // QA logging
   useEffect(() => {
-    console.log('[AdminTools] mount');
-    console.log('[AdminTools] userRole:', userRole);
-    console.log('[AdminTools] selectedEvent:', selectedEvent);
+      // AdminTools component mounted
   }, [userRole, selectedEvent]);
 
   const handleReset = async () => {
@@ -176,10 +174,8 @@ export default function AdminTools() {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
     } catch (error) {
-      console.log('[AdminTools] Player count API response:', error.response?.status, error.response?.data?.detail);
-      if (error.response?.status === 404) {
-        // 404 means no players found yet - normal for new events
-        console.log('[AdminTools] No players found for event yet (normal for new events)');
+              if (error.response?.status === 404) {
+          // 404 means no players found yet - normal for new events
         setPlayerCount(0);
       } else {
         // Other errors are actual problems
@@ -208,10 +204,8 @@ export default function AdminTools() {
       event_id: selectedEvent.id,
       players: csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; })
     };
-    console.log("Uploading players:", payload);
     try {
       const res = await api.post(`/players/upload`, payload);
-      console.log("Upload response:", res);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
         setUploadStatus("error");

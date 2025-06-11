@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 
@@ -13,7 +12,6 @@ const ROLE_OPTIONS = [
 ];
 
 export default function SelectRole() {
-  console.log('[SelectRole] component rendered');
   const { user } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
@@ -39,7 +37,6 @@ export default function SelectRole() {
   }
 
   const handleContinue = async () => {
-    console.log('[SelectRole] handleContinue called');
     setError("");
     
     if (!user) {
@@ -54,20 +51,12 @@ export default function SelectRole() {
     
     setLoading(true);
     try {
-      console.log('[SelectRole] Attempting to write user doc:', {
-        uid: user.uid,
-        email: user.email,
-        role: selectedRole
-      });
-      
       await setDoc(doc(db, "users", user.uid), {
         id: user.uid,
         email: user.email,
         role: selectedRole,
         created_at: serverTimestamp(),
       }, { merge: true });
-      
-      console.log('[SelectRole] Successfully wrote user doc for UID:', user.uid);
       
       // Refresh the user's ID token to pick up any custom claims
       await user.getIdToken(true);

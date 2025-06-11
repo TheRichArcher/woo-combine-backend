@@ -126,6 +126,7 @@ export default function VerifyEmail() {
         }
       }
     } catch (err) {
+      console.error("Verification check error:", err);
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);
@@ -167,7 +168,7 @@ export default function VerifyEmail() {
         // Desktop - provide helpful instructions instead of opening new email
         alert('Please open your email app manually to check for the verification email.\n\nLook for an email from WooCombine and click the verification link inside.');
       }
-    } catch (error) {
+    } catch {
       // Fallback if URL schemes don't work
       alert('Please open your email app manually to check for the verification email.\n\nLook for an email from WooCombine and click the verification link inside.');
     }

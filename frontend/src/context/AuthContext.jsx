@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import api from '../lib/api';
@@ -22,11 +22,8 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
 
   // Fast initial auth check - just Firebase auth state
-  const quickAuthCheck = async (firebaseUser) => {
-    console.log('[AuthContext] Quick auth check for:', firebaseUser?.email);
-    
+  const quickAuthCheck = useCallback(async (firebaseUser) => {
     if (!firebaseUser) {
-      console.log('[AuthContext] No user, quick clear');
       setUser(null);
       setAuthChecked(true);
       return false;
@@ -37,7 +34,6 @@ export function AuthProvider({ children }) {
     
     // Quick email verification check
     if (!firebaseUser.emailVerified) {
-      console.log('[AuthContext] User not verified, redirecting quickly');
       if (window.location.pathname !== '/verify-email') {
         navigate('/verify-email');
       }
@@ -45,15 +41,12 @@ export function AuthProvider({ children }) {
     }
 
     return true; // User is authenticated and verified
-  };
+  }, [navigate, setUser, setAuthChecked]);
 
   // Comprehensive initialization - can run in background after quick check
-  const completeInitialization = async (firebaseUser) => {
-    console.log('[AuthContext] Starting background initialization...');
-    
+  const completeInitialization = useCallback(async (firebaseUser) => {
     try {
       // Check user role in Firestore with retries for immediate post-signup scenarios
-      console.log('[AuthContext] Checking role in Firestore...');
       const db = getFirestore();
       const docRef = doc(db, "users", firebaseUser.uid);
       
@@ -71,13 +64,11 @@ export function AuthProvider({ children }) {
         
         retryCount++;
         if (retryCount < maxRetries) {
-          console.log(`[AuthContext] Role not found, retry ${retryCount}/${maxRetries} in 1s...`);
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
       
       if (!snap.exists() || !snap.data().role) {
-        console.log('[AuthContext] No role found after retries, redirecting to select-role');
         setUserRole(null);
         setLeagues([]);
         setRole(null);
@@ -87,10 +78,8 @@ export function AuthProvider({ children }) {
 
       const userRole = snap.data().role;
       setUserRole(userRole);
-      console.log('[AuthContext] Role found:', userRole);
 
       // Fetch leagues in background with retry logic for race conditions
-      console.log('[AuthContext] Fetching leagues in background...');
       let userLeagues = [];
       
       try {
@@ -102,19 +91,15 @@ export function AuthProvider({ children }) {
       } catch (error) {
         if (error.response?.status === 404) {
           // 404 could be a race condition - retry after short delay
-          console.log('[AuthContext] League fetch returned 404, retrying after delay (possible race condition)...');
-          
           try {
             // Wait 3 seconds for Firestore consistency and ordering
             await new Promise(resolve => setTimeout(resolve, 3000));
             const retryRes = await api.get(`/leagues/me`);
             userLeagues = retryRes.data.leagues || [];
             setLeagues(userLeagues);
-            console.log('[AuthContext] Retry successful, found leagues:', userLeagues.length);
             
           } catch (retryError) {
             if (retryError.response?.status === 404) {
-              console.log('[AuthContext] User confirmed to have no leagues after retry');
               userLeagues = [];
               setLeagues([]);
             } else {
@@ -145,7 +130,6 @@ export function AuthProvider({ children }) {
         const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
         setRole(selectedLeague?.role || null);
       } else {
-        console.log('[AuthContext] User has no leagues yet (normal for new users)');
         setSelectedLeagueId('');
         setRole(null);
         localStorage.removeItem('selectedLeagueId');
@@ -157,13 +141,9 @@ export function AuthProvider({ children }) {
       const authenticatedRoutes = ["/dashboard", "/coach-dashboard", "/players", "/admin", "/roster", "/schedule"];
       
       if (onboardingRoutes.includes(currentPath)) {
-        console.log('[AuthContext] On onboarding route, navigating to dashboard');
         navigate("/dashboard");
       } else if (authenticatedRoutes.includes(currentPath)) {
-        console.log('[AuthContext] Already on authenticated route, staying at:', currentPath);
         // Don't redirect - user is already on a valid authenticated page
-      } else {
-        console.log('[AuthContext] Staying on current route:', currentPath);
       }
 
     } catch (error) {
@@ -171,14 +151,11 @@ export function AuthProvider({ children }) {
       setError(error);
       navigate("/select-role");
     }
-  };
+  }, [navigate, selectedLeagueId, setUserRole, setLeagues, setRole, setSelectedLeagueId, setError]);
 
   // Main auth state listener with optimized flow
   useEffect(() => {
-    console.log('[AuthContext] Setting up optimized auth state listener');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('[AuthContext] Auth state changed:', firebaseUser?.email, 'verified:', firebaseUser?.emailVerified);
-      
       // Step 1: Quick auth check (shows UI faster)
       const isAuthenticated = await quickAuthCheck(firebaseUser);
       
@@ -193,14 +170,11 @@ export function AuthProvider({ children }) {
                                       user && user.uid === firebaseUser.uid;
       
       if (shouldSkipInitialization) {
-        console.log('[AuthContext] User already initialized, skipping full initialization');
-        
         // CRITICAL: Even when skipping initialization, check if user is on wrong page
         const currentPath = window.location.pathname;
         const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
         
         if (onboardingRoutes.includes(currentPath)) {
-          console.log('[AuthContext] User already authenticated but on onboarding route, redirecting to dashboard');
           navigate("/dashboard");
         }
         
@@ -225,7 +199,7 @@ export function AuthProvider({ children }) {
     });
 
     return () => unsubscribe();
-  }, [navigate, userRole, leagues.length, user]);
+  }, [navigate, userRole, leagues.length, user, quickAuthCheck, completeInitialization]);
 
   // Persist selectedLeagueId changes
   useEffect(() => {

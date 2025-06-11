@@ -504,7 +504,6 @@ export default function Players() {
 
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
-      console.log('[Players] No event/user/league selected, skipping player fetch.');
       setPlayers([]); // Ensure players is always an array
       setLoading(false);
       return;
@@ -515,10 +514,8 @@ export default function Players() {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(data);
     } catch (err) {
-      console.log('[Players] API response:', err.response?.status, err.response?.data?.detail);
       if (err.response?.status === 404) {
         // 404 means no players found yet - normal for new events
-        console.log('[Players] No players found for event yet (normal for new events)');
         setError(null); // Don't show as error, just empty state
         setPlayers([]);
       } else {
@@ -533,7 +530,7 @@ export default function Players() {
 
   useEffect(() => {
     fetchPlayers();
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [fetchPlayers]);
 
   const toggleForm = (id) => {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));

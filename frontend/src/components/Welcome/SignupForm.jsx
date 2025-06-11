@@ -26,7 +26,6 @@ export default function SignupForm() {
       if (cred.user) {
         try {
           await import("firebase/auth").then(mod => mod.sendEmailVerification(cred.user));
-          console.log("Verification email sent to:", cred.user.email);
         } catch (emailErr) {
           console.error("Failed to send verification email:", emailErr);
         }
