@@ -29,67 +29,67 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     def _get_leagues_operation():
-        # Get leagues and check membership for each
-        # This approach works well for moderate numbers of leagues
+        # Use collection group query for O(log n) performance
+        # This approach scales to millions of leagues
         
-        logging.info(f"🔍 Finding leagues with membership for user {user_id}")
+        logging.info(f"🔍 Finding leagues with membership for user {user_id} using collection group query")
         
-        # Get all leagues and check membership for each
-        # Note: This approach works for moderate number of leagues (hundreds)
-        # For thousands of leagues, would need a different architecture with user->leagues mapping
+        # Use Firestore collection group query to find all member documents for this user
+        # This is much more efficient than iterating through all leagues
+        members_query = db.collection_group('members').where('__name__', '==', user_id)
         
-        logging.info(f"🔍 Fetching leagues to check membership for user {user_id}")
-        
-        # Get all leagues (limited to prevent timeouts)
-        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(50)
-        
-        all_leagues = execute_with_timeout(
-            lambda: list(leagues_query.stream()),
+        user_memberships = execute_with_timeout(
+            lambda: list(members_query.stream()),
             timeout=10
         )
         
-        # Check membership in each league
-        user_leagues = []
+        if not user_memberships:
+            logging.warning(f"No memberships found for user {user_id}")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
         
-        for league_doc in all_leagues:
-            league_id = league_doc.id
+        # Now get the league details for each membership
+        user_leagues = []
+        league_ids = []
+        
+        for member_doc in user_memberships:
+            # Extract league ID from the document path
+            league_id = member_doc.reference.parent.parent.id
+            league_ids.append(league_id)
             
-            # Check if user is a member of this league
+            # Get member data (role, etc.)
+            member_data = member_doc.to_dict()
+            role = member_data.get("role", "unknown")
+            
+            # Get league document
             try:
-                member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
-                member_doc = execute_with_timeout(
-                    lambda: member_ref.get(),
-                    timeout=2
+                league_ref = db.collection('leagues').document(league_id)
+                league_doc = execute_with_timeout(
+                    league_ref.get,
+                    timeout=5
                 )
                 
-                if member_doc.exists:
-                    # User is a member, get league data and role
+                if league_doc.exists:
                     league_data = league_doc.to_dict()
                     league_data["id"] = league_id
-                    
-                    member_data = member_doc.to_dict()
-                    role = member_data.get("role", "unknown")
                     league_data["role"] = role
-                    
                     user_leagues.append(league_data)
-                    logging.info(f"  ✅ Membership found in league {league_id} ({league_data.get('name', 'Unknown')}) with role: {role}")
+                    logging.info(f"  ✅ League {league_id} ({league_data.get('name', 'Unknown')}) with role: {role}")
+                else:
+                    logging.warning(f"League document {league_id} not found (orphaned membership)")
                     
             except Exception as e:
-                logging.warning(f"Error checking membership in league {league_id}: {str(e)}")
+                logging.warning(f"Error getting league {league_id}: {str(e)}")
                 continue
         
         if not user_leagues:
-            logging.warning(f"No memberships found for user {user_id}")
+            logging.warning(f"No valid leagues found for user {user_id} (found {len(league_ids)} memberships)")
             raise HTTPException(status_code=404, detail="No leagues found for this user.")
             
-        logging.info(f"🎯 Found {len(user_leagues)} leagues for user {user_id}")
-        leagues = user_leagues
-            
         # Sort by creation date (newest first) for consistent ordering
-        leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+        user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
         
-        logging.info(f"🎉 Returning {len(leagues)} leagues for user {user_id}")
-        return {"leagues": leagues}
+        logging.info(f"🎉 Returning {len(user_leagues)} leagues for user {user_id}")
+        return {"leagues": user_leagues}
     
     try:
         # Wrap the entire operation in a 25-second timeout
