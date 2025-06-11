@@ -10,8 +10,8 @@ from google.cloud.firestore import Query
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=20, *args, **kwargs):
-    """Execute a function with timeout protection"""
+def execute_with_timeout(func, timeout=2, *args, **kwargs):
+    """Execute a function with timeout protection - OPTIMIZED like big apps"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
         try:
@@ -36,7 +36,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         user_memberships_ref = db.collection('user_memberships').document(user_id)
         user_doc = execute_with_timeout(
             user_memberships_ref.get,
-            timeout=3
+            timeout=1
         )
         
         if not user_doc.exists or not user_doc.to_dict().get('leagues'):
@@ -44,10 +44,10 @@ def get_my_leagues(current_user=Depends(get_current_user)):
             logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
             
             # Use the old method to find leagues
-            leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(50)
+            leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(20)
             all_leagues = execute_with_timeout(
                 lambda: list(leagues_query.stream()),
-                timeout=5
+                timeout=2
             )
             
             # Check membership in each league (old way)
@@ -124,7 +124,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
         league_docs = execute_with_timeout(
             lambda: db.get_all(league_refs),
-            timeout=3
+            timeout=1
         )
         
         user_leagues = []

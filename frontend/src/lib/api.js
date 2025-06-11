@@ -9,7 +9,11 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
   withCredentials: false,         // not needed since we use Authorization headers
-  timeout: 30000                  // increased to 30 seconds for Firestore operations
+  timeout: 3000,                  // OPTIMIZED: 3s max like big apps (Twitter/Instagram)
+  headers: {
+    'Connection': 'keep-alive',   // Keep connections alive for speed
+    'Keep-Alive': 'timeout=5, max=1000'
+  }
 });
 
 // Exponential backoff retry logic

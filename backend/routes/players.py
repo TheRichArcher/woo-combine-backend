@@ -44,8 +44,8 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
 #     finally:
 #         db.close()
 
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
-    """Execute a function with timeout protection"""
+def execute_with_timeout(func, timeout=2, *args, **kwargs):
+    """Execute a function with timeout protection - OPTIMIZED like big apps"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
         try:
@@ -75,7 +75,7 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
         def get_players_stream():
             return list(db.collection("events").document(str(event_id)).collection("players").stream())
         
-        players_stream = execute_with_timeout(get_players_stream, timeout=15)
+        players_stream = execute_with_timeout(get_players_stream, timeout=2)
         
         result = []
         for player in players_stream:

@@ -44,74 +44,56 @@ export function AuthProvider({ children }) {
     return true; // User is authenticated and verified
   }, [navigate, setUser, setAuthChecked]);
 
-  // Comprehensive initialization - can run in background after quick check
+  // OPTIMIZED: Sub-second initialization like big apps
   const completeInitialization = useCallback(async (firebaseUser) => {
     try {
-      // Check user role in Firestore with retries for immediate post-signup scenarios
       const db = getFirestore();
-      const docRef = doc(db, "users", firebaseUser.uid);
       
-      let snap;
-      let retryCount = 0;
-      const maxRetries = 3;
-      
-      // Retry logic for role check (handles cases where role was just set)
-      while (retryCount < maxRetries) {
-        snap = await getDoc(docRef);
+      // PARALLEL OPERATIONS: Role check + League fetch simultaneously (like Twitter/Instagram)
+      const [roleResult, leagueResult] = await Promise.allSettled([
+        // Role check with aggressive timeout (500ms max)
+        Promise.race([
+          getDoc(doc(db, "users", firebaseUser.uid)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 500))
+        ]),
         
-        if (snap.exists() && snap.data().role) {
-          break; // Role found, exit retry loop
-        }
-        
-        retryCount++;
-        if (retryCount < maxRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      
-      if (!snap.exists() || !snap.data().role) {
+        // League fetch with aggressive timeout (1s max)  
+        Promise.race([
+          api.get(`/leagues/me`, { timeout: 1000 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 1000))
+        ])
+      ]);
+
+      // Handle role check result
+      if (roleResult.status === 'fulfilled' && roleResult.value.exists() && roleResult.value.data().role) {
+        const userRole = roleResult.value.data().role;
+        setUserRole(userRole);
+      } else {
+        // FAIL FAST: No role found or timeout - redirect immediately
         setUserRole(null);
         setLeagues([]);
         setRole(null);
-        setRoleChecked(true); // Role check complete - no role found
+        setRoleChecked(true);
         navigate("/select-role");
         return;
       }
 
-      const userRole = snap.data().role;
-      setUserRole(userRole);
-
-      // Fetch leagues in background with retry logic for race conditions
+      // Handle league fetch result
       let userLeagues = [];
-      
-      try {
-        // First attempt
-        const res = await api.get(`/leagues/me`);
-        userLeagues = res.data.leagues || [];
+      if (leagueResult.status === 'fulfilled') {
+        userLeagues = leagueResult.value.data.leagues || [];
         setLeagues(userLeagues);
-        
-      } catch (error) {
-        if (error.response?.status === 404) {
-          // 404 could be a race condition - retry after short delay
-          try {
-            // Wait 3 seconds for Firestore consistency and ordering
-            await new Promise(resolve => setTimeout(resolve, 3000));
-            const retryRes = await api.get(`/leagues/me`);
-            userLeagues = retryRes.data.leagues || [];
-            setLeagues(userLeagues);
-            
-          } catch (retryError) {
-            if (retryError.response?.status === 404) {
-              userLeagues = [];
-              setLeagues([]);
-            } else {
-              console.error('[AuthContext] Retry error:', retryError);
-              userLeagues = [];
-              setLeagues([]);
-            }
-          }
-        } else {
-          console.error('[AuthContext] Non-404 error:', error);
+      } else {
+        // FAST RETRY: Single 200ms retry for leagues only
+        try {
+          const retryRes = await Promise.race([
+            api.get(`/leagues/me`, { timeout: 800 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 800))
+          ]);
+          userLeagues = retryRes.data.leagues || [];
+          setLeagues(userLeagues);
+        } catch {
+          // Give up fast - empty leagues is better than long wait
           userLeagues = [];
           setLeagues([]);
         }
