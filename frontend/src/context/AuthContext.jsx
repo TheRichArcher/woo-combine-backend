@@ -51,16 +51,16 @@ export function AuthProvider({ children }) {
       
       // PARALLEL OPERATIONS: Role check + League fetch simultaneously (like Twitter/Instagram)
       const [roleResult, leagueResult] = await Promise.allSettled([
-        // Role check with aggressive timeout (500ms max)
+        // Role check with reasonable timeout (3s max)
         Promise.race([
           getDoc(doc(db, "users", firebaseUser.uid)),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 500))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 3000))
         ]),
         
-        // League fetch with aggressive timeout (1s max)  
+        // League fetch with reasonable timeout (5s max)  
         Promise.race([
-          api.get(`/leagues/me`, { timeout: 1000 }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 1000))
+          api.get(`/leagues/me`, { timeout: 5000 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 5000))
         ])
       ]);
 
@@ -84,16 +84,16 @@ export function AuthProvider({ children }) {
         userLeagues = leagueResult.value.data.leagues || [];
         setLeagues(userLeagues);
       } else {
-        // FAST RETRY: Single 200ms retry for leagues only
+        // REASONABLE RETRY: Single 3s retry for leagues only
         try {
           const retryRes = await Promise.race([
-            api.get(`/leagues/me`, { timeout: 800 }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 800))
+            api.get(`/leagues/me`, { timeout: 3000 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 3000))
           ]);
           userLeagues = retryRes.data.leagues || [];
           setLeagues(userLeagues);
         } catch {
-          // Give up fast - empty leagues is better than long wait
+          // Give up gracefully - empty leagues is better than long wait
           userLeagues = [];
           setLeagues([]);
         }
