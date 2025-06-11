@@ -104,7 +104,7 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
         # Validate that the event exists
         event = execute_with_timeout(
             db.collection("events").document(str(event_id)).get,
-            timeout=5
+            timeout=3
         )
         if not event.exists:
             raise HTTPException(status_code=404, detail="Event not found")
@@ -122,7 +122,7 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
                 "event_id": event_id,
                 "created_at": datetime.utcnow().isoformat(),
             }),
-            timeout=10
+            timeout=5
         )
         return {"player_id": player_doc.id}
     except HTTPException:
@@ -134,10 +134,10 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
 @router.put("/players/{player_id}")
 def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
-        # Validate that the event exists
+        # Validate that the event exists (use longer timeout for writes)
         event = execute_with_timeout(
             db.collection("events").document(str(event_id)).get,
-            timeout=5
+            timeout=3
         )
         if not event.exists:
             raise HTTPException(status_code=404, detail="Event not found")
@@ -146,7 +146,7 @@ def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(..
         player_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
         player_doc = execute_with_timeout(
             player_ref.get,
-            timeout=5
+            timeout=3
         )
         
         if not player_doc.exists:
@@ -161,10 +161,10 @@ def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(..
             "updated_at": datetime.utcnow().isoformat(),
         }
         
-        # Add timeout to player update
+        # Add timeout to player update (longer for write operations)
         execute_with_timeout(
             lambda: player_ref.update(update_data),
-            timeout=10
+            timeout=5
         )
         
         return {"player_id": player_id, "updated": True}
