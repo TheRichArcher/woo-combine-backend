@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
+import LoadingScreen from "../components/LoadingScreen";
 
 const ROLE_OPTIONS = [
   { key: "organizer", label: "🏈 League Operator", desc: "Full access to admin tools and player management." },
@@ -29,16 +30,11 @@ export default function SelectRole() {
 
   if (!user || checkingUser) {
     return (
-      <WelcomeLayout
-        contentClassName="min-h-[70vh]"
-        hideHeader={true}
-        showOverlay={false}
-      >
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
-          <div className="mt-4 text-gray-600">Loading...</div>
-        </div>
-      </WelcomeLayout>
+      <LoadingScreen 
+        title="Preparing role selection..."
+        subtitle="Setting up your account"
+        size="large"
+      />
     );
   }
 

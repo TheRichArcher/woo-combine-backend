@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function Home() {
   const { user: _user, userRole } = useAuth();
@@ -27,12 +28,11 @@ export default function Home() {
   // Don't render anything if we're navigating (prevents flash)
   if (isNavigating) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin inline-block w-6 h-6 border-4 border-gray-300 border-t-cmf-primary rounded-full"></div>
-          <div className="mt-3 text-gray-600">Loading...</div>
-        </div>
-      </div>
+      <LoadingScreen 
+        title="Navigating..."
+        subtitle="Taking you to your destination"
+        size="medium"
+      />
     );
   }
 

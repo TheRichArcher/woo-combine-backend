@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { useLogout } from './logout';
+import LoadingScreen from '../components/LoadingScreen';
 
 const AuthContext = createContext();
 
@@ -244,31 +245,22 @@ export function AuthProvider({ children }) {
   // Optimized loading screen - only show for true initialization, not quick auth checks
   if (initializing && !authChecked) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin inline-block w-8 h-8 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
-          <div className="mt-4 text-gray-600">
-            Loading WooCombine...
-          </div>
-          <div className="mt-2 text-sm text-gray-500">
-            Checking authentication
-          </div>
-        </div>
-      </div>
+      <LoadingScreen 
+        title="Loading WooCombine..."
+        subtitle="Checking authentication"
+        size="large"
+      />
     );
   }
 
   // Show lighter loading for background data loading (user can see page)
   if (initializing && authChecked && user && user.emailVerified) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin inline-block w-6 h-6 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
-          <div className="mt-3 text-gray-600">
-            Loading your data...
-          </div>
-        </div>
-      </div>
+      <LoadingScreen 
+        title="Loading your data..."
+        subtitle="Setting up your dashboard"
+        size="large"
+      />
     );
   }
 

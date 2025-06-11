@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "./AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
+import LoadingScreen from '../components/LoadingScreen';
 
 export default function RequireAuth({ children }) {
   const { user, loading, roleChecking, userRole } = useAuth();
@@ -8,12 +9,11 @@ export default function RequireAuth({ children }) {
   
   if (loading || roleChecking) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin inline-block w-6 h-6 border-4 border-gray-300 border-t-cyan-600 rounded-full"></div>
-          <div className="mt-3 text-gray-600">Loading...</div>
-        </div>
-      </div>
+      <LoadingScreen 
+        title="Verifying access..."
+        subtitle="Checking your authentication"
+        size="large"
+      />
     );
   }
   
