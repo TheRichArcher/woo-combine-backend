@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth, useLogout } from "../context/AuthContext";
-import { Users, Plus, QrCode, LogOut } from 'lucide-react';
+import { Users, Plus, QrCode, LogOut, List } from 'lucide-react';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function LeagueFallback() {
@@ -27,6 +27,16 @@ export default function LeagueFallback() {
     } catch (error) {
       setFeedback("Navigation error. Please try again.");
       console.error('[LeagueFallback] Join navigation error:', error);
+    }
+  };
+
+  const handleSelectLeague = () => {
+    setFeedback("Loading your leagues...");
+    try {
+      navigate('/select-league');
+    } catch (error) {
+      setFeedback("Navigation error. Please try again.");
+      console.error('[LeagueFallback] Select league navigation error:', error);
     }
   };
 
@@ -76,6 +86,28 @@ export default function LeagueFallback() {
 
         {/* Action Options */}
         <div className="space-y-4 mb-6">
+          {/* Choose Existing League Option */}
+          <div className="border border-gray-200 rounded-xl p-4 hover:border-blue-300 transition">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <List className="w-5 h-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Choose from Your Leagues</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Select from leagues you've already created or joined
+                </p>
+                <button
+                  onClick={handleSelectLeague}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
+                >
+                  <List className="w-4 h-4" />
+                  Choose League
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Join League Option */}
           <div className="border border-gray-200 rounded-xl p-4 hover:border-cyan-300 transition">
             <div className="flex items-start gap-3">
