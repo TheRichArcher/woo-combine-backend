@@ -81,9 +81,23 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
         for player in players_stream:
             player_dict = player.to_dict()
             player_dict["id"] = player.id
+            
+            # Debug logging for drill scores
+            logging.info(f"[PLAYERS DEBUG] Player {player.id} data: {player_dict}")
+            drill_scores = {
+                "40m_dash": player_dict.get("40m_dash"),
+                "vertical_jump": player_dict.get("vertical_jump"),
+                "catching": player_dict.get("catching"),
+                "throwing": player_dict.get("throwing"),
+                "agility": player_dict.get("agility")
+            }
+            logging.info(f"[PLAYERS DEBUG] Drill scores for {player_dict.get('name', 'Unknown')}: {drill_scores}")
+            
             # Calculate and add composite score
             player_dict["composite_score"] = calculate_composite_score(player_dict)
             result.append(player_dict)
+            
+        logging.info(f"[PLAYERS DEBUG] Returning {len(result)} players for event {event_id}")
         return result
     except HTTPException:
         raise
