@@ -297,7 +297,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[70vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[95vh] flex flex-col">
                 {/* Compact Header */}
         <div className="bg-cmf-primary text-white px-3 py-1.5 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
