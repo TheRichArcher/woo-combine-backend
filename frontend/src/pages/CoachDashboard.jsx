@@ -237,7 +237,7 @@ export default function CoachDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
+      <div className="max-w-lg sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
         {/* Header & Title Block */}
         <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
@@ -245,7 +245,7 @@ export default function CoachDashboard() {
           {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
         </h1>
         {/* Age Group Dropdown */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
+        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm max-w-md">
           <label className="block text-sm font-bold text-gray-700 mb-1">Select Age Group</label>
           <select
             value={selectedAgeGroup}
@@ -261,7 +261,7 @@ export default function CoachDashboard() {
         
         {/* Improved Drill Weight Controls */}
         {userRole === 'organizer' && (
-          <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
+          <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6 max-w-2xl">
             <div className="flex items-center gap-2 mb-4">
               <Settings className="w-4 h-4 text-cmf-primary" />
               <h2 className="text-sm font-medium text-gray-800">Ranking Priorities</h2>
