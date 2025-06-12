@@ -1,34 +1,96 @@
-# woo-combine-backend
-FastAPI backend for Woo-Combine platform
+# WooCombine - Youth Sports Combine Platform
 
-## Database
-This backend uses **Google Firestore** (Firebase Admin SDK) for all data storage. All previous Postgres/SQLAlchemy code has been removed.
+A comprehensive full-stack platform for managing youth sports combines and player evaluations.
 
-## Required Environment Variables
-Set these in your deployment environment (e.g., Render, .env):
+## 🏗️ **Architecture**
 
-- `GOOGLE_APPLICATION_CREDENTIALS`: Path to your Firebase Admin SDK service account JSON file
-- (Optional) `FIREBASE_PROJECT_ID`: Your Firebase project ID (if needed for Firestore client)
+### **Frontend**
+- **Framework**: React 19 + Vite
+- **Styling**: Tailwind CSS
+- **Authentication**: Firebase Auth
+- **Domain**: https://woo-combine.com
 
-## Setup
-- Ensure your service account JSON is available and referenced by `GOOGLE_APPLICATION_CREDENTIALS`.
-- No Postgres or SQLAlchemy dependencies are required.
+### **Backend**
+- **Framework**: FastAPI (Python)
+- **Database**: Google Firestore
+- **Authentication**: Firebase Admin SDK  
+- **Domain**: https://woo-combine-backend.onrender.com
 
-## Deployment
-- Remove any Postgres-related environment variables from your deployment config and .env files.
-- Only the Firebase Admin SDK variables are required.
+## 🚀 **Deployment**
 
-## Running Tests
-- Use `pytest` or your preferred test runner to test all endpoints (CRUD, auth, onboarding, etc.).
-- Check logs for Firestore operation successes and errors.
-- Ensure no SQLAlchemy/Postgres errors appear in logs.
+### **Production (Render)**
+- **Auto-deploy**: Configured from GitHub main branch
+- **Build Process**: Frontend builds first, then backend serves both
+- **Health Check**: `/health` endpoint for monitoring
 
-## Logs & Monitoring
-- All Firestore operations are logged (successes and errors).
-- Integrate error monitoring (e.g., Sentry, LogRocket) for backend and frontend.
-- Set up alerts for failed requests or exceptions in production.
+### **Required Environment Variables**
+Set these in your Render dashboard:
 
-## Manual Deployment Steps
-- Double-check Render environment variables—no Postgres/SQLAlchemy variables should remain.
-- Redeploy backend after all changes.
-- Smoke test the deployed backend (health check, CRUD, auth).
+```bash
+# Firebase Configuration
+GOOGLE_CLOUD_PROJECT=your-project-id
+FIREBASE_PROJECT_ID=your-project-id  
+GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account",...}
+
+# Build Configuration
+PYTHON_VERSION=3.11.11
+VITE_API_BASE=https://woo-combine-backend.onrender.com
+```
+
+## 🛠️ **Local Development**
+
+### **Backend Setup**
+```bash
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
+
+### **Frontend Setup**  
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## 🧪 **Testing & Quality**
+
+### **Run Tests**
+```bash
+# Frontend linting & security
+cd frontend && npm run lint && npm audit
+
+# Backend dependency check
+cd backend && python -m pip check
+```
+
+### **Health Checks**
+```bash
+# Backend health
+curl https://woo-combine-backend.onrender.com/health
+
+# Full system test
+visit https://woo-combine.com
+```
+
+## 📊 **Features**
+
+- **League Management**: Create and join leagues with invite codes
+- **Player Management**: CSV upload, manual entry, detailed profiles
+- **Drill Results**: 40m dash, vertical jump, catching, throwing, agility
+- **Real-time Rankings**: Weighted scoring with customizable presets
+- **Event Scheduling**: Complete event lifecycle management
+- **Role-based Access**: Organizer and coach permissions
+
+## 📝 **Documentation**
+
+- `PM_HANDOFF_GUIDE.md` - System architecture and debugging
+- `RENDER_DEPLOYMENT.md` - Deployment configuration guide
+- `COMPLETION_SUMMARY.md` - Project status and achievements
+
+## 🔒 **Security**
+
+- Firebase Authentication with email verification
+- CORS configured for production domains
+- Input validation and sanitization
+- No known security vulnerabilities (regularly audited)

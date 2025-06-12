@@ -518,13 +518,6 @@ export default function Players() {
       if (selectedPlayer) {
         const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
         if (updatedPlayer) {
-          console.log('🔄 PlayerDetailsModal data refreshed for:', updatedPlayer.name);
-          console.log('📊 Full player data structure:', updatedPlayer);
-          console.log('🏃 40M dash check:', {
-            '40m_dash': updatedPlayer['40m_dash'],
-            'drill_40m_dash': updatedPlayer['drill_40m_dash'],
-            'fortym_dash': updatedPlayer['fortym_dash']
-          });
           setSelectedPlayer(updatedPlayer);
         }
       }
@@ -535,13 +528,12 @@ export default function Players() {
         setPlayers([]);
       } else {
         // Other errors are actual problems
-        console.error('[Players] Fetch error:', err);
         setError(err.message);
       }
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();
