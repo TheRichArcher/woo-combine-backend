@@ -513,6 +513,18 @@ export default function Players() {
     try {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(data);
+      
+      // CRITICAL FIX: Update selectedPlayer data if modal is open
+      if (selectedPlayer) {
+        const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
+        if (updatedPlayer) {
+          console.log('🔄 PlayerDetailsModal data refreshed for:', updatedPlayer.name, {
+            old_40m_dash: selectedPlayer['40m_dash'],
+            new_40m_dash: updatedPlayer['40m_dash']
+          });
+          setSelectedPlayer(updatedPlayer);
+        }
+      }
     } catch (err) {
       if (err.response?.status === 404) {
         // 404 means no players found yet - normal for new events
@@ -526,7 +538,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();
