@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -478,6 +478,10 @@ export default function Players() {
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
+  
+  // Ref to access current selectedPlayer value without triggering re-renders
+  const selectedPlayerRef = useRef(null);
+  selectedPlayerRef.current = selectedPlayer;
 
   // Interactive onboarding callout
   const OnboardingCallout = () => (
@@ -515,8 +519,8 @@ export default function Players() {
       setPlayers(data);
       
       // CRITICAL FIX: Update selectedPlayer data if modal is open
-      if (selectedPlayer) {
-        const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
+      if (selectedPlayerRef.current) {
+        const updatedPlayer = data.find(p => p.id === selectedPlayerRef.current.id);
         if (updatedPlayer) {
           setSelectedPlayer(updatedPlayer);
         }
@@ -533,7 +537,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();
