@@ -878,8 +878,16 @@ video {
   max-height: 16rem;
 }
 
-.max-h-\[85vh\] {
-  max-height: 85vh;
+.max-h-96 {
+  max-height: 24rem;
+}
+
+.max-h-\[95vh\] {
+  max-height: 95vh;
+}
+
+.min-h-0 {
+  min-height: 0px;
 }
 
 .min-h-\[40vh\] {

@@ -269,9 +269,9 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   // Calculate weighted score breakdown with current weights
   const weightedBreakdown = DRILLS.map(drill => {
-    const rawScore = player[drill.key] || 0;
+    const rawScore = player[drill.key] != null ? player[drill.key] : null;
     const weight = weights[drill.key];
-    const weightedScore = rawScore * weight;
+    const weightedScore = (rawScore != null ? rawScore : 0) * weight;
     return {
       ...drill,
       rawScore,
@@ -297,7 +297,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[85vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col">
         {/* Compact Header */}
         <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
@@ -317,7 +317,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </button>
         </div>
 
-        {/* Main Content - No Scrolling Needed */}
+        {/* Main Content - Scrollable Areas */}
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex">
             {/* Left Column: Drill Results */}
@@ -338,7 +338,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
                             <div className="flex items-center gap-2">
                       <span className="text-base font-bold text-cmf-primary">
-                        {drill.rawScore || 'No score'} {drill.rawScore && drill.unit}
+                        {drill.rawScore != null ? `${drill.rawScore} ${drill.unit}` : 'No score'}
                       </span>
                       {drill.rank && (
                                 <span className="bg-cmf-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
@@ -394,7 +394,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-80 bg-gray-50 p-4 border-l border-gray-200">
+            <div className="w-80 bg-gray-50 p-4 border-l border-gray-200 overflow-y-auto">
               <div className="h-full flex flex-col">
                 {/* Quick Presets */}
                 <div className="mb-4">
@@ -422,13 +422,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                 
                 {/* Real-time Ranking Analysis */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 overflow-y-auto">
+                <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 min-h-0">
                   <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                     <Award className="w-4 h-4 text-yellow-500" />
                     Ranking Analysis
                   </h4>
                   
-                  <div className="space-y-2 text-sm">
+                  <div className="space-y-2 text-sm overflow-y-auto max-h-96">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
