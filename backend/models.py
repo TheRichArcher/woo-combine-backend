@@ -1,7 +1,7 @@
 # Firestore is now used for all data storage.
 # See the approved Firestore schema for collections and document structure.
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, Any, Dict
 from datetime import datetime
 
@@ -15,12 +15,15 @@ class PlayerSchema(BaseModel):
     event_id: Optional[str] = None
     created_at: Optional[str] = None
     # Drill scores
-    drill_40m_dash: Optional[float] = None
+    drill_40m_dash: Optional[float] = Field(None, alias="40m_dash")
     vertical_jump: Optional[float] = None
     catching: Optional[float] = None
     throwing: Optional[float] = None
     agility: Optional[float] = None
     composite_score: Optional[float] = None
+    
+    class Config:
+        allow_population_by_field_name = True
 
 class DrillResultSchema(BaseModel):
     id: str
