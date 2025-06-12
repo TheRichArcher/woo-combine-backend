@@ -35,9 +35,9 @@
     "tailwindcss": "^3.4.1",
     "vite": "^6.3.5"
   },
-  "description": "This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.",
-  "main": "eslint.config.js",
-  "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "description": "WooCombine - Youth Sports Combine Platform Frontend",
+  "main": "index.html",
+  "keywords": ["sports", "combine", "youth-athletics", "player-evaluation", "react", "vite"],
+  "author": "WooCombine Team",
+  "license": "MIT"
 }
