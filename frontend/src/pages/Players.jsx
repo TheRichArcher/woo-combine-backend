@@ -296,8 +296,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
   const currentRank = playersWithScores.findIndex(p => p.id === player.id) + 1;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[75vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[70vh] flex flex-col">
                 {/* Compact Header */}
         <div className="bg-cmf-primary text-white px-3 py-1.5 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
@@ -394,8 +394,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-72 bg-gray-50 p-2 border-l border-gray-200 overflow-y-auto">
-              <div className="h-full flex flex-col">
+            <div className="w-64 bg-gray-50 p-2 border-l border-gray-200 flex flex-col">
+              <div className="flex-1 overflow-y-auto">
                 {/* Quick Presets */}
                 <div className="mb-3">
                   <h3 className="text-sm font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
@@ -422,13 +422,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                 
                 {/* Real-time Ranking Analysis */}
-                <div className="bg-white rounded-lg p-2 border border-gray-200 flex-1 min-h-0">
+                <div className="bg-white rounded-lg p-2 border border-gray-200 mt-3">
                   <h4 className="font-semibold text-gray-900 mb-1.5 flex items-center gap-1.5">
                     <Award className="w-3 h-3 text-yellow-500" />
                     <span className="text-sm">Ranking Analysis</span>
                   </h4>
                   
-                  <div className="space-y-1.5 text-xs overflow-y-auto max-h-52">
+                  <div className="space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -457,7 +457,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                   </div>
                 </div>
                 
-                <div className="mt-1.5 text-xs text-gray-500 text-center flex-shrink-0">
+                <div className="mt-2 text-xs text-gray-500 text-center">
                   💡 Adjust sliders for real-time changes
                 </div>
               </div>
