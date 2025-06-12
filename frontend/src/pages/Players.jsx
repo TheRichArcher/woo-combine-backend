@@ -297,23 +297,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[80vh] flex flex-col">
-        {/* Compact Header */}
-        <div className="bg-cmf-primary text-white px-4 py-2 rounded-t-xl flex justify-between items-center flex-shrink-0">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[75vh] flex flex-col">
+                {/* Compact Header */}
+        <div className="bg-cmf-primary text-white px-3 py-1.5 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold">{player.name}</h2>
-            <p className="text-cmf-light text-xs sm:text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
+            <h2 className="text-lg font-bold">{player.name}</h2>
+            <p className="text-cmf-light text-xs">Player #{player.number} • Age Group: {player.age_group}</p>
           </div>
-                      <div className="text-right mr-4">
-            <div className="text-sm opacity-75">Overall Score</div>
-            <div className="text-xl font-bold">{totalWeightedScore.toFixed(2)} pts</div>
+          <div className="text-right mr-3">
+            <div className="text-xs opacity-75">Overall Score</div>
+            <div className="text-lg font-bold">{totalWeightedScore.toFixed(2)} pts</div>
             <div className="text-xs opacity-75">#{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
+            className="w-7 h-7 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -321,27 +321,27 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex">
             {/* Left Column: Drill Results */}
-            <div className="flex-1 p-3">
+            <div className="flex-1 p-2">
               <div className="h-full flex flex-col">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-cmf-primary" />
                   Drill Performance & Weight Control
                 </h3>
           
-                <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-1 gap-1.5 flex-1 overflow-y-auto min-h-0">
             {weightedBreakdown.map(drill => (
-                    <div key={drill.key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                    <div key={drill.key} className="bg-gray-50 rounded-lg p-1.5 border border-gray-200">
                       {/* Compact Drill Row */}
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center gap-1.5">
                           <div className="min-w-0">
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
-                            <div className="flex items-center gap-2">
-                      <span className="text-base font-bold text-cmf-primary">
+                            <div className="flex items-center gap-1.5">
+                      <span className="text-sm font-bold text-cmf-primary">
                         {drill.rawScore != null ? `${drill.rawScore} ${drill.unit}` : 'No score'}
                       </span>
                       {drill.rank && (
-                                <span className="bg-cmf-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
+                                <span className="bg-cmf-primary text-white px-1 py-0.5 rounded-full text-xs font-medium">
                           #{drill.rank}
                         </span>
                       )}
@@ -350,7 +350,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-600">Contribution</div>
-                          <div className="text-base font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
+                          <div className="text-sm font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
                   </div>
                 </div>
                 
@@ -382,10 +382,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </div>
           
                 {/* Total Score at Bottom */}
-                <div className="mt-2 p-2 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
+                <div className="mt-1.5 p-1.5 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900 text-sm">Total Composite Score:</span>
-              <span className="text-lg font-bold text-cmf-primary">
+              <span className="font-semibold text-gray-900 text-xs">Total Composite Score:</span>
+              <span className="text-base font-bold text-cmf-primary">
                       {totalWeightedScore.toFixed(2)} pts (#{currentRank})
               </span>
                   </div>
@@ -394,12 +394,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-80 bg-gray-50 p-3 border-l border-gray-200 overflow-y-auto">
+            <div className="w-72 bg-gray-50 p-2 border-l border-gray-200 overflow-y-auto">
               <div className="h-full flex flex-col">
                 {/* Quick Presets */}
-                <div className="mb-4">
-                  <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-cmf-primary" />
+                <div className="mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
+                    <Settings className="w-3 h-3 text-cmf-primary" />
                     Weight Scenarios
                   </h3>
                   
@@ -408,13 +408,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       <button
                         key={key}
                         onClick={() => applyPreset(key)}
-                        className={`p-2 text-left rounded-lg border-2 transition-all ${
+                        className={`p-1.5 text-left rounded-lg border-2 transition-all ${
                           activePreset === key 
                             ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
-                        <div className="font-medium text-sm">{preset.name}</div>
+                        <div className="font-medium text-xs">{preset.name}</div>
                         <div className="text-xs text-gray-500">{preset.description}</div>
                       </button>
                     ))}
@@ -422,13 +422,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                 
                 {/* Real-time Ranking Analysis */}
-                <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 min-h-0">
-                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                    Ranking Analysis
+                <div className="bg-white rounded-lg p-2 border border-gray-200 flex-1 min-h-0">
+                  <h4 className="font-semibold text-gray-900 mb-1.5 flex items-center gap-1.5">
+                    <Award className="w-3 h-3 text-yellow-500" />
+                    <span className="text-sm">Ranking Analysis</span>
                   </h4>
                   
-                  <div className="space-y-2 text-sm overflow-y-auto max-h-64">
+                  <div className="space-y-1.5 text-xs overflow-y-auto max-h-52">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -439,8 +439,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       <span className="font-bold text-cmf-secondary">{totalWeightedScore.toFixed(2)} pts</span>
                     </div>
                     
-                    <div className="pt-2 border-t border-gray-200">
-                      <div className="text-xs text-gray-500 mb-2">Score Breakdown:</div>
+                    <div className="pt-1.5 border-t border-gray-200">
+                      <div className="text-xs text-gray-500 mb-1">Score Breakdown:</div>
                       {weightedBreakdown.map(drill => (
                         <div key={drill.key} className="flex justify-between text-xs">
                           <span className="text-gray-600">{drill.label}:</span>
@@ -449,7 +449,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       ))}
                     </div>
                     
-                    <div className="pt-2 border-t border-gray-200">
+                    <div className="pt-1.5 border-t border-gray-200">
                       <div className="text-xs text-gray-500">
                         {activePreset ? `Using ${WEIGHT_PRESETS[activePreset].name} preset` : 'Using custom weights'}
                       </div>
@@ -457,7 +457,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                   </div>
                 </div>
                 
-                <div className="mt-2 text-xs text-gray-500 text-center flex-shrink-0">
+                <div className="mt-1.5 text-xs text-gray-500 text-center flex-shrink-0">
                   💡 Adjust sliders for real-time changes
                 </div>
               </div>
