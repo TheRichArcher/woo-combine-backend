@@ -518,9 +518,12 @@ export default function Players() {
       if (selectedPlayer) {
         const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
         if (updatedPlayer) {
-          console.log('🔄 PlayerDetailsModal data refreshed for:', updatedPlayer.name, {
-            old_40m_dash: selectedPlayer['40m_dash'],
-            new_40m_dash: updatedPlayer['40m_dash']
+          console.log('🔄 PlayerDetailsModal data refreshed for:', updatedPlayer.name);
+          console.log('📊 Full player data structure:', updatedPlayer);
+          console.log('🏃 40M dash check:', {
+            '40m_dash': updatedPlayer['40m_dash'],
+            'drill_40m_dash': updatedPlayer['drill_40m_dash'],
+            'fortym_dash': updatedPlayer['fortym_dash']
           });
           setSelectedPlayer(updatedPlayer);
         }
@@ -538,7 +541,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();
