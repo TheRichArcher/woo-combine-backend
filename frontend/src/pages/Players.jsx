@@ -296,10 +296,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
   const currentRank = playersWithScores.findIndex(p => p.id === player.id) + 1;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl max-h-[90vh] sm:max-h-[85vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-1 sm:p-2 md:p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-7xl h-[98vh] sm:h-[95vh] md:h-[90vh] lg:h-[85vh] max-h-screen flex flex-col">
         {/* Compact Header */}
-        <div className="bg-cmf-primary text-white px-3 sm:px-6 py-2 sm:py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
+        <div className="bg-cmf-primary text-white px-2 sm:px-3 md:px-6 py-1 sm:py-2 md:py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-lg sm:text-xl font-bold">{player.name}</h2>
             <p className="text-cmf-light text-xs sm:text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
@@ -321,14 +321,14 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex flex-col lg:flex-row">
             {/* Left Column: Drill Results */}
-            <div className="flex-1 p-2 sm:p-4">
+            <div className="flex-1 p-1 sm:p-2 md:p-4">
               <div className="h-full flex flex-col">
                 <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3 flex items-center gap-2">
             <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-cmf-primary" />
                   Drill Performance & Weight Control
                 </h3>
           
-                <div className="grid grid-cols-1 gap-1 sm:gap-2 flex-1 overflow-y-auto">
+                <div className="grid grid-cols-1 gap-1 sm:gap-2 flex-1 overflow-y-auto min-h-0">
             {weightedBreakdown.map(drill => (
                     <div key={drill.key} className="bg-gray-50 rounded-lg p-1.5 sm:p-2 border border-gray-200">
                       {/* Compact Drill Row */}
@@ -394,7 +394,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-full lg:w-72 xl:w-80 bg-gray-50 p-2 sm:p-4 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto max-h-96 lg:max-h-full">
+            <div className="w-full lg:w-72 xl:w-80 bg-gray-50 p-1 sm:p-2 md:p-4 border-t lg:border-t-0 lg:border-l border-gray-200 overflow-y-auto max-h-64 sm:max-h-80 lg:max-h-full">
               <div className="h-full flex flex-col">
                 {/* Quick Presets */}
                 <div className="mb-3 sm:mb-4">
@@ -428,7 +428,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                     <span className="text-sm sm:text-base">Ranking Analysis</span>
                   </h4>
                   
-                  <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm overflow-y-auto max-h-64 sm:max-h-96">
+                  <div className="space-y-1 sm:space-y-2 text-xs sm:text-sm overflow-y-auto max-h-32 sm:max-h-48 md:max-h-64 lg:max-h-96">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
