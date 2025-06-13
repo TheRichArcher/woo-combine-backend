@@ -22,7 +22,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://woo-combine.com",
-        "https://woo-combine-backend.onrender.com",
+        "https://woo-combine-backend-new.onrender.com",
         "http://localhost:5173",  # Local development
         "http://localhost:3000",  # Alternative dev port
     ],
