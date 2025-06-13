@@ -535,7 +535,7 @@ export default function Players() {
     return score;
   };
 
-  // NEW: CSV Export logic
+  // NEW: CSV Export logic for rankings
   const handleExportCsv = () => {
     if (!selectedAgeGroup || rankings.length === 0) return;
     let csv = 'Rank,Name,Player Number,Composite Score\n';
@@ -544,6 +544,36 @@ export default function Players() {
     });
     const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
     const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // NEW: Export all players with current weighted scores
+  const handleExportAllPlayers = () => {
+    if (players.length === 0) return;
+    
+    // Create CSV with comprehensive player data
+    let csv = 'Name,Player Number,Age Group,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
+    
+    // Sort all players by composite score (descending)
+    const sortedPlayers = [...players].sort((a, b) => {
+      return calculateCompositeScore(b) - calculateCompositeScore(a);
+    });
+    
+    sortedPlayers.forEach(player => {
+      const compositeScore = calculateCompositeScore(player);
+      csv += `"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unassigned'}",${compositeScore.toFixed(2)},${player["40m_dash"] || ''},${player["vertical_jump"] || ''},${player["catching"] || ''},${player["throwing"] || ''},${player["agility"] || ''}\n`;
+    });
+    
+    const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+    const filename = `all_players_${eventDate}.csv`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -930,15 +960,27 @@ export default function Players() {
 
         {/* Player Management Section */}
         <div className="border-t-2 border-gray-200 pt-8 mt-8">
-          <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Player Management</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Individual Player Records & Drill Entry
-            {ageGroups.length > 0 && userRole === 'organizer' && (
-              <span className="ml-2 text-sm font-normal text-cmf-primary">
-                📊 Rankings update live with weight changes
-              </span>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Player Management</div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Individual Player Records & Drill Entry
+                {ageGroups.length > 0 && userRole === 'organizer' && (
+                  <span className="ml-2 text-sm font-normal text-cmf-primary">
+                    📊 Rankings update live with weight changes
+                  </span>
+                )}
+              </h2>
+            </div>
+            {players.length > 0 && (
+              <button
+                onClick={handleExportAllPlayers}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm font-medium shadow-sm"
+              >
+                📊 Export All Players
+              </button>
             )}
-          </h2>
+          </div>
         </div>
 
                  {/* Player Stats Modals */}
