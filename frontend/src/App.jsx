@@ -19,6 +19,7 @@ import VerifyEmail from "./pages/VerifyEmail";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
+import LiveEntry from "./pages/LiveEntry";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 
 function App() {
@@ -81,6 +82,14 @@ function App() {
                         <AdminTools />
                       </div>
                     </>
+                  </RequireAuth>
+                }
+              />
+              <Route
+                path="/live-entry"
+                element={
+                  <RequireAuth>
+                    <LiveEntry />
                   </RequireAuth>
                 }
               />

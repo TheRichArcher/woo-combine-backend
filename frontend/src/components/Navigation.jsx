@@ -38,6 +38,9 @@ export default function Navigation() {
           {userRole === 'organizer' && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Admin</Link>
           )}
+          {userRole === 'organizer' && (
+            <Link to="/live-entry" className="text-lg font-semibold text-cmf-primary hover:text-cmf-secondary">🚀 Live Entry</Link>
+          )}
           {user && (
             <button
               onClick={async () => { 
@@ -68,6 +71,9 @@ export default function Navigation() {
             <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Players & Rankings</Link>
             {userRole === 'organizer' && (
               <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Admin</Link>
+            )}
+            {userRole === 'organizer' && (
+              <Link to="/live-entry" className="block text-lg font-semibold text-cmf-primary hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>🚀 Live Entry</Link>
             )}
             {user && (
               <button

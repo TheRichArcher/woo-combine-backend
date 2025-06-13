@@ -516,6 +516,12 @@ export default function AdminTools() {
                       >
                         📊 View Players & Rankings
                       </Link>
+                      <Link
+                        to="/live-entry"
+                        className="bg-green-500 border border-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition text-left block"
+                      >
+                        🚀 Start Live Event Data Entry
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -636,6 +642,12 @@ export default function AdminTools() {
                       >
                         📊 View Players & Rankings
                       </Link>
+                      <Link
+                        to="/live-entry"
+                        className="bg-green-500 border border-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition text-left block"
+                      >
+                        🚀 Start Live Event Data Entry
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -644,6 +656,32 @@ export default function AdminTools() {
             </form>
           </div>
         )}
+        
+        {/* Step 3: Live Data Entry Section */}
+        <div className="mb-6">
+          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 3</div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-2">Live Event Data Entry</h2>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
+            <p className="text-blue-800 text-sm mb-3">
+              <strong>High-Speed Entry Mode:</strong> Perfect for live combine events with hundreds of players. 
+              Optimized for mobile devices with rapid player number lookup and instant score submission.
+            </p>
+            <ul className="text-blue-700 text-sm space-y-1 mb-3">
+              <li>🚀 <strong>Fast Entry:</strong> Type player # → Enter score → Auto-save</li>
+              <li>📱 <strong>Mobile Optimized:</strong> Large touch targets for outdoor use</li>
+              <li>🔄 <strong>Duplicate Handling:</strong> Smart prompts when updating existing scores</li>
+              <li>⚡ <strong>Auto-Focus:</strong> Instant return to player field after each entry</li>
+              <li>📊 <strong>Real-Time:</strong> Immediate sync with rankings</li>
+            </ul>
+          </div>
+          <Link
+            to="/live-entry"
+            className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full px-6 py-3 text-base font-bold shadow-lg hover:from-green-600 hover:to-green-700 transition flex items-center gap-2 justify-center"
+          >
+            🚀 Start Live Entry Mode
+          </Link>
+        </div>
+        
         {/* Reset Tool */}
         <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
           <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><RefreshCcw className="w-4 h-4" />Reset Players</div>
