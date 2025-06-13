@@ -24,13 +24,25 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
     use_weights = weights if weights is not None else DRILL_WEIGHTS
     score = 0.0
     
+    # Define which drills have "lower is better" scoring
+    lower_is_better_drills = {"40m_dash"}
+    
     for drill, weight in use_weights.items():
         # Get drill value from player data (stored as drill_[type] or just [type])
         value = player_data.get(drill, 0) or player_data.get(f"drill_{drill}", 0)
         if value is None:
             value = 0
         try:
-            score += float(value) * weight
+            drill_value = float(value)
+            
+            # For "lower is better" drills like 40m dash, invert the score
+            # Use a reasonable maximum (30 seconds for 40m dash) to create an inverted scale
+            if drill in lower_is_better_drills:
+                if drill == "40m_dash":
+                    # Convert to "higher is better" scale: use (30 - time) so 4 seconds becomes 26, 15 seconds becomes 15
+                    drill_value = max(0, 30 - drill_value)
+            
+            score += drill_value * weight
         except (ValueError, TypeError):
             # Skip invalid values
             continue

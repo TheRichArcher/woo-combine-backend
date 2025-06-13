@@ -8,11 +8,11 @@ import { X, TrendingUp, Award, Edit, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
-  { key: "40m_dash", label: "40M Dash", unit: "sec" },
-  { key: "vertical_jump", label: "Vertical Jump", unit: "in" },
-  { key: "catching", label: "Catching", unit: "pts" },
-  { key: "throwing", label: "Throwing", unit: "pts" },
-  { key: "agility", label: "Agility", unit: "pts" },
+  { key: "40m_dash", label: "40M Dash", unit: "sec", lowerIsBetter: true },
+  { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false },
+  { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false },
+  { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false },
+  { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false },
 ];
 
 const DRILL_WEIGHTS = {
@@ -262,7 +262,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     const drillRanks = allPlayers
       .filter(p => p[drill.key] != null && p.age_group === player.age_group)
       .map(p => ({ player_id: p.id, score: p[drill.key] }))
-      .sort((a, b) => b.score - a.score);
+      .sort((a, b) => drill.lowerIsBetter ? a.score - b.score : b.score - a.score);
     const rank = drillRanks.findIndex(p => p.player_id === player.id) + 1;
     drillRankings[drill.key] = rank > 0 ? rank : null;
   });
@@ -528,8 +528,15 @@ export default function Players() {
   const calculateCompositeScore = (player) => {
     const drills = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"];
     const score = drills.reduce((sum, drill) => {
-      const drillScore = player[drill] || 0;
+      let drillScore = player[drill] || 0;
       const weight = weights[drill] || 0;
+      
+      // For "lower is better" drills like 40m dash, invert the score
+      // Use the same logic as backend: (30 - time) for 40m dash
+      if (drill === "40m_dash" && drillScore > 0) {
+        drillScore = Math.max(0, 30 - drillScore);
+      }
+      
       return sum + (drillScore * weight);
     }, 0);
     return score;
@@ -917,7 +924,7 @@ export default function Players() {
                               const drillRanks = rankings
                                 .filter(p => p[drill.key] != null)
                                 .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                                .sort((a, b) => b.score - a.score);
+                                .sort((a, b) => drill.lowerIsBetter ? a.score - b.score : b.score - a.score);
                               const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
                               drillRankings[drill.key] = rank > 0 ? rank : null;
                             });
