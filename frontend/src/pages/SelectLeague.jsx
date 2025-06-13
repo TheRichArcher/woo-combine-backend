@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import api from '../lib/api';
 
 export default function SelectLeague() {
-  const { user, setSelectedLeagueId } = useAuth();
+  const { user, userRole, setSelectedLeagueId } = useAuth();
   const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,10 @@ export default function SelectLeague() {
         const res = await api.get(`/leagues/me`);
         setLeagues(res.data.leagues || []);
         if (!res.data.leagues || res.data.leagues.length === 0) {
-          setFetchError('No leagues linked to this account. Try creating a new one.');
+          const errorMsg = userRole === 'coach' 
+            ? 'No leagues found. Ask your organizer for an invite code to join a league.'
+            : 'No leagues linked to this account. Try creating a new one.';
+          setFetchError(errorMsg);
         } else {
           setFetchError(null);
         }
@@ -31,7 +34,10 @@ export default function SelectLeague() {
         if (err.response?.status === 404) {
           // 404 means user has no leagues yet - this is normal
           setLeagues([]);
-          setFetchError('No leagues linked to this account. Try creating a new one.');
+          const errorMsg = userRole === 'coach' 
+            ? 'No leagues found. Ask your organizer for an invite code to join a league.'
+            : 'No leagues linked to this account. Try creating a new one.';
+          setFetchError(errorMsg);
         } else {
           // Other errors are actual problems
           console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
@@ -120,7 +126,7 @@ export default function SelectLeague() {
             className="w-11/12 max-w-lg border-2 border-blue-600 text-blue-700 font-bold text-lg py-3 rounded-full shadow"
             onClick={() => navigate('/join')}
           >
-            Join a Team
+            {userRole === 'coach' ? 'Join with Invite Code' : 'Join a Team'}
           </button>
         </div>
       </div>
