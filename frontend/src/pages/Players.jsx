@@ -524,6 +524,17 @@ export default function Players() {
     setActivePreset(presetKey);
   };
 
+  // NEW: Calculate composite score with current weights
+  const calculateCompositeScore = (player) => {
+    const drills = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"];
+    const score = drills.reduce((sum, drill) => {
+      const drillScore = player[drill] || 0;
+      const weight = weights[drill] || 0;
+      return sum + (drillScore * weight);
+    }, 0);
+    return score;
+  };
+
   // NEW: CSV Export logic
   const handleExportCsv = () => {
     if (!selectedAgeGroup || rankings.length === 0) return;
@@ -920,7 +931,14 @@ export default function Players() {
         {/* Player Management Section */}
         <div className="border-t-2 border-gray-200 pt-8 mt-8">
           <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Player Management</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Individual Player Records & Drill Entry</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Individual Player Records & Drill Entry
+            {ageGroups.length > 0 && userRole === 'organizer' && (
+              <span className="ml-2 text-sm font-normal text-cmf-primary">
+                📊 Rankings update live with weight changes
+              </span>
+            )}
+          </h2>
         </div>
 
                  {/* Player Stats Modals */}
@@ -943,10 +961,12 @@ export default function Players() {
           Object.entries(grouped)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([ageGroup, ageGroupPlayers]) => {
-              // Sort by composite_score descending, then by name
+              // Sort by calculated composite score (with current weights) descending, then by name
               const sortedPlayers = ageGroupPlayers.sort((a, b) => {
-                if (a.composite_score !== b.composite_score) {
-                  return (b.composite_score || 0) - (a.composite_score || 0);
+                const scoreA = calculateCompositeScore(a);
+                const scoreB = calculateCompositeScore(b);
+                if (scoreA !== scoreB) {
+                  return scoreB - scoreA;
                 }
                 return a.name.localeCompare(b.name);
               });
@@ -977,14 +997,17 @@ export default function Players() {
                               <td className="py-2 px-2">{player.name}</td>
                               <td className="py-2 px-2">{player.number || 'N/A'}</td>
                               <td className="py-2 px-2 font-mono">
-                                {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                                {(() => {
+                                  const dynamicScore = calculateCompositeScore(player);
+                                  return dynamicScore > 0 ? dynamicScore.toFixed(2) : "No scores yet";
+                                })()}
                               </td>
                               <td className="py-2 px-2">
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => setSelectedPlayer(player)}
                                     className="text-blue-600 hover:text-blue-900 text-sm underline"
-                                    disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                                    disabled={calculateCompositeScore(player) === 0}
                                   >
                                     View Stats
                                   </button>
