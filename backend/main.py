@@ -106,60 +106,20 @@ async def startup_event():
     else:
         logging.warning(f"[STARTUP] Frontend directory not found: {dist_dir}")
 
-# Serve frontend static files ONLY for specific paths to avoid API conflicts
+# TEMPORARILY DISABLE FRONTEND SERVING TO ISOLATE API ISSUES
+# Frontend will be served separately from woo-combine.com
 DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 if DIST_DIR.exists():
-    # Mount specific static assets only - NO catch-all mount
-    app.mount(
-        "/assets",
-        StaticFiles(directory=DIST_DIR / "assets"),
-        name="assets",
-    )
-    app.mount(
-        "/favicon",
-        StaticFiles(directory=DIST_DIR / "favicon"),
-        name="favicon",
-    )
-    
-    # Serve index.html for specific frontend routes only (NOT catch-all)
-    from fastapi.responses import FileResponse
-    
-    @app.get("/", response_class=FileResponse)
-    async def serve_frontend_root():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/welcome", response_class=FileResponse)
-    async def serve_frontend_welcome():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/login", response_class=FileResponse)
-    async def serve_frontend_login():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/signup", response_class=FileResponse)
-    async def serve_frontend_signup():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/join", response_class=FileResponse)
-    async def serve_frontend_join():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/dashboard", response_class=FileResponse)
-    async def serve_frontend_dashboard():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/players", response_class=FileResponse)
-    async def serve_frontend_players():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/admin", response_class=FileResponse)
-    async def serve_frontend_admin():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    @app.get("/live-entry", response_class=FileResponse)
-    async def serve_frontend_live_entry():
-        return FileResponse(DIST_DIR / "index.html")
-    
-    logging.info(f"[STARTUP] Serving frontend from: {DIST_DIR} (specific routes only - API protected)")
+    logging.info(f"[STARTUP] Frontend directory found but NOT serving (API-only mode): {DIST_DIR}")
 else:
-    logging.warning(f"[STARTUP] Frontend not available - {DIST_DIR} does not exist") 
+    logging.warning(f"[STARTUP] Frontend not available - {DIST_DIR} does not exist")
+
+# Simple root route for testing
+@app.get("/")
+async def serve_api_info():
+    return {
+        "message": "WooCombine API (API-only mode)",
+        "status": "running", 
+        "frontend": "served separately",
+        "api_prefix": "/api"
+    } 
