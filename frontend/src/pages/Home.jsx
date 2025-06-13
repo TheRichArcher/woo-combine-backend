@@ -63,19 +63,19 @@ export default function Home() {
                   📊 Manage Event
                 </button>
                 <button
-                  onClick={() => handleNavigation('/coach-dashboard')}
+                  onClick={() => handleNavigation('/players')}
                   className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
                 >
-                  🏆 View Rankings
+                  🏆 View Players & Rankings
                 </button>
               </>
             )}
             {userRole === 'coach' && (
               <button
-                onClick={() => handleNavigation('/coach-dashboard')}
+                onClick={() => handleNavigation('/players')}
                 className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
               >
-                🏆 Coach Dashboard
+                🏆 View Players & Rankings
               </button>
             )}
             {userRole === 'player' && selectedEvent && (

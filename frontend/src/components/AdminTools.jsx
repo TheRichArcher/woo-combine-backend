@@ -511,10 +511,10 @@ export default function AdminTools() {
                         👥 View & Manage Players (Add Drill Results)
                       </Link>
                       <Link
-                        to="/coach-dashboard"
+                        to="/players"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
-                        📊 View Dashboard & Rankings
+                        📊 View Players & Rankings
                       </Link>
                     </div>
                   </div>
@@ -631,10 +631,10 @@ export default function AdminTools() {
                         👥 View & Manage Players (Add Drill Results)
                       </Link>
                       <Link
-                        to="/coach-dashboard"
+                        to="/players"
                         className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
                       >
-                        📊 View Dashboard & Rankings
+                        📊 View Players & Rankings
                       </Link>
                     </div>
                   </div>
