@@ -723,7 +723,7 @@ export default function Players() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 mt-20">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
         <OnboardingCallout />
         {/* Main Heading */}
@@ -839,20 +839,21 @@ export default function Players() {
                     No players found for this age group with complete drill results.
                   </div>
                 ) : (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto mb-6">
-                    <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                      <h2 className="text-xl font-semibold">🏆 Rankings ({selectedAgeGroup})</h2>
-                      <button
-                        onClick={handleExportCsv}
-                        className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
-                        disabled={rankings.length === 0}
-                      >
-                        📊 Export as CSV
-                      </button>
-                    </div>
-                    
-                    {/* Rankings Table */}
-                    <div className="overflow-x-auto">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 -mx-4 sm:mx-0 sm:rounded-xl">
+                    <div className="p-4 sm:p-6">
+                      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
+                        <h2 className="text-xl font-semibold">🏆 Rankings ({selectedAgeGroup})</h2>
+                        <button
+                          onClick={handleExportCsv}
+                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
+                          disabled={rankings.length === 0}
+                        >
+                          📊 Export as CSV
+                        </button>
+                      </div>
+                      
+                      {/* Rankings Table */}
+                      <div className="overflow-x-auto -mx-4 sm:mx-0">
                       <table className="w-full text-left text-sm">
                         <thead>
                           <tr className="border-b border-gray-200">
@@ -904,16 +905,17 @@ export default function Players() {
                                 ))}
                               </tr>
                             );
-                          })}
+                                                    })}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   </div>
                 )}
               </>
             )}
           </>
-                 )}
+        )}
 
         {/* Player Management Section */}
         <div className="border-t-2 border-gray-200 pt-8 mt-8">
@@ -954,8 +956,8 @@ export default function Players() {
                   <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2">
                     <span>Age Group: {ageGroup}</span>
                   </div>
-                  <div className="overflow-hidden rounded-lg border border-gray-200">
-                    <table className="min-w-full bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full bg-white border border-gray-200 rounded-lg">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
