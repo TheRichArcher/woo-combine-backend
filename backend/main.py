@@ -70,7 +70,7 @@ def health_check():
     except Exception as e:
         return {"status": "error", "details": str(e)}
 
-@app.get("/")
+@app.get("/api")
 def root():
     """Root endpoint for basic API info"""
     return {
