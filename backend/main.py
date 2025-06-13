@@ -106,46 +106,60 @@ async def startup_event():
     else:
         logging.warning(f"[STARTUP] Frontend directory not found: {dist_dir}")
 
-# Custom middleware to handle API vs frontend routing
-class APIRoutingMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # If it's an API request, let it through normally
-        if request.url.path.startswith("/api/") or request.url.path in ["/health", "/docs", "/openapi.json"]:
-            return await call_next(request)
-        
-        # For non-API requests, check if frontend is available
-        dist_dir = Path(__file__).parent.parent / "frontend" / "dist"
-        if not dist_dir.exists():
-            # No frontend available, return basic API info
-            return Response("WooCombine API is running. Frontend not available in this deployment.", media_type="text/plain")
-        
-        # Let frontend handle it
-        return await call_next(request)
-
-# Add the routing middleware BEFORE mounting static files
-app.add_middleware(APIRoutingMiddleware)
-
-# Serve frontend static files (if available) 
+# Serve frontend static files ONLY for specific paths to avoid API conflicts
 DIST_DIR = Path(__file__).parent.parent / "frontend" / "dist"
 if DIST_DIR.exists():
-    # Mount assets first
+    # Mount specific static assets only - NO catch-all mount
     app.mount(
         "/assets",
         StaticFiles(directory=DIST_DIR / "assets"),
         name="assets",
     )
-    # Mount favicon directory
     app.mount(
         "/favicon",
         StaticFiles(directory=DIST_DIR / "favicon"),
         name="favicon",
     )
-    # Mount SPA for everything else (but middleware will protect API routes)
-    app.mount(
-        "/",
-        StaticFiles(directory=DIST_DIR, html=True),
-        name="spa",
-    )
-    logging.info(f"[STARTUP] Serving frontend from: {DIST_DIR} with API route protection")
+    
+    # Serve index.html for specific frontend routes only (NOT catch-all)
+    from fastapi.responses import FileResponse
+    
+    @app.get("/", response_class=FileResponse)
+    async def serve_frontend_root():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/welcome", response_class=FileResponse)
+    async def serve_frontend_welcome():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/login", response_class=FileResponse)
+    async def serve_frontend_login():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/signup", response_class=FileResponse)
+    async def serve_frontend_signup():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/join", response_class=FileResponse)
+    async def serve_frontend_join():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/dashboard", response_class=FileResponse)
+    async def serve_frontend_dashboard():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/players", response_class=FileResponse)
+    async def serve_frontend_players():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/admin", response_class=FileResponse)
+    async def serve_frontend_admin():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    @app.get("/live-entry", response_class=FileResponse)
+    async def serve_frontend_live_entry():
+        return FileResponse(DIST_DIR / "index.html")
+    
+    logging.info(f"[STARTUP] Serving frontend from: {DIST_DIR} (specific routes only - API protected)")
 else:
     logging.warning(f"[STARTUP] Frontend not available - {DIST_DIR} does not exist") 
