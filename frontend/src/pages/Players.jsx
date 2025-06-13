@@ -729,7 +729,7 @@ export default function Players() {
         {/* Main Heading */}
         <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">WooCombine: Players & Rankings</div>
         <h1 className="text-lg font-semibold text-gray-900 mb-4">
-          Managing: {selectedEvent.name} – {new Date(selectedEvent.event_date).toLocaleDateString()}
+          Managing: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}
         </h1>
 
         {/* NEW: Age Group Ranking Controls */}
