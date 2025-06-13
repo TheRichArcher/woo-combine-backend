@@ -39,11 +39,11 @@ try:
 except Exception as e:
     logging.warning(f"[STARTUP] Firestore initialization issue (using mock): {e}")
 
-# Include API routes
-app.include_router(players_router, prefix="", tags=["Players"])
-app.include_router(leagues_router, prefix="", tags=["Leagues"])
-app.include_router(drills_router, prefix="", tags=["Drills"])
-app.include_router(events_router, prefix="", tags=["Events"])
+# Include API routes with /api prefix to avoid conflicts with static frontend
+app.include_router(players_router, prefix="/api", tags=["Players"])
+app.include_router(leagues_router, prefix="/api", tags=["Leagues"])
+app.include_router(drills_router, prefix="/api", tags=["Drills"])
+app.include_router(events_router, prefix="/api", tags=["Events"])
 
 @app.get("/health")
 def health_check():

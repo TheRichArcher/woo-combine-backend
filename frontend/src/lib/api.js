@@ -7,7 +7,7 @@ import { auth } from '../firebase';
  * Example:  https://woo-combine-backend-new.onrender.com
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE,
+  baseURL: import.meta.env.VITE_API_BASE + '/api',
   withCredentials: false,         // not needed since we use Authorization headers
   timeout: 25000                  // Increased to 25s for severe Render cold starts and heavy Firestore operations
 });
