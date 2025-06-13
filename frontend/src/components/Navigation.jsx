@@ -30,16 +30,14 @@ export default function Navigation() {
         {/* Right: Desktop Nav Items */}
         <div className="flex items-center gap-x-6 min-w-0 sm:flex">
           <Link to="/dashboard" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Home</Link>
-          <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Players & Rankings</Link>
+          <Link to="/coach-dashboard" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Coach Dashboard</Link>
+          <Link to="/players" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Players</Link>
           {/*
             Admin nav link is only visible to users with 'organizer' or 'admin' roles.
             Do not remove or alter this logic without understanding the role system.
           */}
           {userRole === 'organizer' && (
             <Link to="/admin" className="text-lg font-semibold text-gray-800 hover:text-cmf-secondary">Admin</Link>
-          )}
-          {userRole === 'organizer' && (
-            <Link to="/live-entry" className="text-lg font-semibold text-cmf-primary hover:text-cmf-secondary">🚀 Live Entry</Link>
           )}
           {user && (
             <button
@@ -68,12 +66,10 @@ export default function Navigation() {
         <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col items-center py-4 space-y-2">
             <Link to="/dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Home</Link>
-            <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Players & Rankings</Link>
+            <Link to="/coach-dashboard" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Coach Dashboard</Link>
+            <Link to="/players" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Players</Link>
             {userRole === 'organizer' && (
               <Link to="/admin" className="block text-lg font-semibold text-gray-800 hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>Admin</Link>
-            )}
-            {userRole === 'organizer' && (
-              <Link to="/live-entry" className="block text-lg font-semibold text-cmf-primary hover:text-cmf-secondary px-4 py-2" onClick={closeMobile}>🚀 Live Entry</Link>
             )}
             {user && (
               <button
