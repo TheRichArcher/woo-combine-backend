@@ -35,7 +35,7 @@ export function EventProvider({ children }) {
       try {
         // Add timeout protection and retry logic
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for cold starts
         
         const url = `/leagues/${selectedLeagueId}/events`;
         const { data } = await api.get(url, {

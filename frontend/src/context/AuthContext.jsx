@@ -51,16 +51,16 @@ export function AuthProvider({ children }) {
       
       // PARALLEL OPERATIONS: Role check + League fetch simultaneously (like Twitter/Instagram)
       const [roleResult, leagueResult] = await Promise.allSettled([
-        // Role check with extended timeout (8s max for cold starts)
+        // Role check with extended timeout (15s max for cold starts)
         Promise.race([
           getDoc(doc(db, "users", firebaseUser.uid)),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 8000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 15000))
         ]),
         
-        // League fetch with extended timeout (10s max for cold starts)  
+        // League fetch with extended timeout (20s max for cold starts)  
         Promise.race([
-          api.get(`/leagues/me`, { timeout: 10000 }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 10000))
+          api.get(`/leagues/me`, { timeout: 20000 }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 20000))
         ])
       ]);
 
@@ -84,11 +84,11 @@ export function AuthProvider({ children }) {
         userLeagues = leagueResult.value.data.leagues || [];
         setLeagues(userLeagues);
       } else {
-        // EXTENDED RETRY: Single 8s retry for leagues only
+        // EXTENDED RETRY: Single 15s retry for leagues only
         try {
           const retryRes = await Promise.race([
-            api.get(`/leagues/me`, { timeout: 8000 }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 8000))
+            api.get(`/leagues/me`, { timeout: 15000 }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 15000))
           ]);
           userLeagues = retryRes.data.leagues || [];
           setLeagues(userLeagues);

@@ -9,7 +9,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
   withCredentials: false,         // not needed since we use Authorization headers
-  timeout: 15000                  // Increased to 15s for Render cold starts and heavy operations
+  timeout: 25000                  // Increased to 25s for severe Render cold starts and heavy Firestore operations
 });
 
 // Exponential backoff retry logic
