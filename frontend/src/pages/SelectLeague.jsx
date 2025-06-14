@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { QrCode } from 'lucide-react';
 import api from '../lib/api';
 
 export default function SelectLeague() {
-  const { user, userRole, setSelectedLeagueId } = useAuth();
+  const { user, setSelectedLeagueId } = useAuth();
   const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -24,10 +23,7 @@ export default function SelectLeague() {
         const res = await api.get(`/leagues/me`);
         setLeagues(res.data.leagues || []);
         if (!res.data.leagues || res.data.leagues.length === 0) {
-          const errorMsg = userRole === 'coach' 
-            ? 'No leagues found. Ask your organizer for an invite code to join a league.'
-            : 'No leagues linked to this account. Try creating a new one.';
-          setFetchError(errorMsg);
+          setFetchError('No leagues linked to this account. Try creating a new one.');
         } else {
           setFetchError(null);
         }
@@ -35,10 +31,7 @@ export default function SelectLeague() {
         if (err.response?.status === 404) {
           // 404 means user has no leagues yet - this is normal
           setLeagues([]);
-          const errorMsg = userRole === 'coach' 
-            ? 'No leagues found. Ask your organizer for an invite code to join a league.'
-            : 'No leagues linked to this account. Try creating a new one.';
-          setFetchError(errorMsg);
+          setFetchError('No leagues linked to this account. Try creating a new one.');
         } else {
           // Other errors are actual problems
           console.error('[SelectLeague] Fetch error:', err.message, err.stack, err.response?.data);
@@ -87,91 +80,10 @@ export default function SelectLeague() {
               <div className="text-center py-8 text-gray-500">Loading leagues...</div>
             ) : fetchError ? (
               <div className="text-center py-8">
-                {userRole === 'coach' ? (
-                  // Friendly "Oops" experience for coaches
-                  <div className="space-y-6">
-                    {/* Oops Header */}
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">😅</div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Oops!</h3>
-                      <p className="text-gray-600 text-sm">
-                        Looks like you haven't joined any leagues yet. No worries - let's get you connected!
-                      </p>
-                    </div>
-                    
-                    {/* Join League Card - Same as LeagueFallback */}
-                    <div className="border-2 border-cyan-400 bg-cyan-50 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-cyan-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <QrCode className="w-5 h-5 text-cyan-700" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-cyan-900 mb-1">
-                            Join Existing League
-                            <span className="ml-2 bg-cyan-200 text-cyan-800 text-xs px-2 py-1 rounded-full">Recommended</span>
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Enter the invite code your league organizer gave you, or scan their QR code
-                          </p>
-                          <button
-                            onClick={() => navigate('/join')}
-                            className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
-                          >
-                            <QrCode className="w-4 h-4" />
-                            Join with Invite Code
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  // Simple error for organizers
-                  <div className="text-red-600 mb-4">{fetchError}</div>
-                )}
+                <div className="text-red-600 mb-4">{fetchError}</div>
               </div>
             ) : leagues.length === 0 ? (
-              <div className="text-center py-8">
-                {userRole === 'coach' ? (
-                  // Same friendly "Oops" experience for coaches with empty leagues
-                  <div className="space-y-6">
-                    {/* Oops Header */}
-                    <div className="text-center">
-                      <div className="text-4xl mb-2">😅</div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Oops!</h3>
-                      <p className="text-gray-600 text-sm">
-                        Looks like you haven't joined any leagues yet. No worries - let's get you connected!
-                      </p>
-                    </div>
-                    
-                    {/* Join League Card - Same as LeagueFallback */}
-                    <div className="border-2 border-cyan-400 bg-cyan-50 rounded-xl p-4">
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 bg-cyan-200 rounded-full flex items-center justify-center flex-shrink-0">
-                          <QrCode className="w-5 h-5 text-cyan-700" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-cyan-900 mb-1">
-                            Join Existing League
-                            <span className="ml-2 bg-cyan-200 text-cyan-800 text-xs px-2 py-1 rounded-full">Recommended</span>
-                          </h3>
-                          <p className="text-sm text-gray-600 mb-3">
-                            Enter the invite code your league organizer gave you, or scan their QR code
-                          </p>
-                          <button
-                            onClick={() => navigate('/join')}
-                            className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
-                          >
-                            <QrCode className="w-4 h-4" />
-                            Join with Invite Code
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-gray-500">No leagues found. Create or join one below.</div>
-                )}
-              </div>
+              <div className="text-center py-8 text-gray-500">No leagues found. Create or join one below.</div>
             ) : (
               <div className="space-y-3">
                 {leagues.map(league => (
@@ -208,7 +120,7 @@ export default function SelectLeague() {
             className="w-11/12 max-w-lg border-2 border-blue-600 text-blue-700 font-bold text-lg py-3 rounded-full shadow"
             onClick={() => navigate('/join')}
           >
-            {userRole === 'coach' ? 'Join with Invite Code' : 'Join a Team'}
+            Join a Team
           </button>
         </div>
       </div>

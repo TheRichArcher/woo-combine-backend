@@ -6,7 +6,7 @@ import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function LeagueFallback() {
   const navigate = useNavigate();
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const logout = useLogout();
   const [feedback, setFeedback] = useState("");
   
@@ -73,10 +73,7 @@ export default function LeagueFallback() {
             No League Selected
           </h1>
           <p className="text-gray-600 text-sm leading-relaxed">
-            {userRole === 'coach' 
-              ? 'You need to join a league to access WooCombine features. Ask your organizer for an invite code.'
-              : 'You need to join or create a league to access WooCombine features'
-            }
+            You need to join or create a league to access WooCombine features
           </p>
         </div>
 
@@ -98,7 +95,7 @@ export default function LeagueFallback() {
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Choose from Your Leagues</h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  Select from leagues you've already {userRole === 'organizer' ? 'created or joined' : 'joined'}
+                  Select from leagues you've already created or joined
                 </p>
                 <button
                   onClick={handleSelectLeague}
@@ -111,67 +108,49 @@ export default function LeagueFallback() {
             </div>
           </div>
 
-          {/* Join League Option - Enhanced for Coaches */}
-          <div className={`border rounded-xl p-4 transition ${
-            userRole === 'coach' 
-              ? 'border-cyan-400 bg-cyan-50 hover:border-cyan-500' 
-              : 'border-gray-200 hover:border-cyan-300'
-          }`}>
+          {/* Join League Option */}
+          <div className="border border-gray-200 rounded-xl p-4 hover:border-cyan-300 transition">
             <div className="flex items-start gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                userRole === 'coach' ? 'bg-cyan-200' : 'bg-cyan-100'
-              }`}>
-                <QrCode className={`w-5 h-5 ${userRole === 'coach' ? 'text-cyan-700' : 'text-cyan-600'}`} />
+              <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <QrCode className="w-5 h-5 text-cyan-600" />
               </div>
               <div className="flex-1">
-                <h3 className={`font-semibold mb-1 ${userRole === 'coach' ? 'text-cyan-900' : 'text-gray-900'}`}>
-                  Join Existing League
-                  {userRole === 'coach' && <span className="ml-2 bg-cyan-200 text-cyan-800 text-xs px-2 py-1 rounded-full">Recommended</span>}
-                </h3>
+                <h3 className="font-semibold text-gray-900 mb-1">Join Existing League</h3>
                 <p className="text-sm text-gray-600 mb-3">
-                  {userRole === 'coach' 
-                    ? 'Enter the invite code your league organizer gave you, or scan their QR code'
-                    : 'If you were invited by a coach, enter your code or scan the QR they sent you'
-                  }
+                  If you were invited by a coach, enter your code or scan the QR they sent you
                 </p>
                 <button
                   onClick={handleJoinLeague}
-                  className={`font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 ${
-                    userRole === 'coach'
-                      ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                      : 'bg-cyan-600 hover:bg-cyan-700 text-white'
-                  }`}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
                 >
                   <QrCode className="w-4 h-4" />
-                  {userRole === 'coach' ? 'Join with Invite Code' : 'Join League'}
+                  Join League
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Create League Option - Only for Organizers */}
-          {userRole === 'organizer' && (
-            <div className="border border-gray-200 rounded-xl p-4 hover:border-green-300 transition">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Create New League</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Start your own league and invite coaches and players to join
-                  </p>
-                  <button
-                    onClick={handleCreateLeague}
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Create League
-                  </button>
-                </div>
+          {/* Create League Option */}
+          <div className="border border-gray-200 rounded-xl p-4 hover:border-cyan-300 transition">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <Plus className="w-5 h-5 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 mb-1">Create New League</h3>
+                <p className="text-sm text-gray-600 mb-3">
+                  Start your own league and invite players to join
+                </p>
+                <button
+                  onClick={handleCreateLeague}
+                  className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create League
+                </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
 
         {/* User Info & Logout */}

@@ -23,7 +23,7 @@ export default function JoinLeague() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
-    if (codeParam) setJoinCode(codeParam);
+    if (codeParam) setJoinCode(codeParam.toUpperCase());
     else if (urlCode) setJoinCode(urlCode);
   }, [urlCode]);
 
@@ -138,7 +138,7 @@ export default function JoinLeague() {
               className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition text-center font-mono text-lg tracking-widest"
               placeholder="Enter Join Code"
               value={joinCode}
-              onChange={e => setJoinCode(e.target.value)}
+              onChange={e => setJoinCode(e.target.value.toUpperCase())}
               required
               autoFocus
             />

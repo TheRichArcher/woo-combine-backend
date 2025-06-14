@@ -15,11 +15,26 @@ from functools import wraps
 
 # Initialize Firebase Admin SDK if not already initialized
 if not firebase_admin._apps:
-    cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    if cred_path:
-        cred = credentials.Certificate(cred_path)
+    # Try JSON content first (from environment variable)
+    creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if creds_json:
+        try:
+            cred_dict = json.loads(creds_json)
+            cred = credentials.Certificate(cred_dict)
+            logging.info("[AUTH] Firebase initialized with JSON credentials from environment")
+        except Exception as e:
+            logging.error(f"[AUTH] Failed to parse JSON credentials: {e}")
+            cred = credentials.ApplicationDefault()
     else:
-        cred = credentials.ApplicationDefault()
+        # Fallback to file path (for local development)
+        cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        if cred_path:
+            cred = credentials.Certificate(cred_path)
+            logging.info(f"[AUTH] Firebase initialized with file credentials: {cred_path}")
+        else:
+            cred = credentials.ApplicationDefault()
+            logging.info("[AUTH] Firebase initialized with application default credentials")
+    
     firebase_admin.initialize_app(cred)
 
 from backend.firestore_client import get_firestore_client

@@ -6,7 +6,7 @@ import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Roster from "./pages/Roster";
 import Schedule from "./pages/Schedule";
-
+import CoachDashboard from "./pages/CoachDashboard";
 import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
@@ -19,7 +19,6 @@ import VerifyEmail from "./pages/VerifyEmail";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
-import LiveEntry from "./pages/LiveEntry";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 
 function App() {
@@ -58,7 +57,19 @@ function App() {
                   </RequireAuth>
                 }
               />
-
+              <Route
+                path="/coach-dashboard"
+                element={
+                  <RequireAuth>
+                    <>
+                      <Navigation />
+                      <div className="container mx-auto px-4 py-8">
+                        <CoachDashboard />
+                      </div>
+                    </>
+                  </RequireAuth>
+                }
+              />
               <Route
                 path="/players"
                 element={
@@ -82,14 +93,6 @@ function App() {
                         <AdminTools />
                       </div>
                     </>
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/live-entry"
-                element={
-                  <RequireAuth>
-                    <LiveEntry />
                   </RequireAuth>
                 }
               />

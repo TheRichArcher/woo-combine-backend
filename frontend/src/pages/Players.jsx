@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -8,11 +8,11 @@ import { X, TrendingUp, Award, Edit, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
-  { key: "40m_dash", label: "40M Dash", unit: "sec", lowerIsBetter: true },
-  { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false },
-  { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false },
-  { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false },
-  { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false },
+  { key: "40m_dash", label: "40M Dash", unit: "sec" },
+  { key: "vertical_jump", label: "Vertical Jump", unit: "in" },
+  { key: "catching", label: "Catching", unit: "pts" },
+  { key: "throwing", label: "Throwing", unit: "pts" },
+  { key: "agility", label: "Agility", unit: "pts" },
 ];
 
 const DRILL_WEIGHTS = {
@@ -262,7 +262,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     const drillRanks = allPlayers
       .filter(p => p[drill.key] != null && p.age_group === player.age_group)
       .map(p => ({ player_id: p.id, score: p[drill.key] }))
-      .sort((a, b) => drill.lowerIsBetter ? a.score - b.score : b.score - a.score);
+      .sort((a, b) => b.score - a.score);
     const rank = drillRanks.findIndex(p => p.player_id === player.id) + 1;
     drillRankings[drill.key] = rank > 0 ? rank : null;
   });
@@ -297,23 +297,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-5xl h-[95vh] flex flex-col">
-                {/* Compact Header */}
-        <div className="bg-cmf-primary text-white px-3 py-1.5 rounded-t-xl flex justify-between items-center flex-shrink-0">
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col">
+        {/* Compact Header */}
+        <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
-            <h2 className="text-lg font-bold">{player.name}</h2>
-            <p className="text-cmf-light text-xs">Player #{player.number} • Age Group: {player.age_group}</p>
+            <h2 className="text-xl font-bold">{player.name}</h2>
+            <p className="text-cmf-light text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
           </div>
-          <div className="text-right mr-3">
-            <div className="text-xs opacity-75">Overall Score</div>
-            <div className="text-lg font-bold">{totalWeightedScore.toFixed(2)} pts</div>
-            <div className="text-xs opacity-75">#{currentRank} of {ageGroupPlayers.length}</div>
+          <div className="text-right mr-4">
+            <div className="text-sm opacity-75">Overall Score</div>
+            <div className="text-2xl font-bold">{totalWeightedScore.toFixed(2)} pts</div>
+            <div className="text-xs opacity-75">Rank #{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
             onClick={onClose}
-            className="w-7 h-7 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
+            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -321,27 +321,27 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         <div className="flex-1 overflow-hidden">
           <div className="h-full flex">
             {/* Left Column: Drill Results */}
-            <div className="flex-1 p-2">
+            <div className="flex-1 p-4">
               <div className="h-full flex flex-col">
-                <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-cmf-primary" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-cmf-primary" />
                   Drill Performance & Weight Control
                 </h3>
           
-                <div className="grid grid-cols-1 gap-1.5 flex-1 overflow-y-auto min-h-0">
+                <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto">
             {weightedBreakdown.map(drill => (
-                    <div key={drill.key} className="bg-gray-50 rounded-lg p-1.5 border border-gray-200">
+                    <div key={drill.key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
                       {/* Compact Drill Row */}
-                      <div className="flex items-center justify-between mb-0.5">
-                        <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
                           <div className="min-w-0">
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
-                            <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-cmf-primary">
+                            <div className="flex items-center gap-2">
+                      <span className="text-base font-bold text-cmf-primary">
                         {drill.rawScore != null ? `${drill.rawScore} ${drill.unit}` : 'No score'}
                       </span>
                       {drill.rank && (
-                                <span className="bg-cmf-primary text-white px-1 py-0.5 rounded-full text-xs font-medium">
+                                <span className="bg-cmf-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
                           #{drill.rank}
                         </span>
                       )}
@@ -350,7 +350,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                         <div className="text-right">
                           <div className="text-xs text-gray-600">Contribution</div>
-                          <div className="text-sm font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
+                          <div className="text-base font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
                   </div>
                 </div>
                 
@@ -382,11 +382,11 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </div>
           
                 {/* Total Score at Bottom */}
-                <div className="mt-1.5 p-1.5 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
+                <div className="mt-2 p-2 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-gray-900 text-xs">Total Composite Score:</span>
-              <span className="text-base font-bold text-cmf-primary">
-                      {totalWeightedScore.toFixed(2)} pts (#{currentRank})
+              <span className="font-semibold text-gray-900 text-sm">Total Composite Score:</span>
+              <span className="text-lg font-bold text-cmf-primary">
+                      {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
               </span>
                   </div>
                 </div>
@@ -394,12 +394,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             </div>
 
             {/* Right Column: Weight Presets & Analysis */}
-            <div className="w-64 bg-gray-50 p-2 border-l border-gray-200 flex flex-col">
-              <div className="flex-1 overflow-y-auto">
+            <div className="w-80 bg-gray-50 p-4 border-l border-gray-200 overflow-y-auto">
+              <div className="h-full flex flex-col">
                 {/* Quick Presets */}
-                <div className="mb-3">
-                  <h3 className="text-sm font-semibold text-gray-900 mb-1.5 flex items-center gap-2">
-                    <Settings className="w-3 h-3 text-cmf-primary" />
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-cmf-primary" />
                     Weight Scenarios
                   </h3>
                   
@@ -408,13 +408,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       <button
                         key={key}
                         onClick={() => applyPreset(key)}
-                        className={`p-1.5 text-left rounded-lg border-2 transition-all ${
+                        className={`p-2 text-left rounded-lg border-2 transition-all ${
                           activePreset === key 
                             ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
-                        <div className="font-medium text-xs">{preset.name}</div>
+                        <div className="font-medium text-sm">{preset.name}</div>
                         <div className="text-xs text-gray-500">{preset.description}</div>
                       </button>
                     ))}
@@ -422,13 +422,13 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                 </div>
                 
                 {/* Real-time Ranking Analysis */}
-                <div className="bg-white rounded-lg p-2 border border-gray-200 mt-3">
-                  <h4 className="font-semibold text-gray-900 mb-1.5 flex items-center gap-1.5">
-                    <Award className="w-3 h-3 text-yellow-500" />
-                    <span className="text-sm">Ranking Analysis</span>
+                <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 min-h-0">
+                  <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    Ranking Analysis
                   </h4>
                   
-                  <div className="space-y-1.5 text-xs">
+                  <div className="space-y-2 text-sm overflow-y-auto max-h-96">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
                       <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -439,8 +439,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       <span className="font-bold text-cmf-secondary">{totalWeightedScore.toFixed(2)} pts</span>
                     </div>
                     
-                    <div className="pt-1.5 border-t border-gray-200">
-                      <div className="text-xs text-gray-500 mb-1">Score Breakdown:</div>
+                    <div className="pt-2 border-t border-gray-200">
+                      <div className="text-xs text-gray-500 mb-2">Score Breakdown:</div>
                       {weightedBreakdown.map(drill => (
                         <div key={drill.key} className="flex justify-between text-xs">
                           <span className="text-gray-600">{drill.label}:</span>
@@ -449,7 +449,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       ))}
                     </div>
                     
-                    <div className="pt-1.5 border-t border-gray-200">
+                    <div className="pt-2 border-t border-gray-200">
                       <div className="text-xs text-gray-500">
                         {activePreset ? `Using ${WEIGHT_PRESETS[activePreset].name} preset` : 'Using custom weights'}
                       </div>
@@ -457,7 +457,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                   </div>
                 </div>
                 
-                <div className="mt-2 text-xs text-gray-500 text-center">
+                <div className="mt-2 text-xs text-gray-500 text-center flex-shrink-0">
                   💡 Adjust sliders for real-time changes
                 </div>
               </div>
@@ -478,119 +478,6 @@ export default function Players() {
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
-  
-  // NEW: Age group ranking controls state
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
-  const [rankings, setRankings] = useState([]);
-  const [rankingLoading, setRankingLoading] = useState(false);
-  const [rankingError, setRankingError] = useState(null);
-  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
-  const [activePreset, setActivePreset] = useState("athletic");
-  
-  // Ref to access current selectedPlayer value without triggering re-renders
-  const selectedPlayerRef = useRef(null);
-  selectedPlayerRef.current = selectedPlayer;
-
-  // NEW: Convert weights to percentages for display
-  const getPercentages = () => {
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    const percentages = {};
-    DRILLS.forEach(drill => {
-      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
-    });
-    return percentages;
-  };
-
-  // NEW: Convert percentage back to normalized weights
-  const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
-    
-    if (total === 0) return; // Prevent division by zero
-    
-    // Normalize to sum to 1.0
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      newWeights[drill.key] = newPercentages[drill.key] / total;
-    });
-    
-    setWeights(newWeights);
-    setActivePreset(null); // Clear preset when manually adjusted
-  };
-
-  // NEW: Apply a preset
-  const applyPreset = (presetKey) => {
-    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
-    setActivePreset(presetKey);
-  };
-
-  // NEW: Calculate composite score with current weights
-  const calculateCompositeScore = (player) => {
-    const drills = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"];
-    const score = drills.reduce((sum, drill) => {
-      let drillScore = player[drill] || 0;
-      const weight = weights[drill] || 0;
-      
-      // For "lower is better" drills like 40m dash, invert the score
-      // Use the same logic as backend: (30 - time) for 40m dash
-      if (drill === "40m_dash" && drillScore > 0) {
-        drillScore = Math.max(0, 30 - drillScore);
-      }
-      
-      return sum + (drillScore * weight);
-    }, 0);
-    return score;
-  };
-
-  // NEW: CSV Export logic for rankings
-  const handleExportCsv = () => {
-    if (!selectedAgeGroup || rankings.length === 0) return;
-    let csv = 'Rank,Name,Player Number,Composite Score\n';
-    rankings.forEach(player => {
-      csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
-    });
-    const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-    const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // NEW: Export all players with current weighted scores
-  const handleExportAllPlayers = () => {
-    if (players.length === 0) return;
-    
-    // Create CSV with comprehensive player data
-    let csv = 'Name,Player Number,Age Group,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
-    
-    // Sort all players by composite score (descending)
-    const sortedPlayers = [...players].sort((a, b) => {
-      return calculateCompositeScore(b) - calculateCompositeScore(a);
-    });
-    
-    sortedPlayers.forEach(player => {
-      const compositeScore = calculateCompositeScore(player);
-      csv += `"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unassigned'}",${compositeScore.toFixed(2)},${player["40m_dash"] || ''},${player["vertical_jump"] || ''},${player["catching"] || ''},${player["throwing"] || ''},${player["agility"] || ''}\n`;
-    });
-    
-    const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-    const filename = `all_players_${eventDate}.csv`;
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
 
   // Interactive onboarding callout
   const OnboardingCallout = () => (
@@ -628,8 +515,8 @@ export default function Players() {
       setPlayers(data);
       
       // CRITICAL FIX: Update selectedPlayer data if modal is open
-      if (selectedPlayerRef.current) {
-        const updatedPlayer = data.find(p => p.id === selectedPlayerRef.current.id);
+      if (selectedPlayer) {
+        const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
         if (updatedPlayer) {
           setSelectedPlayer(updatedPlayer);
         }
@@ -646,51 +533,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
-
-  // NEW: Auto-update rankings when weights or age group changes
-  useEffect(() => {
-    const updateRankings = async () => {
-      if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
-        setRankings([]);
-        return;
-      }
-      
-      setRankingLoading(true);
-      setRankingError(null);
-      
-      try {
-        const params = new URLSearchParams({ 
-          age_group: selectedAgeGroup, 
-          event_id: selectedEvent.id 
-        });
-        
-        // Add weight parameters
-        params.append("weight_40m_dash", weights["40m_dash"]);
-        params.append("weight_vertical_jump", weights["vertical_jump"]);
-        params.append("weight_catching", weights["catching"]);
-        params.append("weight_throwing", weights["throwing"]);
-        params.append("weight_agility", weights["agility"]);
-        
-        const res = await api.get(`/rankings?${params.toString()}`);
-        setRankings(res.data);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setRankingError(null);
-          setRankings([]);
-        } else {
-          console.error('[Players] Rankings fetch error:', err);
-          setRankingError(err.message);
-        }
-      } finally {
-        setRankingLoading(false);
-      }
-    };
-
-    // Debounce the API call to avoid too many requests
-    const timeoutId = setTimeout(updateRankings, 300);
-    return () => clearTimeout(timeoutId);
-  }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();
@@ -707,10 +550,6 @@ export default function Players() {
     acc[ageGroup].push(player);
     return acc;
   }, {});
-
-  // NEW: Get unique age groups from players for ranking controls
-  const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
-  const percentages = getPercentages();
 
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
@@ -775,220 +614,10 @@ export default function Players() {
         <EventSelector />
         <OnboardingCallout />
         {/* Main Heading */}
-        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">WooCombine: Players & Rankings</div>
+        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">WooCombine: Players</div>
         <h1 className="text-lg font-semibold text-gray-900 mb-4">
-          Managing: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}
+          Managing: {selectedEvent.name} – {new Date(selectedEvent.event_date).toLocaleDateString()}
         </h1>
-
-        {/* NEW: Age Group Ranking Controls */}
-        {ageGroups.length > 0 && (
-          <>
-            {/* Age Group Dropdown */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm max-w-md">
-              <label className="block text-sm font-bold text-gray-700 mb-1">📊 View Rankings by Age Group</label>
-              <select
-                value={selectedAgeGroup}
-                onChange={e => setSelectedAgeGroup(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
-              >
-                <option value="">Select Age Group for Rankings</option>
-                {ageGroups.map(group => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </div>
-            
-            {/* Improved Drill Weight Controls - Only for organizers */}
-            {userRole === 'organizer' && (
-              <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6 max-w-2xl">
-                <div className="flex items-center gap-2 mb-4">
-                  <Settings className="w-4 h-4 text-cmf-primary" />
-                  <h2 className="text-sm font-medium text-gray-800">Ranking Priorities</h2>
-                </div>
-                
-                {/* Preset Buttons */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-                      <button
-                        key={key}
-                        onClick={() => applyPreset(key)}
-                        className={`p-3 text-left rounded-lg border-2 transition-all ${
-                          activePreset === key 
-                            ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
-                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                        }`}
-                      >
-                        <div className="font-medium text-sm">{preset.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Custom Adjustments */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Custom Adjustments:
-                    {activePreset && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        (Currently using {WEIGHT_PRESETS[activePreset].name})
-                      </span>
-                    )}
-                  </label>
-                  
-                  <div className="space-y-4">
-                    {DRILLS.map(drill => (
-                      <div key={drill.key} className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="range"
-                              min={0}
-                              max={100}
-                              value={percentages[drill.key]}
-                              onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                              className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
-                            />
-                            <div className="w-12 text-right">
-                              <span className="text-sm font-mono text-cmf-primary">
-                                {percentages[drill.key]}%
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  <div className="mt-4 text-xs text-gray-500 text-center">
-                    Rankings update automatically as you adjust priorities
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {/* Rankings Display */}
-            {selectedAgeGroup && (
-              <>
-                {rankingLoading ? (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center mb-6">
-                    <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
-                    <div className="text-gray-500">Updating rankings...</div>
-                  </div>
-                ) : rankingError ? (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700 mb-6">
-                    <strong>Error:</strong> {rankingError}
-                  </div>
-                ) : rankings.length === 0 ? (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700 mb-6">
-                    No players found for this age group with complete drill results.
-                  </div>
-                ) : (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 -mx-4 sm:mx-0 sm:rounded-xl">
-                    <div className="p-4 sm:p-6">
-                      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-                        <h2 className="text-xl font-semibold">🏆 Rankings ({selectedAgeGroup})</h2>
-                        <button
-                          onClick={handleExportCsv}
-                          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
-                          disabled={rankings.length === 0}
-                        >
-                          📊 Export as CSV
-                        </button>
-                      </div>
-                      
-                      {/* Rankings Table */}
-                      <div className="overflow-x-auto -mx-4 sm:mx-0">
-                      <table className="w-full text-left text-sm">
-                        <thead>
-                          <tr className="border-b border-gray-200">
-                            <th className="py-3 px-2">Rank</th>
-                            <th className="py-3 px-2">Name</th>
-                            <th className="py-3 px-2">Player #</th>
-                            <th className="py-3 px-2">Overall Score</th>
-                            <th className="py-3 px-2 text-center">40M Dash</th>
-                            <th className="py-3 px-2 text-center">Vertical</th>
-                            <th className="py-3 px-2 text-center">Catching</th>
-                            <th className="py-3 px-2 text-center">Throwing</th>
-                            <th className="py-3 px-2 text-center">Agility</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rankings.map((player) => {
-                            // Calculate individual drill rankings
-                            const drillRankings = {};
-                            DRILLS.forEach(drill => {
-                              const drillRanks = rankings
-                                .filter(p => p[drill.key] != null)
-                                .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                                .sort((a, b) => drill.lowerIsBetter ? a.score - b.score : b.score - a.score);
-                              const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
-                              drillRankings[drill.key] = rank > 0 ? rank : null;
-                            });
-
-                            return (
-                              <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
-                                <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                                  {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
-                                </td>
-                                <td className="py-3 px-2">{player.name}</td>
-                                <td className="py-3 px-2">{player.number}</td>
-                                <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
-                                {DRILLS.map(drill => (
-                                  <td key={drill.key} className="py-3 px-2 text-center">
-                                    {player[drill.key] != null ? (
-                                      <div className="flex flex-col">
-                                        <span className="font-mono text-sm">{player[drill.key]}</span>
-                                        <span className="text-xs text-gray-500">
-                                          #{drillRankings[drill.key] || '-'}
-                                        </span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-gray-400">-</span>
-                                    )}
-                                  </td>
-                                ))}
-                              </tr>
-                            );
-                                                    })}
-                        </tbody>
-                      </table>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-
-        {/* Player Management Section */}
-        <div className="border-t-2 border-gray-200 pt-8 mt-8">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Player Management</div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Individual Player Records & Drill Entry
-                {ageGroups.length > 0 && userRole === 'organizer' && (
-                  <span className="ml-2 text-sm font-normal text-cmf-primary">
-                    📊 Rankings update live with weight changes
-                  </span>
-                )}
-              </h2>
-            </div>
-            {players.length > 0 && (
-              <button
-                onClick={handleExportAllPlayers}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm font-medium shadow-sm"
-              >
-                📊 Export All Players
-              </button>
-            )}
-          </div>
-        </div>
 
                  {/* Player Stats Modals */}
          {selectedPlayer && (
@@ -1010,12 +639,10 @@ export default function Players() {
           Object.entries(grouped)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([ageGroup, ageGroupPlayers]) => {
-              // Sort by calculated composite score (with current weights) descending, then by name
+              // Sort by composite_score descending, then by name
               const sortedPlayers = ageGroupPlayers.sort((a, b) => {
-                const scoreA = calculateCompositeScore(a);
-                const scoreB = calculateCompositeScore(b);
-                if (scoreA !== scoreB) {
-                  return scoreB - scoreA;
+                if (a.composite_score !== b.composite_score) {
+                  return (b.composite_score || 0) - (a.composite_score || 0);
                 }
                 return a.name.localeCompare(b.name);
               });
@@ -1025,8 +652,8 @@ export default function Players() {
                   <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2">
                     <span>Age Group: {ageGroup}</span>
                   </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full bg-white border border-gray-200 rounded-lg">
+                  <div className="overflow-hidden rounded-lg border border-gray-200">
+                    <table className="min-w-full bg-white">
                       <thead className="bg-gray-50">
                         <tr>
                           <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
@@ -1046,17 +673,14 @@ export default function Players() {
                               <td className="py-2 px-2">{player.name}</td>
                               <td className="py-2 px-2">{player.number || 'N/A'}</td>
                               <td className="py-2 px-2 font-mono">
-                                {(() => {
-                                  const dynamicScore = calculateCompositeScore(player);
-                                  return dynamicScore > 0 ? dynamicScore.toFixed(2) : "No scores yet";
-                                })()}
+                                {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
                               </td>
                               <td className="py-2 px-2">
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => setSelectedPlayer(player)}
                                     className="text-blue-600 hover:text-blue-900 text-sm underline"
-                                    disabled={calculateCompositeScore(player) === 0}
+                                    disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
                                   >
                                     View Stats
                                   </button>
