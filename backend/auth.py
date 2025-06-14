@@ -15,8 +15,16 @@ from functools import wraps
 
 # Initialize Firebase Admin SDK if not already initialized
 if not firebase_admin._apps:
-    # Try JSON content first (from environment variable)
+    # Debug: Log available environment variables
     creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    
+    logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS_JSON exists: {bool(creds_json)}")
+    logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS exists: {bool(creds_path)}")
+    if creds_path:
+        logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS value starts with: {creds_path[:50]}...")
+    
+    # Try JSON content first (from environment variable)
     if creds_json:
         try:
             cred_dict = json.loads(creds_json)
@@ -26,14 +34,9 @@ if not firebase_admin._apps:
             logging.error(f"[AUTH] Failed to parse JSON credentials: {e}")
             cred = credentials.ApplicationDefault()
     else:
-        # Fallback to file path (for local development)
-        cred_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-        if cred_path:
-            cred = credentials.Certificate(cred_path)
-            logging.info(f"[AUTH] Firebase initialized with file credentials: {cred_path}")
-        else:
-            cred = credentials.ApplicationDefault()
-            logging.info("[AUTH] Firebase initialized with application default credentials")
+        # NO fallback to file path - if JSON is not provided, use Application Default
+        logging.info("[AUTH] No GOOGLE_APPLICATION_CREDENTIALS_JSON found, using Application Default")
+        cred = credentials.ApplicationDefault()
     
     firebase_admin.initialize_app(cred)
 
