@@ -2,16 +2,16 @@ services:
   - type: web
     name: woo-combine-backend-new
     env: python
-    buildCommand: cd frontend && rm -rf dist && npm install && VITE_API_BASE=https://woo-combine-backend-new.onrender.com/api npm run build && cd .. && pip install -r requirements.txt
+    buildCommand: cd frontend && rm -rf dist && npm install && VITE_API_BASE=https://woo-combine-backend.onrender.com/api npm run build && cd .. && pip install -r requirements.txt
     startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port 10000"
-    healthCheckPath: "/api/health"
+    healthCheckPath: "/health"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: POETRY_VERSION
         value: 1.7.1
       - key: VITE_API_BASE
-        value: https://woo-combine-backend-new.onrender.com/api
+        value: https://woo-combine-backend.onrender.com/api
       # Firebase credentials as environment variables (set these in Render dashboard)
       - key: GOOGLE_CLOUD_PROJECT
         sync: false
