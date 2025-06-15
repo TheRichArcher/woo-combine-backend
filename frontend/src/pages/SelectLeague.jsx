@@ -34,8 +34,8 @@ export default function SelectLeague() {
       try {
         console.log('[SelectLeague] Fetching leagues from API...');
         const res = await api.get(`/leagues/me`, {
-          timeout: 25000,  // 25s timeout for cold starts
-          retry: 1         // Single retry only
+          timeout: 45000,  // 45s timeout to match API client for extreme cold starts
+          retry: 2         // Increased retries for cold start scenarios
         });
         
         const userLeagues = res.data.leagues || [];
@@ -53,14 +53,18 @@ export default function SelectLeague() {
           // 404 means user has no leagues yet - this is normal
           setLeagues([]);
           setFetchError('No leagues linked to this account. Try creating a new one.');
-        } else if (err.message.includes('timeout')) {
+        } else if (err.message.includes('timeout') || err.code === 'ECONNABORTED') {
           // Timeout error - provide helpful message
           setLeagues([]);
-          setFetchError('Loading is taking longer than usual. This can happen during server startup. Please try refreshing the page.');
+          setFetchError('Server is starting up, which can take up to a minute. Please wait and refresh the page.');
+        } else if (err.response?.status >= 500) {
+          // Server errors during cold start
+          setLeagues([]);
+          setFetchError('Server is temporarily unavailable during startup. Please try refreshing in 30 seconds.');
         } else {
           // Other errors are actual problems
           setLeagues([]);
-          setFetchError('Could not fetch leagues. Please try again later.');
+          setFetchError('Could not fetch leagues. Please check your connection and try again.');
         }
       } finally {
         setLoading(false);

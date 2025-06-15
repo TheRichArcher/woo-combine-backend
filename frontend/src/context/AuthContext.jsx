@@ -53,7 +53,7 @@ export function AuthProvider({ children }) {
       console.log('[AuthContext] Checking user role...');
       const roleDoc = await Promise.race([
         getDoc(doc(db, "users", firebaseUser.uid)),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 15000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))  // Increased to 20s
       ]);
 
       if (!roleDoc.exists() || !roleDoc.data().role) {
@@ -74,8 +74,8 @@ export function AuthProvider({ children }) {
       console.log('[AuthContext] Fetching user leagues...');
       try {
         const leagueResponse = await api.get(`/leagues/me`, { 
-          timeout: 25000,  // 25s timeout for cold starts
-          retry: 1         // Single retry only
+          timeout: 45000,  // 45s timeout to match API client for extreme cold starts
+          retry: 2         // Increased retries for cold start scenarios
         });
         
         const userLeagues = leagueResponse.data.leagues || [];
@@ -104,6 +104,18 @@ export function AuthProvider({ children }) {
         
       } catch (leagueError) {
         console.error('[AuthContext] League fetch failed:', leagueError.message);
+        
+        // Enhanced error handling for cold start scenarios
+        if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {
+          console.log('[AuthContext] Cold start timeout detected - continuing without leagues');
+          setError('Server is starting up. Please refresh the page in a moment.');
+        } else if (leagueError.response?.status >= 500) {
+          console.log('[AuthContext] Server error during cold start - continuing without leagues');
+          setError('Server is temporarily unavailable. Please try again shortly.');
+        } else {
+          console.log('[AuthContext] Network or other error - continuing without leagues');
+        }
+        
         // Continue without leagues rather than blocking the entire app
         setLeagues([]);
         setSelectedLeagueId('');

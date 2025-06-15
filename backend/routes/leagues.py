@@ -10,8 +10,8 @@ from google.cloud.firestore import Query
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=5, *args, **kwargs):
-    """Execute a function with timeout protection - OPTIMIZED for cold starts"""
+def execute_with_timeout(func, timeout=10, *args, **kwargs):
+    """Execute a function with timeout protection - OPTIMIZED for extreme cold starts"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
         try:
@@ -35,7 +35,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         user_memberships_ref = db.collection('user_memberships').document(user_id)
         user_doc = execute_with_timeout(
             user_memberships_ref.get,
-            timeout=3  # Reduced from 1s to 3s for cold starts
+            timeout=5  # Increased timeout for extreme cold starts
         )
         
         if user_doc.exists and user_doc.to_dict().get('leagues'):
@@ -48,11 +48,11 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                 league_ids = list(league_memberships.keys())
                 logging.info(f"📊 Batch fetching {len(league_ids)} leagues for user {user_id}")
                 
-                # Use batch get for maximum efficiency
+                # Use batch get for maximum efficiency with longer timeout
                 league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
                 league_docs = execute_with_timeout(
                     lambda: db.get_all(league_refs),
-                    timeout=5  # Increased timeout for batch operation during cold starts
+                    timeout=10  # Increased timeout for batch operation during extreme cold starts
                 )
                 
                 user_leagues = []
@@ -75,17 +75,17 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                     logging.info(f"🚀 Fast path: returned {len(user_leagues)} leagues for user {user_id}")
                     return {"leagues": user_leagues}
         
-        # LEGACY PATH: Only if new system has no data
+        # LEGACY PATH: Only if new system has no data - OPTIMIZED for extreme cold starts
         logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
         
-        # Reduced limit for faster cold start response
-        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(10)
+        # Reduced limit for faster cold start response and increased timeout
+        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(5)  # Reduced from 10 to 5
         all_leagues = execute_with_timeout(
             lambda: list(leagues_query.stream()),
-            timeout=5  # Increased for cold starts
+            timeout=10  # Increased timeout for extreme cold starts
         )
         
-        # Check membership in each league (old way) with faster timeouts
+        # Check membership in each league (old way) with longer timeouts
         user_leagues = []
         migration_data = {}
         
@@ -96,7 +96,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                 member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
                 member_doc = execute_with_timeout(
                     lambda: member_ref.get(),
-                    timeout=2  # Increased from 1s for cold starts
+                    timeout=5  # Increased timeout for extreme cold starts
                 )
                 
                 if member_doc.exists:
@@ -133,7 +133,7 @@ def get_my_leagues(current_user=Depends(get_current_user)):
                 migration_doc = {"leagues": migration_data}
                 execute_with_timeout(
                     lambda: user_memberships_ref.set(migration_doc),
-                    timeout=3  # Reduced timeout for migration
+                    timeout=5  # Reasonable timeout for migration
                 )
                 logging.info(f"✅ Migrated {len(migration_data)} leagues to new system for user {user_id}")
             except Exception as e:
@@ -148,7 +148,11 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         raise
     except Exception as e:
         logging.error(f"Error in get_my_leagues: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve leagues")
+        # More specific error messages for debugging
+        if "timeout" in str(e).lower():
+            raise HTTPException(status_code=504, detail="Database operation timed out during server startup. Please try again.")
+        else:
+            raise HTTPException(status_code=500, detail="Failed to retrieve leagues due to server initialization")
 
 @router.post('/leagues')
 def create_league(req: dict, current_user=Depends(get_current_user)):

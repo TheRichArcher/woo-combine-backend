@@ -94,13 +94,13 @@ def get_current_user(
             with concurrent.futures.ThreadPoolExecutor() as executor:
                 future = executor.submit(lambda: db.collection("users").document(uid).get())
                 try:
-                    user_doc = future.result(timeout=5)  # 5 second timeout for auth lookup
+                    user_doc = future.result(timeout=10)  # Increased to 10 seconds for extreme cold starts
                     logging.info(f"[AUTH] Firestore lookup completed")
                 except concurrent.futures.TimeoutError:
-                    logging.error(f"[AUTH] Firestore lookup timed out after 5 seconds for UID: {uid}")
+                    logging.error(f"[AUTH] Firestore lookup timed out after 10 seconds for UID: {uid}")
                     raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail="Authentication service temporarily unavailable"
+                        status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                        detail="Authentication service temporarily unavailable due to server startup"
                     )
             
         except HTTPException:

@@ -1,75 +1,79 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import logo from '../assets/woocombine-logo.png';
 
-export default function LoadingScreen({ 
-  title = "Loading WooCombine...", 
-  subtitle = null,
-  showLogo = true,
-  size = "large" // "small", "medium", "large"
-}) {
+const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
+  const [extendedLoading, setExtendedLoading] = useState(false);
+  const [coldStartMessage, setColdStartMessage] = useState(false);
+
+  useEffect(() => {
+    // Show extended loading message after 10 seconds
+    const extendedTimer = setTimeout(() => {
+      setExtendedLoading(true);
+    }, 10000);
+
+    // Show cold start message after 20 seconds
+    const coldStartTimer = setTimeout(() => {
+      setColdStartMessage(true);
+    }, 20000);
+
+    return () => {
+      clearTimeout(extendedTimer);
+      clearTimeout(coldStartTimer);
+    };
+  }, []);
+
   const sizeClasses = {
-    small: {
-      container: "min-h-[40vh]",
-      logo: "w-12 h-12",
-      spinner: "w-6 h-6 border-2",
-      title: "text-lg",
-      subtitle: "text-sm"
-    },
-    medium: {
-      container: "min-h-[60vh]",
-      logo: "w-16 h-16",
-      spinner: "w-8 h-8 border-4",
-      title: "text-xl",
-      subtitle: "text-base"
-    },
-    large: {
-      container: "min-h-screen",
-      logo: "w-20 h-20",
-      spinner: "w-10 h-10 border-4",
-      title: "text-2xl",
-      subtitle: "text-lg"
-    }
+    small: 'h-32 w-32',
+    medium: 'h-48 w-48',
+    large: 'h-64 w-64'
   };
 
-  const classes = sizeClasses[size];
+  const spinnerSizes = {
+    small: 'w-6 h-6',
+    medium: 'w-8 h-8',
+    large: 'w-12 h-12'
+  };
 
   return (
-    <div className={`${classes.container} flex items-center justify-center bg-gradient-to-br from-cyan-50 to-blue-50`}>
-      <div className="text-center p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="text-center">
         {/* Logo */}
-        {showLogo && (
-          <div className="mb-6">
-            <img
-              src="/favicon/woocombine-logo.png"
-              alt="WooCombine Logo"
-              className={`${classes.logo} mx-auto object-contain animate-pulse`}
-            />
-          </div>
-        )}
+        <div className={`mx-auto mb-8 ${sizeClasses[size]} flex items-center justify-center`}>
+          <img 
+            src={logo} 
+            alt="WooCombine" 
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
 
         {/* Spinner */}
-        <div className="mb-4">
-          <div className={`animate-spin inline-block ${classes.spinner} border-gray-200 border-t-cyan-600 rounded-full`}></div>
+        <div className="flex justify-center mb-6">
+          <div className={`${spinnerSizes[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin`}></div>
         </div>
 
-        {/* Title */}
-        <div className={`${classes.title} font-semibold text-gray-800 mb-2`}>
-          {title}
-        </div>
+        {/* Main message */}
+        <h2 className="text-xl font-semibold text-gray-700 mb-2">
+          {message}
+        </h2>
 
-        {/* Subtitle */}
-        {subtitle && (
-          <div className={`${classes.subtitle} text-gray-600`}>
-            {subtitle}
+        {/* Extended loading messages */}
+        {extendedLoading && !coldStartMessage && (
+          <div className="text-gray-500 text-sm max-w-md mx-auto">
+            <p className="mb-2">This is taking longer than usual...</p>
+            <p>The server may be starting up.</p>
           </div>
         )}
 
-        {/* Animated dots */}
-        <div className="flex justify-center space-x-1 mt-4">
-          <div className="w-2 h-2 bg-cyan-600 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-cyan-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-cyan-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+        {coldStartMessage && (
+          <div className="text-gray-500 text-sm max-w-md mx-auto bg-blue-50 p-4 rounded-lg border border-blue-200">
+            <p className="mb-2">🚀 <strong>Server is starting up</strong></p>
+            <p className="mb-2">This can take up to a minute on the first visit.</p>
+            <p className="text-xs">Free hosting services need time to initialize.</p>
+          </div>
+        )}
       </div>
     </div>
   );
-} 
+};
+
+export default LoadingScreen; 

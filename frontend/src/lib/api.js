@@ -9,7 +9,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
   withCredentials: false,         // not needed since we use Authorization headers
-  timeout: 30000                  // Increased to 30s for severe Render cold start issues
+  timeout: 45000                  // Increased to 45s for extreme Render cold start scenarios
 });
 
 // Request deduplication to prevent concurrent identical requests
@@ -27,13 +27,18 @@ api.interceptors.response.use(
 
     config.retryCount += 1;
     
-    // Extended delays for cold start scenarios
-    let delay = Math.pow(2, config.retryCount) * 2000; // Longer delays: 2s, 4s, 8s
+    // Extended delays for cold start scenarios - more aggressive for severe cases
+    let delay = Math.pow(2, config.retryCount) * 3000; // Longer delays: 3s, 6s, 12s
     
     // Special handling for timeout errors (likely cold starts)
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      delay = Math.min(delay * 2, 10000); // Up to 10s delay for timeouts
-      console.log(`[API] Cold start detected, retrying in ${delay/1000}s...`);
+      // Even longer delays for timeout scenarios
+      delay = Math.min(delay * 3, 15000); // Up to 15s delay for severe cold starts
+      console.log(`[API] Severe cold start detected, retrying in ${delay/1000}s...`);
+    } else if (error.response?.status >= 500) {
+      // Server errors also indicate cold start issues
+      delay = Math.min(delay * 2, 12000); // Up to 12s for server errors
+      console.log(`[API] Server error (${error.response.status}), retrying in ${delay/1000}s...`);
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));
