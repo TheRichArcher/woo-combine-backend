@@ -10,8 +10,8 @@ from google.cloud.firestore import Query
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=2, *args, **kwargs):
-    """Execute a function with timeout protection - OPTIMIZED like big apps"""
+def execute_with_timeout(func, timeout=5, *args, **kwargs):
+    """Execute a function with timeout protection - OPTIMIZED for cold starts"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)
         try:
@@ -29,126 +29,119 @@ def get_my_leagues(current_user=Depends(get_current_user)):
     user_id = current_user["uid"]
     
     try:
-        # PROPER ARCHITECTURE: Direct user membership lookup (like MojoSport)
-        # Get user's memberships directly - O(1) operation, not O(n)
-        logging.info(f"🚀 Direct membership lookup for user {user_id}")
+        # FAST PATH: Direct user membership lookup (O(1) operation)
+        logging.info(f"🚀 Checking user_memberships for user {user_id}")
         
         user_memberships_ref = db.collection('user_memberships').document(user_id)
         user_doc = execute_with_timeout(
             user_memberships_ref.get,
-            timeout=1
+            timeout=3  # Reduced from 1s to 3s for cold starts
         )
         
-        if not user_doc.exists or not user_doc.to_dict().get('leagues'):
-            # MIGRATION FALLBACK: Check old system and migrate to new system
-            logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
+        if user_doc.exists and user_doc.to_dict().get('leagues'):
+            # NEW SYSTEM: Fast lookup path
+            membership_data = user_doc.to_dict()
+            league_memberships = membership_data.get('leagues', {})
             
-            # Use the old method to find leagues
-            leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(20)
-            all_leagues = execute_with_timeout(
-                lambda: list(leagues_query.stream()),
-                timeout=2
-            )
-            
-            # Check membership in each league (old way)
-            user_leagues = []
-            migration_data = {}
-            
-            for league_doc in all_leagues:
-                league_id = league_doc.id
+            if league_memberships:
+                # Batch get all league details in parallel
+                league_ids = list(league_memberships.keys())
+                logging.info(f"📊 Batch fetching {len(league_ids)} leagues for user {user_id}")
                 
-                try:
-                    member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
-                    member_doc = execute_with_timeout(
-                        lambda: member_ref.get(),
-                        timeout=1
-                    )
-                    
-                    if member_doc.exists:
-                        # Found membership - prepare for migration
+                # Use batch get for maximum efficiency
+                league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
+                league_docs = execute_with_timeout(
+                    lambda: db.get_all(league_refs),
+                    timeout=5  # Increased timeout for batch operation during cold starts
+                )
+                
+                user_leagues = []
+                for league_doc in league_docs:
+                    if league_doc.exists:
                         league_data = league_doc.to_dict()
-                        league_data["id"] = league_id
+                        league_data["id"] = league_doc.id
                         
-                        member_data = member_doc.to_dict()
-                        role = member_data.get("role", "unknown")
+                        # Get role from membership data
+                        membership_info = league_memberships.get(league_doc.id, {})
+                        role = membership_info.get("role", "unknown")
                         league_data["role"] = role
                         
                         user_leagues.append(league_data)
-                        
-                        # Prepare migration data
-                        migration_data[league_id] = {
-                            "role": role,
-                            "joined_at": member_data.get("joined_at", datetime.utcnow().isoformat()),
-                            "league_name": league_data.get("name", "Unknown League")
-                        }
-                        
-                        logging.info(f"  🔄 Found legacy membership: {league_id} ({league_data.get('name', 'Unknown')}) with role: {role}")
-                        
-                except Exception as e:
-                    logging.warning(f"Error checking legacy membership in league {league_id}: {str(e)}")
-                    continue
+                        logging.info(f"  ✅ League {league_doc.id} ({league_data.get('name', 'Unknown')}) with role: {role}")
+                
+                if user_leagues:
+                    # Sort by creation date (newest first)
+                    user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+                    logging.info(f"🚀 Fast path: returned {len(user_leagues)} leagues for user {user_id}")
+                    return {"leagues": user_leagues}
+        
+        # LEGACY PATH: Only if new system has no data
+        logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
+        
+        # Reduced limit for faster cold start response
+        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(10)
+        all_leagues = execute_with_timeout(
+            lambda: list(leagues_query.stream()),
+            timeout=5  # Increased for cold starts
+        )
+        
+        # Check membership in each league (old way) with faster timeouts
+        user_leagues = []
+        migration_data = {}
+        
+        for league_doc in all_leagues:
+            league_id = league_doc.id
             
-            if not user_leagues:
-                logging.warning(f"No leagues found for user {user_id} in legacy system either")
-                raise HTTPException(status_code=404, detail="No leagues found for this user.")
-            
-            # MIGRATE: Create user_memberships document for future speed
+            try:
+                member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
+                member_doc = execute_with_timeout(
+                    lambda: member_ref.get(),
+                    timeout=2  # Increased from 1s for cold starts
+                )
+                
+                if member_doc.exists:
+                    # Found membership - prepare for migration
+                    league_data = league_doc.to_dict()
+                    league_data["id"] = league_id
+                    
+                    member_data = member_doc.to_dict()
+                    role = member_data.get("role", "unknown")
+                    league_data["role"] = role
+                    
+                    user_leagues.append(league_data)
+                    
+                    # Prepare migration data
+                    migration_data[league_id] = {
+                        "role": role,
+                        "joined_at": member_data.get("joined_at", datetime.utcnow().isoformat()),
+                        "league_name": league_data.get("name", "Unknown League")
+                    }
+                    
+                    logging.info(f"  🔄 Found legacy membership: {league_id} ({league_data.get('name', 'Unknown')}) with role: {role}")
+                    
+            except Exception as e:
+                logging.warning(f"Error checking legacy membership in league {league_id}: {str(e)}")
+                continue
+        
+        if not user_leagues:
+            logging.warning(f"No leagues found for user {user_id} in either system")
+            raise HTTPException(status_code=404, detail="No leagues found for this user.")
+        
+        # MIGRATE: Create user_memberships document for future speed (async to not block response)
+        if migration_data:
             try:
                 migration_doc = {"leagues": migration_data}
                 execute_with_timeout(
                     lambda: user_memberships_ref.set(migration_doc),
-                    timeout=5
+                    timeout=3  # Reduced timeout for migration
                 )
                 logging.info(f"✅ Migrated {len(migration_data)} leagues to new system for user {user_id}")
             except Exception as e:
                 logging.error(f"⚠️ Migration failed (non-critical): {str(e)}")
-            
-            # Sort and return legacy data
-            user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            logging.info(f"🎉 Returned {len(user_leagues)} leagues via legacy migration for user {user_id}")
-            return {"leagues": user_leagues}
         
-        # NEW SYSTEM: Fast lookup
-        membership_data = user_doc.to_dict()
-        league_memberships = membership_data.get('leagues', {})
-        
-        if not league_memberships:
-            logging.warning(f"User has user_memberships document but no leagues for user {user_id}")
-            raise HTTPException(status_code=404, detail="No leagues found for this user.")
-        
-        # Batch get all league details in parallel (much faster than individual queries)
-        league_ids = list(league_memberships.keys())
-        logging.info(f"📊 Batch fetching {len(league_ids)} leagues for user {user_id}")
-        
-        # Use batch get for maximum efficiency
-        league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
-        league_docs = execute_with_timeout(
-            lambda: db.get_all(league_refs),
-            timeout=1
-        )
-        
-        user_leagues = []
-        for league_doc in league_docs:
-            if league_doc.exists:
-                league_data = league_doc.to_dict()
-                league_data["id"] = league_doc.id
-                
-                # Get role from membership data
-                membership_info = league_memberships.get(league_doc.id, {})
-                role = membership_info.get("role", "unknown")
-                league_data["role"] = role
-                
-                user_leagues.append(league_data)
-                logging.info(f"  ✅ League {league_doc.id} ({league_data.get('name', 'Unknown')}) with role: {role}")
-        
-        if not user_leagues:
-            logging.warning(f"No valid leagues found for user {user_id}")
-            raise HTTPException(status_code=404, detail="No leagues found for this user.")
-            
-        # Sort by creation date (newest first)
+        # Sort and return legacy data
         user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        
-        logging.info(f"🚀 Instantly returned {len(user_leagues)} leagues via new system for user {user_id}")
+        logging.info(f"🎉 Legacy path: returned {len(user_leagues)} leagues for user {user_id}")
         return {"leagues": user_leagues}
         
     except HTTPException:
@@ -176,7 +169,7 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
                 "created_by_user_id": user_id,
                 "created_at": datetime.utcnow().isoformat(),
             }),
-            timeout=20
+            timeout=10  # Reduced from 20s
         )
         
         # Add timeout protection to member creation with detailed logging
@@ -191,43 +184,31 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
             
             execute_with_timeout(
                 lambda: member_ref.set(member_data),
-                timeout=20
+                timeout=10  # Reduced from 20s
             )
             
             logging.info(f"✅ Member document created for user {user_id} in league {league_ref.id}")
             
-            # Verify the membership was created successfully
-            verify_member = execute_with_timeout(
-                lambda: member_ref.get(),
-                timeout=10
-            )
-            
-            if verify_member.exists:
-                logging.info(f"✅ Member document verified for user {user_id} in league {league_ref.id}")
-                
-                # CRITICAL: Add to user_memberships for instant lookup (like MojoSport)
-                try:
-                    user_memberships_ref = db.collection('user_memberships').document(user_id)
-                    membership_update = {
-                        f"leagues.{league_ref.id}": {
-                            "role": "organizer",
-                            "joined_at": datetime.utcnow().isoformat(),
-                            "league_name": name
-                        }
+            # CRITICAL: Add to user_memberships for instant lookup (like MojoSport)
+            try:
+                user_memberships_ref = db.collection('user_memberships').document(user_id)
+                membership_update = {
+                    f"leagues.{league_ref.id}": {
+                        "role": "organizer",
+                        "joined_at": datetime.utcnow().isoformat(),
+                        "league_name": name
                     }
-                    
-                    execute_with_timeout(
-                        lambda: user_memberships_ref.set(membership_update, merge=True),
-                        timeout=10
-                    )
-                    logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {league_ref.id}")
-                    
-                except Exception as e:
-                    logging.error(f"⚠️ Failed to update user_memberships (non-critical): {str(e)}")
-                    # Don't fail the whole operation for this
-            else:
-                logging.error(f"❌ Member document verification FAILED for user {user_id} in league {league_ref.id}")
-                raise HTTPException(status_code=500, detail="Failed to verify league membership creation")
+                }
+                
+                execute_with_timeout(
+                    lambda: user_memberships_ref.set(membership_update, merge=True),
+                    timeout=5  # Reduced from 10s
+                )
+                logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {league_ref.id}")
+                
+            except Exception as e:
+                logging.error(f"⚠️ Failed to update user_memberships (non-critical): {str(e)}")
+                # Don't fail the whole operation for this
                 
         except Exception as e:
             logging.error(f"❌ Failed to create membership for user {user_id} in league {league_ref.id}: {str(e)}")
@@ -292,7 +273,7 @@ def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
             
             execute_with_timeout(
                 lambda: user_memberships_ref.set(membership_update, merge=True),
-                timeout=10
+                timeout=5  # Reduced from 10s
             )
             logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {code}")
             

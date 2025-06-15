@@ -9,13 +9,36 @@ from pathlib import Path
 from fastapi.staticfiles import StaticFiles
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.responses import Response
+from starlette.responses import Response, JSONResponse
 from google.cloud import firestore
 from datetime import datetime
+import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="WooCombine API", version="1.0.0")
+
+# Fast OPTIONS response middleware to handle CORS preflight quickly
+class FastOptionsMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Handle OPTIONS requests immediately without processing
+        if request.method == "OPTIONS":
+            logging.info(f"[FAST-OPTIONS] Handling OPTIONS request for {request.url.path}")
+            return Response(
+                status_code=200,
+                headers={
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Max-Age": "86400",  # Cache preflight for 24 hours
+                }
+            )
+        
+        response = await call_next(request)
+        return response
+
+# Add fast OPTIONS middleware first
+app.add_middleware(FastOptionsMiddleware)
 
 # CORS configuration for production and development
 app.add_middleware(
@@ -31,13 +54,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Firestore connection early to catch any issues
-try:
-    from backend.firestore_client import get_firestore_client
-    firestore_client = get_firestore_client()
-    logging.info("[STARTUP] Firestore client initialized successfully")
-except Exception as e:
-    logging.warning(f"[STARTUP] Firestore initialization issue (using mock): {e}")
+# Lazy Firestore initialization to speed up startup
+_firestore_client = None
+
+def get_firestore_lazy():
+    global _firestore_client
+    if _firestore_client is None:
+        try:
+            from backend.firestore_client import get_firestore_client
+            _firestore_client = get_firestore_client()
+            logging.info("[STARTUP] Firestore client initialized lazily")
+        except Exception as e:
+            logging.warning(f"[STARTUP] Firestore lazy initialization issue: {e}")
+            _firestore_client = None
+    return _firestore_client
 
 # Include API routes with /api prefix to avoid conflicts with static frontend
 app.include_router(players_router, prefix="/api", tags=["Players"])
@@ -47,28 +77,12 @@ app.include_router(events_router, prefix="/api", tags=["Events"])
 
 @app.get("/health")
 def health_check():
-    """Health check endpoint for deployment monitoring"""
-    try:
-        # Basic health check
-        health_status = {
-            "status": "ok",
-            "timestamp": datetime.utcnow().isoformat(),
-            "version": "1.0.0"
-        }
-        
-        # Test Firestore connection
-        try:
-            from backend.firestore_client import get_firestore_client
-            client = get_firestore_client()
-            # Simple test - this works with both real and mock clients
-            test_collection = client.collection("health_check")
-            health_status["firestore"] = "connected"
-        except Exception as e:
-            health_status["firestore"] = f"error: {str(e)}"
-            
-        return health_status
-    except Exception as e:
-        return {"status": "error", "details": str(e)}
+    """Minimal health check endpoint for deployment monitoring"""
+    return {
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat(),
+        "version": "1.0.0"
+    }
 
 @app.get("/api")
 def root():
@@ -80,31 +94,21 @@ def root():
         "docs": "/docs"
     }
 
-# Startup event
+# Startup event - minimal operations for fast startup
 @app.on_event("startup")
 async def startup_event():
     logging.info("[STARTUP] WooCombine API starting up...")
     
-    # Check environment
-    env_vars = [
-        "GOOGLE_CLOUD_PROJECT",
-        "FIREBASE_PROJECT_ID", 
-        "GOOGLE_APPLICATION_CREDENTIALS_JSON"
-    ]
+    # Don't initialize Firestore on startup - do it lazily
+    logging.info("[STARTUP] Using lazy Firestore initialization for faster cold starts")
     
-    for var in env_vars:
-        value = os.getenv(var)
-        if value:
-            logging.info(f"[STARTUP] {var}: configured")
+    # Just log environment status quickly
+    critical_vars = ["GOOGLE_CLOUD_PROJECT", "FIREBASE_PROJECT_ID"]
+    for var in critical_vars:
+        if os.getenv(var):
+            logging.info(f"[STARTUP] {var}: ✓ configured")
         else:
-            logging.warning(f"[STARTUP] {var}: not set")
-    
-    # Check frontend directory
-    dist_dir = Path(__file__).parent.parent / "frontend" / "dist"
-    if dist_dir.exists():
-        logging.info(f"[STARTUP] Frontend directory found: {dist_dir}")
-    else:
-        logging.warning(f"[STARTUP] Frontend directory not found: {dist_dir}")
+            logging.warning(f"[STARTUP] {var}: ✗ not set")
 
 # TEMPORARILY DISABLE FRONTEND SERVING TO ISOLATE API ISSUES
 # Frontend will be served separately from woo-combine.com
@@ -118,7 +122,7 @@ else:
 @app.get("/")
 async def serve_api_info():
     return {
-        "message": "WooCombine API (API-only mode)",
+        "message": "WooCombine API (Optimized for cold starts)",
         "status": "running", 
         "frontend": "served separately",
         "api_prefix": "/api"

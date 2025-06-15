@@ -44,32 +44,20 @@ export function AuthProvider({ children }) {
     return true; // User is authenticated and verified
   }, [navigate, setUser, setAuthChecked]);
 
-  // OPTIMIZED: Sub-second initialization like big apps
+  // OPTIMIZED: Single request initialization to prevent timeout cascade
   const completeInitialization = useCallback(async (firebaseUser) => {
     try {
       const db = getFirestore();
       
-      // PARALLEL OPERATIONS: Role check + League fetch simultaneously (like Twitter/Instagram)
-      const [roleResult, leagueResult] = await Promise.allSettled([
-        // Role check with extended timeout (8s max for cold starts)
-        Promise.race([
-          getDoc(doc(db, "users", firebaseUser.uid)),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 8000))
-        ]),
-        
-        // League fetch with extended timeout (10s max for cold starts)  
-        Promise.race([
-          api.get(`/leagues/me`, { timeout: 10000 }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 10000))
-        ])
+      // STEP 1: Role check with extended timeout for cold starts
+      console.log('[AuthContext] Checking user role...');
+      const roleDoc = await Promise.race([
+        getDoc(doc(db, "users", firebaseUser.uid)),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 15000))
       ]);
 
-      // Handle role check result
-      if (roleResult.status === 'fulfilled' && roleResult.value.exists() && roleResult.value.data().role) {
-        const userRole = roleResult.value.data().role;
-        setUserRole(userRole);
-      } else {
-        // FAIL FAST: No role found or timeout - redirect immediately
+      if (!roleDoc.exists() || !roleDoc.data().role) {
+        console.log('[AuthContext] No role found, redirecting to select-role');
         setUserRole(null);
         setLeagues([]);
         setRole(null);
@@ -78,42 +66,46 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // Handle league fetch result
-      let userLeagues = [];
-      if (leagueResult.status === 'fulfilled') {
-        userLeagues = leagueResult.value.data.leagues || [];
+      const userRole = roleDoc.data().role;
+      setUserRole(userRole);
+      console.log('[AuthContext] User role:', userRole);
+
+      // STEP 2: League fetch with single request and extended timeout
+      console.log('[AuthContext] Fetching user leagues...');
+      try {
+        const leagueResponse = await api.get(`/leagues/me`, { 
+          timeout: 25000,  // 25s timeout for cold starts
+          retry: 1         // Single retry only
+        });
+        
+        const userLeagues = leagueResponse.data.leagues || [];
         setLeagues(userLeagues);
-      } else {
-        // EXTENDED RETRY: Single 8s retry for leagues only
-        try {
-          const retryRes = await Promise.race([
-            api.get(`/leagues/me`, { timeout: 8000 }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Retry timeout')), 8000))
-          ]);
-          userLeagues = retryRes.data.leagues || [];
-          setLeagues(userLeagues);
-        } catch {
-          // Give up gracefully - empty leagues is better than long wait
-          userLeagues = [];
-          setLeagues([]);
-        }
-      }
+        console.log('[AuthContext] Leagues loaded:', userLeagues.length);
         
-      // Set up selected league and role
-      let targetLeagueId = selectedLeagueId;
-      
-      if (userLeagues.length > 0) {
-        // If no league selected or selected league doesn't exist, use first available
-        if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
-          targetLeagueId = userLeagues[0].id;
+        // Set up selected league and role
+        let targetLeagueId = selectedLeagueId;
+        
+        if (userLeagues.length > 0) {
+          // If no league selected or selected league doesn't exist, use first available
+          if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
+            targetLeagueId = userLeagues[0].id;
+          }
+          
+          setSelectedLeagueId(targetLeagueId);
+          localStorage.setItem('selectedLeagueId', targetLeagueId);
+          
+          const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
+          setRole(selectedLeague?.role || null);
+        } else {
+          setSelectedLeagueId('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
         }
         
-        setSelectedLeagueId(targetLeagueId);
-        localStorage.setItem('selectedLeagueId', targetLeagueId);
-        
-        const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
-        setRole(selectedLeague?.role || null);
-      } else {
+      } catch (leagueError) {
+        console.error('[AuthContext] League fetch failed:', leagueError.message);
+        // Continue without leagues rather than blocking the entire app
+        setLeagues([]);
         setSelectedLeagueId('');
         setRole(null);
         localStorage.removeItem('selectedLeagueId');
@@ -131,132 +123,105 @@ export function AuthProvider({ children }) {
         navigate("/dashboard");
       } else if (authenticatedRoutes.includes(currentPath)) {
         // Don't redirect - user is already on a valid authenticated page
+        console.log('[AuthContext] User already on authenticated page:', currentPath);
       }
 
-    } catch (error) {
-      console.error('[AuthContext] Background initialization failed:', error);
-      setError(error);
-      setRoleChecked(true); // Role check complete - even if failed
-      navigate("/select-role");
+    } catch (err) {
+      console.error('[AuthContext] Initialization error:', err.message);
+      setError(err.message);
+      setUserRole(null);
+      setLeagues([]);
+      setRole(null);
+      setRoleChecked(true);
+      
+      // Redirect to appropriate page based on error
+      if (err.message.includes('Role check timeout')) {
+        navigate("/select-role");
+      }
+    } finally {
+      setInitializing(false);
     }
-  }, [navigate, selectedLeagueId, setUserRole, setLeagues, setRole, setSelectedLeagueId, setError]);
+  }, [navigate, selectedLeagueId]);
 
-  // Main auth state listener with optimized flow
+  // Firebase auth state change handler
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Reset role check state for each auth change
-      setRoleChecked(false);
+      console.log('[AuthContext] Firebase auth state changed:', !!firebaseUser);
       
-      // Step 1: Quick auth check (shows UI faster)
-      const isAuthenticated = await quickAuthCheck(firebaseUser);
-      
-      if (!isAuthenticated) {
-        setRoleChecked(true); // No role needed for unauthenticated users
-        setInitializing(false); // Stop loading for unauthenticated/unverified users
-        return;
-      }
-
-      // Step 2: Complete initialization in background (user sees page faster)
-      // But skip if we already have role and leagues loaded for the same user
-      const shouldSkipInitialization = userRole && leagues.length > 0 && 
-                                      user && user.uid === firebaseUser.uid;
-      
-      if (shouldSkipInitialization) {
-        // CRITICAL: Even when skipping initialization, check if user is on wrong page
-        const currentPath = window.location.pathname;
-        const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
-        
-        if (onboardingRoutes.includes(currentPath)) {
-          navigate("/dashboard");
-        }
-        
-        setRoleChecked(true); // User already has role
+      if (!firebaseUser) {
+        // User logged out
+        setUser(null);
+        setUserRole(null);
+        setLeagues([]);
+        setSelectedLeagueId('');
+        setRole(null);
+        setAuthChecked(true);
+        setRoleChecked(true);
         setInitializing(false);
+        setError(null);
+        localStorage.removeItem('selectedLeagueId');
         return;
       }
 
-      try {
+      // User logged in - start initialization
+      const isAuthenticated = await quickAuthCheck(firebaseUser);
+      if (isAuthenticated) {
         await completeInitialization(firebaseUser);
-      } catch (error) {
-        console.error('[AuthContext] Initialization error:', error);
-        setError(error);
-      } finally {
-        setInitializing(false); // Always stop loading
+      } else {
+        setInitializing(false);
       }
-      
-    }, (err) => {
-      console.error('[AuthContext] Auth state change error:', err);
-      setError(err);
-      setInitializing(false);
-      setAuthChecked(true);
     });
 
     return () => unsubscribe();
-  }, [navigate, userRole, leagues.length, user, quickAuthCheck, completeInitialization]);
+  }, [quickAuthCheck, completeInitialization]);
 
-  // Persist selectedLeagueId changes
-  useEffect(() => {
-    if (selectedLeagueId) {
-      localStorage.setItem('selectedLeagueId', selectedLeagueId);
-    } else {
-      localStorage.removeItem('selectedLeagueId');
-    }
-  }, [selectedLeagueId]);
-
-  // Add league after join
-  const addLeague = (league) => {
-    setLeagues(prev => {
-      if (prev.some(l => l.id === league.id)) return prev;
-      return [...prev, league];
-    });
-    setSelectedLeagueId(league.id);
-    localStorage.setItem('selectedLeagueId', league.id);
-    setRole(league.role);
+  // Expose state setters for logout functionality
+  const contextValue = {
+    user,
+    userRole,
+    role,
+    leagues,
+    selectedLeagueId,
+    setSelectedLeagueId: (id) => {
+      setSelectedLeagueId(id);
+      localStorage.setItem('selectedLeagueId', id);
+      
+      // Update role when league changes
+      if (leagues.length > 0) {
+        const selectedLeague = leagues.find(l => l.id === id);
+        setRole(selectedLeague?.role || null);
+      }
+    },
+    authChecked,
+    roleChecked,
+    error,
+    setError,
+    setUser,
+    setUserRole,
+    setRole,
+    setLeagues,
+    setAuthChecked,
+    setRoleChecked
   };
 
-  // Check if user is organizer for selected league
-  const isOrganizer = () => {
-    return leagues.find(l => l.id === selectedLeagueId)?.role === 'organizer';
-  };
-
-  // Show loading screen until BOTH auth and role checks are complete
-  if (initializing || (user && user.emailVerified && !roleChecked)) {
-    const isAuthPhase = !authChecked;
-    return (
-      <LoadingScreen 
-        title={isAuthPhase ? "Loading WooCombine..." : "Loading your data..."}
-        subtitle={isAuthPhase ? "Checking authentication" : "Verifying your account"}
-        size="large"
-      />
-    );
+  // Show loading screen while initializing
+  if (initializing) {
+    return <LoadingScreen size="large" />;
   }
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      setUser,
-      loading: initializing, // For backward compatibility
-      roleChecking: false, // No longer used
-      error,
-      setError,
-      leagues,
-      setLeagues,
-      selectedLeagueId,
-      setSelectedLeagueId,
-      role,
-      setRole,
-      userRole,
-      setUserRole,
-      addLeague,
-      isOrganizer,
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 }
 
 export { useLogout }; 
