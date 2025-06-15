@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import logo from '../assets/woocombine-logo.png';
 
 const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
   const [extendedLoading, setExtendedLoading] = useState(false);
@@ -40,7 +39,7 @@ const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
         {/* Logo */}
         <div className={`mx-auto mb-8 ${sizeClasses[size]} flex items-center justify-center`}>
           <img 
-            src={logo} 
+            src="/favicon/woocombine-logo.png" 
             alt="WooCombine" 
             className="max-w-full max-h-full object-contain"
           />
