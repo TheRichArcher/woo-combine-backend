@@ -47,6 +47,8 @@ app.add_middleware(
         "https://woo-combine.com",
         "https://woo-combine-backend.onrender.com",
         "http://localhost:5173",  # Local development
+        "http://localhost:5174",  # Alternative dev port 
+        "http://localhost:5175",  # Alternative dev port 
         "http://localhost:3000",  # Alternative dev port
     ],
     allow_credentials=False,
