@@ -221,11 +221,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
   const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
   const [activePreset, setActivePreset] = useState("athletic");
 
-  if (!player) return null;
+  if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   // Convert weights to percentages for display
   const getPercentages = () => {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    if (total === 0) return {}; // Prevent division by zero
     const percentages = {};
     DRILLS.forEach(drill => {
       percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
@@ -256,44 +257,109 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     setActivePreset(presetKey);
   };
 
-  // Calculate individual drill rankings (same age group only)
+  // FIXED: Calculate individual drill rankings with robust error handling
   const drillRankings = {};
   DRILLS.forEach(drill => {
-    const drillRanks = allPlayers
-      .filter(p => p[drill.key] != null && p.age_group === player.age_group)
-      .map(p => ({ player_id: p.id, score: p[drill.key] }))
-      .sort((a, b) => b.score - a.score);
-    const rank = drillRanks.findIndex(p => p.player_id === player.id) + 1;
-    drillRankings[drill.key] = rank > 0 ? rank : null;
+    try {
+      // Ensure we have valid players with the same age group and drill scores
+      const validPlayers = allPlayers.filter(p => 
+        p && 
+        p.id && 
+        p.age_group === player.age_group && 
+        p[drill.key] != null && 
+        typeof p[drill.key] === 'number'
+      );
+      
+      if (validPlayers.length === 0) {
+        drillRankings[drill.key] = null;
+        return;
+      }
+      
+      // Sort players by drill score (descending for most drills, ascending for 40m_dash)
+      const sortedPlayers = validPlayers.sort((a, b) => {
+        if (drill.key === "40m_dash") {
+          return a[drill.key] - b[drill.key]; // Lower time is better
+        }
+        return b[drill.key] - a[drill.key]; // Higher score is better
+      });
+      
+      // Find this player's rank (using consistent id comparison)
+      const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
+      drillRankings[drill.key] = rank > 0 ? rank : null;
+    } catch (error) {
+      console.warn(`[PlayerModal] Error calculating ranking for ${drill.key}:`, error);
+      drillRankings[drill.key] = null;
+    }
   });
 
-  // Calculate weighted score breakdown with current weights
+  // FIXED: Calculate weighted score breakdown with better error handling
   const weightedBreakdown = DRILLS.map(drill => {
-    const rawScore = player[drill.key] != null ? player[drill.key] : null;
-    const weight = weights[drill.key];
-    const weightedScore = (rawScore != null ? rawScore : 0) * weight;
-    return {
-      ...drill,
-      rawScore,
-      weight,
-      weightedScore,
-      rank: drillRankings[drill.key]
-    };
+    try {
+      const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
+        ? player[drill.key] 
+        : null;
+      const weight = weights[drill.key] || 0;
+      const weightedScore = rawScore != null ? rawScore * weight : 0;
+      
+      return {
+        ...drill,
+        rawScore,
+        weight,
+        weightedScore,
+        rank: drillRankings[drill.key]
+      };
+    } catch (error) {
+      console.warn(`[PlayerModal] Error calculating weighted score for ${drill.key}:`, error);
+      return {
+        ...drill,
+        rawScore: null,
+        weight: weights[drill.key] || 0,
+        weightedScore: 0,
+        rank: null
+      };
+    }
   });
 
-  const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + item.weightedScore, 0);
+  const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
   const percentages = getPercentages();
 
-  // Calculate this player's rank with current weights among same age group players
-  const ageGroupPlayers = allPlayers.filter(p => p.age_group === player.age_group);
-  const playersWithScores = ageGroupPlayers.map(p => {
-    const score = DRILLS.reduce((sum, drill) => {
-      return sum + (p[drill.key] || 0) * weights[drill.key];
-    }, 0);
-    return { ...p, currentScore: score };
-  }).sort((a, b) => b.currentScore - a.currentScore);
+  // FIXED: Calculate overall ranking with robust error handling
+  let currentRank = 1;
+  let ageGroupPlayers = [];
   
-  const currentRank = playersWithScores.findIndex(p => p.id === player.id) + 1;
+  try {
+    // Filter age group players with better validation
+    ageGroupPlayers = allPlayers.filter(p => 
+      p && 
+      p.id && 
+      p.age_group === player.age_group
+    );
+    
+    if (ageGroupPlayers.length > 0) {
+      // Calculate scores for all players with error handling
+      const playersWithScores = ageGroupPlayers.map(p => {
+        try {
+          const score = DRILLS.reduce((sum, drill) => {
+            const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : 0;
+            const weight = weights[drill.key] || 0;
+            return sum + (drillScore * weight);
+          }, 0);
+          return { ...p, currentScore: score };
+        } catch (error) {
+          console.warn(`[PlayerModal] Error calculating score for player ${p.id}:`, error);
+          return { ...p, currentScore: 0 };
+        }
+      }).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0));
+      
+      // Find this player's rank
+      const rankIndex = playersWithScores.findIndex(p => p.id === player.id);
+      currentRank = rankIndex >= 0 ? rankIndex + 1 : 1;
+    }
+  } catch (error) {
+    console.warn('[PlayerModal] Error calculating overall ranking:', error);
+    currentRank = 1;
+    ageGroupPlayers = [player]; // Fallback to just this player
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
