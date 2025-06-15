@@ -11,6 +11,8 @@ import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
+import ForgotPassword from "./pages/ForgotPassword";
+import LiveEntry from "./pages/LiveEntry";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
@@ -96,8 +98,17 @@ function App() {
                   </RequireAuth>
                 }
               />
+              <Route
+                path="/live-entry"
+                element={
+                  <RequireAuth>
+                    <LiveEntry />
+                  </RequireAuth>
+                }
+              />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<SignUp />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/claim" element={
                 <WelcomeLayout
                   contentClassName="min-h-screen"
@@ -127,6 +138,10 @@ function App() {
                 </RequireAuth>
               } />
               <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
+              {/* Temporary redirect routes for missing pages */}
+              <Route path="/help" element={<Navigate to="/welcome" replace />} />
+              <Route path="/terms" element={<Navigate to="/welcome" replace />} />
+              <Route path="/privacy" element={<Navigate to="/welcome" replace />} />
             </Routes>
           </div>
         </EventProvider>
