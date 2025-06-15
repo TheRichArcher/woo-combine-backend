@@ -10,19 +10,15 @@ import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 
 const REQUIRED_HEADERS = [
-  "name",
-  "number",
+  "first_name",
+  "last_name", 
   "age_group",
-  "40m_dash",
-  "vertical_jump",
-  "catching",
-  "throwing",
-  "agility",
 ];
 const SAMPLE_ROWS = [
-  ["Jane Smith", "23", "9-10", "6.1", "19", "8", "7", "6.8"],
-  ["Alex Lee", "45", "U12", "5.8", "21", "9", "8", "7.2"],
-  ["Sam Jones", "7", "6U", "7.2", "15", "6", "6", "5.9"],
+  ["Jane", "Smith", "9-10"],
+  ["Alex", "Lee", "U12"],
+  ["Sam", "Jones", "6U"],
+  ["Maria", "Garcia", ""], // Example showing age group is optional
 ];
 
 function parseCsv(text) {
@@ -39,24 +35,20 @@ function validateRow(row, headers) {
     obj[header] = row[i] ?? "";
   });
   
-  // Only require name - everything else is optional
-  if (!obj.name) rowWarnings.push("Missing name");
-  
-  // Only validate number if it's provided
-  if (obj.number && obj.number.trim() !== "" && isNaN(Number(obj.number))) {
-    rowWarnings.push("Invalid number");
+  // Require first_name and last_name
+  if (!obj.first_name || obj.first_name.trim() === "") {
+    rowWarnings.push("Missing first name");
+  }
+  if (!obj.last_name || obj.last_name.trim() === "") {
+    rowWarnings.push("Missing last name");
   }
   
-  // Age group is flexible - any text is allowed
-  // No validation needed for age group format
+  // Combine first and last name for backend compatibility
+  if (obj.first_name && obj.last_name) {
+    obj.name = `${obj.first_name.trim()} ${obj.last_name.trim()}`;
+  }
   
-  // Only validate drill scores if they're provided (not empty)
-  ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
-    const value = obj[drill];
-    if (value && value.trim() !== "" && isNaN(Number(value))) {
-      rowWarnings.push(`Invalid ${drill}`);
-    }
-  });
+  // Age group is optional - any text is allowed, no validation needed
   
   return { ...obj, warnings: rowWarnings };
 }
@@ -82,14 +74,10 @@ export default function AdminTools() {
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualPlayer, setManualPlayer] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     number: '',
     age_group: '',
-    "40m_dash": '',
-    "vertical_jump": '',
-    catching: '',
-    throwing: '',
-    agility: '',
   });
   const [manualErrors, setManualErrors] = useState([]);
   const [manualStatus, setManualStatus] = useState('idle');
@@ -163,7 +151,7 @@ export default function AdminTools() {
     reader.readAsText(file);
   };
 
-  // Allow upload if we have valid players (even with missing drill data)
+  // Allow upload if we have valid players with first and last names
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
 
   // Fetch player count for summary badge
@@ -230,12 +218,16 @@ export default function AdminTools() {
   };
   const validateManual = () => {
     const errors = [];
-    if (!manualPlayer.name) errors.push("Missing name");
-    if (manualPlayer.number && isNaN(Number(manualPlayer.number))) errors.push("Invalid number");
+    if (!manualPlayer.first_name || manualPlayer.first_name.trim() === "") {
+      errors.push("Missing first name");
+    }
+    if (!manualPlayer.last_name || manualPlayer.last_name.trim() === "") {
+      errors.push("Missing last name");
+    }
+    if (manualPlayer.number && manualPlayer.number.trim() !== "" && isNaN(Number(manualPlayer.number))) {
+      errors.push("Invalid number");
+    }
     // Age group is flexible - any text is allowed
-    ["40m_dash", "vertical_jump", "catching", "throwing", "agility"].forEach(drill => {
-      if (manualPlayer[drill] && isNaN(Number(manualPlayer[drill]))) errors.push(`Invalid ${drill}`);
-    });
     return errors;
   };
   const handleManualSubmit = async (e) => {
@@ -251,23 +243,18 @@ export default function AdminTools() {
     setManualStatus('loading');
     try {
       const playerPayload = {
-        name: manualPlayer.name,
-        number: Number(manualPlayer.number),
-        age_group: manualPlayer.age_group,
+        name: `${manualPlayer.first_name.trim()} ${manualPlayer.last_name.trim()}`,
+        number: manualPlayer.number && manualPlayer.number.trim() !== "" ? Number(manualPlayer.number) : null,
+        age_group: manualPlayer.age_group.trim() || null,
       };
-      if (manualPlayer.photo_url) playerPayload.photo_url = manualPlayer.photo_url;
       await api.post(`/players?event_id=${selectedEvent.id}`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
       setManualPlayer({
-        name: '',
+        first_name: '',
+        last_name: '',
         number: '',
         age_group: '',
-        "40m_dash": '',
-        "vertical_jump": '',
-        catching: '',
-        throwing: '',
-        agility: '',
       });
       // Don't hide form immediately - let user see next steps
       handlePostUploadSuccess();
@@ -301,8 +288,7 @@ export default function AdminTools() {
     </div>
   );
 
-  // Drill score tooltip
-  const drillTip = "Score range: 1–10. Use decimals for precision (e.g., 7.5)";
+  // Remove unused drill tip variable
 
   // Reupload button handler
   const handleReupload = () => {
@@ -410,6 +396,10 @@ export default function AdminTools() {
             <div className="text-sm text-gray-600 mb-2">
               Uploading to: <span className="font-bold">{selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
             </div>
+            <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-2">
+              <strong>Simplified Upload:</strong> Only First Name, Last Name, and Age Group (optional) are needed. 
+              Drill results will be collected during your combine event using this program.
+            </div>
             {/* CSV Upload Dropzone */}
             <div className="border-dashed border-2 border-blue-300 bg-blue-50 p-5 rounded-xl text-center text-sm text-gray-600 flex flex-col items-center">
               <Upload className="w-8 h-8 text-blue-400 mb-2" />
@@ -433,10 +423,7 @@ export default function AdminTools() {
                         {Array.isArray(csvHeaders) && csvHeaders.length > 0 && (
                           csvHeaders.map(h => (
                             <th key={h} className="px-2 py-1">
-                              {h.replace(/_/g, ' ').replace('m dash', 'm Dash').replace(/\b\w/g, l => l.toUpperCase())}
-                              {["40m_dash", "vertical_jump", "catching", "throwing", "agility"].includes(h) && (
-                                <span className="ml-1 cursor-pointer" title={drillTip}>ℹ️</span>
-                              )}
+                              {h.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                             </th>
                           ))
                         )}
@@ -446,7 +433,7 @@ export default function AdminTools() {
                     <tbody>
                       {Array.isArray(csvRows) && csvRows.length > 0 && csvRows.map((row, i) => {
                         const hasWarnings = row.warnings.length > 0;
-                        const hasCriticalErrors = row.warnings.some(w => w.includes("Missing name") || w.includes("Invalid"));
+                        const hasCriticalErrors = row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name") || w.includes("Invalid"));
                         const isUploadable = row.name && row.name.trim() !== "";
                         
                         return (
@@ -544,13 +531,35 @@ export default function AdminTools() {
               }
             }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input name="name" value={manualPlayer.name} onChange={handleManualChange} placeholder="Name" className="border rounded px-2 py-1" required />
-                <input name="number" value={manualPlayer.number} onChange={handleManualChange} placeholder="Number" className="border rounded px-2 py-1" />
+                <input 
+                  name="first_name" 
+                  value={manualPlayer.first_name} 
+                  onChange={handleManualChange} 
+                  placeholder="First Name" 
+                  className="border rounded px-2 py-1" 
+                  required 
+                />
+                <input 
+                  name="last_name" 
+                  value={manualPlayer.last_name} 
+                  onChange={handleManualChange} 
+                  placeholder="Last Name" 
+                  className="border rounded px-2 py-1" 
+                  required 
+                />
+                <input 
+                  name="number" 
+                  value={manualPlayer.number} 
+                  onChange={handleManualChange} 
+                  placeholder="Player Number (optional)" 
+                  className="border rounded px-2 py-1" 
+                  type="number"
+                />
                 <input 
                   name="age_group" 
                   value={manualPlayer.age_group} 
                   onChange={handleManualChange} 
-                  placeholder="Age Group (e.g., 6U, U8, 7-8)" 
+                  placeholder="Age Group (optional, e.g., 6U, U8, 7-8)" 
                   className="border rounded px-2 py-1"
                   list="manual-age-group-suggestions"
                 />
@@ -571,26 +580,9 @@ export default function AdminTools() {
                   <option value="15-16" />
                   <option value="17-18" />
                 </datalist>
-                <label className="flex items-center gap-1">
-                  <input name="40m_dash" value={manualPlayer["40m_dash"]} onChange={handleManualChange} placeholder="40m Dash" className="border rounded px-2 py-1 flex-1" />
-                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-                </label>
-                <label className="flex items-center gap-1">
-                  <input name="vertical_jump" value={manualPlayer["vertical_jump"]} onChange={handleManualChange} placeholder="Vertical Jump" className="border rounded px-2 py-1 flex-1" />
-                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-                </label>
-                <label className="flex items-center gap-1">
-                  <input name="catching" value={manualPlayer["catching"]} onChange={handleManualChange} placeholder="Catching" className="border rounded px-2 py-1 flex-1" />
-                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-                </label>
-                <label className="flex items-center gap-1">
-                  <input name="throwing" value={manualPlayer["throwing"]} onChange={handleManualChange} placeholder="Throwing" className="border rounded px-2 py-1 flex-1" />
-                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-                </label>
-                <label className="flex items-center gap-1">
-                  <input name="agility" value={manualPlayer["agility"]} onChange={handleManualChange} placeholder="Agility" className="border rounded px-2 py-1 flex-1" />
-                  <span className="cursor-pointer" title={drillTip}>ℹ️</span>
-                </label>
+              </div>
+              <div className="text-sm text-gray-600 mt-2 mb-2">
+                <strong>Note:</strong> Drill results (40M dash, vertical jump, catching, throwing, agility) will be collected using this program during your combine event. Only basic player information is needed for upload.
               </div>
               {manualErrors.length > 0 && <div className="text-red-500 text-sm mt-2">{manualErrors.join(", ")}</div>}
               <div className="flex gap-2 mt-4 flex-wrap justify-center">
