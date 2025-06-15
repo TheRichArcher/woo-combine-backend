@@ -2,43 +2,58 @@ import axios from 'axios';
 import { auth } from '../firebase';
 
 /*
- * Centralised axios instance
- * The base URL is injected at build-time from Render (or .env.local).
- * Example:  https://woo-combine-backend.onrender.com
+ * Centralized axios instance with proper cold start handling
+ * Base URL with fallback for production reliability
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE,
-  withCredentials: false,         // not needed since we use Authorization headers
-  timeout: 45000                  // Increased to 45s for extreme Render cold start scenarios
+  baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
+  withCredentials: false,
+  timeout: 45000  // 45s for extreme cold start scenarios
 });
 
-// Request deduplication to prevent concurrent identical requests
-const pendingRequests = new Map();
+// Active request tracking for proper deduplication
+const activeRequests = new Map();
 
-// Enhanced retry logic with exponential backoff and cold start handling
+// Enhanced retry logic with exponential backoff
 api.interceptors.response.use(
   response => response,
   async (error) => {
     const config = error.config;
-    if (!config || !config.retry) return Promise.reject(error);
-
-    config.retryCount = config.retryCount || 0;
-    if (config.retryCount >= config.retry) return Promise.reject(error);
-
-    config.retryCount += 1;
     
-    // Extended delays for cold start scenarios - more aggressive for severe cases
-    let delay = Math.pow(2, config.retryCount) * 3000; // Longer delays: 3s, 6s, 12s
+    // Initialize retry count and enable retries for ALL requests
+    if (!config._retryCount) {
+      config._retryCount = 0;
+    }
     
-    // Special handling for timeout errors (likely cold starts)
+    // Retry up to 3 times for network/timeout/server errors
+    const maxRetries = 3;
+    const shouldRetry = config._retryCount < maxRetries && (
+      error.code === 'ECONNABORTED' ||           // Timeout
+      error.message.includes('timeout') ||        // Timeout variations
+      error.message.includes('Network Error') ||  // Network failures
+      error.response?.status >= 500 ||            // Server errors
+      !error.response                            // No response (hibernation)
+    );
+    
+    if (!shouldRetry) {
+      return Promise.reject(error);
+    }
+    
+    config._retryCount += 1;
+    
+    // Progressive delays: 3s, 6s, 12s
+    let delay = Math.pow(2, config._retryCount) * 3000;
+    
+    // Extended delays for cold start indicators
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      // Even longer delays for timeout scenarios
-      delay = Math.min(delay * 3, 15000); // Up to 15s delay for severe cold starts
-      console.log(`[API] Severe cold start detected, retrying in ${delay/1000}s...`);
+      delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
+      console.log(`[API] Cold start timeout detected, retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
+    } else if (!error.response) {
+      delay = Math.min(delay * 1.5, 12000); // Network failures
+      console.log(`[API] Network failure, retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
     } else if (error.response?.status >= 500) {
-      // Server errors also indicate cold start issues
-      delay = Math.min(delay * 2, 12000); // Up to 12s for server errors
-      console.log(`[API] Server error (${error.response.status}), retrying in ${delay/1000}s...`);
+      delay = Math.min(delay * 1.5, 10000); // Server errors
+      console.log(`[API] Server error (${error.response.status}), retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));
@@ -46,55 +61,58 @@ api.interceptors.response.use(
   }
 );
 
-// Request deduplication and cold start optimization
+// Request interceptor with PROPER deduplication and auth
 api.interceptors.request.use(async (config) => {
-  // Create request key for deduplication (method + url + auth state)
-  const user = auth.currentUser;
-  const requestKey = `${config.method}-${config.url}-${user ? user.uid : 'anonymous'}`;
-  
-  // Check if same request is already pending
-  if (pendingRequests.has(requestKey)) {
-    console.log(`[API] Deduplicating request: ${requestKey}`);
-    return pendingRequests.get(requestKey);
-  }
-  
   // Add Authorization header if authenticated
+  const user = auth.currentUser;
   if (user) {
-    const token = await user.getIdToken();
-    config.headers = config.headers || {};
-    config.headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const token = await user.getIdToken();
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+    } catch (authError) {
+      console.warn('[API] Failed to get auth token:', authError);
+    }
   }
   
-  // Store request promise for deduplication
-  const requestPromise = Promise.resolve(config);
-  pendingRequests.set(requestKey, requestPromise);
+  // Create request key for deduplication
+  const requestKey = `${config.method?.toUpperCase()}-${config.url}-${user?.uid || 'anonymous'}`;
   
-  // Clean up after request completes
-  requestPromise.finally(() => {
-    pendingRequests.delete(requestKey);
+  // Check if identical request is already in progress
+  if (activeRequests.has(requestKey)) {
+    console.log(`[API] Deduplicating concurrent request: ${requestKey}`);
+    return activeRequests.get(requestKey);
+  }
+  
+  // Create the actual request promise and store it
+  const requestPromise = axios(config).finally(() => {
+    // Clean up when request completes (success or failure)
+    activeRequests.delete(requestKey);
   });
   
+  activeRequests.set(requestKey, requestPromise);
+  
+  // Return the config for the current request (not the promise)
   return config;
 }, (error) => Promise.reject(error));
 
-// Surface backend error messages and log context
+// Enhanced error handling with user-friendly messages
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response && error.response.data && error.response.data.detail) {
-      // Optionally, you can surface this toasts, modals, etc.
-      console.error('API Error:', error.response.data.detail);
+    // Log detailed error info for debugging
+    if (error.response?.data?.detail) {
+      console.error('[API] Server Error:', error.response.data.detail);
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('[API] Request timeout - server may be starting up');
+    } else if (error.message.includes('Network Error')) {
+      console.error('[API] Network connectivity issue');
     } else {
-      console.error('API Error:', error.message);
+      console.error('[API] Request failed:', error.message);
     }
+    
     return Promise.reject(error);
   }
 );
-
-// Optional interceptors for JWT refresh, logging, etc.
-// api.interceptors.response.use(
-//   res => res,
-//   err => { … }
-// );
 
 export default api; 
