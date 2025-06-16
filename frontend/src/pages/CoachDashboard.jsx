@@ -236,35 +236,50 @@ export default function CoachDashboard() {
   const percentages = getPercentages();
 
   return (
-    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
-        <EventSelector />
-        {/* Header & Title Block */}
-        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">
-          {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
-        </h1>
-        {/* Age Group Dropdown */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
-          <label className="block text-sm font-bold text-gray-700 mb-1">Select Age Group</label>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+        {/* Welcome Header - matching dashboard style */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
+          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+            Coach Dashboard
+          </h1>
+          <p className="text-gray-600 mb-4">
+            {selectedEvent ? (
+              <>Event: <strong>{selectedEvent.name}</strong> - {formattedDate}</>
+            ) : (
+              'Select an event to view rankings'
+            )}
+          </p>
+          
+          {/* Event Selector */}
+          <div className="mb-4">
+            <EventSelector />
+          </div>
+        </div>
+
+        {/* Age Group Selection */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">
+            Select Age Group
+          </h2>
           <select
             value={selectedAgeGroup}
             onChange={e => setSelectedAgeGroup(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
+            className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
           >
-            <option value="">Select Age Group</option>
+            <option value="">Choose an age group to view rankings</option>
             {ageGroups.map(group => (
               <option key={group} value={group}>{group}</option>
             ))}
           </select>
         </div>
         
-        {/* Improved Drill Weight Controls */}
+        {/* Drill Weight Controls - Enhanced for better visibility */}
         {userRole === 'organizer' && (
-          <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Settings className="w-4 h-4 text-cmf-primary" />
-              <h2 className="text-sm font-medium text-gray-800">Ranking Priorities</h2>
+              <Settings className="w-5 h-5 text-cmf-primary" />
+              <h2 className="text-lg font-semibold text-gray-900">Ranking Priorities</h2>
             </div>
             
             {/* Preset Buttons */}
@@ -331,7 +346,7 @@ export default function CoachDashboard() {
           </div>
         )}
         
-        {/* Rankings Table and Loading/Error States */}
+        {/* Rankings Display - Updated for better mobile experience */}
         {loading ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
             <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
@@ -343,50 +358,54 @@ export default function CoachDashboard() {
           </div>
         ) : selectedAgeGroup === "" ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-500">
-            Please select an age group to view rankings.
+            👆 Please select an age group above to view rankings and adjust weights.
           </div>
         ) : rankings.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
-            No players found for this age group.
+            No players found for the <strong>{selectedAgeGroup}</strong> age group. Players may not have drill scores yet.
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-              <h2 className="text-xl font-semibold">Rankings ({selectedAgeGroup})</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Rankings ({selectedAgeGroup})</h2>
               <button
                 onClick={handleExportCsv}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
                 disabled={rankings.length === 0}
               >
                 Export as CSV
               </button>
             </div>
-            {/* Mobile-First Card Layout */}
-            <div className="sm:hidden">
+            
+            {/* Individual Player Cards - Mobile-First Design */}
+            <div className="space-y-3">
               {rankings.map((player) => {
-                // Calculate individual drill rankings
+                // Calculate individual drill rankings for real-time updates
                 const drillRankings = {};
                 DRILLS.forEach(drill => {
                   const drillRanks = rankings
                     .filter(p => p[drill.key] != null)
                     .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                    .sort((a, b) => b.score - a.score);
+                    .sort((a, b) => {
+                      // 40m dash is time-based (lower is better), others are score-based (higher is better)
+                      return drill.key === "40m_dash" ? a.score - b.score : b.score - a.score;
+                    });
                   const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
                   drillRankings[drill.key] = rank > 0 ? rank : null;
                 });
 
                 return (
-                  <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 mb-3 border">
+                  <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                     {/* Player Header */}
                     <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                            {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
-                          </span>
-                          <span className="font-semibold">{player.name}</span>
+                      <div className="flex items-center gap-3">
+                        <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : "text-gray-400"}`}>
+                          {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
+                        </span>
+                        <div>
+                          <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                          <p className="text-sm text-gray-600">Player #{player.number}</p>
                         </div>
-                        <div className="text-sm text-gray-600">Player #{player.number}</div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Overall Score</div>
@@ -394,15 +413,15 @@ export default function CoachDashboard() {
                       </div>
                     </div>
                     
-                    {/* Drill Results Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
+                    {/* Drill Results - Compact Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                       {DRILLS.map(drill => (
-                        <div key={drill.key} className="bg-white rounded p-2">
-                          <div className="font-medium text-gray-700">{drill.label}</div>
+                        <div key={drill.key} className="bg-white rounded p-2 text-center">
+                          <div className="font-medium text-gray-700 mb-1">{drill.label}</div>
                           {player[drill.key] != null ? (
                             <div>
-                              <span className="font-mono">{player[drill.key]}</span>
-                              <span className="text-gray-500 ml-1">#{drillRankings[drill.key] || '-'}</span>
+                              <div className="font-mono text-sm">{player[drill.key]}</div>
+                              <div className="text-xs text-gray-500">#{drillRankings[drill.key] || '-'}</div>
                             </div>
                           ) : (
                             <span className="text-gray-400">No score</span>
@@ -413,64 +432,6 @@ export default function CoachDashboard() {
                   </div>
                 );
               })}
-            </div>
-
-            {/* Desktop Table Layout */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="py-3 px-2">Rank</th>
-                    <th className="py-3 px-2">Name</th>
-                    <th className="py-3 px-2">Player #</th>
-                    <th className="py-3 px-2">Overall Score</th>
-                    <th className="py-3 px-2 text-center">40M Dash</th>
-                    <th className="py-3 px-2 text-center">Vertical</th>
-                    <th className="py-3 px-2 text-center">Catching</th>
-                    <th className="py-3 px-2 text-center">Throwing</th>
-                    <th className="py-3 px-2 text-center">Agility</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rankings.map((player) => {
-                    // Calculate individual drill rankings
-                    const drillRankings = {};
-                    DRILLS.forEach(drill => {
-                      const drillRanks = rankings
-                        .filter(p => p[drill.key] != null)
-                        .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                        .sort((a, b) => b.score - a.score);
-                      const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
-                      drillRankings[drill.key] = rank > 0 ? rank : null;
-                    });
-
-                    return (
-                      <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
-                        <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                          {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
-                        </td>
-                        <td className="py-3 px-2">{player.name}</td>
-                        <td className="py-3 px-2">{player.number}</td>
-                        <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
-                        {DRILLS.map(drill => (
-                          <td key={drill.key} className="py-3 px-2 text-center">
-                            {player[drill.key] != null ? (
-                              <div className="flex flex-col">
-                                <span className="font-mono text-sm">{player[drill.key]}</span>
-                                <span className="text-xs text-gray-500">
-                                  #{drillRankings[drill.key] || '-'}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
