@@ -689,32 +689,47 @@ export default function Players() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-20">
-        <EventSelector />
-        <OnboardingCallout />
-        {/* Main Heading */}
-        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">WooCombine: Players</div>
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">
-          Managing: {selectedEvent.name} – {new Date(selectedEvent.event_date).toLocaleDateString()}
-        </h1>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+        {/* Welcome Header - matching dashboard style */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
+          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+            WooCombine: Players & Rankings
+          </h1>
+          <p className="text-gray-600 mb-4">
+            {selectedEvent ? (
+              <>Managing: <strong>{selectedEvent.name}</strong> - {new Date(selectedEvent.event_date).toLocaleDateString()}</>
+            ) : (
+              'Select an event to manage players'
+            )}
+          </p>
+          
+          {/* Event Selector */}
+          <div className="mb-4">
+            <EventSelector />
+          </div>
+          
+          {!selectedEvent && <OnboardingCallout />}
+        </div>
 
-                 {/* Player Stats Modals */}
-         {selectedPlayer && (
-           <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
-         )}
-         {editingPlayer && (
-           <EditPlayerModal
-             player={editingPlayer}
-             allPlayers={players}
-             onClose={() => setEditingPlayer(null)}
-             onSave={fetchPlayers}
-           />
-         )}
+        {/* Player Stats Modals */}
+        {selectedPlayer && (
+          <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
+        )}
+        {editingPlayer && (
+          <EditPlayerModal
+            player={editingPlayer}
+            allPlayers={players}
+            onClose={() => setEditingPlayer(null)}
+            onSave={fetchPlayers}
+          />
+        )}
 
         {/* Age Group Sections */}
         {Object.keys(grouped).length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No players found for this event.</div>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+            <p className="text-gray-500">No players found for this event.</p>
+          </div>
         ) : (
           Object.entries(grouped)
             .sort(([a], [b]) => a.localeCompare(b))
@@ -728,70 +743,63 @@ export default function Players() {
               });
 
               return (
-                <div key={ageGroup} className="bg-white rounded-2xl shadow-sm border border-gray-200 py-4 px-5 mb-6">
-                  <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2">
-                    <span>Age Group: {ageGroup}</span>
-                  </div>
-                  {/* Table with horizontal scroll for mobile */}
-                  <div className="overflow-x-auto rounded-lg border border-gray-200">
-                    <table className="min-w-full bg-white">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Rank</th>
-                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Name</th>
-                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Player #</th>
-                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Composite Score</th>
-                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {sortedPlayers.map((player, index) => (
-                          <React.Fragment key={player.id}>
-                            <tr className="border-t hover:bg-gray-50">
-                              <td className={`py-2 px-3 font-bold w-16 ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
-                                {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
-                              </td>
-                              <td className="py-2 px-3 min-w-[120px]">{player.name}</td>
-                              <td className="py-2 px-3 w-20">{player.number || 'N/A'}</td>
-                              <td className="py-2 px-3 font-mono w-32">
-                                {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
-                              </td>
-                              <td className="py-2 px-3 w-48">
-                                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
-                                  <button
-                                    onClick={() => setSelectedPlayer(player)}
-                                    className="text-blue-600 hover:text-blue-900 text-xs underline whitespace-nowrap"
-                                    disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
-                                  >
-                                    View Stats
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingPlayer(player)}
-                                    className="text-green-600 hover:text-green-900 text-xs underline"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => toggleForm(player.id)}
-                                    className="text-cyan-600 hover:text-cyan-900 text-xs underline whitespace-nowrap"
-                                  >
-                                    Add Result
-                                  </button>
-                                </div>
-                              </td>
-                            </tr>
-                            {/* Drill Entry Form Row */}
-                            {expandedPlayerIds[player.id] && (
-                                                             <tr className="bg-blue-50">
-                                 <td colSpan="5" className="py-4 px-3">
-                                   <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
-                                 </td>
-                               </tr>
-                            )}
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
+                <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    🏆 Age Group: {ageGroup}
+                  </h2>
+                  
+                  {/* Mobile-friendly player cards */}
+                  <div className="space-y-2">
+                    {sortedPlayers.map((player, index) => (
+                      <React.Fragment key={player.id}>
+                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                          {/* Player Header */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className={`font-bold text-lg ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}>
+                                {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
+                              </span>
+                              <div>
+                                <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                                <p className="text-sm text-gray-600">
+                                  Player #{player.number || 'N/A'} • Score: {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Action Buttons */}
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              onClick={() => setSelectedPlayer(player)}
+                              className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                              disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                            >
+                              View Stats
+                            </button>
+                            <button
+                              onClick={() => setEditingPlayer(player)}
+                              className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => toggleForm(player.id)}
+                              className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                            >
+                              Add Result
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Drill Entry Form */}
+                        {expandedPlayerIds[player.id] && (
+                          <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
+                            <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
                   </div>
                 </div>
               );
