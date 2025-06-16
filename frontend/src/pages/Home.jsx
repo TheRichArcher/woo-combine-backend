@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
-import { Calendar } from 'lucide-react';
+import { Calendar, Users, BarChart3 } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
 
 export default function Home() {
@@ -36,6 +36,33 @@ export default function Home() {
     );
   }
 
+  // If no event selected, show event selection prompt
+  if (!selectedEvent) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
+            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-cmf-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
+              Welcome to WooCombine!
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Click on "Select Event" in the header above to choose or create an event and get started.
+            </p>
+            <button
+              onClick={() => navigate('/select-league')}
+              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+            >
+              Select Event
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -44,44 +71,52 @@ export default function Home() {
           <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
             Welcome to WooCombine!
           </h1>
-          <p className="text-gray-600 mb-4">
-            {selectedEvent ? (
-              <>Event: <strong>{selectedEvent.name}</strong> - {formattedDate}</>
-            ) : (
-              'Select an event to get started'
-            )}
-          </p>
+          <div className="flex items-center gap-2 text-gray-600 mb-4">
+            <Calendar className="w-4 h-4" />
+            <span>
+              <strong>{selectedEvent.name}</strong> - {formattedDate}
+            </span>
+          </div>
           
-          {/* Quick Actions */}
+          {selectedEvent.location && (
+            <div className="text-sm text-gray-500 mb-4">
+              📍 {selectedEvent.location}
+            </div>
+          )}
+          
+          {/* Quick Actions - Mojo Style Large Buttons */}
           <div className="grid grid-cols-1 gap-3">
             {userRole === 'organizer' && (
               <>
                 <button
                   onClick={() => handleNavigation('/admin')}
-                  className="bg-cmf-secondary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-primary transition flex items-center justify-center"
+                  className="bg-cmf-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-primary transition flex items-center justify-center gap-3 text-lg"
                 >
-                  📊 Manage Event
+                  <BarChart3 className="w-6 h-6" />
+                  Manage Event
                 </button>
                 <button
                   onClick={() => handleNavigation('/players')}
-                  className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
+                  className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
                 >
-                  🏆 View Players & Rankings
+                  <Users className="w-6 h-6" />
+                  View Players & Rankings
                 </button>
               </>
             )}
             {userRole === 'coach' && (
               <button
-                onClick={() => handleNavigation('/players')}
-                className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition flex items-center justify-center"
+                onClick={() => handleNavigation('/coach-dashboard')}
+                className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
               >
-                🏆 View Players & Rankings
+                <Users className="w-6 h-6" />
+                View Players & Rankings
               </button>
             )}
             {userRole === 'player' && selectedEvent && (
               <button
                 onClick={() => handleNavigation('/drill-input')}
-                className="bg-cmf-secondary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-primary transition flex items-center justify-center"
+                className="bg-cmf-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-primary transition flex items-center justify-center gap-3 text-lg"
               >
                 📝 Submit Drill Results
               </button>
@@ -89,7 +124,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Event Info */}
+        {/* Event Info Card */}
         {selectedEvent && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
@@ -104,16 +139,16 @@ export default function Home() {
           </div>
         )}
 
-        {/* Getting Started */}
+        {/* Getting Started Guide */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Getting Started</h2>
           <div className="space-y-3 text-sm text-gray-600">
             <div className="flex items-start gap-3">
-              <span className="text-cmf-primary font-bold">1.</span>
-              <span>Select an event from the dropdown above</span>
+              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
+              <span>Event selected: <strong>{selectedEvent.name}</strong> ✓</span>
             </div>
             <div className="flex items-start gap-3">
-              <span className="text-cmf-primary font-bold">2.</span>
+              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
               <span>
                 {userRole === 'organizer' && 'Import players and manage event settings'}
                 {userRole === 'coach' && 'View player rankings and adjust drill weights'}
@@ -121,7 +156,7 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-start gap-3">
-              <span className="text-cmf-primary font-bold">3.</span>
+              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
               <span>View real-time rankings and results</span>
             </div>
           </div>
