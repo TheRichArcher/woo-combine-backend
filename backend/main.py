@@ -78,6 +78,7 @@ app.include_router(drills_router, prefix="/api", tags=["Drills"])
 app.include_router(events_router, prefix="/api", tags=["Events"])
 
 @app.get("/health")
+@app.head("/health")
 def health_check():
     """Minimal health check endpoint for deployment monitoring"""
     return {
@@ -120,9 +121,11 @@ if DIST_DIR.exists():
 else:
     logging.warning(f"[STARTUP] Frontend not available - {DIST_DIR} does not exist")
 
-# Simple root route for testing
+# Simple root route for testing - explicitly handle GET and HEAD for Render health checks
 @app.get("/")
-async def serve_api_info():
+@app.head("/")
+async def serve_api_info(request: Request):
+    logging.info(f"[ROOT] {request.method} request to / from {request.client}")
     return {
         "message": "WooCombine API (Optimized for cold starts)",
         "status": "running", 
