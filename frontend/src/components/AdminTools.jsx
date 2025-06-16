@@ -137,10 +137,13 @@ export default function AdminTools() {
     reader.onload = (evt) => {
       const text = evt.target.result;
       const { headers, rows } = parseCsv(text);
-      // Validate headers
+      // Validate headers - check if all required headers are present (flexible order)
       const headerErrors = [];
-      if (headers.length !== REQUIRED_HEADERS.length || !REQUIRED_HEADERS.every((h, i) => h === headers[i])) {
-        headerErrors.push("Headers must match: " + REQUIRED_HEADERS.join(", "));
+      const missingHeaders = REQUIRED_HEADERS.filter(required => 
+        !headers.some(header => header.toLowerCase().trim() === required.toLowerCase())
+      );
+      if (missingHeaders.length > 0) {
+        headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
       }
       // Validate rows
       const validatedRows = rows.map(row => validateRow(row, headers));
