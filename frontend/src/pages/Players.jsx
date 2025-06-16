@@ -613,7 +613,7 @@ export default function Players() {
       console.log('[Players] Setting loading to false');
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();
