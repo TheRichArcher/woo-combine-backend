@@ -690,7 +690,7 @@ export default function Players() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
         <OnboardingCallout />
         {/* Main Heading */}
@@ -732,47 +732,48 @@ export default function Players() {
                   <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2">
                     <span>Age Group: {ageGroup}</span>
                   </div>
-                  <div className="overflow-hidden rounded-lg border border-gray-200">
+                  {/* Table with horizontal scroll for mobile */}
+                  <div className="overflow-x-auto rounded-lg border border-gray-200">
                     <table className="min-w-full bg-white">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Player #</th>
-                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Composite Score</th>
-                          <th className="py-2 px-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Rank</th>
+                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Name</th>
+                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Player #</th>
+                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Composite Score</th>
+                          <th className="py-2 px-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">Actions</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {sortedPlayers.map((player, index) => (
                           <React.Fragment key={player.id}>
                             <tr className="border-t hover:bg-gray-50">
-                              <td className={`py-2 px-2 font-bold ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
+                              <td className={`py-2 px-3 font-bold w-16 ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : ""}`}>
                                 {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
                               </td>
-                              <td className="py-2 px-2">{player.name}</td>
-                              <td className="py-2 px-2">{player.number || 'N/A'}</td>
-                              <td className="py-2 px-2 font-mono">
+                              <td className="py-2 px-3 min-w-[120px]">{player.name}</td>
+                              <td className="py-2 px-3 w-20">{player.number || 'N/A'}</td>
+                              <td className="py-2 px-3 font-mono w-32">
                                 {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
                               </td>
-                              <td className="py-2 px-2">
-                                <div className="flex gap-2">
+                              <td className="py-2 px-3 w-48">
+                                <div className="flex flex-col gap-1 sm:flex-row sm:gap-2">
                                   <button
                                     onClick={() => setSelectedPlayer(player)}
-                                    className="text-blue-600 hover:text-blue-900 text-sm underline"
+                                    className="text-blue-600 hover:text-blue-900 text-xs underline whitespace-nowrap"
                                     disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
                                   >
                                     View Stats
                                   </button>
                                   <button
                                     onClick={() => setEditingPlayer(player)}
-                                    className="text-green-600 hover:text-green-900 text-sm underline"
+                                    className="text-green-600 hover:text-green-900 text-xs underline"
                                   >
                                     Edit
                                   </button>
                                   <button
                                     onClick={() => toggleForm(player.id)}
-                                    className="text-cyan-600 hover:text-cyan-900 text-sm underline"
+                                    className="text-cyan-600 hover:text-cyan-900 text-xs underline whitespace-nowrap"
                                   >
                                     Add Result
                                   </button>
@@ -782,7 +783,7 @@ export default function Players() {
                             {/* Drill Entry Form Row */}
                             {expandedPlayerIds[player.id] && (
                                                              <tr className="bg-blue-50">
-                                 <td colSpan="5" className="py-4 px-2">
+                                 <td colSpan="5" className="py-4 px-3">
                                    <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
                                  </td>
                                </tr>
