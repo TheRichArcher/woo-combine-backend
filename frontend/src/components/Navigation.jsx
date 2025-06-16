@@ -76,33 +76,33 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
 
         {/* Menu Items */}
         <div className="p-4 space-y-2">
-          {/* My Teams */}
+          {/* My Events */}
           <button
             onClick={() => handleNavigation('/select-league')}
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
           >
             <Users className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-900">My Teams</span>
+            <span className="font-medium text-gray-900">My Events</span>
           </button>
 
-          {/* Create a Team */}
+          {/* Create an Event */}
           {userRole === 'organizer' && (
             <button
               onClick={() => handleNavigation('/create-league')}
               className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
             >
               <Plus className="w-5 h-5 text-gray-600" />
-              <span className="font-medium text-gray-900">Create a Team</span>
+              <span className="font-medium text-gray-900">Create an Event</span>
             </button>
           )}
 
-          {/* Join a Team */}
+          {/* Join an Event */}
           <button
             onClick={() => handleNavigation('/join')}
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
           >
             <UserPlus className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-900">Join a Team</span>
+            <span className="font-medium text-gray-900">Join an Event</span>
           </button>
 
           {/* Notifications */}
@@ -112,7 +112,7 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
                 <Bell className="w-5 h-5 text-red-500" />
                 <div>
                   <div className="font-medium text-gray-900">Notifications are off</div>
-                  <div className="text-sm text-gray-500">You will miss team updates</div>
+                  <div className="text-sm text-gray-500">You will miss event updates</div>
                 </div>
               </div>
               <div className="w-12 h-6 bg-gray-200 rounded-full relative">
