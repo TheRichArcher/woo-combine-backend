@@ -11,8 +11,7 @@ const api = axios.create({
   timeout: 45000  // 45s for extreme cold start scenarios
 });
 
-// Active request tracking for proper deduplication
-const activeRequests = new Map();
+// Enhanced retry logic for cold start recovery
 
 // Enhanced retry logic with exponential backoff
 api.interceptors.response.use(
@@ -61,7 +60,7 @@ api.interceptors.response.use(
   }
 );
 
-// Request interceptor with PROPER deduplication and auth
+// Request interceptor with auth (deduplication removed to fix _retryCount bug)
 api.interceptors.request.use(async (config) => {
   // Add Authorization header if authenticated
   const user = auth.currentUser;
@@ -75,24 +74,7 @@ api.interceptors.request.use(async (config) => {
     }
   }
   
-  // Create request key for deduplication
-  const requestKey = `${config.method?.toUpperCase()}-${config.url}-${user?.uid || 'anonymous'}`;
-  
-  // Check if identical request is already in progress
-  if (activeRequests.has(requestKey)) {
-    console.log(`[API] Deduplicating concurrent request: ${requestKey}`);
-    return activeRequests.get(requestKey);
-  }
-  
-  // Create the actual request promise and store it
-  const requestPromise = axios(config).finally(() => {
-    // Clean up when request completes (success or failure)
-    activeRequests.delete(requestKey);
-  });
-  
-  activeRequests.set(requestKey, requestPromise);
-  
-  // Return the config for the current request (not the promise)
+  // Return the config for the current request
   return config;
 }, (error) => Promise.reject(error));
 
