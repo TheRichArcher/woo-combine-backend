@@ -37,7 +37,7 @@ export default function OnboardingEvent() {
           <div className="mt-6 pt-4 border-t border-gray-200">
             <button
               onClick={handleContinueToAdmin}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
+              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
             >
               Continue to Import Players
             </button>
@@ -55,7 +55,7 @@ export default function OnboardingEvent() {
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <h1 className="text-2xl font-bold mb-4">Select or Create an Event</h1>
-        <p className="mb-6 text-gray-600">Choose an existing event or create a new combine event for your league.</p>
+        <p className="mb-6 text-gray-600">Choose an existing event or create a new combine event for your team.</p>
         <EventSelector onEventSelected={handleEventCreated} />
         
         {selectedEvent && (
@@ -65,7 +65,7 @@ export default function OnboardingEvent() {
             </p>
             <button
               onClick={handleContinueToAdmin}
-              className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
+              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full"
             >
               Continue to Import Players
             </button>

@@ -48,23 +48,23 @@ export function CreateLeagueForm({ onCreated }) {
         />
       </div>
 
-      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New League</h1>
-      <p className="text-gray-600 mb-6">Create your league and then set up your first combine event.</p>
+      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New Team</h1>
+      <p className="text-gray-600 mb-6">Create your team and then set up your first combine event.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
-          className="w-full px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
-          placeholder="League Name"
+          className="w-full px-4 py-3 border border-cmf-primary/30 rounded-xl focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition"
+          placeholder="Team Name"
           value={leagueName}
           onChange={e => setLeagueName(e.target.value)}
           required
         />
         <button
           type="submit"
-          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+          className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create League & Continue'}
+          {loading ? 'Creating...' : 'Create Team & Continue'}
         </button>
         {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
       </form>
