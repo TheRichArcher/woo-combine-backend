@@ -7,7 +7,7 @@ import { useLocation } from 'react-router-dom';
 const EventContext = createContext();
 
 export function EventProvider({ children }) {
-  const { selectedLeagueId, user } = useAuth();
+  const { selectedLeagueId, user, authChecked, roleChecked } = useAuth();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [noLeague, setNoLeague] = useState(false);
@@ -21,6 +21,13 @@ export function EventProvider({ children }) {
   // Load events from backend
   useEffect(() => {
     async function fetchEvents() {
+      // CRITICAL FIX: Don't set noLeague=true until AuthContext has finished initializing
+      // This prevents the flashing between "Welcome to Woo Combine" and "No League Selected"
+      if (!authChecked || !roleChecked) {
+        // AuthContext is still initializing - don't change noLeague state yet
+        return;
+      }
+
       if (!selectedLeagueId || !user) {
         setNoLeague(true);
         setEvents([]);
@@ -79,7 +86,7 @@ export function EventProvider({ children }) {
     }
     
     fetchEvents();
-  }, [selectedLeagueId, user]);
+  }, [selectedLeagueId, user, authChecked, roleChecked]);
 
   // Sync selectedEvent to localStorage
   useEffect(() => {
@@ -110,8 +117,8 @@ export function EventProvider({ children }) {
     }
   };
 
-  // Only show LeagueFallback on pages that require a league
-  const shouldShowLeagueFallback = noLeague && !noLeagueRequiredPages.includes(location.pathname);
+  // FIXED: Only show LeagueFallback after AuthContext initialization is complete
+  const shouldShowLeagueFallback = authChecked && roleChecked && noLeague && !noLeagueRequiredPages.includes(location.pathname);
 
   return (
     <EventContext.Provider value={{ 
