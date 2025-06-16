@@ -307,10 +307,13 @@ export default function AdminTools() {
   if (userRole !== 'organizer') {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="flex flex-col items-center justify-center min-h-[40vh]">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-red-200">
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-red-200">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-red-500" />
+            </div>
             <h2 className="text-2xl font-bold text-red-600 mb-4">Admin Access Required</h2>
-            <p className="text-cmf-secondary">You do not have permission to view this page.<br/>Organizer access required.</p>
+            <p className="text-gray-600">You do not have permission to view this page. Organizer access required.</p>
           </div>
         </div>
       </div>
@@ -320,13 +323,19 @@ export default function AdminTools() {
   if (!selectedEvent || !selectedEvent.id) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <div className="flex flex-col items-center justify-center min-h-[40vh]">
-          <div className="bg-white rounded-xl shadow-lg p-6 max-w-md mx-auto text-center border-2 border-yellow-200">
-            <h2 className="text-2xl font-bold text-yellow-600 mb-4">No Event Selected</h2>
-            <p className="text-cmf-secondary mb-4">Before importing players, you'll need to select or create an event.</p>
-            <div className="mb-4">
-              <EventSelector />
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
+            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-cmf-primary" />
             </div>
+            <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
+            <p className="text-gray-600 mb-6">Click on "Select Event" in the header above to choose an event before managing players.</p>
+            <button
+              onClick={() => window.location.href = '/select-league'}
+              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+            >
+              Select Event
+            </button>
           </div>
         </div>
       </div>
@@ -334,127 +343,169 @@ export default function AdminTools() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
-      <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
-        <EventSelector />
-        {/* Player Upload Summary Badge */}
-        {selectedEvent && (
-          <div className="flex items-center gap-3 mb-4">
-            <span className="inline-flex items-center bg-cmf-primary/10 border border-cmf-primary text-cmf-primary font-bold px-4 py-2 rounded-full text-base">
-              <span role="img" aria-label="player">🧍</span>
-              {playerCountLoading ? (
-                <span className="ml-2 animate-pulse">Loading...</span>
-              ) : (
-                <span className="ml-2">{playerCount} Players Uploaded to: {selectedEvent.name} – {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</span>
-              )}
-            </span>
-          </div>
-        )}
-        <AdminOnboardingCallout />
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        {/* Edit Event Details Section */}
-        <div className="mb-6">
-          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 1</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Event Details</h2>
-          <div className="bg-gray-50 rounded-lg p-4 mb-3">
+        {/* Welcome Header - matching dashboard style */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
+          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+            Admin Tools
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Managing: <strong>{selectedEvent.name}</strong> - {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}
+          </p>
+          
+          {/* Player Summary */}
+          {selectedEvent && (
+            <div className="bg-cmf-primary/10 rounded-lg p-4 border border-cmf-primary/20">
+              <div className="flex items-center gap-3">
+                <Users className="w-5 h-5 text-cmf-primary" />
+                <span className="text-cmf-primary font-semibold">
+                  {playerCountLoading ? (
+                    <span className="animate-pulse">Loading players...</span>
+                  ) : (
+                    `${playerCount} Players Uploaded`
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Step 1: Event Details */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+            <h2 className="text-lg font-semibold text-gray-900">Event Details</h2>
+          </div>
+          
+          <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <div className="space-y-2 text-sm">
               <p><strong>Name:</strong> {selectedEvent.name}</p>
               <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</p>
               <p><strong>Location:</strong> {selectedEvent.location || 'Location TBD'}</p>
             </div>
           </div>
+          
           <button
             onClick={() => setShowEditEventModal(true)}
-            className="bg-cmf-secondary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-primary transition flex items-center gap-2"
+            className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
           >
             <Edit className="w-4 h-4" />
             Edit Event Details
           </button>
         </div>
-        
-        <div className="mb-4 text-lg font-semibold flex items-center gap-2 text-gray-900">
-          <span role="img" aria-label="event">🏷️</span>
-          Managing: {selectedEvent ? `${selectedEvent.name} – ${selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}` : "No event selected"}
-        </div>
+
         {/* Step 2: Add Players Section */}
-        <div id="player-upload-section" className="mb-8">
-          <div className="mb-2">
-            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 2</div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">Add Players to Your Event</h2>
-            <div className="flex gap-2 mb-2">
-              <button
-                className="bg-cmf-primary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-secondary transition"
-                onClick={handleSampleDownload}
-              >
-                <Upload className="inline-block mr-2 w-4 h-4" />Sample CSV
-              </button>
-              <button
-                className="bg-cmf-primary text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cmf-secondary transition"
-                onClick={() => setShowManualForm(v => !v)}
-              >
-                + Add Player Manually
-              </button>
+        <div id="player-upload-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            <h2 className="text-lg font-semibold text-gray-900">Add Players to Your Event</h2>
+          </div>
+          
+          {/* Info Banner */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 text-sm">💡</span>
+              </div>
+              <div>
+                <p className="text-blue-800 font-medium text-sm mb-1">Simplified Upload Process</p>
+                <p className="text-blue-700 text-sm">
+                  Only First Name, Last Name, and Age Group (optional) are needed. 
+                  Drill results will be collected during your combine event using this program.
+                </p>
+              </div>
             </div>
-            <div className="text-sm text-gray-600 mb-2">
-              Uploading to: <span className="font-bold">{selectedEvent.name} – {new Date(selectedEvent.date).toLocaleDateString()}</span>
-            </div>
-            <div className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded p-2 mb-2">
-              <strong>Simplified Upload:</strong> Only First Name, Last Name, and Age Group (optional) are needed. 
-              Drill results will be collected during your combine event using this program.
-            </div>
-            {/* CSV Upload Dropzone */}
-            <div className="border-dashed border-2 border-blue-300 bg-blue-50 p-5 rounded-xl text-center text-sm text-gray-600 flex flex-col items-center">
-              <Upload className="w-8 h-8 text-blue-400 mb-2" />
+          </div>
+
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <button
+              onClick={handleSampleDownload}
+              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              Sample CSV
+            </button>
+            <button
+              onClick={() => setShowManualForm(v => !v)}
+              className="bg-cmf-secondary hover:bg-cmf-primary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <UserPlus className="w-5 h-5" />
+              Add Manual
+            </button>
+          </div>
+
+          {/* CSV Upload Section */}
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition">
+            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <div className="mb-4">
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".csv"
                 onChange={handleCsv}
-                className="mb-2 cursor-pointer"
-                style={{ maxWidth: 300 }}
+                className="hidden"
+                id="csv-upload"
               />
-              {csvFileName && <div className="text-xs text-gray-500 mb-2">{csvFileName}</div>}
-              {csvErrors.length > 0 && <div className="text-red-500 text-sm mb-2">{csvErrors.join('; ')}</div>}
-              {Array.isArray(csvRows) && csvRows.length > 0 && csvErrors.length === 0 && (
-                <div className="overflow-x-auto max-h-64 border rounded mb-2 w-full">
-                  <table className="min-w-full text-xs">
-                    <thead>
+              <label
+                htmlFor="csv-upload"
+                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-lg cursor-pointer transition inline-flex items-center gap-2"
+              >
+                <Upload className="w-4 h-4" />
+                Choose CSV File
+              </label>
+            </div>
+            
+            {csvFileName && (
+              <div className="text-sm text-gray-600 mb-2">
+                📄 {csvFileName}
+              </div>
+            )}
+
+            {csvErrors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                <p className="text-red-700 text-sm font-medium">❌ Upload Error</p>
+                <p className="text-red-600 text-sm">{csvErrors.join('; ')}</p>
+              </div>
+            )}
+
+            {/* CSV Preview Table */}
+            {Array.isArray(csvRows) && csvRows.length > 0 && csvErrors.length === 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
+                <h3 className="font-medium text-gray-900 mb-3">Preview ({csvRows.length} players)</h3>
+                <div className="overflow-x-auto max-h-64">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-2 py-1">{/* Validation Icon */}</th>
-                        <th className="px-2 py-1">#</th>
-                        {Array.isArray(csvHeaders) && csvHeaders.length > 0 && (
-                          csvHeaders.map(h => (
-                            <th key={h} className="px-2 py-1">
-                              {h.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </th>
-                          ))
-                        )}
-                        <th className="px-2 py-1">Warnings</th>
+                        <th className="px-3 py-2 text-left">Status</th>
+                        <th className="px-3 py-2 text-left">#</th>
+                        {Array.isArray(csvHeaders) && csvHeaders.map(h => (
+                          <th key={h} className="px-3 py-2 text-left">
+                            {h.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </th>
+                        ))}
+                        <th className="px-3 py-2 text-left">Issues</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {Array.isArray(csvRows) && csvRows.length > 0 && csvRows.map((row, i) => {
+                    <tbody className="divide-y divide-gray-200">
+                      {csvRows.map((row, i) => {
                         const hasWarnings = row.warnings.length > 0;
-                        const hasCriticalErrors = row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name") || w.includes("Invalid"));
+                        const hasCriticalErrors = row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"));
                         const isUploadable = row.name && row.name.trim() !== "";
                         
                         return (
-                          <tr key={i} className={hasCriticalErrors ? "bg-red-50" : hasWarnings ? "bg-yellow-50" : ""}>
-                            <td className="px-2 py-1 text-center">
-                              {!isUploadable ? (
-                                <span
-                                  className="text-red-500 cursor-pointer"
-                                  title={row.warnings.join(", ")}
-                                >❌</span>
-                              ) : (
-                                <span className="text-green-600">✅</span>
-                              )}
+                          <tr key={i} className={hasCriticalErrors ? "bg-red-50" : hasWarnings ? "bg-yellow-50" : "bg-green-50"}>
+                            <td className="px-3 py-2 text-center">
+                              {!isUploadable ? "❌" : "✅"}
                             </td>
-                            <td className="px-2 py-1 font-mono">{i + 1}</td>
-                            {Array.isArray(csvHeaders) && csvHeaders.length > 0 && csvHeaders.map(h => <td key={h} className="px-2 py-1">{row[h]}</td>)}
-                            <td className="px-2 py-1 text-yellow-600">
-                              {row.warnings && row.warnings.length > 0 ? row.warnings.join(", ") : ""}
+                            <td className="px-3 py-2 font-mono text-gray-500">{i + 1}</td>
+                            {csvHeaders.map(h => (
+                              <td key={h} className="px-3 py-2">{row[h]}</td>
+                            ))}
+                            <td className="px-3 py-2 text-xs text-gray-600">
+                              {row.warnings.length > 0 ? row.warnings.join(", ") : "Valid"}
                             </td>
                           </tr>
                         );
@@ -462,279 +513,187 @@ export default function AdminTools() {
                     </tbody>
                   </table>
                 </div>
-              )}
-              {/* Reupload Button */}
-              {Array.isArray(csvRows) && csvRows.length > 0 && (
+              </div>
+            )}
+
+            {/* Upload Actions */}
+            {Array.isArray(csvRows) && csvRows.length > 0 && (
+              <div className="flex gap-3 justify-center">
                 <button
-                  className="mt-2 bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition"
                   onClick={handleReupload}
-                  type="button"
-                >🔁 Upload Another CSV</button>
-              )}
-              <button
-                className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow disabled:opacity-50 hover:bg-cmf-secondary transition mt-2"
-                disabled={!hasValidPlayers || uploadStatus === "loading" || !selectedEvent}
-                onClick={handleUpload}
-              >
-                {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
-              </button>
-              {uploadStatus === "success" && (
-                <div className="mt-4">
-                  <div className="text-green-600 mb-4 font-semibold">{uploadMsg}</div>
-                  {/* Next Steps Section */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-green-800 mb-3">🎉 What's Next?</h3>
-                    <p className="text-green-700 text-sm mb-4">
-                      Your players have been successfully uploaded! Here's what you can do now:
-                    </p>
-                    <div className="grid gap-2">
-                      <button
-                        onClick={handleReupload}
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
-                      >
-                        📂 Upload More Players (CSV or Manual)
-                      </button>
-                      <Link
-                        to="/players"
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
-                      >
-                        👥 View & Manage Players (Add Drill Results)
-                      </Link>
-                      <Link
-                        to="/players"
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
-                      >
-                        📊 View Players & Rankings
-                      </Link>
-                      <Link
-                        to="/live-entry"
-                        className="bg-green-500 border border-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition text-left block"
-                      >
-                        🚀 Start Live Event Data Entry
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              )}
-              {uploadStatus === "error" && <div className="text-red-500 mt-2">{uploadMsg}</div>}
-            </div>
-          </div>
-        </div>
-        {/* Manual Add Player Form */}
-        {showManualForm && (
-          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6" id="manual-add-form-section">
-            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><UserPlus className="w-4 h-4" />Manual Add</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Add Player Manually</h3>
-            <form onSubmit={async (e) => {
-              await handleManualSubmit(e);
-              // After submit, scroll to the form and show success
-              if (manualStatus === 'success') {
-                const el = document.getElementById('manual-add-form-section');
-                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            }}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input 
-                  name="first_name" 
-                  value={manualPlayer.first_name} 
-                  onChange={handleManualChange} 
-                  placeholder="First Name" 
-                  className="border rounded px-2 py-1" 
-                  required 
-                />
-                <input 
-                  name="last_name" 
-                  value={manualPlayer.last_name} 
-                  onChange={handleManualChange} 
-                  placeholder="Last Name" 
-                  className="border rounded px-2 py-1" 
-                  required 
-                />
-                <input 
-                  name="number" 
-                  value={manualPlayer.number} 
-                  onChange={handleManualChange} 
-                  placeholder="Player Number (optional)" 
-                  className="border rounded px-2 py-1" 
-                  type="number"
-                />
-                <input 
-                  name="age_group" 
-                  value={manualPlayer.age_group} 
-                  onChange={handleManualChange} 
-                  placeholder="Age Group (optional, e.g., 6U, U8, 7-8)" 
-                  className="border rounded px-2 py-1"
-                  list="manual-age-group-suggestions"
-                />
-                <datalist id="manual-age-group-suggestions">
-                  <option value="6U" />
-                  <option value="U6" />
-                  <option value="8U" />
-                  <option value="U8" />
-                  <option value="10U" />
-                  <option value="U10" />
-                  <option value="12U" />
-                  <option value="U12" />
-                  <option value="5-6" />
-                  <option value="7-8" />
-                  <option value="9-10" />
-                  <option value="11-12" />
-                  <option value="13-14" />
-                  <option value="15-16" />
-                  <option value="17-18" />
-                </datalist>
-              </div>
-              <div className="text-sm text-gray-600 mt-2 mb-2">
-                <strong>Note:</strong> Drill results (40M dash, vertical jump, catching, throwing, agility) will be collected using this program during your combine event. Only basic player information is needed for upload.
-              </div>
-              {manualErrors.length > 0 && <div className="text-red-500 text-sm mt-2">{manualErrors.join(", ")}</div>}
-              <div className="flex gap-2 mt-4 flex-wrap justify-center">
-                <button type="submit" className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" disabled={manualStatus === 'loading'}>
-                  <UserPlus className="w-4 h-4" />{manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
+                  className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+                >
+                  <RefreshCcw className="w-4 h-4" />
+                  Upload Different File
                 </button>
-                <button type="button" className="bg-gray-200 text-cyan-700 rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-gray-300 transition flex items-center gap-2" onClick={() => setShowManualForm(false)}>
-                  Cancel
+                <button
+                  disabled={!hasValidPlayers || uploadStatus === "loading"}
+                  onClick={handleUpload}
+                  className="bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
+                >
+                  {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
                 </button>
               </div>
-              {manualStatus === 'success' && (
-                <div className="mt-4">
-                  <div className="text-green-600 mb-4 font-semibold">✅ {manualMsg}</div>
-                  {/* Next Steps Section */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="text-lg font-semibold text-green-800 mb-3">🎉 What's Next?</h3>
-                    <p className="text-green-700 text-sm mb-4">
-                      Player added successfully! Here's what you can do now:
-                    </p>
-                    <div className="grid gap-2">
-                      <button
-                        onClick={() => {
-                          setManualStatus('idle');
-                          setManualMsg('');
-                        }}
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
-                      >
-                        ➕ Add Another Player
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowManualForm(false);
-                          setManualStatus('idle');
-                          setManualMsg('');
-                        }}
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left"
-                      >
-                        📂 Upload Players via CSV
-                      </button>
-                      <Link
-                        to="/players"
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
-                      >
-                        👥 View & Manage Players (Add Drill Results)
-                      </Link>
-                      <Link
-                        to="/players"
-                        className="bg-white border border-green-300 text-green-700 px-4 py-2 rounded-md font-medium hover:bg-green-50 transition text-left block"
-                      >
-                        📊 View Players & Rankings
-                      </Link>
-                      <Link
-                        to="/live-entry"
-                        className="bg-green-500 border border-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition text-left block"
-                      >
-                        🚀 Start Live Event Data Entry
-                      </Link>
-                    </div>
+            )}
+
+            {/* Upload Status Messages */}
+            {uploadStatus === "success" && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 text-sm">✅</span>
                   </div>
+                  <p className="text-green-800 font-medium">{uploadMsg}</p>
                 </div>
-              )}
-              {manualStatus === 'error' && <div className="text-red-500 mt-2">❌ {manualMsg}</div>}
-            </form>
-          </div>
-        )}
-        
-        {/* Step 3: Live Data Entry Section */}
-        <div className="mb-6">
-          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1">Step 3</div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">Live Event Data Entry</h2>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-3">
-            <p className="text-blue-800 text-sm mb-3">
-              <strong>High-Speed Entry Mode:</strong> Perfect for live combine events with hundreds of players. 
-              Optimized for mobile devices with rapid player number lookup and instant score submission.
-            </p>
-            <ul className="text-blue-700 text-sm space-y-1 mb-3">
-              <li>🚀 <strong>Fast Entry:</strong> Type player # → Enter score → Auto-save</li>
-              <li>📱 <strong>Mobile Optimized:</strong> Large touch targets for outdoor use</li>
-              <li>🔄 <strong>Duplicate Handling:</strong> Smart prompts when updating existing scores</li>
-              <li>⚡ <strong>Auto-Focus:</strong> Instant return to player field after each entry</li>
-              <li>📊 <strong>Real-Time:</strong> Immediate sync with rankings</li>
-            </ul>
-          </div>
-          <Link
-            to="/live-entry"
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white rounded-full px-6 py-3 text-base font-bold shadow-lg hover:from-green-600 hover:to-green-700 transition flex items-center gap-2 justify-center"
-          >
-            🚀 Start Live Entry Mode
-          </Link>
-        </div>
-        
-        {/* Reset Tool */}
-        <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6">
-          <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><RefreshCcw className="w-4 h-4" />Reset Players</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Remove All Players from Event</h3>
-          <label className="block mb-1 font-medium">Type <span className="font-mono">REMOVE</span> to enable reset:</label>
-          <input
-            type="text"
-            value={confirmInput}
-            onChange={e => setConfirmInput(e.target.value)}
-            className="w-full border-cyan-200 rounded px-3 py-2 focus:ring-cyan-600 focus:border-cyan-600 mb-2"
-            disabled={status === "success"}
-          />
-          <button
-            disabled={confirmInput !== "REMOVE" || status === "loading" || status === "success" || !selectedEvent}
-            onClick={handleReset}
-            className="bg-red-500 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm mt-2 disabled:opacity-50 hover:bg-red-600 transition flex items-center gap-2"
-          >
-            <RefreshCcw className="w-4 h-4" />{status === "loading" ? "Resetting..." : "Reset All Players"}
-          </button>
-          {status === "success" && <div className="text-green-600 mt-4">Reset successful!</div>}
-          {status === "error" && <div className="text-red-500 mt-4">{errorMsg}</div>}
-        </div>
-        {/* Invite to League Section */}
-        {role === 'organizer' && selectedLeagueId && (
-          <div className="rounded-2xl shadow-sm bg-white border border-gray-200 py-4 px-5 mb-6 flex flex-col items-center text-center">
-            <div className="text-xs font-bold text-gray-500 tracking-wide uppercase mb-1 flex items-center gap-2"><Users className="w-4 h-4" />Invite Coaches</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Share League Access</h3>
-            <div className="text-sm text-gray-600 mb-2">Share this code, link, or QR with coaches to let them join as a coach.</div>
-            <div className="flex flex-col sm:flex-row items-center gap-4 mb-2 w-full justify-center">
-              <div className="font-mono text-lg bg-gray-100 text-gray-800 px-4 py-2 rounded-lg border flex-1 select-all">{joinCode}</div>
-              <button className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => {navigator.clipboard.writeText(joinCode)}}><Copy className="w-4 h-4" />Copy Code</button>
-              <button className="bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => {navigator.clipboard.writeText(inviteLink)}}><Link2 className="w-4 h-4" />Copy Invite Link</button>
-              <button className="bg-cyan-700 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-800 transition flex items-center gap-2" onClick={() => setShowQr(true)}><QrCode className="w-4 h-4" />Show QR</button>
-            </div>
-            {showQr && (
-              <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-                <div className="bg-white rounded-2xl p-6 shadow-lg flex flex-col items-center">
-                  <QRCode value={inviteLink} size={200} />
-                  <div className="mt-2 text-xs">Scan to join: <br />{inviteLink}</div>
-                  <button className="mt-4 bg-cyan-600 text-white rounded-full px-5 py-2 text-sm font-medium shadow-sm hover:bg-cyan-700 transition flex items-center gap-2" onClick={() => setShowQr(false)}><QrCode className="w-4 h-4" />Close</button>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleReupload}
+                    className="w-full bg-white border border-green-300 text-green-700 px-4 py-2 rounded-lg font-medium hover:bg-green-50 transition"
+                  >
+                    📂 Upload More Players
+                  </button>
+                  <Link
+                    to="/players"
+                    className="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition text-center"
+                  >
+                    🏆 View Players & Rankings
+                  </Link>
                 </div>
               </div>
             )}
+
+            {uploadStatus === "error" && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+                <p className="text-red-700 font-medium">{uploadMsg}</p>
+              </div>
+            )}
           </div>
+
+          {/* Manual Add Player Form */}
+          {showManualForm && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mt-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-cmf-primary" />
+                Add Player Manually
+              </h3>
+              
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={manualPlayer.first_name}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="Enter first name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      name="last_name"
+                      value={manualPlayer.last_name}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="Enter last name"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Player Number</label>
+                    <input
+                      type="number"
+                      name="number"
+                      value={manualPlayer.number}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="Optional"
+                      min="1"
+                      max="999"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                    <input
+                      type="text"
+                      name="age_group"
+                      value={manualPlayer.age_group}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="e.g., 6U, 7-8, U10"
+                    />
+                  </div>
+                </div>
+
+                {manualErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm font-medium">Please fix the following:</p>
+                    <ul className="text-red-600 text-sm mt-1 list-disc list-inside">
+                      {manualErrors.map((error, i) => (
+                        <li key={i}>{error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualForm(false)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={manualStatus === 'loading'}
+                    className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
+                  >
+                    {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
+                  </button>
+                </div>
+
+                {manualStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-green-700 font-medium">✅ {manualMsg}</p>
+                    <Link
+                      to="/players"
+                      className="inline-block mt-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm"
+                    >
+                      View All Players
+                    </Link>
+                  </div>
+                )}
+
+                {manualStatus === 'error' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 font-medium">❌ {manualMsg}</p>
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
+        </div>
+
+        {/* Edit Event Modal */}
+        {showEditEventModal && (
+          <EditEventModal
+            event={selectedEvent}
+            onClose={() => setShowEditEventModal(false)}
+            onSave={() => {
+              setShowEditEventModal(false);
+              // Refresh event data if needed
+            }}
+          />
         )}
       </div>
-      </div>
-      
-      {/* Edit Event Modal */}
-      <EditEventModal
-        open={showEditEventModal}
-        onClose={() => setShowEditEventModal(false)}
-        event={selectedEvent}
-        onUpdated={() => {
-          // Optionally refresh data or show success message
-          setShowEditEventModal(false);
-        }}
-      />
     </div>
   );
 } 
