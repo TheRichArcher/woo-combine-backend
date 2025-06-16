@@ -106,7 +106,7 @@ export default function Home() {
             )}
             {userRole === 'coach' && (
               <button
-                onClick={() => handleNavigation('/coach-dashboard')}
+                onClick={() => handleNavigation('/players')}
                 className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
               >
                 <Users className="w-6 h-6" />

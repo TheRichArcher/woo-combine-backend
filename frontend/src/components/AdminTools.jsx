@@ -682,6 +682,198 @@ export default function AdminTools() {
           )}
         </div>
 
+        {/* Step 3: Invite Coaches & Share */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+            <h2 className="text-lg font-semibold text-gray-900">Invite Coaches</h2>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 text-sm">👥</span>
+              </div>
+              <div>
+                <p className="text-blue-800 font-medium text-sm mb-1">Share Your Team</p>
+                <p className="text-blue-700 text-sm">
+                  Coaches can join using your team code or QR code to view player rankings and adjust weight priorities.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Team Invite Code</label>
+                  <div className="bg-white border border-gray-300 rounded-lg p-3 font-mono text-lg text-center">
+                    {joinCode || 'Loading...'}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => navigator.clipboard.writeText(joinCode)}
+                    className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+                    disabled={!joinCode}
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy Code
+                  </button>
+                  <button
+                    onClick={() => setShowQr(!showQr)}
+                    className="bg-cmf-secondary hover:bg-cmf-primary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    Show QR
+                  </button>
+                </div>
+                
+                {showQr && (
+                  <div className="bg-white rounded-lg p-4 text-center border border-gray-200">
+                    <QRCode value={inviteLink} size={150} className="mx-auto mb-2" />
+                    <p className="text-xs text-gray-500">Coaches can scan this QR code to join</p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-green-800 text-sm">
+                <strong>Share with coaches:</strong> They can join at woo-combine.com/join using your team code.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Step 4: Live Drill Entry */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+            <h2 className="text-lg font-semibold text-gray-900">Live Drill Entry</h2>
+          </div>
+          
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-green-600 text-sm">🚀</span>
+              </div>
+              <div>
+                <p className="text-green-800 font-medium text-sm mb-1">High-Speed Data Entry Mode</p>
+                <p className="text-green-700 text-sm">
+                  Optimized for live events - rapid player lookup, auto-focus, duplicate detection, and mobile-friendly interface for outdoor use.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="space-y-2 text-sm text-gray-700">
+                <p>• <strong>5 Drill Types:</strong> 40M Dash, Vertical Jump, Catching, Throwing, Agility</p>
+                <p>• <strong>Auto-Complete:</strong> Type player number for instant lookup</p>
+                <p>• <strong>Smart Features:</strong> Duplicate detection, undo functionality, recent entries</p>
+                <p>• <strong>Mobile Optimized:</strong> Large touch targets, number pad inputs</p>
+              </div>
+            </div>
+            
+            <Link
+              to="/live-entry"
+              className="block w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-6 py-4 rounded-xl transition text-center shadow-lg"
+            >
+              🚀 Start Live Entry Mode
+            </Link>
+            
+            {playerCount > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-blue-800 text-sm">
+                  <strong>Ready to go!</strong> {playerCount} players uploaded. You can now begin entering drill results during your combine event.
+                </p>
+              </div>
+            )}
+            
+            {playerCount === 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-yellow-800 text-sm">
+                  <strong>Upload players first:</strong> Add players in Step 2 before starting live drill entry.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Step 5: Advanced Options */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
+            <h2 className="text-lg font-semibold text-gray-900">Advanced Options</h2>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Export Options */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-gray-600" />
+                Export & Share
+              </h3>
+              <div className="space-y-2">
+                <Link
+                  to="/players"
+                  className="block w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition text-center"
+                >
+                  📊 View Rankings & Export CSV
+                </Link>
+                <p className="text-xs text-gray-600">
+                  Access comprehensive rankings with weight adjustments and CSV export functionality.
+                </p>
+              </div>
+            </div>
+
+            {/* Reset Section */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="font-medium text-red-800 mb-2 flex items-center gap-2">
+                <RefreshCcw className="w-4 h-4 text-red-600" />
+                Reset Event Data
+              </h3>
+              <p className="text-red-700 text-sm mb-3">
+                ⚠️ This will permanently delete all player data for this event. Use only for testing or starting over.
+              </p>
+              
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={confirmInput}
+                  onChange={(e) => setConfirmInput(e.target.value)}
+                  placeholder="Type 'RESET' to confirm"
+                  className="w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                />
+                
+                <button
+                  onClick={handleReset}
+                  disabled={confirmInput !== "RESET" || status === "loading"}
+                  className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition"
+                >
+                  {status === "loading" ? "Resetting..." : "Reset All Event Data"}
+                </button>
+                
+                {status === "success" && (
+                  <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded text-sm">
+                    ✅ Event data has been reset successfully.
+                  </div>
+                )}
+                
+                {status === "error" && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
+                    ❌ {errorMsg}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Edit Event Modal */}
         {showEditEventModal && (
           <EditEventModal

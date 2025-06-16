@@ -727,7 +727,74 @@ export default function Players() {
           <p className="text-gray-600 mb-4">
             Managing: <strong>{selectedEvent.name}</strong> - {new Date(selectedEvent.event_date).toLocaleDateString()}
           </p>
+          
+          {/* Quick Actions */}
+          <div className="flex gap-2 flex-wrap">
+            <Link
+              to="/live-entry"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+            >
+              🚀 Live Entry
+            </Link>
+            {userRole === 'organizer' && (
+              <Link
+                to="/admin"
+                className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                ⚙️ Admin Tools
+              </Link>
+            )}
+          </div>
         </div>
+
+        {/* Rankings Export Section */}
+        {Object.keys(grouped).length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                📊 Export Rankings
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2">
+              {Object.keys(grouped).sort().map(ageGroup => {
+                const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
+                const handleExportCsv = () => {
+                  if (ageGroupPlayers.length === 0) return;
+                  let csv = 'Rank,Name,Player Number,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                  ageGroupPlayers
+                    .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
+                    .forEach((player, index) => {
+                      csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
+                    });
+                  const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+                  const filename = `rankings_${ageGroup}_${eventDate}.csv`;
+                  const blob = new Blob([csv], { type: 'text/csv' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                };
+                
+                return (
+                  <button
+                    key={ageGroup}
+                    onClick={handleExportCsv}
+                    disabled={ageGroupPlayers.length === 0}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition text-left flex justify-between items-center"
+                  >
+                    <span>Export {ageGroup} Rankings</span>
+                    <span className="text-sm opacity-75">({ageGroupPlayers.length} players)</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Player Stats Modals */}
         {selectedPlayer && (

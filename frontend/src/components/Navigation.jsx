@@ -104,13 +104,7 @@ export default function Navigation() {
                   >
                     Home
                   </Link>
-                  <Link 
-                    to="/coach-dashboard" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Coach Dashboard
-                  </Link>
+
                   <Link 
                     to="/players" 
                     className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
@@ -165,13 +159,7 @@ export default function Navigation() {
             >
               Home
             </Link>
-            <Link 
-              to="/coach-dashboard" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
-            >
-              Coach Dashboard
-            </Link>
+
             <Link 
               to="/players" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
