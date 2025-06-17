@@ -240,6 +240,30 @@ export default function Navigation() {
             </button>
           </div>
 
+          {/* Center-Right: Main Navigation Links */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link 
+              to="/dashboard" 
+              className="text-gray-700 hover:text-cmf-primary font-medium transition"
+            >
+              Home
+            </Link>
+            <Link 
+              to="/players" 
+              className="text-gray-700 hover:text-cmf-primary font-medium transition"
+            >
+              Players
+            </Link>
+            {userRole === 'organizer' && (
+              <Link 
+                to="/admin" 
+                className="text-gray-700 hover:text-cmf-primary font-medium transition"
+              >
+                Admin
+              </Link>
+            )}
+          </div>
+
           {/* Right: Settings & Mobile Menu */}
           <div className="flex items-center gap-2">
             {/* Desktop Settings Dropdown */}
@@ -257,14 +281,14 @@ export default function Navigation() {
                 <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                   <Link 
                     to="/dashboard" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
                     onClick={() => setMobileOpen(false)}
                   >
                     Home
                   </Link>
                   <Link 
                     to="/players" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
                     onClick={() => setMobileOpen(false)}
                   >
                     Players
@@ -272,12 +296,19 @@ export default function Navigation() {
                   {userRole === 'organizer' && (
                     <Link 
                       to="/admin" 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
                       onClick={() => setMobileOpen(false)}
                     >
                       Admin
                     </Link>
                   )}
+                  <Link 
+                    to="/select-league" 
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Switch Event
+                  </Link>
                   <hr className="my-2" />
                   <button
                     onClick={() => {
