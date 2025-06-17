@@ -4,7 +4,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award, Edit, Settings } from 'lucide-react';
+import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const DRILLS = [
@@ -46,6 +46,28 @@ const WEIGHT_PRESETS = {
     weights: { "40m_dash": 0.3, "vertical_jump": 0.2, "catching": 0.15, "throwing": 0.15, "agility": 0.2 }
   }
 };
+
+// Tab configuration
+const TABS = [
+  { 
+    id: 'players', 
+    label: 'Player Management', 
+    icon: Users,
+    description: 'View, edit, and manage individual players'
+  },
+  { 
+    id: 'rankings', 
+    label: 'Rankings & Analysis', 
+    icon: BarChart3,
+    description: 'Age group rankings with weight adjustments'
+  },
+  { 
+    id: 'exports', 
+    label: 'Export & Reports', 
+    icon: Download,
+    description: 'Export data and view analytics'
+  }
+];
 
 // Edit Player Modal Component
 function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
@@ -372,7 +394,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
           </div>
           <div className="text-right mr-4">
             <div className="text-sm opacity-75">Overall Score</div>
-            <div className="text-2xl font-bold">{totalWeightedScore.toFixed(2)} pts</div>
+            <div className="text-2xl font-bold text-cmf-primary">{totalWeightedScore.toFixed(2)} pts</div>
             <div className="text-xs opacity-75">Rank #{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
@@ -546,6 +568,47 @@ export default function Players() {
   const [editingPlayer, setEditingPlayer] = useState(null);
   const navigate = useNavigate();
 
+  // NEW: Tabbed interface state
+  const [activeTab, setActiveTab] = useState('players');
+  
+  // NEW: Rankings & Analysis state (from CoachDashboard)
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  const [rankings, setRankings] = useState([]);
+  const [rankingsLoading, setRankingsLoading] = useState(false);
+  const [rankingsError, setRankingsError] = useState(null);
+  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
+  const [activePreset, setActivePreset] = useState("athletic");
+
+  // NEW: Rankings weight management functions
+  const getPercentages = () => {
+    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+    const percentages = {};
+    DRILLS.forEach(drill => {
+      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+    });
+    return percentages;
+  };
+
+  const updateWeightsFromPercentage = (drillKey, percentage) => {
+    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    
+    if (total === 0) return;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      newWeights[drill.key] = newPercentages[drill.key] / total;
+    });
+    
+    setWeights(newWeights);
+    setActivePreset(null);
+  };
+
+  const applyPreset = (presetKey) => {
+    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
+    setActivePreset(presetKey);
+  };
+
   // Interactive onboarding callout
   const OnboardingCallout = () => (
     <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded cursor-pointer hover:bg-cmf-primary/15 transition"
@@ -619,6 +682,53 @@ export default function Players() {
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  // NEW: Fetch rankings when weights or age group changes
+  useEffect(() => {
+    const updateRankings = async () => {
+      if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
+        setRankings([]);
+        return;
+      }
+      
+      setRankingsLoading(true);
+      setRankingsError(null);
+      
+      try {
+        const params = new URLSearchParams({ 
+          age_group: selectedAgeGroup, 
+          event_id: selectedEvent.id 
+        });
+        
+        // Add weight parameters
+        params.append("weight_40m_dash", weights["40m_dash"]);
+        params.append("weight_vertical_jump", weights["vertical_jump"]);
+        params.append("weight_catching", weights["catching"]);
+        params.append("weight_throwing", weights["throwing"]);
+        params.append("weight_agility", weights["agility"]);
+        
+        const res = await api.get(`/rankings?${params.toString()}`);
+        setRankings(res.data);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          setRankingsError(null);
+          setRankings([]);
+        } else {
+          console.error('[Players] Rankings fetch error:', err);
+          setRankingsError(err.message);
+        }
+      } finally {
+        setRankingsLoading(false);
+      }
+    };
+
+    // Debounce the API call to avoid too many requests
+    const timeoutId = setTimeout(updateRankings, 300);
+    return () => clearTimeout(timeoutId);
+  }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent, activeTab]);
+
+  // Get unique age groups from players
+  const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
 
   const toggleForm = (id) => {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -747,166 +857,452 @@ export default function Players() {
           </div>
         </div>
 
-        {/* Weight Adjustment Section - Organizers Only */}
-        {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Settings className="w-5 h-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-purple-900">Weight Adjustment Controls</h2>
-            </div>
-            <p className="text-purple-700 text-sm mb-3">
-              Click "View Stats & Weights" on any player to adjust drill weights and see real-time ranking changes.
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">⚖️ Balanced</span>
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">⚡ Speed Focused</span>
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">🎯 Skills Focused</span>
-              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">🏃 Athletic</span>
-            </div>
-          </div>
-        )}
-
-        {/* Rankings Export Section */}
-        {Object.keys(grouped).length > 0 && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                📊 Export Rankings
-              </h2>
-            </div>
-            
-            <div className="grid grid-cols-1 gap-2">
-              {Object.keys(grouped).sort().map(ageGroup => {
-                const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
-                const handleExportCsv = () => {
-                  if (ageGroupPlayers.length === 0) return;
-                  let csv = 'Rank,Name,Player Number,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
-                  ageGroupPlayers
-                    .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
-                    .forEach((player, index) => {
-                      csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
-                    });
-                  const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-                  const filename = `rankings_${ageGroup}_${eventDate}.csv`;
-                  const blob = new Blob([csv], { type: 'text/csv' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = filename;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                };
-                
-                return (
-                  <button
-                    key={ageGroup}
-                    onClick={handleExportCsv}
-                    disabled={ageGroupPlayers.length === 0}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg font-medium transition text-left flex justify-between items-center"
-                  >
-                    <span>Export {ageGroup} Rankings</span>
-                    <span className="text-sm opacity-75">({ageGroupPlayers.length} players)</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Player Stats Modals */}
-        {selectedPlayer && (
-          <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
-        )}
-        {editingPlayer && (
-          <EditPlayerModal
-            player={editingPlayer}
-            allPlayers={players}
-            onClose={() => setEditingPlayer(null)}
-            onSave={fetchPlayers}
-          />
-        )}
-
-        {/* Age Group Sections */}
-        {Object.keys(grouped).length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-            <p className="text-gray-500">No players found for this event.</p>
-          </div>
-        ) : (
-          Object.entries(grouped)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .map(([ageGroup, ageGroupPlayers]) => {
-              // Sort by composite_score descending, then by name
-              const sortedPlayers = ageGroupPlayers.sort((a, b) => {
-                if (a.composite_score !== b.composite_score) {
-                  return (b.composite_score || 0) - (a.composite_score || 0);
-                }
-                return a.name.localeCompare(b.name);
-              });
-
+        {/* NEW: Tab Navigation */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="flex border-b border-gray-200">
+            {TABS.map((tab) => {
+              const Icon = tab.icon;
               return (
-                <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    🏆 Age Group: {ageGroup}
-                  </h2>
-                  
-                  {/* Mobile-friendly player cards */}
-                  <div className="space-y-2">
-                    {sortedPlayers.map((player, index) => (
-                      <React.Fragment key={player.id}>
-                        <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                          {/* Player Header */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <span className={`font-bold text-lg ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}>
-                                {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
-                              </span>
-                              <div>
-                                <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                                <p className="text-sm text-gray-600">
-                                  Player #{player.number || 'N/A'} • Score: {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
-                                </p>
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-cmf-primary text-white border-b-2 border-cmf-primary'
+                      : 'text-gray-600 hover:text-cmf-primary hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                </button>
+              );
+            })}
+          </div>
+          
+          {/* Tab Description */}
+          <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600">
+            {TABS.find(tab => tab.id === activeTab)?.description}
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'players' && (
+          <>
+            {/* Weight Adjustment Section - Organizers Only */}
+            {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Settings className="w-5 h-5 text-purple-600" />
+                  <h2 className="text-lg font-semibold text-purple-900">Weight Adjustment Controls</h2>
+                </div>
+                <p className="text-purple-700 text-sm mb-3">
+                  Click "View Stats & Weights" on any player to adjust drill weights and see real-time ranking changes.
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">⚖️ Balanced</span>
+                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">⚡ Speed Focused</span>
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">🎯 Skills Focused</span>
+                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">🏃 Athletic</span>
+                </div>
+              </div>
+            )}
+
+            {/* Player Stats Modals */}
+            {selectedPlayer && (
+              <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
+            )}
+            {editingPlayer && (
+              <EditPlayerModal
+                player={editingPlayer}
+                allPlayers={players}
+                onClose={() => setEditingPlayer(null)}
+                onSave={fetchPlayers}
+              />
+            )}
+
+            {/* Age Group Sections */}
+            {Object.keys(grouped).length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <p className="text-gray-500">No players found for this event.</p>
+              </div>
+            ) : (
+              Object.entries(grouped)
+                .sort(([a], [b]) => a.localeCompare(b))
+                .map(([ageGroup, ageGroupPlayers]) => {
+                  // Sort by composite_score descending, then by name
+                  const sortedPlayers = ageGroupPlayers.sort((a, b) => {
+                    if (a.composite_score !== b.composite_score) {
+                      return (b.composite_score || 0) - (a.composite_score || 0);
+                    }
+                    return a.name.localeCompare(b.name);
+                  });
+
+                  return (
+                    <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                      <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        🏆 Age Group: {ageGroup}
+                      </h2>
+                      
+                      {/* Mobile-friendly player cards */}
+                      <div className="space-y-2">
+                        {sortedPlayers.map((player, index) => (
+                          <React.Fragment key={player.id}>
+                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                              {/* Player Header */}
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-3">
+                                  <span className={`font-bold text-lg ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}>
+                                    {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
+                                  </span>
+                                  <div>
+                                    <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                                    <p className="text-sm text-gray-600">
+                                      Player #{player.number || 'N/A'} • Score: {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              
+                              {/* Action Buttons */}
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  onClick={() => setSelectedPlayer(player)}
+                                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                                  disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                                >
+                                  {userRole === 'organizer' ? 'View Stats & Weights' : 'View Stats'}
+                                </button>
+                                <button
+                                  onClick={() => setEditingPlayer(player)}
+                                  className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => toggleForm(player.id)}
+                                  className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                                >
+                                  Add Result
+                                </button>
                               </div>
                             </div>
-                          </div>
-                          
-                          {/* Action Buttons */}
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={() => setSelectedPlayer(player)}
-                              className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                              disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
-                            >
-                              {userRole === 'organizer' ? 'View Stats & Weights' : 'View Stats'}
-                            </button>
-                            <button
-                              onClick={() => setEditingPlayer(player)}
-                              className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => toggleForm(player.id)}
-                              className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                            >
-                              Add Result
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Drill Entry Form */}
-                        {expandedPlayerIds[player.id] && (
-                          <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
-                            <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
-                          </div>
-                        )}
-                      </React.Fragment>
+                            
+                            {/* Drill Entry Form */}
+                            {expandedPlayerIds[player.id] && (
+                              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
+                                <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                              </div>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+            )}
+          </>
+        )}
+
+        {activeTab === 'rankings' && (
+          <>
+            {/* Age Group Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Filter className="w-5 h-5 text-cmf-primary" />
+                Select Age Group
+              </h2>
+              <select
+                value={selectedAgeGroup}
+                onChange={e => setSelectedAgeGroup(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              >
+                <option value="">Choose an age group to view rankings</option>
+                {ageGroups.map(group => (
+                  <option key={group} value={group}>{group}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Drill Weight Controls - Enhanced for better visibility */}
+            {userRole === 'organizer' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Settings className="w-5 h-5 text-cmf-primary" />
+                  <h2 className="text-lg font-semibold text-gray-900">Ranking Priorities</h2>
+                </div>
+                
+                {/* Preset Buttons */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                      <button
+                        key={key}
+                        onClick={() => applyPreset(key)}
+                        className={`p-3 text-left rounded-lg border-2 transition-all ${
+                          activePreset === key 
+                            ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
+                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{preset.name}</div>
+                        <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
+                      </button>
                     ))}
                   </div>
                 </div>
-              );
-            })
+
+                {/* Custom Adjustments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Custom Adjustments:
+                    {activePreset && (
+                      <span className="ml-2 text-xs text-gray-500">
+                        (Currently using {WEIGHT_PRESETS[activePreset].name})
+                      </span>
+                    )}
+                  </label>
+                  
+                  <div className="space-y-4">
+                    {DRILLS.map(drill => {
+                      const percentages = getPercentages();
+                      return (
+                        <div key={drill.key} className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={percentages[drill.key]}
+                                onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                                className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
+                              />
+                              <div className="w-12 text-right">
+                                <span className="text-sm font-mono text-cmf-primary">
+                                  {percentages[drill.key]}%
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div className="mt-4 text-xs text-gray-500 text-center">
+                    Rankings update automatically as you adjust priorities
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Rankings Display */}
+            {rankingsLoading ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
+                <div className="text-gray-500">Updating rankings...</div>
+              </div>
+            ) : rankingsError ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+                <strong>Error:</strong> {rankingsError}
+              </div>
+            ) : selectedAgeGroup === "" ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-500">
+                👆 Please select an age group above to view rankings and adjust weights.
+              </div>
+            ) : rankings.length === 0 ? (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
+                No players found for the <strong>{selectedAgeGroup}</strong> age group. Players may not have drill scores yet.
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">Rankings ({selectedAgeGroup})</h2>
+                  <button
+                    onClick={() => {
+                      if (!selectedAgeGroup || rankings.length === 0) return;
+                      let csv = 'Rank,Name,Player Number,Composite Score\n';
+                      rankings.forEach(player => {
+                        csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
+                      });
+                      const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+                      const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
+                    disabled={rankings.length === 0}
+                  >
+                    Export as CSV
+                  </button>
+                </div>
+                
+                {/* Individual Player Cards - Mobile-First Design */}
+                <div className="space-y-3">
+                  {rankings.map((player) => {
+                    // Calculate individual drill rankings for real-time updates
+                    const drillRankings = {};
+                    DRILLS.forEach(drill => {
+                      const drillRanks = rankings
+                        .filter(p => p[drill.key] != null)
+                        .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
+                        .sort((a, b) => {
+                          // 40m dash is time-based (lower is better), others are score-based (higher is better)
+                          return drill.key === "40m_dash" ? a.score - b.score : b.score - a.score;
+                        });
+                      const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
+                      drillRankings[drill.key] = rank > 0 ? rank : null;
+                    });
+
+                    return (
+                      <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        {/* Player Header */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                            <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : "text-gray-400"}`}>
+                              {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
+                            </span>
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                              <p className="text-sm text-gray-600">Player #{player.number}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-gray-500">Overall Score</div>
+                            <div className="font-mono font-bold text-lg text-cmf-primary">{player.composite_score.toFixed(2)}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Drill Results - Compact Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
+                          {DRILLS.map(drill => (
+                            <div key={drill.key} className="bg-white rounded p-2 text-center">
+                              <div className="font-medium text-gray-700 mb-1">{drill.label}</div>
+                              {player[drill.key] != null ? (
+                                <div>
+                                  <div className="font-mono text-sm">{player[drill.key]}</div>
+                                  <div className="text-xs text-gray-500">#{drillRankings[drill.key] || '-'}</div>
+                                </div>
+                              ) : (
+                                <span className="text-gray-400">No score</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {activeTab === 'exports' && (
+          <>
+            {/* Rankings Export Section */}
+            {Object.keys(grouped).length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Download className="w-5 h-5 text-cmf-primary" />
+                    Export Rankings by Age Group
+                  </h2>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-3">
+                  {Object.keys(grouped).sort().map(ageGroup => {
+                    const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
+                    const handleExportCsv = () => {
+                      if (ageGroupPlayers.length === 0) return;
+                      let csv = 'Rank,Name,Player Number,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                      ageGroupPlayers
+                        .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
+                        .forEach((player, index) => {
+                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
+                        });
+                      const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+                      const filename = `rankings_${ageGroup}_${eventDate}.csv`;
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    };
+                    
+                    return (
+                      <button
+                        key={ageGroup}
+                        onClick={handleExportCsv}
+                        disabled={ageGroupPlayers.length === 0}
+                        className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-6 py-4 rounded-lg font-medium transition text-left flex justify-between items-center"
+                      >
+                        <div>
+                          <div className="font-semibold">Export {ageGroup} Rankings</div>
+                          <div className="text-sm opacity-75">Full rankings with drill scores</div>
+                        </div>
+                        <div className="text-sm opacity-75">({ageGroupPlayers.length} players)</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {Object.keys(grouped).length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No player data available for export. Upload players first.
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Analytics Summary */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-cmf-primary" />
+                Event Analytics
+              </h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-600">{players.length}</div>
+                  <div className="text-sm text-blue-700">Total Players</div>
+                </div>
+                
+                <div className="bg-green-50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-green-600">{Object.keys(grouped).length}</div>
+                  <div className="text-sm text-green-700">Age Groups</div>
+                </div>
+                
+                <div className="bg-purple-50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {players.filter(p => p.composite_score != null).length}
+                  </div>
+                  <div className="text-sm text-purple-700">With Scores</div>
+                </div>
+                
+                <div className="bg-orange-50 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {Math.round((players.filter(p => p.composite_score != null).length / players.length) * 100)}%
+                  </div>
+                  <div className="text-sm text-orange-700">Completion</div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </div>
