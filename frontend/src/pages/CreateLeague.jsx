@@ -48,13 +48,13 @@ export function CreateLeagueForm({ onCreated }) {
         />
       </div>
 
-      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New Team</h1>
-      <p className="text-gray-600 mb-6">Create your team and then set up your first combine event.</p>
+      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New Event</h1>
+      <p className="text-gray-600 mb-6">Create your event and start evaluating players.</p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
           className="w-full px-4 py-3 border border-cmf-primary/30 rounded-xl focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition"
-          placeholder="Team Name"
+          placeholder="Event Name"
           value={leagueName}
           onChange={e => setLeagueName(e.target.value)}
           required
@@ -64,7 +64,7 @@ export function CreateLeagueForm({ onCreated }) {
           className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           disabled={loading}
         >
-          {loading ? 'Creating...' : 'Create Team & Continue'}
+          {loading ? 'Creating...' : 'Create Event & Continue'}
         </button>
         {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
       </form>
