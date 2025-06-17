@@ -589,6 +589,10 @@ export default function Players() {
   const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
   const [activePreset, setActivePreset] = useState("athletic");
 
+  // NEW: Player Management tab weight state (separate from Rankings tab)
+  const [playerTabWeights, setPlayerTabWeights] = useState({ ...DRILL_WEIGHTS });
+  const [playerTabActivePreset, setPlayerTabActivePreset] = useState("athletic");
+
   // NEW: Rankings weight management functions
   const getPercentages = () => {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -600,7 +604,6 @@ export default function Players() {
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log(`[Players] Updating weight for ${drillKey} to ${percentage}%`);
     const newPercentages = { ...getPercentages(), [drillKey]: percentage };
     const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
     
@@ -611,15 +614,83 @@ export default function Players() {
       newWeights[drill.key] = newPercentages[drill.key] / total;
     });
     
-    console.log('[Players] New weights:', newWeights);
     setWeights(newWeights);
     setActivePreset(null);
   };
 
   const applyPreset = (presetKey) => {
-    console.log(`[Players] Applying preset: ${presetKey}`, WEIGHT_PRESETS[presetKey].weights);
     setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
     setActivePreset(presetKey);
+  };
+
+  // NEW: Player Management tab weight functions
+  const getPlayerTabPercentages = () => {
+    const total = Object.values(playerTabWeights).reduce((sum, weight) => sum + weight, 0);
+    const percentages = {};
+    DRILLS.forEach(drill => {
+      percentages[drill.key] = Math.round((playerTabWeights[drill.key] / total) * 100);
+    });
+    return percentages;
+  };
+
+  const applyPlayerTabPreset = (presetKey) => {
+    setPlayerTabWeights({ ...WEIGHT_PRESETS[presetKey].weights });
+    setPlayerTabActivePreset(presetKey);
+  };
+
+  // NEW: Client-side ranking calculation for Player Management tab
+  const calculateWeightedScore = (player, weights) => {
+    try {
+      let totalScore = 0;
+      DRILLS.forEach(drill => {
+        const drillScore = player[drill.key];
+        const weight = weights[drill.key] || 0;
+        
+        if (drillScore != null && typeof drillScore === 'number') {
+          // For 40m dash, lower is better, so we need to invert it
+          if (drill.key === "40m_dash") {
+            // Assuming reasonable 40m dash times are between 4-15 seconds
+            // We'll invert by subtracting from a reasonable max (15 seconds)
+            const invertedScore = Math.max(0, 15 - drillScore);
+            totalScore += invertedScore * weight;
+          } else {
+            // For other drills, higher is better
+            totalScore += drillScore * weight;
+          }
+        }
+      });
+      return totalScore;
+    } catch (error) {
+      console.warn('[Players] Error calculating weighted score:', error);
+      return 0;
+    }
+  };
+
+  const getSortedPlayersWithWeights = (ageGroupPlayers, weights) => {
+    try {
+      // Calculate weighted scores for all players
+      const playersWithScores = ageGroupPlayers.map(player => ({
+        ...player,
+        weightedScore: calculateWeightedScore(player, weights)
+      }));
+
+      // Sort by weighted score descending, then by name
+      return playersWithScores.sort((a, b) => {
+        if (a.weightedScore !== b.weightedScore) {
+          return b.weightedScore - a.weightedScore;
+        }
+        return a.name.localeCompare(b.name);
+      });
+    } catch (error) {
+      console.warn('[Players] Error sorting players with weights:', error);
+      // Fallback to original sorting
+      return ageGroupPlayers.sort((a, b) => {
+        if (a.composite_score !== b.composite_score) {
+          return (b.composite_score || 0) - (a.composite_score || 0);
+        }
+        return a.name.localeCompare(b.name);
+      });
+    }
   };
 
   // Interactive onboarding callout
@@ -699,22 +770,11 @@ export default function Players() {
   // NEW: Fetch rankings when weights or age group changes
   useEffect(() => {
     const updateRankings = async () => {
-      console.log('[Players] Rankings update triggered', { 
-        selectedAgeGroup, 
-        activeTab, 
-        weights,
-        hasUser: !!user,
-        hasLeague: !!selectedLeagueId,
-        hasEvent: !!selectedEvent
-      });
-      
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
-        console.log('[Players] Skipping rankings update - missing requirements');
         setRankings([]);
         return;
       }
       
-      console.log('[Players] Fetching rankings with weights:', weights);
       setRankingsLoading(true);
       setRankingsError(null);
       
@@ -732,7 +792,6 @@ export default function Players() {
         params.append("weight_agility", weights["agility"]);
         
         const res = await api.get(`/rankings?${params.toString()}`);
-        console.log('[Players] Rankings API response:', res.data);
         setRankings(res.data);
       } catch (err) {
         if (err.response?.status === 404) {
@@ -922,13 +981,16 @@ export default function Players() {
                   <h2 className="text-lg font-semibold text-purple-900">Weight Adjustment Controls</h2>
                 </div>
                 <p className="text-purple-700 text-sm mb-3">
-                  Click "View Stats & Weights" on any player to adjust drill weights and see real-time ranking changes.
+                  Click preset buttons below to instantly adjust player rankings with different weight priorities.
+                  <span className="block text-xs mt-1 opacity-75">
+                    Currently using: <strong>{WEIGHT_PRESETS[playerTabActivePreset]?.name || 'Custom'}</strong>
+                  </span>
                 </p>
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <button onClick={() => { setActiveTab('rankings'); applyPreset('balanced'); }} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-full transition-colors cursor-pointer">⚖️ Balanced</button>
-                  <button onClick={() => { setActiveTab('rankings'); applyPreset('speed'); }} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-full transition-colors cursor-pointer">⚡ Speed Focused</button>
-                  <button onClick={() => { setActiveTab('rankings'); applyPreset('skills'); }} className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-full transition-colors cursor-pointer">🎯 Skills Focused</button>
-                  <button onClick={() => { setActiveTab('rankings'); applyPreset('athletic'); }} className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-2 py-1 rounded-full transition-colors cursor-pointer">🏃 Athletic</button>
+                  <button onClick={() => applyPlayerTabPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'balanced' ? 'bg-purple-200 text-purple-800 ring-2 ring-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}>⚖️ Balanced</button>
+                  <button onClick={() => applyPlayerTabPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'speed' ? 'bg-blue-200 text-blue-800 ring-2 ring-blue-400' : 'bg-blue-100 hover:bg-blue-200 text-blue-700'}`}>⚡ Speed Focused</button>
+                  <button onClick={() => applyPlayerTabPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'skills' ? 'bg-green-200 text-green-800 ring-2 ring-green-400' : 'bg-green-100 hover:bg-green-200 text-green-700'}`}>🎯 Skills Focused</button>
+                  <button onClick={() => applyPlayerTabPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'athletic' ? 'bg-orange-200 text-orange-800 ring-2 ring-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}>🏃 Athletic</button>
                 </div>
               </div>
             )}
@@ -955,13 +1017,8 @@ export default function Players() {
               Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([ageGroup, ageGroupPlayers]) => {
-                  // Sort by composite_score descending, then by name
-                  const sortedPlayers = ageGroupPlayers.sort((a, b) => {
-                    if (a.composite_score !== b.composite_score) {
-                      return (b.composite_score || 0) - (a.composite_score || 0);
-                    }
-                    return a.name.localeCompare(b.name);
-                  });
+                  // NEW: Sort using weighted rankings based on current Player Management tab weights
+                  const sortedPlayers = getSortedPlayersWithWeights(ageGroupPlayers, playerTabWeights);
 
                   return (
                     <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -983,7 +1040,7 @@ export default function Players() {
                                   <div>
                                     <h3 className="font-semibold text-gray-900">{player.name}</h3>
                                     <p className="text-sm text-gray-600">
-                                      Player #{player.number || 'N/A'} • Score: {player.composite_score != null ? player.composite_score.toFixed(2) : "No scores yet"}
+                                      Player #{player.number || 'N/A'} • Weighted Score: {player.weightedScore != null ? player.weightedScore.toFixed(2) : "No scores yet"}
                                     </p>
                                   </div>
                                 </div>
