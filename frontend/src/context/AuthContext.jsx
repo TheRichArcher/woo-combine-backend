@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
 import { useLogout } from './logout';
+import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 
 const AuthContext = createContext();
@@ -21,6 +22,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
+  const { showColdStartNotification } = useToast();
 
   // Fast initial auth check - just Firebase auth state
   const quickAuthCheck = useCallback(async (firebaseUser) => {
@@ -72,11 +74,21 @@ export function AuthProvider({ children }) {
 
       // STEP 2: League fetch with single request and extended timeout
       console.log('[AuthContext] Fetching user leagues...');
+      let coldStartToastId = null;
+      
       try {
+        // Show cold start notification after 5 seconds if still loading
+        const coldStartTimer = setTimeout(() => {
+          coldStartToastId = showColdStartNotification();
+        }, 5000);
+
         const leagueResponse = await api.get(`/leagues/me`, { 
           timeout: 45000,  // 45s timeout to match API client for extreme cold starts
           retry: 2         // Increased retries for cold start scenarios
         });
+        
+        // Clear the cold start timer if request completes quickly
+        clearTimeout(coldStartTimer);
         
         const userLeagues = leagueResponse.data.leagues || [];
         setLeagues(userLeagues);
@@ -104,6 +116,11 @@ export function AuthProvider({ children }) {
         
       } catch (leagueError) {
         console.error('[AuthContext] League fetch failed:', leagueError.message);
+        
+        // Show cold start notification if not already shown
+        if (!coldStartToastId) {
+          showColdStartNotification();
+        }
         
         // Enhanced error handling for cold start scenarios
         if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {

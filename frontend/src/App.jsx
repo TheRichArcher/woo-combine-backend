@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Roster from "./pages/Roster";
@@ -26,9 +27,10 @@ import WelcomeLayout from "./components/layouts/WelcomeLayout";
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <EventProvider>
-          <div className="min-h-screen bg-gray-50">
+      <ToastProvider>
+        <AuthProvider>
+          <EventProvider>
+            <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/" element={<Navigate to="/welcome" replace />} />
               <Route path="/welcome" element={<Welcome />} />
@@ -146,6 +148,7 @@ function App() {
           </div>
         </EventProvider>
       </AuthProvider>
+    </ToastProvider>
     </BrowserRouter>
   );
 }
