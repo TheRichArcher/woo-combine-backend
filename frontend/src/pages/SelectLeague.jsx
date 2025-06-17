@@ -110,7 +110,7 @@ export default function SelectLeague() {
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">Select Team</h1>
+            <h1 className="text-xl font-bold text-gray-900">Select Event</h1>
             <button
               onClick={() => navigate('/dashboard')}
               className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition"
@@ -151,15 +151,15 @@ export default function SelectLeague() {
                     onClick={() => handleSelect(league)}
                     className={`w-full ${getGradientClass(index)} rounded-2xl p-6 text-white text-left relative overflow-hidden transform hover:scale-105 transition-transform shadow-lg`}
                   >
-                    {/* Team Code */}
+                    {/* Event Code */}
                     <div className="mb-2">
-                      <span className="text-white/80 text-sm font-medium">Team Code</span>
+                      <span className="text-white/80 text-sm font-medium">Event Code</span>
                       <div className="text-white text-lg font-mono font-bold">
                         ({league.id.slice(-8).toUpperCase()})
                       </div>
                     </div>
                     
-                    {/* Team Name */}
+                    {/* Event Name */}
                     <div className="text-2xl font-bold mb-2 pr-8">
                       {league.name}
                     </div>
@@ -192,14 +192,14 @@ export default function SelectLeague() {
               className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
             >
               <Plus className="w-5 h-5" />
-              Create a Team
+              Create an Event
             </button>
             <button
               onClick={() => navigate('/join')}
               className="w-full border-2 border-cmf-primary text-cmf-primary hover:bg-cmf-primary hover:text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
             >
               <UserPlus className="w-5 h-5" />
-              Join a Team
+              Join an Event
             </button>
           </div>
 
