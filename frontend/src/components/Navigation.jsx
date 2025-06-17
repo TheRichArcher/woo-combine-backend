@@ -221,43 +221,43 @@ export default function Navigation() {
           </div>
 
           {/* Center-Left: Event Name with Dropdown */}
-          <div className="flex-1 flex justify-start">
+          <div className="flex-1 flex justify-start min-w-0">
             <button
               onClick={handleEventDropdownClick}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition max-w-xs"
+              className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-50 transition max-w-[200px]"
             >
-              <div className="text-left">
-                <div className="font-bold text-lg text-gray-900 truncate">
+              <div className="text-left min-w-0">
+                <div className="font-bold text-sm md:text-lg text-gray-900 truncate">
                   {selectedEvent?.name || 'Select Event'}
                 </div>
                 {selectedEvent?.location && (
-                  <div className="text-xs text-gray-500 truncate">
+                  <div className="text-xs text-gray-500 truncate hidden sm:block">
                     {selectedEvent.location}
                   </div>
                 )}
               </div>
-              <ChevronDown className="w-5 h-5 text-gray-400" />
+              <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0" />
             </button>
           </div>
 
-          {/* Center-Right: Main Navigation Links */}
-          <div className="hidden sm:flex items-center gap-6">
+          {/* Center-Right: Main Navigation Links - Always Visible */}
+          <div className="flex items-center gap-3 md:gap-6">
             <Link 
               to="/dashboard" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
             >
               Home
             </Link>
             <Link 
               to="/players" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
             >
               Players
             </Link>
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
+                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
               >
                 Admin
               </Link>
@@ -279,29 +279,6 @@ export default function Navigation() {
               {/* Settings Dropdown */}
               {mobileOpen && (
                 <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <Link 
-                    to="/dashboard" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Home
-                  </Link>
-                  <Link 
-                    to="/players" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Players
-                  </Link>
-                  {userRole === 'organizer' && (
-                    <Link 
-                      to="/admin" 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      Admin
-                    </Link>
-                  )}
                   <Link 
                     to="/select-league" 
                     className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
@@ -341,28 +318,12 @@ export default function Navigation() {
         <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col py-4">
             <Link 
-              to="/dashboard" 
+              to="/select-league" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
               onClick={closeMobile}
             >
-              Home
+              Switch Event
             </Link>
-            <Link 
-              to="/players" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
-            >
-              Players
-            </Link>
-            {userRole === 'organizer' && (
-              <Link 
-                to="/admin" 
-                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={closeMobile}
-              >
-                Admin
-              </Link>
-            )}
             <button
               onClick={() => {
                 closeMobile();
