@@ -600,6 +600,7 @@ export default function Players() {
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log(`[Players] Updating weight for ${drillKey} to ${percentage}%`);
     const newPercentages = { ...getPercentages(), [drillKey]: percentage };
     const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
     
@@ -610,11 +611,13 @@ export default function Players() {
       newWeights[drill.key] = newPercentages[drill.key] / total;
     });
     
+    console.log('[Players] New weights:', newWeights);
     setWeights(newWeights);
     setActivePreset(null);
   };
 
   const applyPreset = (presetKey) => {
+    console.log(`[Players] Applying preset: ${presetKey}`, WEIGHT_PRESETS[presetKey].weights);
     setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
     setActivePreset(presetKey);
   };
@@ -696,11 +699,22 @@ export default function Players() {
   // NEW: Fetch rankings when weights or age group changes
   useEffect(() => {
     const updateRankings = async () => {
+      console.log('[Players] Rankings update triggered', { 
+        selectedAgeGroup, 
+        activeTab, 
+        weights,
+        hasUser: !!user,
+        hasLeague: !!selectedLeagueId,
+        hasEvent: !!selectedEvent
+      });
+      
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
+        console.log('[Players] Skipping rankings update - missing requirements');
         setRankings([]);
         return;
       }
       
+      console.log('[Players] Fetching rankings with weights:', weights);
       setRankingsLoading(true);
       setRankingsError(null);
       
@@ -718,6 +732,7 @@ export default function Players() {
         params.append("weight_agility", weights["agility"]);
         
         const res = await api.get(`/rankings?${params.toString()}`);
+        console.log('[Players] Rankings API response:', res.data);
         setRankings(res.data);
       } catch (err) {
         if (err.response?.status === 404) {
@@ -1075,9 +1090,9 @@ export default function Players() {
                   </label>
                   
                   <div className="space-y-4">
-                    {DRILLS.map(drill => {
+                    {(() => {
                       const percentages = getPercentages();
-                      return (
+                      return DRILLS.map(drill => (
                         <div key={drill.key} className="flex items-center justify-between">
                           <div className="flex-1">
                             <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
@@ -1098,8 +1113,8 @@ export default function Players() {
                             </div>
                           </div>
                         </div>
-                      );
-                    })}
+                      ));
+                    })()}
                   </div>
                   
                   <div className="mt-4 text-xs text-gray-500 text-center">
