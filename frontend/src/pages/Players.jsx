@@ -925,10 +925,10 @@ export default function Players() {
                   Click "View Stats & Weights" on any player to adjust drill weights and see real-time ranking changes.
                 </p>
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">⚖️ Balanced</span>
-                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">⚡ Speed Focused</span>
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">🎯 Skills Focused</span>
-                  <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">🏃 Athletic</span>
+                  <button onClick={() => { setActiveTab('rankings'); applyPreset('balanced'); }} className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded-full transition-colors cursor-pointer">⚖️ Balanced</button>
+                  <button onClick={() => { setActiveTab('rankings'); applyPreset('speed'); }} className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-2 py-1 rounded-full transition-colors cursor-pointer">⚡ Speed Focused</button>
+                  <button onClick={() => { setActiveTab('rankings'); applyPreset('skills'); }} className="bg-green-100 hover:bg-green-200 text-green-700 px-2 py-1 rounded-full transition-colors cursor-pointer">🎯 Skills Focused</button>
+                  <button onClick={() => { setActiveTab('rankings'); applyPreset('athletic'); }} className="bg-orange-100 hover:bg-orange-200 text-orange-700 px-2 py-1 rounded-full transition-colors cursor-pointer">🏃 Athletic</button>
                 </div>
               </div>
             )}
