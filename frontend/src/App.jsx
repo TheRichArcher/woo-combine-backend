@@ -5,9 +5,6 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
-import Roster from "./pages/Roster";
-import Schedule from "./pages/Schedule";
-import CoachDashboard from "./pages/CoachDashboard";
 import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
@@ -60,38 +57,7 @@ function App() {
                   </RequireAuth>
                 }
               />
-              {/* OLD ROUTES - Commented out for Phase 2, redirected above */}
-              {/* 
-              <Route
-                path="/roster"
-                element={
-                  <RequireAuth>
-                    <Roster />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/schedule"
-                element={
-                  <RequireAuth>
-                    <Schedule />
-                  </RequireAuth>
-                }
-              />
-              <Route
-                path="/coach-dashboard"
-                element={
-                  <RequireAuth>
-                    <>
-                      <Navigation />
-                      <div className="container mx-auto px-4 py-8">
-                        <CoachDashboard />
-                      </div>
-                    </>
-                  </RequireAuth>
-                }
-              />
-              */}
+
               <Route
                 path="/players"
                 element={
