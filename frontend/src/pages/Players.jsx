@@ -747,6 +747,25 @@ export default function Players() {
           </div>
         </div>
 
+        {/* Weight Adjustment Section - Organizers Only */}
+        {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-4 mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-purple-900">Weight Adjustment Controls</h2>
+            </div>
+            <p className="text-purple-700 text-sm mb-3">
+              Click "View Stats & Weights" on any player to adjust drill weights and see real-time ranking changes.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">⚖️ Balanced</span>
+              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">⚡ Speed Focused</span>
+              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">🎯 Skills Focused</span>
+              <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full">🏃 Athletic</span>
+            </div>
+          </div>
+        )}
+
         {/* Rankings Export Section */}
         {Object.keys(grouped).length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -857,9 +876,9 @@ export default function Players() {
                             <button
                               onClick={() => setSelectedPlayer(player)}
                               className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                              disabled={!player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                              disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
                             >
-                              View Stats
+                              {userRole === 'organizer' ? 'View Stats & Weights' : 'View Stats'}
                             </button>
                             <button
                               onClick={() => setEditingPlayer(player)}
