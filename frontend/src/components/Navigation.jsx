@@ -209,9 +209,9 @@ export default function Navigation() {
     <>
       {/* Mojo Sports Style Header */}
       <nav className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-        <div className="flex justify-between items-center max-w-7xl mx-auto">
+        <div className="flex items-center max-w-7xl mx-auto gap-4">
           {/* Left: Avatar */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center">
             <button
               onClick={() => setProfileModalOpen(true)}
               className="w-10 h-10 bg-cmf-primary rounded-full flex items-center justify-center text-white font-bold text-sm hover:bg-cmf-secondary transition"
@@ -220,13 +220,13 @@ export default function Navigation() {
             </button>
           </div>
 
-          {/* Center: Event Name with Dropdown */}
-          <div className="flex-1 flex justify-center">
+          {/* Center-Left: Event Name with Dropdown */}
+          <div className="flex-1 flex justify-start">
             <button
               onClick={handleEventDropdownClick}
               className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition max-w-xs"
             >
-              <div className="text-center">
+              <div className="text-left">
                 <div className="font-bold text-lg text-gray-900 truncate">
                   {selectedEvent?.name || 'Select Event'}
                 </div>
@@ -241,23 +241,23 @@ export default function Navigation() {
           </div>
 
           {/* Center-Right: Main Navigation Links */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden sm:flex items-center gap-6">
             <Link 
               to="/dashboard" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
             >
               Home
             </Link>
             <Link 
               to="/players" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
             >
               Players
             </Link>
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 hover:text-cmf-primary font-medium transition"
+                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap"
               >
                 Admin
               </Link>
@@ -281,14 +281,14 @@ export default function Navigation() {
                 <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                   <Link 
                     to="/dashboard" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
                     onClick={() => setMobileOpen(false)}
                   >
                     Home
                   </Link>
                   <Link 
                     to="/players" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
                     onClick={() => setMobileOpen(false)}
                   >
                     Players
@@ -296,7 +296,7 @@ export default function Navigation() {
                   {userRole === 'organizer' && (
                     <Link 
                       to="/admin" 
-                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 md:hidden"
+                      className="block px-4 py-2 text-gray-700 hover:bg-gray-50 sm:hidden"
                       onClick={() => setMobileOpen(false)}
                     >
                       Admin
