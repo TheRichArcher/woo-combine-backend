@@ -975,22 +975,22 @@ export default function Players() {
           <>
             {/* Weight Adjustment Section - Organizers Only */}
             {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
-              <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl border-2 border-purple-200 p-4 mb-6">
+              <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <Settings className="w-5 h-5 text-purple-600" />
-                  <h2 className="text-lg font-semibold text-purple-900">Weight Adjustment Controls</h2>
+                  <Settings className="w-5 h-5 text-cmf-primary" />
+                  <h2 className="text-lg font-semibold text-cmf-secondary">Weight Adjustment Controls</h2>
                 </div>
-                <p className="text-purple-700 text-sm mb-3">
+                <p className="text-cmf-primary text-sm mb-3">
                   Click preset buttons below to instantly adjust player rankings with different weight priorities.
                   <span className="block text-xs mt-1 opacity-75">
                     Currently using: <strong>{WEIGHT_PRESETS[playerTabActivePreset]?.name || 'Custom'}</strong>
                   </span>
                 </p>
                 <div className="flex flex-wrap gap-2 text-xs">
-                  <button onClick={() => applyPlayerTabPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'balanced' ? 'bg-purple-200 text-purple-800 ring-2 ring-purple-400' : 'bg-purple-100 hover:bg-purple-200 text-purple-700'}`}>⚖️ Balanced</button>
-                  <button onClick={() => applyPlayerTabPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'speed' ? 'bg-blue-200 text-blue-800 ring-2 ring-blue-400' : 'bg-blue-100 hover:bg-blue-200 text-blue-700'}`}>⚡ Speed Focused</button>
-                  <button onClick={() => applyPlayerTabPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'skills' ? 'bg-green-200 text-green-800 ring-2 ring-green-400' : 'bg-green-100 hover:bg-green-200 text-green-700'}`}>🎯 Skills Focused</button>
-                  <button onClick={() => applyPlayerTabPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'athletic' ? 'bg-orange-200 text-orange-800 ring-2 ring-orange-400' : 'bg-orange-100 hover:bg-orange-200 text-orange-700'}`}>🏃 Athletic</button>
+                  <button onClick={() => applyPlayerTabPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'balanced' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚖️ Balanced</button>
+                  <button onClick={() => applyPlayerTabPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'speed' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚡ Speed Focused</button>
+                  <button onClick={() => applyPlayerTabPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'skills' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🎯 Skills Focused</button>
+                  <button onClick={() => applyPlayerTabPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'athletic' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🏃 Athletic</button>
                 </div>
               </div>
             )}
@@ -1108,42 +1108,28 @@ export default function Players() {
             
             {/* Drill Weight Controls - Enhanced for better visibility */}
             {userRole === 'organizer' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                <div className="flex items-center gap-2 mb-4">
+              <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
+                <div className="flex items-center gap-2 mb-2">
                   <Settings className="w-5 h-5 text-cmf-primary" />
-                  <h2 className="text-lg font-semibold text-gray-900">Ranking Priorities</h2>
+                  <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Priorities</h2>
                 </div>
-                
-                {/* Preset Buttons */}
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-                      <button
-                        key={key}
-                        onClick={() => applyPreset(key)}
-                        className={`p-3 text-left rounded-lg border-2 transition-all ${
-                          activePreset === key 
-                            ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
-                            : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                        }`}
-                      >
-                        <div className="font-medium text-sm">{preset.name}</div>
-                        <div className="text-xs text-gray-500 mt-1">{preset.description}</div>
-                      </button>
-                    ))}
-                  </div>
+                <p className="text-cmf-primary text-sm mb-3">
+                  Click preset buttons below to instantly adjust player rankings with different weight priorities.
+                  <span className="block text-xs mt-1 opacity-75">
+                    Currently using: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
+                  </span>
+                </p>
+                <div className="flex flex-wrap gap-2 text-xs mb-6">
+                  <button onClick={() => applyPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'balanced' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚖️ Balanced</button>
+                  <button onClick={() => applyPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'speed' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚡ Speed Focused</button>
+                  <button onClick={() => applyPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'skills' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🎯 Skills Focused</button>
+                  <button onClick={() => applyPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'athletic' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🏃 Athletic</button>
                 </div>
 
                 {/* Custom Adjustments */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Custom Adjustments:
-                    {activePreset && (
-                      <span className="ml-2 text-xs text-gray-500">
-                        (Currently using {WEIGHT_PRESETS[activePreset].name})
-                      </span>
-                    )}
+                  <label className="block text-sm font-medium text-cmf-secondary mb-3">
+                    Custom Weight Adjustments:
                   </label>
                   
                   <div className="space-y-4">
