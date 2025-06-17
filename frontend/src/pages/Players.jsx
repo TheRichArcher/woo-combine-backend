@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash", unit: "sec" },
@@ -567,9 +567,19 @@ export default function Players() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // NEW: Tabbed interface state
   const [activeTab, setActiveTab] = useState('players');
+  
+  // NEW: Detect URL parameters for tab selection
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    if (tabParam && ['players', 'rankings', 'exports'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   
   // NEW: Rankings & Analysis state (from CoachDashboard)
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");

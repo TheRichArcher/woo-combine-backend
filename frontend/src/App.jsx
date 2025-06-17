@@ -34,6 +34,21 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/welcome" replace />} />
               <Route path="/welcome" element={<Welcome />} />
+              
+              {/* PHASE 2: Soft redirects to unified Players page */}
+              <Route 
+                path="/coach-dashboard" 
+                element={<Navigate to="/players?tab=rankings" replace />} 
+              />
+              <Route 
+                path="/roster" 
+                element={<Navigate to="/players?tab=players" replace />} 
+              />
+              <Route 
+                path="/schedule" 
+                element={<Navigate to="/players?tab=players" replace />} 
+              />
+              
               <Route
                 path="/dashboard"
                 element={
@@ -45,6 +60,8 @@ function App() {
                   </RequireAuth>
                 }
               />
+              {/* OLD ROUTES - Commented out for Phase 2, redirected above */}
+              {/* 
               <Route
                 path="/roster"
                 element={
@@ -74,6 +91,7 @@ function App() {
                   </RequireAuth>
                 }
               />
+              */}
               <Route
                 path="/players"
                 element={
