@@ -5,8 +5,13 @@ import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 
-const ROLE_OPTIONS = [
+const ALL_ROLE_OPTIONS = [
   { key: "organizer", label: "🏈 League Operator", desc: "Full access to admin tools and player management." },
+  { key: "coach", label: "🧑‍🏫 Coach", desc: "View and customize, but cannot manage all players." },
+  { key: "viewer", label: "👀 Viewer / Guest", desc: "Read-only access to league data." },
+];
+
+const INVITED_ROLE_OPTIONS = [
   { key: "coach", label: "🧑‍🏫 Coach", desc: "View and customize, but cannot manage all players." },
   { key: "viewer", label: "👀 Viewer / Guest", desc: "Read-only access to league data." },
 ];
@@ -20,6 +25,11 @@ export default function SelectRole() {
   const navigate = useNavigate();
   const logout = useLogout();
   const db = getFirestore();
+  
+  // Check if user was invited via event QR code
+  const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+  const isInvitedUser = !!pendingEventJoin;
+  const roleOptions = isInvitedUser ? INVITED_ROLE_OPTIONS : ALL_ROLE_OPTIONS;
 
   React.useEffect(() => {
     // Simple initialization since RequireAuth already handles all auth checks
@@ -61,8 +71,15 @@ export default function SelectRole() {
       // Refresh the user's ID token to pick up any custom claims
       await user.getIdToken(true);
       
-      // Navigate to dashboard - AuthContext will handle the role setting
-      navigate("/dashboard", { replace: true });
+      // Handle different flows based on how user arrived
+      if (isInvitedUser && pendingEventJoin) {
+        // Clear the pending event join and redirect to the specific event
+        localStorage.removeItem('pendingEventJoin');
+        navigate(`/join-event/${pendingEventJoin}`, { replace: true });
+      } else {
+        // Regular flow - navigate to dashboard
+        navigate("/dashboard", { replace: true });
+      }
     } catch (err) {
       setError(err.message || "Failed to save role.");
       console.error("🔥 Firestore write failed in SelectRole for UID:", user?.uid, err);
@@ -101,11 +118,23 @@ export default function SelectRole() {
         </div>
 
         {/* Header */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Welcome! What's your role?</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+          {isInvitedUser ? "Join Event - What's your role?" : "Welcome! What's your role?"}
+        </h2>
+        
+        {/* Invited User Info */}
+        {isInvitedUser && (
+          <div className="w-full bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-4">
+            <div className="text-cyan-800 text-sm text-center">
+              🎯 <strong>You were invited to join an event!</strong><br/>
+              Select your role to continue.
+            </div>
+          </div>
+        )}
         
         {/* Role Options */}
         <div className="w-full flex flex-col gap-4 mb-6">
-          {ROLE_OPTIONS.map(opt => (
+          {roleOptions.map(opt => (
             <button
               key={opt.key}
               className={`w-full border-2 rounded-xl p-4 text-left flex flex-col transition font-semibold ${
@@ -138,7 +167,7 @@ export default function SelectRole() {
             onClick={handleContinue}
             disabled={loading}
           >
-            {loading ? "Saving..." : "Continue"}
+            {loading ? "Saving..." : (isInvitedUser ? "Join Event" : "Continue")}
           </button>
           
           <button
