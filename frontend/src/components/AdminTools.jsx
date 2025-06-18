@@ -751,7 +751,7 @@ export default function AdminTools() {
                 
                 {showQr && (
                   <div className="bg-white rounded-lg p-4 text-center border border-gray-200">
-                    <QRCode value={inviteLink} size={150} className="mx-auto mb-2" />
+                    <QRCode key={inviteLink} value={inviteLink} size={150} className="mx-auto mb-2" />
                     <p className="text-xs text-gray-500">Coaches can scan this QR code to join</p>
                   </div>
                 )}
