@@ -92,7 +92,11 @@ export default function AdminTools() {
   const [showQr, setShowQr] = useState(false);
   const league = leagues?.find(l => l.id === selectedLeagueId);
   const joinCode = league?.id || '';
-  const inviteLink = joinCode ? `https://woo-combine.com/join?code=${joinCode}` : '';
+  const inviteLink = (league && selectedEvent) 
+    ? `https://woo-combine.com/join-event/${league.id}/${selectedEvent.id}`
+    : joinCode 
+    ? `https://woo-combine.com/join?code=${joinCode}` 
+    : '';
 
   // Edit Event Modal state
   const [showEditEventModal, setShowEditEventModal] = useState(false);
@@ -686,18 +690,18 @@ export default function AdminTools() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-            <h2 className="text-lg font-semibold text-gray-900">Invite Coaches</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Invite Coaches to Event</h2>
           </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-blue-600 text-sm">👥</span>
+                <span className="text-blue-600 text-sm">🎯</span>
               </div>
               <div>
-                <p className="text-blue-800 font-medium text-sm mb-1">Share Your Team</p>
+                <p className="text-blue-800 font-medium text-sm mb-1">Direct Event Invitation</p>
                 <p className="text-blue-700 text-sm">
-                  Coaches can join using your team code or QR code to view player rankings and adjust weight priorities.
+                  Share the QR code or link to invite coaches directly to this specific event. They'll see Coach/Viewer role options only.
                 </p>
               </div>
             </div>
@@ -707,20 +711,20 @@ export default function AdminTools() {
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Team Invite Code</label>
-                  <div className="bg-white border border-gray-300 rounded-lg p-3 font-mono text-lg text-center">
-                    {joinCode || 'Loading...'}
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Invitation Link</label>
+                  <div className="bg-white border border-gray-300 rounded-lg p-3 text-sm text-center break-all">
+                    {inviteLink || 'Loading...'}
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => navigator.clipboard.writeText(joinCode)}
+                    onClick={() => navigator.clipboard.writeText(inviteLink)}
                     className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
-                    disabled={!joinCode}
+                    disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
-                    Copy Code
+                    Copy Link
                   </button>
                   <button
                     onClick={() => setShowQr(!showQr)}
@@ -742,7 +746,7 @@ export default function AdminTools() {
             
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <p className="text-green-800 text-sm">
-                <strong>Share with coaches:</strong> They can join at woo-combine.com/join using your team code.
+                <strong>Share with coaches:</strong> They can scan the QR code or click the invitation link to join this specific event directly.
               </p>
             </div>
           </div>
