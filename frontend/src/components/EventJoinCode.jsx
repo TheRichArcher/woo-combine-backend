@@ -6,7 +6,7 @@ export default function EventJoinCode({ event, league }) {
   if (!event || !league) return null;
 
   const joinCode = event.id;
-  const joinUrl = `https://woo-combine.com/join-event/${joinCode}`;
+  const joinUrl = `https://woo-combine.com/join-event/${league.id}/${event.id}`;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);

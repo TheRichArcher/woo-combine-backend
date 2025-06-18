@@ -125,6 +125,7 @@ function App() {
                 </RequireAuth>
               } />
               <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
+              <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
               <Route path="/join-event/:eventId" element={<JoinEvent />} />
               <Route path="/help" element={<Navigate to="/welcome" replace />} />
               <Route path="/terms" element={<Navigate to="/welcome" replace />} />

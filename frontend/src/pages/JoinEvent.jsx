@@ -7,9 +7,9 @@ import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function JoinEvent() {
-  const { eventId } = useParams();
+  const { leagueId, eventId } = useParams();
   const navigate = useNavigate();
-  const { user, leagues } = useAuth();
+  const { user, leagues, addLeague, setSelectedLeagueId } = useAuth();
   const { setSelectedEvent } = useEvent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,7 +19,11 @@ export default function JoinEvent() {
 
   useEffect(() => {
     const handleEventJoin = async () => {
-      if (!eventId) {
+      // Handle backward compatibility: if leagueId is actually the eventId (old URL format)
+      const actualEventId = leagueId && !eventId ? leagueId : eventId;
+      const actualLeagueId = leagueId && eventId ? leagueId : null;
+      
+      if (!actualEventId) {
         setError("Invalid event code");
         setStatus("not_found");
         setLoading(false);
@@ -29,48 +33,129 @@ export default function JoinEvent() {
       try {
         // First check if user is authenticated
         if (!user) {
-          // Store the event ID for after authentication
-          localStorage.setItem('pendingEventJoin', eventId);
+          // Store the event ID for after authentication (keeping old format for compatibility)
+          localStorage.setItem('pendingEventJoin', actualEventId);
           navigate("/login");
           return;
         }
 
-        // Try to find the event by checking all user's leagues
-        let foundEvent = null;
-        let foundLeague = null;
+        // If we don't have a leagueId (old URL format), try to find the event in user's leagues
+        if (!actualLeagueId) {
+          let foundEvent = null;
+          let foundLeague = null;
 
-        for (const userLeague of leagues || []) {
-          // Check if this league has the event
-          const response = await fetch(`/api/leagues/${userLeague.id}/events/${eventId}`, {
+          for (const userLeague of leagues || []) {
+            try {
+              const response = await fetch(`/api/leagues/${userLeague.id}/events/${actualEventId}`, {
+                headers: {
+                  'Authorization': `Bearer ${await user.getIdToken()}`
+                }
+              });
+
+              if (response.ok) {
+                foundEvent = await response.json();
+                foundLeague = userLeague;
+                break;
+              }
+            } catch (err) {
+              console.error(`Error checking event in league ${userLeague.id}:`, err);
+            }
+          }
+
+          if (foundEvent && foundLeague) {
+            // Success with old URL format
+            setEvent(foundEvent);
+            setLeague(foundLeague);
+            setSelectedEvent(foundEvent);
+            setSelectedLeagueId(foundLeague.id);
+            setStatus("found");
+            
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 2000);
+            setLoading(false);
+            return;
+          } else {
+            // Event not found in user's leagues
+            setStatus("no_access");
+            setLoading(false);
+            return;
+          }
+        }
+
+        // New URL format: we have both leagueId and eventId
+        // Check if user is already a member of this league
+        const existingLeague = leagues?.find(l => l.id === actualLeagueId);
+        
+        let targetLeague = existingLeague;
+
+        if (!existingLeague) {
+          // User is not a member - join them to the league automatically
+          try {
+            const joinResponse = await fetch(`/api/leagues/${actualLeagueId}/join`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${await user.getIdToken()}`
+              },
+              body: JSON.stringify({
+                user_id: user.uid,
+                email: user.email
+              })
+            });
+
+            if (joinResponse.ok) {
+              const joinData = await joinResponse.json();
+              // Add league to user's context
+              targetLeague = { id: actualLeagueId, name: joinData.league_name || 'League', role: 'coach' };
+              if (addLeague) {
+                addLeague(targetLeague);
+              }
+            } else {
+              throw new Error('Failed to join league');
+            }
+          } catch (joinErr) {
+            console.error("Error joining league:", joinErr);
+            setError("Unable to join the league for this event.");
+            setStatus("not_found");
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Now fetch the event from the league
+        try {
+          const eventResponse = await fetch(`/api/leagues/${actualLeagueId}/events/${actualEventId}`, {
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`
             }
           });
 
-          if (response.ok) {
-            foundEvent = await response.json();
-            foundLeague = userLeague;
-            break;
+          if (eventResponse.ok) {
+            const foundEvent = await eventResponse.json();
+            
+            // Success! Set everything up
+            setEvent(foundEvent);
+            setLeague(targetLeague);
+            setSelectedEvent(foundEvent);
+            setSelectedLeagueId(actualLeagueId);
+            setStatus("found");
+            
+            // Auto-redirect to dashboard after 2 seconds
+            setTimeout(() => {
+              navigate("/dashboard");
+            }, 2000);
+          } else {
+            throw new Error('Event not found in league');
           }
+        } catch (eventErr) {
+          console.error("Error fetching event:", eventErr);
+          setError("Event not found or no longer available.");
+          setStatus("not_found");
         }
 
-        if (foundEvent && foundLeague) {
-          // Success! User has access to this event
-          setEvent(foundEvent);
-          setLeague(foundLeague);
-          setSelectedEvent(foundEvent);
-          setStatus("found");
-          
-          // Auto-redirect to dashboard after 2 seconds
-          setTimeout(() => {
-            navigate("/dashboard");
-          }, 2000);
-        } else {
-          // Event not found in user's leagues - they need to join the league first
-          setStatus("no_access");
-        }
       } catch (err) {
-        console.error("Error joining event:", err);
+        console.error("Error in event join flow:", err);
         setError("Failed to join event. Please try again.");
         setStatus("not_found");
       }
@@ -79,7 +164,7 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [eventId, user, leagues, navigate, setSelectedEvent]);
+  }, [leagueId, eventId, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId]);
 
   if (loading) {
     return <LoadingScreen size="medium" />;
@@ -146,7 +231,7 @@ export default function JoinEvent() {
             </div>
             
             <p className="text-gray-500 text-sm mt-4">
-              Event Code: <code className="bg-gray-100 px-2 py-1 rounded">{eventId}</code>
+              Event Code: <code className="bg-gray-100 px-2 py-1 rounded">{leagueId && !eventId ? leagueId : eventId}</code>
             </p>
           </div>
         )}
@@ -180,7 +265,7 @@ export default function JoinEvent() {
             </div>
             
             <p className="text-gray-500 text-sm mt-4">
-              Event Code: <code className="bg-gray-100 px-2 py-1 rounded">{eventId}</code>
+              Event Code: <code className="bg-gray-100 px-2 py-1 rounded">{leagueId && !eventId ? leagueId : eventId}</code>
             </p>
           </div>
         )}
