@@ -28,7 +28,9 @@ export default function JoinEvent() {
         eventId, 
         actualLeagueId, 
         actualEventId,
-        userLeagueCount: leagues?.length || 0 
+        userLeagueCount: leagues?.length || 0,
+        currentURL: window.location.href,
+        pathname: window.location.pathname 
       });
       
       if (!actualEventId) {
@@ -277,8 +279,20 @@ export default function JoinEvent() {
             
             <div className="space-y-3">
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => {
+                  // Try searching for this event across all public leagues
+                  const eventCode = leagueId && !eventId ? leagueId : eventId;
+                  console.log('Attempting manual event search for:', eventCode);
+                  window.open(`/join?code=${eventCode}`, '_blank');
+                }}
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
+              >
+                Try Manual Join
+              </button>
+              
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
               >
                 Go to Dashboard
               </button>
@@ -294,6 +308,12 @@ export default function JoinEvent() {
             <p className="text-gray-500 text-sm mt-4">
               Event Code: <code className="bg-gray-100 px-2 py-1 rounded">{leagueId && !eventId ? leagueId : eventId}</code>
             </p>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+              <p className="text-blue-800 text-xs">
+                <strong>Debug Info:</strong> URL format issue detected. The "Try Manual Join" button will attempt to join using the event code directly.
+              </p>
+            </div>
           </div>
         )}
       </div>
