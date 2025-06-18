@@ -23,6 +23,14 @@ export default function JoinEvent() {
       const actualEventId = leagueId && !eventId ? leagueId : eventId;
       const actualLeagueId = leagueId && eventId ? leagueId : null;
       
+      console.log('JoinEvent starting:', { 
+        leagueId, 
+        eventId, 
+        actualLeagueId, 
+        actualEventId,
+        userLeagueCount: leagues?.length || 0 
+      });
+      
       if (!actualEventId) {
         setError("Invalid event code");
         setStatus("not_found");
@@ -33,8 +41,14 @@ export default function JoinEvent() {
       try {
         // First check if user is authenticated
         if (!user) {
-          // Store the event ID for after authentication (keeping old format for compatibility)
-          localStorage.setItem('pendingEventJoin', actualEventId);
+          // Store the full path information for after authentication
+          if (actualLeagueId) {
+            // New format: store both league and event IDs
+            localStorage.setItem('pendingEventJoin', `${actualLeagueId}/${actualEventId}`);
+          } else {
+            // Old format: just store event ID
+            localStorage.setItem('pendingEventJoin', actualEventId);
+          }
           navigate("/login");
           return;
         }
@@ -92,7 +106,8 @@ export default function JoinEvent() {
         if (!existingLeague) {
           // User is not a member - join them to the league automatically
           try {
-            const joinResponse = await fetch(`/api/leagues/${actualLeagueId}/join`, {
+            console.log(`Attempting to join league: ${actualLeagueId}`);
+            const joinResponse = await fetch(`/api/leagues/join/${actualLeagueId}`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -100,23 +115,28 @@ export default function JoinEvent() {
               },
               body: JSON.stringify({
                 user_id: user.uid,
-                email: user.email
+                email: user.email,
+                role: 'coach'
               })
             });
 
             if (joinResponse.ok) {
               const joinData = await joinResponse.json();
-              // Add league to user's context
-              targetLeague = { id: actualLeagueId, name: joinData.league_name || 'League', role: 'coach' };
+              console.log('League join response:', joinData);
+              // Add league to user's context - note: backend doesn't return league_name
+              targetLeague = { id: actualLeagueId, name: 'League', role: 'coach' };
               if (addLeague) {
                 addLeague(targetLeague);
               }
+              console.log('Successfully joined league and added to context');
             } else {
-              throw new Error('Failed to join league');
+              const errorText = await joinResponse.text();
+              console.error('League join failed:', joinResponse.status, errorText);
+              throw new Error(`Failed to join league: ${joinResponse.status} ${errorText}`);
             }
           } catch (joinErr) {
             console.error("Error joining league:", joinErr);
-            setError("Unable to join the league for this event.");
+            setError(`Unable to join the league for this event: ${joinErr.message}`);
             setStatus("not_found");
             setLoading(false);
             return;
@@ -125,14 +145,18 @@ export default function JoinEvent() {
 
         // Now fetch the event from the league
         try {
+          console.log(`Fetching event ${actualEventId} from league ${actualLeagueId}`);
           const eventResponse = await fetch(`/api/leagues/${actualLeagueId}/events/${actualEventId}`, {
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`
             }
           });
 
+          console.log('Event fetch response status:', eventResponse.status);
+
           if (eventResponse.ok) {
             const foundEvent = await eventResponse.json();
+            console.log('Event fetched successfully:', foundEvent);
             
             // Success! Set everything up
             setEvent(foundEvent);
@@ -141,16 +165,19 @@ export default function JoinEvent() {
             setSelectedLeagueId(actualLeagueId);
             setStatus("found");
             
+            console.log('All setup complete, redirecting to dashboard in 2 seconds');
             // Auto-redirect to dashboard after 2 seconds
             setTimeout(() => {
               navigate("/dashboard");
             }, 2000);
           } else {
-            throw new Error('Event not found in league');
+            const errorText = await eventResponse.text();
+            console.error('Event fetch failed:', eventResponse.status, errorText);
+            throw new Error(`Event not found in league: ${eventResponse.status} ${errorText}`);
           }
         } catch (eventErr) {
           console.error("Error fetching event:", eventErr);
-          setError("Event not found or no longer available.");
+          setError(`Event not found or no longer available: ${eventErr.message}`);
           setStatus("not_found");
         }
 

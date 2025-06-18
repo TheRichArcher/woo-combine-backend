@@ -75,7 +75,14 @@ export default function SelectRole() {
       if (isInvitedUser && pendingEventJoin) {
         // Clear the pending event join and redirect to the specific event
         localStorage.removeItem('pendingEventJoin');
-        navigate(`/join-event/${pendingEventJoin}`, { replace: true });
+        
+        // Handle both old format (eventId) and new format (leagueId/eventId)
+        const joinPath = pendingEventJoin.includes('/') 
+          ? pendingEventJoin  // New format: already has leagueId/eventId
+          : pendingEventJoin; // Old format: just eventId
+        
+        console.log('Redirecting to join-event with path:', joinPath);
+        navigate(`/join-event/${joinPath}`, { replace: true });
       } else {
         // Regular flow - navigate to dashboard
         navigate("/dashboard", { replace: true });
