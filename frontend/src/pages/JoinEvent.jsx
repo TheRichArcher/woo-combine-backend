@@ -9,7 +9,7 @@ import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 export default function JoinEvent() {
   const { leagueId, eventId } = useParams();
   const navigate = useNavigate();
-  const { user, leagues, addLeague, setSelectedLeagueId } = useAuth();
+  const { user, leagues, addLeague, setSelectedLeagueId, userRole } = useAuth();
   const { setSelectedEvent } = useEvent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -134,7 +134,9 @@ export default function JoinEvent() {
               body: JSON.stringify({
                 user_id: user.uid,
                 email: user.email,
-                role: 'coach'
+                // CRITICAL FIX: Use the user's selected role from AuthContext
+                // This ensures the role they selected in SelectRole is properly applied
+                role: userRole || 'coach' // fallback to coach if somehow userRole is not set
               })
             });
 
@@ -144,12 +146,13 @@ export default function JoinEvent() {
             if (joinResponse.ok) {
               const joinData = await joinResponse.json();
               console.log('League join response:', joinData);
-              // Add league to user's context - note: backend doesn't return league_name
-              targetLeague = { id: actualLeagueId, name: 'League', role: 'coach' };
+              // Add league to user's context - use the role that was sent in the request
+              const assignedRole = userRole || 'coach'; // Use the same role we sent to backend
+              targetLeague = { id: actualLeagueId, name: joinData.league_name || 'League', role: assignedRole };
               if (addLeague) {
                 addLeague(targetLeague);
               }
-              console.log('Successfully joined league and added to context');
+              console.log('Successfully joined league and added to context with role:', assignedRole);
             } else {
               const errorText = await joinResponse.text();
               console.error('League join failed:', {
@@ -226,7 +229,7 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [leagueId, eventId, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId]);
+  }, [leagueId, eventId, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole]);
 
   if (loading) {
     return <LoadingScreen size="medium" />;

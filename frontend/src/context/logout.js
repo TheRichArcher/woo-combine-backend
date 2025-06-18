@@ -6,7 +6,7 @@ export function useLogout() {
   const { setUser, setLeagues, setSelectedLeagueId, setRole, setUserRole, setError } = useAuth();
   return async function logout() {
     try {
-    await signOut(auth);
+      await signOut(auth);
       // Clear all auth state
       setUser(null);
       setLeagues([]);
@@ -14,19 +14,21 @@ export function useLogout() {
       setRole(null);
       setUserRole(null);
       setError(null);
-      // Clear localStorage
+      // Clear localStorage including invitation data
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
+      localStorage.removeItem('pendingEventJoin');
     } catch (error) {
       console.error('Logout error:', error);
       // Still clear state even if signOut fails
-    setUser(null);
+      setUser(null);
       setLeagues([]);
       setSelectedLeagueId('');
       setRole(null);
       setUserRole(null);
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
+      localStorage.removeItem('pendingEventJoin');
     }
   };
 } 

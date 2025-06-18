@@ -26,14 +26,36 @@ export default function SelectRole() {
   const logout = useLogout();
   const db = getFirestore();
   
+  // CRITICAL FIX: Validate pendingEventJoin is current and relevant
   // Check if user was invited via event QR code
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-  const isInvitedUser = !!pendingEventJoin;
+  
+  // ENHANCED VALIDATION: Only treat as invited user if we have valid pending join data
+  // AND the user came from a join-event route (not just stale localStorage data)
+  const currentPath = window.location.pathname;
+  const cameFromJoinEvent = currentPath === '/select-role' && pendingEventJoin;
+  
+  // Additional validation: ensure the pendingEventJoin looks like a valid event/league ID
+  const isValidPendingJoin = pendingEventJoin && (
+    pendingEventJoin.includes('/') || // New format: leagueId/eventId
+    (pendingEventJoin.length > 10 && pendingEventJoin.match(/^[A-Za-z0-9]+$/)) // Old format: eventId
+  );
+  
+  const isInvitedUser = cameFromJoinEvent && isValidPendingJoin;
+  
+  // If we have stale pendingEventJoin data but user didn't come from join-event, clear it
+  React.useEffect(() => {
+    if (pendingEventJoin && !isInvitedUser) {
+      console.log('SelectRole: Clearing stale pendingEventJoin data:', pendingEventJoin);
+      localStorage.removeItem('pendingEventJoin');
+    }
+  }, [pendingEventJoin, isInvitedUser]);
+  
   const roleOptions = isInvitedUser ? INVITED_ROLE_OPTIONS : ALL_ROLE_OPTIONS;
 
   React.useEffect(() => {
     // Simple initialization since RequireAuth already handles all auth checks
-        setCheckingUser(false);
+    setCheckingUser(false);
   }, []);
 
   if (!user || checkingUser) {
@@ -81,8 +103,7 @@ export default function SelectRole() {
           ? pendingEventJoin  // New format: already has leagueId/eventId
           : pendingEventJoin; // Old format: just eventId
         
-        console.log('SelectRole: Redirecting to join-event with path:', joinPath);
-        console.log('SelectRole: Original pendingEventJoin:', pendingEventJoin);
+        console.log('SelectRole: Redirecting invited user to join-event with path:', joinPath);
         console.log('SelectRole: Selected role:', selectedRole);
         
         // Ensure URL safety by encoding path components
@@ -92,6 +113,7 @@ export default function SelectRole() {
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {
         // Regular flow - navigate to dashboard
+        console.log('SelectRole: Regular user flow, navigating to dashboard');
         navigate("/dashboard", { replace: true });
       }
     } catch (err) {
@@ -101,8 +123,6 @@ export default function SelectRole() {
       setLoading(false);
     }
   };
-
-
 
   const handleLogout = async () => {
     try {
@@ -146,6 +166,16 @@ export default function SelectRole() {
           </div>
         )}
         
+        {/* Debug Info for Development */}
+        {import.meta.env.DEV && (
+          <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mb-4 text-xs">
+            <strong>Debug Info:</strong><br/>
+            pendingEventJoin: {pendingEventJoin || 'none'}<br/>
+            isInvitedUser: {isInvitedUser ? 'true' : 'false'}<br/>
+            roleOptions: {roleOptions.length} options
+          </div>
+        )}
+        
         {/* Role Options */}
         <div className="w-full flex flex-col gap-4 mb-6">
           {roleOptions.map(opt => (
@@ -171,8 +201,6 @@ export default function SelectRole() {
             {error}
           </div>
         )}
-
-
 
         {/* Action Buttons */}
         <div className="w-full space-y-3">
