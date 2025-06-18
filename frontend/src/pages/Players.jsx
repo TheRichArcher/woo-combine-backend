@@ -624,14 +624,6 @@ export default function Players() {
   };
 
   // NEW: Player Management tab weight functions
-  const getPlayerTabPercentages = () => {
-    const total = Object.values(playerTabWeights).reduce((sum, weight) => sum + weight, 0);
-    const percentages = {};
-    DRILLS.forEach(drill => {
-      percentages[drill.key] = Math.round((playerTabWeights[drill.key] / total) * 100);
-    });
-    return percentages;
-  };
 
   const applyPlayerTabPreset = (presetKey) => {
     setPlayerTabWeights({ ...WEIGHT_PRESETS[presetKey].weights });
@@ -717,26 +709,18 @@ export default function Players() {
   );
 
   const fetchPlayers = useCallback(async () => {
-    console.log('[Players] fetchPlayers called', { selectedEvent: !!selectedEvent, user: !!user, selectedLeagueId: !!selectedLeagueId });
-    
     if (!selectedEvent || !user || !selectedLeagueId) {
-      console.log('[Players] Missing required data, setting empty state');
       setPlayers([]); // Ensure players is always an array
       setLoading(false);
       return;
     }
     
-    console.log('[Players] Starting to fetch players for event:', selectedEvent.id);
     setLoading(true);
     setError(null);
     
     try {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
-      console.log('[Players] API call succeeded, data:', data);
-      console.log('[Players] Data type:', typeof data, 'Array?', Array.isArray(data), 'Length:', data?.length);
-      
       setPlayers(data);
-      console.log('[Players] Players state updated');
       
       // CRITICAL FIX: Update selectedPlayer data if modal is open
       if (selectedPlayer) {
@@ -746,22 +730,18 @@ export default function Players() {
         }
       }
     } catch (err) {
-      console.log('[Players] API call failed:', err);
       if (err.response?.status === 404) {
         // 404 means no players found yet - normal for new events
-        console.log('[Players] 404 error - no players found');
         setError(null); // Don't show as error, just empty state
         setPlayers([]);
       } else {
         // Other errors are actual problems
-        console.log('[Players] Other error:', err.message);
         setError(err.message);
       }
     } finally {
-      console.log('[Players] Setting loading to false');
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();

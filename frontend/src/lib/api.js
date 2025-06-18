@@ -46,13 +46,10 @@ api.interceptors.response.use(
     // Extended delays for cold start indicators
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
       delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
-      console.log(`[API] Cold start timeout detected, retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
     } else if (!error.response) {
       delay = Math.min(delay * 1.5, 12000); // Network failures
-      console.log(`[API] Network failure, retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
     } else if (error.response?.status >= 500) {
       delay = Math.min(delay * 1.5, 10000); // Server errors
-      console.log(`[API] Server error (${error.response.status}), retrying in ${delay/1000}s... (attempt ${config._retryCount}/${maxRetries})`);
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));

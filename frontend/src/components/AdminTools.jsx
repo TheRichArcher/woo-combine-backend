@@ -54,7 +54,7 @@ function validateRow(row, headers) {
 }
 
 export default function AdminTools() {
-  const { user, role, userRole, selectedLeagueId, leagues } = useAuth();
+  const { user, userRole, selectedLeagueId, leagues } = useAuth();
   const { selectedEvent } = useEvent();
 
   // Reset tool state

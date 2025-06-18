@@ -52,14 +52,12 @@ export function AuthProvider({ children }) {
       const db = getFirestore();
       
       // STEP 1: Role check with extended timeout for cold starts
-      console.log('[AuthContext] Checking user role...');
       const roleDoc = await Promise.race([
         getDoc(doc(db, "users", firebaseUser.uid)),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))  // Increased to 20s
       ]);
 
       if (!roleDoc.exists() || !roleDoc.data().role) {
-        console.log('[AuthContext] No role found, redirecting to select-role');
         setUserRole(null);
         setLeagues([]);
         setRole(null);
@@ -70,10 +68,8 @@ export function AuthProvider({ children }) {
 
       const userRole = roleDoc.data().role;
       setUserRole(userRole);
-      console.log('[AuthContext] User role:', userRole);
 
       // STEP 2: League fetch with single request and extended timeout
-      console.log('[AuthContext] Fetching user leagues...');
       let coldStartToastId = null;
       
       try {
@@ -92,7 +88,6 @@ export function AuthProvider({ children }) {
         
         const userLeagues = leagueResponse.data.leagues || [];
         setLeagues(userLeagues);
-        console.log('[AuthContext] Leagues loaded:', userLeagues.length);
         
         // Set up selected league and role
         let targetLeagueId = selectedLeagueId;
@@ -124,13 +119,9 @@ export function AuthProvider({ children }) {
         
         // Enhanced error handling for cold start scenarios
         if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {
-          console.log('[AuthContext] Cold start timeout detected - continuing without leagues');
           setError('Server is starting up. Please refresh the page in a moment.');
         } else if (leagueError.response?.status >= 500) {
-          console.log('[AuthContext] Server error during cold start - continuing without leagues');
           setError('Server is temporarily unavailable. Please try again shortly.');
-        } else {
-          console.log('[AuthContext] Network or other error - continuing without leagues');
         }
         
         // Continue without leagues rather than blocking the entire app
@@ -146,13 +137,9 @@ export function AuthProvider({ children }) {
       // Navigation logic - only redirect from onboarding routes, not between authenticated pages
       const currentPath = window.location.pathname;
       const onboardingRoutes = ["/login", "/signup", "/verify-email", "/select-role", "/"];
-      const authenticatedRoutes = ["/dashboard", "/players", "/admin", "/live-entry"];
       
       if (onboardingRoutes.includes(currentPath)) {
         navigate("/dashboard");
-      } else if (authenticatedRoutes.includes(currentPath)) {
-        // Don't redirect - user is already on a valid authenticated page
-        console.log('[AuthContext] User already on authenticated page:', currentPath);
       }
 
     } catch (err) {
@@ -175,7 +162,6 @@ export function AuthProvider({ children }) {
   // Firebase auth state change handler
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('[AuthContext] Firebase auth state changed:', !!firebaseUser);
       
       if (!firebaseUser) {
         // User logged out

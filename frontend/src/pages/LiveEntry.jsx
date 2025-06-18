@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
-import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -15,7 +14,6 @@ const DRILLS = [
 
 export default function LiveEntry() {
   const { selectedEvent } = useEvent();
-  const { user } = useAuth();
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
@@ -38,21 +36,20 @@ export default function LiveEntry() {
   const playerNumberRef = useRef(null);
   const scoreRef = useRef(null);
   
-  // Load players on mount
-  useEffect(() => {
-    if (selectedEvent) {
-      fetchPlayers();
-    }
-  }, [selectedEvent]);
-  
-  const fetchPlayers = async () => {
+  const fetchPlayers = useCallback(async () => {
+    if (!selectedEvent) return;
     try {
       const response = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(response.data);
     } catch (error) {
       console.error('Error fetching players:', error);
     }
-  };
+  }, [selectedEvent]);
+
+  // Load players on mount
+  useEffect(() => {
+    fetchPlayers();
+  }, [fetchPlayers]);
   
   // Auto-complete logic
   useEffect(() => {

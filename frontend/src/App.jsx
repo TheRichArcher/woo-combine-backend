@@ -20,6 +20,7 @@ import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
+import JoinEvent from "./pages/JoinEvent";
 
 function App() {
   return (
@@ -124,7 +125,7 @@ function App() {
                 </RequireAuth>
               } />
               <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
-              {/* Temporary redirect routes for missing pages */}
+              <Route path="/join-event/:eventId" element={<JoinEvent />} />
               <Route path="/help" element={<Navigate to="/welcome" replace />} />
               <Route path="/terms" element={<Navigate to="/welcome" replace />} />
               <Route path="/privacy" element={<Navigate to="/welcome" replace />} />

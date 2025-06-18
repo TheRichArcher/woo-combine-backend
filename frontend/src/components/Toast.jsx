@@ -1,8 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, AlertCircle, Clock } from 'lucide-react';
 
 const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
+
+  const handleClose = useCallback(() => {
+    setIsVisible(false);
+    setTimeout(() => {
+      if (onClose) onClose();
+    }, 300); // Animation duration
+  }, [onClose]);
 
   useEffect(() => {
     if (duration > 0) {
@@ -11,14 +18,7 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [duration]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(() => {
-      if (onClose) onClose();
-    }, 300); // Animation duration
-  };
+  }, [duration, handleClose]);
 
   const typeStyles = {
     info: 'bg-blue-50 border-blue-200 text-blue-800',
