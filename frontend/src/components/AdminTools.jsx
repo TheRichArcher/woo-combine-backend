@@ -92,11 +92,25 @@ export default function AdminTools() {
   const [showQr, setShowQr] = useState(false);
   const league = leagues?.find(l => l.id === selectedLeagueId);
   const joinCode = league?.id || '';
+  
+  // DEBUG: Add logging to understand why QR code generation fails
+  console.log('QR Code Generation Debug:', {
+    selectedLeagueId,
+    leagues: leagues?.map(l => ({ id: l.id, name: l.name })),
+    league: league ? { id: league.id, name: league.name } : null,
+    selectedEvent: selectedEvent ? { id: selectedEvent.id, name: selectedEvent.name } : null,
+    joinCode
+  });
+  
   const inviteLink = (league && selectedEvent) 
     ? `https://woo-combine.com/join-event/${league.id}/${selectedEvent.id}`
+    : selectedEvent && selectedLeagueId
+    ? `https://woo-combine.com/join-event/${selectedLeagueId}/${selectedEvent.id}` // FALLBACK: Use selectedLeagueId directly
     : joinCode 
     ? `https://woo-combine.com/join?code=${joinCode}` 
     : '';
+    
+  console.log('Generated invite link:', inviteLink);
 
   // Edit Event Modal state
   const [showEditEventModal, setShowEditEventModal] = useState(false);
