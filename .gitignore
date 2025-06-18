@@ -110,4 +110,4 @@ README.local.bak
 backend/.env
 
 # Virtual environment
-.venv/ 
+.venv/ temp_features/
