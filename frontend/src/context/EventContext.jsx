@@ -15,8 +15,11 @@ export function EventProvider({ children }) {
   const [error, setError] = useState(null);
   const location = useLocation();
 
-  // Pages that don't require a league selection
+  // Pages that don't require a league selection  
   const noLeagueRequiredPages = ['/welcome', '/login', '/signup', '/verify-email', '/select-role', '/select-league', '/claim', '/create-league', '/join'];
+  
+  // Check if current path is a join-event route (which also shouldn't show LeagueFallback)
+  const isJoinEventRoute = location.pathname.startsWith('/join-event');
 
   // Load events from backend
   useEffect(() => {
@@ -118,7 +121,8 @@ export function EventProvider({ children }) {
   };
 
   // FIXED: Only show LeagueFallback after AuthContext initialization is complete
-  const shouldShowLeagueFallback = authChecked && roleChecked && noLeague && !noLeagueRequiredPages.includes(location.pathname);
+  // Also exclude join-event routes to allow automatic league joining
+  const shouldShowLeagueFallback = authChecked && roleChecked && noLeague && !noLeagueRequiredPages.includes(location.pathname) && !isJoinEventRoute;
 
   return (
     <EventContext.Provider value={{ 
