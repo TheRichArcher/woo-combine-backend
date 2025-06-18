@@ -81,8 +81,15 @@ export default function SelectRole() {
           ? pendingEventJoin  // New format: already has leagueId/eventId
           : pendingEventJoin; // Old format: just eventId
         
-        console.log('Redirecting to join-event with path:', joinPath);
-        navigate(`/join-event/${joinPath}`, { replace: true });
+        console.log('SelectRole: Redirecting to join-event with path:', joinPath);
+        console.log('SelectRole: Original pendingEventJoin:', pendingEventJoin);
+        console.log('SelectRole: Selected role:', selectedRole);
+        
+        // Ensure URL safety by encoding path components
+        const safePath = joinPath.split('/').map(part => encodeURIComponent(part)).join('/');
+        console.log('SelectRole: URL-safe path:', safePath);
+        
+        navigate(`/join-event/${safePath}`, { replace: true });
       } else {
         // Regular flow - navigate to dashboard
         navigate("/dashboard", { replace: true });

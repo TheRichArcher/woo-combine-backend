@@ -62,6 +62,16 @@ export function AuthProvider({ children }) {
         setLeagues([]);
         setRole(null);
         setRoleChecked(true);
+        
+        // CRITICAL FIX: Preserve join-event routes for invited users
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/join-event/')) {
+          // Extract the path parameters and store for after role selection
+          const joinPath = currentPath.replace('/join-event/', '');
+          localStorage.setItem('pendingEventJoin', joinPath);
+          console.log('Preserved join-event path for invited user:', joinPath);
+        }
+        
         navigate("/select-role");
         return;
       }
@@ -152,6 +162,13 @@ export function AuthProvider({ children }) {
       
       // Redirect to appropriate page based on error
       if (err.message.includes('Role check timeout')) {
+        // CRITICAL FIX: Preserve join-event routes even on timeout
+        const currentPath = window.location.pathname;
+        if (currentPath.startsWith('/join-event/')) {
+          const joinPath = currentPath.replace('/join-event/', '');
+          localStorage.setItem('pendingEventJoin', joinPath);
+          console.log('Preserved join-event path on timeout:', joinPath);
+        }
         navigate("/select-role");
       }
     } finally {

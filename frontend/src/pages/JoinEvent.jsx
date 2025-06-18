@@ -20,8 +20,12 @@ export default function JoinEvent() {
   useEffect(() => {
     const handleEventJoin = async () => {
       // Handle backward compatibility: if leagueId is actually the eventId (old URL format)
-      const actualEventId = leagueId && !eventId ? leagueId : eventId;
-      const actualLeagueId = leagueId && eventId ? leagueId : null;
+      // Decode URL parameters in case they were encoded
+      const rawEventId = leagueId && !eventId ? leagueId : eventId;
+      const rawLeagueId = leagueId && eventId ? leagueId : null;
+      
+      const actualEventId = rawEventId ? decodeURIComponent(rawEventId) : null;
+      const actualLeagueId = rawLeagueId ? decodeURIComponent(rawLeagueId) : null;
       
       console.log('JoinEvent starting:', { 
         leagueId, 
@@ -44,13 +48,15 @@ export default function JoinEvent() {
         // First check if user is authenticated
         if (!user) {
           // Store the full path information for after authentication
-          if (actualLeagueId) {
+          // Use the raw URL parameters to maintain consistency
+          if (rawLeagueId) {
             // New format: store both league and event IDs
-            localStorage.setItem('pendingEventJoin', `${actualLeagueId}/${actualEventId}`);
+            localStorage.setItem('pendingEventJoin', `${rawLeagueId}/${rawEventId}`);
           } else {
             // Old format: just store event ID
-            localStorage.setItem('pendingEventJoin', actualEventId);
+            localStorage.setItem('pendingEventJoin', rawEventId);
           }
+          console.log('JoinEvent: Stored pendingEventJoin for unauthenticated user:', localStorage.getItem('pendingEventJoin'));
           navigate("/login");
           return;
         }
@@ -109,7 +115,17 @@ export default function JoinEvent() {
           // User is not a member - join them to the league automatically
           try {
             console.log(`Attempting to join league: ${actualLeagueId}`);
-            const joinResponse = await fetch(`/api/leagues/join/${actualLeagueId}`, {
+            console.log('League ID type:', typeof actualLeagueId, 'length:', actualLeagueId?.length);
+            console.log('League ID characters:', actualLeagueId?.split('').map(c => `${c}(${c.charCodeAt(0)})`));
+            
+            // URL encode the league ID in case it contains special characters
+            const encodedLeagueId = encodeURIComponent(actualLeagueId);
+            console.log('Encoded league ID:', encodedLeagueId);
+            
+            const joinUrl = `/api/leagues/join/${encodedLeagueId}`;
+            console.log('Full join URL:', joinUrl);
+            
+            const joinResponse = await fetch(joinUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -122,6 +138,9 @@ export default function JoinEvent() {
               })
             });
 
+            console.log('Join response status:', joinResponse.status);
+            console.log('Join response headers:', Object.fromEntries(joinResponse.headers.entries()));
+
             if (joinResponse.ok) {
               const joinData = await joinResponse.json();
               console.log('League join response:', joinData);
@@ -133,7 +152,21 @@ export default function JoinEvent() {
               console.log('Successfully joined league and added to context');
             } else {
               const errorText = await joinResponse.text();
-              console.error('League join failed:', joinResponse.status, errorText);
+              console.error('League join failed:', {
+                status: joinResponse.status,
+                statusText: joinResponse.statusText,
+                errorText: errorText,
+                url: joinUrl
+              });
+              
+              // Try to parse error as JSON for better debugging
+              try {
+                const errorJson = JSON.parse(errorText);
+                console.error('Parsed error JSON:', errorJson);
+              } catch (e) {
+                console.error('Error text (not JSON):', errorText);
+              }
+              
               throw new Error(`Failed to join league: ${joinResponse.status} ${errorText}`);
             }
           } catch (joinErr) {
