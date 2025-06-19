@@ -5,6 +5,7 @@ import { useEvent } from "../context/EventContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
+import api from '../lib/api';
 
 export default function JoinEvent() {
   const { leagueId, eventId } = useParams();
@@ -63,24 +64,13 @@ export default function JoinEvent() {
             // Need to join the league first
             console.log('JoinEvent: Auto-joining league:', actualLeagueId);
             
-            const joinResponse = await fetch(`/api/leagues/join/${actualLeagueId}`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${await user.getIdToken()}`
-              },
-              body: JSON.stringify({
-                user_id: user.uid,
-                email: user.email,
-                role: userRole || 'coach'
-              })
+            const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
+              user_id: user.uid,
+              email: user.email,
+              role: userRole || 'coach'
             });
 
-            if (!joinResponse.ok) {
-              throw new Error(`Failed to join league: ${joinResponse.status}`);
-            }
-
-            const joinData = await joinResponse.json();
+            const joinData = joinResponse.data;
             targetLeague = { 
               id: actualLeagueId, 
               name: joinData.league_name || 'League', 
@@ -94,14 +84,14 @@ export default function JoinEvent() {
           }
 
           // Now fetch the event
-          const eventResponse = await fetch(`/api/leagues/${actualLeagueId}/events/${actualEventId}`, {
-            headers: { 'Authorization': `Bearer ${await user.getIdToken()}` }
-          });
-
-          if (eventResponse.ok) {
-            targetEvent = await eventResponse.json();
-          } else {
-            throw new Error('Event not found in league');
+          try {
+            const eventResponse = await api.get(`/leagues/${actualLeagueId}/events/${actualEventId}`);
+            targetEvent = eventResponse.data;
+          } catch (eventError) {
+            if (eventError.response?.status === 404) {
+              throw new Error('Event not found in league');
+            }
+            throw eventError;
           }
         } 
         // STRATEGY 2: Only eventId provided (old format) - search user's leagues
@@ -110,17 +100,15 @@ export default function JoinEvent() {
           
           for (const userLeague of leagues || []) {
             try {
-              const response = await fetch(`/api/leagues/${userLeague.id}/events/${actualEventId}`, {
-                headers: { 'Authorization': `Bearer ${await user.getIdToken()}` }
-              });
-
-              if (response.ok) {
-                targetEvent = await response.json();
-                targetLeague = userLeague;
-                break;
-              }
+              const response = await api.get(`/leagues/${userLeague.id}/events/${actualEventId}`);
+              targetEvent = response.data;
+              targetLeague = userLeague;
+              break;
             } catch (err) {
-              console.log(`Event not found in league ${userLeague.id}`);
+              if (err.response?.status !== 404) {
+                console.log(`Error checking league ${userLeague.id}:`, err.message);
+              }
+              // Continue to next league
             }
           }
 

@@ -207,6 +207,22 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [quickAuthCheck, completeInitialization]);
 
+  // Add league function for join operations
+  const addLeague = useCallback((newLeague) => {
+    setLeagues(prevLeagues => {
+      // Check if league already exists
+      const exists = prevLeagues.some(l => l.id === newLeague.id);
+      if (exists) {
+        return prevLeagues;
+      }
+      
+      // Add new league to the list
+      const updatedLeagues = [...prevLeagues, newLeague];
+      console.log('AuthContext: Added new league:', newLeague);
+      return updatedLeagues;
+    });
+  }, []);
+
   // Expose state setters for logout functionality
   const contextValue = {
     user,
@@ -224,6 +240,7 @@ export function AuthProvider({ children }) {
         setRole(selectedLeague?.role || null);
       }
     },
+    addLeague,
     authChecked,
     roleChecked,
     error,
