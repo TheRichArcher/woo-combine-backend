@@ -16,7 +16,7 @@ import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
-app = FastAPI(title="WooCombine API", version="1.0.0")
+app = FastAPI(title="WooCombine API", version="1.0.1")
 
 # Fast OPTIONS response middleware to handle CORS preflight quickly
 class FastOptionsMiddleware(BaseHTTPMiddleware):
@@ -84,7 +84,7 @@ def health_check():
     return {
         "status": "ok",
         "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.0"
+        "version": "1.0.1"
     }
 
 @app.get("/api")
@@ -92,7 +92,7 @@ def root():
     """Root endpoint for basic API info"""
     return {
         "message": "WooCombine API",
-        "version": "1.0.0",
+        "version": "1.0.1",
         "status": "running",
         "docs": "/docs"
     }
