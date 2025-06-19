@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from backend.firestore_client import db
 from backend.auth import get_current_user
 from datetime import datetime
@@ -21,7 +21,11 @@ def execute_with_timeout(func, timeout=10, *args, **kwargs):
             )
 
 @router.get('/leagues/{league_id}/events')
-def list_events(league_id: str, current_user=Depends(get_current_user)):
+def list_events(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"), 
+    current_user=Depends(get_current_user)
+):
+    logging.info(f"[DEBUG] list_events called with league_id: '{league_id}' (length: {len(league_id)})")
     try:
         events_ref = db.collection("leagues").document(league_id).collection("events")
         # Add timeout to events retrieval
@@ -30,15 +34,21 @@ def list_events(league_id: str, current_user=Depends(get_current_user)):
             timeout=10
         )
         events = [dict(e.to_dict(), id=e.id) for e in events_stream]
+        logging.info(f"[DEBUG] Found {len(events)} events for league {league_id}")
         return {"events": events}
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error listing events: {e}")
+        logging.error(f"Error listing events for league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to list events")
 
 @router.post('/leagues/{league_id}/events')
-def create_event(league_id: str, req: dict, current_user=Depends(get_current_user)):
+def create_event(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"), 
+    req: dict = None, 
+    current_user=Depends(get_current_user)
+):
+    logging.info(f"[DEBUG] create_event called with league_id: '{league_id}' (length: {len(league_id)})")
     try:
         name = req.get("name")
         date = req.get("date")
@@ -72,15 +82,22 @@ def create_event(league_id: str, req: dict, current_user=Depends(get_current_use
             timeout=10
         )
         
+        logging.info(f"[DEBUG] Created event {event_ref.id} in league {league_id}")
         return {"event_id": event_ref.id}
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error creating event: {e}")
+        logging.error(f"Error creating event in league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create event")
 
 @router.put('/leagues/{league_id}/events/{event_id}')
-def update_event(league_id: str, event_id: str, req: dict, current_user=Depends(get_current_user)):
+def update_event(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"), 
+    event_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="Event ID (flexible format)"), 
+    req: dict = None, 
+    current_user=Depends(get_current_user)
+):
+    logging.info(f"[DEBUG] update_event called with league_id: '{league_id}', event_id: '{event_id}'")
     try:
         name = req.get("name")
         date = req.get("date")
@@ -111,9 +128,10 @@ def update_event(league_id: str, event_id: str, req: dict, current_user=Depends(
             timeout=10
         )
         
+        logging.info(f"[DEBUG] Updated event {event_id} in league {league_id}")
         return {"message": "Event updated successfully"}
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error updating event: {e}")
+        logging.error(f"Error updating event {event_id} in league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update event") 

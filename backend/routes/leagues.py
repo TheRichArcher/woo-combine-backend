@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from backend.firestore_client import db
 from backend.auth import get_current_user
 from datetime import datetime
@@ -234,12 +234,17 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to create league")
 
 @router.post('/leagues/join/{code}')
-def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
+def join_league(
+    code: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"),
+    req: dict = None, 
+    current_user=Depends(get_current_user)
+):
     # ENHANCED DEBUGGING for pattern validation issues
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
     logging.info(f"[DEBUG] Received code parameter: '{code}' (type: {type(code)}, length: {len(code)})")
     logging.info(f"[DEBUG] Code characters: {[c for c in code]}")
     logging.info(f"[DEBUG] ASCII values: {[ord(c) for c in code]}")
+    logging.info(f"[DEBUG] Pattern validation passed for league ID: {code}")
     
     user_id = current_user["uid"]
     role = req.get("role", "coach")
@@ -304,7 +309,10 @@ def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to join league")
 
 @router.get('/leagues/{league_id}/teams')
-def list_teams(league_id: str, current_user=Depends(get_current_user)):
+def list_teams(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"),
+    current_user=Depends(get_current_user)
+):
     try:
         teams_ref = db.collection("leagues").document(league_id).collection("teams")
         teams_stream = list(teams_ref.stream())
@@ -315,7 +323,10 @@ def list_teams(league_id: str, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to retrieve teams")
 
 @router.get('/leagues/{league_id}/invitations')
-def list_invitations(league_id: str, current_user=Depends(get_current_user)):
+def list_invitations(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"),
+    current_user=Depends(get_current_user)
+):
     try:
         invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
         invitations_stream = list(invitations_ref.stream())
