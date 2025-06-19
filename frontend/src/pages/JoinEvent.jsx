@@ -124,24 +124,42 @@ export default function JoinEvent() {
             
             const joinUrl = `/api/leagues/join/${encodedLeagueId}`;
             console.log('Full join URL:', joinUrl);
+            console.log('About to make fetch request...');
             
-            const joinResponse = await fetch(joinUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${await user.getIdToken()}`
-              },
-              body: JSON.stringify({
-                user_id: user.uid,
-                email: user.email,
-                // CRITICAL FIX: Use the user's selected role from AuthContext
-                // This ensures the role they selected in SelectRole is properly applied
-                role: userRole || 'coach' // fallback to coach if somehow userRole is not set
-              })
-            });
-
-            console.log('Join response status:', joinResponse.status);
-            console.log('Join response headers:', Object.fromEntries(joinResponse.headers.entries()));
+            // ENHANCED DEBUGGING: Catch network/browser errors before backend
+            let joinResponse;
+            try {
+              joinResponse = await fetch(joinUrl, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${await user.getIdToken()}`
+                },
+                body: JSON.stringify({
+                  user_id: user.uid,
+                  email: user.email,
+                  // CRITICAL FIX: Use the user's selected role from AuthContext
+                  // This ensures the role they selected in SelectRole is properly applied
+                  role: userRole || 'coach' // fallback to coach if somehow userRole is not set
+                })
+              });
+              
+              console.log('✅ Fetch completed successfully');
+              console.log('Join response status:', joinResponse.status);
+              console.log('Join response headers:', Object.fromEntries(joinResponse.headers.entries()));
+              
+            } catch (fetchError) {
+              console.error('🚨 FETCH ERROR - Request never reached backend:', fetchError);
+              console.error('Fetch error details:', {
+                message: fetchError.message,
+                name: fetchError.name,
+                stack: fetchError.stack,
+                url: joinUrl,
+                leagueId: actualLeagueId,
+                encodedLeagueId: encodedLeagueId
+              });
+              throw new Error(`Network error during league join: ${fetchError.message}`);
+            }
 
             if (joinResponse.ok) {
               const joinData = await joinResponse.json();
