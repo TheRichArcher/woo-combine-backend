@@ -90,6 +90,51 @@ def create_event(
         logging.error(f"Error creating event in league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to create event")
 
+@router.get('/leagues/{league_id}/events/{event_id}')
+def get_event(
+    league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"),
+    event_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="Event ID (flexible format)"),
+    current_user=Depends(get_current_user)
+):
+    logging.info(f"[DEBUG] get_event called with league_id: '{league_id}', event_id: '{event_id}'")
+    try:
+        # Try to get event from league subcollection first
+        league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
+        event_doc = execute_with_timeout(
+            lambda: league_event_ref.get(),
+            timeout=10
+        )
+        
+        if event_doc.exists:
+            event_data = event_doc.to_dict()
+            event_data["id"] = event_doc.id
+            logging.info(f"[DEBUG] Found event {event_id} in league {league_id}")
+            return event_data
+        
+        # If not found in league subcollection, try top-level events collection
+        top_level_event_ref = db.collection("events").document(event_id)
+        event_doc = execute_with_timeout(
+            lambda: top_level_event_ref.get(),
+            timeout=10
+        )
+        
+        if event_doc.exists:
+            event_data = event_doc.to_dict()
+            event_data["id"] = event_doc.id
+            # Verify it belongs to the requested league
+            if event_data.get("league_id") == league_id:
+                logging.info(f"[DEBUG] Found event {event_id} in top-level collection for league {league_id}")
+                return event_data
+        
+        logging.warning(f"[DEBUG] Event {event_id} not found in league {league_id}")
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error fetching event {event_id} from league {league_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch event")
+
 @router.put('/leagues/{league_id}/events/{event_id}')
 def update_event(
     league_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="League ID (flexible format)"), 
