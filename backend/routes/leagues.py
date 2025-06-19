@@ -235,19 +235,27 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
 
 @router.post('/leagues/join/{code}')
 def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
+    # ENHANCED DEBUGGING for pattern validation issues
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
+    logging.info(f"[DEBUG] Received code parameter: '{code}' (type: {type(code)}, length: {len(code)})")
+    logging.info(f"[DEBUG] Code characters: {[c for c in code]}")
+    logging.info(f"[DEBUG] ASCII values: {[ord(c) for c in code]}")
+    
     user_id = current_user["uid"]
     role = req.get("role", "coach")
     
     try:
+        logging.info(f"[DEBUG] Attempting to find league document with ID: {code}")
         league_ref = db.collection("leagues").document(code)
         
         # Simple league existence check
         league_doc = league_ref.get()
         if not league_doc.exists:
-            logging.warning(f"League not found: {code}")
+            logging.warning(f"[DEBUG] League document does not exist for ID: {code}")
+            logging.warning(f"[DEBUG] This might be an event ID instead of a league ID")
             raise HTTPException(status_code=404, detail="League not found")
         
+        logging.info(f"[DEBUG] League document found successfully for ID: {code}")
         member_ref = league_ref.collection("members").document(user_id)
         
         # Simple member existence check
@@ -292,6 +300,7 @@ def join_league(code: str, req: dict, current_user=Depends(get_current_user)):
         raise
     except Exception as e:
         logging.error(f"Error joining league: {str(e)}")
+        logging.error(f"[DEBUG] Full error details: {type(e).__name__}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to join league")
 
 @router.get('/leagues/{league_id}/teams')
