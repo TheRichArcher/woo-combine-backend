@@ -1,19 +1,21 @@
 import React, { useState } from "react";
-import { useAuth, useLogout } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { getFirestore, doc, setDoc, serverTimestamp } from "firebase/firestore";
-import WelcomeLayout from "../components/layouts/WelcomeLayout";
-import LoadingScreen from "../components/LoadingScreen";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from 'react-router-dom';
+import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { useLogout } from '../context/logout';
+import WelcomeLayout from '../components/layouts/WelcomeLayout';
+import LoadingScreen from '../components/LoadingScreen';
 
+// Role options for different user types
 const ALL_ROLE_OPTIONS = [
-  { key: "organizer", label: "🏈 League Operator", desc: "Full access to admin tools and player management." },
-  { key: "coach", label: "🧑‍🏫 Coach", desc: "View and customize, but cannot manage all players." },
-  { key: "viewer", label: "👀 Viewer / Guest", desc: "Read-only access to league data." },
+  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
+  { key: "organizer", label: "League Operator", desc: "Manage events, upload players, run combines" },
+  { key: "viewer", label: "Parent/Viewer", desc: "View event results and player performance" }
 ];
 
 const INVITED_ROLE_OPTIONS = [
-  { key: "coach", label: "🧑‍🏫 Coach", desc: "View and customize, but cannot manage all players." },
-  { key: "viewer", label: "👀 Viewer / Guest", desc: "Read-only access to league data." },
+  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
+  { key: "viewer", label: "Parent/Viewer", desc: "View event results and player performance" }
 ];
 
 export default function SelectRole() {
@@ -21,44 +23,23 @@ export default function SelectRole() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [checkingUser, setCheckingUser] = useState(true);
   const navigate = useNavigate();
   const logout = useLogout();
   const db = getFirestore();
   
-  // CRITICAL FIX: Validate pendingEventJoin is current and relevant
-  // Check if user was invited via event QR code
+  // Simple check for pending event invitation
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+  const isInvitedUser = !!pendingEventJoin;
   
-  // ENHANCED VALIDATION: Only treat as invited user if we have valid pending join data
-  // AND the user came from a join-event route (not just stale localStorage data)
-  const currentPath = window.location.pathname;
-  const cameFromJoinEvent = currentPath === '/select-role' && pendingEventJoin;
-  
-  // Additional validation: ensure the pendingEventJoin looks like a valid event/league ID
-  const isValidPendingJoin = pendingEventJoin && (
-    pendingEventJoin.includes('/') || // New format: leagueId/eventId
-    (pendingEventJoin.length > 10 && pendingEventJoin.match(/^[A-Za-z0-9]+$/)) // Old format: eventId
-  );
-  
-  const isInvitedUser = cameFromJoinEvent && isValidPendingJoin;
-  
-  // If we have stale pendingEventJoin data but user didn't come from join-event, clear it
-  React.useEffect(() => {
-    if (pendingEventJoin && !isInvitedUser) {
-      console.log('SelectRole: Clearing stale pendingEventJoin data:', pendingEventJoin);
-      localStorage.removeItem('pendingEventJoin');
-    }
-  }, [pendingEventJoin, isInvitedUser]);
+  console.log('SelectRole: Initialization', {
+    pendingEventJoin,
+    isInvitedUser,
+    userEmail: user?.email
+  });
   
   const roleOptions = isInvitedUser ? INVITED_ROLE_OPTIONS : ALL_ROLE_OPTIONS;
 
-  React.useEffect(() => {
-    // Simple initialization since RequireAuth already handles all auth checks
-    setCheckingUser(false);
-  }, []);
-
-  if (!user || checkingUser) {
+  if (!user) {
     return (
       <LoadingScreen 
         title="Preparing role selection..."
@@ -71,18 +52,15 @@ export default function SelectRole() {
   const handleContinue = async () => {
     setError("");
     
-    if (!user) {
-      setError("No user found. Please log in again.");
-      return;
-    }
-    
     if (!selectedRole) {
       setError("Please select a role.");
       return;
     }
     
     setLoading(true);
+    
     try {
+      // Save user role to Firestore
       await setDoc(doc(db, "users", user.uid), {
         id: user.uid,
         email: user.email,
@@ -93,32 +71,25 @@ export default function SelectRole() {
       // Refresh the user's ID token to pick up any custom claims
       await user.getIdToken(true);
       
-      // Handle different flows based on how user arrived
+      console.log('SelectRole: Role saved successfully:', selectedRole);
+      
+      // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
-        // Clear the pending event join and redirect to the specific event
-        localStorage.removeItem('pendingEventJoin');
+        // User was invited to an event - redirect back to join flow
+        console.log('SelectRole: Redirecting invited user back to join-event flow');
         
-        // Handle both old format (eventId) and new format (leagueId/eventId)
-        const joinPath = pendingEventJoin.includes('/') 
-          ? pendingEventJoin  // New format: already has leagueId/eventId
-          : pendingEventJoin; // Old format: just eventId
-        
-        console.log('SelectRole: Redirecting invited user to join-event with path:', joinPath);
-        console.log('SelectRole: Selected role:', selectedRole);
-        
-        // Ensure URL safety by encoding path components
-        const safePath = joinPath.split('/').map(part => encodeURIComponent(part)).join('/');
-        console.log('SelectRole: URL-safe path:', safePath);
-        
+        // Navigate back to the join-event URL
+        const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {
-        // Regular flow - navigate to dashboard
-        console.log('SelectRole: Regular user flow, navigating to dashboard');
+        // Regular user flow - go to dashboard
+        console.log('SelectRole: Regular flow, navigating to dashboard');
         navigate("/dashboard", { replace: true });
       }
+      
     } catch (err) {
-      setError(err.message || "Failed to save role.");
-      console.error("🔥 Firestore write failed in SelectRole for UID:", user?.uid, err);
+      console.error('SelectRole: Error saving role:', err);
+      setError(err.message || "Failed to save role. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -127,20 +98,19 @@ export default function SelectRole() {
   const handleLogout = async () => {
     try {
       await logout();
-      navigate('/welcome');
-    } catch (error) {
-      console.error('[SelectRole] Logout error:', error);
-      setError("Logout failed. Please try again.");
+      navigate("/welcome");
+    } catch (err) {
+      console.error('SelectRole: Logout error:', err);
     }
   };
 
   return (
     <WelcomeLayout
-      contentClassName="min-h-[70vh]"
+      contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         {/* Logo */}
         <div className="text-center mb-6">
           <img
@@ -152,21 +122,21 @@ export default function SelectRole() {
         </div>
 
         {/* Header */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">
-          {isInvitedUser ? "Join Event - What's your role?" : "Welcome! What's your role?"}
-        </h2>
+        <h1 className="text-2xl font-bold mb-4 text-gray-900">Choose Your Role</h1>
         
-        {/* Invited User Info */}
-        {isInvitedUser && (
-          <div className="w-full bg-cyan-50 border border-cyan-200 rounded-lg p-3 mb-4">
-            <div className="text-cyan-800 text-sm text-center">
-              🎯 <strong>You were invited to join an event!</strong><br/>
-              Select your role to continue.
-            </div>
+        {isInvitedUser ? (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-sm">
+              You've been invited to join an event! Please select your role to continue.
+            </p>
           </div>
+        ) : (
+          <p className="mb-6 text-gray-600">
+            Select the role that best describes your involvement in youth sports combines.
+          </p>
         )}
-        
-        {/* Debug Info for Development */}
+
+        {/* Debug Info (Development Only) */}
         {import.meta.env.DEV && (
           <div className="w-full bg-gray-50 border border-gray-200 rounded-lg p-2 mb-4 text-xs">
             <strong>Debug Info:</strong><br/>
@@ -203,22 +173,27 @@ export default function SelectRole() {
         )}
 
         {/* Action Buttons */}
-        <div className="w-full space-y-3">
+        <div className="w-full flex flex-col gap-3">
           <button
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
             onClick={handleContinue}
-            disabled={loading}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
+            disabled={!selectedRole || loading}
           >
-            {loading ? "Saving..." : (isInvitedUser ? "Join Event" : "Continue")}
+            {loading ? 'Saving...' : 'Continue'}
           </button>
-          
+
           <button
-            className="w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 rounded-xl transition-colors duration-200 disabled:opacity-50"
             onClick={handleLogout}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
             disabled={loading}
           >
-            {loading ? "Logging out..." : "Logout"}
+            Sign Out
           </button>
+        </div>
+
+        {/* Help Text */}
+        <div className="mt-6 text-sm text-gray-500">
+          <p>You can change your role later in account settings.</p>
         </div>
       </div>
     </WelcomeLayout>

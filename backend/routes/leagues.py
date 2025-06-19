@@ -239,73 +239,79 @@ def join_league(
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
-    # ENHANCED DEBUGGING for pattern validation issues
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
-    logging.info(f"[DEBUG] Received code parameter: '{code}' (type: {type(code)}, length: {len(code)})")
-    logging.info(f"[DEBUG] Code characters: {[c for c in code]}")
-    logging.info(f"[DEBUG] ASCII values: {[ord(c) for c in code]}")
-    logging.info(f"[DEBUG] Pattern validation passed for league ID: {code}")
     
     user_id = current_user["uid"]
     role = req.get("role", "coach")
     
     try:
-        logging.info(f"[DEBUG] Attempting to find league document with ID: {code}")
+        # Get league document
         league_ref = db.collection("leagues").document(code)
+        league_doc = execute_with_timeout(
+            lambda: league_ref.get(),
+            timeout=10
+        )
         
-        # Simple league existence check
-        league_doc = league_ref.get()
         if not league_doc.exists:
-            logging.warning(f"[DEBUG] League document does not exist for ID: {code}")
-            logging.warning(f"[DEBUG] This might be an event ID instead of a league ID")
+            logging.warning(f"League document does not exist for ID: {code}")
             raise HTTPException(status_code=404, detail="League not found")
         
-        logging.info(f"[DEBUG] League document found successfully for ID: {code}")
-        member_ref = league_ref.collection("members").document(user_id)
+        league_data = league_doc.to_dict()
+        league_name = league_data.get("name", "Unknown League")
         
-        # Simple member existence check
-        existing_member = member_ref.get()
+        # Check if user is already a member
+        member_ref = league_ref.collection("members").document(user_id)
+        existing_member = execute_with_timeout(
+            lambda: member_ref.get(),
+            timeout=5
+        )
+        
         if existing_member.exists:
             logging.warning(f"User {user_id} already in league {code}")
-            raise HTTPException(status_code=400, detail="User already in league")
+            # Return success with league name even if already a member
+            return {"joined": True, "league_id": code, "league_name": league_name}
         
-        # Simple member creation
+        # Add user as member
         join_time = datetime.utcnow().isoformat()
-        member_ref.set({
+        member_data = {
             "role": role,
             "joined_at": join_time,
-        })
+            "email": current_user.get("email"),
+            "name": current_user.get("name", "Unknown")
+        }
         
-        # CRITICAL: Add to user_memberships for instant lookup (like MojoSport)
+        execute_with_timeout(
+            lambda: member_ref.set(member_data),
+            timeout=10
+        )
+        
+        # Update user_memberships for fast lookup
         try:
-            league_data = league_doc.to_dict()
             user_memberships_ref = db.collection('user_memberships').document(user_id)
             membership_update = {
                 f"leagues.{code}": {
                     "role": role,
                     "joined_at": join_time,
-                    "league_name": league_data.get("name", "Unknown League")
+                    "league_name": league_name
                 }
             }
             
             execute_with_timeout(
                 lambda: user_memberships_ref.set(membership_update, merge=True),
-                timeout=5  # Reduced from 10s
+                timeout=5
             )
-            logging.info(f"✅ Updated user_memberships for instant lookup: {user_id} -> {code}")
+            logging.info(f"✅ Updated user_memberships for user {user_id} in league {code}")
             
         except Exception as e:
             logging.error(f"⚠️ Failed to update user_memberships (non-critical): {str(e)}")
-            # Don't fail the whole operation for this
         
         logging.info(f"User {user_id} joined league {code} as {role}")
-        return {"joined": True, "league_id": code}
+        return {"joined": True, "league_id": code, "league_name": league_name}
         
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error joining league: {str(e)}")
-        logging.error(f"[DEBUG] Full error details: {type(e).__name__}: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to join league")
 
 @router.get('/leagues/{league_id}/teams')
