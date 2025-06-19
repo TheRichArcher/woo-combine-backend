@@ -7,6 +7,12 @@ import logging
 
 router = APIRouter()
 
+@router.get('/test-events-router')
+def test_events_router():
+    """Simple test route to verify events router is working"""
+    logging.error("🔥 TEST EVENTS ROUTER CALLED - Router is working!")
+    return {"message": "Events router is working!", "status": "success"}
+
 def execute_with_timeout(func, timeout=10, *args, **kwargs):
     """Execute a function with timeout protection"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -96,6 +102,9 @@ def get_event(
     event_id: str = Path(..., pattern=r"^[a-zA-Z0-9_-]{1,50}$", description="Event ID (flexible format)"),
     current_user=Depends(get_current_user)
 ):
+    # ENHANCED DEBUGGING to verify route is being called
+    logging.error(f"🔥 GET_EVENT ROUTE CALLED! league_id: '{league_id}', event_id: '{event_id}'")
+    logging.error(f"🔥 This should appear in server logs if route is working!")
     logging.info(f"[DEBUG] get_event called with league_id: '{league_id}', event_id: '{event_id}'")
     try:
         # Try to get event from league subcollection first
