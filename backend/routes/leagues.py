@@ -235,7 +235,7 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
 
 @router.post('/leagues/join/{code}')
 def join_league(
-    code: str = Path(..., description="League ID (flexible format)"),
+    code: str = Path(..., regex=r"^.{1,50}$"),
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
@@ -316,7 +316,7 @@ def join_league(
 
 @router.get('/leagues/{league_id}/teams')
 def list_teams(
-    league_id: str = Path(..., description="League ID (flexible format)"),
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
     try:
@@ -330,7 +330,7 @@ def list_teams(
 
 @router.get('/leagues/{league_id}/invitations')
 def list_invitations(
-    league_id: str = Path(..., description="League ID (flexible format)"),
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
     try:

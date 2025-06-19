@@ -22,7 +22,7 @@ def execute_with_timeout(func, timeout=10, *args, **kwargs):
 
 @router.get('/leagues/{league_id}/events')
 def list_events(
-    league_id: str = Path(..., description="League ID (flexible format)"), 
+    league_id: str = Path(..., regex=r"^.{1,50}$"), 
     current_user=Depends(get_current_user)
 ):
     logging.info(f"[DEBUG] list_events called with league_id: '{league_id}' (length: {len(league_id)})")
@@ -44,7 +44,7 @@ def list_events(
 
 @router.post('/leagues/{league_id}/events')
 def create_event(
-    league_id: str = Path(..., description="League ID (flexible format)"), 
+    league_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
@@ -92,8 +92,8 @@ def create_event(
 
 @router.get('/leagues/{league_id}/events/{event_id}')
 def get_event(
-    league_id: str = Path(..., description="League ID (flexible format)"),
-    event_id: str = Path(..., description="Event ID (flexible format)"),
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
     logging.info(f"[DEBUG] get_event called with league_id: '{league_id}', event_id: '{event_id}'")
@@ -137,8 +137,8 @@ def get_event(
 
 @router.put('/leagues/{league_id}/events/{event_id}')
 def update_event(
-    league_id: str = Path(..., description="League ID (flexible format)"), 
-    event_id: str = Path(..., description="Event ID (flexible format)"), 
+    league_id: str = Path(..., regex=r"^.{1,50}$"), 
+    event_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
