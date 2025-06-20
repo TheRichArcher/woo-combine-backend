@@ -23,7 +23,6 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
     """Calculate composite score for a player based on their drill results"""
     use_weights = weights if weights is not None else DRILL_WEIGHTS
     score = 0.0
-    total_weight_used = 0.0
     
     # Define which drills have "lower is better" scoring
     lower_is_better_drills = {"40m_dash"}
@@ -32,8 +31,8 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
         # Get drill value from player data (stored as drill_[type] or just [type])
         value = player_data.get(drill) or player_data.get(f"drill_{drill}")
         
-        # Only include drills that have actual scores (not None, not 0, not empty)
-        if value is not None and value != "" and value != 0:
+        # CRITICAL FIX: Handle missing scores properly
+        if value is not None and value != "":
             try:
                 drill_value = float(value)
                 
@@ -45,20 +44,12 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
                         drill_value = max(0, 30 - drill_value)
                 
                 score += drill_value * weight
-                total_weight_used += weight
             except (ValueError, TypeError):
-                # Skip invalid values
-                continue
+                # Invalid values contribute 0 to score (missing data is penalized)
+                pass
+        # Missing or null values contribute 0 to score (no artificial boost)
     
-    # If no valid scores, return 0
-    if total_weight_used == 0:
-        return 0.0
-    
-    # Normalize by the total weight used to maintain fair comparison
-    # This ensures players with fewer drills aren't penalized
-    normalized_score = (score / total_weight_used) * sum(use_weights.values())
-    
-    return round(normalized_score, 2)
+    return round(score, 2)
 
 # def get_db():
 #     db = SessionLocal()
