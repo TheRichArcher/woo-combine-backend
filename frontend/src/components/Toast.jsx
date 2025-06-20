@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, AlertCircle, Clock } from 'lucide-react';
+import { X, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
 const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
@@ -30,15 +30,13 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
   const iconMap = {
     info: <AlertCircle className="w-5 h-5" />,
     warning: <Clock className="w-5 h-5" />,
-    error: <AlertCircle className="w-5 h-5" />,
-    success: <AlertCircle className="w-5 h-5" />
+    error: <XCircle className="w-5 h-5" />,
+    success: <CheckCircle className="w-5 h-5" />
   };
 
-  if (!isVisible) return null;
-
   return (
-    <div className={`fixed top-4 right-4 z-50 max-w-sm p-4 border rounded-lg shadow-lg transition-all duration-300 ${
-      isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+    <div className={`max-w-sm p-4 border rounded-lg shadow-lg transition-all duration-300 ${
+      isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
     } ${typeStyles[type]}`}>
       <div className="flex items-start gap-3">
         {iconMap[type]}

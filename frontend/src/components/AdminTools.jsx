@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
+import { useToast } from "../context/ToastContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
@@ -56,6 +57,7 @@ function validateRow(row, headers) {
 export default function AdminTools() {
   const { user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
+  const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
@@ -132,9 +134,12 @@ export default function AdminTools() {
       await api.delete(`/players/reset?event_id=${selectedEvent.id}`);
       setStatus("success");
       setConfirmInput("");
+      showSuccess(`🗑️ All player data for "${selectedEvent.name}" has been reset`);
+      fetchPlayerCount(); // Refresh count
     } catch (err) {
       setStatus("error");
       setErrorMsg(err.message || "Error during reset.");
+      notifyError(err);
     }
   };
 
@@ -153,6 +158,9 @@ export default function AdminTools() {
       );
       if (missingHeaders.length > 0) {
         headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
+        showError(`❌ CSV Error: Missing headers ${missingHeaders.join(", ")}`);
+      } else {
+        showInfo(`📄 CSV loaded: ${rows.length} players found`);
       }
       // Validate rows
       const validatedRows = rows.map(row => validateRow(row, headers));
@@ -209,9 +217,11 @@ export default function AdminTools() {
       if (data.errors && data.errors.length > 0) {
         setUploadStatus("error");
         setUploadMsg("Some rows failed to upload. See errors below.");
+        showError(`❌ Upload partially failed: ${data.errors.length} errors`);
       } else {
         setUploadStatus("success");
         setUploadMsg(`✅ Upload successful! ${data.added} players added.`);
+        notifyPlayersUploaded(data.added);
         setCsvRows([]);
         setCsvHeaders([]);
         setCsvFileName("");
@@ -220,6 +230,7 @@ export default function AdminTools() {
     } catch (err) {
       setUploadStatus("error");
       setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      notifyError(err);
     }
   };
 
@@ -249,6 +260,7 @@ export default function AdminTools() {
     const errors = validateManual();
     if (errors.length > 0) {
       setManualErrors(errors);
+      showError(`❌ Please fix: ${errors.join(", ")}`);
       return;
     }
     setManualStatus('loading');
@@ -261,6 +273,8 @@ export default function AdminTools() {
       await api.post(`/players?event_id=${selectedEvent.id}`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
+      const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
+      notifyPlayerAdded(playerName);
       setManualPlayer({
         first_name: '',
         last_name: '',
@@ -272,6 +286,7 @@ export default function AdminTools() {
     } catch (err) {
       setManualStatus('error');
       setManualMsg(err.message || 'Failed to add player.');
+      notifyError(err);
     }
   };
 
@@ -290,6 +305,7 @@ export default function AdminTools() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showInfo('📥 Sample CSV downloaded - check your Downloads folder');
   };
 
   // Onboarding callout for admin
@@ -310,6 +326,13 @@ export default function AdminTools() {
     setUploadStatus("idle");
     setUploadMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    showInfo('🔄 Ready for new CSV file');
+  };
+
+  // Copy functionality with notifications
+  const handleCopyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink);
+    showSuccess('📋 Invite link copied to clipboard!');
   };
 
   if (userRole !== 'organizer') {
@@ -723,7 +746,7 @@ export default function AdminTools() {
                 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => navigator.clipboard.writeText(inviteLink)}
+                    onClick={handleCopyInviteLink}
                     className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
                     disabled={!inviteLink}
                   >
@@ -731,7 +754,10 @@ export default function AdminTools() {
                     Copy Link
                   </button>
                   <button
-                    onClick={() => setShowQr(!showQr)}
+                    onClick={() => {
+                      setShowQr(!showQr);
+                      if (!showQr) showInfo('📱 QR code displayed - coaches can scan to join');
+                    }}
                     className="bg-cmf-secondary hover:bg-cmf-primary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
                   >
                     <QrCode className="w-4 h-4" />
@@ -790,6 +816,7 @@ export default function AdminTools() {
             <Link
               to="/live-entry"
               className="block w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-6 py-4 rounded-xl transition text-center shadow-lg"
+              onClick={() => showInfo('🚀 Entering Live Entry mode - perfect for recording drill results during your event')}
             >
               🚀 Start Live Entry Mode
             </Link>
@@ -830,6 +857,7 @@ export default function AdminTools() {
                 <Link
                   to="/players"
                   className="block w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition text-center"
+                  onClick={() => showInfo('📊 Viewing comprehensive player rankings with export options')}
                 >
                   📊 View Rankings & Export CSV
                 </Link>

@@ -19,6 +19,23 @@ export function ToastProvider({ children }) {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   }, []);
 
+  // Convenience methods for different types of notifications
+  const showSuccess = useCallback((message, duration = 4000) => {
+    return addToast(message, 'success', duration);
+  }, [addToast]);
+
+  const showError = useCallback((message, duration = 6000) => {
+    return addToast(message, 'error', duration);
+  }, [addToast]);
+
+  const showInfo = useCallback((message, duration = 5000) => {
+    return addToast(message, 'info', duration);
+  }, [addToast]);
+
+  const showWarning = useCallback((message, duration = 5000) => {
+    return addToast(message, 'warning', duration);
+  }, [addToast]);
+
   const showColdStartNotification = useCallback(() => {
     return addToast(
       "Server is starting up after inactivity. This may take up to a minute...", 
@@ -27,10 +44,52 @@ export function ToastProvider({ children }) {
     );
   }, [addToast]);
 
+  // Notification helpers for common scenarios
+  const notifyPlayerAdded = useCallback((playerName) => {
+    return showSuccess(`✅ ${playerName} added successfully!`);
+  }, [showSuccess]);
+
+  const notifyPlayersUploaded = useCallback((count) => {
+    return showSuccess(`✅ ${count} players uploaded successfully!`);
+  }, [showSuccess]);
+
+  const notifyEventCreated = useCallback((eventName) => {
+    return showSuccess(`🎉 Event "${eventName}" created successfully!`);
+  }, [showSuccess]);
+
+  const notifyEventUpdated = useCallback((eventName) => {
+    return showSuccess(`✅ Event "${eventName}" updated successfully!`);
+  }, [showSuccess]);
+
+  const notifyScoreAdded = useCallback((playerName, drill) => {
+    return showSuccess(`📊 Score recorded for ${playerName} - ${drill}`);
+  }, [showSuccess]);
+
+  const notifyError = useCallback((error) => {
+    const message = error?.response?.data?.detail || error?.message || 'An error occurred';
+    return showError(`❌ ${message}`);
+  }, [showError]);
+
   const contextValue = {
+    // Core methods
     addToast,
     removeToast,
-    showColdStartNotification
+    showSuccess,
+    showError,
+    showInfo,
+    showWarning,
+    showColdStartNotification,
+    
+    // Convenience notifications
+    notifyPlayerAdded,
+    notifyPlayersUploaded,
+    notifyEventCreated,
+    notifyEventUpdated,
+    notifyScoreAdded,
+    notifyError,
+    
+    // Toast state for debugging
+    toasts
   };
 
   return (
@@ -38,7 +97,7 @@ export function ToastProvider({ children }) {
       {children}
       
       {/* Render all toasts */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
+      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}

@@ -8,15 +8,30 @@
 //
 // Any changes to nav logic, layout, or visibility must go through checkpoint approval.
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
-import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, CreditCard, HelpCircle, MessageCircle, Heart } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart } from 'lucide-react';
+
+// Notification settings helper
+const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
+
+const getNotificationSettings = () => {
+  const stored = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
+  return stored ? JSON.parse(stored) : false; // Default to disabled
+};
+
+const setNotificationSettings = (enabled) => {
+  localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(enabled));
+};
 
 // Profile Modal Component
 function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
   const navigate = useNavigate();
+  const { showSuccess, showInfo } = useToast();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationSettings());
   
   if (!isOpen) return null;
 
@@ -44,6 +59,22 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
   const handleNavigation = (path) => {
     onClose();
     navigate(path);
+  };
+
+  const handleNotificationToggle = () => {
+    const newState = !notificationsEnabled;
+    setNotificationsEnabled(newState);
+    setNotificationSettings(newState);
+    
+    if (newState) {
+      showSuccess('🔔 Notifications enabled! You\'ll receive updates about events and results.');
+    } else {
+      showInfo('🔕 Notifications disabled. You can re-enable them anytime.');
+    }
+  };
+
+  const handleOpenDeviceSettings = () => {
+    showInfo('💡 Check your browser settings to allow notifications from woo-combine.com');
   };
 
   return (
@@ -105,25 +136,49 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
             <span className="font-medium text-gray-900">Join an Event</span>
           </button>
 
-          {/* Notifications */}
+          {/* Notifications - Now Functional */}
           <div className="px-4 py-3 hover:bg-gray-50 rounded-lg transition">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Bell className="w-5 h-5 text-red-500" />
+                {notificationsEnabled ? (
+                  <Bell className="w-5 h-5 text-green-500" />
+                ) : (
+                  <BellOff className="w-5 h-5 text-red-500" />
+                )}
                 <div>
-                  <div className="font-medium text-gray-900">Notifications are off</div>
-                  <div className="text-sm text-gray-500">You will miss event updates</div>
+                  <div className="font-medium text-gray-900">
+                    Notifications are {notificationsEnabled ? 'on' : 'off'}
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {notificationsEnabled 
+                      ? 'You\'ll receive event updates' 
+                      : 'You will miss event updates'
+                    }
+                  </div>
                 </div>
               </div>
-              <div className="w-12 h-6 bg-gray-200 rounded-full relative">
-                <div className="w-5 h-5 bg-white rounded-full absolute top-0.5 left-0.5 shadow transition"></div>
-              </div>
+              <button
+                onClick={handleNotificationToggle}
+                className={`w-12 h-6 rounded-full relative transition-colors duration-200 ${
+                  notificationsEnabled ? 'bg-green-500' : 'bg-gray-200'
+                }`}
+              >
+                <div className={`w-5 h-5 bg-white rounded-full absolute top-0.5 shadow transition-transform duration-200 ${
+                  notificationsEnabled ? 'translate-x-6' : 'translate-x-0.5'
+                }`}></div>
+              </button>
             </div>
             <div className="mt-2 text-sm text-gray-500">
-              Allow notifications for things like event updates, new events, and messages
+              {notificationsEnabled 
+                ? 'Get notified about event updates, new events, and score results'
+                : 'Enable notifications for event updates, new events, and messages'
+              }
             </div>
-            <button className="text-cmf-primary text-sm font-medium mt-1 hover:underline">
-              Open device settings
+            <button 
+              onClick={handleOpenDeviceSettings}
+              className="text-cmf-primary text-sm font-medium mt-1 hover:underline"
+            >
+              {notificationsEnabled ? 'Manage browser settings' : 'Open device settings'}
             </button>
           </div>
 

@@ -4,6 +4,7 @@ import EventSelector from "../components/EventSelector";
 import EventJoinCode from "../components/EventJoinCode";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
@@ -51,6 +52,7 @@ export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
   const { leagues, selectedLeagueId } = useAuth();
+  const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Multi-step wizard state
   const [currentStep, setCurrentStep] = useState(1);
@@ -98,10 +100,13 @@ export default function OnboardingEvent() {
 
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
+    notifyEventCreated(event.name);
+    showInfo('🎯 Next step: Add players to your event roster');
     setCurrentStep(2); // Move to player import step
   };
 
   const handleContinueToAdmin = () => {
+    showInfo('🛠️ Opening Admin Tools for advanced event management');
     navigate("/admin#player-upload-section");
   };
 
@@ -122,6 +127,9 @@ export default function OnboardingEvent() {
       );
       if (missingHeaders.length > 0) {
         headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
+        showError(`❌ CSV Error: Missing headers ${missingHeaders.join(", ")}`);
+      } else {
+        showInfo(`📄 CSV loaded successfully: ${rows.length} players found`);
       }
       
       // Validate rows
@@ -150,6 +158,7 @@ export default function OnboardingEvent() {
       const { data } = res;
       setUploadStatus("success");
       setUploadMsg(`✅ Upload successful! ${data.added} players added.`);
+      notifyPlayersUploaded(data.added);
       setCsvRows([]);
       setCsvHeaders([]);
       setCsvFileName("");
@@ -157,6 +166,7 @@ export default function OnboardingEvent() {
     } catch (err) {
       setUploadStatus("error");
       setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      notifyError(err);
     }
   };
 
@@ -179,6 +189,8 @@ export default function OnboardingEvent() {
       await api.post(`/players?event_id=${createdEvent.id}`, playerPayload);
       setManualStatus('success');
       setManualMsg('Player added!');
+      const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
+      notifyPlayerAdded(playerName);
       setManualPlayer({
         first_name: '',
         last_name: '',
@@ -189,6 +201,7 @@ export default function OnboardingEvent() {
     } catch (err) {
       setManualStatus('error');
       setManualMsg(err.message || 'Failed to add player.');
+      notifyError(err);
     }
   };
 
@@ -207,6 +220,7 @@ export default function OnboardingEvent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+    showInfo('📥 Sample CSV downloaded - check your Downloads folder');
   };
 
   const handleReupload = () => {
@@ -217,6 +231,13 @@ export default function OnboardingEvent() {
     setUploadStatus("idle");
     setUploadMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
+    showInfo('🔄 Ready for new CSV file');
+  };
+
+  // Step navigation with notifications
+  const handleStepNavigation = (newStep, message) => {
+    setCurrentStep(newStep);
+    if (message) showInfo(message);
   };
 
   // Step 1: Event Creation/Selection
@@ -237,7 +258,11 @@ export default function OnboardingEvent() {
                 Selected: <strong>{selectedEvent.name}</strong>
               </p>
               <button
-                onClick={() => {setCreatedEvent(selectedEvent); setCurrentStep(2);}}
+                onClick={() => {
+                  setCreatedEvent(selectedEvent); 
+                  showInfo('📝 Event selected - ready to add players');
+                  setCurrentStep(2);
+                }}
                 className="bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full flex items-center justify-center gap-2"
               >
                 Continue to Add Players
@@ -461,7 +486,7 @@ export default function OnboardingEvent() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
             <button
-              onClick={() => setCurrentStep(1)}
+              onClick={() => handleStepNavigation(1, '🔙 Back to event selection')}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -471,7 +496,7 @@ export default function OnboardingEvent() {
             <div className="flex items-center gap-4">
               {/* Skip Option */}
               <button
-                onClick={() => setCurrentStep(3)}
+                onClick={() => handleStepNavigation(3, '⏭️ Skipping player import - you can add players later in Admin Tools')}
                 className="text-gray-500 hover:text-gray-700 font-medium underline"
               >
                 Skip for now
@@ -479,7 +504,7 @@ export default function OnboardingEvent() {
               
               {/* Continue Button - enabled if players added */}
               <button
-                onClick={() => setCurrentStep(3)}
+                onClick={() => handleStepNavigation(3, '🎉 Ready to share your event with coaches!')}
                 disabled={playerCount === 0}
                 className="bg-cmf-primary hover:bg-cmf-secondary disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition flex items-center gap-2"
               >
@@ -515,7 +540,7 @@ export default function OnboardingEvent() {
           
           <div className="mt-6 pt-4 border-t border-gray-200 space-y-3">
             <button
-              onClick={() => setCurrentStep(2)}
+              onClick={() => handleStepNavigation(2, '👥 Back to player management')}
               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
