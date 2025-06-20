@@ -26,8 +26,23 @@ export default function EventSelector({ onEventSelected }) {
     e.preventDefault();
     setCreateLoading(true);
     setCreateError("");
+    
+    // GUIDED SETUP FIX: Don't attempt to create event with empty league ID
+    if (!selectedLeagueId || 
+        selectedLeagueId === '' || 
+        selectedLeagueId === null || 
+        selectedLeagueId === undefined || 
+        selectedLeagueId.trim() === '') {
+      console.error('[EVENT-SELECTOR] Cannot create event - no selectedLeagueId available');
+      setCreateError('Cannot create event: No league selected. Please select a league first.');
+      setCreateLoading(false);
+      return;
+    }
+    
     try {
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
+      console.info(`[EVENT-SELECTOR] Creating event in league: ${selectedLeagueId}`);
+      
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date: isoDate,
@@ -88,6 +103,23 @@ export default function EventSelector({ onEventSelected }) {
 
   return (
     <div className="flex flex-col gap-2 mb-6" data-event-selector>
+      {/* GUIDED SETUP WARNING: Show when no league is selected */}
+      {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start gap-3">
+            <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span className="text-yellow-600 text-sm">⚠️</span>
+            </div>
+            <div>
+              <p className="text-yellow-800 font-medium text-sm mb-1">No League Context</p>
+              <p className="text-yellow-700 text-sm">
+                Event creation is not available without a league context. Please create or select a league first.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {events.length === 0 && (
         <div className="text-center text-cmf-secondary text-lg font-semibold py-2">No events found. Please create a new event.</div>
       )}
@@ -114,7 +146,8 @@ export default function EventSelector({ onEventSelected }) {
         </select>
         <button
           onClick={() => setShowModal(true)}
-          className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition"
+          disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
+          className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create New Event
         </button>
