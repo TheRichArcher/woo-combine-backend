@@ -11,12 +11,13 @@ export default function LeagueFallback() {
   const [feedback, setFeedback] = useState("");
   
   const handleCreateLeague = async () => {
-    // For organizers, direct to wizard for guided setup
+    // GUIDED SETUP FIX: Create league first, then proceed to event creation
     if (userRole === 'organizer') {
       setFeedback("Starting guided setup...");
       try {
-        console.info('[GUIDED-SETUP] Navigating to onboarding/event for organizer guided setup');
-        navigate('/onboarding/event');
+        console.info('[GUIDED-SETUP] Navigating to create-league for guided setup (league creation first)');
+        // Create league first - CreateLeague will then navigate to /onboarding/event
+        navigate('/create-league');
       } catch (err) {
         console.error('[GUIDED-SETUP] Navigation error:', err);
         setFeedback(`Navigation error: ${err.message}`);
