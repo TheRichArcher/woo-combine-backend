@@ -629,24 +629,37 @@ export default function Players() {
   const calculateWeightedScore = (player, weights) => {
     try {
       let totalScore = 0;
+      let totalWeightUsed = 0;
+      
       DRILLS.forEach(drill => {
         const drillScore = player[drill.key];
         const weight = weights[drill.key] || 0;
         
-        if (drillScore != null && typeof drillScore === 'number') {
+        // Only include drills that have actual scores (not null, not 0, not empty)
+        if (drillScore != null && typeof drillScore === 'number' && drillScore !== 0) {
           // For 40m dash, lower is better, so we need to invert it
           if (drill.key === "40m_dash") {
-            // Assuming reasonable 40m dash times are between 4-15 seconds
-            // We'll invert by subtracting from a reasonable max (15 seconds)
-            const invertedScore = Math.max(0, 15 - drillScore);
+            // Using same scale as backend: 30 - time
+            const invertedScore = Math.max(0, 30 - drillScore);
             totalScore += invertedScore * weight;
           } else {
             // For other drills, higher is better
             totalScore += drillScore * weight;
           }
+          totalWeightUsed += weight;
         }
       });
-      return totalScore;
+      
+      // If no valid scores, return 0
+      if (totalWeightUsed === 0) {
+        return 0;
+      }
+      
+      // Normalize by the total weight used to maintain fair comparison
+      const totalPossibleWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
+      const normalizedScore = (totalScore / totalWeightUsed) * totalPossibleWeight;
+      
+      return normalizedScore;
     } catch {
       return 0;
     }

@@ -36,7 +36,7 @@ export default function Home() {
     );
   }
 
-  // If no event selected, show event selection prompt
+  // If no event selected, guide organizers to wizard or coaches to select league
   if (!selectedEvent) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -48,15 +48,40 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
               Welcome to WooCombine!
             </h2>
-            <p className="text-gray-600 mb-6">
-              Click on "Select Event" in the header above to choose or create an event and get started.
-            </p>
-            <button
-              onClick={() => navigate('/select-league')}
-              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
-            >
-              Select Event
-            </button>
+            
+            {userRole === 'organizer' ? (
+              <>
+                <p className="text-gray-600 mb-6">
+                  Ready to create your first event? Our guided setup will walk you through creating an event, adding players, and sharing with coaches.
+                </p>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => navigate('/onboarding/event')}
+                    className="w-full bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-2"
+                  >
+                    🚀 Start Guided Setup
+                  </button>
+                  <button
+                    onClick={() => navigate('/select-league')}
+                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-lg transition"
+                  >
+                    Select Existing Event
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-6">
+                  Click on "Select Event" in the header above to choose an event and get started.
+                </p>
+                <button
+                  onClick={() => navigate('/select-league')}
+                  className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+                >
+                  Select Event
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
