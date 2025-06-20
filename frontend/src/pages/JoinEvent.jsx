@@ -39,7 +39,8 @@ export default function JoinEvent() {
         const inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
         localStorage.setItem('pendingEventJoin', inviteData);
 
-        navigate("/login");
+        // CRITICAL FIX: Redirect to signup for invited users (they're typically new)
+        navigate("/signup");
         return;
       }
 

@@ -169,6 +169,14 @@ export default function OnboardingEvent() {
       setCsvHeaders([]);
       setCsvFileName("");
       fetchPlayerCount();
+      
+      // CRITICAL FIX: Auto-advance to step 3 after successful upload
+      if (data.added > 0) {
+        setTimeout(() => {
+          setCurrentStep(3);
+          showInfo('🎉 Players uploaded successfully! Ready to share your event with coaches.');
+        }, 1500); // Give users time to see the success message
+      }
     } catch (err) {
       setUploadStatus("error");
       setUploadMsg(`❌ ${err.message || "Upload failed."}`);

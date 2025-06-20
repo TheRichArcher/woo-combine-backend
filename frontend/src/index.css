@@ -1,3 +1,55 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom slider styles for mobile weight controls */
+.slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #14b8a6;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.slider-thumb::-webkit-slider-thumb:hover {
+  background: #0d9488;
+  transform: scale(1.1);
+}
+
+.slider-thumb::-moz-range-thumb {
+  height: 24px;
+  width: 24px;
+  border-radius: 50%;
+  background: #14b8a6;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.slider-thumb::-moz-range-thumb:hover {
+  background: #0d9488;
+  transform: scale(1.1);
+}
+
+/* Ensure sliders work well on touch devices */
+.slider-thumb {
+  touch-action: manipulation;
+}
+
+/* Make buttons more touch-friendly */
+.touch-manipulation {
+  touch-action: manipulation;
+  min-height: 44px; /* iOS recommendation for touch targets */
+}

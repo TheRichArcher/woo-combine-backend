@@ -552,6 +552,94 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
   );
 }
 
+// MOBILE-OPTIMIZED WEIGHT CONTROLS COMPONENT
+const MobileWeightControls = ({ showSliders = false }) => {
+  const [showCustomControls, setShowCustomControls] = useState(showSliders);
+  
+  return (
+    <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
+      <div className="flex items-center gap-2 mb-2">
+        <Settings className="w-5 h-5 text-cmf-primary" />
+        <h2 className="text-lg font-semibold text-cmf-secondary">Weight Controls</h2>
+      </div>
+      <p className="text-cmf-primary text-sm mb-3">
+        Adjust ranking priorities to see how player rankings change in real-time.
+        <span className="block text-xs mt-1 opacity-75">
+          Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
+        </span>
+      </p>
+      
+      {/* Preset Buttons - Mobile-First Design */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+          <button 
+            key={key}
+            onClick={() => applyPreset(key)} 
+            className={`p-3 text-left rounded-lg border-2 transition-all touch-manipulation ${
+              activePreset === key 
+                ? 'border-cmf-primary bg-cmf-primary text-white' 
+                : 'border-gray-200 hover:border-cmf-primary bg-white text-gray-700'
+            }`}
+          >
+            <div className="font-medium text-sm">{preset.name}</div>
+            <div className="text-xs opacity-75 mt-1">{preset.description}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Toggle for Custom Controls */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-gray-700">Custom Adjustments</span>
+        <button
+          onClick={() => setShowCustomControls(!showCustomControls)}
+          className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            showCustomControls 
+              ? 'bg-cmf-primary text-white' 
+              : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+          }`}
+        >
+          {showCustomControls ? 'Hide' : 'Show'} Sliders
+        </button>
+      </div>
+
+      {/* Custom Weight Sliders - Mobile Optimized */}
+      {showCustomControls && (
+        <div className="space-y-4">
+          {(() => {
+            const percentages = getPercentages();
+            return DRILLS.map(drill => (
+              <div key={drill.key} className="bg-white rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                  <span className="text-sm font-mono text-cmf-primary bg-cmf-primary/10 px-2 py-1 rounded">
+                    {percentages[drill.key]}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={percentages[drill.key]}
+                  onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                  className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                  style={{
+                    background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${percentages[drill.key]}%, #e5e7eb ${percentages[drill.key]}%, #e5e7eb 100%)`
+                  }}
+                />
+              </div>
+            ));
+          })()}
+          
+          <div className="text-xs text-gray-500 text-center bg-blue-50 p-2 rounded">
+            💡 Rankings update automatically as you adjust priorities
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function Players() {
   const { selectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
@@ -581,48 +669,46 @@ export default function Players() {
   const [rankings, setRankings] = useState([]);
   const [rankingsLoading, setRankingsLoading] = useState(false);
   const [rankingsError, setRankingsError] = useState(null);
-  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
-  const [activePreset, setActivePreset] = useState("athletic");
 
-  // NEW: Player Management tab weight state (separate from Rankings tab)
-  const [playerTabWeights, setPlayerTabWeights] = useState({ ...DRILL_WEIGHTS });
-  const [playerTabActivePreset, setPlayerTabActivePreset] = useState("athletic");
+  // UNIFIED WEIGHT CONTROLS: Use single state for both tabs to ensure consistency
+  const [weights, setWeights] = useState(DRILL_WEIGHTS);
+  const [activePreset, setActivePreset] = useState('balanced');
 
-  // NEW: Rankings weight management functions
   const getPercentages = () => {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
     const percentages = {};
     DRILLS.forEach(drill => {
-      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+      percentages[drill.key] = total > 0 ? Math.round((weights[drill.key] / total) * 100) : 0;
     });
     return percentages;
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    const newWeights = { ...weights };
+    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
+    const remainingPercentage = 100 - percentage;
+    const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + newWeights[drill.key], 0);
     
-    if (total === 0) return;
+    // Set the target drill weight
+    newWeights[drillKey] = percentage;
     
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      newWeights[drill.key] = newPercentages[drill.key] / total;
-    });
+    // Distribute remaining percentage proportionally among other drills
+    if (currentOtherTotal > 0 && remainingPercentage > 0) {
+      otherDrills.forEach(drill => {
+        const proportion = newWeights[drill.key] / currentOtherTotal;
+        newWeights[drill.key] = Math.round(remainingPercentage * proportion);
+      });
+    }
     
     setWeights(newWeights);
-    setActivePreset(null);
+    setActivePreset(''); // Clear preset when manually adjusting
   };
 
   const applyPreset = (presetKey) => {
-    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
-    setActivePreset(presetKey);
-  };
-
-  // NEW: Player Management tab weight functions
-
-  const applyPlayerTabPreset = (presetKey) => {
-    setPlayerTabWeights({ ...WEIGHT_PRESETS[presetKey].weights });
-    setPlayerTabActivePreset(presetKey);
+    if (WEIGHT_PRESETS[presetKey]) {
+      setWeights(WEIGHT_PRESETS[presetKey].weights);
+      setActivePreset(presetKey);
+    }
   };
 
   // NEW: Client-side ranking calculation for Player Management tab
@@ -904,7 +990,14 @@ export default function Players() {
             WooCombine: Players & Rankings
           </h1>
           <p className="text-gray-600 mb-4">
-            Managing: <strong>{selectedEvent.name}</strong> - {new Date(selectedEvent.event_date).toLocaleDateString()}
+            Managing: <strong>{selectedEvent.name}</strong> - {(() => {
+              if (selectedEvent.date && !isNaN(Date.parse(selectedEvent.date))) {
+                return new Date(selectedEvent.date).toLocaleDateString();
+              } else if (selectedEvent.event_date && !isNaN(Date.parse(selectedEvent.event_date))) {
+                return new Date(selectedEvent.event_date).toLocaleDateString();
+              }
+              return 'Date TBD';
+            })()}
           </p>
           
           {/* Quick Actions */}
@@ -960,24 +1053,7 @@ export default function Players() {
           <>
             {/* Weight Adjustment Section - Organizers Only */}
             {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
-              <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Settings className="w-5 h-5 text-cmf-primary" />
-                  <h2 className="text-lg font-semibold text-cmf-secondary">Weight Adjustment Controls</h2>
-                </div>
-                <p className="text-cmf-primary text-sm mb-3">
-                  Click preset buttons below to instantly adjust player rankings with different weight priorities.
-                  <span className="block text-xs mt-1 opacity-75">
-                    Currently using: <strong>{WEIGHT_PRESETS[playerTabActivePreset]?.name || 'Custom'}</strong>
-                  </span>
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs">
-                  <button onClick={() => applyPlayerTabPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'balanced' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚖️ Balanced</button>
-                  <button onClick={() => applyPlayerTabPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'speed' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚡ Speed Focused</button>
-                  <button onClick={() => applyPlayerTabPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'skills' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🎯 Skills Focused</button>
-                  <button onClick={() => applyPlayerTabPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${playerTabActivePreset === 'athletic' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🏃 Athletic</button>
-                </div>
-              </div>
+              <MobileWeightControls />
             )}
 
             {/* Player Stats Modals */}
@@ -1003,7 +1079,7 @@ export default function Players() {
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([ageGroup, ageGroupPlayers]) => {
                   // NEW: Sort using weighted rankings based on current Player Management tab weights
-                  const sortedPlayers = getSortedPlayersWithWeights(ageGroupPlayers, playerTabWeights);
+                  const sortedPlayers = getSortedPlayersWithWeights(ageGroupPlayers, weights);
 
                   return (
                     <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
@@ -1093,63 +1169,7 @@ export default function Players() {
             
             {/* Drill Weight Controls - Enhanced for better visibility */}
             {userRole === 'organizer' && (
-              <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Settings className="w-5 h-5 text-cmf-primary" />
-                  <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Priorities</h2>
-                </div>
-                <p className="text-cmf-primary text-sm mb-3">
-                  Click preset buttons below to instantly adjust player rankings with different weight priorities.
-                  <span className="block text-xs mt-1 opacity-75">
-                    Currently using: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
-                  </span>
-                </p>
-                <div className="flex flex-wrap gap-2 text-xs mb-6">
-                  <button onClick={() => applyPreset('balanced')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'balanced' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚖️ Balanced</button>
-                  <button onClick={() => applyPreset('speed')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'speed' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>⚡ Speed Focused</button>
-                  <button onClick={() => applyPreset('skills')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'skills' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🎯 Skills Focused</button>
-                  <button onClick={() => applyPreset('athletic')} className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${activePreset === 'athletic' ? 'bg-cmf-primary text-white ring-2 ring-cmf-primary/50' : 'bg-cmf-primary/10 hover:bg-cmf-primary/20 text-cmf-primary'}`}>🏃 Athletic</button>
-                </div>
-
-                {/* Custom Adjustments */}
-                <div>
-                  <label className="block text-sm font-medium text-cmf-secondary mb-3">
-                    Custom Weight Adjustments:
-                  </label>
-                  
-                  <div className="space-y-4">
-                    {(() => {
-                      const percentages = getPercentages();
-                      return DRILLS.map(drill => (
-                        <div key={drill.key} className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={percentages[drill.key]}
-                                onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                                className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
-                              />
-                              <div className="w-12 text-right">
-                                <span className="text-sm font-mono text-cmf-primary">
-                                  {percentages[drill.key]}%
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ));
-                    })()}
-                  </div>
-                  
-                  <div className="mt-4 text-xs text-gray-500 text-center">
-                    Rankings update automatically as you adjust priorities
-                  </div>
-                </div>
-              </div>
+              <MobileWeightControls />
             )}
             
             {/* Rankings Display */}
