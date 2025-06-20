@@ -367,7 +367,29 @@ export default function AdminTools() {
               <Users className="w-8 h-8 text-red-500" />
             </div>
             <h2 className="text-2xl font-bold text-red-600 mb-4">Admin Access Required</h2>
-            <p className="text-gray-600">You do not have permission to view this page. Organizer access required.</p>
+            <p className="text-gray-600 mb-6">You do not have permission to view this page. Organizer access required.</p>
+            
+            <div className="space-y-3">
+              <Link
+                to="/players"
+                className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 rounded-xl transition block"
+              >
+                View Players & Rankings
+              </Link>
+              <Link
+                to="/dashboard"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition block"
+              >
+                Back to Dashboard
+              </Link>
+              {userRole === 'coach' && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-blue-800 text-sm">
+                    <strong>Need admin access?</strong> Contact your league organizer to request permissions.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
@@ -177,12 +177,33 @@ export default function LiveEntry() {
   if (!selectedEvent) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">No Event Selected</h1>
-          <p className="text-gray-600 mb-6">Please select an event first.</p>
-          <Link to="/dashboard" className="bg-blue-500 text-white px-6 py-3 rounded-lg">
-            Go to Dashboard
-          </Link>
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md border-2 border-orange-200">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Calendar className="w-8 h-8 text-orange-500" />
+          </div>
+          <h1 className="text-2xl font-bold text-orange-600 mb-4">No Event Selected</h1>
+          <p className="text-gray-600 mb-6">You need to select an event before using Live Entry mode.</p>
+          
+          <div className="space-y-3">
+            <Link 
+              to="/admin" 
+              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 rounded-xl transition block"
+            >
+              Go to Admin Tools
+            </Link>
+            <Link 
+              to="/dashboard" 
+              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition block"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+          
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-blue-800 text-sm">
+              <strong>Tip:</strong> Select an event from the header dropdown first, then return to Live Entry.
+            </p>
+          </div>
         </div>
       </div>
     );

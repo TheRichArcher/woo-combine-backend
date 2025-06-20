@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
 export default function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
@@ -87,15 +88,37 @@ export default function EventSelector({ onEventSelected }) {
   if (error) {
     return (
       <div className="flex flex-col gap-2 mb-6">
-        <div className="text-center text-red-500 py-4 bg-red-50 rounded-lg border border-red-200">
-          <div className="mb-2">⚠️ Failed to load events</div>
-          <div className="text-sm text-red-400 mb-3">{error}</div>
-          <button
-            onClick={refreshEvents}
-            className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition text-sm"
-          >
-            Try Again
-          </button>
+        <div className="text-center bg-red-50 rounded-lg border border-red-200 p-4">
+          <div className="mb-2 text-red-600 font-medium">⚠️ Failed to load events</div>
+          <div className="text-sm text-red-500 mb-4">{error}</div>
+          
+          <div className="space-y-2">
+            <button
+              onClick={refreshEvents}
+              className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition text-sm font-medium"
+            >
+              🔄 Try Again
+            </button>
+            
+            <div className="flex gap-2">
+              <Link
+                to="/dashboard"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition text-sm font-medium text-center"
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/select-league"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition text-sm font-medium text-center"
+              >
+                Switch League
+              </Link>
+            </div>
+          </div>
+          
+          <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+            <strong>Tip:</strong> If this persists, try switching to a different league or contact support.
+          </div>
         </div>
       </div>
     );
