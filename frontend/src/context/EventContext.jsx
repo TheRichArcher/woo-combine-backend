@@ -43,7 +43,13 @@ export function EventProvider({ children }) {
       }
 
       // GUIDED SETUP FIX: Don't attempt to fetch events with empty/null league ID
-      if (!selectedLeagueId || selectedLeagueId.trim() === '' || !user) {
+      if (!selectedLeagueId || 
+          selectedLeagueId === '' || 
+          selectedLeagueId === null || 
+          selectedLeagueId === undefined || 
+          selectedLeagueId.trim() === '' || 
+          !user) {
+        console.info(`[EVENT-CONTEXT] Skipping event fetch - selectedLeagueId: "${selectedLeagueId}", user: ${!!user}`);
         setNoLeague(true);
         setEvents([]);
         setSelectedEvent(null);
@@ -116,7 +122,15 @@ export function EventProvider({ children }) {
   // Refresh function for error recovery
   const refreshEvents = async () => {
     // GUIDED SETUP FIX: Don't attempt refresh with empty/null league ID
-    if (!selectedLeagueId || selectedLeagueId.trim() === '' || !user) return;
+    if (!selectedLeagueId || 
+        selectedLeagueId === '' || 
+        selectedLeagueId === null || 
+        selectedLeagueId === undefined || 
+        selectedLeagueId.trim() === '' || 
+        !user) {
+      console.info(`[EVENT-CONTEXT] Skipping event refresh - selectedLeagueId: "${selectedLeagueId}", user: ${!!user}`);
+      return;
+    }
     
     setLoading(true);
     setError(null);
