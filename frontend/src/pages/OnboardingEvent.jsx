@@ -8,6 +8,7 @@ import { useToast } from "../context/ToastContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
+import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 
 // CSV processing utilities (simplified from AdminTools)
 const REQUIRED_HEADERS = ["first_name", "last_name", "age_group"];
@@ -148,16 +149,21 @@ export default function OnboardingEvent() {
     setUploadStatus("loading");
     setUploadMsg("");
     
+    // Prepare players and auto-assign numbers
+    const cleanedPlayers = csvRows.map(row => { const { warnings, ...rest } = row; return rest; });
+    const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
+    
     const payload = {
       event_id: createdEvent.id,
-      players: csvRows.map(row => { const { warnings, ...rest } = row; return rest; })
+      players: playersWithNumbers
     };
     
     try {
       const res = await api.post(`/players/upload`, payload);
       const { data } = res;
       setUploadStatus("success");
-      setUploadMsg(`✅ Upload successful! ${data.added} players added.`);
+      const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+      setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
       notifyPlayersUploaded(data.added);
       setCsvRows([]);
       setCsvHeaders([]);
@@ -180,15 +186,26 @@ export default function OnboardingEvent() {
     setManualStatus('loading');
     
     try {
+      let playerNumber = null;
+      if (manualPlayer.number && manualPlayer.number.trim() !== "") {
+        playerNumber = Number(manualPlayer.number);
+      } else {
+        // Auto-assign number based on age group
+        const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+        const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
+        playerNumber = numberedPlayer.number;
+      }
+      
       const playerPayload = {
         name: `${manualPlayer.first_name.trim()} ${manualPlayer.last_name.trim()}`,
-        number: manualPlayer.number && manualPlayer.number.trim() !== "" ? Number(manualPlayer.number) : null,
+        number: playerNumber,
         age_group: manualPlayer.age_group.trim() || null,
       };
       
       await api.post(`/players?event_id=${createdEvent.id}`, playerPayload);
       setManualStatus('success');
-      setManualMsg('Player added!');
+      const autoNumbered = !manualPlayer.number || manualPlayer.number.trim() === "";
+      setManualMsg(`Player added${autoNumbered ? ` with auto-number #${playerNumber}` : ''}!`);
       const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
       notifyPlayerAdded(playerName);
       setManualPlayer({

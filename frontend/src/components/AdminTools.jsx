@@ -5,10 +5,11 @@ import { useToast } from "../context/ToastContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit } from 'lucide-react';
+import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
+import { autoAssignPlayerNumbers, getAgeGroupNumberRange } from '../utils/playerNumbering';
 
 const REQUIRED_HEADERS = [
   "first_name",
@@ -207,10 +208,16 @@ export default function AdminTools() {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setUploadStatus("loading");
     setUploadMsg("");
+    
+    // Prepare players and auto-assign numbers
+    const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
+    const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
+    
     const payload = {
       event_id: selectedEvent.id,
-      players: csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; })
+      players: playersWithNumbers
     };
+    
     try {
       const res = await api.post(`/players/upload`, payload);
       const { data } = res;
@@ -220,7 +227,8 @@ export default function AdminTools() {
         showError(`❌ Upload partially failed: ${data.errors.length} errors`);
       } else {
         setUploadStatus("success");
-        setUploadMsg(`✅ Upload successful! ${data.added} players added.`);
+        const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+        setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
         notifyPlayersUploaded(data.added);
         setCsvRows([]);
         setCsvHeaders([]);
@@ -265,14 +273,29 @@ export default function AdminTools() {
     }
     setManualStatus('loading');
     try {
+      // Get existing players to check for number conflicts
+      const existingNumbers = players.map(p => p.number).filter(n => n != null);
+      
+      let playerNumber = null;
+      if (manualPlayer.number && manualPlayer.number.trim() !== "") {
+        playerNumber = Number(manualPlayer.number);
+      } else {
+        // Auto-assign number based on age group
+        const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+        const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
+        playerNumber = numberedPlayer.number;
+      }
+      
       const playerPayload = {
         name: `${manualPlayer.first_name.trim()} ${manualPlayer.last_name.trim()}`,
-        number: manualPlayer.number && manualPlayer.number.trim() !== "" ? Number(manualPlayer.number) : null,
+        number: playerNumber,
         age_group: manualPlayer.age_group.trim() || null,
       };
+      
       await api.post(`/players?event_id=${selectedEvent.id}`, playerPayload);
       setManualStatus('success');
-      setManualMsg('Player added!');
+      const autoNumbered = !manualPlayer.number || manualPlayer.number.trim() === "";
+      setManualMsg(`Player added${autoNumbered ? ` with auto-number #${playerNumber}` : ''}!`);
       const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
       notifyPlayerAdded(playerName);
       setManualPlayer({
@@ -446,6 +469,27 @@ export default function AdminTools() {
                   Only First Name, Last Name, and Age Group (optional) are needed. 
                   Drill results will be collected during your combine event using this program.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Auto-Numbering Info */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Hash className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <p className="text-green-800 font-medium text-sm mb-1">Smart Auto-Numbering</p>
+                <p className="text-green-700 text-sm mb-2">
+                  Player numbers are automatically generated for easy Live Entry lookup:
+                </p>
+                <div className="text-xs text-green-600 space-y-1">
+                  <div>• <strong>12U players:</strong> 1201, 1202, 1203...</div>
+                  <div>• <strong>8U players:</strong> 801, 802, 803...</div>
+                  <div>• <strong>Lil' Ballers:</strong> 501, 502, 503...</div>
+                  <div>• <strong>Other groups:</strong> Smart number ranges</div>
+                </div>
               </div>
             </div>
           </div>
@@ -638,16 +682,19 @@ export default function AdminTools() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Player Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Player Number
+                      <span className="text-xs text-gray-500 ml-1">(Auto-generated if empty)</span>
+                    </label>
                     <input
                       type="number"
                       name="number"
                       value={manualPlayer.number}
                       onChange={handleManualChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      placeholder="Optional"
+                      placeholder={manualPlayer.age_group ? `Auto: ${getAgeGroupNumberRange(manualPlayer.age_group)}` : "Leave empty for auto-number"}
                       min="1"
-                      max="999"
+                      max="9999"
                     />
                   </div>
                   <div>
