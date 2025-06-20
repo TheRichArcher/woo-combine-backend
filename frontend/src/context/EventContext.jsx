@@ -42,7 +42,8 @@ export function EventProvider({ children }) {
         return;
       }
 
-      if (!selectedLeagueId || !user) {
+      // GUIDED SETUP FIX: Don't attempt to fetch events with empty/null league ID
+      if (!selectedLeagueId || selectedLeagueId.trim() === '' || !user) {
         setNoLeague(true);
         setEvents([]);
         setSelectedEvent(null);
@@ -59,6 +60,8 @@ export function EventProvider({ children }) {
         const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for cold starts
         
         const url = `/leagues/${selectedLeagueId}/events`;
+        console.info(`[EVENT-CONTEXT] Fetching events from: ${url}`);
+        
         const { data } = await api.get(url, {
           signal: controller.signal,
           retry: 2 // Add retry attempts
@@ -84,6 +87,7 @@ export function EventProvider({ children }) {
         setError(null);
       } catch (error) {
         // Event fetch failed
+        console.error(`[EVENT-CONTEXT] Failed to fetch events for league ${selectedLeagueId}:`, error);
         setEvents([]);
         setSelectedEvent(null);
         
@@ -111,20 +115,24 @@ export function EventProvider({ children }) {
 
   // Refresh function for error recovery
   const refreshEvents = async () => {
-    if (!selectedLeagueId || !user) return;
+    // GUIDED SETUP FIX: Don't attempt refresh with empty/null league ID
+    if (!selectedLeagueId || selectedLeagueId.trim() === '' || !user) return;
     
     setLoading(true);
     setError(null);
     
     try {
       const url = `/leagues/${selectedLeagueId}/events`;
+      console.info(`[EVENT-CONTEXT] Refreshing events from: ${url}`);
+      
       const { data } = await api.get(url, { retry: 2 });
       
       const eventsList = data.events || [];
       setEvents(Array.isArray(eventsList) ? eventsList : []);
       setError(null);
     } catch (error) {
-              // Event refresh failed
+      console.error(`[EVENT-CONTEXT] Failed to refresh events for league ${selectedLeagueId}:`, error);
+      // Event refresh failed
       setError(error.response?.data?.detail || error.message || 'Failed to refresh events');
     } finally {
       setLoading(false);
