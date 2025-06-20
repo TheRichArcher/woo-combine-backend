@@ -24,8 +24,8 @@ api.interceptors.response.use(
       config._retryCount = 0;
     }
     
-    // Retry up to 3 times for network/timeout/server errors
-    const maxRetries = 3;
+    // CRITICAL FIX: Reduce retries for cold start scenarios to prevent cascade
+    const maxRetries = error.config?.url?.includes('/leagues/me') ? 1 : 2; // Only 1 retry for league fetching
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations

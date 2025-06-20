@@ -44,19 +44,23 @@ export function ToastProvider({ children }) {
 
   const showColdStartNotification = useCallback(() => {
     // CRITICAL FIX: Prevent duplicate cold start notifications
-    if (activeColdStartId) {
-      return activeColdStartId; // Return existing notification ID
+    const existingColdStart = toasts.find(toast => 
+      toast.message.includes("Server is starting up after inactivity")
+    );
+    
+    if (existingColdStart || activeColdStartId) {
+      return activeColdStartId || existingColdStart?.id; // Return existing notification ID
     }
     
     const id = addToast(
       "Server is starting up after inactivity. This may take up to a minute...", 
       'warning', 
-      10000 // 10 second duration
+      15000 // Increased to 15 seconds for visibility
     );
     
     setActiveColdStartId(id);
     return id;
-  }, [addToast, activeColdStartId]);
+  }, [addToast, activeColdStartId, toasts]);
 
   // Notification helpers for common scenarios
   const notifyPlayerAdded = useCallback((playerName) => {

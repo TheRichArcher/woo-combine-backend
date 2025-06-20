@@ -23,6 +23,9 @@ export function AuthProvider({ children }) {
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
   const { showColdStartNotification } = useToast();
+  
+  // CRITICAL FIX: Prevent concurrent league fetches during cold start
+  const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
 
   // Fast initial auth check - just Firebase auth state
   const quickAuthCheck = useCallback(async (firebaseUser) => {
@@ -80,6 +83,12 @@ export function AuthProvider({ children }) {
       setUserRole(userRole);
 
       // STEP 2: League fetch with single request and extended timeout
+      // CRITICAL FIX: Prevent concurrent league fetches
+      if (leagueFetchInProgress) {
+        return; // Another fetch is already in progress
+      }
+      
+      setLeagueFetchInProgress(true);
       let coldStartToastId = null;
       let coldStartTimer = null;
       
@@ -93,7 +102,7 @@ export function AuthProvider({ children }) {
 
         const leagueResponse = await api.get(`/leagues/me`, { 
           timeout: 45000,  // 45s timeout to match API client for extreme cold starts
-          retry: 2         // Increased retries for cold start scenarios
+          retry: 1         // REDUCED: Only 1 retry to prevent cascade
         });
         
         // Clear the cold start timer if request completes quickly
@@ -139,6 +148,7 @@ export function AuthProvider({ children }) {
           setSelectedLeagueId('');
           setRole(null);
           localStorage.removeItem('selectedLeagueId');
+          setLeagueFetchInProgress(false); // Clear the flag before early return
           return; // Exit early without error notifications
         }
         
@@ -159,6 +169,9 @@ export function AuthProvider({ children }) {
         setSelectedLeagueId('');
         setRole(null);
         localStorage.removeItem('selectedLeagueId');
+      } finally {
+        // CRITICAL: Always clear the fetch flag
+        setLeagueFetchInProgress(false);
       }
 
       // Mark role check as complete
@@ -194,7 +207,7 @@ export function AuthProvider({ children }) {
     } finally {
       setInitializing(false);
     }
-  }, [navigate, selectedLeagueId, showColdStartNotification]);
+  }, [navigate, selectedLeagueId]); // REMOVED showColdStartNotification to prevent re-renders
 
   // Firebase auth state change handler
   useEffect(() => {
