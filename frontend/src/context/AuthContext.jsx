@@ -81,11 +81,14 @@ export function AuthProvider({ children }) {
 
       // STEP 2: League fetch with single request and extended timeout
       let coldStartToastId = null;
+      let coldStartTimer = null;
       
       try {
         // Show cold start notification after 5 seconds if still loading
-        const coldStartTimer = setTimeout(() => {
-          coldStartToastId = showColdStartNotification();
+        coldStartTimer = setTimeout(() => {
+          if (!coldStartToastId) {
+            coldStartToastId = showColdStartNotification();
+          }
         }, 5000);
 
         const leagueResponse = await api.get(`/leagues/me`, { 
@@ -94,7 +97,10 @@ export function AuthProvider({ children }) {
         });
         
         // Clear the cold start timer if request completes quickly
-        clearTimeout(coldStartTimer);
+        if (coldStartTimer) {
+          clearTimeout(coldStartTimer);
+          coldStartTimer = null;
+        }
         
         const userLeagues = leagueResponse.data.leagues || [];
         setLeagues(userLeagues);
@@ -122,9 +128,15 @@ export function AuthProvider({ children }) {
       } catch (leagueError) {
 
         
-        // Show cold start notification if not already shown
+        // Clear timer to prevent duplicate notifications
+        if (coldStartTimer) {
+          clearTimeout(coldStartTimer);
+          coldStartTimer = null;
+        }
+        
+        // Show cold start notification only if not already shown
         if (!coldStartToastId) {
-          showColdStartNotification();
+          coldStartToastId = showColdStartNotification();
         }
         
         // Enhanced error handling for cold start scenarios
