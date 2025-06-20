@@ -817,25 +817,25 @@ export default function Players() {
       <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Settings className="w-5 h-5 text-cmf-primary" />
-          <h2 className="text-lg font-semibold text-cmf-secondary">Weight Controls</h2>
+          <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
         </div>
         <p className="text-cmf-primary text-sm mb-3">
-          Adjust ranking priorities to see how player rankings change in real-time.
+          Adjust drill priorities to see how player rankings change in real-time.
           <span className="block text-xs mt-1 opacity-75">
             Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
           </span>
         </p>
         
-        {/* Preset Buttons - Mobile-First Design */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
+        {/* Preset Buttons - Mobile-First Design - LARGER TOUCH TARGETS */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
           {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
             <button 
               key={key}
               onClick={() => applyPreset(key)} 
-              className={`p-3 text-left rounded-lg border-2 transition-all touch-manipulation ${
+              className={`p-4 text-left rounded-lg border-2 transition-all touch-manipulation min-h-[70px] ${
                 activePreset === key 
-                  ? 'border-cmf-primary bg-cmf-primary text-white' 
-                  : 'border-gray-200 hover:border-cmf-primary bg-white text-gray-700'
+                  ? 'border-cmf-primary bg-cmf-primary text-white shadow-lg' 
+                  : 'border-gray-200 hover:border-cmf-primary bg-white text-gray-700 hover:shadow-md'
               }`}
             >
               <div className="font-medium text-sm">{preset.name}</div>
@@ -844,31 +844,37 @@ export default function Players() {
           ))}
         </div>
 
-        {/* Toggle for Custom Controls */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium text-gray-700">Custom Adjustments</span>
+        {/* Toggle for Custom Controls - MORE PROMINENT */}
+        <div className="flex items-center justify-between mb-3 bg-white rounded-lg p-3 border border-gray-200">
+          <div>
+            <span className="text-sm font-medium text-gray-700">Custom Weight Sliders</span>
+            <div className="text-xs text-gray-500">Fine-tune individual drill priorities</div>
+          </div>
           <button
             onClick={() => setShowCustomControls(!showCustomControls)}
-            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-w-[80px] ${
               showCustomControls 
                 ? 'bg-cmf-primary text-white' 
                 : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
             }`}
           >
-            {showCustomControls ? 'Hide' : 'Show'} Sliders
+            {showCustomControls ? 'Hide' : 'Show'}
           </button>
         </div>
 
-        {/* Custom Weight Sliders - Mobile Optimized */}
+        {/* Custom Weight Sliders - ENHANCED MOBILE DESIGN */}
         {showCustomControls && (
           <div className="space-y-4">
             {(() => {
               const percentages = getPercentages();
               return DRILLS.map(drill => (
-                <div key={drill.key} className="bg-white rounded-lg p-3 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                    <span className="text-sm font-mono text-cmf-primary bg-cmf-primary/10 px-2 py-1 rounded">
+                <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                      <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
+                    </div>
+                    <span className="text-lg font-mono text-cmf-primary bg-cmf-primary/10 px-3 py-1 rounded-full min-w-[60px] text-center">
                       {percentages[drill.key]}%
                     </span>
                   </div>
@@ -879,17 +885,22 @@ export default function Players() {
                     step={5}
                     value={percentages[drill.key]}
                     onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                    className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
+                    className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
                     style={{
                       background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${percentages[drill.key]}%, #e5e7eb ${percentages[drill.key]}%, #e5e7eb 100%)`
                     }}
                   />
+                  {/* Visual feedback for mobile users */}
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>Less Priority</span>
+                    <span>More Priority</span>
+                  </div>
                 </div>
               ));
             })()}
             
-            <div className="text-xs text-gray-500 text-center bg-blue-50 p-2 rounded">
-              💡 Rankings update automatically as you adjust priorities
+            <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
+              💡 Player rankings update automatically as you adjust drill priorities above
             </div>
           </div>
         )}
@@ -1051,9 +1062,18 @@ export default function Players() {
         {/* Tab Content */}
         {activeTab === 'players' && (
           <>
-            {/* Weight Adjustment Section - Organizers Only */}
-            {userRole === 'organizer' && Object.keys(grouped).length > 0 && (
-              <MobileWeightControls />
+            {/* Weight Adjustment Section - Organizers Only - ALWAYS SHOW FOR ORGANIZERS */}
+            {userRole === 'organizer' && (
+              <div className="mb-6">
+                <MobileWeightControls />
+                {Object.keys(grouped).length === 0 && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2">
+                    <p className="text-yellow-700 text-sm">
+                      💡 Weight controls are ready! They'll affect player rankings once you add players to your event.
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Player Stats Modals */}
@@ -1167,9 +1187,18 @@ export default function Players() {
               </select>
             </div>
             
-            {/* Drill Weight Controls - Enhanced for better visibility */}
+            {/* Drill Weight Controls - ALWAYS SHOW FOR ORGANIZERS */}
             {userRole === 'organizer' && (
-              <MobileWeightControls />
+              <div className="mb-6">
+                <MobileWeightControls showSliders={true} />
+                {!selectedAgeGroup && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                    <p className="text-blue-700 text-sm">
+                      💡 Select an age group above to see how weight adjustments affect rankings in real-time.
+                    </p>
+                  </div>
+                )}
+              </div>
             )}
             
             {/* Rankings Display */}

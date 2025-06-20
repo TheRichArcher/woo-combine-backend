@@ -563,21 +563,68 @@ export default function OnboardingEvent() {
           
           <EventJoinCode event={createdEvent} league={selectedLeague} />
           
-          <div className="mt-6 pt-4 border-t border-gray-200 space-y-3">
+          {/* WIZARD GUIDANCE: What's Next */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 mt-6">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-blue-600 text-sm">🧭</span>
+              </div>
+              <div className="text-left">
+                <p className="text-blue-800 font-medium text-sm mb-1">What's Next?</p>
+                <p className="text-blue-700 text-sm mb-2">
+                  Your event is set up! Here are your next steps:
+                </p>
+                <ul className="text-blue-700 text-xs space-y-1 list-disc list-inside">
+                  <li>Share the code/QR with coaches</li>
+                  <li>Manage players and view rankings</li>
+                  <li>Use Live Entry during your event</li>
+                  <li>Export results when complete</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* IMPROVED NAVIGATION OPTIONS */}
+          <div className="space-y-3">
+            {/* Primary Actions */}
             <button
-              onClick={() => handleStepNavigation(2, '👥 Back to player management')}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+              onClick={() => {
+                showSuccess('🎯 Opening Player Management - manage your roster and view real-time rankings');
+                navigate('/players');
+              }}
+              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Add More Players
+              <Users className="w-5 h-5" />
+              Manage Players & Rankings
             </button>
             
             <button
-              onClick={handleContinueToAdmin}
-              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              onClick={() => {
+                showSuccess('🚀 Opening Live Entry Mode - perfect for collecting drill results during your event');
+                navigate('/live-entry');
+              }}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
             >
-              Continue to Admin Tools
+              ⚡ Start Live Entry Mode
             </button>
+            
+            {/* Secondary Actions */}
+            <div className="pt-2 border-t border-gray-200 space-y-2">
+              <button
+                onClick={() => handleStepNavigation(2, '👥 Back to player management')}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                Add More Players
+              </button>
+              
+              <button
+                onClick={handleContinueToAdmin}
+                className="w-full bg-cmf-secondary hover:bg-cmf-primary text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+              >
+                Advanced Admin Tools
+              </button>
+            </div>
           </div>
         </div>
       </WelcomeLayout>
