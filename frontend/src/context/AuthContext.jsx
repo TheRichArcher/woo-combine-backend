@@ -126,20 +126,28 @@ export function AuthProvider({ children }) {
         }
         
       } catch (leagueError) {
-
-        
         // Clear timer to prevent duplicate notifications
         if (coldStartTimer) {
           clearTimeout(coldStartTimer);
           coldStartTimer = null;
         }
         
-        // Show cold start notification only if not already shown
+        // CRITICAL FIX: 404 "No leagues found" is NORMAL for new users - don't show as error
+        if (leagueError.response?.status === 404) {
+          // This is expected for new users going through onboarding - handle silently
+          setLeagues([]);
+          setSelectedLeagueId('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
+          return; // Exit early without error notifications
+        }
+        
+        // Show cold start notification only for real errors (not 404)
         if (!coldStartToastId) {
           coldStartToastId = showColdStartNotification();
         }
         
-        // Enhanced error handling for cold start scenarios
+        // Enhanced error handling for cold start scenarios (excluding 404s)
         if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {
           setError('Server is starting up. Please refresh the page in a moment.');
         } else if (leagueError.response?.status >= 500) {

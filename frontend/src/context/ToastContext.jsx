@@ -5,6 +5,7 @@ const ToastContext = createContext();
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const [activeColdStartId, setActiveColdStartId] = useState(null);
 
   const addToast = useCallback((message, type = 'info', duration = 5000) => {
     const id = Date.now() + Math.random();
@@ -17,7 +18,12 @@ export function ToastProvider({ children }) {
 
   const removeToast = useCallback((id) => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+    
+    // Clear active cold start ID if this was a cold start notification
+    if (id === activeColdStartId) {
+      setActiveColdStartId(null);
+    }
+  }, [activeColdStartId]);
 
   // Convenience methods for different types of notifications
   const showSuccess = useCallback((message, duration = 4000) => {
@@ -37,12 +43,20 @@ export function ToastProvider({ children }) {
   }, [addToast]);
 
   const showColdStartNotification = useCallback(() => {
-    return addToast(
+    // CRITICAL FIX: Prevent duplicate cold start notifications
+    if (activeColdStartId) {
+      return activeColdStartId; // Return existing notification ID
+    }
+    
+    const id = addToast(
       "Server is starting up after inactivity. This may take up to a minute...", 
       'warning', 
       10000 // 10 second duration
     );
-  }, [addToast]);
+    
+    setActiveColdStartId(id);
+    return id;
+  }, [addToast, activeColdStartId]);
 
   // Notification helpers for common scenarios
   const notifyPlayerAdded = useCallback((playerName) => {
