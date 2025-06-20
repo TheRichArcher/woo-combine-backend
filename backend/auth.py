@@ -113,15 +113,44 @@ def get_current_user(
             )
         
         if not user_doc.exists:
-            logging.warning(f"[AUTH] User with UID {uid} not found in Firestore.")
-            raise HTTPException(status_code=403, detail="User not found in Firestore")
-            
+            # GUIDED SETUP FIX: Auto-create user document for new users to enable onboarding
+            logging.info(f"[AUTH] Creating new user document for UID {uid} to enable guided setup")
+            try:
+                # Create minimal user document to allow access
+                user_data = {
+                    "id": uid,
+                    "email": email,
+                    "created_at": datetime.utcnow().isoformat(),
+                    # Don't set role yet - this will be done in SelectRole
+                }
+                
+                # Create the user document
+                with concurrent.futures.ThreadPoolExecutor() as executor:
+                    future = executor.submit(lambda: db.collection("users").document(uid).set(user_data))
+                    try:
+                        future.result(timeout=5)  # 5 second timeout for user creation
+                        logging.info(f"[AUTH] Successfully created user document for UID {uid}")
+                        
+                        # Return with no role so user goes to SelectRole
+                        return {"uid": uid, "email": email, "role": None}
+                        
+                    except concurrent.futures.TimeoutError:
+                        logging.error(f"[AUTH] User document creation timed out for UID: {uid}")
+                        # Continue without role to allow SelectRole flow
+                        return {"uid": uid, "email": email, "role": None}
+                        
+            except Exception as create_error:
+                logging.error(f"[AUTH] Failed to create user document: {create_error}")
+                # Still allow access without role for SelectRole flow
+                return {"uid": uid, "email": email, "role": None}
+        
         user_data = user_doc.to_dict()
         role = user_data.get("role")
         
+        # GUIDED SETUP FIX: Allow access without role for SelectRole flow
         if not role:
-            logging.warning(f"[AUTH] User with UID {uid} found in Firestore but missing 'role' field.")
-            raise HTTPException(status_code=403, detail="User role not set in Firestore")
+            logging.info(f"[AUTH] User with UID {uid} found but no role set - allowing SelectRole access")
+            return {"uid": uid, "email": email, "role": None}
             
         logging.info(f"[AUTH] Authentication successful for UID {uid} with role {role}")
         return {"uid": uid, "email": email, "role": role}

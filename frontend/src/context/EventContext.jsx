@@ -15,8 +15,19 @@ export function EventProvider({ children }) {
   const [error, setError] = useState(null);
   const location = useLocation();
 
-  // Pages that don't require a league selection  
-  const noLeagueRequiredPages = ['/welcome', '/login', '/signup', '/verify-email', '/select-role', '/select-league', '/claim', '/create-league', '/join'];
+  // CRITICAL FIX: Add onboarding route to exempt pages so guided setup works
+  const noLeagueRequiredPages = [
+    '/welcome', 
+    '/login', 
+    '/signup', 
+    '/verify-email', 
+    '/select-role', 
+    '/select-league', 
+    '/claim', 
+    '/create-league', 
+    '/join',
+    '/onboarding/event'  // CRITICAL: Exempt guided setup from league requirements
+  ];
   
   // Check if current path is a join-event route (which also shouldn't show LeagueFallback)
   const isJoinEventRoute = location.pathname.startsWith('/join-event');

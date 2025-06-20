@@ -149,6 +149,9 @@ export function AuthProvider({ children }) {
           setRole(null);
           localStorage.removeItem('selectedLeagueId');
           setLeagueFetchInProgress(false); // Clear the flag before early return
+          
+          // GUIDED SETUP FIX: Don't treat 404 as an error during onboarding
+          console.info('[AUTH] New user detected - no leagues found (expected for guided setup)');
           return; // Exit early without error notifications
         }
         

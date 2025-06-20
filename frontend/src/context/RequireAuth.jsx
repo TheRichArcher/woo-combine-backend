@@ -4,10 +4,10 @@ import { Navigate, useLocation } from "react-router-dom";
 import LoadingScreen from '../components/LoadingScreen';
 
 export default function RequireAuth({ children }) {
-  const { user, loading, roleChecking, userRole } = useAuth();
+  const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
   
-  if (loading || roleChecking) {
+  if (initializing || !authChecked || !roleChecked) {
     return (
       <LoadingScreen 
         title="Verifying access..."

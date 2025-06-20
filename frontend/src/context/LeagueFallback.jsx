@@ -15,8 +15,10 @@ export default function LeagueFallback() {
     if (userRole === 'organizer') {
       setFeedback("Starting guided setup...");
       try {
+        console.info('[GUIDED-SETUP] Navigating to onboarding/event for organizer guided setup');
         navigate('/onboarding/event');
       } catch (err) {
+        console.error('[GUIDED-SETUP] Navigation error:', err);
         setFeedback(`Navigation error: ${err.message}`);
       }
     } else {
