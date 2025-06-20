@@ -8,8 +8,8 @@ import LoadingScreen from '../components/LoadingScreen';
 
 // Role options for different user types
 const ALL_ROLE_OPTIONS = [
-  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
   { key: "organizer", label: "League Operator", desc: "Manage events, upload players, run combines" },
+  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
   { key: "viewer", label: "Parent/Viewer", desc: "View event results and player performance" }
 ];
 
