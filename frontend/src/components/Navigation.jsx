@@ -199,8 +199,7 @@ export default function Navigation() {
     try {
       await logout();
       navigate("/welcome");
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
       navigate("/welcome");
     }
   };

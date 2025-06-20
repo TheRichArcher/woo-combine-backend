@@ -10,8 +10,7 @@ export default function Dashboard() {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
       // Still allow user to continue - don't block logout on errors
     }
   };

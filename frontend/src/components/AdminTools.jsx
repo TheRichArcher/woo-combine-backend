@@ -54,7 +54,7 @@ function validateRow(row, headers) {
 }
 
 export default function AdminTools() {
-  const { user, userRole, selectedLeagueId, leagues } = useAuth();
+  const { user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
 
   // Reset tool state
@@ -90,8 +90,6 @@ export default function AdminTools() {
 
   // Invite to League section state
   const [showQr, setShowQr] = useState(false);
-  const league = leagues?.find(l => l.id === selectedLeagueId);
-  const joinCode = league?.id || '';
   
   // Generate consistent invite links
   const inviteLink = (() => {
@@ -103,7 +101,7 @@ export default function AdminTools() {
     return `https://woo-combine.com/join-event/${selectedLeagueId}/${selectedEvent.id}`;
   })();
     
-  console.log('AdminTools: Generated invite link:', inviteLink);
+  
 
   // Edit Event Modal state
   const [showEditEventModal, setShowEditEventModal] = useState(false);
@@ -181,7 +179,6 @@ export default function AdminTools() {
         setPlayerCount(0);
       } else {
         // Other errors are actual problems
-        console.error('[AdminTools] Player count fetch error:', error);
         setPlayerCount(0);
       }
     } finally {

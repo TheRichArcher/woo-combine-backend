@@ -31,11 +31,7 @@ export default function SelectRole() {
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
   const isInvitedUser = !!pendingEventJoin;
   
-  console.log('SelectRole: Initialization', {
-    pendingEventJoin,
-    isInvitedUser,
-    userEmail: user?.email
-  });
+
   
   const roleOptions = isInvitedUser ? INVITED_ROLE_OPTIONS : ALL_ROLE_OPTIONS;
 
@@ -71,24 +67,23 @@ export default function SelectRole() {
       // Refresh the user's ID token to pick up any custom claims
       await user.getIdToken(true);
       
-      console.log('SelectRole: Role saved successfully:', selectedRole);
+
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
         // User was invited to an event - redirect back to join flow
-        console.log('SelectRole: Redirecting invited user back to join-event flow');
+
         
         // Navigate back to the join-event URL
         const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {
         // Regular user flow - go to dashboard
-        console.log('SelectRole: Regular flow, navigating to dashboard');
+
         navigate("/dashboard", { replace: true });
       }
       
     } catch (err) {
-      console.error('SelectRole: Error saving role:', err);
       setError(err.message || "Failed to save role. Please try again.");
     } finally {
       setLoading(false);
@@ -99,8 +94,8 @@ export default function SelectRole() {
     try {
       await logout();
       navigate("/welcome");
-    } catch (err) {
-      console.error('SelectRole: Logout error:', err);
+    } catch {
+      // Logout errors are handled internally
     }
   };
 

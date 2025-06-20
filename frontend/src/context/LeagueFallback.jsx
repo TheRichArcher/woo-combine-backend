@@ -24,9 +24,9 @@ export default function LeagueFallback() {
     setFeedback("Redirecting to Join League...");
     try {
       navigate('/join');
-    } catch (error) {
-      setFeedback("Navigation error. Please try again.");
-      console.error('[LeagueFallback] Join navigation error:', error);
+          } catch {
+        setFeedback("Navigation error. Please try again.");
+        // Join navigation failed
     }
   };
 
@@ -34,9 +34,9 @@ export default function LeagueFallback() {
     setFeedback("Loading your leagues...");
     try {
       navigate('/select-league');
-    } catch (error) {
-      setFeedback("Navigation error. Please try again.");
-      console.error('[LeagueFallback] Select league navigation error:', error);
+          } catch {
+        setFeedback("Navigation error. Please try again.");
+        // League selection navigation failed
     }
   };
 
@@ -45,9 +45,9 @@ export default function LeagueFallback() {
     try {
       await logout();
       navigate('/welcome');
-    } catch (error) {
-      setFeedback("Logout error. Please refresh the page.");
-      console.error('[LeagueFallback] Logout error:', error);
+          } catch {
+        setFeedback("Logout error. Please refresh the page.");
+        // Logout error handled internally
     }
   };
 

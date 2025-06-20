@@ -18,8 +18,8 @@ export function useLogout() {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
-    } catch (error) {
-      console.error('Logout error:', error);
+          } catch {
+        // Logout error handled internally
       // Still clear state even if signOut fails
       setUser(null);
       setLeagues([]);

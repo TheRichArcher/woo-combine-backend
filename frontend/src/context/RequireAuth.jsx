@@ -33,7 +33,7 @@ export default function RequireAuth({ children }) {
     if (location.pathname.startsWith('/join-event/')) {
       const joinPath = location.pathname.replace('/join-event/', '');
       localStorage.setItem('pendingEventJoin', joinPath);
-      console.log('RequireAuth: Preserved join-event path for invited user:', joinPath);
+      
     }
     
     return <Navigate to="/select-role" replace />;

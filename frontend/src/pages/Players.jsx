@@ -111,7 +111,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
       onSave(); // Refresh the players list
       onClose();
     } catch (err) {
-      console.error('Error updating player:', err);
       setError(err.response?.data?.detail || 'Failed to update player');
     } finally {
       setSaving(false);
@@ -308,9 +307,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
       // Find this player's rank (using consistent id comparison)
       const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
       drillRankings[drill.key] = rank > 0 ? rank : null;
-    } catch (error) {
-      console.warn(`[PlayerModal] Error calculating ranking for ${drill.key}:`, error);
-      drillRankings[drill.key] = null;
+          } catch {
+        drillRankings[drill.key] = null;
     }
   });
 
@@ -330,8 +328,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
         weightedScore,
         rank: drillRankings[drill.key]
       };
-    } catch (error) {
-      console.warn(`[PlayerModal] Error calculating weighted score for ${drill.key}:`, error);
+    } catch {
       return {
         ...drill,
         rawScore: null,
@@ -367,8 +364,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
             return sum + (drillScore * weight);
           }, 0);
           return { ...p, currentScore: score };
-        } catch (error) {
-          console.warn(`[PlayerModal] Error calculating score for player ${p.id}:`, error);
+        } catch {
           return { ...p, currentScore: 0 };
         }
       }).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0));
@@ -377,8 +373,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
       const rankIndex = playersWithScores.findIndex(p => p.id === player.id);
       currentRank = rankIndex >= 0 ? rankIndex + 1 : 1;
     }
-  } catch (error) {
-    console.warn('[PlayerModal] Error calculating overall ranking:', error);
+  } catch {
     currentRank = 1;
     ageGroupPlayers = [player]; // Fallback to just this player
   }
@@ -652,8 +647,7 @@ export default function Players() {
         }
       });
       return totalScore;
-    } catch (error) {
-      console.warn('[Players] Error calculating weighted score:', error);
+    } catch {
       return 0;
     }
   };
@@ -673,8 +667,7 @@ export default function Players() {
         }
         return a.name.localeCompare(b.name);
       });
-    } catch (error) {
-      console.warn('[Players] Error sorting players with weights:', error);
+    } catch {
       // Fallback to original sorting
       return ageGroupPlayers.sort((a, b) => {
         if (a.composite_score !== b.composite_score) {
@@ -778,7 +771,6 @@ export default function Players() {
           setRankingsError(null);
           setRankings([]);
         } else {
-          console.error('[Players] Rankings fetch error:', err);
           setRankingsError(err.message);
         }
       } finally {

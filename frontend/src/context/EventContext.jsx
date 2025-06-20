@@ -72,7 +72,7 @@ export function EventProvider({ children }) {
         
         setError(null);
       } catch (error) {
-        console.error('Failed to fetch events:', error);
+        // Event fetch failed
         setEvents([]);
         setSelectedEvent(null);
         
@@ -113,7 +113,7 @@ export function EventProvider({ children }) {
       setEvents(Array.isArray(eventsList) ? eventsList : []);
       setError(null);
     } catch (error) {
-      console.error('Failed to refresh events:', error);
+              // Event refresh failed
       setError(error.response?.data?.detail || error.message || 'Failed to refresh events');
     } finally {
       setLoading(false);

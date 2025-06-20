@@ -125,8 +125,8 @@ export default function VerifyEmail() {
           setResendStatus("Still not verified. Please check your email.");
         }
       }
-    } catch (err) {
-      console.error("Verification check error:", err);
+    } catch {
+      // Verification check failed
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);
@@ -145,9 +145,9 @@ export default function VerifyEmail() {
       } else {
         setResendStatus("User not found. Please log in again.");
       }
-    } catch (err) {
+    } catch {
       setResendStatus("Failed to resend. Try again later.");
-      console.error("Resend verification error:", err);
+      // Email resend failed
     } finally {
       setResending(false);
     }
@@ -317,8 +317,7 @@ export default function VerifyEmail() {
                 try {
                   await logout(); 
                   navigate('/welcome'); 
-                } catch (error) {
-                  console.error('Logout failed:', error);
+                } catch {
                   navigate('/welcome'); // Still navigate even if logout fails
                 }
               }}

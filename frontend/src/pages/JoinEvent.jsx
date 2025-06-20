@@ -24,13 +24,7 @@ export default function JoinEvent() {
       const actualLeagueId = leagueId && eventId ? leagueId : null;
       const actualEventId = eventId || leagueId; // Handle both URL formats
       
-      console.log('JoinEvent: Starting with clean parameters:', { 
-        actualLeagueId, 
-        actualEventId,
-        originalParams: { leagueId, eventId },
-        userAuthenticated: !!user,
-        userRole: userRole
-      });
+
       
       if (!actualEventId) {
         setError("Invalid event link");
@@ -44,7 +38,7 @@ export default function JoinEvent() {
         // Store invitation data for after login
         const inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
         localStorage.setItem('pendingEventJoin', inviteData);
-        console.log('JoinEvent: Stored invitation for unauthenticated user:', inviteData);
+
         navigate("/login");
         return;
       }
@@ -55,14 +49,14 @@ export default function JoinEvent() {
 
         // STRATEGY 1: If we have both leagueId and eventId (new format)
         if (actualLeagueId) {
-          console.log('JoinEvent: Using new format with league and event IDs');
+
           
           // Check if user is already in this league
           const existingLeague = leagues?.find(l => l.id === actualLeagueId);
           
           if (!existingLeague) {
             // Need to join the league first
-            console.log('JoinEvent: Auto-joining league:', actualLeagueId);
+
             
             const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
               user_id: user.uid,
@@ -96,7 +90,7 @@ export default function JoinEvent() {
         } 
         // STRATEGY 2: Only eventId provided (old format) - search user's leagues
         else {
-          console.log('JoinEvent: Using old format, searching user leagues for event:', actualEventId);
+
           
           for (const userLeague of leagues || []) {
             try {
@@ -106,7 +100,7 @@ export default function JoinEvent() {
               break;
             } catch (err) {
               if (err.response?.status !== 404) {
-                console.log(`Error checking league ${userLeague.id}:`, err.message);
+                // Non-404 errors indicate connection issues, not missing events
               }
               // Continue to next league
             }
@@ -125,7 +119,7 @@ export default function JoinEvent() {
           setSelectedLeagueId(targetLeague.id);
           setStatus("found");
           
-          console.log('JoinEvent: Success! Redirecting to dashboard...');
+
           
           // Clear any stored invitation data
           localStorage.removeItem('pendingEventJoin');
@@ -139,7 +133,6 @@ export default function JoinEvent() {
         }
 
       } catch (err) {
-        console.error("JoinEvent: Error in join flow:", err);
         setError(err.message || "Failed to join event");
         setStatus("not_found");
       } finally {
@@ -214,11 +207,7 @@ export default function JoinEvent() {
               </button>
             </div>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
-              <p className="text-blue-800 text-xs">
-                <strong>Debug Info:</strong> League ID: {leagueId || 'none'}, Event ID: {eventId || 'none'}
-              </p>
-            </div>
+
           </div>
         )}
       </div>

@@ -41,8 +41,8 @@ export default function LiveEntry() {
     try {
       const response = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(response.data);
-    } catch (error) {
-      console.error('Error fetching players:', error);
+          } catch {
+        // Player fetch failed
     }
   }, [selectedEvent]);
 
@@ -145,8 +145,8 @@ export default function LiveEntry() {
         playerNumberRef.current?.focus();
       }, 100);
       
-    } catch (error) {
-      console.error('Error submitting score:', error);
+          } catch {
+        // Score submission failed
       alert('Error submitting score. Please try again.');
     } finally {
       setLoading(false);

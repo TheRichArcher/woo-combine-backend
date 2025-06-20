@@ -14,7 +14,7 @@ export default function SelectLeague() {
 
   useEffect(() => {
     if (!user) {
-      console.error('[SelectLeague] No user found in context.');
+      // No user found in context
       setFetchError('No user found. Please log in again.');
       setLoading(false);
       return;
@@ -45,7 +45,7 @@ export default function SelectLeague() {
           setFetchError(null);
         }
       } catch (err) {
-        console.error('[SelectLeague] Fetch error:', err.message, err.response?.data);
+        // League fetch error
         
         if (err.response?.status === 404) {
           // 404 means user has no leagues yet - this is normal
@@ -81,8 +81,8 @@ export default function SelectLeague() {
   const handleLogout = async () => {
     try {
       await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
+          } catch {
+        // Logout error handled internally
       // Continue with navigation even if logout fails
       navigate('/login');
     }

@@ -38,7 +38,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       if (onCreated) onCreated(newEvent);
       if (onClose) onClose();
     } catch (err) {
-      console.error('Event creation error:', err);
+      // Event creation failed
       setError(err.response?.data?.detail || err.message || 'Failed to create event');
     } finally {
       setLoading(false);

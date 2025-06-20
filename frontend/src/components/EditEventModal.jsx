@@ -53,7 +53,6 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
       if (onUpdated) onUpdated(updatedEvent);
       if (onClose) onClose();
     } catch (err) {
-      console.error('Event update error:', err);
       setError(err.response?.data?.detail || err.message || 'Failed to update event');
     } finally {
       setLoading(false);

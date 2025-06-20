@@ -69,7 +69,7 @@ export function AuthProvider({ children }) {
           // Extract the path parameters and store for after role selection
           const joinPath = currentPath.replace('/join-event/', '');
           localStorage.setItem('pendingEventJoin', joinPath);
-          console.log('Preserved join-event path for invited user:', joinPath);
+
         }
         
         navigate("/select-role");
@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
         }
         
       } catch (leagueError) {
-        console.error('[AuthContext] League fetch failed:', leagueError.message);
+
         
         // Show cold start notification if not already shown
         if (!coldStartToastId) {
@@ -153,7 +153,7 @@ export function AuthProvider({ children }) {
       }
 
     } catch (err) {
-      console.error('[AuthContext] Initialization error:', err.message);
+
       setError(err.message);
       setUserRole(null);
       setLeagues([]);
@@ -167,14 +167,14 @@ export function AuthProvider({ children }) {
         if (currentPath.startsWith('/join-event/')) {
           const joinPath = currentPath.replace('/join-event/', '');
           localStorage.setItem('pendingEventJoin', joinPath);
-          console.log('Preserved join-event path on timeout:', joinPath);
+
         }
         navigate("/select-role");
       }
     } finally {
       setInitializing(false);
     }
-  }, [navigate, selectedLeagueId]);
+  }, [navigate, selectedLeagueId, showColdStartNotification]);
 
   // Firebase auth state change handler
   useEffect(() => {
@@ -218,7 +218,7 @@ export function AuthProvider({ children }) {
       
       // Add new league to the list
       const updatedLeagues = [...prevLeagues, newLeague];
-      console.log('AuthContext: Added new league:', newLeague);
+
       return updatedLeagues;
     });
   }, []);

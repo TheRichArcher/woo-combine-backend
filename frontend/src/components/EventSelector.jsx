@@ -50,7 +50,6 @@ export default function EventSelector({ onEventSelected }) {
       setLocation("");
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
-      console.error('Event creation error:', err);
       setCreateError(err.response?.data?.detail || err.message || 'Failed to create event');
     } finally {
       setCreateLoading(false);
