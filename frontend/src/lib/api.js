@@ -79,7 +79,18 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   response => response,
   error => {
-    // Log detailed error info for debugging
+    // CRITICAL FIX: Don't log 404s for endpoints where they're expected (new user onboarding)
+    const isExpected404 = error.response?.status === 404 && (
+      error.config?.url?.includes('/leagues/me') ||
+      error.config?.url?.includes('/players?event_id=')
+    );
+    
+    if (isExpected404) {
+      // Silent handling for expected 404s during new user onboarding
+      return Promise.reject(error);
+    }
+    
+    // Log detailed error info for debugging (excluding expected 404s)
     if (error.response?.data?.detail) {
       console.error('[API] Server Error:', error.response.data.detail);
     } else if (error.code === 'ECONNABORTED') {
