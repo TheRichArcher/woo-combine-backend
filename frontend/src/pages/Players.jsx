@@ -257,19 +257,26 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   // Convert percentage back to normalized weights
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    // SIMPLIFIED: Direct percentage to weight conversion for smoother interaction
+    const newWeights = { ...weights };
     
-    if (total === 0) return; // Prevent division by zero
+    // Convert percentage to decimal weight
+    newWeights[drillKey] = percentage / 100;
     
-    // Convert percentages to normalized decimal weights (0-1) that sum to 1.0
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      newWeights[drill.key] = newPercentages[drill.key] / total;
-    });
+    // Calculate remaining weight to distribute
+    const remainingWeight = 1 - (percentage / 100);
+    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
+    
+    if (otherDrills.length > 0) {
+      // Distribute remaining weight equally among other drills for simplicity
+      const weightPerDrill = remainingWeight / otherDrills.length;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = weightPerDrill;
+      });
+    }
     
     setWeights(newWeights);
-    setActivePreset(null); // Clear preset when manually adjusted
+    setActivePreset(''); // Clear preset when manually adjusting
   };
 
   // Apply a preset
@@ -446,6 +453,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                           type="range"
                           min={0}
                           max={100}
+                          step={1}
                           value={percentages[drill.key]}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
@@ -599,19 +607,26 @@ export default function Players() {
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    // SIMPLIFIED: Direct percentage to weight conversion for smoother interaction
+    const newWeights = { ...weights };
     
-    if (total === 0) return; // Prevent division by zero
+    // Convert percentage to decimal weight
+    newWeights[drillKey] = percentage / 100;
     
-    // Convert percentages to normalized decimal weights (0-1) that sum to 1.0
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      newWeights[drill.key] = newPercentages[drill.key] / total;
-    });
+    // Calculate remaining weight to distribute
+    const remainingWeight = 1 - (percentage / 100);
+    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
+    
+    if (otherDrills.length > 0) {
+      // Distribute remaining weight equally among other drills for simplicity
+      const weightPerDrill = remainingWeight / otherDrills.length;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = weightPerDrill;
+      });
+    }
     
     setWeights(newWeights);
-    setActivePreset(null); // Clear preset when manually adjusted
+    setActivePreset(''); // Clear preset when manually adjusting
   };
 
   const applyPreset = (presetKey) => {
@@ -891,7 +906,7 @@ export default function Players() {
                       type="range"
                       min={0}
                       max={100}
-                      step={5}
+                      step={1}
                       value={percentages[drill.key]}
                       onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation"
