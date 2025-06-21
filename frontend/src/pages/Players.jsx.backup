@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -6,7 +6,6 @@ import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { parseISO, isValid, format } from 'date-fns';
 
 const DRILLS = [
   { key: "40m_dash", label: "40M Dash", unit: "sec" },
@@ -83,24 +82,13 @@ const getPercentagesFromWeights = (weights) => {
 };
 
 const getWeightsFromPercentages = (percentages) => {
-  const total = Object.values(percentages).reduce((sum, pct) => sum + (Number.isFinite(pct) ? pct : 0), 0);
-  if (total === 0) return { ...WEIGHT_PRESETS.balanced.weights }; // Fallback
-
+  const total = Object.values(percentages).reduce((sum, pct) => sum + pct, 0);
+  if (total === 0) return WEIGHT_PRESETS.balanced.weights; // Fallback
+  
   const weights = {};
-  let weightSum = 0;
   DRILLS.forEach(drill => {
-    const percentage = Number.isFinite(percentages[drill.key]) ? percentages[drill.key] : 0;
-    weights[drill.key] = percentage / total;
-    weightSum += weights[drill.key];
+    weights[drill.key] = percentages[drill.key] / total;
   });
-
-  // Normalize weights to sum to 1
-  if (weightSum !== 0) {
-    DRILLS.forEach(drill => {
-      weights[drill.key] = weights[drill.key] / weightSum;
-    });
-  }
-
   return weights;
 };
 
@@ -142,8 +130,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
         age_group: formData.age_group.trim() || null
       };
 
-      const apiUrl = `/players/${player.id}?event_id=${player.event_id}`;
-      await api.put(apiUrl, updateData);
+      await api.put(`/players/${player.id}?event_id=${player.event_id}`, updateData);
       onSave(); // Refresh the players list
       onClose();
     } catch (err) {
@@ -158,6 +145,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+        {/* Header */}
         <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
@@ -171,6 +159,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
           </button>
         </div>
 
+        {/* Form */}
         <div className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
@@ -178,6 +167,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             </div>
           )}
 
+          {/* Player Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Player Name *
@@ -191,6 +181,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             />
           </div>
 
+          {/* Player Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Player Number
@@ -206,6 +197,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             />
           </div>
 
+          {/* Age Group - Flexible Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Age Group
@@ -218,10 +210,12 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
               placeholder="e.g., 6U, U8, 7-8, 9-10 years old"
             />
+            {/* Datalist for suggestions based on existing age groups */}
             <datalist id="age-group-suggestions">
               {existingAgeGroups.map(ageGroup => (
                 <option key={ageGroup} value={ageGroup} />
               ))}
+              {/* Common format suggestions */}
               <option value="6U" />
               <option value="U6" />
               <option value="8U" />
@@ -243,6 +237,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             </p>
           </div>
 
+          {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               onClick={onClose}
@@ -290,77 +285,75 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   };
 
   // FIXED: Calculate individual drill rankings with robust error handling
-  const drillRankings = useMemo(() => {
-    const rankings = {};
-    DRILLS.forEach(drill => {
-      try {
-        const validPlayers = allPlayers.filter(p => 
-          p && 
-          p.id && 
-          p.age_group === player.age_group && 
-          p[drill.key] != null && 
-          typeof p[drill.key] === 'number'
-        );
-        
-        if (validPlayers.length === 0) {
-          rankings[drill.key] = null;
-          return;
-        }
-        
-        const sortedPlayers = validPlayers.sort((a, b) => {
-          if (drill.key === "40m_dash") {
-            return a[drill.key] - b[drill.key]; // Lower time is better
-          }
-          return b[drill.key] - a[drill.key]; // Higher score is better
-        });
-        
-        const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
-        rankings[drill.key] = rank > 0 ? rank : null;
-      } catch {
-        rankings[drill.key] = null;
+  const drillRankings = {};
+  DRILLS.forEach(drill => {
+    try {
+      // Ensure we have valid players with the same age group and drill scores
+      const validPlayers = allPlayers.filter(p => 
+        p && 
+        p.id && 
+        p.age_group === player.age_group && 
+        p[drill.key] != null && 
+        typeof p[drill.key] === 'number'
+      );
+      
+      if (validPlayers.length === 0) {
+        drillRankings[drill.key] = null;
+        return;
       }
-    });
-    return rankings;
-  }, [allPlayers, player]);
+      
+      // Sort players by drill score (descending for most drills, ascending for 40m_dash)
+      const sortedPlayers = validPlayers.sort((a, b) => {
+        if (drill.key === "40m_dash") {
+          return a[drill.key] - b[drill.key]; // Lower time is better
+        }
+        return b[drill.key] - a[drill.key]; // Higher score is better
+      });
+      
+      // Find this player's rank (using consistent id comparison)
+      const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
+      drillRankings[drill.key] = rank > 0 ? rank : null;
+    } catch {
+        drillRankings[drill.key] = null;
+    }
+  });
 
   // FIXED: Calculate weighted score breakdown with better error handling
-  const weightedBreakdown = useMemo(() => {
-    return DRILLS.map(drill => {
-      try {
-        const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
-          ? player[drill.key] 
-          : null;
-        const weight = weights[drill.key] || 0;
-        let weightedScore = 0;
-        
-        if (rawScore != null) {
-          if (drill.key === "40m_dash") {
-            // For 40m dash, invert the score (lower time = better)
-            const invertedScore = Math.max(0, 30 - rawScore);
-            weightedScore = invertedScore * weight;
-          } else {
-            weightedScore = rawScore * weight;
-          }
+  const weightedBreakdown = DRILLS.map(drill => {
+    try {
+      const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
+        ? player[drill.key] 
+        : null;
+      const weight = weights[drill.key] || 0;
+      let weightedScore = 0;
+      
+      if (rawScore != null) {
+        if (drill.key === "40m_dash") {
+          // For 40m dash, invert the score (lower time = better)
+          const invertedScore = Math.max(0, 30 - rawScore);
+          weightedScore = invertedScore * weight;
+        } else {
+          weightedScore = rawScore * weight;
         }
-        
-        return {
-          ...drill,
-          rawScore,
-          weight,
-          weightedScore,
-          rank: drillRankings[drill.key]
-        };
-      } catch {
-        return {
-          ...drill,
-          rawScore: null,
-          weight: weights[drill.key] || 0,
-          weightedScore: 0,
-          rank: null
-        };
       }
-    });
-  }, [drillRankings, player, weights]);
+      
+      return {
+        ...drill,
+        rawScore,
+        weight,
+        weightedScore,
+        rank: drillRankings[drill.key]
+      };
+    } catch {
+      return {
+        ...drill,
+        rawScore: null,
+        weight: weights[drill.key] || 0,
+        weightedScore: 0,
+        rank: null
+      };
+    }
+  });
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
 
@@ -631,7 +624,7 @@ export default function Players() {
 
   const applyPreset = (presetKey) => {
     if (WEIGHT_PRESETS[presetKey]) {
-      setWeights({ ...WEIGHT_PRESETS[presetKey].weights});
+      setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
       setActivePreset(presetKey);
     }
   };
@@ -643,9 +636,11 @@ export default function Players() {
       
       DRILLS.forEach(drill => {
         const drillScore = player[drill.key];
-        const weight = Number.isFinite(weights[drill.key]) ? weights[drill.key] : 0;
+        const weight = weights[drill.key] || 0;
         
+        // Only include drills that have actual scores (not null, not 0, not empty)
         if (drillScore != null && typeof drillScore === 'number' && drillScore !== 0) {
+          // For 40m dash, lower is better, so we need to invert it
           if (drill.key === "40m_dash") {
             // Using same scale as backend: 30 - time
             const invertedScore = Math.max(0, 30 - drillScore);
@@ -659,7 +654,7 @@ export default function Players() {
       
       return totalScore;
     } catch {
-      return null;
+      return 0;
     }
   };
 
@@ -707,10 +702,12 @@ export default function Players() {
       const res = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(res.data);
       
-      // FIXED: Update or clear selectedPlayer if modal is open to show fresh data
+      // FIXED: Update selectedPlayer if modal is open to show fresh data
       if (selectedPlayer) {
         const updatedPlayer = res.data.find(p => p.id === selectedPlayer.id);
-        setSelectedPlayer(updatedPlayer || null); // Clear if player not found
+        if (updatedPlayer) {
+          setSelectedPlayer(updatedPlayer);
+        }
       }
     } catch (err) {
       if (err.response?.status === 422) {
@@ -768,7 +765,7 @@ export default function Players() {
     // Debounce the API call to avoid too many requests
     const timeoutId = setTimeout(updateRankings, 300);
     return () => clearTimeout(timeoutId);
-  }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent, activeTab, activePreset]);
+  }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent, activeTab]);
 
   // Get unique age groups from players
   const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
@@ -980,8 +977,10 @@ export default function Players() {
           </h1>
           <p className="text-gray-600 mb-4">
             Managing: <strong>{selectedEvent.name}</strong> - {
-              selectedEvent.date && isValid(parseISO(selectedEvent.date))
-                ? format(parseISO(selectedEvent.date), 'MM/dd/yyyy')
+              (selectedEvent.date && !isNaN(Date.parse(selectedEvent.date))) 
+                ? new Date(selectedEvent.date).toLocaleDateString()
+                : (selectedEvent.event_date && !isNaN(Date.parse(selectedEvent.event_date)))
+                ? new Date(selectedEvent.event_date).toLocaleDateString()
                 : 'Date TBD'
             }
           </p>
@@ -1392,4 +1391,4 @@ export default function Players() {
       </div>
     </div>
   );
-}
+} 
