@@ -479,21 +479,21 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                 
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-600 w-16">
-                          {Math.round(percentages[drill.key] || 0)}%
+                          {(percentages[drill.key] || 0).toFixed(1)}%
                         </span>
                         <input
                           type="range"
                           min={0}
                           max={100}
-                          step={1}
+                          step={0.1}
                           value={percentages[drill.key] || 0}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                            style={{ width: Math.round(percentages[drill.key] || 0) + '%' }}
+                            style={{ width: (percentages[drill.key] || 0).toFixed(1) + '%' }}
                           />
                         </div>
                       </div>
@@ -876,7 +876,7 @@ export default function Players() {
                       <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
                     </div>
                     <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-                      {Math.round(percentages[drill.key] || 0)}%
+                      {(percentages[drill.key] || 0).toFixed(1)}%
                     </span>
                   </div>
                   
@@ -885,9 +885,9 @@ export default function Players() {
                       type="range"
                       min={0}
                       max={100}
-                      step={1}
+                      step={0.1}
                       value={percentages[drill.key] || 0}
-                      onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                      onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                     />
                   </div>
