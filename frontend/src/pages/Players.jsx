@@ -740,7 +740,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();
