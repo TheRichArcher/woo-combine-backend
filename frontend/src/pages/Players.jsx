@@ -130,7 +130,8 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
         age_group: formData.age_group.trim() || null
       };
 
-      await api.put(`/players/${player.id}?event_id=${player.event_id}`, updateData);
+      const apiUrl = `/players/${player.id}?event_id=${player.event_id}`;
+      await api.put(apiUrl, updateData);
       onSave(); // Refresh the players list
       onClose();
     } catch (err) {
@@ -145,7 +146,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        {/* Header */}
         <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
@@ -153,13 +153,12 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
+            className="w-8 h-8 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
         <div className="p-6 space-y-4">
           {error && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
@@ -167,7 +166,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             </div>
           )}
 
-          {/* Player Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Player Name *
@@ -181,7 +179,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             />
           </div>
 
-          {/* Player Number */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Player Number
@@ -197,7 +194,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             />
           </div>
 
-          {/* Age Group - Flexible Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Age Group
@@ -210,12 +206,10 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
               placeholder="e.g., 6U, U8, 7-8, 9-10 years old"
             />
-            {/* Datalist for suggestions based on existing age groups */}
             <datalist id="age-group-suggestions">
               {existingAgeGroups.map(ageGroup => (
                 <option key={ageGroup} value={ageGroup} />
               ))}
-              {/* Common format suggestions */}
               <option value="6U" />
               <option value="U6" />
               <option value="8U" />
@@ -237,7 +231,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
             </p>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               onClick={onClose}
@@ -419,7 +412,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition"
+            className="w-8 h-8 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -923,7 +916,7 @@ export default function Players() {
       return (
         <div className="min-h-screen bg-gray-50">
           <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-            <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
+            <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
               <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found</h2>
               <p className="text-gray-600 mb-6">Use the Admin tab to upload or import players to get started.</p>
               <Link to="/admin" className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition">
@@ -971,7 +964,7 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         {/* Welcome Header - matching dashboard style */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
             WooCombine: Players & Rankings
           </h1>
