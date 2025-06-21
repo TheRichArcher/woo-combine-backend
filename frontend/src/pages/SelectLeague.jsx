@@ -3,10 +3,12 @@ import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
 import api from '../lib/api';
+import { useToast } from '../context/ToastContext';
 
 export default function SelectLeague() {
   const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
   const logout = useLogout();
+  const { showColdStartNotification, isColdStartActive } = useToast();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
@@ -52,13 +54,17 @@ export default function SelectLeague() {
           setLeagues([]);
           setFetchError('No leagues linked to this account. Try creating a new one.');
         } else if (err.message.includes('timeout') || err.code === 'ECONNABORTED') {
-          // Timeout error - provide helpful message
+          // Timeout error - use centralized cold start notification
           setLeagues([]);
-          setFetchError('Server is starting up, which can take up to a minute. Please wait and refresh the page.');
+          setFetchError('Connection timeout. Please try again.');
+          showColdStartNotification(); // Use centralized notification instead
         } else if (err.response?.status >= 500) {
           // Server errors during cold start
           setLeagues([]);
-          setFetchError('Server is temporarily unavailable during startup. Please try refreshing in 30 seconds.');
+          setFetchError('Server temporarily unavailable. Please try again.');
+          if (!isColdStartActive()) {
+            showColdStartNotification(); // Use centralized notification
+          }
         } else {
           // Other errors are actual problems
           setLeagues([]);

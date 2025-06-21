@@ -6,6 +6,7 @@ const ToastContext = createContext();
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [activeColdStartId, setActiveColdStartId] = useState(null);
+  const [coldStartActive, setColdStartActive] = useState(false);
 
   const addToast = useCallback((message, type = 'info', duration = 5000) => {
     const id = Date.now() + Math.random();
@@ -22,6 +23,7 @@ export function ToastProvider({ children }) {
     // Clear active cold start ID if this was a cold start notification
     if (id === activeColdStartId) {
       setActiveColdStartId(null);
+      setColdStartActive(false);
     }
   }, [activeColdStartId]);
 
@@ -43,24 +45,28 @@ export function ToastProvider({ children }) {
   }, [addToast]);
 
   const showColdStartNotification = useCallback(() => {
-    // CRITICAL FIX: Prevent duplicate cold start notifications
-    const existingColdStart = toasts.find(toast => 
-      toast.message.includes("Server is starting up after inactivity")
-    );
-    
-    if (existingColdStart || activeColdStartId) {
-      return activeColdStartId || existingColdStart?.id; // Return existing notification ID
+    // GLOBAL COLD START PROTECTION: Prevent any duplicate cold start notifications
+    if (coldStartActive || activeColdStartId) {
+      return activeColdStartId; // Return existing notification ID
     }
     
+    // Set global flag to prevent other components from showing cold start messages
+    setColdStartActive(true);
+    
     const id = addToast(
-      "Server is starting up after inactivity. This may take up to a minute...", 
+      "Server is starting up, which can take up to a minute. Please wait...", 
       'warning', 
-      15000 // Increased to 15 seconds for visibility
+      20000 // 20 seconds visibility for cold starts
     );
     
     setActiveColdStartId(id);
     return id;
-  }, [addToast, activeColdStartId, toasts]);
+  }, [addToast, activeColdStartId, coldStartActive]);
+
+  // Check if cold start is currently active (for other components to use)
+  const isColdStartActive = useCallback(() => {
+    return coldStartActive;
+  }, [coldStartActive]);
 
   // Notification helpers for common scenarios
   const notifyPlayerAdded = useCallback((playerName) => {
@@ -97,6 +103,7 @@ export function ToastProvider({ children }) {
     showInfo,
     showWarning,
     showColdStartNotification,
+    isColdStartActive,
     
     // Convenience notifications
     notifyPlayerAdded,

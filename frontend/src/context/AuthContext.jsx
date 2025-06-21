@@ -22,7 +22,7 @@ export function AuthProvider({ children }) {
   const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
-  const { showColdStartNotification } = useToast();
+  const { showColdStartNotification, isColdStartActive } = useToast();
   
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
@@ -93,9 +93,9 @@ export function AuthProvider({ children }) {
       let coldStartTimer = null;
       
       try {
-        // Show cold start notification after 5 seconds if still loading
+        // Show cold start notification after 5 seconds if still loading and no notification is active
         coldStartTimer = setTimeout(() => {
-          if (!coldStartToastId) {
+          if (!coldStartToastId && !isColdStartActive()) {
             coldStartToastId = showColdStartNotification();
           }
         }, 5000);
@@ -161,16 +161,18 @@ export function AuthProvider({ children }) {
           return; // Exit early without error notifications
         }
         
-        // Show cold start notification only for real errors (not 404)
-        if (!coldStartToastId) {
+        // Show cold start notification only for real errors (not 404) and if none is already active
+        if (!coldStartToastId && !isColdStartActive()) {
           coldStartToastId = showColdStartNotification();
         }
         
         // Enhanced error handling for cold start scenarios (excluding 404s)
         if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {
-          setError('Server is starting up. Please refresh the page in a moment.');
+          // Don't set error state for timeouts - toast notification handles this
+          setError(null);
         } else if (leagueError.response?.status >= 500) {
-          setError('Server is temporarily unavailable. Please try again shortly.');
+          // Don't set error state for server errors during cold start - toast handles this
+          setError(null);
         }
         
         // Continue without leagues rather than blocking the entire app
