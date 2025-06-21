@@ -262,7 +262,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     
     if (total === 0) return; // Prevent division by zero
     
-    // Normalize to sum to 1.0
+    // Convert percentages to normalized decimal weights (0-1) that sum to 1.0
     const newWeights = {};
     DRILLS.forEach(drill => {
       newWeights[drill.key] = newPercentages[drill.key] / total;
@@ -596,24 +596,19 @@ export default function Players() {
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newWeights = { ...weights };
-    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
-    const remainingPercentage = 100 - percentage;
-    const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + newWeights[drill.key], 0);
+    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
     
-    // Set the target drill weight
-    newWeights[drillKey] = percentage;
+    if (total === 0) return; // Prevent division by zero
     
-    // Distribute remaining percentage proportionally among other drills
-    if (currentOtherTotal > 0 && remainingPercentage > 0) {
-      otherDrills.forEach(drill => {
-        const proportion = newWeights[drill.key] / currentOtherTotal;
-        newWeights[drill.key] = Math.round(remainingPercentage * proportion);
-      });
-    }
+    // Convert percentages to normalized decimal weights (0-1) that sum to 1.0
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      newWeights[drill.key] = newPercentages[drill.key] / total;
+    });
     
     setWeights(newWeights);
-    setActivePreset(''); // Clear preset when manually adjusting
+    setActivePreset(null); // Clear preset when manually adjusted
   };
 
   const applyPreset = (presetKey) => {
