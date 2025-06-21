@@ -250,7 +250,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
     if (total === 0) return {}; // Prevent division by zero
     const percentages = {};
     DRILLS.forEach(drill => {
-      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+      // Remove Math.round() for smooth slider interaction
+      percentages[drill.key] = (weights[drill.key] / total) * 100;
     });
     return percentages;
   };
@@ -458,7 +459,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
                       {/* Weight Slider Row */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-600 w-16">
-                          {percentages[drill.key]}%
+                          {Math.round(percentages[drill.key])}%
                         </span>
                         <input
                           type="range"
@@ -612,7 +613,8 @@ export default function Players() {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
     const percentages = {};
     DRILLS.forEach(drill => {
-      percentages[drill.key] = total > 0 ? Math.round((weights[drill.key] / total) * 100) : 0;
+      // Remove Math.round() for smooth slider interaction
+      percentages[drill.key] = total > 0 ? (weights[drill.key] / total) * 100 : 0;
     });
     return percentages;
   };
@@ -918,7 +920,7 @@ export default function Players() {
                       <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
                     </div>
                     <span className="text-lg font-mono text-cmf-primary bg-cmf-primary/10 px-3 py-1 rounded-full min-w-[60px] text-center">
-                      {percentages[drill.key]}%
+                      {Math.round(percentages[drill.key])}%
                     </span>
                   </div>
                   
