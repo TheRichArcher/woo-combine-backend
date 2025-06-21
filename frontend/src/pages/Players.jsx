@@ -257,22 +257,33 @@ function PlayerDetailsModal({ player, allPlayers, onClose }) {
 
   // Convert percentage back to normalized weights
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // SIMPLIFIED: Direct percentage to weight conversion for smoother interaction
     const newWeights = { ...weights };
     
     // Convert percentage to decimal weight
-    newWeights[drillKey] = percentage / 100;
+    const newWeight = percentage / 100;
+    newWeights[drillKey] = newWeight;
     
     // Calculate remaining weight to distribute
-    const remainingWeight = 1 - (percentage / 100);
+    const remainingWeight = 1 - newWeight;
     const otherDrills = DRILLS.filter(d => d.key !== drillKey);
     
-    if (otherDrills.length > 0) {
-      // Distribute remaining weight equally among other drills for simplicity
-      const weightPerDrill = remainingWeight / otherDrills.length;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = weightPerDrill;
-      });
+    if (otherDrills.length > 0 && remainingWeight > 0) {
+      // Get current total of other drills to maintain proportional relationships
+      const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
+      
+      if (currentOtherTotal > 0) {
+        // Distribute remaining weight proportionally to preserve relationships
+        otherDrills.forEach(drill => {
+          const proportion = weights[drill.key] / currentOtherTotal;
+          newWeights[drill.key] = remainingWeight * proportion;
+        });
+      } else {
+        // Fallback: distribute equally if all other weights are 0
+        const weightPerDrill = remainingWeight / otherDrills.length;
+        otherDrills.forEach(drill => {
+          newWeights[drill.key] = weightPerDrill;
+        });
+      }
     }
     
     setWeights(newWeights);
@@ -607,22 +618,33 @@ export default function Players() {
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // SIMPLIFIED: Direct percentage to weight conversion for smoother interaction
     const newWeights = { ...weights };
     
     // Convert percentage to decimal weight
-    newWeights[drillKey] = percentage / 100;
+    const newWeight = percentage / 100;
+    newWeights[drillKey] = newWeight;
     
     // Calculate remaining weight to distribute
-    const remainingWeight = 1 - (percentage / 100);
+    const remainingWeight = 1 - newWeight;
     const otherDrills = DRILLS.filter(d => d.key !== drillKey);
     
-    if (otherDrills.length > 0) {
-      // Distribute remaining weight equally among other drills for simplicity
-      const weightPerDrill = remainingWeight / otherDrills.length;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = weightPerDrill;
-      });
+    if (otherDrills.length > 0 && remainingWeight > 0) {
+      // Get current total of other drills to maintain proportional relationships
+      const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
+      
+      if (currentOtherTotal > 0) {
+        // Distribute remaining weight proportionally to preserve relationships
+        otherDrills.forEach(drill => {
+          const proportion = weights[drill.key] / currentOtherTotal;
+          newWeights[drill.key] = remainingWeight * proportion;
+        });
+      } else {
+        // Fallback: distribute equally if all other weights are 0
+        const weightPerDrill = remainingWeight / otherDrills.length;
+        otherDrills.forEach(drill => {
+          newWeights[drill.key] = weightPerDrill;
+        });
+      }
     }
     
     setWeights(newWeights);

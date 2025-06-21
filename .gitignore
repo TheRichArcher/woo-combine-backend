@@ -111,3 +111,4 @@ backend/.env
 
 # Virtual environment
 .venv/ temp_features/
+frontend/dist/
