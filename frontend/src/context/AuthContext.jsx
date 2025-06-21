@@ -148,10 +148,16 @@ export function AuthProvider({ children }) {
           setSelectedLeagueId('');
           setRole(null);
           localStorage.removeItem('selectedLeagueId');
-          setLeagueFetchInProgress(false); // Clear the flag before early return
+          setLeagueFetchInProgress(false);
           
           // GUIDED SETUP FIX: Don't treat 404 as an error during onboarding
           console.info('[AUTH] New user detected - no leagues found (expected for guided setup)');
+          
+          // CRITICAL FIX: Must complete role check even for 404s to avoid infinite loading
+          setRoleChecked(true);
+          
+          // Complete initialization and allow guided setup to proceed
+          setInitializing(false);
           return; // Exit early without error notifications
         }
         
