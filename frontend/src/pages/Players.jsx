@@ -273,7 +273,30 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newPercentages = { ...currentPercentages };
+    
+    // Set the new percentage for the changed drill
+    newPercentages[drillKey] = percentage;
+    
+    // Calculate how much we need to redistribute
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    const difference = total - 100;
+    
+    if (difference !== 0) {
+      // Get the other drills (not the one being changed)
+      const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+      const otherTotal = otherDrills.reduce((sum, drill) => sum + (currentPercentages[drill.key] || 0), 0);
+      
+      if (otherTotal > 0) {
+        // Redistribute proportionally among other drills
+        otherDrills.forEach(drill => {
+          const proportion = (currentPercentages[drill.key] || 0) / otherTotal;
+          newPercentages[drill.key] = Math.max(0, (currentPercentages[drill.key] || 0) - (difference * proportion));
+        });
+      }
+    }
+    
+    // Convert back to weights and normalize
     const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset('');
@@ -600,7 +623,30 @@ export default function Players() {
   // FIXED: Unified weight management functions
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newPercentages = { ...currentPercentages };
+    
+    // Set the new percentage for the changed drill
+    newPercentages[drillKey] = percentage;
+    
+    // Calculate how much we need to redistribute
+    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    const difference = total - 100;
+    
+    if (difference !== 0) {
+      // Get the other drills (not the one being changed)
+      const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+      const otherTotal = otherDrills.reduce((sum, drill) => sum + (currentPercentages[drill.key] || 0), 0);
+      
+      if (otherTotal > 0) {
+        // Redistribute proportionally among other drills
+        otherDrills.forEach(drill => {
+          const proportion = (currentPercentages[drill.key] || 0) / otherTotal;
+          newPercentages[drill.key] = Math.max(0, (currentPercentages[drill.key] || 0) - (difference * proportion));
+        });
+      }
+    }
+    
+    // Convert back to weights and normalize
     const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset(''); // Clear preset when manually adjusting
@@ -820,9 +866,9 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-4">
-            {DRILLS.map(drill => {
+            {(() => {
               const percentages = getPercentagesFromWeights(weights);
-              return (
+              return DRILLS.map(drill => (
                 <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -851,8 +897,8 @@ export default function Players() {
                     <span>More Priority</span>
                   </div>
                 </div>
-              );
-            })}
+              ));
+            })()}
             
             <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
               💡 Player rankings update automatically as you adjust drill priorities above
