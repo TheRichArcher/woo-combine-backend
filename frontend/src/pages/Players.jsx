@@ -585,6 +585,9 @@ export default function Players() {
   // UNIFIED WEIGHT CONTROLS: Use single state for both tabs to ensure consistency
   const [weights, setWeights] = useState(DRILL_WEIGHTS);
   const [activePreset, setActivePreset] = useState('balanced');
+  
+  // FIX: Move showCustomControls state to main component to persist across re-renders
+  const [showCustomControls, setShowCustomControls] = useState(false);
 
   const getPercentages = () => {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -806,7 +809,15 @@ export default function Players() {
 
   // MOBILE-OPTIMIZED WEIGHT CONTROLS COMPONENT - MOVED INSIDE FOR SCOPE ACCESS
   const MobileWeightControls = ({ showSliders = false }) => {
-    const [showCustomControls, setShowCustomControls] = useState(showSliders);
+    // FIX: Use external state instead of local state to persist across re-renders
+    // const [showCustomControls, setShowCustomControls] = useState(showSliders);
+    
+    // Initialize external state if needed
+    useEffect(() => {
+      if (showSliders && !showCustomControls) {
+        setShowCustomControls(true);
+      }
+    }, [showSliders]);
     
     return (
       <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
@@ -847,7 +858,7 @@ export default function Players() {
           </div>
           <button
             onClick={() => setShowCustomControls(!showCustomControls)}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-w-[80px] ${
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-w-[80px] touch-manipulation ${
               showCustomControls 
                 ? 'bg-cmf-primary text-white' 
                 : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
@@ -860,9 +871,9 @@ export default function Players() {
         {/* Custom Weight Sliders - ENHANCED MOBILE DESIGN */}
         {showCustomControls && (
           <div className="space-y-4">
-            {(() => {
+            {DRILLS.map(drill => {
               const percentages = getPercentages();
-              return DRILLS.map(drill => (
+              return (
                 <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -873,26 +884,31 @@ export default function Players() {
                       {percentages[drill.key]}%
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={5}
-                    value={percentages[drill.key]}
-                    onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                    className="w-full h-3 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb"
-                    style={{
-                      background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${percentages[drill.key]}%, #e5e7eb ${percentages[drill.key]}%, #e5e7eb 100%)`
-                    }}
-                  />
+                  
+                  {/* ENHANCED MOBILE SLIDER */}
+                  <div className="relative">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={percentages[drill.key]}
+                      onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                      className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation"
+                      style={{
+                        background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${percentages[drill.key]}%, #e5e7eb ${percentages[drill.key]}%, #e5e7eb 100%)`
+                      }}
+                    />
+                  </div>
+                  
                   {/* Visual feedback for mobile users */}
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                  <div className="flex justify-between text-xs text-gray-400 mt-2">
                     <span>Less Priority</span>
                     <span>More Priority</span>
                   </div>
                 </div>
-              ));
-            })()}
+              );
+            })}
             
             <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
               💡 Player rankings update automatically as you adjust drill priorities above
