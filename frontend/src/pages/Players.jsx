@@ -69,6 +69,29 @@ const TABS = [
   }
 ];
 
+// UNIFIED WEIGHT MANAGEMENT UTILITIES
+const getPercentagesFromWeights = (weights) => {
+  const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+  if (total === 0) return {}; // Prevent division by zero
+  const percentages = {};
+  DRILLS.forEach(drill => {
+    // Keep precision for smooth slider interaction
+    percentages[drill.key] = (weights[drill.key] / total) * 100;
+  });
+  return percentages;
+};
+
+const getWeightsFromPercentages = (percentages) => {
+  const total = Object.values(percentages).reduce((sum, pct) => sum + pct, 0);
+  if (total === 0) return WEIGHT_PRESETS.balanced.weights; // Fallback
+  
+  const weights = {};
+  DRILLS.forEach(drill => {
+    weights[drill.key] = percentages[drill.key] / total;
+  });
+  return weights;
+};
+
 // Edit Player Modal Component
 function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -237,94 +260,27 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-// Player Details Modal Component with Interactive Weight Controls
-function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetWeights, mainActivePreset, mainSetActivePreset }) {
-  // Use shared state from main component for consistency
-  const [weights, setWeights] = useState(mainWeights || { ...DRILL_WEIGHTS });
-  const [activePreset, setActivePreset] = useState(mainActivePreset || "athletic");
-
-  // Sync with main component weights when they change
-  useEffect(() => {
-    if (mainWeights) {
-      setWeights(mainWeights);
-    }
-  }, [mainWeights]);
-
-  useEffect(() => {
-    if (mainActivePreset) {
-      setActivePreset(mainActivePreset);
-    }
-  }, [mainActivePreset]);
-
+// FIXED: Player Details Modal - Remove separate weight state, use props
+function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, activePreset, setActivePreset }) {
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
-  // Convert weights to percentages for display
-  const getPercentages = () => {
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    if (total === 0) return {}; // Prevent division by zero
-    const percentages = {};
-    DRILLS.forEach(drill => {
-      // Remove Math.round() for smooth slider interaction
-      percentages[drill.key] = (weights[drill.key] / total) * 100;
-    });
-    return percentages;
-  };
+  // FIXED: Use props directly instead of separate state
+  const percentages = getPercentagesFromWeights(weights);
 
-  // Convert percentage back to normalized weights
+  // FIXED: Update weights through props
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newWeights = { ...weights };
-    
-    // Convert percentage to decimal weight
-    const newWeight = percentage / 100;
-    newWeights[drillKey] = newWeight;
-    
-    // Calculate remaining weight to distribute
-    const remainingWeight = 1 - newWeight;
-    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
-    
-    if (otherDrills.length > 0 && remainingWeight > 0) {
-      // Get current total of other drills to maintain proportional relationships
-      const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
-      
-      if (currentOtherTotal > 0) {
-        // Distribute remaining weight proportionally to preserve relationships
-        otherDrills.forEach(drill => {
-          const proportion = weights[drill.key] / currentOtherTotal;
-          newWeights[drill.key] = remainingWeight * proportion;
-        });
-      } else {
-        // Fallback: distribute equally if all other weights are 0
-        const weightPerDrill = remainingWeight / otherDrills.length;
-        otherDrills.forEach(drill => {
-          newWeights[drill.key] = weightPerDrill;
-        });
-      }
-    }
-    
+    const currentPercentages = getPercentagesFromWeights(weights);
+    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset(''); // Clear preset when manually adjusting
-    
-    // Also update main component
-    if (mainSetWeights) {
-      mainSetWeights(newWeights);
-    }
-    if (mainSetActivePreset) {
-      mainSetActivePreset('');
-    }
   };
 
-  // Apply a preset
+  // FIXED: Apply preset through props
   const applyPreset = (presetKey) => {
-    const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
-    setWeights(newWeights);
-    setActivePreset(presetKey);
-    
-    // Also update main component
-    if (mainSetWeights) {
-      mainSetWeights(newWeights);
-    }
-    if (mainSetActivePreset) {
-      mainSetActivePreset(presetKey);
+    if (WEIGHT_PRESETS[presetKey]) {
+      setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
+      setActivePreset(presetKey);
     }
   };
 
@@ -357,7 +313,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetW
       // Find this player's rank (using consistent id comparison)
       const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
       drillRankings[drill.key] = rank > 0 ? rank : null;
-          } catch {
+    } catch {
         drillRankings[drill.key] = null;
     }
   });
@@ -369,7 +325,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetW
         ? player[drill.key] 
         : null;
       const weight = weights[drill.key] || 0;
-      const weightedScore = rawScore != null ? rawScore * weight : 0;
+      let weightedScore = 0;
+      
+      if (rawScore != null) {
+        if (drill.key === "40m_dash") {
+          // For 40m dash, invert the score (lower time = better)
+          const invertedScore = Math.max(0, 30 - rawScore);
+          weightedScore = invertedScore * weight;
+        } else {
+          weightedScore = rawScore * weight;
+        }
+      }
       
       return {
         ...drill,
@@ -390,7 +356,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetW
   });
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
-  const percentages = getPercentages();
 
   // FIXED: Calculate overall ranking with robust error handling
   let currentRank = 1;
@@ -411,7 +376,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetW
           const score = DRILLS.reduce((sum, drill) => {
             const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : 0;
             const weight = weights[drill.key] || 0;
-            return sum + (drillScore * weight);
+            
+            if (drillScore > 0) {
+              if (drill.key === "40m_dash") {
+                // Invert 40m dash score (lower time = better)
+                const invertedScore = Math.max(0, 30 - drillScore);
+                return sum + (invertedScore * weight);
+              } else {
+                return sum + (drillScore * weight);
+              }
+            }
+            return sum;
           }, 0);
           return { ...p, currentScore: score };
         } catch {
@@ -490,34 +465,32 @@ function PlayerDetailsModal({ player, allPlayers, onClose, mainWeights, mainSetW
                       {/* Weight Slider Row */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-600 w-16">
-                          {Math.round(percentages[drill.key])}%
+                          {Math.round(percentages[drill.key] || 0)}%
                         </span>
                         <input
                           type="range"
                           min={0}
                           max={100}
                           step={1}
-                          value={percentages[drill.key]}
+                          value={percentages[drill.key] || 0}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         {/* Visual Impact Indicator */}
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                          <div 
                             className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                      style={{ 
-                        width: `${Math.min((drill.weightedScore / Math.max(...weightedBreakdown.map(d => d.weightedScore))) * 100, 100)}%` 
-                      }}
-                    ></div>
-                  </div>
+                            style={{ width: `${Math.round(percentages[drill.key] || 0)}%` }}
+                          />
+                        </div>
                 </div>
               </div>
             ))}
           </div>
           
                 {/* Total Score at Bottom */}
-                <div className="mt-2 p-2 bg-cmf-primary/10 rounded-lg border-2 border-cmf-primary/20 flex-shrink-0">
-            <div className="flex justify-between items-center">
+                <div className="mt-2 p-2 bg-blue-50 rounded-lg border-2 border-blue-200 flex-shrink-0">
+            
               <span className="font-semibold text-gray-900 text-sm">Total Composite Score:</span>
               <span className="text-lg font-bold text-cmf-primary">
                       {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
@@ -633,60 +606,25 @@ export default function Players() {
   const [rankingsLoading, setRankingsLoading] = useState(false);
   const [rankingsError, setRankingsError] = useState(null);
 
-  // UNIFIED WEIGHT CONTROLS: Use single state for both tabs to ensure consistency
-  const [weights, setWeights] = useState(DRILL_WEIGHTS);
+  // FIXED: Initialize with consistent state - balanced preset by default
+  const [weights, setWeights] = useState(WEIGHT_PRESETS.balanced.weights);
   const [activePreset, setActivePreset] = useState('balanced');
   
   // FIX: Move showCustomControls state to main component to persist across re-renders
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  const getPercentages = () => {
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    const percentages = {};
-    DRILLS.forEach(drill => {
-      // Remove Math.round() for smooth slider interaction
-      percentages[drill.key] = total > 0 ? (weights[drill.key] / total) * 100 : 0;
-    });
-    return percentages;
-  };
-
+  // FIXED: Unified weight management functions
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newWeights = { ...weights };
-    
-    // Convert percentage to decimal weight
-    const newWeight = percentage / 100;
-    newWeights[drillKey] = newWeight;
-    
-    // Calculate remaining weight to distribute
-    const remainingWeight = 1 - newWeight;
-    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
-    
-    if (otherDrills.length > 0 && remainingWeight > 0) {
-      // Get current total of other drills to maintain proportional relationships
-      const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
-      
-      if (currentOtherTotal > 0) {
-        // Distribute remaining weight proportionally to preserve relationships
-        otherDrills.forEach(drill => {
-          const proportion = weights[drill.key] / currentOtherTotal;
-          newWeights[drill.key] = remainingWeight * proportion;
-        });
-      } else {
-        // Fallback: distribute equally if all other weights are 0
-        const weightPerDrill = remainingWeight / otherDrills.length;
-        otherDrills.forEach(drill => {
-          newWeights[drill.key] = weightPerDrill;
-        });
-      }
-    }
-    
+    const currentPercentages = getPercentagesFromWeights(weights);
+    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset(''); // Clear preset when manually adjusting
   };
 
   const applyPreset = (presetKey) => {
     if (WEIGHT_PRESETS[presetKey]) {
-      setWeights(WEIGHT_PRESETS[presetKey].weights);
+      setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
       setActivePreset(presetKey);
     }
   };
@@ -695,7 +633,6 @@ export default function Players() {
   const calculateWeightedScore = (player, weights) => {
     try {
       let totalScore = 0;
-      let totalWeightUsed = 0;
       
       DRILLS.forEach(drill => {
         const drillScore = player[drill.key];
@@ -712,114 +649,82 @@ export default function Players() {
             // For other drills, higher is better
             totalScore += drillScore * weight;
           }
-          totalWeightUsed += weight;
         }
       });
       
-      // If no valid scores, return 0
-      if (totalWeightUsed === 0) {
-        return 0;
-      }
-      
-      // Normalize by the total weight used to maintain fair comparison
-      const totalPossibleWeight = Object.values(weights).reduce((sum, w) => sum + w, 0);
-      const normalizedScore = (totalScore / totalWeightUsed) * totalPossibleWeight;
-      
-      return normalizedScore;
+      return totalScore;
     } catch {
       return 0;
     }
   };
 
+  // FIXED: Simplified sorting function
   const getSortedPlayersWithWeights = (ageGroupPlayers, weights) => {
-    try {
-      // Calculate weighted scores for all players
-      const playersWithScores = ageGroupPlayers.map(player => ({
+    return ageGroupPlayers
+      .map(player => ({
         ...player,
         weightedScore: calculateWeightedScore(player, weights)
-      }));
-
-      // Sort by weighted score descending, then by name
-      return playersWithScores.sort((a, b) => {
-        if (a.weightedScore !== b.weightedScore) {
-          return b.weightedScore - a.weightedScore;
-        }
-        return a.name.localeCompare(b.name);
-      });
-    } catch {
-      // Fallback to original sorting
-      return ageGroupPlayers.sort((a, b) => {
-        if (a.composite_score !== b.composite_score) {
-          return (b.composite_score || 0) - (a.composite_score || 0);
-        }
-        return a.name.localeCompare(b.name);
-      });
-    }
+      }))
+      .sort((a, b) => (b.weightedScore || 0) - (a.weightedScore || 0));
   };
 
-  // Interactive onboarding callout
+  // Onboarding Callout Component
   const OnboardingCallout = () => (
-    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded cursor-pointer hover:bg-cmf-primary/15 transition"
-         onClick={() => {
-           // Scroll to event selector to help users find it
-           const eventSelector = document.querySelector('[class*="EventSelector"]') || 
-                                 document.querySelector('select') ||
-                                 document.querySelector('[data-event-selector]');
-           if (eventSelector) {
-             eventSelector.scrollIntoView({ behavior: 'smooth', block: 'center' });
-             eventSelector.focus();
-           }
-         }}>
-      <div className="flex items-center gap-2">
-        <span className="text-lg">💡</span>
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="flex items-start gap-3">
+        <div className="text-blue-500 text-lg">💡</div>
         <div>
-          <strong>Tip:</strong> Select an event above to manage players and record results.
-          <div className="text-sm opacity-75 mt-1">👆 Click here or scroll up to find the event selector</div>
+          <h3 className="font-semibold text-blue-900 mb-1">Getting Started with Player Management</h3>
+          <p className="text-blue-700 text-sm mb-2">
+            You can add players by clicking "Add Player" or uploading a CSV file. Once players are added, you can:
+          </p>
+          <ul className="text-blue-700 text-sm space-y-1 list-disc list-inside">
+            <li>Record drill results for each player</li>
+            <li>View detailed statistics and rankings</li>
+            <li>Export rankings data for analysis</li>
+          </ul>
         </div>
       </div>
     </div>
   );
 
+  // Fetch players data
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
-      setPlayers([]); // Ensure players is always an array
+      setPlayers([]);
       setLoading(false);
       return;
     }
-    
-    setLoading(true);
-    setError(null);
-    
+
     try {
-      const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
-      setPlayers(data);
+      setLoading(true);
+      setError(null);
+      const res = await api.get(`/players?event_id=${selectedEvent.id}`);
+      setPlayers(res.data);
       
-      // CRITICAL FIX: Update selectedPlayer data if modal is open
+      // FIXED: Update selectedPlayer if modal is open to show fresh data
       if (selectedPlayer) {
-        const updatedPlayer = data.find(p => p.id === selectedPlayer.id);
+        const updatedPlayer = res.data.find(p => p.id === selectedPlayer.id);
         if (updatedPlayer) {
           setSelectedPlayer(updatedPlayer);
         }
       }
     } catch (err) {
-      if (err.response?.status === 404) {
-        // 404 means no players found yet - normal for new events
-        setError(null); // Don't show as error, just empty state
-        setPlayers([]);
+      if (err.response?.status === 422) {
+        setError("422: Unprocessable Entity - Players may not be set up yet");
       } else {
-        // Other errors are actual problems
-        setError(err.message);
+        setError(err.message || "Failed to load players");
       }
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // NEW: Fetch rankings when weights or age group changes
+  // FIXED: Unified rankings update for both tabs
   useEffect(() => {
     const updateRankings = async () => {
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
@@ -836,12 +741,12 @@ export default function Players() {
           event_id: selectedEvent.id 
         });
         
-        // Add weight parameters
-        params.append("weight_40m_dash", weights["40m_dash"]);
-        params.append("weight_vertical_jump", weights["vertical_jump"]);
-        params.append("weight_catching", weights["catching"]);
-        params.append("weight_throwing", weights["throwing"]);
-        params.append("weight_agility", weights["agility"]);
+        // Add weight parameters - FIXED: Convert to proper format
+        params.append("weight_40m_dash", weights["40m_dash"].toString());
+        params.append("weight_vertical_jump", weights["vertical_jump"].toString());
+        params.append("weight_catching", weights["catching"].toString());
+        params.append("weight_throwing", weights["throwing"].toString());
+        params.append("weight_agility", weights["agility"].toString());
         
         const res = await api.get(`/rankings?${params.toString()}`);
         setRankings(res.data);
@@ -877,11 +782,8 @@ export default function Players() {
     return acc;
   }, {});
 
-  // MOBILE-OPTIMIZED WEIGHT CONTROLS COMPONENT - MOVED INSIDE FOR SCOPE ACCESS
+  // FIXED: Simplified Mobile Weight Controls Component
   const MobileWeightControls = ({ showSliders = false }) => {
-    // FIX: Use external state instead of local state to persist across re-renders
-    // const [showCustomControls, setShowCustomControls] = useState(showSliders);
-    
     // Initialize external state if needed
     useEffect(() => {
       if (showSliders && !showCustomControls) {
@@ -890,7 +792,7 @@ export default function Players() {
     }, [showSliders]);
     
     return (
-      <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl border-2 border-cmf-primary/30 p-4 mb-6">
+      <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Settings className="w-5 h-5 text-cmf-primary" />
           <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
@@ -902,7 +804,6 @@ export default function Players() {
           </span>
         </p>
         
-        {/* Preset Buttons - Mobile-First Design - LARGER TOUCH TARGETS */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
             <button 
@@ -920,7 +821,6 @@ export default function Players() {
           ))}
         </div>
 
-        {/* Toggle for Custom Controls - MORE PROMINENT */}
         <div className="flex items-center justify-between mb-3 bg-white rounded-lg p-3 border border-gray-200">
           <div>
             <span className="text-sm font-medium text-gray-700">Custom Weight Sliders</span>
@@ -938,11 +838,10 @@ export default function Players() {
           </button>
         </div>
 
-        {/* Custom Weight Sliders - ENHANCED MOBILE DESIGN */}
         {showCustomControls && (
           <div className="space-y-4">
             {DRILLS.map(drill => {
-              const percentages = getPercentages();
+              const percentages = getPercentagesFromWeights(weights);
               return (
                 <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
@@ -950,28 +849,23 @@ export default function Players() {
                       <label className="text-sm font-medium text-gray-700">{drill.label}</label>
                       <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
                     </div>
-                    <span className="text-lg font-mono text-cmf-primary bg-cmf-primary/10 px-3 py-1 rounded-full min-w-[60px] text-center">
-                      {Math.round(percentages[drill.key])}%
+                    <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
+                      {Math.round(percentages[drill.key] || 0)}%
                     </span>
                   </div>
                   
-                  {/* ENHANCED MOBILE SLIDER */}
                   <div className="relative">
                     <input
                       type="range"
                       min={0}
                       max={100}
                       step={1}
-                      value={percentages[drill.key]}
+                      value={percentages[drill.key] || 0}
                       onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                      className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation"
-                      style={{
-                        background: `linear-gradient(to right, #14b8a6 0%, #14b8a6 ${percentages[drill.key]}%, #e5e7eb ${percentages[drill.key]}%, #e5e7eb 100%)`
-                      }}
+                      className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                     />
                   </div>
                   
-                  {/* Visual feedback for mobile users */}
                   <div className="flex justify-between text-xs text-gray-400 mt-2">
                     <span>Less Priority</span>
                     <span>More Priority</span>
@@ -992,8 +886,8 @@ export default function Players() {
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
-          <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-cmf-primary" />
           </div>
           <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
@@ -1054,8 +948,8 @@ export default function Players() {
   if (players.length === 0) return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
-          <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-cmf-primary" />
           </div>
           <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found Yet</h2>
@@ -1082,14 +976,13 @@ export default function Players() {
             WooCombine: Players & Rankings
           </h1>
           <p className="text-gray-600 mb-4">
-            Managing: <strong>{selectedEvent.name}</strong> - {(() => {
-              if (selectedEvent.date && !isNaN(Date.parse(selectedEvent.date))) {
-                return new Date(selectedEvent.date).toLocaleDateString();
-              } else if (selectedEvent.event_date && !isNaN(Date.parse(selectedEvent.event_date))) {
-                return new Date(selectedEvent.event_date).toLocaleDateString();
-              }
-              return 'Date TBD';
-            })()}
+            Managing: <strong>{selectedEvent.name}</strong> - {
+              (selectedEvent.date && !isNaN(Date.parse(selectedEvent.date))) 
+                ? new Date(selectedEvent.date).toLocaleDateString()
+                : (selectedEvent.event_date && !isNaN(Date.parse(selectedEvent.event_date)))
+                ? new Date(selectedEvent.event_date).toLocaleDateString()
+                : 'Date TBD'
+            }
           </p>
           
           {/* Quick Actions */}
@@ -1163,10 +1056,10 @@ export default function Players() {
                 player={selectedPlayer} 
                 allPlayers={players} 
                 onClose={() => setSelectedPlayer(null)}
-                mainWeights={weights}
-                mainSetWeights={setWeights}
-                mainActivePreset={activePreset}
-                mainSetActivePreset={setActivePreset}
+                weights={weights}
+                setWeights={setWeights}
+                activePreset={activePreset}
+                setActivePreset={setActivePreset}
               />
             )}
             {editingPlayer && (
