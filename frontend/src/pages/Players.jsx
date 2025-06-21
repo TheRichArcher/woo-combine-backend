@@ -238,64 +238,9 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
 }
 
 // Player Details Modal Component with Interactive Weight Controls
-function PlayerDetailsModal({ player, allPlayers, onClose }) {
-  const [weights, setWeights] = useState({ ...DRILL_WEIGHTS });
-  const [activePreset, setActivePreset] = useState("athletic");
+function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, activePreset, setActivePreset, getPercentages, updateWeightsFromPercentage, applyPreset }) {
 
   if (!player || !allPlayers || allPlayers.length === 0) return null;
-
-  // Convert weights to percentages for display
-  const getPercentages = () => {
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    if (total === 0) return {}; // Prevent division by zero
-    const percentages = {};
-    DRILLS.forEach(drill => {
-      // Remove Math.round() for smooth slider interaction
-      percentages[drill.key] = (weights[drill.key] / total) * 100;
-    });
-    return percentages;
-  };
-
-  // Convert percentage back to normalized weights
-  const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newWeights = { ...weights };
-    
-    // Convert percentage to decimal weight
-    const newWeight = percentage / 100;
-    newWeights[drillKey] = newWeight;
-    
-    // Calculate remaining weight to distribute
-    const remainingWeight = 1 - newWeight;
-    const otherDrills = DRILLS.filter(d => d.key !== drillKey);
-    
-    if (otherDrills.length > 0 && remainingWeight > 0) {
-      // Get current total of other drills to maintain proportional relationships
-      const currentOtherTotal = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
-      
-      if (currentOtherTotal > 0) {
-        // Distribute remaining weight proportionally to preserve relationships
-        otherDrills.forEach(drill => {
-          const proportion = weights[drill.key] / currentOtherTotal;
-          newWeights[drill.key] = remainingWeight * proportion;
-        });
-      } else {
-        // Fallback: distribute equally if all other weights are 0
-        const weightPerDrill = remainingWeight / otherDrills.length;
-        otherDrills.forEach(drill => {
-          newWeights[drill.key] = weightPerDrill;
-        });
-      }
-    }
-    
-    setWeights(newWeights);
-    setActivePreset(''); // Clear preset when manually adjusting
-  };
-
-  // Apply a preset
-  const applyPreset = (presetKey) => {
-    setWeights({ ...WEIGHT_PRESETS[presetKey].weights });
-    setActivePreset(presetKey);
-  };
 
   // FIXED: Calculate individual drill rankings with robust error handling
   const drillRankings = {};
@@ -1128,7 +1073,18 @@ export default function Players() {
 
             {/* Player Stats Modals */}
             {selectedPlayer && (
-              <PlayerDetailsModal player={selectedPlayer} allPlayers={players} onClose={() => setSelectedPlayer(null)} />
+              <PlayerDetailsModal 
+                player={selectedPlayer} 
+                allPlayers={players} 
+                onClose={() => setSelectedPlayer(null)}
+                weights={weights}
+                setWeights={setWeights}
+                activePreset={activePreset}
+                setActivePreset={setActivePreset}
+                getPercentages={getPercentages}
+                updateWeightsFromPercentage={updateWeightsFromPercentage}
+                applyPreset={applyPreset}
+              />
             )}
             {editingPlayer && (
               <EditPlayerModal
