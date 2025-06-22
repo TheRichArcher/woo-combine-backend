@@ -1042,8 +1042,8 @@ export default function Players() {
         {/* Tab Content */}
         {activeTab === 'players' && (
           <>
-            {/* Weight Adjustment Section - Organizers Only - ALWAYS SHOW FOR ORGANIZERS */}
-            {userRole === 'organizer' && (
+            {/* Weight Adjustment Section - Organizers & Coaches */}
+            {(userRole === 'organizer' || userRole === 'coach') && (
               <div className="mb-6">
                 <MobileWeightControls />
                 {Object.keys(grouped).length === 0 && (
@@ -1122,7 +1122,7 @@ export default function Players() {
                                   className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                                   disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
                                 >
-                                  {userRole === 'organizer' ? 'View Stats & Weights' : 'View Stats'}
+                                  {(userRole === 'organizer' || userRole === 'coach') ? 'View Stats & Weights' : 'View Stats'}
                                 </button>
                                 <button
                                   onClick={() => setEditingPlayer(player)}
@@ -1175,8 +1175,8 @@ export default function Players() {
               </select>
             </div>
             
-            {/* Drill Weight Controls - ALWAYS SHOW FOR ORGANIZERS */}
-            {userRole === 'organizer' && (
+            {/* Drill Weight Controls - Organizers & Coaches */}
+            {(userRole === 'organizer' || userRole === 'coach') && (
               <div className="mb-6">
                 <MobileWeightControls showSliders={true} />
                 {!selectedAgeGroup && (
