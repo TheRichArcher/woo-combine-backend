@@ -497,24 +497,29 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                                 {currentValue.toFixed(1)}%
                               </span>
                               <div className="relative">
-                                <input
-                                  type="range"
-                                  min={0}
-                                  max={100}
-                                  step={0.1}
-                                  value={currentValue}
-                                  onInput={e => {
-                                    const newValue = parseFloat(e.target.value);
-                                    console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
-                                    handleModalSliderDrag(drill.key, newValue);
-                                  }}
-                                  onChange={e => {
-                                    const newValue = parseFloat(e.target.value);
-                                    console.log(`🎯 MODAL CHANGE: ${drill.label} (${drill.key}) changed to ${newValue}%`);
-                                    handleModalSliderFinish(drill.key, newValue);
-                                  }}
-                                  className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
-                                />
+                                                                  <input
+                                    type="range"
+                                    min={0}
+                                    max={100}
+                                    step={0.1}
+                                    value={currentValue}
+                                    onInput={e => {
+                                      const newValue = parseFloat(e.target.value);
+                                      console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
+                                      handleModalSliderDrag(drill.key, newValue);
+                                    }}
+                                    onMouseUp={e => {
+                                      const newValue = parseFloat(e.target.value);
+                                      console.log(`🎯 MODAL MOUSE UP: ${drill.label} (${drill.key}) finished at ${newValue}%`);
+                                      handleModalSliderFinish(drill.key, newValue);
+                                    }}
+                                    onTouchEnd={e => {
+                                      const newValue = parseFloat(e.target.value);
+                                      console.log(`🎯 MODAL TOUCH END: ${drill.label} (${drill.key}) finished at ${newValue}%`);
+                                      handleModalSliderFinish(drill.key, newValue);
+                                    }}
+                                    className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
+                                  />
                               </div>
                             </>
                           );
@@ -922,9 +927,14 @@ export default function Players() {
                           console.log(`🎯 SLIDER INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
                           handleSliderDrag(drill.key, newValue);
                         }}
-                        onChange={e => {
+                        onMouseUp={e => {
                           const newValue = parseFloat(e.target.value);
-                          console.log(`🎯 SLIDER CHANGE: ${drill.label} (${drill.key}) changed to ${newValue}%`);
+                          console.log(`🎯 MOUSE UP: ${drill.label} (${drill.key}) finished at ${newValue}%`);
+                          handleSliderFinish(drill.key, newValue);
+                        }}
+                        onTouchEnd={e => {
+                          const newValue = parseFloat(e.target.value);
+                          console.log(`🎯 TOUCH END: ${drill.label} (${drill.key}) finished at ${newValue}%`);
                           handleSliderFinish(drill.key, newValue);
                         }}
                         className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
