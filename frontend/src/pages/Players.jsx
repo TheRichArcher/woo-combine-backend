@@ -264,6 +264,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log(`🎯 MODAL SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
+    
     const targetWeight = Math.max(0, Math.min(1, parseFloat(percentage) / 100));
     const newWeights = { ...weights };
     newWeights[drillKey] = targetWeight;
@@ -601,6 +603,8 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log(`🎯 SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
+    
     const targetWeight = Math.max(0, Math.min(1, percentage / 100));
     const newWeights = { ...weights };
     newWeights[drillKey] = targetWeight;
