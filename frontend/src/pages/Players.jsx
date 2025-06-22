@@ -477,8 +477,14 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                             max={100}
                             step={0.1}
                             value={percentages[drill.key] || 0}
-                            onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                            onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                            onChange={e => {
+                              console.log(`🎯 MODAL CHANGE: ${drill.label} (${drill.key}) changed to ${e.target.value}%`);
+                              updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
+                            }}
+                            onInput={e => {
+                              console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
+                              updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
+                            }}
                             className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                             style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                           />
@@ -854,8 +860,14 @@ export default function Players() {
                       max={100}
                       step={0.1}
                       value={percentages[drill.key] || 0}
-                      onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                      onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                      onChange={e => {
+                        console.log(`🎯 SLIDER CHANGE: ${drill.label} (${drill.key}) changed to ${e.target.value}%`);
+                        updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
+                      }}
+                      onInput={e => {
+                        console.log(`🎯 SLIDER INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
+                        updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
+                      }}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                       style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
                     />
