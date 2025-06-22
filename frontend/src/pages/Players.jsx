@@ -485,8 +485,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                               console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
                               updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
                             }}
-                            className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
-                            style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                            className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
                           />
                         </div>
                       </div>
@@ -868,8 +867,7 @@ export default function Players() {
                         console.log(`🎯 SLIDER INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
                         updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
                       }}
-                      className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
-                      style={{ WebkitAppearance: 'none', MozAppearance: 'none' }}
+                      className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
                     />
                   </div>
                   
