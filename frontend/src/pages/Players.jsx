@@ -262,6 +262,25 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const percentages = getPercentagesFromWeights(weights);
+  
+  // SOLUTION: Modal also needs temp slider values to prevent fighting
+  const [modalTempSliderValues, setModalTempSliderValues] = useState({});
+
+  // SOLUTION: Modal drag handlers
+  const handleModalSliderDrag = (drillKey, percentage) => {
+    console.log(`🎯 MODAL DRAGGING: ${drillKey} to ${percentage}%`);
+    setModalTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
+  };
+
+  const handleModalSliderFinish = (drillKey, percentage) => {
+    console.log(`🎯 MODAL FINISHED DRAG: ${drillKey} at ${percentage}% - NOW updating weights`);
+    setModalTempSliderValues(prev => {
+      const newTemp = { ...prev };
+      delete newTemp[drillKey];
+      return newTemp;
+    });
+    updateWeightsFromPercentage(drillKey, percentage);
+  };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log(`🎯 MODAL SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
@@ -467,27 +486,39 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                       </div>
                 
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-600 w-16">
-                          {(percentages[drill.key] || 0).toFixed(1)}%
-                        </span>
-                        <div className="relative">
-                          <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            step={0.1}
-                            value={percentages[drill.key] || 0}
-                            onChange={e => {
-                              console.log(`🎯 MODAL CHANGE: ${drill.label} (${drill.key}) changed to ${e.target.value}%`);
-                              updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
-                            }}
-                            onInput={e => {
-                              console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
-                              updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
-                            }}
-                            className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
-                          />
-                        </div>
+                        {(() => {
+                          const currentValue = modalTempSliderValues[drill.key] !== undefined 
+                            ? modalTempSliderValues[drill.key] 
+                            : (percentages[drill.key] || 0);
+                          
+                          return (
+                            <>
+                              <span className="text-xs font-medium text-gray-600 w-16">
+                                {currentValue.toFixed(1)}%
+                              </span>
+                              <div className="relative">
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  step={0.1}
+                                  value={currentValue}
+                                  onInput={e => {
+                                    const newValue = parseFloat(e.target.value);
+                                    console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
+                                    handleModalSliderDrag(drill.key, newValue);
+                                  }}
+                                  onChange={e => {
+                                    const newValue = parseFloat(e.target.value);
+                                    console.log(`🎯 MODAL CHANGE: ${drill.label} (${drill.key}) changed to ${newValue}%`);
+                                    handleModalSliderFinish(drill.key, newValue);
+                                  }}
+                                  className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
+                                />
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   ))}
@@ -606,6 +637,27 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+  
+  // SOLUTION: Temporary slider values to prevent fighting during drag
+  const [tempSliderValues, setTempSliderValues] = useState({});
+
+  // SOLUTION: Handle slider dragging without fighting
+  const handleSliderDrag = (drillKey, percentage) => {
+    console.log(`🎯 DRAGGING: ${drillKey} to ${percentage}%`);
+    // Store temporary value during drag - NO weight redistribution yet
+    setTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
+  };
+
+  const handleSliderFinish = (drillKey, percentage) => {
+    console.log(`🎯 FINISHED DRAG: ${drillKey} at ${percentage}% - NOW updating weights`);
+    // Clear temp values and update actual weights
+    setTempSliderValues(prev => {
+      const newTemp = { ...prev };
+      delete newTemp[drillKey];
+      return newTemp;
+    });
+    updateWeightsFromPercentage(drillKey, percentage);
+  };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log(`🎯 SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
@@ -840,43 +892,52 @@ export default function Players() {
           <div className="space-y-4">
             {(() => {
               const percentages = getPercentagesFromWeights(weights);
-              return DRILLS.map(drill => (
-                <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                      <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
+              return DRILLS.map(drill => {
+                // SOLUTION: Use temp value if dragging, otherwise use calculated percentage
+                const currentValue = tempSliderValues[drill.key] !== undefined 
+                  ? tempSliderValues[drill.key] 
+                  : (percentages[drill.key] || 0);
+                
+                return (
+                  <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                        <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
+                      </div>
+                      <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
+                        <span className="text-center">{currentValue.toFixed(1)}%</span>
+                      </span>
                     </div>
-                    <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-                      <span className="text-center">{(percentages[drill.key] || 0).toFixed(1)}%</span>
-                    </span>
+                    
+                    <div className="relative">
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={0.1}
+                        value={currentValue}
+                        onInput={e => {
+                          const newValue = parseFloat(e.target.value);
+                          console.log(`🎯 SLIDER INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
+                          handleSliderDrag(drill.key, newValue);
+                        }}
+                        onChange={e => {
+                          const newValue = parseFloat(e.target.value);
+                          console.log(`🎯 SLIDER CHANGE: ${drill.label} (${drill.key}) changed to ${newValue}%`);
+                          handleSliderFinish(drill.key, newValue);
+                        }}
+                        className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
+                      />
+                    </div>
+                    
+                    <div className="flex justify-between text-xs text-gray-400 mt-2">
+                      <span>Less Priority</span>
+                      <span>More Priority</span>
+                    </div>
                   </div>
-                  
-                  <div className="relative">
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      step={0.1}
-                      value={percentages[drill.key] || 0}
-                      onChange={e => {
-                        console.log(`🎯 SLIDER CHANGE: ${drill.label} (${drill.key}) changed to ${e.target.value}%`);
-                        updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
-                      }}
-                      onInput={e => {
-                        console.log(`🎯 SLIDER INPUT: ${drill.label} (${drill.key}) input to ${e.target.value}%`);
-                        updateWeightsFromPercentage(drill.key, parseFloat(e.target.value));
-                      }}
-                      className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between text-xs text-gray-400 mt-2">
-                    <span>Less Priority</span>
-                    <span>More Priority</span>
-                  </div>
-                </div>
-              ));
+                );
+              });
             })()}
             
             <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
