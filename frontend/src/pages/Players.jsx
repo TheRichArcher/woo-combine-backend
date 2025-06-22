@@ -272,32 +272,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages };
+    // Simple approach: set the dragged slider exactly where user wants it,
+    // then distribute the remainder equally among other sliders
+    const newWeights = { ...weights };
     
-    // Set the new percentage for the changed drill
-    newPercentages[drillKey] = percentage;
+    // Convert the user's percentage to a weight (0-1 scale)
+    newWeights[drillKey] = percentage / 100;
     
-    // Calculate how much we need to redistribute
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
-    const difference = total - 100;
+    // Calculate remaining weight to distribute among other drills
+    const remainingWeight = 1 - newWeights[drillKey];
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const weightPerOtherDrill = remainingWeight / otherDrills.length;
     
-    if (difference !== 0) {
-      // Get the other drills (not the one being changed)
-      const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-      const otherTotal = otherDrills.reduce((sum, drill) => sum + (currentPercentages[drill.key] || 0), 0);
-      
-      if (otherTotal > 0) {
-        // Redistribute proportionally among other drills
-        otherDrills.forEach(drill => {
-          const proportion = (currentPercentages[drill.key] || 0) / otherTotal;
-          newPercentages[drill.key] = Math.max(0, (currentPercentages[drill.key] || 0) - (difference * proportion));
-        });
-      }
-    }
+    // Distribute remaining weight equally among other drills
+    otherDrills.forEach(drill => {
+      newWeights[drill.key] = Math.max(0, weightPerOtherDrill);
+    });
     
-    // Convert back to weights and normalize
-    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset('');
   };
@@ -622,32 +613,23 @@ export default function Players() {
 
   // FIXED: Unified weight management functions
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages };
+    // Simple approach: set the dragged slider exactly where user wants it,
+    // then distribute the remainder equally among other sliders
+    const newWeights = { ...weights };
     
-    // Set the new percentage for the changed drill
-    newPercentages[drillKey] = percentage;
+    // Convert the user's percentage to a weight (0-1 scale)
+    newWeights[drillKey] = percentage / 100;
     
-    // Calculate how much we need to redistribute
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
-    const difference = total - 100;
+    // Calculate remaining weight to distribute among other drills
+    const remainingWeight = 1 - newWeights[drillKey];
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const weightPerOtherDrill = remainingWeight / otherDrills.length;
     
-    if (difference !== 0) {
-      // Get the other drills (not the one being changed)
-      const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-      const otherTotal = otherDrills.reduce((sum, drill) => sum + (currentPercentages[drill.key] || 0), 0);
-      
-      if (otherTotal > 0) {
-        // Redistribute proportionally among other drills
-        otherDrills.forEach(drill => {
-          const proportion = (currentPercentages[drill.key] || 0) / otherTotal;
-          newPercentages[drill.key] = Math.max(0, (currentPercentages[drill.key] || 0) - (difference * proportion));
-        });
-      }
-    }
+    // Distribute remaining weight equally among other drills
+    otherDrills.forEach(drill => {
+      newWeights[drill.key] = Math.max(0, weightPerOtherDrill);
+    });
     
-    // Convert back to weights and normalize
-    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset(''); // Clear preset when manually adjusting
   };
