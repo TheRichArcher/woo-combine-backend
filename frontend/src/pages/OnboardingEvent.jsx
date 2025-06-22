@@ -279,18 +279,24 @@ export default function OnboardingEvent() {
           
           {selectedEvent && !createdEvent && (
             <div className="mt-6 pt-4 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 mb-2">
                 Selected: <strong>{selectedEvent.name}</strong>
               </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-blue-800 text-sm">
+                  <strong>Next:</strong> You can add players now or skip and add them later. 
+                  Players can also join themselves using invite codes.
+                </p>
+              </div>
               <button
                 onClick={() => {
                   setCreatedEvent(selectedEvent); 
-                  showInfo('📝 Event selected - ready to add players');
+                  showInfo('📝 Event selected - setting up your roster options');
                   setCurrentStep(2);
                 }}
                 className="bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full flex items-center justify-center gap-2"
               >
-                Continue to Add Players
+                Continue Setup
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
@@ -308,7 +314,7 @@ export default function OnboardingEvent() {
           {/* Step Header */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-            <h1 className="text-2xl font-bold">Add Players to Your Event</h1>
+            <h1 className="text-2xl font-bold">Set Up Your Roster</h1>
           </div>
           
           {/* Event Info */}
@@ -326,10 +332,10 @@ export default function OnboardingEvent() {
                 <span className="text-blue-600 text-sm">💡</span>
               </div>
               <div>
-                <p className="text-blue-800 font-medium text-sm mb-1">Simplified Upload Process</p>
+                <p className="text-blue-800 font-medium text-sm mb-1">Flexible Roster Setup</p>
                 <p className="text-blue-700 text-sm">
-                  Only First Name, Last Name, and Age Group (optional) are needed. 
-                  Drill results will be collected during your combine event.
+                  You can add players now, skip and add them later, or let players join themselves using invite codes. 
+                  Only First Name, Last Name, and Age Group are needed.
                 </p>
               </div>
             </div>
@@ -518,14 +524,18 @@ export default function OnboardingEvent() {
               Back to Event Selection
             </button>
             
-            <div className="flex items-center gap-4">
-              {/* Skip Option */}
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Skip Option - More prominent */}
               <button
-                onClick={() => handleStepNavigation(3, '⏭️ Skipping player import - you can add players later in Admin Tools')}
-                className="text-gray-500 hover:text-gray-700 font-medium underline"
+                onClick={() => handleStepNavigation(3, '⏭️ Skipping player setup - you can add players anytime later')}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-xl transition flex items-center gap-2"
               >
-                Skip for now
+                Skip & Continue
+                <ArrowRight className="w-4 h-4" />
               </button>
+              
+              {/* OR text */}
+              <span className="text-sm text-gray-500 hidden sm:inline">or</span>
               
               {/* Continue Button - enabled if players added */}
               <button
@@ -533,17 +543,18 @@ export default function OnboardingEvent() {
                 disabled={playerCount === 0}
                 className="bg-cmf-primary hover:bg-cmf-secondary disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition flex items-center gap-2"
               >
-                Continue to Share Event
+                Continue with {playerCount} Player{playerCount !== 1 ? 's' : ''}
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
           </div>
           
-          {playerCount === 0 && (
-            <p className="text-center text-sm text-gray-500 mt-2">
-              Add at least one player to continue, or skip for now
-            </p>
-          )}
+          <p className="text-center text-sm text-gray-500 mt-2">
+            {playerCount === 0 
+              ? "💡 You can skip this step and add players later, or invite players to join themselves"
+              : `✅ ${playerCount} player${playerCount !== 1 ? 's' : ''} ready - you can add more anytime`
+            }
+          </p>
         </div>
       </WelcomeLayout>
     );
