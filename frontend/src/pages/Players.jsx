@@ -585,31 +585,31 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [testSliderValue, setTestSliderValue] = useState(50);
-  const [tempSliderValues, setTempSliderValues] = useState({});
 
-  const handleSliderInput = (drillKey, percentage) => {
-    console.log('SLIDER INPUT (temp):', drillKey, percentage);
-    // Store temporary value without triggering weight redistribution
-    setTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
-  };
-
-  const handleSliderFinish = (drillKey, percentage) => {
-    console.log('SLIDER FINISHED (final):', drillKey, percentage);
-    // Clear temp value and apply final redistribution
-    setTempSliderValues(prev => {
-      const newTemp = { ...prev };
-      delete newTemp[drillKey];
-      return newTemp;
+  // SIMPLE DIRECT APPROACH - no complex redistribution fighting
+  const handleSliderChange = (drillKey, percentage) => {
+    console.log('🎯 DIRECT SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    
+    // Direct approach: dragged slider goes exactly where user wants it
+    const newWeight = percentage / 100;
+    const remainingWeight = 1 - newWeight;
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
     });
     
-    const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
-    const newWeights = getWeightsFromPercentages(newPercentages);
+    console.log('🎯 NEW WEIGHTS:', newWeights);
     
-    flushSync(() => {
-      setWeights(newWeights);
-      setActivePreset('');
-    });
+    setWeights(newWeights);
+    setActivePreset(''); // Clear preset since we're customizing
   };
 
   const applyPreset = (presetKey) => {
@@ -820,43 +820,34 @@ export default function Players() {
                   <SimpleSlider
                     label="Test Slider (should work)"
                     value={testSliderValue}
-                    onInput={(val) => {
-                      console.log('TEST SLIDER INPUT!', val);
-                      setTestSliderValue(val);
-                    }}
                     onChange={(val) => {
-                      console.log('TEST SLIDER FINISHED!', val);
+                      console.log('🎯 TEST SLIDER CHANGE!', val);
                       setTestSliderValue(val);
                     }}
                   />
                 </div>
                 
-                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
-                  <div className="text-sm font-medium text-yellow-800">Debug Info:</div>
-                  <div className="text-xs text-yellow-700">
+                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
+                  <div className="text-sm font-medium text-green-800">🎯 SIMPLE DIRECT APPROACH</div>
+                  <div className="text-xs text-green-700">
                     Current percentages: {JSON.stringify(percentages)}
                   </div>
-                  <div className="text-xs text-yellow-700">
+                  <div className="text-xs text-green-700">
+                    Dragged slider = exact value, others = equal split
+                  </div>
+                  <div className="text-xs text-green-700">
                     Active preset: {activePreset || 'custom'}
                   </div>
                 </div>
                 
-                {DRILLS.map(drill => {
-                  // Use temp value if dragging, otherwise use calculated percentage
-                  const displayValue = tempSliderValues[drill.key] != null 
-                    ? tempSliderValues[drill.key] 
-                    : Math.round(percentages[drill.key] || 0);
-                    
-                  return (
-                    <SimpleSlider
-                      key={drill.key}
-                      label={drill.label}
-                      value={displayValue}
-                      onInput={(newValue) => handleSliderInput(drill.key, newValue)}
-                      onChange={(newValue) => handleSliderFinish(drill.key, newValue)}
-                    />
-                  );
-                })}
+                {DRILLS.map(drill => (
+                  <SimpleSlider
+                    key={drill.key}
+                    label={drill.label}
+                    value={Math.round(percentages[drill.key] || 0)}
+                    onChange={(newValue) => handleSliderChange(drill.key, newValue)}
+                  />
+                ))}
                 
                 <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
                   💡 Player rankings update automatically as you adjust drill priorities above

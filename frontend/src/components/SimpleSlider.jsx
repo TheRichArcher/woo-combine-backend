@@ -5,31 +5,15 @@ import { flushSync } from 'react-dom';
 export default function SimpleSlider({ 
   label, 
   value, 
-  onInput,  // For smooth dragging (temp values)
-  onChange, // For final value (mouse up)
+  onChange,
   min = 0, 
   max = 100, 
   step = 1,
   className = ""
 }) {
-  const handleInput = (e) => {
+  const handleChange = (e) => {
     const newValue = parseInt(e.target.value);
-    console.log('SimpleSlider onInput:', label, 'from', value, 'to', newValue);
-    e.stopPropagation();
-    if (onInput) onInput(newValue);
-  };
-
-  const handleMouseUp = (e) => {
-    const newValue = parseInt(e.target.value);
-    console.log('SimpleSlider onMouseUp:', label, 'from', value, 'to', newValue);
-    e.stopPropagation();
-    if (onChange) onChange(newValue);
-  };
-
-  const handleTouchEnd = (e) => {
-    const newValue = parseInt(e.target.value);
-    console.log('SimpleSlider onTouchEnd:', label, 'from', value, 'to', newValue);
-    e.stopPropagation();
+    console.log('🎯 SimpleSlider change:', label, 'from', value, 'to', newValue);
     if (onChange) onChange(newValue);
   };
 
@@ -52,9 +36,7 @@ export default function SimpleSlider({
           max={max}
           step={step}
           value={value}
-          onInput={handleInput}
-          onMouseUp={handleMouseUp}
-          onTouchEnd={handleTouchEnd}
+          onChange={handleChange}
           className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
