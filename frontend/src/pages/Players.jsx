@@ -73,29 +73,20 @@ const getPercentagesFromWeights = (weights) => {
   if (total === 0) return {};
   const percentages = {};
   DRILLS.forEach(drill => {
-    percentages[drill.key] = Number(((weights[drill.key] / total) * 100).toFixed(1));
+    // Keep precision for smooth slider interaction, avoid premature rounding
+    percentages[drill.key] = (weights[drill.key] / total) * 100;
   });
   return percentages;
 };
 
 const getWeightsFromPercentages = (percentages) => {
-  const total = Object.values(percentages).reduce((sum, pct) => sum + (Number.isFinite(pct) ? pct : 0), 0);
+  const total = Object.values(percentages).reduce((sum, pct) => sum + pct, 0);
   if (total === 0) return { ...WEIGHT_PRESETS.balanced.weights };
-
+  
   const weights = {};
-  let weightSum = 0;
   DRILLS.forEach(drill => {
-    const percentage = Number.isFinite(percentages[drill.key]) ? percentages[drill.key] : 0;
-    weights[drill.key] = percentage / total;
-    weightSum += weights[drill.key];
+    weights[drill.key] = percentages[drill.key] / total;
   });
-
-  if (weightSum !== 0) {
-    DRILLS.forEach(drill => {
-      weights[drill.key] = weights[drill.key] / weightSum;
-    });
-  }
-
   return weights;
 };
 
@@ -264,22 +255,9 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // Simple approach: dragged slider goes exactly where user wants it
-    const targetWeight = Math.max(0, Math.min(1, percentage / 100));
-    const newWeights = { ...weights };
-    newWeights[drillKey] = targetWeight;
-    
-    // Distribute remaining weight equally among other sliders
-    const remainingWeight = Math.max(0, 1 - targetWeight);
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    
-    if (otherDrills.length > 0) {
-      const equalWeight = remainingWeight / otherDrills.length;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = equalWeight;
-      });
-    }
-    
+    const currentPercentages = getPercentagesFromWeights(weights);
+    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset('');
   };
@@ -599,22 +577,9 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // Simple approach: dragged slider goes exactly where user wants it
-    const targetWeight = Math.max(0, Math.min(1, percentage / 100));
-    const newWeights = { ...weights };
-    newWeights[drillKey] = targetWeight;
-    
-    // Distribute remaining weight equally among other sliders
-    const remainingWeight = Math.max(0, 1 - targetWeight);
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    
-    if (otherDrills.length > 0) {
-      const equalWeight = remainingWeight / otherDrills.length;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = equalWeight;
-      });
-    }
-    
+    const currentPercentages = getPercentagesFromWeights(weights);
+    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const newWeights = getWeightsFromPercentages(newPercentages);
     setWeights(newWeights);
     setActivePreset('');
   };
