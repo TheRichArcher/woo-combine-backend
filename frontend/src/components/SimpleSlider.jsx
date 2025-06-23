@@ -14,6 +14,7 @@ export default function SimpleSlider({
 }) {
   // ZERO OVERHEAD - use parseFloat for precision when step=0.1
   const handleEvent = (e) => {
+    console.log('SimpleSlider handleEvent:', e.target.value, typeof e.target.value);
     onChange(parseFloat(e.target.value));
   };
 

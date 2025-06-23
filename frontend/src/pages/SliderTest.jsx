@@ -313,24 +313,44 @@ export default function SliderTest() {
           </div>
         </div>
 
-        {/* Test 7: NEW - SimpleSlider Component Test */}
-        <div>
-          <h2 className="font-semibold mb-2 text-green-600">✅ Test 7: Fixed SimpleSlider Component - NEW FIX</h2>
-          <p className="text-sm text-gray-600 mb-2">Uses updated SimpleSlider component with parseFloat + displayValue + step=0.1</p>
-          <div className="space-y-3">
-            {DRILLS.map(drill => (
-              <SimpleSlider
-                key={drill.key}
-                label={drill.label}
-                value={percentagesSimpleSlider[drill.key] || 0}
-                displayValue={Math.round(percentagesSimpleSlider[drill.key] || 0)}
-                onChange={(newValue) => handleSimpleSliderChange(drill.key, newValue)}
-                step={0.1}
-                className="border-green-200"
-              />
-            ))}
-          </div>
-        </div>
+                 {/* Test 7: NEW - SimpleSlider Component Test */}
+         <div>
+           <h2 className="font-semibold mb-2 text-green-600">✅ Test 7: Fixed SimpleSlider Component - NEW FIX</h2>
+           <p className="text-sm text-gray-600 mb-2">Uses updated SimpleSlider component with parseFloat + displayValue + step=0.1</p>
+           <div className="space-y-3">
+             {DRILLS.map(drill => (
+               <SimpleSlider
+                 key={drill.key}
+                 label={drill.label}
+                 value={percentagesSimpleSlider[drill.key] || 0}
+                 displayValue={Math.round(percentagesSimpleSlider[drill.key] || 0)}
+                 onChange={(newValue) => handleSimpleSliderChange(drill.key, newValue)}
+                 step={0.1}
+                 className="border-green-200"
+               />
+             ))}
+           </div>
+         </div>
+
+         {/* Test 8: Debug Information */}
+         <div className="bg-gray-100 rounded-lg p-4">
+           <h2 className="font-semibold mb-2 text-gray-800">🔍 Debug Information</h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+             <div>
+               <h3 className="font-medium text-gray-700 mb-1">React Environment:</h3>
+               <p>React Version: {React.version}</p>
+               <p>Window Location: {window.location.href}</p>
+               <p>User Agent: {navigator.userAgent.slice(0, 50)}...</p>
+             </div>
+             <div>
+               <h3 className="font-medium text-gray-700 mb-1">Weight States (Test 7):</h3>
+               <div className="font-mono text-xs bg-white p-2 rounded border max-h-20 overflow-y-auto">
+                 {JSON.stringify(weightsSimpleSlider, null, 2)}
+               </div>
+               <p className="mt-1">Sum: {Object.values(weightsSimpleSlider).reduce((sum, w) => sum + w, 0).toFixed(6)}</p>
+             </div>
+           </div>
+         </div>
         
         <div className="text-xs text-gray-500 space-y-1 border-t pt-4">
           <p><strong>Testing Instructions:</strong></p>

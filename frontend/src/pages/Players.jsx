@@ -257,6 +257,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log('🎯 updateWeightsFromPercentage:', drillKey, percentage, typeof percentage);
     console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
     const newWeight = percentage / 100;
     const currentWeights = { ...weights };
@@ -606,6 +607,7 @@ export default function Players() {
 
   // SMOOTH SLIDER HANDLING - proportional redistribution for smooth dragging
   const handleSliderChange = (drillKey, percentage) => {
+    console.log('🎯 handleSliderChange:', drillKey, percentage, typeof percentage);
     console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
     const newWeight = percentage / 100;
     const currentWeights = { ...weights };
@@ -783,6 +785,8 @@ export default function Players() {
   }, {});
 
   const MobileWeightControls = ({ showSliders = false }) => {
+    const [debugValue, setDebugValue] = useState(50);
+    
     useEffect(() => {
       if (showSliders && !showCustomControls) {
         setShowCustomControls(true);
@@ -841,6 +845,18 @@ export default function Players() {
 
                             {showCustomControls && (
           <div className="space-y-3">
+                <SimpleSlider
+                  label="🐛 Debug Slider (Isolated Test)"
+                  value={debugValue}
+                  displayValue={Math.round(debugValue)}
+                  onChange={(newValue) => {
+                    console.log('🐛 Debug Slider:', newValue, typeof newValue);
+                    setDebugValue(newValue);
+                  }}
+                  step={0.1}
+                  className="border-red-300 bg-red-50"
+                />
+                
                 {DRILLS.map(drill => (
                   <SimpleSlider
                     key={drill.key}
