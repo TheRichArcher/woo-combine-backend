@@ -152,6 +152,7 @@ function App() {
               <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
               <Route path="/join-event/:eventId" element={<JoinEvent />} />
               <Route path="/slider-test" element={<SliderTest />} />
+              <Route path="/slider-test-standalone" element={<SliderTest />} />
               <Route path="/help" element={
                 <WelcomeLayout
                   contentClassName="min-h-screen"
