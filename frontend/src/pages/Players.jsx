@@ -264,27 +264,20 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    // Simple approach: dragged slider goes exactly where user wants it
     const targetWeight = Math.max(0, Math.min(1, percentage / 100));
     const newWeights = { ...weights };
     newWeights[drillKey] = targetWeight;
     
+    // Distribute remaining weight equally among other sliders
     const remainingWeight = Math.max(0, 1 - targetWeight);
     const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
     
     if (otherDrills.length > 0) {
-      const currentOtherWeightsSum = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
-      
-      if (currentOtherWeightsSum > 0) {
-        otherDrills.forEach(drill => {
-          const proportion = weights[drill.key] / currentOtherWeightsSum;
-          newWeights[drill.key] = remainingWeight * proportion;
-        });
-      } else {
-        const equalWeight = remainingWeight / otherDrills.length;
-        otherDrills.forEach(drill => {
-          newWeights[drill.key] = equalWeight;
-        });
-      }
+      const equalWeight = remainingWeight / otherDrills.length;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = equalWeight;
+      });
     }
     
     setWeights(newWeights);
@@ -476,7 +469,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           max={100}
                           step={1}
                           value={percentages[drill.key] || 0}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
@@ -607,27 +599,20 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    // Simple approach: dragged slider goes exactly where user wants it
     const targetWeight = Math.max(0, Math.min(1, percentage / 100));
     const newWeights = { ...weights };
     newWeights[drillKey] = targetWeight;
     
+    // Distribute remaining weight equally among other sliders
     const remainingWeight = Math.max(0, 1 - targetWeight);
     const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
     
     if (otherDrills.length > 0) {
-      const currentOtherWeightsSum = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
-      
-      if (currentOtherWeightsSum > 0) {
-        otherDrills.forEach(drill => {
-          const proportion = weights[drill.key] / currentOtherWeightsSum;
-          newWeights[drill.key] = remainingWeight * proportion;
-        });
-      } else {
-        const equalWeight = remainingWeight / otherDrills.length;
-        otherDrills.forEach(drill => {
-          newWeights[drill.key] = equalWeight;
-        });
-      }
+      const equalWeight = remainingWeight / otherDrills.length;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = equalWeight;
+      });
     }
     
     setWeights(newWeights);
@@ -856,7 +841,6 @@ export default function Players() {
                       max={100}
                       step={1}
                       value={percentages[drill.key] || 0}
-                      onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                     />
