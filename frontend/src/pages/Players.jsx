@@ -585,15 +585,27 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [testSliderValue, setTestSliderValue] = useState(50);
+  const [tempSliderValues, setTempSliderValues] = useState({});
 
-  const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log('MAIN updateWeightsFromPercentage called:', drillKey, percentage);
+  const handleSliderInput = (drillKey, percentage) => {
+    console.log('SLIDER INPUT (temp):', drillKey, percentage);
+    // Store temporary value without triggering weight redistribution
+    setTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
+  };
+
+  const handleSliderFinish = (drillKey, percentage) => {
+    console.log('SLIDER FINISHED (final):', drillKey, percentage);
+    // Clear temp value and apply final redistribution
+    setTempSliderValues(prev => {
+      const newTemp = { ...prev };
+      delete newTemp[drillKey];
+      return newTemp;
+    });
+    
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
     const newWeights = getWeightsFromPercentages(newPercentages);
-    console.log('MAIN New weights calculated:', newWeights);
     
-    // Force immediate update for smooth slider dragging (React 19 fix)
     flushSync(() => {
       setWeights(newWeights);
       setActivePreset('');
@@ -808,8 +820,12 @@ export default function Players() {
                   <SimpleSlider
                     label="Test Slider (should work)"
                     value={testSliderValue}
+                    onInput={(val) => {
+                      console.log('TEST SLIDER INPUT!', val);
+                      setTestSliderValue(val);
+                    }}
                     onChange={(val) => {
-                      console.log('TEST SLIDER WORKED!', val);
+                      console.log('TEST SLIDER FINISHED!', val);
                       setTestSliderValue(val);
                     }}
                   />
@@ -825,14 +841,22 @@ export default function Players() {
                   </div>
                 </div>
                 
-                {DRILLS.map(drill => (
-                  <SimpleSlider
-                    key={drill.key}
-                    label={drill.label}
-                    value={Math.round(percentages[drill.key] || 0)}
-                    onChange={(newValue) => updateWeightsFromPercentage(drill.key, newValue)}
-                  />
-                ))}
+                {DRILLS.map(drill => {
+                  // Use temp value if dragging, otherwise use calculated percentage
+                  const displayValue = tempSliderValues[drill.key] != null 
+                    ? tempSliderValues[drill.key] 
+                    : Math.round(percentages[drill.key] || 0);
+                    
+                  return (
+                    <SimpleSlider
+                      key={drill.key}
+                      label={drill.label}
+                      value={displayValue}
+                      onInput={(newValue) => handleSliderInput(drill.key, newValue)}
+                      onChange={(newValue) => handleSliderFinish(drill.key, newValue)}
+                    />
+                  );
+                })}
                 
                 <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
                   💡 Player rankings update automatically as you adjust drill priorities above
