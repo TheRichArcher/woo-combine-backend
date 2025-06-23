@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
 import SimpleSlider from "../components/SimpleSlider";
-import IsolatedSliderTest from "../components/IsolatedSliderTest";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
@@ -261,6 +260,18 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
     console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
+    const totalPercentage = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherPercentage = otherDrills.reduce((sum, drill) => sum + (newPercentages[drill.key] || 0), 0);
+
+    // Scale other percentages proportionally to maintain sum = 100
+    if (totalOtherPercentage > 0) {
+      const scale = (100 - percentage) / totalOtherPercentage;
+      otherDrills.forEach(drill => {
+        newPercentages[drill.key] = newPercentages[drill.key] * scale;
+      });
+    }
+
     const newWeights = getWeightsFromPercentages(newPercentages);
     console.log('MODAL New weights calculated:', newWeights);
     
@@ -454,10 +465,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           type="range"
                           min={0}
                           max={100}
-                          step={1}
-                          value={Math.round(percentages[drill.key] || 0)}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          step={0.1}
+                          value={percentages[drill.key] || 0}
+                          onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         {/* Visual Impact Indicator */}
@@ -585,29 +596,39 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
-  const [testSliderValue, setTestSliderValue] = useState(50);
 
-  // SIMPLE DIRECT APPROACH - no complex redistribution fighting
+  // PRECISE SLIDER HANDLING - supports decimal values for smooth dragging
   const handleSliderChange = (drillKey, percentage) => {
-    console.log('🎯 DIRECT SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    console.log('🎯 PRECISE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
     
     // Direct approach: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const remainingWeight = 1 - newWeight;
+    const currentWeights = { ...weights };
+    const currentDrillWeight = currentWeights[drillKey];
+    const weightDifference = newWeight - currentDrillWeight;
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+
+    const newWeights = { ...currentWeights };
+    newWeights[drillKey] = newWeight;
+
+    // Proportionally adjust other weights to preserve relative priorities
+    if (totalOtherWeight > 0) {
+      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
+      });
+    }
+
+    // Normalize to sum = 1
+    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+    if (total > 0) {
+      DRILLS.forEach(drill => {
+        newWeights[drill.key] = newWeights[drill.key] / total;
+      });
+    }
     
-    // Distribute remaining weight equally among other 4 sliders
-    const otherSliderWeight = remainingWeight / 4;
-    
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      if (drill.key === drillKey) {
-        newWeights[drill.key] = newWeight;
-      } else {
-        newWeights[drill.key] = otherSliderWeight;
-      }
-    });
-    
-    console.log('🎯 NEW WEIGHTS:', newWeights);
+    console.log('🎯 NEW PRECISE WEIGHTS:', newWeights);
     
     setWeights(newWeights);
     setActivePreset(''); // Clear preset since we're customizing
@@ -815,43 +836,15 @@ export default function Players() {
         </div>
 
                             {showCustomControls && (
-          <div className="space-y-4">
-            <IsolatedSliderTest />
-            
-            <div className="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
-              <div className="text-sm font-medium text-red-800">🚨 SIMPLE TEST SLIDER 🚨</div>
-              <SimpleSlider
-                label="Test Slider (should work)"
-                value={testSliderValue}
-                onChange={(val) => {
-                  console.log('🎯 TEST SLIDER CHANGE!', val);
-                  setTestSliderValue(val);
-                }}
-              />
-            </div>
-                
-                <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
-                  <div className="text-sm font-medium text-green-800">🎯 FIXED: onInput + onChange for smooth dragging</div>
-                  <div className="text-xs text-green-700">
-                    Current percentages: {JSON.stringify(percentages)}
-                  </div>
-                  <div className="text-xs text-green-700">
-                    onInput = continuous during drag, onChange = final click/release
-                  </div>
-                  <div className="text-xs text-green-700">
-                    Logic: Dragged slider = exact value, others = equal split
-                  </div>
-                  <div className="text-xs text-green-700">
-                    Active preset: {activePreset || 'custom'}
-                  </div>
-                </div>
-                
+          <div className="space-y-3">
                 {DRILLS.map(drill => (
                   <SimpleSlider
                     key={drill.key}
                     label={drill.label}
-                    value={Math.round(percentages[drill.key] || 0)}
+                    value={percentages[drill.key] || 0} // Precise value for smooth dragging
+                    displayValue={Math.round(percentages[drill.key] || 0)} // Rounded for clean display
                     onChange={(newValue) => handleSliderChange(drill.key, newValue)}
+                    step={0.1} // Fine control for smooth movement
                   />
                 ))}
                 
