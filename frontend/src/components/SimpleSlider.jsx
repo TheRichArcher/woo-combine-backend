@@ -11,16 +11,9 @@ export default function SimpleSlider({
   step = 1,
   className = ""
 }) {
-  const handleInput = (e) => {
-    const newValue = parseInt(e.target.value);
-    console.log('🎯 SimpleSlider input (smooth):', label, 'from', value, 'to', newValue);
-    if (onChange) onChange(newValue);
-  };
-
-  const handleChange = (e) => {
-    const newValue = parseInt(e.target.value);
-    console.log('🎯 SimpleSlider change (final):', label, 'from', value, 'to', newValue);
-    if (onChange) onChange(newValue);
+  // MATCH THE WORKING PURPLE SLIDER EXACTLY - no console logs, no extra overhead
+  const handleEvent = (e) => {
+    onChange(parseInt(e.target.value));
   };
 
   return (
@@ -42,8 +35,8 @@ export default function SimpleSlider({
           max={max}
           step={step}
           value={value}
-          onInput={handleInput}
-          onChange={handleChange}
+          onInput={handleEvent}
+          onChange={handleEvent}
           className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
