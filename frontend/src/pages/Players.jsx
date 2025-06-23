@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -258,8 +259,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
     const newWeights = getWeightsFromPercentages(newPercentages);
-    setWeights(newWeights);
-    setActivePreset('');
+    
+    // Force immediate update for smooth slider dragging (React 19 fix)
+    flushSync(() => {
+      setWeights(newWeights);
+      setActivePreset('');
+    });
   };
 
   const applyPreset = (presetKey) => {
@@ -581,8 +586,12 @@ export default function Players() {
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
     const newWeights = getWeightsFromPercentages(newPercentages);
-    setWeights(newWeights);
-    setActivePreset('');
+    
+    // Force immediate update for smooth slider dragging (React 19 fix)
+    flushSync(() => {
+      setWeights(newWeights);
+      setActivePreset('');
+    });
   };
 
   const applyPreset = (presetKey) => {
