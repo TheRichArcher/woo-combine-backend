@@ -11,9 +11,15 @@ export default function SimpleSlider({
   step = 1,
   className = ""
 }) {
+  const handleInput = (e) => {
+    const newValue = parseInt(e.target.value);
+    console.log('🎯 SimpleSlider input (smooth):', label, 'from', value, 'to', newValue);
+    if (onChange) onChange(newValue);
+  };
+
   const handleChange = (e) => {
     const newValue = parseInt(e.target.value);
-    console.log('🎯 SimpleSlider change:', label, 'from', value, 'to', newValue);
+    console.log('🎯 SimpleSlider change (final):', label, 'from', value, 'to', newValue);
     if (onChange) onChange(newValue);
   };
 
@@ -36,6 +42,7 @@ export default function SimpleSlider({
           max={max}
           step={step}
           value={value}
+          onInput={handleInput}
           onChange={handleChange}
           className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
         />

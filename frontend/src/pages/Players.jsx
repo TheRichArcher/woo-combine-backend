@@ -828,12 +828,15 @@ export default function Players() {
                 </div>
                 
                 <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
-                  <div className="text-sm font-medium text-green-800">🎯 SIMPLE DIRECT APPROACH</div>
+                  <div className="text-sm font-medium text-green-800">🎯 FIXED: onInput + onChange for smooth dragging</div>
                   <div className="text-xs text-green-700">
                     Current percentages: {JSON.stringify(percentages)}
                   </div>
                   <div className="text-xs text-green-700">
-                    Dragged slider = exact value, others = equal split
+                    onInput = continuous during drag, onChange = final click/release
+                  </div>
+                  <div className="text-xs text-green-700">
+                    Logic: Dragged slider = exact value, others = equal split
                   </div>
                   <div className="text-xs text-green-700">
                     Active preset: {activePreset || 'custom'}
