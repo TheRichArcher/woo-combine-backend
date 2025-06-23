@@ -446,7 +446,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           min={0}
                           max={100}
                           step={1}
-                          value={percentages[drill.key] || 0}
+                          value={Math.round(percentages[drill.key] || 0)}
                           onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
@@ -786,9 +786,9 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-4">
-            {DRILLS.map(drill => {
+            {(() => {
               const percentages = getPercentagesFromWeights(weights);
-              return (
+              return DRILLS.map(drill => (
                 <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div>
@@ -806,7 +806,7 @@ export default function Players() {
                       min={0}
                       max={100}
                       step={1}
-                      value={percentages[drill.key] || 0}
+                      value={Math.round(percentages[drill.key] || 0)}
                       onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
@@ -817,9 +817,9 @@ export default function Players() {
                     <span>Less Priority</span>
                     <span>More Priority</span>
                   </div>
-                </div>
-              );
-            })}
+                                  </div>
+                ));
+              })()}
             
             <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
               💡 Player rankings update automatically as you adjust drill priorities above
