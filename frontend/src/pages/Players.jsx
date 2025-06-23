@@ -584,6 +584,7 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+  const [testSliderValue, setTestSliderValue] = useState(50);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log('MAIN updateWeightsFromPercentage called:', drillKey, percentage);
@@ -806,8 +807,11 @@ export default function Players() {
                   <div className="text-sm font-medium text-red-800">🚨 SIMPLE TEST SLIDER 🚨</div>
                   <SimpleSlider
                     label="Test Slider (should work)"
-                    value={50}
-                    onChange={(val) => console.log('TEST SLIDER WORKED!', val)}
+                    value={testSliderValue}
+                    onChange={(val) => {
+                      console.log('TEST SLIDER WORKED!', val);
+                      setTestSliderValue(val);
+                    }}
                   />
                 </div>
                 
