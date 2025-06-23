@@ -258,21 +258,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
-    const currentPercentages = getPercentagesFromWeights(weights);
-    const newPercentages = { ...currentPercentages, [drillKey]: percentage };
-    const totalPercentage = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherPercentage = otherDrills.reduce((sum, drill) => sum + (newPercentages[drill.key] || 0), 0);
-
-    // Scale other percentages proportionally to maintain sum = 100
-    if (totalOtherPercentage > 0) {
-      const scale = (100 - percentage) / totalOtherPercentage;
-      otherDrills.forEach(drill => {
-        newPercentages[drill.key] = newPercentages[drill.key] * scale;
-      });
-    }
-
-    const newWeights = getWeightsFromPercentages(newPercentages);
+    
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
+    const newWeight = percentage / 100;
+    const remainingWeight = 1 - newWeight;
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
+    
     console.log('MODAL New weights calculated:', newWeights);
     
     // Force immediate update for smooth slider dragging (React 19 fix)
@@ -597,38 +599,27 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // PRECISE SLIDER HANDLING - supports decimal values for smooth dragging
+  // SIMPLE DIRECT SLIDER HANDLING - no complex calculations during drag
   const handleSliderChange = (drillKey, percentage) => {
-    console.log('🎯 PRECISE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
     
-    // Direct approach: dragged slider goes exactly where user wants it
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const currentWeights = { ...weights };
-    const currentDrillWeight = currentWeights[drillKey];
-    const weightDifference = newWeight - currentDrillWeight;
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
-
-    const newWeights = { ...currentWeights };
-    newWeights[drillKey] = newWeight;
-
-    // Proportionally adjust other weights to preserve relative priorities
-    if (totalOtherWeight > 0) {
-      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
-      });
-    }
-
-    // Normalize to sum = 1
-    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (total > 0) {
-      DRILLS.forEach(drill => {
-        newWeights[drill.key] = newWeights[drill.key] / total;
-      });
-    }
+    const remainingWeight = 1 - newWeight;
     
-    console.log('🎯 NEW PRECISE WEIGHTS:', newWeights);
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
+    
+    console.log('🎯 NEW SIMPLE WEIGHTS:', newWeights);
     
     setWeights(newWeights);
     setActivePreset(''); // Clear preset since we're customizing
