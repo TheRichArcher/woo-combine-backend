@@ -21,6 +21,7 @@ import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
+import SliderTest from "./pages/SliderTest";
 
 function App() {
   return (
@@ -150,6 +151,7 @@ function App() {
               <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
               <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
               <Route path="/join-event/:eventId" element={<JoinEvent />} />
+              <Route path="/slider-test" element={<SliderTest />} />
               <Route path="/help" element={
                 <WelcomeLayout
                   contentClassName="min-h-screen"
