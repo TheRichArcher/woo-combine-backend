@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { flushSync } from 'react-dom';
+import SimpleSlider from '../components/SimpleSlider';
 
 // Simulate the exact same logic as in Players.jsx
 const DRILLS = [
@@ -58,6 +59,24 @@ export default function SliderTest() {
     'throwing': 0.2,
     'agility': 0.2
   });
+
+  // NEW: Test with proportional redistribution (FIXED VERSION)
+  const [weightsProportional, setWeightsProportional] = useState({
+    '40m_dash': 0.2,
+    'vertical_jump': 0.2,
+    'catching': 0.2,
+    'throwing': 0.2,
+    'agility': 0.2
+  });
+
+  // NEW: Test with SimpleSlider component (FIXED VERSION)
+  const [weightsSimpleSlider, setWeightsSimpleSlider] = useState({
+    '40m_dash': 0.2,
+    'vertical_jump': 0.2,
+    'catching': 0.2,
+    'throwing': 0.2,
+    'agility': 0.2
+  });
   
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log('updateWeightsFromPercentage called:', drillKey, percentage);
@@ -81,20 +100,88 @@ export default function SliderTest() {
       setWeightsFlush(newWeights);
     });
   };
+
+  // NEW: Proportional redistribution (matches our fix)
+  const updateWeightsProportional = (drillKey, percentage) => {
+    console.log('🎯 PROPORTIONAL CHANGE:', drillKey, 'to', percentage + '%');
+    const newWeight = percentage / 100;
+    const currentWeights = { ...weightsProportional };
+    const currentDrillWeight = currentWeights[drillKey];
+    const weightDifference = newWeight - currentDrillWeight;
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+
+    const newWeights = { ...currentWeights };
+    newWeights[drillKey] = newWeight;
+
+    // Proportionally adjust other weights
+    if (totalOtherWeight > 0) {
+      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
+      });
+    }
+
+    // Normalize to sum = 1
+    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+    if (total > 0) {
+      DRILLS.forEach(drill => {
+        newWeights[drill.key] = newWeights[drill.key] / total;
+      });
+    }
+
+    console.log('🎯 NEW PROPORTIONAL WEIGHTS:', newWeights);
+    setWeightsProportional(newWeights);
+  };
+
+  // NEW: SimpleSlider test (matches our fix)
+  const handleSimpleSliderChange = (drillKey, percentage) => {
+    console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    const newWeight = percentage / 100;
+    const currentWeights = { ...weightsSimpleSlider };
+    const currentDrillWeight = currentWeights[drillKey];
+    const weightDifference = newWeight - currentDrillWeight;
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+
+    const newWeights = { ...currentWeights };
+    newWeights[drillKey] = newWeight;
+
+    // Proportionally adjust other weights
+    if (totalOtherWeight > 0) {
+      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
+      });
+    }
+
+    // Normalize to sum = 1
+    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+    if (total > 0) {
+      DRILLS.forEach(drill => {
+        newWeights[drill.key] = newWeights[drill.key] / total;
+      });
+    }
+
+    console.log('🎯 NEW SIMPLE SLIDER WEIGHTS:', newWeights);
+    setWeightsSimpleSlider(newWeights);
+  };
   
   const percentages = getPercentagesFromWeights(weights);
   const percentagesFlush = getPercentagesFromWeights(weightsFlush);
+  const percentagesProportional = getPercentagesFromWeights(weightsProportional);
+  const percentagesSimpleSlider = getPercentagesFromWeights(weightsSimpleSlider);
   
   console.log('SliderTest render - React', React.version);
   
   return (
     <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-md mx-auto bg-white rounded-lg p-6 space-y-6">
-        <h1 className="text-xl font-bold">Slider Drag Test (React {React.version})</h1>
+      <div className="max-w-2xl mx-auto bg-white rounded-lg p-6 space-y-8">
+        <h1 className="text-2xl font-bold">Slider Drag Test (React {React.version})</h1>
         
         {/* Test 1: Basic HTML slider */}
         <div>
-          <h2 className="font-semibold mb-2">Test 1: Basic HTML Slider</h2>
+          <h2 className="font-semibold mb-2 text-green-700">✅ Test 1: Basic HTML Slider</h2>
           <p className="text-sm text-gray-600 mb-2">Value: {value}</p>
           <input
             type="range"
@@ -112,7 +199,7 @@ export default function SliderTest() {
         
         {/* Test 2: With onInput */}
         <div>
-          <h2 className="font-semibold mb-2">Test 2: With onInput Handler</h2>
+          <h2 className="font-semibold mb-2 text-green-700">✅ Test 2: With onInput Handler</h2>
           <p className="text-sm text-gray-600 mb-2">Value: {dragValue}</p>
           <input
             type="range"
@@ -134,7 +221,7 @@ export default function SliderTest() {
         
         {/* Test 3: With custom styling */}
         <div>
-          <h2 className="font-semibold mb-2">Test 3: With Custom Styling</h2>
+          <h2 className="font-semibold mb-2 text-green-700">✅ Test 3: With Custom Styling</h2>
           <p className="text-sm text-gray-600 mb-2">Value: {dragValue}</p>
           <input
             type="range"
@@ -150,7 +237,8 @@ export default function SliderTest() {
         
         {/* Test 4: Weight redistribution logic (React batched) */}
         <div>
-          <h2 className="font-semibold mb-2">Test 4: Weight Logic (React Batched)</h2>
+          <h2 className="font-semibold mb-2 text-red-600">❌ Test 4: Weight Logic (React Batched) - OLD METHOD</h2>
+          <p className="text-sm text-gray-600 mb-2">Uses old getWeightsFromPercentages logic - may be jumpy</p>
           <div className="space-y-3">
             {DRILLS.map(drill => (
               <div key={drill.key}>
@@ -175,7 +263,8 @@ export default function SliderTest() {
         
         {/* Test 5: Weight redistribution with flushSync (immediate updates) */}
         <div>
-          <h2 className="font-semibold mb-2">Test 5: Weight Logic (flushSync - Immediate)</h2>
+          <h2 className="font-semibold mb-2 text-red-600">❌ Test 5: Weight Logic (flushSync) - OLD METHOD</h2>
+          <p className="text-sm text-gray-600 mb-2">Uses old getWeightsFromPercentages + flushSync - may be jumpy</p>
           <div className="space-y-3">
             {DRILLS.map(drill => (
               <div key={drill.key}>
@@ -197,12 +286,60 @@ export default function SliderTest() {
             ))}
           </div>
         </div>
+
+        {/* Test 6: NEW - Proportional redistribution with step=0.1 */}
+        <div>
+          <h2 className="font-semibold mb-2 text-blue-600">🔧 Test 6: Proportional Redistribution (step=0.1) - NEW FIX</h2>
+          <p className="text-sm text-gray-600 mb-2">Uses proportional weight redistribution + parseFloat + step=0.1</p>
+          <div className="space-y-3">
+            {DRILLS.map(drill => (
+              <div key={drill.key}>
+                <div className="flex justify-between mb-1">
+                  <label className="text-sm font-medium">{drill.label}</label>
+                  <span className="text-sm text-gray-600">{Math.round(percentagesProportional[drill.key] || 0)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={0.1}
+                  value={percentagesProportional[drill.key] || 0}
+                  onInput={e => updateWeightsProportional(drill.key, parseFloat(e.target.value))}
+                  onChange={e => updateWeightsProportional(drill.key, parseFloat(e.target.value))}
+                  className="w-full h-6 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Test 7: NEW - SimpleSlider Component Test */}
+        <div>
+          <h2 className="font-semibold mb-2 text-green-600">✅ Test 7: Fixed SimpleSlider Component - NEW FIX</h2>
+          <p className="text-sm text-gray-600 mb-2">Uses updated SimpleSlider component with parseFloat + displayValue + step=0.1</p>
+          <div className="space-y-3">
+            {DRILLS.map(drill => (
+              <SimpleSlider
+                key={drill.key}
+                label={drill.label}
+                value={percentagesSimpleSlider[drill.key] || 0}
+                displayValue={Math.round(percentagesSimpleSlider[drill.key] || 0)}
+                onChange={(newValue) => handleSimpleSliderChange(drill.key, newValue)}
+                step={0.1}
+                className="border-green-200"
+              />
+            ))}
+          </div>
+        </div>
         
-        <div className="text-xs text-gray-500 space-y-1">
+        <div className="text-xs text-gray-500 space-y-1 border-t pt-4">
+          <p><strong>Testing Instructions:</strong></p>
           <p>• Check browser console for event logs</p>
-          <p>• Try dragging each slider type</p>
-          <p>• Compare Test 4 (batched) vs Test 5 (flushSync)</p>
-          <p>• Test 5 uses flushSync to force immediate React updates</p>
+          <p>• Try dragging each slider type and compare smoothness</p>
+          <p>• <span className="text-red-600">Tests 4 & 5 (OLD)</span> should show 1% increments and jumpy behavior</p>
+          <p>• <span className="text-blue-600">Test 6 (FIXED)</span> should show smooth sub-1% dragging with proportional redistribution</p>
+          <p>• <span className="text-green-600">Test 7 (SIMPLESLIDER)</span> should show the smoothest behavior with the SimpleSlider component</p>
+          <p>• Green tests should feel like professional app sliders, red tests should feel choppy</p>
         </div>
       </div>
     </div>

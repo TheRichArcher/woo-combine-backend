@@ -9,11 +9,12 @@ export default function SimpleSlider({
   min = 0, 
   max = 100, 
   step = 1,
-  className = ""
+  className = "",
+  displayValue // Support displayValue prop for precise display control
 }) {
-  // ZERO OVERHEAD - direct onChange call like working purple slider
+  // ZERO OVERHEAD - use parseFloat for precision when step=0.1
   const handleEvent = (e) => {
-    onChange(parseInt(e.target.value));
+    onChange(parseFloat(e.target.value));
   };
 
   return (
@@ -24,7 +25,7 @@ export default function SimpleSlider({
           <div className="text-xs text-gray-500">Drag to adjust</div>
         </div>
         <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-          {Math.round(value)}%
+          {displayValue !== undefined ? displayValue : Math.round(value)}%
         </span>
       </div>
       

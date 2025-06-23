@@ -257,27 +257,36 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
+    console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
     const newWeight = percentage / 100;
-    const remainingWeight = 1 - newWeight;
-    
-    // Distribute remaining weight equally among other 4 sliders
-    const otherSliderWeight = remainingWeight / 4;
-    
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      if (drill.key === drillKey) {
-        newWeights[drill.key] = newWeight;
-      } else {
-        newWeights[drill.key] = otherSliderWeight;
-      }
-    });
-    
-    // Force immediate update for smooth slider dragging (React 19 fix)
-    flushSync(() => {
-      setWeights(newWeights);
-      setActivePreset('');
-    });
+    const currentWeights = { ...weights };
+    const currentDrillWeight = currentWeights[drillKey];
+    const weightDifference = newWeight - currentDrillWeight;
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+
+    const newWeights = { ...currentWeights };
+    newWeights[drillKey] = newWeight;
+
+    // Proportionally adjust other weights
+    if (totalOtherWeight > 0) {
+      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
+      });
+    }
+
+    // Normalize to sum = 1
+    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+    if (total > 0) {
+      DRILLS.forEach(drill => {
+        newWeights[drill.key] = newWeights[drill.key] / total;
+      });
+    }
+
+    console.log('MODAL New weights calculated:', newWeights);
+    setWeights(newWeights); // Remove flushSync for consistency
+    setActivePreset('');
   };
 
   const applyPreset = (presetKey) => {
@@ -463,17 +472,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           type="range"
                           min={0}
                           max={100}
-                          step={1}
-                          value={Math.round(percentages[drill.key] || 0)}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          step={0.1}
+                          value={percentages[drill.key] || 0}
+                          onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         {/* Visual Impact Indicator */}
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                            style={{ width: `${Math.round(percentages[drill.key] || 0)}%` }}
+                            style={{ width: `${percentages[drill.key] || 0}%` }}
                           />
                         </div>
                       </div>
@@ -595,26 +604,38 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // ZERO OVERHEAD SLIDER HANDLING - no console.log during drag events
+  // SMOOTH SLIDER HANDLING - proportional redistribution for smooth dragging
   const handleSliderChange = (drillKey, percentage) => {
-    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
+    console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
     const newWeight = percentage / 100;
-    const remainingWeight = 1 - newWeight;
-    
-    // Distribute remaining weight equally among other 4 sliders
-    const otherSliderWeight = remainingWeight / 4;
-    
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      if (drill.key === drillKey) {
-        newWeights[drill.key] = newWeight;
-      } else {
-        newWeights[drill.key] = otherSliderWeight;
-      }
-    });
-    
+    const currentWeights = { ...weights };
+    const currentDrillWeight = currentWeights[drillKey];
+    const weightDifference = newWeight - currentDrillWeight;
+    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
+    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+
+    const newWeights = { ...currentWeights };
+    newWeights[drillKey] = newWeight;
+
+    // Proportionally adjust other weights
+    if (totalOtherWeight > 0) {
+      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
+      otherDrills.forEach(drill => {
+        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
+      });
+    }
+
+    // Normalize to sum = 1
+    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
+    if (total > 0) {
+      DRILLS.forEach(drill => {
+        newWeights[drill.key] = newWeights[drill.key] / total;
+      });
+    }
+
+    console.log('🎯 NEW SIMPLE WEIGHTS:', newWeights);
     setWeights(newWeights);
-    setActivePreset(''); // Clear preset since we're customizing
+    setActivePreset('');
   };
 
   const applyPreset = (presetKey) => {
@@ -824,8 +845,10 @@ export default function Players() {
                   <SimpleSlider
                     key={drill.key}
                     label={drill.label}
-                    value={Math.round(percentages[drill.key] || 0)} // Rounded values for zero overhead
+                    value={percentages[drill.key] || 0}
+                    displayValue={Math.round(percentages[drill.key] || 0)}
                     onChange={(newValue) => handleSliderChange(drill.key, newValue)}
+                    step={0.1}
                   />
                 ))}
                 
