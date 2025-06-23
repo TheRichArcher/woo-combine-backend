@@ -447,6 +447,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           max={100}
                           step={1}
                           value={percentages[drill.key] || 0}
+                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
@@ -806,6 +807,7 @@ export default function Players() {
                       max={100}
                       step={1}
                       value={percentages[drill.key] || 0}
+                      onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                       className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
                     />

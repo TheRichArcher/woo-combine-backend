@@ -310,6 +310,7 @@ export default function CoachDashboard() {
                           min={0}
                           max={100}
                           value={percentages[drill.key]}
+                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
                         />
