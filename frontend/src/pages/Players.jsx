@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
 import SimpleSlider from "../components/SimpleSlider";
+import IsolatedSliderTest from "../components/IsolatedSliderTest";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
@@ -813,19 +814,21 @@ export default function Players() {
           </button>
         </div>
 
-                    {showCustomControls && (
-              <div className="space-y-4">
-                <div className="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
-                  <div className="text-sm font-medium text-red-800">🚨 SIMPLE TEST SLIDER 🚨</div>
-                  <SimpleSlider
-                    label="Test Slider (should work)"
-                    value={testSliderValue}
-                    onChange={(val) => {
-                      console.log('🎯 TEST SLIDER CHANGE!', val);
-                      setTestSliderValue(val);
-                    }}
-                  />
-                </div>
+                            {showCustomControls && (
+          <div className="space-y-4">
+            <IsolatedSliderTest />
+            
+            <div className="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
+              <div className="text-sm font-medium text-red-800">🚨 SIMPLE TEST SLIDER 🚨</div>
+              <SimpleSlider
+                label="Test Slider (should work)"
+                value={testSliderValue}
+                onChange={(val) => {
+                  console.log('🎯 TEST SLIDER CHANGE!', val);
+                  setTestSliderValue(val);
+                }}
+              />
+            </div>
                 
                 <div className="bg-green-100 border border-green-300 rounded-lg p-3 mb-4">
                   <div className="text-sm font-medium text-green-800">🎯 FIXED: onInput + onChange for smooth dragging</div>
