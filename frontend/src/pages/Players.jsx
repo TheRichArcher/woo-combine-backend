@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
+import SimpleSlider from "../components/SimpleSlider";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
@@ -256,9 +257,11 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
     const newWeights = getWeightsFromPercentages(newPercentages);
+    console.log('MODAL New weights calculated:', newWeights);
     
     // Force immediate update for smooth slider dragging (React 19 fix)
     flushSync(() => {
@@ -583,9 +586,11 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log('MAIN updateWeightsFromPercentage called:', drillKey, percentage);
     const currentPercentages = getPercentagesFromWeights(weights);
     const newPercentages = { ...currentPercentages, [drillKey]: percentage };
     const newWeights = getWeightsFromPercentages(newPercentages);
+    console.log('MAIN New weights calculated:', newWeights);
     
     // Force immediate update for smooth slider dragging (React 19 fix)
     flushSync(() => {
@@ -795,45 +800,41 @@ export default function Players() {
           </button>
         </div>
 
-        {showCustomControls && (
-          <div className="space-y-4">
-            {DRILLS.map(drill => (
-              <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                    <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
-                  </div>
-                  <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-                    {Math.round(percentages[drill.key] || 0)}%
-                  </span>
-                </div>
-                
-                <div className="relative">
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={Math.round(percentages[drill.key] || 0)}
-                    onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                    onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
-                    className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary touch-manipulation slider-thumb"
+                    {showCustomControls && (
+              <div className="space-y-4">
+                <div className="bg-red-100 border border-red-300 rounded-lg p-3 mb-4">
+                  <div className="text-sm font-medium text-red-800">🚨 SIMPLE TEST SLIDER 🚨</div>
+                  <SimpleSlider
+                    label="Test Slider (should work)"
+                    value={50}
+                    onChange={(val) => console.log('TEST SLIDER WORKED!', val)}
                   />
                 </div>
                 
-                <div className="flex justify-between text-xs text-gray-400 mt-2">
-                  <span>Less Priority</span>
-                  <span>More Priority</span>
+                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mb-4">
+                  <div className="text-sm font-medium text-yellow-800">Debug Info:</div>
+                  <div className="text-xs text-yellow-700">
+                    Current percentages: {JSON.stringify(percentages)}
+                  </div>
+                  <div className="text-xs text-yellow-700">
+                    Active preset: {activePreset || 'custom'}
+                  </div>
+                </div>
+                
+                {DRILLS.map(drill => (
+                  <SimpleSlider
+                    key={drill.key}
+                    label={drill.label}
+                    value={Math.round(percentages[drill.key] || 0)}
+                    onChange={(newValue) => updateWeightsFromPercentage(drill.key, newValue)}
+                  />
+                ))}
+                
+                <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
+                  💡 Player rankings update automatically as you adjust drill priorities above
                 </div>
               </div>
-            ))}
-            
-            <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
-              💡 Player rankings update automatically as you adjust drill priorities above
-            </div>
-          </div>
-        )}
+            )}
       </div>
     );
   };
