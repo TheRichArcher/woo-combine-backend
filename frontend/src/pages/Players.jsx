@@ -263,18 +263,27 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
 
   const percentages = getPercentagesFromWeights(weights);
   
-  // SOLUTION: Modal also needs temp slider values to prevent fighting
-  const [modalTempSliderValues, setModalTempSliderValues] = useState({});
+  // SOLUTION: More robust slider state management
+  const [tempSliderValues, setTempSliderValues] = useState({});
+  const [isDragging, setIsDragging] = useState({}); // Track which sliders are being dragged
 
-  // SOLUTION: Modal drag handlers
-  const handleModalSliderDrag = (drillKey, percentage) => {
-    console.log(`🎯 MODAL DRAGGING: ${drillKey} to ${percentage}%`);
-    setModalTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
+  // SOLUTION: Handle slider dragging without fighting - enhanced version
+  const handleSliderDrag = (drillKey, percentage) => {
+    console.log(`🎯 DRAGGING: ${drillKey} to ${percentage}%`);
+    // Mark this slider as being dragged and store temporary value
+    setIsDragging(prev => ({ ...prev, [drillKey]: true }));
+    setTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
   };
 
-  const handleModalSliderFinish = (drillKey, percentage) => {
-    console.log(`🎯 MODAL FINISHED DRAG: ${drillKey} at ${percentage}% - NOW updating weights`);
-    setModalTempSliderValues(prev => {
+  const handleSliderFinish = (drillKey, percentage) => {
+    console.log(`🎯 FINISHED DRAG: ${drillKey} at ${percentage}% - NOW updating weights`);
+    // Clear dragging state and temp values, then update actual weights
+    setIsDragging(prev => {
+      const newDragging = { ...prev };
+      delete newDragging[drillKey];
+      return newDragging;
+    });
+    setTempSliderValues(prev => {
       const newTemp = { ...prev };
       delete newTemp[drillKey];
       return newTemp;
@@ -283,29 +292,31 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   };
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log(`🎯 MODAL SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
+    console.log(`🎯 SLIDER DEBUG: ${drillKey} moved to ${percentage}%`);
     
-    const targetWeight = Math.max(0, Math.min(1, parseFloat(percentage) / 100));
+    const targetWeight = Math.max(0, Math.min(1, percentage / 100));
     const newWeights = { ...weights };
     newWeights[drillKey] = targetWeight;
-
-    const remainingWeight = 1 - targetWeight;
+    
+    const remainingWeight = Math.max(0, 1 - targetWeight);
     const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-
+    
     if (otherDrills.length > 0) {
-      const equalWeight = remainingWeight / otherDrills.length;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = equalWeight;
-      });
+      const currentOtherWeightsSum = otherDrills.reduce((sum, drill) => sum + weights[drill.key], 0);
+      
+      if (currentOtherWeightsSum > 0) {
+        otherDrills.forEach(drill => {
+          const proportion = weights[drill.key] / currentOtherWeightsSum;
+          newWeights[drill.key] = remainingWeight * proportion;
+        });
+      } else {
+        const equalWeight = remainingWeight / otherDrills.length;
+        otherDrills.forEach(drill => {
+          newWeights[drill.key] = equalWeight;
+        });
+      }
     }
-
-    const weightSum = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (weightSum !== 0 && Math.abs(weightSum - 1) > 0.0001) {
-      Object.keys(newWeights).forEach(key => {
-        newWeights[key] = newWeights[key] / weightSum;
-      });
-    }
-
+    
     setWeights(newWeights);
     setActivePreset('');
   };
@@ -487,39 +498,45 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                 
                       <div className="flex items-center gap-2">
                         {(() => {
-                          const currentValue = modalTempSliderValues[drill.key] !== undefined 
-                            ? modalTempSliderValues[drill.key] 
+                          const isCurrentlyDragging = isDragging[drill.key];
+                          const currentValue = isCurrentlyDragging && tempSliderValues[drill.key] !== undefined
+                            ? tempSliderValues[drill.key] 
                             : (percentages[drill.key] || 0);
                           
                           return (
                             <>
-                              <span className="text-xs font-medium text-gray-600 w-16">
+                              <span className={`text-xs font-medium w-16 ${
+                                isCurrentlyDragging ? 'text-yellow-700' : 'text-gray-600'
+                              }`}>
                                 {currentValue.toFixed(1)}%
+                                {isCurrentlyDragging && ' 🎯'}
                               </span>
                               <div className="relative">
-                                                                  <input
-                                    type="range"
-                                    min={0}
-                                    max={100}
-                                    step={0.1}
-                                    value={currentValue}
-                                    onInput={e => {
-                                      const newValue = parseFloat(e.target.value);
-                                      console.log(`🎯 MODAL INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
-                                      handleModalSliderDrag(drill.key, newValue);
-                                    }}
-                                    onMouseUp={e => {
-                                      const newValue = parseFloat(e.target.value);
-                                      console.log(`🎯 MODAL MOUSE UP: ${drill.label} (${drill.key}) finished at ${newValue}%`);
-                                      handleModalSliderFinish(drill.key, newValue);
-                                    }}
-                                    onTouchEnd={e => {
-                                      const newValue = parseFloat(e.target.value);
-                                      console.log(`🎯 MODAL TOUCH END: ${drill.label} (${drill.key}) finished at ${newValue}%`);
-                                      handleModalSliderFinish(drill.key, newValue);
-                                    }}
-                                    className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
-                                  />
+                                <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  step={0.1}
+                                  value={currentValue}
+                                  onInput={e => {
+                                    const newValue = parseFloat(e.target.value);
+                                    console.log(`🎯 MODAL SLIDER INPUT: ${drill.label} (${drill.key}) input to ${newValue}%`);
+                                    handleSliderDrag(drill.key, newValue);
+                                  }}
+                                  onMouseUp={e => {
+                                    const newValue = parseFloat(e.target.value);
+                                    console.log(`🎯 MODAL MOUSE UP: ${drill.label} (${drill.key}) finished at ${newValue}%`);
+                                    handleSliderFinish(drill.key, newValue);
+                                  }}
+                                  onTouchEnd={e => {
+                                    const newValue = parseFloat(e.target.value);
+                                    console.log(`🎯 MODAL TOUCH END: ${drill.label} (${drill.key}) finished at ${newValue}%`);
+                                    handleSliderFinish(drill.key, newValue);
+                                  }}
+                                  className={`w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary ${
+                                    isCurrentlyDragging ? 'ring-2 ring-yellow-300' : ''
+                                  }`}
+                                />
                               </div>
                             </>
                           );
@@ -643,19 +660,26 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   
-  // SOLUTION: Temporary slider values to prevent fighting during drag
+  // SOLUTION: More robust slider state management
   const [tempSliderValues, setTempSliderValues] = useState({});
+  const [isDragging, setIsDragging] = useState({}); // Track which sliders are being dragged
 
-  // SOLUTION: Handle slider dragging without fighting
+  // SOLUTION: Handle slider dragging without fighting - enhanced version
   const handleSliderDrag = (drillKey, percentage) => {
     console.log(`🎯 DRAGGING: ${drillKey} to ${percentage}%`);
-    // Store temporary value during drag - NO weight redistribution yet
+    // Mark this slider as being dragged and store temporary value
+    setIsDragging(prev => ({ ...prev, [drillKey]: true }));
     setTempSliderValues(prev => ({ ...prev, [drillKey]: percentage }));
   };
 
   const handleSliderFinish = (drillKey, percentage) => {
     console.log(`🎯 FINISHED DRAG: ${drillKey} at ${percentage}% - NOW updating weights`);
-    // Clear temp values and update actual weights
+    // Clear dragging state and temp values, then update actual weights
+    setIsDragging(prev => {
+      const newDragging = { ...prev };
+      delete newDragging[drillKey];
+      return newDragging;
+    });
     setTempSliderValues(prev => {
       const newTemp = { ...prev };
       delete newTemp[drillKey];
@@ -898,8 +922,9 @@ export default function Players() {
             {(() => {
               const percentages = getPercentagesFromWeights(weights);
               return DRILLS.map(drill => {
-                // SOLUTION: Use temp value if dragging, otherwise use calculated percentage
-                const currentValue = tempSliderValues[drill.key] !== undefined 
+                // ENHANCED: Use temp value if actively dragging, otherwise use calculated percentage
+                const isCurrentlyDragging = isDragging[drill.key];
+                const currentValue = isCurrentlyDragging && tempSliderValues[drill.key] !== undefined
                   ? tempSliderValues[drill.key] 
                   : (percentages[drill.key] || 0);
                 
@@ -908,9 +933,15 @@ export default function Players() {
                     <div className="flex items-center justify-between mb-3">
                       <div>
                         <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                        <div className="text-xs text-gray-500">Touch and drag to adjust priority</div>
+                        <div className="text-xs text-gray-500">
+                          {isCurrentlyDragging ? '🎯 Dragging - release to apply' : 'Touch and drag to adjust priority'}
+                        </div>
                       </div>
-                      <span className="text-lg font-mono text-cmf-primary bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
+                      <span className={`text-lg font-mono px-3 py-1 rounded-full min-w-[60px] text-center ${
+                        isCurrentlyDragging 
+                          ? 'bg-yellow-100 text-yellow-700 ring-2 ring-yellow-300' 
+                          : 'bg-blue-100 text-cmf-primary'
+                      }`}>
                         <span className="text-center">{currentValue.toFixed(1)}%</span>
                       </span>
                     </div>
@@ -937,7 +968,9 @@ export default function Players() {
                           console.log(`🎯 TOUCH END: ${drill.label} (${drill.key}) finished at ${newValue}%`);
                           handleSliderFinish(drill.key, newValue);
                         }}
-                        className="w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary"
+                        className={`w-full h-8 cursor-pointer focus:outline-none focus:ring-2 focus:ring-cmf-primary ${
+                          isCurrentlyDragging ? 'ring-2 ring-yellow-300' : ''
+                        }`}
                       />
                     </div>
                     
@@ -950,8 +983,15 @@ export default function Players() {
               });
             })()}
             
-            <div className="text-sm text-gray-600 text-center bg-blue-50 p-3 rounded-lg border border-blue-200">
-              💡 Player rankings update automatically as you adjust drill priorities above
+            <div className={`text-sm text-center p-3 rounded-lg border ${
+              Object.values(isDragging).some(Boolean)
+                ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
+                : 'bg-blue-50 border-blue-200 text-gray-600'
+            }`}>
+              {Object.values(isDragging).some(Boolean)
+                ? '🎯 Adjusting weights... Release to apply changes'
+                : '💡 Player rankings update automatically as you adjust drill priorities above'
+              }
             </div>
           </div>
         )}
