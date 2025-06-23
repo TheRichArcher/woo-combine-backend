@@ -9,12 +9,11 @@ export default function SimpleSlider({
   min = 0, 
   max = 100, 
   step = 1,
-  className = "",
-  displayValue // New prop for rounded display while keeping precise values
+  className = ""
 }) {
-  // MATCH THE WORKING PURPLE SLIDER EXACTLY - use parseFloat for precision
+  // ZERO OVERHEAD - direct onChange call like working purple slider
   const handleEvent = (e) => {
-    onChange(parseFloat(e.target.value));
+    onChange(parseInt(e.target.value));
   };
 
   return (
@@ -25,7 +24,7 @@ export default function SimpleSlider({
           <div className="text-xs text-gray-500">Drag to adjust</div>
         </div>
         <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-          {displayValue !== undefined ? displayValue : Math.round(value)}%
+          {Math.round(value)}%
         </span>
       </div>
       

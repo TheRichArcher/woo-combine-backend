@@ -257,8 +257,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
-    
     // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
     const remainingWeight = 1 - newWeight;
@@ -274,8 +272,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
         newWeights[drill.key] = otherSliderWeight;
       }
     });
-    
-    console.log('MODAL New weights calculated:', newWeights);
     
     // Force immediate update for smooth slider dragging (React 19 fix)
     flushSync(() => {
@@ -467,10 +463,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           type="range"
                           min={0}
                           max={100}
-                          step={0.1}
-                          value={percentages[drill.key] || 0}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                          step={1}
+                          value={Math.round(percentages[drill.key] || 0)}
+                          onInput={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
+                          onChange={e => updateWeightsFromPercentage(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         {/* Visual Impact Indicator */}
@@ -599,10 +595,8 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // SIMPLE DIRECT SLIDER HANDLING - no complex calculations during drag
+  // ZERO OVERHEAD SLIDER HANDLING - no console.log during drag events
   const handleSliderChange = (drillKey, percentage) => {
-    console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
-    
     // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
     const remainingWeight = 1 - newWeight;
@@ -618,8 +612,6 @@ export default function Players() {
         newWeights[drill.key] = otherSliderWeight;
       }
     });
-    
-    console.log('🎯 NEW SIMPLE WEIGHTS:', newWeights);
     
     setWeights(newWeights);
     setActivePreset(''); // Clear preset since we're customizing
@@ -832,10 +824,8 @@ export default function Players() {
                   <SimpleSlider
                     key={drill.key}
                     label={drill.label}
-                    value={percentages[drill.key] || 0} // Precise value for smooth dragging
-                    displayValue={Math.round(percentages[drill.key] || 0)} // Rounded for clean display
+                    value={Math.round(percentages[drill.key] || 0)} // Rounded values for zero overhead
                     onChange={(newValue) => handleSliderChange(drill.key, newValue)}
-                    step={0.1} // Fine control for smooth movement
                   />
                 ))}
                 
