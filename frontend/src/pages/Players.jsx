@@ -591,6 +591,7 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+  const [debugValue, setDebugValue] = useState(50);
 
   // FIXED: Direct slider positioning - slider goes exactly where user drags it
   const handleSliderChange = (drillKey, percentage) => {
@@ -758,9 +759,7 @@ export default function Players() {
     return acc;
   }, {});
 
-  const MobileWeightControls = ({ showSliders = false }) => {
-    const [debugValue, setDebugValue] = useState(50);
-    
+  const MobileWeightControls = useCallback(({ showSliders = false }) => {
     useEffect(() => {
       if (showSliders && !showCustomControls) {
         setShowCustomControls(true);
@@ -824,7 +823,6 @@ export default function Players() {
                   value={debugValue}
                   displayValue={Math.round(debugValue)}
                   onChange={(newValue) => {
-                    console.log('🐛 Debug Slider:', newValue, typeof newValue);
                     setDebugValue(newValue);
                   }}
                   step={0.1}
@@ -849,7 +847,7 @@ export default function Players() {
             )}
       </div>
     );
-  };
+  }, [showCustomControls, percentages, debugValue, setDebugValue, handleSliderChange, applyPreset, activePreset]);
 
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
