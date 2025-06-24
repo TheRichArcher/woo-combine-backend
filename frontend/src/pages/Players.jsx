@@ -257,12 +257,16 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
+    console.log(`🔍 MODAL SLIDER DEBUG: ${drillKey} dragged to ${percentage}%`);
+    
     // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
     const remainingWeight = Math.max(0, 1 - newWeight);
     
     // Distribute remaining weight equally among other 4 sliders
     const otherSliderWeight = remainingWeight / 4;
+    
+    console.log(`📊 REDISTRIBUTION: newWeight=${newWeight.toFixed(3)}, remainingWeight=${remainingWeight.toFixed(3)}, otherSliderWeight=${otherSliderWeight.toFixed(3)}`);
     
     const newWeights = {};
     DRILLS.forEach(drill => {
@@ -272,6 +276,11 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
         newWeights[drill.key] = otherSliderWeight;
       }
     });
+    
+    // Show what percentages this will create
+    const newPercentages = getPercentagesFromWeights(newWeights);
+    console.log(`📈 RESULTING PERCENTAGES:`, newPercentages);
+    console.log(`🎯 ${drillKey} should show: ${newPercentages[drillKey]?.toFixed(1)}%`);
     
     setWeights(newWeights);
     setActivePreset('');
@@ -595,12 +604,16 @@ export default function Players() {
 
   // FIXED: Direct slider positioning - slider goes exactly where user drags it
   const handleSliderChange = (drillKey, percentage) => {
+    console.log(`🔍 MAIN SLIDER DEBUG: ${drillKey} dragged to ${percentage}%`);
+    
     // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
     const remainingWeight = Math.max(0, 1 - newWeight);
     
     // Distribute remaining weight equally among other 4 sliders
     const otherSliderWeight = remainingWeight / 4;
+    
+    console.log(`📊 MAIN REDISTRIBUTION: newWeight=${newWeight.toFixed(3)}, remainingWeight=${remainingWeight.toFixed(3)}, otherSliderWeight=${otherSliderWeight.toFixed(3)}`);
     
     const newWeights = {};
     DRILLS.forEach(drill => {
@@ -610,6 +623,11 @@ export default function Players() {
         newWeights[drill.key] = otherSliderWeight;
       }
     });
+    
+    // Show what percentages this will create
+    const newPercentages = getPercentagesFromWeights(newWeights);
+    console.log(`📈 MAIN RESULTS:`, newPercentages);
+    console.log(`🎯 ${drillKey} should show: ${newPercentages[drillKey]?.toFixed(1)}%`);
     
     setWeights(newWeights);
     setActivePreset('');
