@@ -12,9 +12,16 @@ export default function SimpleSlider({
   className = "",
   displayValue // Support displayValue prop for precise display control
 }) {
-  // ZERO OVERHEAD - use parseFloat for precision when step=0.1
-  const handleEvent = (e) => {
-    onChange(parseFloat(e.target.value));
+  // 🚀 ZERO OVERHEAD - instant response with onInput for smooth dragging
+  const handleInput = (e) => {
+    const value = parseFloat(e.target.value);
+    onChange(value);
+  };
+  
+  // Fallback for onChange (some browsers)
+  const handleChange = (e) => {
+    const value = parseFloat(e.target.value);
+    onChange(value);
   };
 
   return (
@@ -36,8 +43,8 @@ export default function SimpleSlider({
           max={max}
           step={step}
           value={value}
-          onInput={handleEvent}
-          onChange={handleEvent}
+          onInput={handleInput}
+          onChange={handleChange}
           className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
         />
       </div>
