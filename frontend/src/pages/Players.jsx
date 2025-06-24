@@ -30,22 +30,22 @@ const WEIGHT_PRESETS = {
   balanced: {
     name: "Balanced",
     description: "Equal emphasis on all skills",
-    weights: { "40m_dash": 0.2, "vertical_jump": 0.2, "catching": 0.2, "throwing": 0.2, "agility": 0.2 }
+    weights: { "40m_dash": 20, "vertical_jump": 20, "catching": 20, "throwing": 20, "agility": 20 }
   },
   speed: {
     name: "Speed Focused",
     description: "Emphasizes speed and athleticism",
-    weights: { "40m_dash": 0.4, "vertical_jump": 0.3, "catching": 0.1, "throwing": 0.1, "agility": 0.1 }
+    weights: { "40m_dash": 50, "vertical_jump": 15, "catching": 10, "throwing": 10, "agility": 15 }
   },
   skills: {
     name: "Skills Focused", 
     description: "Emphasizes catching and throwing",
-    weights: { "40m_dash": 0.1, "vertical_jump": 0.1, "catching": 0.35, "throwing": 0.35, "agility": 0.1 }
+    weights: { "40m_dash": 10, "vertical_jump": 10, "catching": 35, "throwing": 35, "agility": 10 }
   },
   athletic: {
     name: "Athletic",
-    description: "Default weighting system",
-    weights: { "40m_dash": 0.3, "vertical_jump": 0.2, "catching": 0.15, "throwing": 0.15, "agility": 0.2 }
+    description: "Emphasizes overall athleticism",
+    weights: { "40m_dash": 30, "vertical_jump": 25, "catching": 10, "throwing": 10, "agility": 25 }
   }
 };
 
@@ -70,27 +70,7 @@ const TABS = [
   }
 ];
 
-const getPercentagesFromWeights = (weights) => {
-  const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-  if (total === 0) return {};
-  const percentages = {};
-  DRILLS.forEach(drill => {
-    // Keep precision for smooth slider interaction, avoid premature rounding
-    percentages[drill.key] = (weights[drill.key] / total) * 100;
-  });
-  return percentages;
-};
 
-const getWeightsFromPercentages = (percentages) => {
-  const total = Object.values(percentages).reduce((sum, pct) => sum + pct, 0);
-  if (total === 0) return { ...WEIGHT_PRESETS.balanced.weights };
-  
-  const weights = {};
-  DRILLS.forEach(drill => {
-    weights[drill.key] = percentages[drill.key] / total;
-  });
-  return weights;
-};
 
 function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   const [formData, setFormData] = useState({
@@ -254,36 +234,9 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
 function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, activePreset, setActivePreset }) {
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
-  const percentages = getPercentagesFromWeights(weights);
-  const [dragTimeout, setDragTimeout] = useState(null);
-  const [modalDragState, setModalDragState] = useState({});
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (dragTimeout) {
-        clearTimeout(dragTimeout);
-      }
-    };
-  }, [dragTimeout]);
-
-  const updateWeightsFromPercentage = (drillKey, percentage) => {
-    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
-    const newWeight = percentage / 100;
-    const remainingWeight = Math.max(0, 1 - newWeight);
-    
-    // Distribute remaining weight equally among other 4 sliders
-    const otherSliderWeight = remainingWeight / 4;
-    
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      if (drill.key === drillKey) {
-        newWeights[drill.key] = newWeight;
-      } else {
-        newWeights[drill.key] = otherSliderWeight;
-      }
-    });
-    
+  const updateWeight = (drillKey, value) => {
+    // INDEPENDENT SLIDERS: Just update the one slider being adjusted
+    const newWeights = { ...weights, [drillKey]: value };
     setWeights(newWeights);
     setActivePreset('');
   };
@@ -435,8 +388,11 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
               <div className="h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
                   <TrendingUp className="w-5 h-5 text-cmf-primary" />
-                  Drill Performance & Weight Control
+                  Ranking Weight Controls
                 </h3>
+                <p className="text-sm text-gray-600 mb-4">
+                  Adjust drill priorities to see how player rankings change in real time. Higher values = more important to you.
+                </p>
           
                 <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto">
                   {weightedBreakdown.map(drill => (
@@ -465,45 +421,22 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                 
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium w-16 text-gray-600">
-                          {Math.round(modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0))}%
+                          Less important
                         </span>
                         <input
                           type="range"
                           min={0}
                           max={100}
-                          step={0.1}
-                          value={modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0)}
-                          onInput={e => {
-                            const value = parseFloat(e.target.value);
-                            
-                            // Update local drag state immediately for smooth dragging
-                            setModalDragState(prev => ({ ...prev, [drill.key]: value }));
-                            
-                            // Clear any pending redistribution
-                            if (dragTimeout) {
-                              clearTimeout(dragTimeout);
-                            }
-                            
-                            // Delay redistribution and clear drag state
-                            const timeout = setTimeout(() => {
-                              setModalDragState(prev => {
-                                const newState = { ...prev };
-                                delete newState[drill.key];
-                                return newState;
-                              });
-                              updateWeightsFromPercentage(drill.key, value);
-                            }, 200);
-                            
-                            setDragTimeout(timeout);
-                          }}
+                          step={1}
+                          value={weights[drill.key] || 0}
+                          onChange={e => updateWeight(drill.key, parseInt(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
-                        {/* Visual Impact Indicator */}
-                        <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                            style={{ width: `${modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0)}%` }}
-                          />
+                        <span className="text-xs font-medium w-16 text-gray-600 text-right">
+                          More important
+                        </span>
+                        <div className="text-sm font-bold text-cmf-primary min-w-[40px] text-center">
+                          {weights[drill.key] || 0}
                         </div>
                       </div>
                     </div>
@@ -623,49 +556,12 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
-  const [mainDragTimeout, setMainDragTimeout] = useState(null);
-  const [dragState, setDragState] = useState({});
 
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (mainDragTimeout) {
-        clearTimeout(mainDragTimeout);
-      }
-    };
-  }, [mainDragTimeout]);
-
-  // FIXED: Delayed redistribution to allow smooth dragging
-  const handleSliderChange = (drillKey, percentage) => {
-    // Clear any pending redistribution
-    if (mainDragTimeout) {
-      clearTimeout(mainDragTimeout);
-    }
-    
-    // Delay redistribution by 150ms to allow smooth dragging
-    const timeout = setTimeout(() => {
-      
-      // SIMPLE APPROACH: dragged slider goes exactly where user wants it
-      const newWeight = percentage / 100;
-      const remainingWeight = Math.max(0, 1 - newWeight);
-      
-      // Distribute remaining weight equally among other 4 sliders
-      const otherSliderWeight = remainingWeight / 4;
-      
-      const newWeights = {};
-      DRILLS.forEach(drill => {
-        if (drill.key === drillKey) {
-          newWeights[drill.key] = newWeight;
-        } else {
-          newWeights[drill.key] = otherSliderWeight;
-        }
-      });
-      
-      setWeights(newWeights);
-      setActivePreset('');
-    }, 150);
-    
-    setMainDragTimeout(timeout);
+  // INDEPENDENT SLIDERS: Simple weight update without redistribution
+  const updateWeight = (drillKey, value) => {
+    const newWeights = { ...weights, [drillKey]: value };
+    setWeights(newWeights);
+    setActivePreset('');
   };
 
   const applyPreset = (presetKey) => {
@@ -819,9 +715,6 @@ export default function Players() {
       }
     }, [showSliders]);
     
-    // Calculate percentages once per render - exactly like working test
-    const percentages = getPercentagesFromWeights(weights);
-    
     return (
       <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
@@ -829,7 +722,7 @@ export default function Players() {
           <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
         </div>
         <p className="text-cmf-primary text-sm mb-3">
-          Adjust drill priorities to see how player rankings change in real-time.
+          Adjust drill priorities to see how player rankings change in real-time. Higher values = more important to you.
           <span className="block text-xs mt-1 opacity-75">
             Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
           </span>
@@ -869,44 +762,26 @@ export default function Players() {
           </button>
         </div>
 
-                                        {showCustomControls && (
-              <div className="space-y-3">
-                {DRILLS.map(drill => (
-                  <SimpleSlider
-                    key={drill.key}
-                    label={drill.label}
-                    value={dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0)}
-                    displayValue={Math.round(dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0))}
-                    onChange={(newValue) => {
-                      // Update local drag state immediately for smooth dragging
-                      setDragState(prev => ({ ...prev, [drill.key]: newValue }));
-                      
-                      // Clear any pending redistribution
-                      if (mainDragTimeout) {
-                        clearTimeout(mainDragTimeout);
-                      }
-                      
-                      // Delay redistribution and clear drag state
-                      const timeout = setTimeout(() => {
-                        setDragState(prev => {
-                          const newState = { ...prev };
-                          delete newState[drill.key];
-                          return newState;
-                        });
-                        handleSliderChange(drill.key, newValue);
-                      }, 200);
-                      
-                      setMainDragTimeout(timeout);
-                    }}
-                    step={0.1}
-                  />
-                ))}
-                
-                <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
-                  💡 Player rankings update automatically as you adjust drill priorities above
-                </div>
-              </div>
-            )}
+        {showCustomControls && (
+          <div className="space-y-3">
+            {DRILLS.map(drill => (
+              <SimpleSlider
+                key={drill.key}
+                label={drill.label}
+                value={weights[drill.key] || 0}
+                displayValue={weights[drill.key] || 0}
+                onChange={(newValue) => updateWeight(drill.key, newValue)}
+                min={0}
+                max={100}
+                step={1}
+              />
+            ))}
+            
+            <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
+              💡 Player rankings update automatically based on your selected drill priorities
+            </div>
+          </div>
+        )}
       </div>
     );
   };

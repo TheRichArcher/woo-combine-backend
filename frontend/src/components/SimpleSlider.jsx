@@ -22,10 +22,10 @@ export default function SimpleSlider({
       <div className="flex items-center justify-between mb-3">
         <div>
           <label className="text-sm font-medium text-gray-700">{label}</label>
-          <div className="text-xs text-gray-500">Drag to adjust</div>
+          <div className="text-xs text-gray-500">Higher = more important</div>
         </div>
-        <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[60px] text-center">
-          {displayValue !== undefined ? displayValue : Math.round(value)}%
+        <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
+          {displayValue !== undefined ? displayValue : Math.round(value)}
         </span>
       </div>
       
@@ -43,8 +43,8 @@ export default function SimpleSlider({
       </div>
       
       <div className="flex justify-between text-xs text-gray-400 mt-2">
-        <span>Less</span>
-        <span>More</span>
+        <span>Less important</span>
+        <span>More important</span>
       </div>
     </div>
   );
