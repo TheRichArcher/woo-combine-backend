@@ -54,14 +54,14 @@
   min-height: 44px; /* iOS recommendation for touch targets */
 }
 
-/* Mobile-optimized range slider styles */
-input[type="range"] {
+/* Mobile-optimized range slider styles - ONLY apply to sliders with specific classes */
+input[type="range"].custom-slider {
   -webkit-appearance: none;
   appearance: none;
 }
 
-/* Webkit browsers (Chrome, Safari, Edge) */
-input[type="range"]::-webkit-slider-thumb {
+/* Webkit browsers (Chrome, Safari, Edge) - ONLY for custom sliders */
+input[type="range"].custom-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 24px;
@@ -75,8 +75,8 @@ input[type="range"]::-webkit-slider-thumb {
   touch-action: manipulation;
 }
 
-/* Firefox */
-input[type="range"]::-moz-range-thumb {
+/* Firefox - ONLY for custom sliders */
+input[type="range"].custom-slider::-moz-range-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
@@ -88,18 +88,18 @@ input[type="range"]::-moz-range-thumb {
   border: none;
 }
 
-/* Remove track styling in Firefox */
-input[type="range"]::-moz-range-track {
+/* Remove track styling in Firefox - ONLY for custom sliders */
+input[type="range"].custom-slider::-moz-range-track {
   background: transparent;
   border: none;
 }
 
-/* Focus styles for accessibility */
-input[type="range"]:focus::-webkit-slider-thumb {
+/* Focus styles for accessibility - ONLY for custom sliders */
+input[type="range"].custom-slider:focus::-webkit-slider-thumb {
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
 }
 
-input[type="range"]:focus::-moz-range-thumb {
+input[type="range"].custom-slider:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
 }
 

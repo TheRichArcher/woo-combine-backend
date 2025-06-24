@@ -38,7 +38,7 @@ export default function SimpleSlider({
           value={value}
           onInput={handleEvent}
           onChange={handleEvent}
-          className="w-full h-8 bg-gray-200 rounded-lg appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full h-8 bg-gray-200 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 custom-slider"
         />
       </div>
       

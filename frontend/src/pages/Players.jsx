@@ -1060,6 +1060,68 @@ export default function Players() {
           </div>
         </div>
 
+        {/* ISOLATED TOP-LEVEL SLIDER TEST */}
+        <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6">
+          <h2 className="text-lg font-bold text-green-700 mb-2">🧪 ISOLATED TEST (Outside All Components)</h2>
+          <p className="text-sm text-green-600 mb-3">
+            Value: <strong>{debugValue.toFixed(1)}%</strong> | 
+            Test if there's global interference affecting ALL sliders
+          </p>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Pure HTML - No CSS Classes</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value={debugValue}
+                onInput={(e) => {
+                  console.log('🧪 ISOLATED PURE:', e.target.value, typeof e.target.value);
+                  setDebugValue(parseFloat(e.target.value));
+                }}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">With Minimal CSS</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="0.1"
+                value={debugValue}
+                onInput={(e) => {
+                  console.log('🧪 ISOLATED CSS:', e.target.value, typeof e.target.value);
+                  setDebugValue(parseFloat(e.target.value));
+                }}
+                style={{ width: '100%', height: '30px' }}
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-green-700 mb-1">Integer Step (should always work)</label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round(debugValue)}
+                onInput={(e) => {
+                  console.log('🧪 ISOLATED INT:', e.target.value, typeof e.target.value);
+                  setDebugValue(parseInt(e.target.value));
+                }}
+                style={{ width: '100%', height: '30px' }}
+              />
+            </div>
+          </div>
+          
+          <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-700">
+            If these don't work smoothly, there's something global in our app interfering with ALL sliders
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200">
             {TABS.map((tab) => {
