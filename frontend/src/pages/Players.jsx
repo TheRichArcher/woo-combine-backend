@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
 import SimpleSlider from "../components/SimpleSlider";
@@ -562,9 +562,14 @@ export default function Players() {
   // Test slider state
   const [testSliderVal, setTestSliderVal] = useState(50);
   const [uiSliderVal, setUiSliderVal] = useState(50);
+  
+  // ISOLATION TEST: useRef sliders (no re-renders)
+  const isolatedSliderRef = useRef(50);
+  const [isolatedSliderDisplay, setIsolatedSliderDisplay] = useState(50);
 
   // INDEPENDENT SLIDERS: Simple weight update without redistribution
   const updateWeight = (drillKey, value) => {
+    console.log('⚡ WEIGHT CHANGE TRIGGER:', drillKey, value, '- This will trigger expensive useEffect!');
     const newWeights = { ...weights, [drillKey]: value };
     setWeights(newWeights);
     setActivePreset('');
@@ -630,13 +635,17 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
+  // 🔥 TEMPORARILY DISABLED: This useEffect triggers API calls on every weight change!
+  // 🧪 PERFORMANCE TEST: Comment this out to see if sliders become smooth
   useEffect(() => {
+    console.log('🔥 EXPENSIVE useEffect TRIGGERED by weights change - this blocks UI during slider drag!');
     const updateRankings = async () => {
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
         setRankings([]);
         return;
       }
       
+      console.log('🔥 API CALL SCHEDULED due to weight change');
       setRankingsLoading(true);
       setRankingsError(null);
       
@@ -778,6 +787,92 @@ export default function Players() {
                </div>
              </div>
             
+            {/* 🔬 ISOLATION TEST: No State Binding */}
+            <div
+              style={{
+                padding: '24px',
+                background: '#f0f9ff',
+                border: '2px solid #0ea5e9',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '100%',
+                touchAction: 'none'
+              }}
+            >
+              <label style={{ display: 'block', marginBottom: '6px', color: '#0369a1', fontWeight: 600 }}>
+                🔬 ISOLATED TEST (defaultValue only)
+              </label>
+
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                defaultValue={50}
+                onChange={(e) => console.log('🔬 Isolated slider:', e.target.value)}
+                className="test-slider"
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  cursor: 'pointer',
+                  background: '#0ea5e9',
+                  borderRadius: '4px',
+                  outline: 'none'
+                }}
+              />
+
+              <div style={{ fontSize: '14px', marginTop: '6px', color: '#0369a1' }}>
+                No state binding - check console for values
+              </div>
+            </div>
+
+            {/* 📊 useRef TEST: No Re-renders */}
+            <div
+              style={{
+                padding: '24px',
+                background: '#ecfdf5',
+                border: '2px solid #10b981',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '100%',
+                touchAction: 'none'
+              }}
+            >
+              <label style={{ display: 'block', marginBottom: '6px', color: '#047857', fontWeight: 600 }}>
+                📊 useRef TEST (no re-renders)
+              </label>
+
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                defaultValue={50}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  isolatedSliderRef.current = value;
+                  console.log('📊 useRef slider:', value, 'no re-render triggered');
+                  // Update display every 10 values to minimize re-renders
+                  if (value % 10 === 0) {
+                    setIsolatedSliderDisplay(value);
+                  }
+                }}
+                className="test-slider"
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  cursor: 'pointer',
+                  background: '#10b981',
+                  borderRadius: '4px',
+                  outline: 'none'
+                }}
+              />
+
+              <div style={{ fontSize: '14px', marginTop: '6px', color: '#047857' }}>
+                Current: <strong>{isolatedSliderDisplay}</strong> (updates every 10 values)
+              </div>
+            </div>
+
             {/* UI Library Style Test Slider */}
             <div style={{ width: '100%', padding: '20px', background: '#eee', borderRadius: '8px', marginBottom: '12px' }}>
               <div className="flex items-center justify-between mb-3">
