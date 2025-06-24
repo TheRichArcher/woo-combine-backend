@@ -101,67 +101,49 @@ export default function SliderTest() {
     });
   };
 
-  // NEW: Proportional redistribution (matches our fix)
+  // NEW: SIMPLE redistribution (matches our fix)
   const updateWeightsProportional = (drillKey, percentage) => {
-    console.log('🎯 PROPORTIONAL CHANGE:', drillKey, 'to', percentage + '%');
+    console.log('🎯 SIMPLE CHANGE:', drillKey, 'to', percentage + '%');
+    
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const currentWeights = { ...weightsProportional };
-    const currentDrillWeight = currentWeights[drillKey];
-    const weightDifference = newWeight - currentDrillWeight;
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
+    const remainingWeight = Math.max(0, 1 - newWeight);
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
 
-    const newWeights = { ...currentWeights };
-    newWeights[drillKey] = newWeight;
-
-    // Proportionally adjust other weights
-    if (totalOtherWeight > 0) {
-      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
-      });
-    }
-
-    // Normalize to sum = 1
-    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (total > 0) {
-      DRILLS.forEach(drill => {
-        newWeights[drill.key] = newWeights[drill.key] / total;
-      });
-    }
-
-    console.log('🎯 NEW PROPORTIONAL WEIGHTS:', newWeights);
+    console.log('🎯 NEW SIMPLE WEIGHTS:', newWeights);
     setWeightsProportional(newWeights);
   };
 
   // NEW: SimpleSlider test (matches our fix)
   const handleSimpleSliderChange = (drillKey, percentage) => {
     console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const currentWeights = { ...weightsSimpleSlider };
-    const currentDrillWeight = currentWeights[drillKey];
-    const weightDifference = newWeight - currentDrillWeight;
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
-
-    const newWeights = { ...currentWeights };
-    newWeights[drillKey] = newWeight;
-
-    // Proportionally adjust other weights
-    if (totalOtherWeight > 0) {
-      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
-      });
-    }
-
-    // Normalize to sum = 1
-    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (total > 0) {
-      DRILLS.forEach(drill => {
-        newWeights[drill.key] = newWeights[drill.key] / total;
-      });
-    }
+    const remainingWeight = Math.max(0, 1 - newWeight);
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
 
     console.log('🎯 NEW SIMPLE SLIDER WEIGHTS:', newWeights);
     setWeightsSimpleSlider(newWeights);
@@ -287,10 +269,10 @@ export default function SliderTest() {
           </div>
         </div>
 
-        {/* Test 6: NEW - Proportional redistribution with step=0.1 */}
-        <div>
-          <h2 className="font-semibold mb-2 text-blue-600">🔧 Test 6: Proportional Redistribution (step=0.1) - NEW FIX</h2>
-          <p className="text-sm text-gray-600 mb-2">Uses proportional weight redistribution + parseFloat + step=0.1</p>
+                 {/* Test 6: NEW - Simple redistribution with step=0.1 */}
+         <div>
+           <h2 className="font-semibold mb-2 text-blue-600">🔧 Test 6: Simple Redistribution (step=0.1) - NEW FIX</h2>
+           <p className="text-sm text-gray-600 mb-2">Uses simple equal weight redistribution + parseFloat + step=0.1</p>
           <div className="space-y-3">
             {DRILLS.map(drill => (
               <div key={drill.key}>
@@ -357,7 +339,7 @@ export default function SliderTest() {
           <p>• Check browser console for event logs</p>
           <p>• Try dragging each slider type and compare smoothness</p>
           <p>• <span className="text-red-600">Tests 4 & 5 (OLD)</span> should show 1% increments and jumpy behavior</p>
-          <p>• <span className="text-blue-600">Test 6 (FIXED)</span> should show smooth sub-1% dragging with proportional redistribution</p>
+                     <p>• <span className="text-blue-600">Test 6 (FIXED)</span> should show smooth sub-1% dragging with simple redistribution</p>
           <p>• <span className="text-green-600">Test 7 (SIMPLESLIDER)</span> should show the smoothest behavior with the SimpleSlider component</p>
           <p>• Green tests should feel like professional app sliders, red tests should feel choppy</p>
         </div>

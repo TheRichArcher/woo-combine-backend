@@ -257,36 +257,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   const percentages = getPercentagesFromWeights(weights);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log('🎯 updateWeightsFromPercentage:', drillKey, percentage, typeof percentage);
-    console.log('MODAL updateWeightsFromPercentage called:', drillKey, percentage);
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const currentWeights = { ...weights };
-    const currentDrillWeight = currentWeights[drillKey];
-    const weightDifference = newWeight - currentDrillWeight;
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
-
-    const newWeights = { ...currentWeights };
-    newWeights[drillKey] = newWeight;
-
-    // Proportionally adjust other weights
-    if (totalOtherWeight > 0) {
-      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
-      });
-    }
-
-    // Normalize to sum = 1
-    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (total > 0) {
-      DRILLS.forEach(drill => {
-        newWeights[drill.key] = newWeights[drill.key] / total;
-      });
-    }
-
-    console.log('MODAL New weights calculated:', newWeights);
-    setWeights(newWeights); // Remove flushSync for consistency
+    const remainingWeight = Math.max(0, 1 - newWeight);
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
+    
+    setWeights(newWeights);
     setActivePreset('');
   };
 
@@ -605,37 +592,24 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // SMOOTH SLIDER HANDLING - proportional redistribution for smooth dragging
+  // FIXED: Direct slider positioning - slider goes exactly where user drags it
   const handleSliderChange = (drillKey, percentage) => {
-    console.log('🎯 handleSliderChange:', drillKey, percentage, typeof percentage);
-    console.log('🎯 SIMPLE SLIDER CHANGE:', drillKey, 'to', percentage + '%');
+    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
-    const currentWeights = { ...weights };
-    const currentDrillWeight = currentWeights[drillKey];
-    const weightDifference = newWeight - currentDrillWeight;
-    const otherDrills = DRILLS.filter(drill => drill.key !== drillKey);
-    const totalOtherWeight = otherDrills.reduce((sum, drill) => sum + currentWeights[drill.key], 0);
-
-    const newWeights = { ...currentWeights };
-    newWeights[drillKey] = newWeight;
-
-    // Proportionally adjust other weights
-    if (totalOtherWeight > 0) {
-      const scale = (totalOtherWeight - weightDifference) / totalOtherWeight;
-      otherDrills.forEach(drill => {
-        newWeights[drill.key] = Math.max(0, currentWeights[drill.key] * scale);
-      });
-    }
-
-    // Normalize to sum = 1
-    const total = Object.values(newWeights).reduce((sum, w) => sum + w, 0);
-    if (total > 0) {
-      DRILLS.forEach(drill => {
-        newWeights[drill.key] = newWeights[drill.key] / total;
-      });
-    }
-
-    console.log('🎯 NEW SIMPLE WEIGHTS:', newWeights);
+    const remainingWeight = Math.max(0, 1 - newWeight);
+    
+    // Distribute remaining weight equally among other 4 sliders
+    const otherSliderWeight = remainingWeight / 4;
+    
+    const newWeights = {};
+    DRILLS.forEach(drill => {
+      if (drill.key === drillKey) {
+        newWeights[drill.key] = newWeight;
+      } else {
+        newWeights[drill.key] = otherSliderWeight;
+      }
+    });
+    
     setWeights(newWeights);
     setActivePreset('');
   };
