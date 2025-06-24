@@ -759,7 +759,7 @@ export default function Players() {
     return acc;
   }, {});
 
-  const MobileWeightControls = useCallback(({ showSliders = false }) => {
+  const MobileWeightControls = ({ showSliders = false }) => {
     useEffect(() => {
       if (showSliders && !showCustomControls) {
         setShowCustomControls(true);
@@ -847,7 +847,7 @@ export default function Players() {
             )}
       </div>
     );
-  }, [showCustomControls, weights, debugValue, setDebugValue, handleSliderChange, applyPreset, activePreset]);
+  };
 
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
