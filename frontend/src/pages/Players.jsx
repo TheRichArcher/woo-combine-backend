@@ -255,6 +255,16 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const percentages = getPercentagesFromWeights(weights);
+  const [dragTimeout, setDragTimeout] = useState(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimeout) {
+        clearTimeout(dragTimeout);
+      }
+    };
+  }, [dragTimeout]);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
     console.log(`🔍 MODAL SLIDER DEBUG: ${drillKey} dragged to ${percentage}%`);
@@ -471,8 +481,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           max={100}
                           step={0.1}
                           value={percentages[drill.key] || 0}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                          onInput={e => {
+                            // Clear any pending redistribution
+                            if (dragTimeout) {
+                              clearTimeout(dragTimeout);
+                            }
+                            
+                            const value = parseFloat(e.target.value);
+                            console.log(`🎯 MODAL DRAGGING: ${drill.key} to ${value}% (DELAYED REDISTRIBUTION)`);
+                            
+                            // Delay redistribution by 100ms to allow smooth dragging
+                            const timeout = setTimeout(() => {
+                              console.log(`⏱️ APPLYING DELAYED REDISTRIBUTION: ${drill.key} to ${value}%`);
+                              updateWeightsFromPercentage(drill.key, value);
+                            }, 100);
+                            
+                            setDragTimeout(timeout);
+                          }}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg"
                         />
                         {/* Visual Impact Indicator */}
@@ -601,36 +626,51 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [debugValue, setDebugValue] = useState(50);
+  const [mainDragTimeout, setMainDragTimeout] = useState(null);
 
-  // FIXED: Direct slider positioning - slider goes exactly where user drags it
-  const handleSliderChange = (drillKey, percentage) => {
-    console.log(`🔍 MAIN SLIDER DEBUG: ${drillKey} dragged to ${percentage}%`);
-    
-    // SIMPLE APPROACH: dragged slider goes exactly where user wants it
-    const newWeight = percentage / 100;
-    const remainingWeight = Math.max(0, 1 - newWeight);
-    
-    // Distribute remaining weight equally among other 4 sliders
-    const otherSliderWeight = remainingWeight / 4;
-    
-    console.log(`📊 MAIN REDISTRIBUTION: newWeight=${newWeight.toFixed(3)}, remainingWeight=${remainingWeight.toFixed(3)}, otherSliderWeight=${otherSliderWeight.toFixed(3)}`);
-    
-    const newWeights = {};
-    DRILLS.forEach(drill => {
-      if (drill.key === drillKey) {
-        newWeights[drill.key] = newWeight;
-      } else {
-        newWeights[drill.key] = otherSliderWeight;
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (mainDragTimeout) {
+        clearTimeout(mainDragTimeout);
       }
-    });
+    };
+  }, [mainDragTimeout]);
+
+  // FIXED: Delayed redistribution to allow smooth dragging
+  const handleSliderChange = (drillKey, percentage) => {
+    // Clear any pending redistribution
+    if (mainDragTimeout) {
+      clearTimeout(mainDragTimeout);
+    }
     
-    // Show what percentages this will create
-    const newPercentages = getPercentagesFromWeights(newWeights);
-    console.log(`📈 MAIN RESULTS:`, newPercentages);
-    console.log(`🎯 ${drillKey} should show: ${newPercentages[drillKey]?.toFixed(1)}%`);
+    console.log(`🔍 MAIN SLIDER DEBUG: ${drillKey} dragged to ${percentage}% (DELAYED REDISTRIBUTION)`);
     
-    setWeights(newWeights);
-    setActivePreset('');
+    // Delay redistribution by 150ms to allow smooth dragging
+    const timeout = setTimeout(() => {
+      console.log(`⏱️ APPLYING MAIN REDISTRIBUTION: ${drillKey} to ${percentage}%`);
+      
+      // SIMPLE APPROACH: dragged slider goes exactly where user wants it
+      const newWeight = percentage / 100;
+      const remainingWeight = Math.max(0, 1 - newWeight);
+      
+      // Distribute remaining weight equally among other 4 sliders
+      const otherSliderWeight = remainingWeight / 4;
+      
+      const newWeights = {};
+      DRILLS.forEach(drill => {
+        if (drill.key === drillKey) {
+          newWeights[drill.key] = newWeight;
+        } else {
+          newWeights[drill.key] = otherSliderWeight;
+        }
+      });
+      
+      setWeights(newWeights);
+      setActivePreset('');
+    }, 150);
+    
+    setMainDragTimeout(timeout);
   };
 
   const applyPreset = (presetKey) => {
