@@ -256,6 +256,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
 
   const percentages = getPercentagesFromWeights(weights);
   const [dragTimeout, setDragTimeout] = useState(null);
+  const [modalDragState, setModalDragState] = useState({});
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -473,28 +474,36 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                 
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium w-16 text-gray-600">
-                          {Math.round(percentages[drill.key] || 0)}%
+                          {Math.round(modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0))}%
                         </span>
                         <input
                           type="range"
                           min={0}
                           max={100}
                           step={0.1}
-                          value={percentages[drill.key] || 0}
+                          value={modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0)}
                           onInput={e => {
+                            const value = parseFloat(e.target.value);
+                            console.log(`🎯 MODAL DRAG STATE: ${drill.key} to ${value}% (FREE RANGE)`);
+                            
+                            // Update local drag state immediately for smooth dragging
+                            setModalDragState(prev => ({ ...prev, [drill.key]: value }));
+                            
                             // Clear any pending redistribution
                             if (dragTimeout) {
                               clearTimeout(dragTimeout);
                             }
                             
-                            const value = parseFloat(e.target.value);
-                            console.log(`🎯 MODAL DRAGGING: ${drill.key} to ${value}% (DELAYED REDISTRIBUTION)`);
-                            
-                            // Delay redistribution by 100ms to allow smooth dragging
+                            // Delay redistribution and clear drag state
                             const timeout = setTimeout(() => {
-                              console.log(`⏱️ APPLYING DELAYED REDISTRIBUTION: ${drill.key} to ${value}%`);
+                              console.log(`✅ MODAL FINALIZING: ${drill.key} to ${value}% - applying redistribution`);
+                              setModalDragState(prev => {
+                                const newState = { ...prev };
+                                delete newState[drill.key];
+                                return newState;
+                              });
                               updateWeightsFromPercentage(drill.key, value);
-                            }, 100);
+                            }, 200);
                             
                             setDragTimeout(timeout);
                           }}
@@ -504,7 +513,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                         <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gradient-to-r from-cmf-primary to-cmf-secondary transition-all duration-300"
-                            style={{ width: `${percentages[drill.key] || 0}%` }}
+                            style={{ width: `${modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0)}%` }}
                           />
                         </div>
                       </div>
@@ -627,6 +636,7 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [debugValue, setDebugValue] = useState(50);
   const [mainDragTimeout, setMainDragTimeout] = useState(null);
+  const [dragState, setDragState] = useState({});
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -982,14 +992,37 @@ export default function Players() {
                 />
                 
                 {DRILLS.map(drill => (
-                  <SimpleSlider
-                    key={drill.key}
-                    label={drill.label}
-                    value={percentages[drill.key] || 0}
-                    displayValue={Math.round(percentages[drill.key] || 0)}
-                    onChange={(newValue) => handleSliderChange(drill.key, newValue)}
-                    step={0.1}
-                  />
+                                  <SimpleSlider
+                  key={drill.key}
+                  label={drill.label}
+                  value={dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0)}
+                  displayValue={Math.round(dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0))}
+                  onChange={(newValue) => {
+                    console.log(`🎯 DRAG STATE: ${drill.key} to ${newValue}% (FREE RANGE)`);
+                    
+                    // Update local drag state immediately for smooth dragging
+                    setDragState(prev => ({ ...prev, [drill.key]: newValue }));
+                    
+                    // Clear any pending redistribution
+                    if (mainDragTimeout) {
+                      clearTimeout(mainDragTimeout);
+                    }
+                    
+                    // Delay redistribution and clear drag state
+                    const timeout = setTimeout(() => {
+                      console.log(`✅ FINALIZING: ${drill.key} to ${newValue}% - applying redistribution`);
+                      setDragState(prev => {
+                        const newState = { ...prev };
+                        delete newState[drill.key];
+                        return newState;
+                      });
+                      handleSliderChange(drill.key, newValue);
+                    }, 200);
+                    
+                    setMainDragTimeout(timeout);
+                  }}
+                  step={0.1}
+                />
                 ))}
                 
                 <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
