@@ -29,7 +29,7 @@ export default function SimpleSlider({
         </span>
       </div>
       
-      <div className="relative">
+      <div className="touch-none">
         <input
           type="range"
           min={min}
@@ -38,7 +38,7 @@ export default function SimpleSlider({
           value={value}
           onInput={handleEvent}
           onChange={handleEvent}
-          className="w-full h-8 bg-gray-200 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 custom-slider"
+          className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
         />
       </div>
       

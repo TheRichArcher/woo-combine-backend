@@ -423,15 +423,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                         <span className="text-xs font-medium w-16 text-gray-600">
                           Less important
                         </span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={weights[drill.key] || 0}
-                          onChange={e => updateWeight(drill.key, parseInt(e.target.value))}
-                          className="flex-1 accent-cmf-primary h-2 rounded-lg"
-                        />
+                        <div className="touch-none flex-1">
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={weights[drill.key] || 0}
+                            onChange={e => updateWeight(drill.key, parseInt(e.target.value))}
+                            className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
+                          />
+                        </div>
                         <span className="text-xs font-medium w-16 text-gray-600 text-right">
                           More important
                         </span>
@@ -749,7 +751,10 @@ export default function Players() {
                 </span>
               </div>
               
-              <div className="relative">
+              <div
+                style={{ touchAction: "none", pointerEvents: "auto" }}
+                className="w-full touch-none"
+              >
                 <input
                   type="range"
                   min={0}
@@ -757,7 +762,7 @@ export default function Players() {
                   step={1}
                   value={testSliderVal}
                   onChange={(e) => setTestSliderVal(parseInt(e.target.value))}
-                  className="w-full h-8 bg-red-200 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full h-6 bg-red-200 rounded-lg cursor-pointer"
                 />
               </div>
               
@@ -779,22 +784,20 @@ export default function Players() {
                 </span>
               </div>
               
-              <input
-                type="range"
-                value={uiSliderVal}
-                onChange={(e) => setUiSliderVal(parseInt(e.target.value))}
-                min={0}
-                max={100}
-                step={1}
-                style={{
-                  width: '100%',
-                  height: '4px',
-                  borderRadius: '2px',
-                  background: '#ddd',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
+              <div
+                style={{ touchAction: "none", pointerEvents: "auto" }}
+                className="w-full touch-none"
+              >
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={uiSliderVal}
+                  onChange={(e) => setUiSliderVal(parseInt(e.target.value))}
+                  className="w-full h-6 bg-purple-200 rounded-lg cursor-pointer"
+                />
+              </div>
               
               <div className="flex justify-between text-xs text-gray-500 mt-2">
                 <span>0</span>
