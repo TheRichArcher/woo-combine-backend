@@ -818,15 +818,49 @@ export default function Players() {
 
                             {showCustomControls && (
           <div className="space-y-3">
+                {/* RAW HTML SLIDER TEST */}
+                <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <label className="text-sm font-medium text-red-700">🔬 RAW HTML Slider Test</label>
+                      <div className="text-xs text-red-500">Pure HTML - no React components</div>
+                    </div>
+                    <span className="text-lg font-mono text-red-600 bg-red-100 px-3 py-1 rounded-full">
+                      {debugValue.toFixed(1)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={debugValue}
+                    onInput={(e) => {
+                      console.log('🔬 RAW SLIDER:', e.target.value, typeof e.target.value);
+                      setDebugValue(parseFloat(e.target.value));
+                    }}
+                    onChange={(e) => {
+                      console.log('🔬 RAW CHANGE:', e.target.value, typeof e.target.value);
+                      setDebugValue(parseFloat(e.target.value));
+                    }}
+                    className="w-full h-8 bg-red-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <div className="flex justify-between text-xs text-red-400 mt-2">
+                    <span>0%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
                 <SimpleSlider
-                  label="🐛 Debug Slider (Isolated Test)"
+                  label="🐛 SimpleSlider Component Test"
                   value={debugValue}
                   displayValue={Math.round(debugValue)}
                   onChange={(newValue) => {
+                    console.log('🐛 SIMPLE COMPONENT:', newValue, typeof newValue);
                     setDebugValue(newValue);
                   }}
                   step={0.1}
-                  className="border-red-300 bg-red-50"
+                  className="border-orange-300 bg-orange-50"
                 />
                 
                 {DRILLS.map(drill => (
