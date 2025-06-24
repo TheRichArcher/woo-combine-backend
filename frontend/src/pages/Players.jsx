@@ -559,6 +559,7 @@ export default function Players() {
   
   // Test slider state
   const [testSliderVal, setTestSliderVal] = useState(50);
+  const [uiSliderVal, setUiSliderVal] = useState(50);
 
   // INDEPENDENT SLIDERS: Simple weight update without redistribution
   const updateWeight = (drillKey, value) => {
@@ -740,8 +741,8 @@ export default function Players() {
             <div className="bg-red-100 rounded-lg p-4 border border-red-300 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div>
-                  <label className="text-sm font-medium text-red-700">🧪 TEST SLIDER (Local State)</label>
-                  <div className="text-xs text-red-500">Simple local state - no weight system interference</div>
+                  <label className="text-sm font-medium text-red-700">🧪 TEST SLIDER (HTML Range)</label>
+                  <div className="text-xs text-red-500">Basic HTML range input - baseline test</div>
                 </div>
                 <span className="text-lg font-mono text-red-600 bg-red-200 px-3 py-1 rounded-full min-w-[50px] text-center">
                   {testSliderVal}
@@ -761,6 +762,41 @@ export default function Players() {
               </div>
               
               <div className="flex justify-between text-xs text-red-400 mt-2">
+                <span>0</span>
+                <span>100</span>
+              </div>
+            </div>
+            
+            {/* UI Library Style Test Slider */}
+            <div style={{ width: '100%', padding: '20px', background: '#eee', borderRadius: '8px', marginBottom: '12px' }}>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className="text-sm font-medium text-purple-700">🎨 UI LIBRARY STYLE TEST</label>
+                  <div className="text-xs text-purple-500">Mimics Material-UI/library component pattern</div>
+                </div>
+                <span className="text-lg font-mono text-purple-600 bg-purple-200 px-3 py-1 rounded-full min-w-[50px] text-center">
+                  {uiSliderVal}
+                </span>
+              </div>
+              
+              <input
+                type="range"
+                value={uiSliderVal}
+                onChange={(e) => setUiSliderVal(parseInt(e.target.value))}
+                min={0}
+                max={100}
+                step={1}
+                style={{
+                  width: '100%',
+                  height: '4px',
+                  borderRadius: '2px',
+                  background: '#ddd',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              />
+              
+              <div className="flex justify-between text-xs text-gray-500 mt-2">
                 <span>0</span>
                 <span>100</span>
               </div>
