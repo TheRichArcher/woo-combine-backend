@@ -556,6 +556,9 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+  
+  // Test slider state
+  const [testSliderVal, setTestSliderVal] = useState(50);
 
   // INDEPENDENT SLIDERS: Simple weight update without redistribution
   const updateWeight = (drillKey, value) => {
@@ -733,17 +736,49 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-3">
-            {DRILLS.map(drill => (
-              <SimpleSlider
-                key={drill.key}
-                label={drill.label}
-                value={weights[drill.key] || 0}
-                displayValue={weights[drill.key] || 0}
-                onChange={(newValue) => updateWeight(drill.key, newValue)}
-                min={0}
-                max={100}
-                step={1}
-              />
+            {/* Simple Test Slider */}
+            <div className="bg-red-100 rounded-lg p-4 border border-red-300 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <label className="text-sm font-medium text-red-700">🧪 TEST SLIDER (Local State)</label>
+                  <div className="text-xs text-red-500">Simple local state - no weight system interference</div>
+                </div>
+                <span className="text-lg font-mono text-red-600 bg-red-200 px-3 py-1 rounded-full min-w-[50px] text-center">
+                  {testSliderVal}
+                </span>
+              </div>
+              
+              <div className="relative">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={testSliderVal}
+                  onChange={(e) => setTestSliderVal(parseInt(e.target.value))}
+                  className="w-full h-8 bg-red-200 rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500"
+                />
+              </div>
+              
+              <div className="flex justify-between text-xs text-red-400 mt-2">
+                <span>0</span>
+                <span>100</span>
+              </div>
+            </div>
+            
+            {DRILLS.map((drill, index) => (
+              index === 0 ? null : ( // Skip first drill to make room for test slider
+                <SimpleSlider
+                  key={drill.key}
+                  label={drill.label}
+                  value={weights[drill.key] || 0}
+                  displayValue={weights[drill.key] || 0}
+                  onChange={(newValue) => updateWeight(drill.key, newValue)}
+                  min={0}
+                  max={100}
+                  step={1}
+                />
+              )
             ))}
             
             <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
