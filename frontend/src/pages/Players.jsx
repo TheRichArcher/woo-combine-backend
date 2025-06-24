@@ -268,16 +268,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
   }, [dragTimeout]);
 
   const updateWeightsFromPercentage = (drillKey, percentage) => {
-    console.log(`🔍 MODAL SLIDER DEBUG: ${drillKey} dragged to ${percentage}%`);
-    
     // SIMPLE APPROACH: dragged slider goes exactly where user wants it
     const newWeight = percentage / 100;
     const remainingWeight = Math.max(0, 1 - newWeight);
     
     // Distribute remaining weight equally among other 4 sliders
     const otherSliderWeight = remainingWeight / 4;
-    
-    console.log(`📊 REDISTRIBUTION: newWeight=${newWeight.toFixed(3)}, remainingWeight=${remainingWeight.toFixed(3)}, otherSliderWeight=${otherSliderWeight.toFixed(3)}`);
     
     const newWeights = {};
     DRILLS.forEach(drill => {
@@ -287,11 +283,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
         newWeights[drill.key] = otherSliderWeight;
       }
     });
-    
-    // Show what percentages this will create
-    const newPercentages = getPercentagesFromWeights(newWeights);
-    console.log(`📈 RESULTING PERCENTAGES:`, newPercentages);
-    console.log(`🎯 ${drillKey} should show: ${newPercentages[drillKey]?.toFixed(1)}%`);
     
     setWeights(newWeights);
     setActivePreset('');
@@ -484,7 +475,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                           value={modalDragState[drill.key] !== undefined ? modalDragState[drill.key] : (percentages[drill.key] || 0)}
                           onInput={e => {
                             const value = parseFloat(e.target.value);
-                            console.log(`🎯 MODAL DRAG STATE: ${drill.key} to ${value}% (FREE RANGE)`);
                             
                             // Update local drag state immediately for smooth dragging
                             setModalDragState(prev => ({ ...prev, [drill.key]: value }));
@@ -496,7 +486,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                             
                             // Delay redistribution and clear drag state
                             const timeout = setTimeout(() => {
-                              console.log(`✅ MODAL FINALIZING: ${drill.key} to ${value}% - applying redistribution`);
                               setModalDragState(prev => {
                                 const newState = { ...prev };
                                 delete newState[drill.key];
@@ -634,7 +623,6 @@ export default function Players() {
   const [activePreset, setActivePreset] = useState('balanced');
 
   const [showCustomControls, setShowCustomControls] = useState(false);
-  const [debugValue, setDebugValue] = useState(50);
   const [mainDragTimeout, setMainDragTimeout] = useState(null);
   const [dragState, setDragState] = useState({});
 
@@ -654,11 +642,8 @@ export default function Players() {
       clearTimeout(mainDragTimeout);
     }
     
-    console.log(`🔍 MAIN SLIDER DEBUG: ${drillKey} dragged to ${percentage}% (DELAYED REDISTRIBUTION)`);
-    
     // Delay redistribution by 150ms to allow smooth dragging
     const timeout = setTimeout(() => {
-      console.log(`⏱️ APPLYING MAIN REDISTRIBUTION: ${drillKey} to ${percentage}%`);
       
       // SIMPLE APPROACH: dragged slider goes exactly where user wants it
       const newWeight = percentage / 100;
@@ -884,145 +869,37 @@ export default function Players() {
           </button>
         </div>
 
-                            {showCustomControls && (
-          <div className="space-y-3">
-                {/* ENVIRONMENT DIAGNOSTICS */}
-                <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-3">
-                  <div className="mb-3">
-                    <label className="text-sm font-medium text-red-700">🔬 ENVIRONMENT DIAGNOSTICS</label>
-                    <div className="text-xs text-red-500 space-y-1 mt-2">
-                      <div>User Agent: {navigator.userAgent.slice(0, 80)}...</div>
-                      <div>Touch Support: {navigator.maxTouchPoints > 0 ? 'YES' : 'NO'} ({navigator.maxTouchPoints} points)</div>
-                      <div>Device Type: {/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}</div>
-                      <div>Browser: {navigator.vendor} - {navigator.platform}</div>
-                      <div>Zoom Level: {Math.round(window.devicePixelRatio * 100)}%</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* TEST 1: Basic step=1 slider */}
-                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <label className="text-sm font-medium text-blue-700">🔵 TEST 1: Basic Integer Slider (step=1)</label>
-                      <div className="text-xs text-blue-500">Should work on ANY browser</div>
-                    </div>
-                    <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
-                      {Math.round(debugValue)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={Math.round(debugValue)}
-                    onInput={(e) => {
-                      console.log('🔵 BASIC SLIDER:', e.target.value, typeof e.target.value);
-                      setDebugValue(parseInt(e.target.value));
-                    }}
-                    className="w-full h-8 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                  />
-                </div>
-
-                {/* TEST 2: Decimal step=0.1 slider */}
-                <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <label className="text-sm font-medium text-red-700">🔴 TEST 2: Decimal Slider (step=0.1)</label>
-                      <div className="text-xs text-red-500">Tests decimal precision support</div>
-                    </div>
-                    <span className="text-lg font-mono text-red-600 bg-red-100 px-3 py-1 rounded-full">
-                      {debugValue.toFixed(1)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    value={debugValue}
-                    onInput={(e) => {
-                      console.log('🔴 DECIMAL SLIDER:', e.target.value, typeof e.target.value);
-                      setDebugValue(parseFloat(e.target.value));
-                    }}
-                    className="w-full h-8 bg-red-200 rounded-lg appearance-none cursor-pointer"
-                    style={{
-                      touchAction: 'none',
-                      WebkitAppearance: 'none',
-                      MozAppearance: 'none'
-                    }}
-                  />
-                </div>
-
-                {/* TEST 3: No CSS styling */}
-                <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-3">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <label className="text-sm font-medium text-yellow-700">🟡 TEST 3: No CSS Interference (step=0.1)</label>
-                      <div className="text-xs text-yellow-500">Default browser styling only</div>
-                    </div>
-                    <span className="text-lg font-mono text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">
-                      {debugValue.toFixed(1)}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    value={debugValue}
-                    onInput={(e) => {
-                      console.log('🟡 NO CSS SLIDER:', e.target.value, typeof e.target.value);
-                      setDebugValue(parseFloat(e.target.value));
-                    }}
-                  />
-                </div>
-
-                <SimpleSlider
-                  label="🐛 SimpleSlider Component Test"
-                  value={debugValue}
-                  displayValue={Math.round(debugValue)}
-                  onChange={(newValue) => {
-                    console.log('🐛 SIMPLE COMPONENT:', newValue, typeof newValue);
-                    setDebugValue(newValue);
-                  }}
-                  step={0.1}
-                  className="border-orange-300 bg-orange-50"
-                />
-                
+                                        {showCustomControls && (
+              <div className="space-y-3">
                 {DRILLS.map(drill => (
-                                  <SimpleSlider
-                  key={drill.key}
-                  label={drill.label}
-                  value={dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0)}
-                  displayValue={Math.round(dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0))}
-                  onChange={(newValue) => {
-                    console.log(`🎯 DRAG STATE: ${drill.key} to ${newValue}% (FREE RANGE)`);
-                    
-                    // Update local drag state immediately for smooth dragging
-                    setDragState(prev => ({ ...prev, [drill.key]: newValue }));
-                    
-                    // Clear any pending redistribution
-                    if (mainDragTimeout) {
-                      clearTimeout(mainDragTimeout);
-                    }
-                    
-                    // Delay redistribution and clear drag state
-                    const timeout = setTimeout(() => {
-                      console.log(`✅ FINALIZING: ${drill.key} to ${newValue}% - applying redistribution`);
-                      setDragState(prev => {
-                        const newState = { ...prev };
-                        delete newState[drill.key];
-                        return newState;
-                      });
-                      handleSliderChange(drill.key, newValue);
-                    }, 200);
-                    
-                    setMainDragTimeout(timeout);
-                  }}
-                  step={0.1}
-                />
+                  <SimpleSlider
+                    key={drill.key}
+                    label={drill.label}
+                    value={dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0)}
+                    displayValue={Math.round(dragState[drill.key] !== undefined ? dragState[drill.key] : (percentages[drill.key] || 0))}
+                    onChange={(newValue) => {
+                      // Update local drag state immediately for smooth dragging
+                      setDragState(prev => ({ ...prev, [drill.key]: newValue }));
+                      
+                      // Clear any pending redistribution
+                      if (mainDragTimeout) {
+                        clearTimeout(mainDragTimeout);
+                      }
+                      
+                      // Delay redistribution and clear drag state
+                      const timeout = setTimeout(() => {
+                        setDragState(prev => {
+                          const newState = { ...prev };
+                          delete newState[drill.key];
+                          return newState;
+                        });
+                        handleSliderChange(drill.key, newValue);
+                      }, 200);
+                      
+                      setMainDragTimeout(timeout);
+                    }}
+                    step={0.1}
+                  />
                 ))}
                 
                 <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
@@ -1151,67 +1028,7 @@ export default function Players() {
           </div>
         </div>
 
-        {/* ISOLATED TOP-LEVEL SLIDER TEST */}
-        <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-6">
-          <h2 className="text-lg font-bold text-green-700 mb-2">🧪 ISOLATED TEST (Outside All Components)</h2>
-          <p className="text-sm text-green-600 mb-3">
-            Value: <strong>{debugValue.toFixed(1)}%</strong> | 
-            Test if there's global interference affecting ALL sliders
-          </p>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-green-700 mb-1">Pure HTML - No CSS Classes</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="0.1"
-                value={debugValue}
-                onInput={(e) => {
-                  console.log('🧪 ISOLATED PURE:', e.target.value, typeof e.target.value);
-                  setDebugValue(parseFloat(e.target.value));
-                }}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-green-700 mb-1">With Minimal CSS</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="0.1"
-                value={debugValue}
-                onInput={(e) => {
-                  console.log('🧪 ISOLATED CSS:', e.target.value, typeof e.target.value);
-                  setDebugValue(parseFloat(e.target.value));
-                }}
-                style={{ width: '100%', height: '30px' }}
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-green-700 mb-1">Integer Step (should always work)</label>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                step="1"
-                value={Math.round(debugValue)}
-                onInput={(e) => {
-                  console.log('🧪 ISOLATED INT:', e.target.value, typeof e.target.value);
-                  setDebugValue(parseInt(e.target.value));
-                }}
-                style={{ width: '100%', height: '30px' }}
-              />
-            </div>
-          </div>
-          
-          <div className="mt-3 p-2 bg-green-100 rounded text-xs text-green-700">
-            If these don't work smoothly, there's something global in our app interfering with ALL sliders
-          </div>
-        </div>
+
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200">
