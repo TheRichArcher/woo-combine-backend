@@ -818,12 +818,51 @@ export default function Players() {
 
                             {showCustomControls && (
           <div className="space-y-3">
-                {/* RAW HTML SLIDER TEST */}
+                {/* ENVIRONMENT DIAGNOSTICS */}
+                <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-3">
+                  <div className="mb-3">
+                    <label className="text-sm font-medium text-red-700">🔬 ENVIRONMENT DIAGNOSTICS</label>
+                    <div className="text-xs text-red-500 space-y-1 mt-2">
+                      <div>User Agent: {navigator.userAgent.slice(0, 80)}...</div>
+                      <div>Touch Support: {navigator.maxTouchPoints > 0 ? 'YES' : 'NO'} ({navigator.maxTouchPoints} points)</div>
+                      <div>Device Type: {/Mobi|Android/i.test(navigator.userAgent) ? 'Mobile' : 'Desktop'}</div>
+                      <div>Browser: {navigator.vendor} - {navigator.platform}</div>
+                      <div>Zoom Level: {Math.round(window.devicePixelRatio * 100)}%</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* TEST 1: Basic step=1 slider */}
+                <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <label className="text-sm font-medium text-blue-700">🔵 TEST 1: Basic Integer Slider (step=1)</label>
+                      <div className="text-xs text-blue-500">Should work on ANY browser</div>
+                    </div>
+                    <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
+                      {Math.round(debugValue)}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={Math.round(debugValue)}
+                    onInput={(e) => {
+                      console.log('🔵 BASIC SLIDER:', e.target.value, typeof e.target.value);
+                      setDebugValue(parseInt(e.target.value));
+                    }}
+                    className="w-full h-8 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                </div>
+
+                {/* TEST 2: Decimal step=0.1 slider */}
                 <div className="bg-red-50 border border-red-300 rounded-lg p-4 mb-3">
                   <div className="flex items-center justify-between mb-3">
                     <div>
-                      <label className="text-sm font-medium text-red-700">🔬 RAW HTML Slider Test</label>
-                      <div className="text-xs text-red-500">Pure HTML - no React components</div>
+                      <label className="text-sm font-medium text-red-700">🔴 TEST 2: Decimal Slider (step=0.1)</label>
+                      <div className="text-xs text-red-500">Tests decimal precision support</div>
                     </div>
                     <span className="text-lg font-mono text-red-600 bg-red-100 px-3 py-1 rounded-full">
                       {debugValue.toFixed(1)}%
@@ -836,19 +875,40 @@ export default function Players() {
                     step={0.1}
                     value={debugValue}
                     onInput={(e) => {
-                      console.log('🔬 RAW SLIDER:', e.target.value, typeof e.target.value);
-                      setDebugValue(parseFloat(e.target.value));
-                    }}
-                    onChange={(e) => {
-                      console.log('🔬 RAW CHANGE:', e.target.value, typeof e.target.value);
+                      console.log('🔴 DECIMAL SLIDER:', e.target.value, typeof e.target.value);
                       setDebugValue(parseFloat(e.target.value));
                     }}
                     className="w-full h-8 bg-red-200 rounded-lg appearance-none cursor-pointer"
+                    style={{
+                      touchAction: 'none',
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none'
+                    }}
                   />
-                  <div className="flex justify-between text-xs text-red-400 mt-2">
-                    <span>0%</span>
-                    <span>100%</span>
+                </div>
+
+                {/* TEST 3: No CSS styling */}
+                <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4 mb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <label className="text-sm font-medium text-yellow-700">🟡 TEST 3: No CSS Interference (step=0.1)</label>
+                      <div className="text-xs text-yellow-500">Default browser styling only</div>
+                    </div>
+                    <span className="text-lg font-mono text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">
+                      {debugValue.toFixed(1)}%
+                    </span>
                   </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={debugValue}
+                    onInput={(e) => {
+                      console.log('🟡 NO CSS SLIDER:', e.target.value, typeof e.target.value);
+                      setDebugValue(parseFloat(e.target.value));
+                    }}
+                  />
                 </div>
 
                 <SimpleSlider
