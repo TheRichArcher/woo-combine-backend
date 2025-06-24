@@ -847,7 +847,7 @@ export default function Players() {
             )}
       </div>
     );
-  }, [showCustomControls, percentages, debugValue, setDebugValue, handleSliderChange, applyPreset, activePreset]);
+  }, [showCustomControls, weights, debugValue, setDebugValue, handleSliderChange, applyPreset, activePreset]);
 
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
