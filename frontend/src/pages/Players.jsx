@@ -739,38 +739,44 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-3">
-            {/* Simple Test Slider */}
-            <div className="bg-red-100 rounded-lg p-4 border border-red-300 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <label className="text-sm font-medium text-red-700">🧪 TEST SLIDER (HTML Range)</label>
-                  <div className="text-xs text-red-500">Basic HTML range input - baseline test</div>
-                </div>
-                <span className="text-lg font-mono text-red-600 bg-red-200 px-3 py-1 rounded-full min-w-[50px] text-center">
-                  {testSliderVal}
-                </span>
-              </div>
-              
-              <div
-                style={{ touchAction: "none", pointerEvents: "auto" }}
-                className="w-full touch-none"
-              >
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={testSliderVal}
-                  onChange={(e) => setTestSliderVal(parseInt(e.target.value))}
-                  className="w-full h-6 bg-red-200 rounded-lg cursor-pointer"
-                />
-              </div>
-              
-              <div className="flex justify-between text-xs text-red-400 mt-2">
-                <span>0</span>
-                <span>100</span>
-              </div>
-            </div>
+            {/* Fixed Test Slider */}
+            <div
+              style={{
+                padding: '24px',
+                background: '#fee2e2',
+                border: '2px solid #fca5a5',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '100%',
+                touchAction: 'none'
+              }}
+            >
+              <label style={{ display: 'block', marginBottom: '6px', color: '#b91c1c', fontWeight: 600 }}>
+                🧪 FIXED TEST SLIDER
+              </label>
+
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={testSliderVal}
+                onChange={(e) => setTestSliderVal(parseInt(e.target.value))}
+                className="test-slider"
+                style={{
+                  width: '100%',
+                  height: '8px',
+                  cursor: 'pointer',
+                  background: '#f87171',
+                  borderRadius: '4px',
+                  outline: 'none'
+                }}
+              />
+
+                             <div style={{ fontSize: '14px', marginTop: '6px', color: '#991b1b' }}>
+                 Value: <strong>{testSliderVal}</strong>
+               </div>
+             </div>
             
             {/* UI Library Style Test Slider */}
             <div style={{ width: '100%', padding: '20px', background: '#eee', borderRadius: '8px', marginBottom: '12px' }}>

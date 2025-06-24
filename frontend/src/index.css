@@ -107,3 +107,39 @@ input[type="range"].custom-slider:focus::-moz-range-thumb {
 .touch-manipulation {
   touch-action: manipulation;
 }
+
+/* Custom test slider styles - optimized for testing different slider approaches */
+.test-slider {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.test-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border-radius: 50%;
+  cursor: grab;
+  margin-top: -4px;
+  border: none;
+}
+
+.test-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border: none;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+.test-slider::-ms-thumb {
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border: none;
+  border-radius: 50%;
+  cursor: grab;
+}
