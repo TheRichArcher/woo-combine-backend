@@ -391,7 +391,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, setWeights, 
                   Ranking Weight Controls
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  Adjust drill priorities to see how player rankings change in real time. Higher values = more important to you.
+                  Set drill priorities for ranking calculations. Higher values = more important to you.
                 </p>
           
                 <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto">
@@ -571,38 +571,7 @@ export default function Players() {
     }
   };
 
-  const calculateWeightedScore = (player, weights) => {
-    try {
-      let totalScore = 0;
-      
-      DRILLS.forEach(drill => {
-        const drillScore = player[drill.key];
-        const weight = Number.isFinite(weights[drill.key]) ? weights[drill.key] : 0;
-        
-        if (drillScore != null && typeof drillScore === 'number' && drillScore !== 0) {
-          if (drill.key === "40m_dash") {
-            const invertedScore = Math.max(0, 30 - drillScore);
-            totalScore += invertedScore * weight;
-          } else {
-            totalScore += drillScore * weight;
-          }
-        }
-      });
-      
-      return totalScore;
-    } catch {
-      return null;
-    }
-  };
 
-  const getSortedPlayersWithWeights = (ageGroupPlayers, weights) => {
-    return ageGroupPlayers
-      .map(player => ({
-        ...player,
-        weightedScore: calculateWeightedScore(player, weights)
-      }))
-      .sort((a, b) => (b.weightedScore || 0) - (a.weightedScore || 0));
-  };
 
   const OnboardingCallout = () => (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
@@ -722,7 +691,7 @@ export default function Players() {
           <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
         </div>
         <p className="text-cmf-primary text-sm mb-3">
-          Adjust drill priorities to see how player rankings change in real-time. Higher values = more important to you.
+          Set drill priorities for ranking calculations. Higher values = more important to you.
           <span className="block text-xs mt-1 opacity-75">
             Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
           </span>
@@ -778,7 +747,7 @@ export default function Players() {
             ))}
             
             <div className="text-sm text-center p-3 rounded-lg border bg-blue-50 border-blue-200 text-gray-600">
-              💡 Player rankings update automatically based on your selected drill priorities
+              💡 Use these weights for ranking calculations in the Rankings & Analysis tab
             </div>
           </div>
         )}
@@ -975,27 +944,22 @@ export default function Players() {
               Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([ageGroup, ageGroupPlayers]) => {
-                  const sortedPlayers = getSortedPlayersWithWeights(ageGroupPlayers, weights);
-
                   return (
                     <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
                       <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        🏆 Age Group: {ageGroup}
+                        👥 Age Group: {ageGroup}
                       </h2>
                       
                       <div className="space-y-2">
-                        {sortedPlayers.map((player, index) => (
+                        {ageGroupPlayers.map((player, index) => (
                           <React.Fragment key={player.id}>
                             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
-                                  <span className={`font-bold text-lg ${index === 0 ? "text-yellow-500" : index === 1 ? "text-gray-500" : index === 2 ? "text-orange-500" : "text-gray-400"}`}>
-                                    {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
-                                  </span>
                                   <div>
                                     <h3 className="font-semibold text-gray-900">{player.name}</h3>
                                     <p className="text-sm text-gray-600">
-                                      Player #{player.number || 'N/A'} • Weighted Score: {player.weightedScore != null ? player.weightedScore.toFixed(2) : "No scores yet"}
+                                      Player #{player.number || 'N/A'}
                                     </p>
                                   </div>
                                 </div>
@@ -1064,7 +1028,7 @@ export default function Players() {
                 {!selectedAgeGroup && (
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
                     <p className="text-blue-700 text-sm">
-                      💡 Select an age group above to see how weight adjustments affect rankings in real-time.
+                      💡 Select an age group above to view rankings with your current weight settings.
                     </p>
                   </div>
                 )}
