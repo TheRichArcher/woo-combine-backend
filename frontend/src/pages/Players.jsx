@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import DrillInputForm from "../components/DrillInputForm";
-import SimpleSlider from "../components/SimpleSlider";
+
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
@@ -231,7 +231,6 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
 }
 
 function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sliderWeights, setSliderWeights, persistSliderWeights, handleWeightChange, activePreset, applyPreset }) {
-  // ✅ EXACT WORKING PATTERN: useRef + local state + defaultValue  
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
   
@@ -243,7 +242,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   // Persist weights function for modal
   const persistModalWeights = useCallback(() => {
     persistSliderWeights(modalLocalWeights);
-    console.log("🏁 Modal persisting weights:", modalLocalWeights);
   }, [modalLocalWeights, persistSliderWeights]);
   
   // Use persisted weights for calculations
@@ -442,7 +440,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
                             onInput={(e) => {
                               const newWeight = parseInt(e.target.value, 10);
                               setModalLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
-                              console.log(`💡 Modal weight changed: ${newWeight}`);
                             }}
                             onPointerUp={persistModalWeights}
                             name={drill.key}
@@ -569,7 +566,6 @@ export default function Players() {
   const rankingsLoading = false;
   const rankingsError = null;
 
-  // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
   const [persistedWeights, setPersistedWeights] = useState({
     "40m_dash": 20,
     "vertical_jump": 20, 
@@ -659,7 +655,6 @@ export default function Players() {
       }));
     });
     
-    console.log('🏆 Live Rankings Updated:', newRankings);
     setLiveRankings(newRankings);
     
     // Show update banner briefly
@@ -797,7 +792,6 @@ export default function Players() {
 
   // MobileWeightControls component for weight adjustments
   const MobileWeightControls = ({ showSliders = false }) => {
-    // ✅ EXACT WORKING PATTERN: useRef + local state + defaultValue
     const sliderRefs = useRef({});
     const [localWeights, setLocalWeights] = useState(sliderWeights);
     
@@ -809,7 +803,6 @@ export default function Players() {
     // Persist weights function
     const persistWeights = useCallback(() => {
       persistSliderWeights(localWeights);
-      console.log("🏁 Persisting weights:", localWeights);
     }, [localWeights, persistSliderWeights]);
     
     // Always call hooks at the top level before any conditional logic
@@ -897,7 +890,6 @@ export default function Players() {
                     onInput={(e) => {
                       const newWeight = parseInt(e.target.value, 10);
                       setLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
-                      console.log(`💡 Weight changed: ${newWeight}`);
                     }}
                     onPointerUp={persistWeights}
                     name={drill.key}
