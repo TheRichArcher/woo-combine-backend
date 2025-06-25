@@ -421,10 +421,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, han
                             type="range"
                             min="0"
                             max="100"
-                            key={`modal-${drill.key}-${weights[drill.key] || 0}`}
                             defaultValue={weights[drill.key] || 0}
                             onInput={(e) => {
-                              console.log("💡 Weight changed:", e.target.value);
                               handleWeightChange(e.target.name, Number(e.target.value));
                             }}
                             name={drill.key}
@@ -836,7 +834,6 @@ export default function Players() {
                     type="range"
                     min="0"
                     max="100"
-                    key={`${drill.key}-${persistedWeights[drill.key]}`}
                     defaultValue={persistedWeights[drill.key]}
                     onInput={(e) => {
                       handleWeightChange(e.target.name, Number(e.target.value));
