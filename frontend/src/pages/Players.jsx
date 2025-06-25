@@ -574,13 +574,15 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // ✅ TEMPORAL DEAD ZONE FIX: Calculate grouped data BEFORE useCallback that uses it
-  const grouped = (players || []).reduce((acc, player) => {
-    const group = player.age_group || "No Age Group";
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(player);
-    return acc;
-  }, {});
+  // Calculate grouped data for weight controls
+  const grouped = useMemo(() => {
+    return players.reduce((acc, player) => {
+      const ageGroup = player.age_group || 'Unknown';
+      if (!acc[ageGroup]) acc[ageGroup] = [];
+      acc[ageGroup].push(player);
+      return acc;
+    }, {});
+  }, [players]); // FIXED: Using correct variable name 'players'
 
   // 🏆 Live ranking calculation function
   const calculateLiveRankings = useCallback((weightsToUse = null) => {

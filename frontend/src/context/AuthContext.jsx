@@ -217,7 +217,7 @@ export function AuthProvider({ children }) {
     } finally {
       setInitializing(false);
     }
-  }, [navigate, selectedLeagueId]); // REMOVED showColdStartNotification to prevent re-renders
+  }, [navigate, selectedLeagueId, leagueFetchInProgress, isColdStartActive, showColdStartNotification]);
 
   // Firebase auth state change handler
   useEffect(() => {

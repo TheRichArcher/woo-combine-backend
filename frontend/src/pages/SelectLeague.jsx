@@ -4,79 +4,50 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
 import api from '../lib/api';
 import { useToast } from '../context/ToastContext';
+import LoadingScreen from '../components/LoadingScreen';
+import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function SelectLeague() {
-  const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
+  const { user, setSelectedLeagueId } = useAuth();
   const logout = useLogout();
-  const { showColdStartNotification, isColdStartActive } = useToast();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const navigate = useNavigate();
+  const { showColdStartNotification, isColdStartActive } = useToast();
 
   useEffect(() => {
-    if (!user) {
-      // No user found in context
-      setFetchError('No user found. Please log in again.');
-      setLoading(false);
-      return;
-    }
-
-    // Check if AuthContext already has leagues loaded
-    if (contextLeagues && contextLeagues.length > 0) {
-      setLeagues(contextLeagues);
+    const loadLeagues = async () => {
+      setLoading(true);
       setFetchError(null);
-      setLoading(false);
-      return;
-    }
-
-    // Only fetch if AuthContext doesn't have leagues
-    const fetchLeagues = async () => {
+      
       try {
-        const res = await api.get(`/leagues/me`, {
-          timeout: 45000,  // 45s timeout to match API client for extreme cold starts
-          retry: 2         // Increased retries for cold start scenarios
-        });
+        const timeout = 30000; // 30s timeout for league fetching
         
-        const userLeagues = res.data.leagues || [];
-        setLeagues(userLeagues);
-        
-        if (userLeagues.length === 0) {
-          setFetchError('No leagues linked to this account. Try creating a new one.');
-        } else {
-          setFetchError(null);
-        }
-      } catch (err) {
-        // League fetch error
-        
-        if (err.response?.status === 404) {
-          // 404 means user has no leagues yet - this is normal
-          setLeagues([]);
-          setFetchError('No leagues linked to this account. Try creating a new one.');
-        } else if (err.message.includes('timeout') || err.code === 'ECONNABORTED') {
-          // Timeout error - use centralized cold start notification
-          setLeagues([]);
-          setFetchError('Connection timeout. Please try again.');
-          showColdStartNotification(); // Use centralized notification instead
-        } else if (err.response?.status >= 500) {
-          // Server errors during cold start
-          setLeagues([]);
-          setFetchError('Server temporarily unavailable. Please try again.');
+        // Show cold start notification after 5 seconds if needed
+        const coldStartTimer = setTimeout(() => {
           if (!isColdStartActive()) {
-            showColdStartNotification(); // Use centralized notification
+            showColdStartNotification();
           }
-        } else {
-          // Other errors are actual problems
-          setLeagues([]);
-          setFetchError('Could not fetch leagues. Please check your connection and try again.');
+        }, 5000);
+        
+        const response = await api.get('/leagues/me', { timeout });
+        clearTimeout(coldStartTimer);
+        
+        setLeagues(response.data.leagues || []);
+      } catch (error) {
+        const isExpected404 = error.response?.status === 404;
+        if (!isExpected404) {
+          setFetchError(error.response?.data?.detail || error.message || 'Failed to load leagues');
         }
+        setLeagues([]);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchLeagues();
-  }, [user, contextLeagues]);
+    
+    loadLeagues();
+  }, [isColdStartActive, showColdStartNotification]);
 
   const handleSelect = (league) => {
     localStorage.setItem('selectedLeagueId', league.id);
@@ -87,8 +58,9 @@ export default function SelectLeague() {
   const handleLogout = async () => {
     try {
       await logout();
-          } catch {
-        // Logout error handled internally
+      navigate('/login');
+    } catch {
+      // Logout error handled internally
       // Continue with navigation even if logout fails
       navigate('/login');
     }
