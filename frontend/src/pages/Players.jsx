@@ -418,21 +418,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
                         </span>
                         <div className="touch-none flex-1">
                           <input
-                            key={`modal-slider-${drill.key}`}
                             type="range"
                             min="0"
                             max="100"
                             step="1"
-                            value={sliderWeights[drill.key] ?? 50}
-                            onChange={(e) => {
+                            defaultValue={sliderWeights[drill.key] ?? 50}
+                            onInput={(e) => {
                               const newVal = parseInt(e.target.value, 10);
                               setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
+                              console.log(`💡 Modal weight changed: ${newVal}`);
                             }}
                             onMouseUp={() => {
                               persistSliderWeights(sliderWeights);
+                              console.log("🏁 Modal persisting weights:", sliderWeights);
                             }}
                             onTouchEnd={() => {
                               persistSliderWeights(sliderWeights);
+                              console.log("🏁 Modal persisting weights:", sliderWeights);
                             }}
                             name={drill.key}
                             className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
@@ -862,21 +864,23 @@ export default function Players() {
                 
                 <div className="touch-none">
                   <input
-                    key={`slider-${drill.key}`}
                     type="range"
                     min="0"
                     max="100"
                     step="1"
-                    value={sliderWeights?.[drill.key] ?? 50}
-                    onChange={(e) => {
+                    defaultValue={sliderWeights?.[drill.key] ?? 50}
+                    onInput={(e) => {
                       const newVal = parseInt(e.target.value, 10);
                       setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
+                      console.log(`💡 Weight changed: ${newVal}`);
                     }}
                     onMouseUp={() => {
                       persistSliderWeights(sliderWeights);
+                      console.log("🏁 Persisting weights:", sliderWeights);
                     }}
                     onTouchEnd={() => {
                       persistSliderWeights(sliderWeights);
+                      console.log("🏁 Persisting weights:", sliderWeights);
                     }}
                     name={drill.key}
                     className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
