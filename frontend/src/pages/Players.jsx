@@ -1016,8 +1016,8 @@ export default function Players() {
           <>
             {(userRole === 'organizer' || userRole === 'coach') && (
               <div className="mb-6">
-                <MobileWeightControls />
-                {Object.keys(grouped).length === 0 && (
+                <MobileWeightControls showSliders={true} />
+                {players.length === 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2">
                     <p className="text-yellow-700 text-sm">
                       💡 Weight controls are ready! They'll affect player rankings once you add players to your event.
@@ -1047,112 +1047,69 @@ export default function Players() {
               />
             )}
 
-            {Object.keys(grouped).length === 0 ? (
+            {players.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                 <p className="text-gray-500">No players found for this event.</p>
               </div>
             ) : (
-              Object.entries(grouped)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([ageGroup, ageGroupPlayers]) => {
-                  // Use live rankings if available, otherwise fall back to original order
-                  const rankedPlayers = (liveRankings[ageGroup] && liveRankings[ageGroup].length > 0) 
-                    ? liveRankings[ageGroup] 
-                    : ageGroupPlayers;
-                  const hasRankings = liveRankings[ageGroup] && liveRankings[ageGroup].length > 0;
-                  
-                  return (
-                    <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                          👥 Age Group: {ageGroup}
-                          <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                            {rankedPlayers.length} players
-                          </span>
-                        </h2>
-                        {hasRankings && (
-                          <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                            ⚡ Live Rankings
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    👥 All Players
+                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      {players.length} players
+                    </span>
+                  </h2>
+                </div>
+                
+                <div className="space-y-2">
+                  {/* eslint-disable-next-line no-unused-vars */}
+                  {players.map((player, _index) => (
+                    <React.Fragment key={player.id}>
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <h3 className="font-semibold text-gray-900">{player.name}</h3>
+                              <p className="text-sm text-gray-600">
+                                Player #{player.number || 'N/A'} • Age Group: {player.age_group || 'Unknown'}
+                              </p>
+                            </div>
                           </div>
-                        )}
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={() => setSelectedPlayer(player)}
+                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                            disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
+                          >
+                            {(userRole === 'organizer' || userRole === 'coach') ? 'View Stats & Weights' : 'View Stats'}
+                          </button>
+                          <button
+                            onClick={() => setEditingPlayer(player)}
+                            className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => toggleForm(player.id)}
+                            className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                          >
+                            Add Result
+                          </button>
+                        </div>
                       </div>
                       
-                      <div className="space-y-2">
-                        {rankedPlayers.length === 0 ? (
-                          <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
-                            No players found in this age group
-                          </div>
-                        ) : (
-                          /* eslint-disable-next-line no-unused-vars */
-                          rankedPlayers.map((player, _index) => (
-                          <React.Fragment key={player.id}>
-                            <div className={`bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300 ${
-                              hasRankings ? 'shadow-sm' : ''
-                            }`}>
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-3">
-                                  {hasRankings && player.rank && (
-                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
-                                      player.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
-                                      player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                                      player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                                      'bg-blue-100 text-blue-700'
-                                    }`}>
-                                      {player.rank === 1 ? '🥇' : 
-                                       player.rank === 2 ? '🥈' : 
-                                       player.rank === 3 ? '🥉' : 
-                                       `#${player.rank}`}
-                                    </div>
-                                  )}
-                                  <div>
-                                    <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                                    <p className="text-sm text-gray-600">
-                                      Player #{player.number || 'N/A'}
-                                      {hasRankings && player.weightedScore && (
-                                        <span className="ml-2 text-blue-600 font-mono">
-                                          Score: {player.weightedScore.toFixed(1)}
-                                        </span>
-                                      )}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                              
-                              <div className="flex flex-wrap gap-2">
-                                <button
-                                  onClick={() => setSelectedPlayer(player)}
-                                  className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                                  disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
-                                >
-                                  {(userRole === 'organizer' || userRole === 'coach') ? 'View Stats & Weights' : 'View Stats'}
-                                </button>
-                                <button
-                                  onClick={() => setEditingPlayer(player)}
-                                  className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => toggleForm(player.id)}
-                                  className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                                >
-                                  Add Result
-                                </button>
-                              </div>
-                            </div>
-                            
-                            {expandedPlayerIds[player.id] && (
-                              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
-                                <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
-                              </div>
-                            )}
-                          </React.Fragment>
-                          ))
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+                      {expandedPlayerIds[player.id] && (
+                        <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
+                          <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
             )}
           </>
         )}
