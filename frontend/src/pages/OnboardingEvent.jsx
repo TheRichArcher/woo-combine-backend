@@ -62,7 +62,6 @@ export default function OnboardingEvent() {
   
   // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
-  const [csvHeaders, setCsvHeaders] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [uploadStatus, setUploadStatus] = useState("idle");
@@ -88,7 +87,8 @@ export default function OnboardingEvent() {
     try {
       const { data } = await api.get(`/players?event_id=${createdEvent.id}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
-    } catch (error) {
+    // eslint-disable-next-line no-unused-vars
+    } catch (_error) {
       setPlayerCount(0);
     }
   }, [createdEvent]);
@@ -135,7 +135,6 @@ export default function OnboardingEvent() {
       
       // Validate rows
       const validatedRows = rows.map(row => validateRow(row, headers));
-      setCsvHeaders(headers);
       setCsvRows(validatedRows);
       setCsvErrors(headerErrors);
     };
@@ -150,7 +149,12 @@ export default function OnboardingEvent() {
     setUploadMsg("");
     
     // Prepare players and auto-assign numbers
-    const cleanedPlayers = csvRows.map(row => { const { warnings, ...rest } = row; return rest; });
+    const cleanedPlayers = csvRows.map(row => {
+      // Remove warnings property and return the rest
+      // eslint-disable-next-line no-unused-vars
+      const { warnings, ...rest } = row;
+      return rest;
+    });
     const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
     
     const payload = {
@@ -166,7 +170,7 @@ export default function OnboardingEvent() {
       setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
       notifyPlayersUploaded(data.added);
       setCsvRows([]);
-      setCsvHeaders([]);
+      setCsvErrors([]);
       setCsvFileName("");
       fetchPlayerCount();
       
@@ -250,7 +254,6 @@ export default function OnboardingEvent() {
 
   const handleReupload = () => {
     setCsvRows([]);
-    setCsvHeaders([]);
     setCsvErrors([]);
     setCsvFileName("");
     setUploadStatus("idle");

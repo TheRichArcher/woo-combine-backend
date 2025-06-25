@@ -8,7 +8,7 @@
 //
 // Any changes to nav logic, layout, or visibility must go through checkpoint approval.
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';

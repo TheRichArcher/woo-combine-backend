@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { flushSync } from 'react-dom';
+import React from 'react';
 
 // Simple slider component that works exactly like SliderTest
 export default function SimpleSlider({ 

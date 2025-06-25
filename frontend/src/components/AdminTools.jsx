@@ -273,9 +273,7 @@ export default function AdminTools() {
     }
     setManualStatus('loading');
     try {
-      // Get existing players to check for number conflicts
-      const existingNumbers = players.map(p => p.number).filter(n => n != null);
-      
+      // Auto-assign player number if not provided
       let playerNumber = null;
       if (manualPlayer.number && manualPlayer.number.trim() !== "") {
         playerNumber = Number(manualPlayer.number);

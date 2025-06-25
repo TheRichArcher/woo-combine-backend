@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
-import { flushSync } from 'react-dom';
 import DrillInputForm from "../components/DrillInputForm";
 import SimpleSlider from "../components/SimpleSlider";
 import { useEvent } from "../context/EventContext";
@@ -232,12 +231,12 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
 }
 
 function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, handleWeightChange, activePreset, applyPreset }) {
-  if (!player || !allPlayers || allPlayers.length === 0) return null;
-  
   // Use persisted weights for calculations
   const weights = persistedWeights;
 
   const drillRankings = useMemo(() => {
+    if (!player || !allPlayers || allPlayers.length === 0) return {};
+    
     const rankings = {};
     DRILLS.forEach(drill => {
       try {
@@ -271,6 +270,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, han
   }, [allPlayers, player]);
 
   const weightedBreakdown = useMemo(() => {
+    if (!player || !allPlayers || allPlayers.length === 0) return [];
+    
     return DRILLS.map(drill => {
       try {
         const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
@@ -306,6 +307,9 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, han
       }
     });
   }, [drillRankings, player, weights]);
+
+  // Return null after all hooks if conditions aren't met
+  if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
 
@@ -544,8 +548,8 @@ export default function Players() {
   
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
-  const [rankingsLoading, setRankingsLoading] = useState(false);
-  const [rankingsError, setRankingsError] = useState(null);
+  const rankingsLoading = false;
+  const rankingsError = null;
 
   // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
   const [persistedWeights, setPersistedWeights] = useState({
@@ -729,75 +733,37 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
+  // Always calculate grouped data at the top level to avoid conditional hooks
+  const grouped = (players || []).reduce((acc, player) => {
+    const group = player.age_group || "No Age Group";
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(player);
+    return acc;
+  }, {});
+
   // Calculate initial live rankings when players or weights change
   useEffect(() => {
     if (players.length > 0) {
       calculateLiveRankings();
     }
-  }, [players, persistedWeights, calculateLiveRankings]);
+  }, [players, calculateLiveRankings]);
 
-  // ⛔ REMOVED useEffect watching weights - using manual debounce only
-  useEffect(() => {
-    const performRankingUpdate = async () => {
-      if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
-        setRankings([]);
-        return;
-      }
-      
-              setRankingsLoading(true);
-      setRankingsError(null);
-      
-      try {
-        const params = new URLSearchParams({ 
-          age_group: selectedAgeGroup, 
-          event_id: selectedEvent.id 
-        });
-        
-        // Use current weights from ref (completely decoupled from slider drag)
-        const weights = currentWeights.current;
-        params.append("weight_40m_dash", weights["40m_dash"].toString());
-        params.append("weight_vertical_jump", weights["vertical_jump"].toString());
-        params.append("weight_catching", weights["catching"].toString());
-        params.append("weight_throwing", weights["throwing"].toString());
-        params.append("weight_agility", weights["agility"].toString());
-        
-        const res = await api.get(`/rankings?${params.toString()}`);
-        setRankings(res.data);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          setRankingsError(null);
-          setRankings([]);
-        } else {
-          setRankingsError(err.message);
-        }
-      } finally {
-        setRankingsLoading(false);
-      }
-    };
-
-    // ONLY run when external factors change, NEVER when weights change
-    performRankingUpdate();
-  }, [selectedAgeGroup, user, selectedLeagueId, selectedEvent, activeTab]);
-
-  const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
-
+  // Toggle dropdown visibility
   const toggleForm = (id) => {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const grouped = (players || []).reduce((acc, player) => {
-    const ageGroup = player.age_group || 'Unassigned';
-    acc[ageGroup] = acc[ageGroup] || [];
-    acc[ageGroup].push(player);
-    return acc;
-  }, {});
-
+  // MobileWeightControls component for weight adjustments
   const MobileWeightControls = ({ showSliders = false }) => {
+    // Always call hooks at the top level before any conditional logic
     useEffect(() => {
       if (showSliders && !showCustomControls) {
         setShowCustomControls(true);
       }
     }, [showSliders]);
+    
+    // Return null after hooks if not showing sliders
+    if (!showSliders) return null;
     
     return (
       <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-4 mb-6">
@@ -1105,7 +1071,8 @@ export default function Players() {
                       </div>
                       
                       <div className="space-y-2">
-                        {rankedPlayers.map((player, index) => (
+                        {/* eslint-disable-next-line no-unused-vars */}
+                        {rankedPlayers.map((player, _index) => (
                           <React.Fragment key={player.id}>
                             <div className={`bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300 ${
                               hasRankings ? 'shadow-sm' : ''
@@ -1190,7 +1157,7 @@ export default function Players() {
                 className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
               >
                 <option value="">Choose an age group to view rankings</option>
-                {ageGroups.map(group => (
+                {Object.keys(grouped).map(group => (
                   <option key={group} value={group}>{group}</option>
                 ))}
               </select>
