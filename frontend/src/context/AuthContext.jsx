@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   const [roleChecked, setRoleChecked] = useState(false); // NEW: role verification complete
   const [error, setError] = useState(null);
   const [leagues, setLeagues] = useState([]);
-  const [selectedLeagueId, setSelectedLeagueId] = useState(() => localStorage.getItem('selectedLeagueId') || '');
+  const [selectedLeagueId, setSelectedLeagueIdState] = useState(() => localStorage.getItem('selectedLeagueId') || '');
   const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const navigate = useNavigate();
@@ -122,13 +122,13 @@ export function AuthProvider({ children }) {
             targetLeagueId = userLeagues[0].id;
           }
           
-          setSelectedLeagueId(targetLeagueId);
+          setSelectedLeagueIdState(targetLeagueId);
           localStorage.setItem('selectedLeagueId', targetLeagueId);
           
           const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
           setRole(selectedLeague?.role || null);
         } else {
-          setSelectedLeagueId('');
+          setSelectedLeagueIdState('');
           setRole(null);
           localStorage.removeItem('selectedLeagueId');
         }
@@ -144,7 +144,7 @@ export function AuthProvider({ children }) {
         if (leagueError.response?.status === 404) {
           // This is expected for new users going through onboarding - handle silently
           setLeagues([]);
-          setSelectedLeagueId('');
+          setSelectedLeagueIdState('');
           setRole(null);
           localStorage.removeItem('selectedLeagueId');
           setLeagueFetchInProgress(false);
@@ -176,7 +176,7 @@ export function AuthProvider({ children }) {
         
         // Continue without leagues rather than blocking the entire app
         setLeagues([]);
-        setSelectedLeagueId('');
+        setSelectedLeagueIdState('');
         setRole(null);
         localStorage.removeItem('selectedLeagueId');
       } finally {
@@ -228,7 +228,7 @@ export function AuthProvider({ children }) {
         setUser(null);
         setUserRole(null);
         setLeagues([]);
-        setSelectedLeagueId('');
+        setSelectedLeagueIdState('');
         setRole(null);
         setAuthChecked(true);
         setRoleChecked(true);
@@ -273,7 +273,7 @@ export function AuthProvider({ children }) {
       // Clear all auth state
       setUser(null);
       setLeagues([]);
-      setSelectedLeagueId('');
+      setSelectedLeagueIdState('');
       setRole(null);
       setUserRole(null);
       setError(null);
@@ -286,7 +286,7 @@ export function AuthProvider({ children }) {
       // Still clear state even if signOut fails
       setUser(null);
       setLeagues([]);
-      setSelectedLeagueId('');
+      setSelectedLeagueIdState('');
       setRole(null);
       setUserRole(null);
       localStorage.removeItem('selectedLeagueId');
@@ -302,16 +302,16 @@ export function AuthProvider({ children }) {
     role,
     leagues,
     selectedLeagueId,
-    setSelectedLeagueId: (id) => {
-      setSelectedLeagueId(id);
-      localStorage.setItem('selectedLeagueId', id);
+    setSelectedLeagueId: useCallback((id) => {
+      setSelectedLeagueIdState(id);  // Set the state
+      localStorage.setItem('selectedLeagueId', id);  // Persist to localStorage
       
       // Update role when league changes
       if (leagues.length > 0) {
         const selectedLeague = leagues.find(l => l.id === id);
         setRole(selectedLeague?.role || null);
       }
-    },
+    }, [leagues]),
     addLeague,
     authChecked,
     roleChecked,
