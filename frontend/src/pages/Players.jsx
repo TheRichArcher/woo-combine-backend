@@ -558,6 +558,10 @@ export default function Players() {
   const currentWeights = useRef({ ...persistedWeights }); // Track during drag
   const timer = useRef(null); // Timer for debouncing
   const [activePreset, setActivePreset] = useState('balanced');
+  
+  // Live ranking state
+  const [liveRankings, setLiveRankings] = useState({});
+  const [rankingUpdateBanner, setRankingUpdateBanner] = useState(false);
 
   // Sync ref when persisted weights change (from presets, etc.)
   useEffect(() => {
@@ -565,6 +569,68 @@ export default function Players() {
   }, [persistedWeights]);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+
+  // 🏆 Live ranking calculation function
+  const calculateLiveRankings = useCallback((weightsToUse = null) => {
+    const weights = weightsToUse || currentWeights.current;
+    const newRankings = {};
+    
+    // Process each age group
+    Object.entries(grouped).forEach(([ageGroup, ageGroupPlayers]) => {
+      // Filter players with at least one drill score
+      const playersWithScores = ageGroupPlayers.filter(player => 
+        DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+      );
+      
+      if (playersWithScores.length === 0) {
+        newRankings[ageGroup] = [];
+        return;
+      }
+      
+      // Calculate weighted scores for each player
+      const rankedPlayers = playersWithScores.map(player => {
+        let totalWeightedScore = 0;
+        
+        DRILLS.forEach(drill => {
+          const rawScore = player[drill.key];
+          const weight = weights[drill.key] || 0;
+          
+          if (rawScore != null && typeof rawScore === 'number') {
+            if (drill.key === "40m_dash") {
+              // Invert 40m dash (lower time = better)
+              const invertedScore = Math.max(0, 30 - rawScore);
+              totalWeightedScore += invertedScore * weight;
+            } else {
+              totalWeightedScore += rawScore * weight;
+            }
+          }
+        });
+        
+        return {
+          ...player,
+          weightedScore: totalWeightedScore
+        };
+      });
+      
+      // Sort by weighted score (highest first)
+      rankedPlayers.sort((a, b) => b.weightedScore - a.weightedScore);
+      
+      // Add rank numbers
+      newRankings[ageGroup] = rankedPlayers.map((player, index) => ({
+        ...player,
+        rank: index + 1
+      }));
+    });
+    
+    console.log('🏆 Live Rankings Updated:', newRankings);
+    setLiveRankings(newRankings);
+    
+    // Show update banner briefly
+    setRankingUpdateBanner(true);
+    setTimeout(() => setRankingUpdateBanner(false), 2000);
+    
+    return newRankings;
+  }, [grouped]);
 
   function handleWeightChange(name, value) {
     // Update ref immediately (no re-render, no lag during drag)
@@ -575,13 +641,18 @@ export default function Players() {
 
     // Debounce persistence to avoid snapback
     timer.current = setTimeout(() => {
+      console.log('🏁 Persisting weights:', currentWeights.current);
+      
       // Persist to state (this causes re-render but after drag ends)
       setPersistedWeights({ ...currentWeights.current });
       
       // Clear active preset after calculation
       setActivePreset('');
       
-      // Force rankings recalculation
+      // 🏆 Trigger live ranking recalculation
+      calculateLiveRankings(currentWeights.current);
+      
+      // Force backend rankings recalculation
       setRankings([]);
     }, 300);
   }
@@ -597,7 +668,11 @@ export default function Players() {
       
       // Trigger immediate recalculation for presets
       if (timer.current) clearTimeout(timer.current);
-      setRankings([]); // Force rankings recalculation
+      
+      // 🏆 Trigger immediate live ranking recalculation
+      calculateLiveRankings(newWeights);
+      
+      setRankings([]); // Force backend rankings recalculation
     }
   };
 
@@ -653,6 +728,13 @@ export default function Players() {
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  // Calculate initial live rankings when players or weights change
+  useEffect(() => {
+    if (players.length > 0) {
+      calculateLiveRankings();
+    }
+  }, [players, persistedWeights, calculateLiveRankings]);
 
   // ⛔ REMOVED useEffect watching weights - using manual debounce only
   useEffect(() => {
@@ -925,7 +1007,15 @@ export default function Players() {
           </div>
         </div>
 
-
+        {/* 🏆 Ranking Update Banner */}
+        {rankingUpdateBanner && (
+          <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-3 rounded-lg mb-6 shadow-lg animate-pulse">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🏆</span>
+              <span className="font-medium">Rankings updated with new weight priorities!</span>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200">
@@ -997,22 +1087,53 @@ export default function Players() {
               Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([ageGroup, ageGroupPlayers]) => {
+                  // Use live rankings if available, otherwise fall back to original order
+                  const rankedPlayers = liveRankings[ageGroup] || ageGroupPlayers;
+                  const hasRankings = liveRankings[ageGroup] && liveRankings[ageGroup].length > 0;
+                  
                   return (
                     <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                      <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        👥 Age Group: {ageGroup}
-                      </h2>
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                          👥 Age Group: {ageGroup}
+                        </h2>
+                        {hasRankings && (
+                          <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                            ⚡ Live Rankings
+                          </div>
+                        )}
+                      </div>
                       
                       <div className="space-y-2">
-                        {ageGroupPlayers.map((player, index) => (
+                        {rankedPlayers.map((player, index) => (
                           <React.Fragment key={player.id}>
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div className={`bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300 ${
+                              hasRankings ? 'shadow-sm' : ''
+                            }`}>
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-3">
+                                  {hasRankings && player.rank && (
+                                    <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                                      player.rank === 1 ? 'bg-yellow-100 text-yellow-700' :
+                                      player.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                                      player.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                                      'bg-blue-100 text-blue-700'
+                                    }`}>
+                                      {player.rank === 1 ? '🥇' : 
+                                       player.rank === 2 ? '🥈' : 
+                                       player.rank === 3 ? '🥉' : 
+                                       `#${player.rank}`}
+                                    </div>
+                                  )}
                                   <div>
                                     <h3 className="font-semibold text-gray-900">{player.name}</h3>
                                     <p className="text-sm text-gray-600">
                                       Player #{player.number || 'N/A'}
+                                      {hasRankings && player.weightedScore && (
+                                        <span className="ml-2 text-blue-600 font-mono">
+                                          Score: {player.weightedScore.toFixed(1)}
+                                        </span>
+                                      )}
                                     </p>
                                   </div>
                                 </div>
