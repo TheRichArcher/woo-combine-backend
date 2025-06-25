@@ -601,7 +601,7 @@ export default function Players() {
       acc[ageGroup].push(player);
       return acc;
     }, {});
-  }, [players]); // FIXED: Using correct variable name 'players'
+  }, [players]);
 
   // 🏆 Live ranking calculation function
   const calculateLiveRankings = useCallback((weightsToUse = null) => {
