@@ -564,47 +564,9 @@ export default function Players() {
     currentWeights.current = { ...persistedWeights };
   }, [persistedWeights]);
 
-  // Sync test slider ref when state changes
-  useEffect(() => {
-    testSliderRef.current = { ...testSliderWeights };
-  }, [testSliderWeights]);
-
-  // Test slider state - using same working pattern as main sliders
-  const [testSliderWeights, setTestSliderWeights] = useState({
-    testSlider: 50,
-    uiSlider: 50,
-    isolatedSlider: 50,
-    useRefSlider: 50
-  });
-  const testSliderRef = useRef({ ...testSliderWeights });
-  const testSliderTimer = useRef(null);
-
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // Test slider handler using same working pattern
-  function handleTestSliderChange(statName, value) {
-    console.log("💡 Test slider changed:", statName, value);
-    
-    // Update ref immediately (no re-render, no lag during drag)
-    testSliderRef.current[statName] = value;
-
-    // Cancel previous timer
-    if (testSliderTimer.current) clearTimeout(testSliderTimer.current);
-
-    // Debounce persistence to avoid snapback
-    testSliderTimer.current = setTimeout(() => {
-      console.log("🏁 Persisting test slider:", statName, value);
-      setTestSliderWeights(prev => ({
-        ...prev,
-        [statName]: value,
-      }));
-    }, 300);
-  }
-
-  // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
   function handleWeightChange(name, value) {
-    console.log("💡 Weight changed:", value);
-    
     // Update ref immediately (no re-render, no lag during drag)
     currentWeights.current[name] = value;
 
@@ -613,8 +575,6 @@ export default function Players() {
 
     // Debounce persistence to avoid snapback
     timer.current = setTimeout(() => {
-      console.log("🏁 Persisting weights:", currentWeights.current);
-      
       // Persist to state (this causes re-render but after drag ends)
       setPersistedWeights({ ...currentWeights.current });
       
@@ -628,7 +588,6 @@ export default function Players() {
 
   const applyPreset = (presetKey) => {
     if (WEIGHT_PRESETS[presetKey]) {
-      console.log('🎨 PRESET APPLIED:', presetKey);
       const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
       
       // Update both ref and persisted state immediately for presets
@@ -703,8 +662,7 @@ export default function Players() {
         return;
       }
       
-      console.log('🔒 MANUAL API CALL - not reactive to slider changes');
-      setRankingsLoading(true);
+              setRankingsLoading(true);
       setRankingsError(null);
       
       try {
@@ -811,212 +769,39 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-3">
-            {/* ✅ EXACT WORKING PATTERN STATUS */}
-            <div
-              style={{
-                padding: '24px',
-                background: '#f0fdf4',
-                border: '2px solid #22c55e',
-                borderRadius: '12px',
-                width: '100%',
-                maxWidth: '100%',
-                touchAction: 'none'
-              }}
-            >
-              <label style={{ display: 'block', marginBottom: '6px', color: '#15803d', fontWeight: 600 }}>
-                ✅ EXACT WORKING PATTERN!
-              </label>
-
-              <input
-                type="range"
-                min="0"
-                max="100"
-                key={`testSlider-${testSliderWeights.testSlider}`}
-                defaultValue={testSliderWeights.testSlider}
-                onInput={(e) => {
-                  const newVal = Number(e.target.value);
-                  handleTestSliderChange('testSlider', newVal);
-                }}
-                name="testSlider"
-                className="test-slider"
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  cursor: 'pointer',
-                  background: '#22c55e',
-                  borderRadius: '4px',
-                  outline: 'none'
-                }}
-              />
-
-              <div style={{ fontSize: '14px', marginTop: '6px', color: '#15803d' }}>
-                Value: <strong>{testSliderWeights.testSlider}</strong> - Working pattern with persistence!
-              </div>
-            </div>
-            
-            {/* 🔬 ISOLATION TEST: Working Pattern */}
-            <div
-              style={{
-                padding: '24px',
-                background: '#f0f9ff',
-                border: '2px solid #0ea5e9',
-                borderRadius: '12px',
-                width: '100%',
-                maxWidth: '100%',
-                touchAction: 'none'
-              }}
-            >
-              <label style={{ display: 'block', marginBottom: '6px', color: '#0369a1', fontWeight: 600 }}>
-                🔬 ISOLATED TEST (working pattern)
-              </label>
-
-              <input
-                type="range"
-                min="0"
-                max="100"
-                key={`isolatedSlider-${testSliderWeights.isolatedSlider}`}
-                defaultValue={testSliderWeights.isolatedSlider}
-                onInput={(e) => {
-                  const newVal = Number(e.target.value);
-                  handleTestSliderChange('isolatedSlider', newVal);
-                }}
-                name="isolatedSlider"
-                className="test-slider"
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  cursor: 'pointer',
-                  background: '#0ea5e9',
-                  borderRadius: '4px',
-                  outline: 'none'
-                }}
-              />
-
-              <div style={{ fontSize: '14px', marginTop: '6px', color: '#0369a1' }}>
-                Value: <strong>{testSliderWeights.isolatedSlider}</strong> - Same working pattern as main sliders!
-              </div>
-            </div>
-
-            {/* 📊 useRef TEST: Working Pattern */}
-            <div
-              style={{
-                padding: '24px',
-                background: '#ecfdf5',
-                border: '2px solid #10b981',
-                borderRadius: '12px',
-                width: '100%',
-                maxWidth: '100%',
-                touchAction: 'none'
-              }}
-            >
-              <label style={{ display: 'block', marginBottom: '6px', color: '#047857', fontWeight: 600 }}>
-                📊 useRef TEST (working pattern)
-              </label>
-
-              <input
-                type="range"
-                min="0"
-                max="100"
-                key={`useRefSlider-${testSliderWeights.useRefSlider}`}
-                defaultValue={testSliderWeights.useRefSlider}
-                onInput={(e) => {
-                  const newVal = Number(e.target.value);
-                  handleTestSliderChange('useRefSlider', newVal);
-                }}
-                name="useRefSlider"
-                className="test-slider"
-                style={{
-                  width: '100%',
-                  height: '8px',
-                  cursor: 'pointer',
-                  background: '#10b981',
-                  borderRadius: '4px',
-                  outline: 'none'
-                }}
-              />
-
-              <div style={{ fontSize: '14px', marginTop: '6px', color: '#047857' }}>
-                Value: <strong>{testSliderWeights.useRefSlider}</strong> - Working pattern with persistence!
-              </div>
-            </div>
-
-            {/* UI Library Style Test Slider */}
-            <div style={{ width: '100%', padding: '20px', background: '#eee', borderRadius: '8px', marginBottom: '12px' }}>
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <label className="text-sm font-medium text-purple-700">🎨 UI LIBRARY STYLE TEST</label>
-                  <div className="text-xs text-purple-500">Working pattern with persistence</div>
+            {DRILLS.map((drill) => (
+              <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                    <div className="text-xs text-gray-500">Higher = more important</div>
+                  </div>
+                  <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
+                    {persistedWeights[drill.key]}
+                  </span>
                 </div>
-                <span className="text-lg font-mono text-purple-600 bg-purple-200 px-3 py-1 rounded-full min-w-[50px] text-center">
-                  {testSliderWeights.uiSlider}
-                </span>
-              </div>
-              
-              <div
-                style={{ touchAction: "none", pointerEvents: "auto" }}
-                className="w-full touch-none"
-              >
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  key={`uiSlider-${testSliderWeights.uiSlider}`}
-                  defaultValue={testSliderWeights.uiSlider}
-                  onInput={(e) => {
-                    const newVal = Number(e.target.value);
-                    handleTestSliderChange('uiSlider', newVal);
-                  }}
-                  name="uiSlider"
-                  className="w-full h-6 bg-purple-200 rounded-lg cursor-pointer"
-                />
-              </div>
-              
-              <div className="flex justify-between text-xs text-gray-500 mt-2">
-                <span>0</span>
-                <span>100</span>
-              </div>
-            </div>
-            
-            {DRILLS.map((drill, index) => (
-              index === 0 ? null : ( // Skip first drill to make room for test slider
-                <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                      <div className="text-xs text-gray-500">Higher = more important</div>
-                    </div>
-                    <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                      {persistedWeights[drill.key]}
-                    </span>
-                  </div>
-                  
-                  <div className="touch-none">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      key={`${drill.key}-${persistedWeights[drill.key]}`}
-                      defaultValue={persistedWeights[drill.key]}
-                      onInput={(e) => {
-                        console.log("💡 Weight changed:", e.target.value);
-                        handleWeightChange(e.target.name, Number(e.target.value));
-                      }}
-                      name={drill.key}
-                      className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
-                    />
-                  </div>
-                  
-                  <div className="flex justify-between text-xs text-gray-400 mt-2">
-                    <span>Less important</span>
-                    <span>More important</span>
-                  </div>
+                
+                <div className="touch-none">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    key={`${drill.key}-${persistedWeights[drill.key]}`}
+                    defaultValue={persistedWeights[drill.key]}
+                    onInput={(e) => {
+                      handleWeightChange(e.target.name, Number(e.target.value));
+                    }}
+                    name={drill.key}
+                    className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
+                  />
                 </div>
-              )
+                
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>Less important</span>
+                  <span>More important</span>
+                </div>
+              </div>
             ))}
-            
-            <div className="text-sm text-center p-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
-              ✅ Exact Working Pattern: Native defaultValue + onInput + setTimeout debounce!
-            </div>
           </div>
         )}
       </div>
