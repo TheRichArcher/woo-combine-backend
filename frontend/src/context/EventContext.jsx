@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, lazy, Suspense } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
-import LeagueFallback from './LeagueFallback.jsx';
 import { useLocation } from 'react-router-dom';
+
+// Dynamic import to avoid circular dependency
+const LeagueFallback = lazy(() => import('./LeagueFallback.jsx'));
 
 const EventContext = createContext();
 
@@ -166,10 +168,13 @@ export function EventProvider({ children }) {
       noLeague, 
       loading, 
       error, 
-      refreshEvents,
-      LeagueFallback 
+      refreshEvents
     }}>
-      {shouldShowLeagueFallback ? <LeagueFallback /> : children}
+      {shouldShowLeagueFallback ? (
+        <Suspense fallback={<div>Loading LeagueFallback...</div>}>
+          <LeagueFallback />
+        </Suspense>
+      ) : children}
     </EventContext.Provider>
   );
 }
