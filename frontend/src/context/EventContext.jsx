@@ -1,27 +1,19 @@
 import React, { createContext, useContext, useEffect, useState, lazy, Suspense } from "react";
-import { useAuth } from "./AuthContext";
-import api from '../lib/api';
 import { useLocation } from 'react-router-dom';
+import api from '../lib/api';
 
 // Dynamic import to avoid circular dependency
 const LeagueFallback = lazy(() => import('./LeagueFallback.jsx'));
 
 const EventContext = createContext();
 
-export function EventProvider({ children }) {
-  const authContext = useAuth();
+export function EventProvider({ children, authData = null }) {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [noLeague, setNoLeague] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const location = useLocation();
-
-  // Defensive destructuring with fallbacks to prevent temporal dead zone errors
-  const selectedLeagueId = authContext?.selectedLeagueId || '';
-  const user = authContext?.user || null;
-  const authChecked = authContext?.authChecked || false;
-  const roleChecked = authContext?.roleChecked || false;
 
   // CRITICAL FIX: Add onboarding route to exempt pages so guided setup works
   const noLeagueRequiredPages = [
@@ -40,20 +32,26 @@ export function EventProvider({ children }) {
   // Check if current path is a join-event route (which also shouldn't show LeagueFallback)
   const isJoinEventRoute = location?.pathname?.startsWith('/join-event') || false;
 
+  // Extract auth data safely from props
+  const selectedLeagueId = authData?.selectedLeagueId || '';
+  const user = authData?.user || null;
+  const authChecked = authData?.authChecked || false;
+  const roleChecked = authData?.roleChecked || false;
+
   // Load events from backend
   useEffect(() => {
     async function fetchEvents() {
-      // DEFENSIVE: Early exit if authContext is not available
-      if (!authContext) {
-        console.info('[EVENT-CONTEXT] AuthContext not available yet');
+      // DEFENSIVE: Early exit if authData is not available
+      if (!authData) {
+        console.info('[EVENT-CONTEXT] AuthData not available yet');
         return;
       }
 
-      // CRITICAL FIX: Don't set noLeague=true until AuthContext has finished initializing
+      // CRITICAL FIX: Don't set noLeague=true until AuthData has finished initializing
       // This prevents the flashing between "Welcome to Woo Combine" and "No League Selected"
       if (!authChecked || !roleChecked) {
-        // AuthContext is still initializing - don't change noLeague state yet
-        console.info('[EVENT-CONTEXT] AuthContext still initializing');
+        // AuthData is still initializing - don't change noLeague state yet
+        console.info('[EVENT-CONTEXT] AuthData still initializing');
         return;
       }
 
@@ -120,7 +118,7 @@ export function EventProvider({ children }) {
     }
     
     fetchEvents();
-  }, [authContext, selectedLeagueId, user, authChecked, roleChecked]);
+  }, [authData, selectedLeagueId, user, authChecked, roleChecked]);
 
   // Sync selectedEvent to localStorage
   useEffect(() => {
@@ -131,9 +129,9 @@ export function EventProvider({ children }) {
 
   // Refresh function for error recovery
   const refreshEvents = async () => {
-    // DEFENSIVE: Early exit if authContext is not available
-    if (!authContext) {
-      console.info('[EVENT-CONTEXT] AuthContext not available for refresh');
+    // DEFENSIVE: Early exit if authData is not available
+    if (!authData) {
+      console.info('[EVENT-CONTEXT] AuthData not available for refresh');
       return;
     }
 
@@ -169,7 +167,7 @@ export function EventProvider({ children }) {
     }
   };
 
-  // FIXED: Only show LeagueFallback after AuthContext initialization is complete
+  // FIXED: Only show LeagueFallback after AuthData initialization is complete
   // Also exclude join-event routes to allow automatic league joining
   // DEFENSIVE: Add null checks for all variables
   const shouldShowLeagueFallback = authChecked && 

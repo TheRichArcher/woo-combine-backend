@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
@@ -22,13 +22,23 @@ import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
 
+// Simple wrapper component to pass auth data to EventProvider
+function EventProviderWrapper({ children }) {
+  const authData = useAuth();
+  
+  return (
+    <EventProvider authData={authData}>
+      {children}
+    </EventProvider>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <EventProvider>
+          <EventProviderWrapper>
             <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/" element={<Navigate to="/welcome" replace />} />
@@ -295,7 +305,7 @@ function App() {
               } />
             </Routes>
           </div>
-        </EventProvider>
+        </EventProviderWrapper>
       </AuthProvider>
     </ToastProvider>
     </BrowserRouter>
