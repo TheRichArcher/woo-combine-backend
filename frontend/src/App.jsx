@@ -4,7 +4,7 @@ import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 // import Navigation from "./components/Navigation";
-// import Home from "./pages/Home";
+import Home from "./pages/Home";
 // import Players from "./pages/Players";
 // import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
@@ -51,7 +51,7 @@ function App() {
                   path="/dashboard"
                   element={
                     <RequireAuth>
-                      <div>Dashboard temporarily disabled for debugging</div>
+                      <Home />
                     </RequireAuth>
                   }
                 />
