@@ -5,7 +5,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 // import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
-// import Players from "./pages/Players";
+import Players from "./pages/Players";
 // import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -61,7 +61,7 @@ function App() {
                   element={
                     <RequireAuth>
                       <div className="container mx-auto px-4 py-8">
-                        <div>Players temporarily disabled for debugging</div>
+                        <Players />
                       </div>
                     </RequireAuth>
                   }
