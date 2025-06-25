@@ -230,7 +230,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, handleWeightChange, activePreset, applyPreset }) {
+function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sliderWeights, setSliderWeights, persistSliderWeights, handleWeightChange, activePreset, applyPreset }) {
   // Use persisted weights for calculations
   const weights = persistedWeights;
 
@@ -421,9 +421,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, han
                             type="range"
                             min="0"
                             max="100"
-                            defaultValue={weights[drill.key] || 0}
+                            step="1"
+                            defaultValue={sliderWeights[drill.key] ?? 50}
                             onInput={(e) => {
-                              handleWeightChange(e.target.name, Number(e.target.value));
+                              const newVal = parseInt(e.target.value, 10);
+                              setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
+                            }}
+                            onMouseUp={() => {
+                              persistSliderWeights(sliderWeights);
+                            }}
+                            onTouchEnd={() => {
+                              persistSliderWeights(sliderWeights);
                             }}
                             name={drill.key}
                             className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
@@ -433,7 +441,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, han
                           More important
                         </span>
                         <div className="text-sm font-bold text-cmf-primary min-w-[40px] text-center">
-                          {weights[drill.key] || 0}
+                          {sliderWeights[drill.key] || 0}
                         </div>
                       </div>
                     </div>
@@ -557,6 +565,10 @@ export default function Players() {
     "throwing": 20,
     "agility": 20
   });
+  
+  // Live slider values for smooth interaction
+  const [sliderWeights, setSliderWeights] = useState(persistedWeights);
+  
   const currentWeights = useRef({ ...persistedWeights }); // Track during drag
   const timer = useRef(null); // Timer for debouncing
   const [activePreset, setActivePreset] = useState('balanced');
@@ -565,9 +577,10 @@ export default function Players() {
   const [liveRankings, setLiveRankings] = useState({});
   const [rankingUpdateBanner, setRankingUpdateBanner] = useState(false);
 
-  // Sync ref when persisted weights change (from presets, etc.)
+  // Sync ref and sliderWeights when persisted weights change (from presets, etc.)
   useEffect(() => {
     currentWeights.current = { ...persistedWeights };
+    setSliderWeights({ ...persistedWeights });
   }, [persistedWeights]);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
@@ -644,6 +657,25 @@ export default function Players() {
     return newRankings;
   }, [grouped]);
 
+  // Persist slider weights function
+  const persistSliderWeights = useCallback((weights) => {
+    if (timer.current) clearTimeout(timer.current);
+    
+    timer.current = setTimeout(() => {
+      // Persist to state
+      setPersistedWeights({ ...weights });
+      
+      // Clear active preset after calculation
+      setActivePreset('');
+      
+      // 🏆 Trigger live ranking recalculation
+      calculateLiveRankings(weights);
+      
+      // Force backend rankings recalculation
+      setRankings([]);
+    }, 100);
+  }, [calculateLiveRankings]);
+
   function handleWeightChange(name, value) {
     // Update ref immediately (no re-render, no lag during drag)
     currentWeights.current[name] = value;
@@ -653,8 +685,6 @@ export default function Players() {
 
     // Debounce persistence to avoid snapback
     timer.current = setTimeout(() => {
-      console.log('🏁 Persisting weights:', currentWeights.current);
-      
       // Persist to state (this causes re-render but after drag ends)
       setPersistedWeights({ ...currentWeights.current });
       
@@ -825,7 +855,7 @@ export default function Players() {
                     <div className="text-xs text-gray-500">Higher = more important</div>
                   </div>
                   <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                    {persistedWeights[drill.key]}
+                    {sliderWeights[drill.key]}
                   </span>
                 </div>
                 
@@ -834,9 +864,17 @@ export default function Players() {
                     type="range"
                     min="0"
                     max="100"
-                    defaultValue={persistedWeights[drill.key]}
+                    step="1"
+                    defaultValue={sliderWeights?.[drill.key] ?? 50}
                     onInput={(e) => {
-                      handleWeightChange(e.target.name, Number(e.target.value));
+                      const newVal = parseInt(e.target.value, 10);
+                      setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
+                    }}
+                    onMouseUp={() => {
+                      persistSliderWeights(sliderWeights);
+                    }}
+                    onTouchEnd={() => {
+                      persistSliderWeights(sliderWeights);
                     }}
                     name={drill.key}
                     className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
@@ -1030,6 +1068,9 @@ export default function Players() {
                 allPlayers={players} 
                 onClose={() => setSelectedPlayer(null)}
                 persistedWeights={persistedWeights}
+                sliderWeights={sliderWeights}
+                setSliderWeights={setSliderWeights}
+                persistSliderWeights={persistSliderWeights}
                 handleWeightChange={handleWeightChange}
                 activePreset={activePreset}
                 applyPreset={applyPreset}
