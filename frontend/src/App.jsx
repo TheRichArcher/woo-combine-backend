@@ -133,6 +133,8 @@ function App() {
                 <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
+                {/* Redirect /league to /select-league for better UX */}
+                <Route path="/league" element={<Navigate to="/select-league" replace />} />
                 <Route path="/select-role" element={
                   <RequireAuth>
                     <SelectRole />
