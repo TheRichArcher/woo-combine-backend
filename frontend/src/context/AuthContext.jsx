@@ -1,10 +1,9 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import { useLogout } from './logout';
 import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -267,6 +266,35 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  // Add logout function directly in AuthContext to avoid circular dependency
+  const logout = useCallback(async () => {
+    try {
+      await signOut(auth);
+      // Clear all auth state
+      setUser(null);
+      setLeagues([]);
+      setSelectedLeagueId('');
+      setRole(null);
+      setUserRole(null);
+      setError(null);
+      // Clear localStorage including invitation data
+      localStorage.removeItem('selectedLeagueId');
+      localStorage.removeItem('selectedEventId');
+      localStorage.removeItem('pendingEventJoin');
+    } catch {
+      // Logout error handled internally
+      // Still clear state even if signOut fails
+      setUser(null);
+      setLeagues([]);
+      setSelectedLeagueId('');
+      setRole(null);
+      setUserRole(null);
+      localStorage.removeItem('selectedLeagueId');
+      localStorage.removeItem('selectedEventId');
+      localStorage.removeItem('pendingEventJoin');
+    }
+  }, []);
+
   // Expose state setters for logout functionality
   const contextValue = {
     user,
@@ -294,7 +322,8 @@ export function AuthProvider({ children }) {
     setRole,
     setLeagues,
     setAuthChecked,
-    setRoleChecked
+    setRoleChecked,
+    logout
   };
 
   // Show loading screen while initializing
@@ -317,4 +346,8 @@ export function useAuth() {
   return context;
 }
 
-export { useLogout }; 
+// Export useLogout for backward compatibility
+export function useLogout() {
+  const { logout } = useAuth();
+  return logout;
+} 

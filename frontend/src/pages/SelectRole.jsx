@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
+import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { useLogout } from '../context/logout';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
 
