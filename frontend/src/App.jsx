@@ -51,10 +51,7 @@ function App() {
                   path="/dashboard"
                   element={
                     <RequireAuth>
-                      <>
-                        <Navigation />
-                        <Home />
-                      </>
+                      <Home />
                     </RequireAuth>
                   }
                 />
@@ -63,12 +60,9 @@ function App() {
                   path="/players"
                   element={
                     <RequireAuth>
-                      <>
-                        <Navigation />
-                        <div className="container mx-auto px-4 py-8">
-                          <Players />
-                        </div>
-                      </>
+                      <div className="container mx-auto px-4 py-8">
+                        <Players />
+                      </div>
                     </RequireAuth>
                   }
                 />
@@ -76,12 +70,9 @@ function App() {
                   path="/admin"
                   element={
                     <RequireAuth>
-                      <>
-                        <Navigation />
-                        <div className="container mx-auto px-4 py-8">
-                          <AdminTools />
-                        </div>
-                      </>
+                      <div className="container mx-auto px-4 py-8">
+                        <AdminTools />
+                      </div>
                     </RequireAuth>
                   }
                 />
