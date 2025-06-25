@@ -22,6 +22,16 @@ import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
 
+// Authenticated Layout Component
+function AuthenticatedLayout({ children }) {
+  return (
+    <>
+      <Navigation />
+      {children}
+    </>
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -51,7 +61,9 @@ function App() {
                   path="/dashboard"
                   element={
                     <RequireAuth>
-                      <Home />
+                      <AuthenticatedLayout>
+                        <Home />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -60,9 +72,11 @@ function App() {
                   path="/players"
                   element={
                     <RequireAuth>
-                      <div className="container mx-auto px-4 py-8">
-                        <Players />
-                      </div>
+                      <AuthenticatedLayout>
+                        <div className="container mx-auto px-4 py-8">
+                          <Players />
+                        </div>
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -70,9 +84,11 @@ function App() {
                   path="/admin"
                   element={
                     <RequireAuth>
-                      <div className="container mx-auto px-4 py-8">
-                        <AdminTools />
-                      </div>
+                      <AuthenticatedLayout>
+                        <div className="container mx-auto px-4 py-8">
+                          <AdminTools />
+                        </div>
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -80,7 +96,9 @@ function App() {
                   path="/live-entry"
                   element={
                     <RequireAuth>
-                      <LiveEntry />
+                      <AuthenticatedLayout>
+                        <LiveEntry />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -129,10 +147,10 @@ function App() {
                     </div>
                   </WelcomeLayout>
                 } />
-                <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
-                <Route path="/join" element={<RequireAuth><JoinLeague /></RequireAuth>} />
+                <Route path="/create-league" element={<RequireAuth><AuthenticatedLayout><CreateLeague /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/join" element={<RequireAuth><AuthenticatedLayout><JoinLeague /></AuthenticatedLayout></RequireAuth>} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/select-league" element={<RequireAuth><SelectLeague /></RequireAuth>} />
+                <Route path="/select-league" element={<RequireAuth><AuthenticatedLayout><SelectLeague /></AuthenticatedLayout></RequireAuth>} />
                 {/* Redirect /league to /select-league for better UX */}
                 <Route path="/league" element={<Navigate to="/select-league" replace />} />
                 <Route path="/select-role" element={
@@ -140,7 +158,7 @@ function App() {
                     <SelectRole />
                   </RequireAuth>
                 } />
-                <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
+                <Route path="/onboarding/event" element={<RequireAuth><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />
                 
