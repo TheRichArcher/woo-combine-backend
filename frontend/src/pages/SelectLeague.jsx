@@ -8,7 +8,7 @@ import LoadingScreen from '../components/LoadingScreen';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function SelectLeague() {
-  const { user, setSelectedLeagueId } = useAuth();
+  const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
   const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,37 +17,12 @@ export default function SelectLeague() {
   const { showColdStartNotification, isColdStartActive } = useToast();
 
   useEffect(() => {
-    const loadLeagues = async () => {
-      setLoading(true);
+    if (contextLeagues && contextLeagues.length >= 0) {
+      setLeagues(contextLeagues);
+      setLoading(false);
       setFetchError(null);
-      
-      try {
-        const timeout = 30000; // 30s timeout for league fetching
-        
-        // Show cold start notification after 5 seconds if needed
-        const coldStartTimer = setTimeout(() => {
-          if (!isColdStartActive()) {
-            showColdStartNotification();
-          }
-        }, 5000);
-        
-        const response = await api.get('/leagues/me', { timeout });
-        clearTimeout(coldStartTimer);
-        
-        setLeagues(response.data.leagues || []);
-      } catch (error) {
-        const isExpected404 = error.response?.status === 404;
-        if (!isExpected404) {
-          setFetchError(error.response?.data?.detail || error.message || 'Failed to load leagues');
-        }
-        setLeagues([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadLeagues();
-  }, [isColdStartActive, showColdStartNotification]);
+    }
+  }, [contextLeagues]);
 
   const handleSelect = (league) => {
     localStorage.setItem('selectedLeagueId', league.id);
