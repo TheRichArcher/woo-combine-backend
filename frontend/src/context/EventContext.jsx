@@ -27,7 +27,7 @@ export function EventProvider({ children }) {
 
     try {
       const response = await api.get(`/leagues/${leagueId}/events`);
-      const eventsData = response.data || [];
+      const eventsData = response.data.events || [];  // ✅ Extract events array from response
       setEvents(eventsData);
       
       // Auto-select first event if available and none is selected
