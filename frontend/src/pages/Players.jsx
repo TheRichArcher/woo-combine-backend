@@ -231,11 +231,11 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-function PlayerDetailsModal({ player, allPlayers, onClose, sliderRef, handleInput, activePreset, applyPreset }) {
+function PlayerDetailsModal({ player, allPlayers, onClose, weightsRef, handleWeightDrag, activePreset, applyPreset }) {
   if (!player || !allPlayers || allPlayers.length === 0) return null;
   
-  // Get current weights from ref
-  const weights = sliderRef.current;
+  // Get current weights from ref (completely decoupled from reactivity)
+  const weights = weightsRef.current;
 
   const drillRankings = useMemo(() => {
     const rankings = {};
@@ -419,7 +419,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, sliderRef, handleInpu
                             max={100}
                             step={1}
                             defaultValue={weights[drill.key] || 0}
-                            onInput={e => handleInput(drill.key, parseInt(e.target.value))}
+                            onInput={e => handleWeightDrag(drill.key, e.target.value)}
                             className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
                           />
                         </div>
@@ -543,8 +543,8 @@ export default function Players() {
   const [rankingsLoading, setRankingsLoading] = useState(false);
   const [rankingsError, setRankingsError] = useState(null);
 
-  // 🔒 MINIMAL PERFORMANCE FIX: useRef ONLY, zero state updates during drag
-  const sliderRef = useRef({
+  // ⛔ COMPLETE ISOLATION: useRef only, zero reactivity during drag
+  const weightsRef = useRef({
     "40m_dash": 20,
     "vertical_jump": 20, 
     "catching": 20,
@@ -564,25 +564,30 @@ export default function Players() {
   const isolatedSliderRef = useRef(50);
   const [isolatedSliderDisplay, setIsolatedSliderDisplay] = useState(50);
 
-  // 🔒 MINIMAL: Zero state updates during drag, only ref updates
-  const handleInput = (field, value) => {
-    // Update ref immediately (NO state updates, NO re-renders)
-    sliderRef.current[field] = value;
-    
-    // Clear active preset when manually adjusting
-    setActivePreset('');
-    
-    // Delay ranking update - this is the ONLY place expensive operations happen
+  // ⛔ COMPLETE ISOLATION: Zero reactivity during drag
+  const handleWeightDrag = (field, value) => {
+    // ONLY update ref - no state, no effects, no re-renders
+    weightsRef.current[field] = Number(value);
+
+    // Clear any pending updates
     if (updateTimeout.current) clearTimeout(updateTimeout.current);
+
+    // Delay ALL reactivity until user stops dragging
     updateTimeout.current = setTimeout(() => {
-      console.log("✅ Rankings updated with weights:", sliderRef.current);
-      updateRankings(sliderRef.current);
-    }, 300); // Adjust debounce as needed
+      recalculatePlayerRankings(weightsRef.current); // slow CPU logic
+      console.log("🏁 Rankings updated:", weightsRef.current);
+    }, 300); // delay until user stops dragging
   };
 
-  const updateRankings = (weights) => {
-    // This triggers the actual expensive recalculation
-    setRankings([]); // This will cause useEffect to run with new weights
+  const recalculatePlayerRankings = (weights) => {
+    // This is the ONLY place where expensive operations happen
+    console.log("🔥 EXPENSIVE: Recalculating rankings with weights:", weights);
+    
+    // Clear active preset after calculation (not during drag)
+    setActivePreset('');
+    
+    // Force rankings recalculation
+    setRankings([]);
   };
 
   const applyPreset = (presetKey) => {
@@ -591,12 +596,12 @@ export default function Players() {
       const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
       
       // Update ref immediately
-      sliderRef.current = newWeights;
+      weightsRef.current = newWeights;
       setActivePreset(presetKey);
       
       // Trigger immediate recalculation for presets
       if (updateTimeout.current) clearTimeout(updateTimeout.current);
-      updateRankings(newWeights);
+      recalculatePlayerRankings(newWeights);
     }
   };
 
@@ -653,7 +658,7 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // 🔒 CLEAN useEffect: Only tracks external changes, not slider state
+  // ⛔ REMOVED useEffect watching weights - using manual debounce only
   useEffect(() => {
     const performRankingUpdate = async () => {
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
@@ -661,7 +666,7 @@ export default function Players() {
         return;
       }
       
-      console.log('🔒 CLEAN API CALL with ref values only');
+      console.log('🔒 MANUAL API CALL - not reactive to slider changes');
       setRankingsLoading(true);
       setRankingsError(null);
       
@@ -671,8 +676,8 @@ export default function Players() {
           event_id: selectedEvent.id 
         });
         
-        // Use current ref values for API calls (no state dependency)
-        const currentWeights = sliderRef.current;
+        // Use current ref values (completely decoupled from slider drag)
+        const currentWeights = weightsRef.current;
         params.append("weight_40m_dash", currentWeights["40m_dash"].toString());
         params.append("weight_vertical_jump", currentWeights["vertical_jump"].toString());
         params.append("weight_catching", currentWeights["catching"].toString());
@@ -693,7 +698,7 @@ export default function Players() {
       }
     };
 
-    // Only run when external factors change, NOT when sliders change
+    // ONLY run when external factors change, NEVER when weights change
     performRankingUpdate();
   }, [selectedAgeGroup, user, selectedLeagueId, selectedEvent, activeTab]);
 
@@ -769,7 +774,7 @@ export default function Players() {
 
         {showCustomControls && (
           <div className="space-y-3">
-            {/* 🚀 PERFORMANCE STATUS */}
+            {/* ⛔ COMPLETE ISOLATION STATUS */}
             <div
               style={{
                 padding: '24px',
@@ -782,7 +787,7 @@ export default function Players() {
               }}
             >
               <label style={{ display: 'block', marginBottom: '6px', color: '#15803d', fontWeight: 600 }}>
-                🚀 PERFORMANCE OPTIMIZED!
+                ⛔ COMPLETE ISOLATION ACHIEVED!
               </label>
 
               <input
@@ -790,9 +795,8 @@ export default function Players() {
                 min={0}
                 max={100}
                 step={1}
-                value={testSliderVal}
+                defaultValue={testSliderVal}
                 onInput={(e) => setTestSliderVal(parseInt(e.target.value))}
-                onChange={(e) => setTestSliderVal(parseInt(e.target.value))}
                 className="test-slider"
                 style={{
                   width: '100%',
@@ -805,7 +809,7 @@ export default function Players() {
               />
 
               <div style={{ fontSize: '14px', marginTop: '6px', color: '#15803d' }}>
-                Value: <strong>{testSliderVal}</strong> - Now using useRef + debouncing!
+                Value: <strong>{testSliderVal}</strong> - Zero reactivity during drag!
               </div>
             </div>
             
@@ -937,7 +941,7 @@ export default function Players() {
                       <div className="text-xs text-gray-500">Higher = more important</div>
                     </div>
                     <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                      {sliderRef.current[drill.key]}
+                      {weightsRef.current[drill.key]}
                     </span>
                   </div>
                   
@@ -947,8 +951,8 @@ export default function Players() {
                       min={0}
                       max={100}
                       step={1}
-                      defaultValue={sliderRef.current[drill.key]}
-                      onInput={(e) => handleInput(drill.key, Number(e.target.value))}
+                      defaultValue={weightsRef.current[drill.key]}
+                      onInput={(e) => handleWeightDrag(drill.key, e.target.value)}
                       className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
                     />
                   </div>
@@ -962,7 +966,7 @@ export default function Players() {
             ))}
             
             <div className="text-sm text-center p-3 rounded-lg border bg-green-50 border-green-200 text-green-700">
-              🚀 Performance Optimized: Instant slider response + debounced calculations!
+              ⛔ Complete Isolation: Zero reactivity during drag + manual debounced recalculation!
             </div>
           </div>
         )}
@@ -1136,8 +1140,8 @@ export default function Players() {
                 player={selectedPlayer} 
                 allPlayers={players} 
                 onClose={() => setSelectedPlayer(null)}
-                sliderRef={sliderRef}
-                handleInput={handleInput}
+                weightsRef={weightsRef}
+                handleWeightDrag={handleWeightDrag}
                 activePreset={activePreset}
                 applyPreset={applyPreset}
               />
