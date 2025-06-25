@@ -574,6 +574,14 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
+  // ✅ TEMPORAL DEAD ZONE FIX: Calculate grouped data BEFORE useCallback that uses it
+  const grouped = (players || []).reduce((acc, player) => {
+    const group = player.age_group || "No Age Group";
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(player);
+    return acc;
+  }, {});
+
   // 🏆 Live ranking calculation function
   const calculateLiveRankings = useCallback((weightsToUse = null) => {
     const weights = weightsToUse || currentWeights.current;
@@ -732,14 +740,6 @@ export default function Players() {
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
-
-  // Always calculate grouped data at the top level to avoid conditional hooks
-  const grouped = (players || []).reduce((acc, player) => {
-    const group = player.age_group || "No Age Group";
-    if (!acc[group]) acc[group] = [];
-    acc[group].push(player);
-    return acc;
-  }, {});
 
   // Calculate initial live rankings when players or weights change
   useEffect(() => {
