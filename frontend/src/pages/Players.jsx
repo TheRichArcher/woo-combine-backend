@@ -1055,15 +1055,24 @@ export default function Players() {
               Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([ageGroup, ageGroupPlayers]) => {
+                  // Debug logging
+                  console.log('🔍 Age Group:', ageGroup, 'Players:', ageGroupPlayers);
+                  console.log('🔍 Live Rankings for', ageGroup, ':', liveRankings[ageGroup]);
+                  
                   // Use live rankings if available, otherwise fall back to original order
                   const rankedPlayers = liveRankings[ageGroup] || ageGroupPlayers;
                   const hasRankings = liveRankings[ageGroup] && liveRankings[ageGroup].length > 0;
+                  
+                  console.log('🔍 Ranked Players for', ageGroup, ':', rankedPlayers);
                   
                   return (
                     <div key={ageGroup} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                           👥 Age Group: {ageGroup}
+                          <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            {rankedPlayers.length} players
+                          </span>
                         </h2>
                         {hasRankings && (
                           <div className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
@@ -1073,8 +1082,16 @@ export default function Players() {
                       </div>
                       
                       <div className="space-y-2">
-                        {/* eslint-disable-next-line no-unused-vars */}
-                        {rankedPlayers.map((player, _index) => (
+                        {console.log('🔍 About to map', rankedPlayers.length, 'players for', ageGroup)}
+                        {rankedPlayers.length === 0 ? (
+                          <div className="text-center py-4 text-gray-500 bg-gray-50 rounded-lg">
+                            No players found in this age group
+                          </div>
+                        ) : (
+                          /* eslint-disable-next-line no-unused-vars */
+                          rankedPlayers.map((player, _index) => {
+                            console.log('🔍 Rendering player:', player);
+                            return (
                           <React.Fragment key={player.id}>
                             <div className={`bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300 ${
                               hasRankings ? 'shadow-sm' : ''
@@ -1137,7 +1154,9 @@ export default function Players() {
                               </div>
                             )}
                           </React.Fragment>
-                        ))}
+                          );
+                          })
+                        )}
                       </div>
                     </div>
                   );
