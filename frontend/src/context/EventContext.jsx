@@ -63,19 +63,14 @@ export function EventProvider({ children }) {
       setError(null);
       
       try {
-        // Add timeout protection and retry logic
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout for cold starts
-        
         const url = `/leagues/${selectedLeagueId}/events`;
         console.info(`[EVENT-CONTEXT] Fetching events from: ${url}`);
         
+        // Simplified API call without AbortController to avoid temporal dead zone issues
         const { data } = await api.get(url, {
-          signal: controller.signal,
+          timeout: 20000, // 20 second timeout
           retry: 2 // Add retry attempts
         });
-        
-        clearTimeout(timeoutId);
         
         // Fix: Backend returns {events: [...]} not just [...]
         const eventsList = data.events || [];
@@ -99,7 +94,7 @@ export function EventProvider({ children }) {
         setEvents([]);
         setSelectedEvent(null);
         
-        if (error.name === 'AbortError') {
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
           setError('Request timed out. Please try again.');
         } else if (error.response?.status === 401) {
           setError('Authentication failed. Please refresh the page.');
