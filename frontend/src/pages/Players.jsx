@@ -564,15 +564,42 @@ export default function Players() {
     currentWeights.current = { ...persistedWeights };
   }, [persistedWeights]);
 
+  // Sync test slider ref when state changes
+  useEffect(() => {
+    testSliderRef.current = { ...testSliderWeights };
+  }, [testSliderWeights]);
+
+  // Test slider state - using same working pattern as main sliders
+  const [testSliderWeights, setTestSliderWeights] = useState({
+    testSlider: 50,
+    uiSlider: 50,
+    isolatedSlider: 50,
+    useRefSlider: 50
+  });
+  const testSliderRef = useRef({ ...testSliderWeights });
+  const testSliderTimer = useRef(null);
+
   const [showCustomControls, setShowCustomControls] = useState(false);
-  
-  // Test slider state
-  const [testSliderVal, setTestSliderVal] = useState(50);
-  const [uiSliderVal, setUiSliderVal] = useState(50);
-  
-  // ISOLATION TEST: useRef sliders (no re-renders)
-  const isolatedSliderRef = useRef(50);
-  const [isolatedSliderDisplay, setIsolatedSliderDisplay] = useState(50);
+
+  // Test slider handler using same working pattern
+  function handleTestSliderChange(statName, value) {
+    console.log("💡 Test slider changed:", statName, value);
+    
+    // Update ref immediately (no re-render, no lag during drag)
+    testSliderRef.current[statName] = value;
+
+    // Cancel previous timer
+    if (testSliderTimer.current) clearTimeout(testSliderTimer.current);
+
+    // Debounce persistence to avoid snapback
+    testSliderTimer.current = setTimeout(() => {
+      console.log("🏁 Persisting test slider:", statName, value);
+      setTestSliderWeights(prev => ({
+        ...prev,
+        [statName]: value,
+      }));
+    }, 300);
+  }
 
   // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
   function handleWeightChange(name, value) {
@@ -804,10 +831,11 @@ export default function Players() {
                 type="range"
                 min="0"
                 max="100"
-                defaultValue={testSliderVal}
+                key={`testSlider-${testSliderWeights.testSlider}`}
+                defaultValue={testSliderWeights.testSlider}
                 onInput={(e) => {
-                  console.log("💡 Test slider changed:", e.target.value);
-                  setTestSliderVal(parseInt(e.target.value));
+                  const newVal = Number(e.target.value);
+                  handleTestSliderChange('testSlider', newVal);
                 }}
                 name="testSlider"
                 className="test-slider"
@@ -822,11 +850,11 @@ export default function Players() {
               />
 
               <div style={{ fontSize: '14px', marginTop: '6px', color: '#15803d' }}>
-                Value: <strong>{testSliderVal}</strong> - Native defaultValue + onInput!
+                Value: <strong>{testSliderWeights.testSlider}</strong> - Working pattern with persistence!
               </div>
             </div>
             
-            {/* 🔬 ISOLATION TEST: No State Binding */}
+            {/* 🔬 ISOLATION TEST: Working Pattern */}
             <div
               style={{
                 padding: '24px',
@@ -839,16 +867,20 @@ export default function Players() {
               }}
             >
               <label style={{ display: 'block', marginBottom: '6px', color: '#0369a1', fontWeight: 600 }}>
-                🔬 ISOLATED TEST (defaultValue only)
+                🔬 ISOLATED TEST (working pattern)
               </label>
 
               <input
                 type="range"
-                min={0}
-                max={100}
-                step={1}
-                defaultValue={50}
-                onChange={(e) => console.log('🔬 Isolated slider:', e.target.value)}
+                min="0"
+                max="100"
+                key={`isolatedSlider-${testSliderWeights.isolatedSlider}`}
+                defaultValue={testSliderWeights.isolatedSlider}
+                onInput={(e) => {
+                  const newVal = Number(e.target.value);
+                  handleTestSliderChange('isolatedSlider', newVal);
+                }}
+                name="isolatedSlider"
                 className="test-slider"
                 style={{
                   width: '100%',
@@ -861,11 +893,11 @@ export default function Players() {
               />
 
               <div style={{ fontSize: '14px', marginTop: '6px', color: '#0369a1' }}>
-                No state binding - check console for values
+                Value: <strong>{testSliderWeights.isolatedSlider}</strong> - Same working pattern as main sliders!
               </div>
             </div>
 
-            {/* 📊 useRef TEST: No Re-renders */}
+            {/* 📊 useRef TEST: Working Pattern */}
             <div
               style={{
                 padding: '24px',
@@ -878,24 +910,20 @@ export default function Players() {
               }}
             >
               <label style={{ display: 'block', marginBottom: '6px', color: '#047857', fontWeight: 600 }}>
-                📊 useRef TEST (no re-renders)
+                📊 useRef TEST (working pattern)
               </label>
 
               <input
                 type="range"
-                min={0}
-                max={100}
-                step={1}
-                defaultValue={50}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  isolatedSliderRef.current = value;
-                  console.log('📊 useRef slider:', value, 'no re-render triggered');
-                  // Update display every 10 values to minimize re-renders
-                  if (value % 10 === 0) {
-                    setIsolatedSliderDisplay(value);
-                  }
+                min="0"
+                max="100"
+                key={`useRefSlider-${testSliderWeights.useRefSlider}`}
+                defaultValue={testSliderWeights.useRefSlider}
+                onInput={(e) => {
+                  const newVal = Number(e.target.value);
+                  handleTestSliderChange('useRefSlider', newVal);
                 }}
+                name="useRefSlider"
                 className="test-slider"
                 style={{
                   width: '100%',
@@ -908,7 +936,7 @@ export default function Players() {
               />
 
               <div style={{ fontSize: '14px', marginTop: '6px', color: '#047857' }}>
-                Current: <strong>{isolatedSliderDisplay}</strong> (updates every 10 values)
+                Value: <strong>{testSliderWeights.useRefSlider}</strong> - Working pattern with persistence!
               </div>
             </div>
 
@@ -917,10 +945,10 @@ export default function Players() {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <label className="text-sm font-medium text-purple-700">🎨 UI LIBRARY STYLE TEST</label>
-                  <div className="text-xs text-purple-500">Mimics Material-UI/library component pattern</div>
+                  <div className="text-xs text-purple-500">Working pattern with persistence</div>
                 </div>
                 <span className="text-lg font-mono text-purple-600 bg-purple-200 px-3 py-1 rounded-full min-w-[50px] text-center">
-                  {uiSliderVal}
+                  {testSliderWeights.uiSlider}
                 </span>
               </div>
               
@@ -930,11 +958,15 @@ export default function Players() {
               >
                 <input
                   type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={uiSliderVal}
-                  onChange={(e) => setUiSliderVal(parseInt(e.target.value))}
+                  min="0"
+                  max="100"
+                  key={`uiSlider-${testSliderWeights.uiSlider}`}
+                  defaultValue={testSliderWeights.uiSlider}
+                  onInput={(e) => {
+                    const newVal = Number(e.target.value);
+                    handleTestSliderChange('uiSlider', newVal);
+                  }}
+                  name="uiSlider"
                   className="w-full h-6 bg-purple-200 rounded-lg cursor-pointer"
                 />
               </div>
