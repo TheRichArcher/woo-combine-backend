@@ -1,6 +1,5 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
-import { EventProvider } from "./context/EventContext";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
@@ -22,24 +21,12 @@ import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
 
-// Simple wrapper component to pass auth data to EventProvider
-function EventProviderWrapper({ children }) {
-  const authData = useAuth();
-  
-  return (
-    <EventProvider authData={authData}>
-      {children}
-    </EventProvider>
-  );
-}
-
 function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
         <AuthProvider>
-          <EventProviderWrapper>
-            <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50">
             <Routes>
               <Route path="/" element={<Navigate to="/welcome" replace />} />
               <Route path="/welcome" element={<Welcome />} />
@@ -77,7 +64,7 @@ function App() {
                     <>
                       <Navigation />
                       <div className="container mx-auto px-4 py-8">
-                        <Players />
+                        <div>Players page temporarily disabled for debugging</div>
                       </div>
                     </>
                   </RequireAuth>
@@ -90,7 +77,7 @@ function App() {
                     <>
                       <Navigation />
                       <div className="container mx-auto px-4 py-8">
-                        <AdminTools />
+                        <div>Admin page temporarily disabled for debugging</div>
                       </div>
                     </>
                   </RequireAuth>
@@ -100,7 +87,7 @@ function App() {
                 path="/live-entry"
                 element={
                   <RequireAuth>
-                    <LiveEntry />
+                    <div>Live entry temporarily disabled for debugging</div>
                   </RequireAuth>
                 }
               />
@@ -158,9 +145,9 @@ function App() {
                   <SelectRole />
                 </RequireAuth>
               } />
-              <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
-              <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
-              <Route path="/join-event/:eventId" element={<JoinEvent />} />
+              <Route path="/onboarding/event" element={<RequireAuth><div>Onboarding temporarily disabled for debugging</div></RequireAuth>} />
+              <Route path="/join-event/:leagueId/:eventId" element={<div>Join event temporarily disabled for debugging</div>} />
+              <Route path="/join-event/:eventId" element={<div>Join event temporarily disabled for debugging</div>} />
               
               <Route path="/help" element={
                 <WelcomeLayout
@@ -305,9 +292,8 @@ function App() {
               } />
             </Routes>
           </div>
-        </EventProviderWrapper>
-      </AuthProvider>
-    </ToastProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }
