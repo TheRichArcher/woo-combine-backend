@@ -3,14 +3,14 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
-import Navigation from "./components/Navigation";
-import Home from "./pages/Home";
-import Players from "./pages/Players";
-import AdminTools from "./components/AdminTools";
+// import Navigation from "./components/Navigation";
+// import Home from "./pages/Home";
+// import Players from "./pages/Players";
+// import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
-import LiveEntry from "./pages/LiveEntry";
+// import LiveEntry from "./pages/LiveEntry";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
@@ -18,9 +18,9 @@ import Welcome from "./pages/Welcome";
 import VerifyEmail from "./pages/VerifyEmail";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
-import OnboardingEvent from "./pages/OnboardingEvent";
+// import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
-import JoinEvent from "./pages/JoinEvent";
+// import JoinEvent from "./pages/JoinEvent";
 
 function App() {
   return (
@@ -51,7 +51,7 @@ function App() {
                   path="/dashboard"
                   element={
                     <RequireAuth>
-                      <Home />
+                      <div>Dashboard temporarily disabled for debugging</div>
                     </RequireAuth>
                   }
                 />
@@ -61,7 +61,7 @@ function App() {
                   element={
                     <RequireAuth>
                       <div className="container mx-auto px-4 py-8">
-                        <Players />
+                        <div>Players temporarily disabled for debugging</div>
                       </div>
                     </RequireAuth>
                   }
@@ -71,7 +71,7 @@ function App() {
                   element={
                     <RequireAuth>
                       <div className="container mx-auto px-4 py-8">
-                        <AdminTools />
+                        <div>Admin temporarily disabled for debugging</div>
                       </div>
                     </RequireAuth>
                   }
@@ -80,7 +80,7 @@ function App() {
                   path="/live-entry"
                   element={
                     <RequireAuth>
-                      <LiveEntry />
+                      <div>Live entry temporarily disabled for debugging</div>
                     </RequireAuth>
                   }
                 />
@@ -138,9 +138,9 @@ function App() {
                     <SelectRole />
                   </RequireAuth>
                 } />
-                <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
-                <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
-                <Route path="/join-event/:eventId" element={<JoinEvent />} />
+                <Route path="/onboarding/event" element={<RequireAuth><div>Onboarding temporarily disabled for debugging</div></RequireAuth>} />
+                <Route path="/join-event/:leagueId/:eventId" element={<div>Join event temporarily disabled for debugging</div>} />
+                <Route path="/join-event/:eventId" element={<div>Join event temporarily disabled for debugging</div>} />
                 
                 <Route path="/help" element={
                   <WelcomeLayout
