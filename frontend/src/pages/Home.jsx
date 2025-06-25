@@ -4,9 +4,10 @@ import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, BarChart3 } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
+import EventSelector from '../components/EventSelector';
 
 export default function Home() {
-  const { user: _user, userRole } = useAuth();
+  const { user: _user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = React.useState(false);
@@ -36,8 +37,9 @@ export default function Home() {
     );
   }
 
-  // If no event selected, guide organizers to wizard or coaches to select league
-  if (!selectedEvent) {
+  // Check league and event selection status
+  if (!selectedLeagueId) {
+    // No league selected - redirect to league selection
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -48,40 +50,51 @@ export default function Home() {
             <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
               Welcome to WooCombine!
             </h2>
+            <p className="text-gray-600 mb-6">
+              Please select a league to get started.
+            </p>
+            <button
+              onClick={() => navigate('/select-league')}
+              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+            >
+              Select League
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedEvent) {
+    // League selected but no event - show event selector
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-cmf-primary/30">
+            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-cmf-primary" />
+            </div>
+            <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
+              Select or Create an Event
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Choose an existing event or create a new one for your league.
+            </p>
             
-            {userRole === 'organizer' ? (
-              <>
-                <p className="text-gray-600 mb-6">
-                  Ready to create your first event? Our guided setup will walk you through creating an event, adding players, and sharing with coaches.
-                </p>
-                <div className="space-y-3">
-                  <button
-                    onClick={() => navigate('/onboarding/event')}
-                    className="w-full bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-2"
-                  >
-                    🚀 Start Guided Setup
-                  </button>
-                  <button
-                    onClick={() => navigate('/select-league')}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-lg transition"
-                  >
-                    Select Existing Event
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-600 mb-6">
-                  Click on "Select Event" in the header above to choose an event and get started.
-                </p>
-                <button
-                  onClick={() => navigate('/select-league')}
-                  className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
-                >
-                  Select Event
-                </button>
-              </>
-            )}
+            {/* Event Selection Interface */}
+            <EventSelector onEventSelected={(event) => {
+              console.log('Event selected:', event);
+              // Event is automatically set in EventContext
+            }} />
+            
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <button
+                onClick={() => navigate('/select-league')}
+                className="text-sm text-gray-600 hover:text-cmf-primary underline"
+              >
+                ← Switch League
+              </button>
+            </div>
           </div>
         </div>
       </div>
