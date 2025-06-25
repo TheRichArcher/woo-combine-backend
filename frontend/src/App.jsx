@@ -21,6 +21,9 @@ import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
+import CoachDashboard from "./pages/CoachDashboard";
+import Schedule from "./pages/Schedule";
+import Roster from "./pages/Roster";
 
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
@@ -43,18 +46,36 @@ function App() {
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
                 <Route path="/welcome" element={<Welcome />} />
                 
-                {/* PHASE 2: Soft redirects to unified Players page */}
+                {/* New Feature Routes */}
                 <Route 
                   path="/coach-dashboard" 
-                  element={<Navigate to="/players?tab=rankings" replace />} 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <CoachDashboard />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
                 />
                 <Route 
                   path="/roster" 
-                  element={<Navigate to="/players?tab=players" replace />} 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <Roster />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
                 />
                 <Route 
                   path="/schedule" 
-                  element={<Navigate to="/players?tab=players" replace />} 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <Schedule />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
                 />
                 
                 <Route

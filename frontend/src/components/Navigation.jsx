@@ -295,23 +295,43 @@ export default function Navigation() {
           </div>
 
           {/* Center-Right: Main Navigation Links - Always Visible */}
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-2 md:gap-4">
             <Link 
               to="/dashboard" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Home
             </Link>
             <Link 
               to="/players" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Players
             </Link>
+            <Link 
+              to="/roster" 
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+            >
+              Roster
+            </Link>
+            <Link 
+              to="/schedule" 
+              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+            >
+              Schedule
+            </Link>
+            {(userRole === 'coach' || userRole === 'organizer') && (
+              <Link 
+                to="/coach-dashboard" 
+                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                Rankings
+              </Link>
+            )}
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-sm md:text-base"
+                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
               >
                 Admin
               </Link>
