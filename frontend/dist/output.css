@@ -735,6 +735,10 @@ video {
   margin-left: 0.25rem;
 }
 
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
 .ml-4 {
   margin-left: 1rem;
 }
@@ -817,10 +821,6 @@ video {
 
 .h-16 {
   height: 4rem;
-}
-
-.h-2 {
-  height: 0.5rem;
 }
 
 .h-20 {
@@ -987,8 +987,12 @@ video {
   min-width: 0px;
 }
 
-.min-w-\[60px\] {
-  min-width: 60px;
+.min-w-\[40px\] {
+  min-width: 40px;
+}
+
+.min-w-\[50px\] {
+  min-width: 50px;
 }
 
 .min-w-\[80px\] {
@@ -1100,6 +1104,10 @@ video {
   cursor: pointer;
 }
 
+.touch-none {
+  touch-action: none;
+}
+
 .touch-manipulation {
   touch-action: manipulation;
 }
@@ -1110,12 +1118,6 @@ video {
 
 .list-disc {
   list-style-type: disc;
-}
-
-.appearance-none {
-  -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
 }
 
 .grid-cols-1 {
@@ -1685,6 +1687,10 @@ video {
   --tw-gradient-stops: var(--tw-gradient-from), #1e3a8a var(--tw-gradient-via-position), var(--tw-gradient-to);
 }
 
+.to-blue-500 {
+  --tw-gradient-to: #3b82f6 var(--tw-gradient-to-position);
+}
+
 .to-blue-700 {
   --tw-gradient-to: #1d4ed8 var(--tw-gradient-to-position);
 }
@@ -2172,6 +2178,10 @@ video {
   text-decoration-line: underline;
 }
 
+.accent-blue-600 {
+  accent-color: #2563eb;
+}
+
 .accent-cmf-primary {
   accent-color: #19c3e6;
 }
@@ -2328,17 +2338,17 @@ video {
   /* iOS recommendation for touch targets */
 }
 
-/* Mobile-optimized range slider styles */
+/* Mobile-optimized range slider styles - ONLY apply to sliders with specific classes */
 
-input[type="range"] {
+input[type="range"].custom-slider {
   -webkit-appearance: none;
   -moz-appearance: none;
        appearance: none;
 }
 
-/* Webkit browsers (Chrome, Safari, Edge) */
+/* Webkit browsers (Chrome, Safari, Edge) - ONLY for custom sliders */
 
-input[type="range"]::-webkit-slider-thumb {
+input[type="range"].custom-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 24px;
@@ -2352,9 +2362,9 @@ input[type="range"]::-webkit-slider-thumb {
   touch-action: manipulation;
 }
 
-/* Firefox */
+/* Firefox - ONLY for custom sliders */
 
-input[type="range"]::-moz-range-thumb {
+input[type="range"].custom-slider::-moz-range-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
@@ -2366,20 +2376,20 @@ input[type="range"]::-moz-range-thumb {
   border: none;
 }
 
-/* Remove track styling in Firefox */
+/* Remove track styling in Firefox - ONLY for custom sliders */
 
-input[type="range"]::-moz-range-track {
+input[type="range"].custom-slider::-moz-range-track {
   background: transparent;
   border: none;
 }
 
-/* Focus styles for accessibility */
+/* Focus styles for accessibility - ONLY for custom sliders */
 
-input[type="range"]:focus::-webkit-slider-thumb {
+input[type="range"].custom-slider:focus::-webkit-slider-thumb {
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
 }
 
-input[type="range"]:focus::-moz-range-thumb {
+input[type="range"].custom-slider:focus::-moz-range-thumb {
   box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.3);
 }
 
@@ -2387,6 +2397,44 @@ input[type="range"]:focus::-moz-range-thumb {
 
 .touch-manipulation {
   touch-action: manipulation;
+}
+
+/* Custom test slider styles - optimized for testing different slider approaches */
+
+.test-slider {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+       appearance: none;
+}
+
+.test-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border-radius: 50%;
+  cursor: grab;
+  margin-top: -4px;
+  border: none;
+}
+
+.test-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border: none;
+  border-radius: 50%;
+  cursor: grab;
+}
+
+.test-slider::-ms-thumb {
+  width: 16px;
+  height: 16px;
+  background: #b91c1c;
+  border: none;
+  border-radius: 50%;
+  cursor: grab;
 }
 
 .last\:border-b-0:last-child {

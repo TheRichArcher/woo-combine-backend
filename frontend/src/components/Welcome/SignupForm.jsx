@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -25,7 +25,7 @@ export default function SignupForm() {
       // Send verification email
       if (cred.user) {
         try {
-          await import("firebase/auth").then(mod => mod.sendEmailVerification(cred.user));
+          await sendEmailVerification(cred.user);
         } catch {
           // Email verification failed, but user account was created
         }
