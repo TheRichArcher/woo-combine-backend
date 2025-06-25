@@ -231,6 +231,21 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
 }
 
 function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sliderWeights, setSliderWeights, persistSliderWeights, handleWeightChange, activePreset, applyPreset }) {
+  // ✅ EXACT WORKING PATTERN: useRef + local state + defaultValue  
+  const modalSliderRefs = useRef({});
+  const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
+  
+  // Sync local weights when sliderWeights change
+  useEffect(() => {
+    setModalLocalWeights(sliderWeights);
+  }, [sliderWeights]);
+  
+  // Persist weights function for modal
+  const persistModalWeights = useCallback(() => {
+    persistSliderWeights(modalLocalWeights);
+    console.log("🏁 Modal persisting weights:", modalLocalWeights);
+  }, [modalLocalWeights, persistSliderWeights]);
+  
   // Use persisted weights for calculations
   const weights = persistedWeights;
 
@@ -419,23 +434,17 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
                         <div className="touch-none flex-1">
                           <input
                             type="range"
-                            min="0"
-                            max="100"
-                            step="1"
-                            defaultValue={sliderWeights[drill.key] ?? 50}
+                            ref={(el) => (modalSliderRefs.current[drill.key] = el)}
+                            defaultValue={modalLocalWeights[drill.key] ?? 50}
+                            min={0}
+                            max={100}
+                            step={1}
                             onInput={(e) => {
-                              const newVal = parseInt(e.target.value, 10);
-                              setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
-                              console.log(`💡 Modal weight changed: ${newVal}`);
+                              const newWeight = parseInt(e.target.value, 10);
+                              setModalLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
+                              console.log(`💡 Modal weight changed: ${newWeight}`);
                             }}
-                            onMouseUp={() => {
-                              persistSliderWeights(sliderWeights);
-                              console.log("🏁 Modal persisting weights:", sliderWeights);
-                            }}
-                            onTouchEnd={() => {
-                              persistSliderWeights(sliderWeights);
-                              console.log("🏁 Modal persisting weights:", sliderWeights);
-                            }}
+                            onPointerUp={persistModalWeights}
                             name={drill.key}
                             className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
                           />
@@ -444,7 +453,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
                           More important
                         </span>
                         <div className="text-sm font-bold text-cmf-primary min-w-[40px] text-center">
-                          {sliderWeights[drill.key] || 0}
+                          {modalLocalWeights[drill.key] || 0}
                         </div>
                       </div>
                     </div>
@@ -788,6 +797,21 @@ export default function Players() {
 
   // MobileWeightControls component for weight adjustments
   const MobileWeightControls = ({ showSliders = false }) => {
+    // ✅ EXACT WORKING PATTERN: useRef + local state + defaultValue
+    const sliderRefs = useRef({});
+    const [localWeights, setLocalWeights] = useState(sliderWeights);
+    
+    // Sync local weights when sliderWeights change
+    useEffect(() => {
+      setLocalWeights(sliderWeights);
+    }, [sliderWeights]);
+    
+    // Persist weights function
+    const persistWeights = useCallback(() => {
+      persistSliderWeights(localWeights);
+      console.log("🏁 Persisting weights:", localWeights);
+    }, [localWeights, persistSliderWeights]);
+    
     // Always call hooks at the top level before any conditional logic
     useEffect(() => {
       if (showSliders && !showCustomControls) {
@@ -858,30 +882,24 @@ export default function Players() {
                     <div className="text-xs text-gray-500">Higher = more important</div>
                   </div>
                   <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                    {sliderWeights[drill.key]}
+                    {localWeights[drill.key]}
                   </span>
                 </div>
                 
                 <div className="touch-none">
                   <input
                     type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    defaultValue={sliderWeights?.[drill.key] ?? 50}
+                    ref={(el) => (sliderRefs.current[drill.key] = el)}
+                    defaultValue={localWeights[drill.key] ?? 50}
+                    min={0}
+                    max={100}
+                    step={1}
                     onInput={(e) => {
-                      const newVal = parseInt(e.target.value, 10);
-                      setSliderWeights((prev) => ({ ...prev, [drill.key]: newVal }));
-                      console.log(`💡 Weight changed: ${newVal}`);
+                      const newWeight = parseInt(e.target.value, 10);
+                      setLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
+                      console.log(`💡 Weight changed: ${newWeight}`);
                     }}
-                    onMouseUp={() => {
-                      persistSliderWeights(sliderWeights);
-                      console.log("🏁 Persisting weights:", sliderWeights);
-                    }}
-                    onTouchEnd={() => {
-                      persistSliderWeights(sliderWeights);
-                      console.log("🏁 Persisting weights:", sliderWeights);
-                    }}
+                    onPointerUp={persistWeights}
                     name={drill.key}
                     className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
                   />
