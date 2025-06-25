@@ -217,7 +217,7 @@ export function AuthProvider({ children }) {
     } finally {
       setInitializing(false);
     }
-  }, [navigate, selectedLeagueId, leagueFetchInProgress]);
+  }, [navigate, selectedLeagueId]);
 
   // Firebase auth state change handler
   useEffect(() => {
