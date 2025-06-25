@@ -231,8 +231,11 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-function PlayerDetailsModal({ player, allPlayers, onClose, weights, updateWeight, activePreset, applyPreset }) {
+function PlayerDetailsModal({ player, allPlayers, onClose, sliderRef, handleInput, activePreset, applyPreset }) {
   if (!player || !allPlayers || allPlayers.length === 0) return null;
+  
+  // Get current weights from ref
+  const weights = sliderRef.current;
 
   const drillRankings = useMemo(() => {
     const rankings = {};
@@ -415,8 +418,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose, weights, updateWeight
                             min={0}
                             max={100}
                             step={1}
-                            value={weights[drill.key] || 0}
-                            onChange={e => updateWeight(drill.key, parseInt(e.target.value))}
+                            defaultValue={weights[drill.key] || 0}
+                            onInput={e => handleInput(drill.key, parseInt(e.target.value))}
                             className="w-full h-6 rounded-lg cursor-pointer accent-cmf-primary"
                           />
                         </div>
@@ -540,13 +543,16 @@ export default function Players() {
   const [rankingsLoading, setRankingsLoading] = useState(false);
   const [rankingsError, setRankingsError] = useState(null);
 
-  // 🚀 PERFORMANCE FIX: useRef for weight values (no re-renders during drag)
-  const weightRefs = useRef(WEIGHT_PRESETS.balanced.weights);
-  const [weightDisplay, setWeightDisplay] = useState(WEIGHT_PRESETS.balanced.weights);
+  // 🔒 MINIMAL PERFORMANCE FIX: useRef ONLY, zero state updates during drag
+  const sliderRef = useRef({
+    "40m_dash": 20,
+    "vertical_jump": 20, 
+    "catching": 20,
+    "throwing": 20,
+    "agility": 20
+  });
+  const updateTimeout = useRef(null);
   const [activePreset, setActivePreset] = useState('balanced');
-  
-  // Debounced expensive operations
-  const debouncedOperations = useRef(null);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   
@@ -558,29 +564,25 @@ export default function Players() {
   const isolatedSliderRef = useRef(50);
   const [isolatedSliderDisplay, setIsolatedSliderDisplay] = useState(50);
 
-  // 🚀 PERFORMANCE FIX: Instant slider updates with debounced expensive operations
-  const updateWeight = (drillKey, value) => {
-    console.log('🚀 INSTANT WEIGHT UPDATE:', drillKey, value, '- No re-render blocking!');
+  // 🔒 MINIMAL: Zero state updates during drag, only ref updates
+  const handleInput = (field, value) => {
+    // Update ref immediately (NO state updates, NO re-renders)
+    sliderRef.current[field] = value;
     
-    // Update ref immediately (no re-render)
-    weightRefs.current = { ...weightRefs.current, [drillKey]: value };
-    
-    // Update display state for visual feedback
-    setWeightDisplay(prev => ({ ...prev, [drillKey]: value }));
-    
-    // Clear active preset
+    // Clear active preset when manually adjusting
     setActivePreset('');
     
-    // Debounce expensive operations (API calls, rankings)
-    if (debouncedOperations.current) {
-      clearTimeout(debouncedOperations.current);
-    }
-    
-    debouncedOperations.current = setTimeout(() => {
-      console.log('🎯 DEBOUNCED: Now updating rankings after user stopped dragging');
-      // This will trigger the expensive useEffect, but only after user stops dragging
-      setRankings([]); // Force rankings recalculation if needed
-    }, 300); // 300ms after user stops dragging
+    // Delay ranking update - this is the ONLY place expensive operations happen
+    if (updateTimeout.current) clearTimeout(updateTimeout.current);
+    updateTimeout.current = setTimeout(() => {
+      console.log("✅ Rankings updated with weights:", sliderRef.current);
+      updateRankings(sliderRef.current);
+    }, 300); // Adjust debounce as needed
+  };
+
+  const updateRankings = (weights) => {
+    // This triggers the actual expensive recalculation
+    setRankings([]); // This will cause useEffect to run with new weights
   };
 
   const applyPreset = (presetKey) => {
@@ -588,16 +590,13 @@ export default function Players() {
       console.log('🎨 PRESET APPLIED:', presetKey);
       const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
       
-      // Update both ref and display immediately
-      weightRefs.current = newWeights;
-      setWeightDisplay(newWeights);
+      // Update ref immediately
+      sliderRef.current = newWeights;
       setActivePreset(presetKey);
       
-      // Trigger immediate recalculation for presets (user expects instant response)
-      if (debouncedOperations.current) {
-        clearTimeout(debouncedOperations.current);
-      }
-      setRankings([]); // Force rankings recalculation
+      // Trigger immediate recalculation for presets
+      if (updateTimeout.current) clearTimeout(updateTimeout.current);
+      updateRankings(newWeights);
     }
   };
 
@@ -654,16 +653,15 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // 🚀 PERFORMANCE OPTIMIZED: Now only triggers after debounced operations, not on every drag
+  // 🔒 CLEAN useEffect: Only tracks external changes, not slider state
   useEffect(() => {
-    console.log('🎯 OPTIMIZED useEffect - only runs after user stops dragging or preset changes');
-    const updateRankings = async () => {
+    const performRankingUpdate = async () => {
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent || activeTab !== 'rankings') {
         setRankings([]);
         return;
       }
       
-      console.log('🎯 API CALL with current weight values');
+      console.log('🔒 CLEAN API CALL with ref values only');
       setRankingsLoading(true);
       setRankingsError(null);
       
@@ -673,8 +671,8 @@ export default function Players() {
           event_id: selectedEvent.id 
         });
         
-        // Use current ref values for API calls
-        const currentWeights = weightRefs.current;
+        // Use current ref values for API calls (no state dependency)
+        const currentWeights = sliderRef.current;
         params.append("weight_40m_dash", currentWeights["40m_dash"].toString());
         params.append("weight_vertical_jump", currentWeights["vertical_jump"].toString());
         params.append("weight_catching", currentWeights["catching"].toString());
@@ -695,9 +693,9 @@ export default function Players() {
       }
     };
 
-    const timeoutId = setTimeout(updateRankings, 100);
-    return () => clearTimeout(timeoutId);
-  }, [selectedAgeGroup, rankings, user, selectedLeagueId, selectedEvent, activeTab, activePreset]);
+    // Only run when external factors change, NOT when sliders change
+    performRankingUpdate();
+  }, [selectedAgeGroup, user, selectedLeagueId, selectedEvent, activeTab]);
 
   const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
 
@@ -932,16 +930,34 @@ export default function Players() {
             
             {DRILLS.map((drill, index) => (
               index === 0 ? null : ( // Skip first drill to make room for test slider
-                <SimpleSlider
-                  key={drill.key}
-                  label={drill.label}
-                  value={weightDisplay[drill.key] || 0}
-                  displayValue={weightDisplay[drill.key] || 0}
-                  onChange={(newValue) => updateWeight(drill.key, newValue)}
-                  min={0}
-                  max={100}
-                  step={1}
-                />
+                <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                      <div className="text-xs text-gray-500">Higher = more important</div>
+                    </div>
+                    <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
+                      {sliderRef.current[drill.key]}
+                    </span>
+                  </div>
+                  
+                  <div className="touch-none">
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={1}
+                      defaultValue={sliderRef.current[drill.key]}
+                      onInput={(e) => handleInput(drill.key, Number(e.target.value))}
+                      className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
+                    />
+                  </div>
+                  
+                  <div className="flex justify-between text-xs text-gray-400 mt-2">
+                    <span>Less important</span>
+                    <span>More important</span>
+                  </div>
+                </div>
               )
             ))}
             
@@ -1120,8 +1136,8 @@ export default function Players() {
                 player={selectedPlayer} 
                 allPlayers={players} 
                 onClose={() => setSelectedPlayer(null)}
-                weights={weightDisplay}
-                updateWeight={updateWeight}
+                sliderRef={sliderRef}
+                handleInput={handleInput}
                 activePreset={activePreset}
                 applyPreset={applyPreset}
               />
