@@ -231,11 +231,11 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-function PlayerDetailsModal({ player, allPlayers, onClose, initialWeights, handleWeightChange, activePreset, applyPreset }) {
+function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, handleWeightChange, activePreset, applyPreset }) {
   if (!player || !allPlayers || allPlayers.length === 0) return null;
   
-  // Use initial weights for calculations (no state tracking)
-  const weights = initialWeights;
+  // Use persisted weights for calculations
+  const weights = persistedWeights;
 
   const drillRankings = useMemo(() => {
     const rankings = {};
@@ -417,6 +417,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, initialWeights, handl
                             type="range"
                             min="0"
                             max="100"
+                            key={`modal-${drill.key}-${weights[drill.key] || 0}`}
                             defaultValue={weights[drill.key] || 0}
                             onInput={(e) => {
                               console.log("💡 Weight changed:", e.target.value);
@@ -546,17 +547,22 @@ export default function Players() {
   const [rankingsLoading, setRankingsLoading] = useState(false);
   const [rankingsError, setRankingsError] = useState(null);
 
-  // ✅ ISOLATED SLIDER PATTERN: No useState/useRef tracking during movement
-  const initialWeights = {
+  // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
+  const [persistedWeights, setPersistedWeights] = useState({
     "40m_dash": 20,
     "vertical_jump": 20, 
     "catching": 20,
     "throwing": 20,
     "agility": 20
-  };
-  let weights = { ...initialWeights }; // Simple object, no state tracking
-  let timer = null; // Simple timer variable
+  });
+  const currentWeights = useRef({ ...persistedWeights }); // Track during drag
+  const timer = useRef(null); // Timer for debouncing
   const [activePreset, setActivePreset] = useState('balanced');
+
+  // Sync ref when persisted weights change (from presets, etc.)
+  useEffect(() => {
+    currentWeights.current = { ...persistedWeights };
+  }, [persistedWeights]);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   
@@ -568,41 +574,44 @@ export default function Players() {
   const isolatedSliderRef = useRef(50);
   const [isolatedSliderDisplay, setIsolatedSliderDisplay] = useState(50);
 
-  // ✅ EXACT WORKING PATTERN: Simple debounce with setTimeout
+  // ✅ WORKING SOLUTION: defaultValue + onInput + setTimeout to persist
   function handleWeightChange(name, value) {
     console.log("💡 Weight changed:", value);
-    weights[name] = value;
+    
+    // Update ref immediately (no re-render, no lag during drag)
+    currentWeights.current[name] = value;
 
-    // cancel previous timer
-    if (timer) clearTimeout(timer);
+    // Cancel previous timer
+    if (timer.current) clearTimeout(timer.current);
 
-    timer = setTimeout(() => {
-      updateRankings(weights); // actual backend call or sort logic
+    // Debounce persistence to avoid snapback
+    timer.current = setTimeout(() => {
+      console.log("🏁 Persisting weights:", currentWeights.current);
+      
+      // Persist to state (this causes re-render but after drag ends)
+      setPersistedWeights({ ...currentWeights.current });
+      
+      // Clear active preset after calculation
+      setActivePreset('');
+      
+      // Force rankings recalculation
+      setRankings([]);
     }, 300);
   }
-
-  const updateRankings = (currentWeights) => {
-    console.log("🏁 Rankings updated:", currentWeights);
-    
-    // Clear active preset after calculation
-    setActivePreset('');
-    
-    // Force rankings recalculation
-    setRankings([]);
-  };
 
   const applyPreset = (presetKey) => {
     if (WEIGHT_PRESETS[presetKey]) {
       console.log('🎨 PRESET APPLIED:', presetKey);
       const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
       
-      // Update weights object immediately
-      weights = newWeights;
+      // Update both ref and persisted state immediately for presets
+      currentWeights.current = newWeights;
+      setPersistedWeights(newWeights);
       setActivePreset(presetKey);
       
       // Trigger immediate recalculation for presets
-      if (timer) clearTimeout(timer);
-      updateRankings(newWeights);
+      if (timer.current) clearTimeout(timer.current);
+      setRankings([]); // Force rankings recalculation
     }
   };
 
@@ -677,13 +686,13 @@ export default function Players() {
           event_id: selectedEvent.id 
         });
         
-        // Use current weights object (completely decoupled from slider drag)
-        const currentWeights = weights;
-        params.append("weight_40m_dash", currentWeights["40m_dash"].toString());
-        params.append("weight_vertical_jump", currentWeights["vertical_jump"].toString());
-        params.append("weight_catching", currentWeights["catching"].toString());
-        params.append("weight_throwing", currentWeights["throwing"].toString());
-        params.append("weight_agility", currentWeights["agility"].toString());
+        // Use current weights from ref (completely decoupled from slider drag)
+        const weights = currentWeights.current;
+        params.append("weight_40m_dash", weights["40m_dash"].toString());
+        params.append("weight_vertical_jump", weights["vertical_jump"].toString());
+        params.append("weight_catching", weights["catching"].toString());
+        params.append("weight_throwing", weights["throwing"].toString());
+        params.append("weight_agility", weights["agility"].toString());
         
         const res = await api.get(`/rankings?${params.toString()}`);
         setRankings(res.data);
@@ -945,7 +954,7 @@ export default function Players() {
                       <div className="text-xs text-gray-500">Higher = more important</div>
                     </div>
                     <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                      {initialWeights[drill.key]}
+                      {persistedWeights[drill.key]}
                     </span>
                   </div>
                   
@@ -954,7 +963,8 @@ export default function Players() {
                       type="range"
                       min="0"
                       max="100"
-                      defaultValue={initialWeights[drill.key]}
+                      key={`${drill.key}-${persistedWeights[drill.key]}`}
+                      defaultValue={persistedWeights[drill.key]}
                       onInput={(e) => {
                         console.log("💡 Weight changed:", e.target.value);
                         handleWeightChange(e.target.name, Number(e.target.value));
@@ -1147,7 +1157,7 @@ export default function Players() {
                 player={selectedPlayer} 
                 allPlayers={players} 
                 onClose={() => setSelectedPlayer(null)}
-                initialWeights={initialWeights}
+                persistedWeights={persistedWeights}
                 handleWeightChange={handleWeightChange}
                 activePreset={activePreset}
                 applyPreset={applyPreset}
