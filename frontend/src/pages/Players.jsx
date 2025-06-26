@@ -371,7 +371,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
           </div>
           <div className="text-right mr-4">
             <div className="text-sm opacity-75">Overall Score</div>
-            <div className="text-2xl font-bold text-cmf-primary">{totalWeightedScore.toFixed(2)} pts</div>
+            <div className="text-2xl font-bold text-white">{totalWeightedScore.toFixed(2)} pts</div>
             <div className="text-xs opacity-75">Rank #{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
