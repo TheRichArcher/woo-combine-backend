@@ -51,21 +51,9 @@ const WEIGHT_PRESETS = {
 const TABS = [
   { 
     id: 'players', 
-    label: 'Player Management', 
+    label: 'Player Management & Rankings', 
     icon: Users,
-    description: 'View, edit, and manage individual players'
-  },
-  { 
-    id: 'live-rankings', 
-    label: 'Live Rankings', 
-    icon: TrendingUp,
-    description: 'Compact view with real-time ranking adjustments'
-  },
-  { 
-    id: 'rankings', 
-    label: 'Rankings & Analysis', 
-    icon: BarChart3,
-    description: 'Age group rankings with weight adjustments'
+    description: 'Manage players and analyze prospects with real-time weight adjustments'
   },
   { 
     id: 'exports', 
@@ -608,80 +596,93 @@ export default function Players() {
     }, {});
   }, [players]);
 
+  // Helper function to calculate rankings for a group of players
+  const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
+    // Filter players with at least one drill score
+    const playersWithScores = playersGroup.filter(player => 
+      DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    );
+    
+    if (playersWithScores.length === 0) {
+      return [];
+    }
+    
+    // Calculate min/max for each drill for normalization
+    const drillRanges = {};
+    DRILLS.forEach(drill => {
+      const values = playersWithScores
+        .map(p => p[drill.key])
+        .filter(val => val != null && typeof val === 'number');
+      
+      if (values.length > 0) {
+        drillRanges[drill.key] = {
+          min: Math.min(...values),
+          max: Math.max(...values)
+        };
+      }
+    });
+
+    // Calculate normalized weighted scores for each player
+    const rankedPlayers = playersWithScores.map(player => {
+      let totalWeightedScore = 0;
+      
+      DRILLS.forEach(drill => {
+        const rawScore = player[drill.key];
+        const weight = weights[drill.key] || 0;
+        const range = drillRanges[drill.key];
+        
+        if (rawScore != null && typeof rawScore === 'number' && range) {
+          let normalizedScore = 0;
+          
+          if (range.max === range.min) {
+            // All players have same score, give them all 50 (middle score)
+            normalizedScore = 50;
+          } else if (drill.key === "40m_dash") {
+            // For 40m dash: lower time = better score (invert the scale)
+            normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
+          } else {
+            // For other drills: higher value = better score
+            normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
+          }
+          
+          // Apply weight to normalized score
+          totalWeightedScore += normalizedScore * (weight / 100);
+        }
+      });
+      
+      return {
+        ...player,
+        weightedScore: totalWeightedScore
+      };
+    });
+    
+    // Sort by weighted score (highest first)
+    rankedPlayers.sort((a, b) => b.weightedScore - a.weightedScore);
+    
+    // Add rank numbers
+    return rankedPlayers.map((player, index) => ({
+      ...player,
+      rank: index + 1
+    }));
+  }, []);
+
   // 🏆 Live ranking calculation function
   const calculateLiveRankings = useCallback((weightsToUse = null) => {
     const weights = weightsToUse || currentWeights.current;
     const newRankings = {};
     
+    // Calculate "All Players" rankings first
+    const allPlayersWithScores = players.filter(player => 
+      DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    );
+    
+    if (allPlayersWithScores.length > 0) {
+      newRankings['all'] = calculateRankingsForGroup(allPlayersWithScores, weights);
+    }
+    
     // Process each age group
     Object.entries(grouped).forEach(([ageGroup, ageGroupPlayers]) => {
-      // Filter players with at least one drill score
-      const playersWithScores = ageGroupPlayers.filter(player => 
-        DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
-      );
-      
-      if (playersWithScores.length === 0) {
-        newRankings[ageGroup] = [];
-        return;
-      }
-      
-      // Calculate min/max for each drill for normalization
-      const drillRanges = {};
-      DRILLS.forEach(drill => {
-        const values = playersWithScores
-          .map(p => p[drill.key])
-          .filter(val => val != null && typeof val === 'number');
-        
-        if (values.length > 0) {
-          drillRanges[drill.key] = {
-            min: Math.min(...values),
-            max: Math.max(...values)
-          };
-        }
-      });
-
-      // Calculate normalized weighted scores for each player
-      const rankedPlayers = playersWithScores.map(player => {
-        let totalWeightedScore = 0;
-        
-        DRILLS.forEach(drill => {
-          const rawScore = player[drill.key];
-          const weight = weights[drill.key] || 0;
-          const range = drillRanges[drill.key];
-          
-          if (rawScore != null && typeof rawScore === 'number' && range) {
-            let normalizedScore = 0;
-            
-            if (range.max === range.min) {
-              // All players have same score, give them all 50 (middle score)
-              normalizedScore = 50;
-            } else if (drill.key === "40m_dash") {
-              // For 40m dash: lower time = better score (invert the scale)
-              normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
-            } else {
-              // For other drills: higher value = better score
-              normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
-            }
-            
-            // Apply weight to normalized score
-            totalWeightedScore += normalizedScore * (weight / 100);
-          }
-        });
-        
-        return {
-          ...player,
-          weightedScore: totalWeightedScore
-        };
-      });
-      
-      // Sort by weighted score (highest first)
-      rankedPlayers.sort((a, b) => b.weightedScore - a.weightedScore);
-      
-      // Add rank numbers
-      newRankings[ageGroup] = rankedPlayers.map((player, index) => ({
-        ...player,
-        rank: index + 1
-      }));
+      newRankings[ageGroup] = calculateRankingsForGroup(ageGroupPlayers, weights);
     });
     
     setLiveRankings(newRankings);
@@ -1094,7 +1095,9 @@ export default function Players() {
               (() => {
                 const availableAgeGroups = Object.keys(grouped);
                 const autoSelectedAgeGroup = selectedAgeGroup || availableAgeGroups[0];
-                const hasRankingsForGroup = liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
+                const hasRankingsForGroup = autoSelectedAgeGroup === 'all' 
+                  ? liveRankings['all'] && liveRankings['all'].length > 0
+                  : liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
                 
                 return (
                   <div className="space-y-4">
@@ -1116,6 +1119,7 @@ export default function Players() {
                           onChange={e => setSelectedAgeGroup(e.target.value)}
                           className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                         >
+                          <option value="all">All Players ({players.length} total)</option>
                           {availableAgeGroups.map(group => (
                             <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                           ))}
@@ -1199,7 +1203,7 @@ export default function Players() {
                           </div>
                           
                           <div className="space-y-1">
-                            {liveRankings[autoSelectedAgeGroup].slice(0, 10).map((player, index) => (
+                            {(autoSelectedAgeGroup === 'all' ? liveRankings['all'] : liveRankings[autoSelectedAgeGroup]).slice(0, 10).map((player, index) => (
                               <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                                 <div className={`font-bold w-6 text-center ${
                                   index === 0 ? "text-yellow-500" : 
@@ -1210,7 +1214,10 @@ export default function Players() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-gray-900 truncate">{player.name}</div>
-                                  <div className="text-xs text-gray-500">Player #{player.number || 'N/A'}</div>
+                                  <div className="text-xs text-gray-500">
+                                    Player #{player.number || 'N/A'}
+                                    {autoSelectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                  </div>
                                 </div>
                                 <div className="text-right">
                                   <div className="font-bold text-cmf-primary text-sm">
@@ -1245,20 +1252,23 @@ export default function Players() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                          👥 Manage Players ({autoSelectedAgeGroup})
+                          👥 Manage Players ({autoSelectedAgeGroup === 'all' ? 'All Players' : autoSelectedAgeGroup})
                           <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                            {grouped[autoSelectedAgeGroup]?.length || 0} players
+                            {autoSelectedAgeGroup === 'all' ? players.length : (grouped[autoSelectedAgeGroup]?.length || 0)} players
                           </span>
                         </h3>
                       </div>
                       
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {(grouped[autoSelectedAgeGroup] || []).map((player) => (
+                        {(autoSelectedAgeGroup === 'all' ? players : (grouped[autoSelectedAgeGroup] || [])).map((player) => (
                           <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <h4 className="font-semibold text-gray-900">{player.name}</h4>
-                                <p className="text-sm text-gray-600">Player #{player.number || 'N/A'}</p>
+                                <p className="text-sm text-gray-600">
+                                  Player #{player.number || 'N/A'}
+                                  {autoSelectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                </p>
                               </div>
                             </div>
                             
@@ -1332,327 +1342,7 @@ export default function Players() {
           </>
         )}
 
-        {activeTab === 'live-rankings' && (
-          <>
-            {/* Age Group Selection */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cmf-primary" />
-                  Live Prospect Rankings
-                </h2>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                  ⚡ Real-Time Updates
-                </span>
-              </div>
-              <p className="text-sm text-gray-600 mb-3">
-                Adjust drill priorities and see your top prospects instantly. Perfect for draft preparation and scouting.
-              </p>
-              <div className="flex items-center gap-3">
-                <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
-                <select
-                  value={selectedAgeGroup}
-                  onChange={e => setSelectedAgeGroup(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                >
-                  <option value="">Choose an age group for live rankings</option>
-                  {Object.keys(grouped).map(group => (
-                    <option key={group} value={group}>{group}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
-            {selectedAgeGroup && liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 && (userRole === 'organizer' || userRole === 'coach') ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Ultra-Compact Weight Controls */}
-                <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4" />
-                      <span className="font-semibold text-sm">Live Rankings: {selectedAgeGroup}</span>
-                    </div>
-                    <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                      {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
-                    </span>
-                  </div>
-                  
-                  {/* Preset Buttons - Single Row */}
-                  <div className="flex gap-1 mb-3">
-                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-                      <button
-                        key={key}
-                        onClick={() => applyPreset(key)}
-                        className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
-                          activePreset === key 
-                            ? 'border-white bg-white/20 text-white font-medium' 
-                            : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
-                        }`}
-                      >
-                        {preset.name}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Super Compact Sliders - Table Style */}
-                  <div className="bg-white/10 rounded p-2">
-                    <div className="grid grid-cols-5 gap-2 text-xs">
-                      {DRILLS.map((drill) => (
-                        <div key={drill.key} className="text-center">
-                          <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
-                          <input
-                            type="range"
-                            value={sliderWeights[drill.key] ?? 50}
-                            min={0}
-                            max={100}
-                            step={5}
-                            onChange={(e) => {
-                              const newWeight = parseInt(e.target.value, 10);
-                              const newWeights = { ...sliderWeights, [drill.key]: newWeight };
-                              setSliderWeights(newWeights);
-                              // Immediate live ranking update
-                              calculateLiveRankings(newWeights);
-                              setActivePreset(''); // Clear preset when manually adjusting
-                            }}
-                            className="w-full h-1 rounded cursor-pointer accent-white"
-                            style={{writingMode: 'bt-lr'}}
-                          />
-                          <div className="font-mono font-bold text-xs mt-1">
-                            {sliderWeights[drill.key] || 0}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Rankings Display - Immediate */}
-                <div className="p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-sm text-gray-900">Top Players</h4>
-                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
-                      ⚡ Live
-                    </span>
-                  </div>
-                  
-                  {rankingsLoading ? (
-                    <div className="text-center py-3">
-                      <div className="animate-spin inline-block w-4 h-4 border-2 border-gray-300 border-t-cmf-primary rounded-full"></div>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {liveRankings[selectedAgeGroup].slice(0, 8).map((player, index) => (
-                        <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                          <div className={`font-bold w-6 text-center ${
-                            index === 0 ? "text-yellow-500" : 
-                            index === 1 ? "text-gray-500" : 
-                            index === 2 ? "text-orange-500" : "text-gray-400"
-                          }`}>
-                            {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
-                          </div>
-                          <div className="flex-1 min-w-0 truncate font-medium text-gray-900">
-                            {player.name}
-                          </div>
-                          <div className="font-bold text-cmf-primary text-sm">
-                            {player.weightedScore.toFixed(1)}
-                          </div>
-                        </div>
-                      ))}
-                      
-                      {liveRankings[selectedAgeGroup].length > 8 && (
-                        <div className="text-center pt-2">
-                          <button
-                            onClick={() => setActiveTab('rankings')}
-                            className="text-xs text-cmf-primary hover:text-cmf-secondary font-medium"
-                          >
-                            View all {liveRankings[selectedAgeGroup].length} players →
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ) : selectedAgeGroup ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <div className="text-gray-500">
-                  {(!liveRankings[selectedAgeGroup] || liveRankings[selectedAgeGroup].length === 0) ? (
-                    <>
-                      <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="font-semibold text-gray-900 mb-2">🏃‍♂️ Ready for Prospect Analysis!</h3>
-                      <p className="mb-4">
-                        Players in <strong>{selectedAgeGroup}</strong> need drill scores to generate live rankings. 
-                        Once scores are recorded, you'll see your top prospects ranked in real-time as you adjust priorities.
-                      </p>
-                      <div className="space-y-2">
-                        <Link to="/live-entry" className="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                          📊 Start Recording Scores
-                        </Link>
-                        <p className="text-xs text-gray-500">
-                          Tip: Use preset buttons (Speed, Skills, Athletic) or adjust individual drill sliders
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="font-semibold text-gray-900 mb-2">Coach/Organizer Access Required</h3>
-                      <p>Weight adjustments are available for coaches and organizers only.</p>
-                    </>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <Filter className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">🏆 Find Your Top Prospects</h3>
-                <p className="text-gray-500 mb-3">
-                  Choose an age group above to see live rankings with real-time weight adjustments.
-                </p>
-                <div className="text-xs text-gray-400 space-y-1">
-                  <p>• Adjust drill priorities instantly</p>
-                  <p>• See rankings update in real-time</p>
-                  <p>• Perfect for draft preparation</p>
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === 'rankings' && (
-          <>
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                <Filter className="w-5 h-5 text-cmf-primary" />
-                Select Age Group
-              </h2>
-              <select
-                value={selectedAgeGroup}
-                onChange={e => setSelectedAgeGroup(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 p-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-              >
-                <option value="">Choose an age group to view rankings</option>
-                {Object.keys(grouped).map(group => (
-                  <option key={group} value={group}>{group}</option>
-                ))}
-              </select>
-            </div>
-            
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <div className="mb-6">
-                <MobileWeightControls showSliders={true} />
-                {!selectedAgeGroup && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                    <p className="text-blue-700 text-sm">
-                      💡 Select an age group above to view rankings with your current weight settings.
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {rankingsLoading ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
-                <div className="text-gray-500">Updating rankings...</div>
-              </div>
-            ) : rankingsError ? (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
-                <strong>Error:</strong> {rankingsError}
-              </div>
-            ) : selectedAgeGroup === "" ? (
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-500">
-                👆 Please select an age group above to view rankings and adjust weights.
-              </div>
-            ) : rankings.length === 0 ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
-                No players found for the <strong>{selectedAgeGroup}</strong> age group. Players may not have drill scores yet.
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900">Rankings ({selectedAgeGroup})</h2>
-                  <button
-                    onClick={() => {
-                      if (!selectedAgeGroup || rankings.length === 0) return;
-                      let csv = 'Rank,Name,Player Number,Composite Score\n';
-                      rankings.forEach(player => {
-                        csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
-                      });
-                      const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-                      const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
-                      const blob = new Blob([csv], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = filename;
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                      URL.revokeObjectURL(url);
-                    }}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm"
-                    disabled={rankings.length === 0}
-                  >
-                    Export as CSV
-                  </button>
-                </div>
-                
-                <div className="space-y-3">
-                  {rankings.map((player) => {
-                    const drillRankings = {};
-                    DRILLS.forEach(drill => {
-                      const drillRanks = rankings
-                        .filter(p => p[drill.key] != null)
-                        .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                        .sort((a, b) => {
-                          return drill.key === "40m_dash" ? a.score - b.score : b.score - a.score;
-                        });
-                      const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
-                      drillRankings[drill.key] = rank > 0 ? rank : null;
-                    });
-
-                    return (
-                      <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-3">
-                            <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : "text-gray-400"}`}>
-                              {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
-                            </span>
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                              <p className="text-sm text-gray-600">Player #{player.number}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500">Overall Score</div>
-                            <div className="font-mono font-bold text-lg text-cmf-primary">{player.composite_score.toFixed(2)}</div>
-                          </div>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
-                          {DRILLS.map(drill => (
-                            <div key={drill.key} className="bg-white rounded p-2 text-center">
-                              <div className="font-medium text-gray-700 mb-1">{drill.label}</div>
-                              {player[drill.key] != null ? (
-                                <div>
-                                  <div className="font-mono text-sm">{player[drill.key]}</div>
-                                  <div className="text-xs text-gray-500">#{drillRankings[drill.key] || '-'}</div>
-                                </div>
-                              ) : (
-                                <span className="text-gray-400">No score</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
 
         {activeTab === 'exports' && (
           <>
