@@ -1091,12 +1091,14 @@ export default function Players() {
           </p>
           
           <div className="flex gap-2 flex-wrap">
-            <Link
-              to="/live-entry"
-              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-            >
-              🚀 Live Entry
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link
+                to="/live-entry"
+                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+              >
+                🚀 Live Entry
+              </Link>
+            )}
             {userRole === 'organizer' && (
               <Link
                 to="/admin"
@@ -1110,44 +1112,142 @@ export default function Players() {
 
 
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
-          <div className="flex border-b border-gray-200">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-cmf-primary text-white border-b-2 border-cmf-primary'
-                      : 'text-gray-600 hover:text-cmf-primary hover:bg-gray-50'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
-                </button>
-              );
-            })}
-          </div>
-          
-          <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600">
-            {TABS.find(tab => tab.id === activeTab)?.description}
-          </div>
-        </div>
-
-        {activeTab === 'players' && (
-          <>
-            {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
-              (() => {
-                const availableAgeGroups = Object.keys(grouped);
-                const autoSelectedAgeGroup = selectedAgeGroup || 'all';
-                const hasRankingsForGroup = autoSelectedAgeGroup === 'all' 
-                  ? liveRankings['all'] && liveRankings['all'].length > 0
-                  : liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
-                
+        {/* Role-based interface - Tabs only for organizers/coaches */}
+        {(userRole === 'organizer' || userRole === 'coach') ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+            <div className="flex border-b border-gray-200">
+              {TABS.map((tab) => {
+                const Icon = tab.icon;
                 return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-cmf-primary text-white border-b-2 border-cmf-primary'
+                        : 'text-gray-600 hover:text-cmf-primary hover:bg-gray-50'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                  </button>
+                );
+              })}
+            </div>
+            
+            <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600">
+              {TABS.find(tab => tab.id === activeTab)?.description}
+            </div>
+          </div>
+        ) : (
+          /* Viewer header */
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-cmf-primary" />
+                Event Participants
+              </h2>
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                👁️ View Only
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 mt-1">
+              View all participants in this combine event
+            </p>
+          </div>
+        )}
+
+        {/* Content area - Role-based views */}
+        {userRole === 'viewer' ? (
+          /* Viewer-only interface - Read-only player list */
+          <div className="space-y-4">
+            {players.length > 0 ? (
+              <>
+                {/* Age Group Filter for Viewers */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center gap-3">
+                    <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
+                    <select
+                      value={selectedAgeGroup || 'all'}
+                      onChange={e => setSelectedAgeGroup(e.target.value)}
+                      className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                    >
+                      <option value="all">All Players ({players.length} total)</option>
+                      {Object.keys(grouped).map(group => (
+                        <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Read-only Player List */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    👥 Event Participants
+                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      {selectedAgeGroup === 'all' ? players.length : (grouped[selectedAgeGroup]?.length || 0)} players
+                    </span>
+                  </h3>
+                  
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {(selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || [])).map((player) => (
+                      <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                            <p className="text-sm text-gray-600">
+                              Player #{player.number || 'N/A'}
+                              {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            {player.composite_score != null ? (
+                              <div className="text-sm font-bold text-cmf-primary">
+                                {player.composite_score.toFixed(1)} pts
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500">No scores yet</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Info box for viewers */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 text-sm">ℹ️</span>
+                    </div>
+                    <div>
+                      <p className="text-blue-800 font-medium text-sm mb-1">Viewer Access</p>
+                      <p className="text-blue-700 text-sm">
+                        You have read-only access to view event participants and scores. 
+                        Contact your event organizer if you need additional access.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">No Participants Yet</h3>
+                <p className="text-gray-600">
+                  Players haven't been added to this event yet. Check back later!
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Organizer/Coach interface with tabs */
+          <>
+            {activeTab === 'players' && (
+              <>
+                {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
                   <div className="space-y-4">
                     {/* Age Group Selector */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -1163,26 +1263,26 @@ export default function Players() {
                       <div className="flex items-center gap-3">
                         <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
                         <select
-                          value={autoSelectedAgeGroup}
+                          value={selectedAgeGroup}
                           onChange={e => setSelectedAgeGroup(e.target.value)}
                           className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                         >
                           <option value="all">All Players ({players.length} total)</option>
-                          {availableAgeGroups.map(group => (
+                          {Object.keys(grouped).map(group => (
                             <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                           ))}
                         </select>
                       </div>
                     </div>
 
-                    {hasRankingsForGroup ? (
+                    {liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {/* Compact Weight Controls */}
                         <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <TrendingUp className="w-4 h-4" />
-                              <span className="font-semibold text-sm">Top Prospects: {autoSelectedAgeGroup}</span>
+                              <span className="font-semibold text-sm">Top Prospects: {selectedAgeGroup}</span>
                             </div>
                             <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
                               {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
@@ -1251,7 +1351,7 @@ export default function Players() {
                           </div>
                           
                           <div className="space-y-1">
-                            {(autoSelectedAgeGroup === 'all' ? liveRankings['all'] : liveRankings[autoSelectedAgeGroup]).slice(0, 10).map((player, index) => (
+                            {liveRankings[selectedAgeGroup].slice(0, 10).map((player, index) => (
                               <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                                 <div className={`font-bold w-6 text-center ${
                                   index === 0 ? "text-yellow-500" : 
@@ -1264,7 +1364,7 @@ export default function Players() {
                                   <div className="font-medium text-gray-900 truncate">{player.name}</div>
                                   <div className="text-xs text-gray-500">
                                     Player #{player.number || 'N/A'}
-                                    {autoSelectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                    {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
                                   </div>
                                 </div>
                                 <div className="text-right">
@@ -1292,7 +1392,7 @@ export default function Players() {
                         <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                         <h3 className="font-semibold text-gray-900 mb-2">🏃‍♂️ Ready for Analysis!</h3>
                         <p className="text-gray-600 mb-4">
-                          Players in <strong>{autoSelectedAgeGroup}</strong> need drill scores to generate rankings.
+                          Players in <strong>{selectedAgeGroup}</strong> need drill scores to generate rankings.
                         </p>
                         <Link to="/live-entry" className="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
                           📊 Start Recording Scores
@@ -1304,22 +1404,22 @@ export default function Players() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                          👥 Manage Players ({autoSelectedAgeGroup === 'all' ? 'All Players' : autoSelectedAgeGroup})
+                          👥 Manage Players ({selectedAgeGroup === 'all' ? 'All Players' : selectedAgeGroup})
                           <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                            {autoSelectedAgeGroup === 'all' ? players.length : (grouped[autoSelectedAgeGroup]?.length || 0)} players
+                            {selectedAgeGroup === 'all' ? players.length : (grouped[selectedAgeGroup]?.length || 0)} players
                           </span>
                         </h3>
                       </div>
                       
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {(autoSelectedAgeGroup === 'all' ? players : (grouped[autoSelectedAgeGroup] || [])).map((player) => (
+                        {(selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || [])).map((player) => (
                           <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                             <div className="flex items-center justify-between mb-2">
                               <div>
                                 <h4 className="font-semibold text-gray-900">{player.name}</h4>
                                 <p className="text-sm text-gray-600">
                                   Player #{player.number || 'N/A'}
-                                  {autoSelectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                  {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
                                 </p>
                               </div>
                             </div>
@@ -1359,19 +1459,20 @@ export default function Players() {
                       </div>
                     </div>
                   </div>
-                );
-              })()
-            ) : players.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <p className="text-gray-500">No players found for this event.</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Coach/Organizer Access Required</h3>
-                <p className="text-gray-500">Weight adjustments and prospect rankings are available for coaches and organizers only.</p>
-              </div>
+                ) : players.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                    <p className="text-gray-500">No players found for this event.</p>
+                  </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                    <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-2">Coach/Organizer Access Required</h3>
+                    <p className="text-gray-500">Weight adjustments and prospect rankings are available for coaches and organizers only.</p>
+                  </div>
+                )}
+              </>
             )}
+
 
 
             {selectedPlayer && (
