@@ -589,7 +589,6 @@ export default function Players() {
   
   // Live ranking state
   const [liveRankings, setLiveRankings] = useState({});
-  const [rankingUpdateBanner, setRankingUpdateBanner] = useState(false);
 
   // Sync ref and sliderWeights when persisted weights change (from presets, etc.)
   useEffect(() => {
@@ -662,10 +661,6 @@ export default function Players() {
     });
     
     setLiveRankings(newRankings);
-    
-    // Show update banner briefly
-    setRankingUpdateBanner(true);
-    setTimeout(() => setRankingUpdateBanner(false), 2000);
     
     return newRankings;
   }, [grouped]);
@@ -1040,15 +1035,7 @@ export default function Players() {
           </div>
         </div>
 
-        {/* 🏆 Ranking Update Banner */}
-        {rankingUpdateBanner && (
-          <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-4 py-3 rounded-lg mb-6 shadow-lg animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🏆</span>
-              <span className="font-medium">Rankings updated with new weight priorities!</span>
-            </div>
-          </div>
-        )}
+
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
           <div className="flex border-b border-gray-200">
