@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useEvent } from '../context/EventContext';
-import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Schedule() {
-  const { user } = useAuth();
-  const { selectedEvent } = useEvent();
-  const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
 

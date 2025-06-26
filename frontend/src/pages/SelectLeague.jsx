@@ -2,10 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
-import api from '../lib/api';
-import { useToast } from '../context/ToastContext';
-import LoadingScreen from '../components/LoadingScreen';
-import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export default function SelectLeague() {
   const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
@@ -14,7 +10,6 @@ export default function SelectLeague() {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
   const navigate = useNavigate();
-  const { showColdStartNotification, isColdStartActive } = useToast();
 
   useEffect(() => {
     if (contextLeagues && contextLeagues.length >= 0) {

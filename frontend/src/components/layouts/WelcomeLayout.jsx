@@ -14,7 +14,6 @@ import React from "react";
 import Logo from "../Logo";
 
 // This is the canonical onboarding layout for Woo-Combine. Changes to visual hierarchy or branding must be reviewed.
-// TODO: Can swap gradient for background video after MVP
 
 export default function WelcomeLayout({ 
   children, 

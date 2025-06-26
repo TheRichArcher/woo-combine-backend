@@ -25,7 +25,6 @@ def list_events(
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     current_user=Depends(get_current_user)
 ):
-    logging.info(f"[DEBUG] list_events called with league_id: '{league_id}' (length: {len(league_id)})")
     try:
         events_ref = db.collection("leagues").document(league_id).collection("events")
         # Add timeout to events retrieval
@@ -34,7 +33,7 @@ def list_events(
             timeout=10
         )
         events = [dict(e.to_dict(), id=e.id) for e in events_stream]
-        logging.info(f"[DEBUG] Found {len(events)} events for league {league_id}")
+        logging.info(f"Found {len(events)} events for league {league_id}")
         return {"events": events}
     except HTTPException:
         raise
@@ -48,7 +47,6 @@ def create_event(
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
-    logging.info(f"[DEBUG] create_event called with league_id: '{league_id}' (length: {len(league_id)})")
     try:
         name = req.get("name")
         date = req.get("date")
@@ -82,7 +80,7 @@ def create_event(
             timeout=10
         )
         
-        logging.info(f"[DEBUG] Created event {event_ref.id} in league {league_id}")
+        logging.info(f"Created event {event_ref.id} in league {league_id}")
         return {"event_id": event_ref.id}
     except HTTPException:
         raise
@@ -96,7 +94,6 @@ def get_event(
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
-    logging.info(f"[DEBUG] get_event called with league_id: '{league_id}', event_id: '{event_id}'")
     try:
         # Try to get event from league subcollection first
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
@@ -108,7 +105,7 @@ def get_event(
         if event_doc.exists:
             event_data = event_doc.to_dict()
             event_data["id"] = event_doc.id
-            logging.info(f"[DEBUG] Found event {event_id} in league {league_id}")
+            logging.info(f"Found event {event_id} in league {league_id}")
             return event_data
         
         # If not found in league subcollection, try top-level events collection
@@ -123,10 +120,10 @@ def get_event(
             event_data["id"] = event_doc.id
             # Verify it belongs to the requested league
             if event_data.get("league_id") == league_id:
-                logging.info(f"[DEBUG] Found event {event_id} in top-level collection for league {league_id}")
+                logging.info(f"Found event {event_id} in top-level collection for league {league_id}")
                 return event_data
         
-        logging.warning(f"[DEBUG] Event {event_id} not found in league {league_id}")
+        logging.warning(f"Event {event_id} not found in league {league_id}")
         raise HTTPException(status_code=404, detail="Event not found")
         
     except HTTPException:
@@ -142,7 +139,6 @@ def update_event(
     req: dict = None, 
     current_user=Depends(get_current_user)
 ):
-    logging.info(f"[DEBUG] update_event called with league_id: '{league_id}', event_id: '{event_id}'")
     try:
         name = req.get("name")
         date = req.get("date")
@@ -173,7 +169,7 @@ def update_event(
             timeout=10
         )
         
-        logging.info(f"[DEBUG] Updated event {event_id} in league {league_id}")
+        logging.info(f"Updated event {event_id} in league {league_id}")
         return {"message": "Event updated successfully"}
     except HTTPException:
         raise

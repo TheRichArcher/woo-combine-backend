@@ -224,7 +224,7 @@ function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   );
 }
 
-function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sliderWeights, setSliderWeights, persistSliderWeights, handleWeightChange, activePreset, applyPreset }) {
+function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sliderWeights, persistSliderWeights, activePreset, applyPreset }) {
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
   
@@ -615,9 +615,6 @@ export default function Players() {
   }, [location.search]);
   
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
-  const [rankings, setRankings] = useState([]);
-  const rankingsLoading = false;
-  const rankingsError = null;
 
   const [persistedWeights, setPersistedWeights] = useState({
     "40m_dash": 20,
@@ -762,9 +759,6 @@ export default function Players() {
       
       // 🏆 Trigger live ranking recalculation
       calculateLiveRankings(weights);
-      
-      // Force backend rankings recalculation
-      setRankings([]);
     }, 100);
   }, [calculateLiveRankings]);
 
@@ -785,9 +779,6 @@ export default function Players() {
       
       // 🏆 Trigger live ranking recalculation
       calculateLiveRankings(currentWeights.current);
-      
-      // Force backend rankings recalculation
-      setRankings([]);
     }, 300);
   }
 
@@ -805,8 +796,6 @@ export default function Players() {
       
       // 🏆 Trigger immediate live ranking recalculation
       calculateLiveRankings(newWeights);
-      
-      setRankings([]); // Force backend rankings recalculation
     }
   };
 

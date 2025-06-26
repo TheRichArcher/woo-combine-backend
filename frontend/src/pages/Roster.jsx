@@ -2,13 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
 export default function Roster() {
   const { user, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
-  const navigate = useNavigate();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
