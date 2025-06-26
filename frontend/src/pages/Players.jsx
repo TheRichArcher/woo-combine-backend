@@ -362,11 +362,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   }
 
   return (
-    <>
-      <div style={{position: 'fixed', top: 50, left: 10, zIndex: 10001, background: 'blue', color: 'white', padding: '10px'}}>
-        PLAYERDETAILSMODAL IS RENDERING FOR: {player.name}
-      </div>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
         <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
@@ -534,7 +530,6 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
         </div>
       </div>
     </div>
-    </>
   );
 }
 
@@ -1232,12 +1227,7 @@ export default function Players() {
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      console.log('View Details clicked for player:', player);
-                                      setSelectedPlayer(prevSelected => {
-                                        console.log('Previous selectedPlayer (View Details):', prevSelected?.name || 'None');
-                                        console.log('New selectedPlayer (View Details):', player.name);
-                                        return player;
-                                      });
+                                      setSelectedPlayer(player);
                                     }}
                                     className="text-xs text-blue-600 hover:text-blue-800"
                                   >
@@ -1291,13 +1281,7 @@ export default function Players() {
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
-                                  console.log('Button clicked for player:', player);
-                                  console.log('Setting selectedPlayer to:', player.name);
-                                  setSelectedPlayer(prevSelected => {
-                                    console.log('Previous selectedPlayer:', prevSelected?.name || 'None');
-                                    console.log('New selectedPlayer:', player.name);
-                                    return player;
-                                  });
+                                  setSelectedPlayer(player);
                                 }}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
@@ -1341,11 +1325,7 @@ export default function Players() {
               </div>
             )}
 
-            {selectedPlayer && (
-              <div style={{position: 'fixed', top: 10, left: 10, zIndex: 10000, background: 'red', color: 'white', padding: '10px'}}>
-                MODAL SHOULD RENDER FOR: {selectedPlayer.name}
-              </div>
-            )}
+
             {selectedPlayer && (
               <PlayerDetailsModal 
                 player={selectedPlayer} 
