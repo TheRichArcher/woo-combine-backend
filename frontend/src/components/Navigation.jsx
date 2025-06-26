@@ -275,17 +275,17 @@ export default function Navigation() {
           </div>
 
           {/* Center-Left: Event Name with Dropdown */}
-          <div className="flex-1 flex justify-start min-w-0">
+          <div className="flex-1 flex justify-start min-w-0 mr-2">
             <button
               onClick={handleEventDropdownClick}
-              className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-50 transition max-w-[200px]"
+              className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-50 transition min-w-0 max-w-full"
             >
-              <div className="text-left min-w-0">
+              <div className="text-left min-w-0 flex-1">
                 <div className="font-bold text-sm md:text-lg text-gray-900 truncate">
                   {selectedEvent?.name || 'Select Event'}
                 </div>
                 {selectedEvent?.location && (
-                  <div className="text-xs text-gray-500 truncate hidden sm:block">
+                  <div className="text-xs text-gray-500 truncate hidden lg:block">
                     {selectedEvent.location}
                   </div>
                 )}
@@ -294,8 +294,8 @@ export default function Navigation() {
             </button>
           </div>
 
-          {/* Center-Right: Main Navigation Links - Always Visible */}
-          <div className="flex items-center gap-2 md:gap-4">
+          {/* Center-Right: Main Navigation Links - Hidden on small mobile, shown on larger screens */}
+          <div className="hidden sm:flex items-center gap-2 md:gap-4">
             <Link 
               to="/dashboard" 
               className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
@@ -384,6 +384,44 @@ export default function Navigation() {
       {mobileOpen && (
         <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col py-4">
+            {/* Navigation Links on Mobile */}
+            <Link 
+              to="/dashboard" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Home
+            </Link>
+            <Link 
+              to="/players" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Players
+            </Link>
+            <Link 
+              to="/roster" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Roster
+            </Link>
+            <Link 
+              to="/schedule" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Schedule
+            </Link>
+            {userRole === 'organizer' && (
+              <Link 
+                to="/admin" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={closeMobile}
+              >
+                Admin
+              </Link>
+            )}
             <Link 
               to="/select-league" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
