@@ -316,7 +316,16 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   }, [drillRankings, player, weights]);
 
   // Return null after all hooks if conditions aren't met
-  if (!player || !allPlayers || allPlayers.length === 0) return null;
+  if (!player || !allPlayers || allPlayers.length === 0) {
+    console.log('PlayerDetailsModal: Missing required props', { 
+      hasPlayer: !!player, 
+      hasAllPlayers: !!allPlayers, 
+      allPlayersLength: allPlayers?.length 
+    });
+    return null;
+  }
+
+  console.log('PlayerDetailsModal: Rendering modal for player:', player.name);
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
 
@@ -1274,7 +1283,10 @@ export default function Players() {
                             
                             <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={() => setSelectedPlayer(player)}
+                                onClick={() => {
+                                  console.log('View Stats & Weights clicked for player:', player);
+                                  setSelectedPlayer(player);
+                                }}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
                                 View Stats & Weights
@@ -1318,18 +1330,21 @@ export default function Players() {
             )}
 
             {selectedPlayer && (
-              <PlayerDetailsModal 
-                player={selectedPlayer} 
-                allPlayers={players} 
-                onClose={() => setSelectedPlayer(null)}
-                persistedWeights={persistedWeights}
-                sliderWeights={sliderWeights}
-                setSliderWeights={setSliderWeights}
-                persistSliderWeights={persistSliderWeights}
-                handleWeightChange={handleWeightChange}
-                activePreset={activePreset}
-                applyPreset={applyPreset}
-              />
+              <>
+                {console.log('Rendering PlayerDetailsModal for:', selectedPlayer)}
+                <PlayerDetailsModal 
+                  player={selectedPlayer} 
+                  allPlayers={players} 
+                  onClose={() => setSelectedPlayer(null)}
+                  persistedWeights={persistedWeights}
+                  sliderWeights={sliderWeights}
+                  setSliderWeights={setSliderWeights}
+                  persistSliderWeights={persistSliderWeights}
+                  handleWeightChange={handleWeightChange}
+                  activePreset={activePreset}
+                  applyPreset={applyPreset}
+                />
+              </>
             )}
             {editingPlayer && (
               <EditPlayerModal
