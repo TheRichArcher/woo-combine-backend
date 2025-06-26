@@ -625,22 +625,46 @@ export default function Players() {
         return;
       }
       
-      // Calculate weighted scores for each player
+      // Calculate min/max for each drill for normalization
+      const drillRanges = {};
+      DRILLS.forEach(drill => {
+        const values = playersWithScores
+          .map(p => p[drill.key])
+          .filter(val => val != null && typeof val === 'number');
+        
+        if (values.length > 0) {
+          drillRanges[drill.key] = {
+            min: Math.min(...values),
+            max: Math.max(...values)
+          };
+        }
+      });
+
+      // Calculate normalized weighted scores for each player
       const rankedPlayers = playersWithScores.map(player => {
         let totalWeightedScore = 0;
         
         DRILLS.forEach(drill => {
           const rawScore = player[drill.key];
           const weight = weights[drill.key] || 0;
+          const range = drillRanges[drill.key];
           
-          if (rawScore != null && typeof rawScore === 'number') {
-            if (drill.key === "40m_dash") {
-              // Invert 40m dash (lower time = better)
-              const invertedScore = Math.max(0, 30 - rawScore);
-              totalWeightedScore += invertedScore * weight;
+          if (rawScore != null && typeof rawScore === 'number' && range) {
+            let normalizedScore = 0;
+            
+            if (range.max === range.min) {
+              // All players have same score, give them all 50 (middle score)
+              normalizedScore = 50;
+            } else if (drill.key === "40m_dash") {
+              // For 40m dash: lower time = better score (invert the scale)
+              normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
             } else {
-              totalWeightedScore += rawScore * weight;
+              // For other drills: higher value = better score
+              normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
             }
+            
+            // Apply weight to normalized score
+            totalWeightedScore += normalizedScore * (weight / 100);
           }
         });
         
