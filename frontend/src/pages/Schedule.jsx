@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Calendar, Users, MessageCircle, Video, Home as HomeIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function Schedule() {
   const { user } = useAuth();
@@ -10,16 +10,7 @@ export default function Schedule() {
   const navigate = useNavigate();
   const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  // Get user initials for the avatar
-  const getUserInitials = () => {
-    if (!user?.email) return 'RA';
-    const email = user.email;
-    const parts = email.split('@')[0].split('.');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
-  };
+
 
   // Mock schedule data - you can replace this with real data from your API
   const scheduleEvents = [
@@ -95,38 +86,8 @@ export default function Schedule() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white px-4 py-3 shadow-sm">
-        <div className="flex items-center justify-between">
-          {/* User Avatar */}
-          <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-            <span className="text-white font-bold text-lg">{getUserInitials()}</span>
-          </div>
-
-          {/* Event Title */}
-          <div className="flex-1 text-center">
-            <h1 className="text-xl font-bold text-gray-900">
-              {selectedEvent?.name || "Lil' Ballers Fall 24"}
-            </h1>
-            <div className="flex items-center justify-center mt-1">
-              <div className="w-4 h-3 bg-cmf-primary mr-2 flex items-center justify-center">
-                <span className="text-white text-xs font-bold">🏳️</span>
-              </div>
-              <p className="text-sm text-gray-600">Central Mass Flag (Worcester)</p>
-            </div>
-          </div>
-
-          {/* Settings Icon */}
-          <div className="w-8 h-8 flex items-center justify-center">
-            <div className="w-6 h-6 text-gray-400">
-              ⚙️
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
-      <div className="px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 mt-20">
         {/* Page Title */}
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Schedule</h2>
 
@@ -228,47 +189,7 @@ export default function Schedule() {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">
-        <div className="flex justify-around items-center">
-          <button 
-            onClick={() => navigate('/dashboard')}
-            className="flex flex-col items-center py-2"
-          >
-            <HomeIcon className="w-6 h-6 text-gray-400" />
-            <span className="text-xs text-gray-400 mt-1">Home</span>
-          </button>
-          
-          <button 
-            onClick={() => navigate('/roster')}
-            className="flex flex-col items-center py-2"
-          >
-            <Users className="w-6 h-6 text-gray-400" />
-            <span className="text-xs text-gray-400 mt-1">Roster</span>
-          </button>
-          
-          <button className="flex flex-col items-center py-2 relative">
-            <MessageCircle className="w-6 h-6 text-gray-400" />
-            <span className="text-xs text-gray-400 mt-1">Chat</span>
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-              <span className="text-xs text-white font-bold">3</span>
-            </div>
-          </button>
-          
-          <button className="flex flex-col items-center py-2">
-            <Calendar className="w-6 h-6 text-purple-600" />
-            <span className="text-xs text-purple-600 font-medium mt-1">Schedule</span>
-          </button>
-          
-          <button className="flex flex-col items-center py-2">
-            <Video className="w-6 h-6 text-gray-400" />
-            <span className="text-xs text-gray-400 mt-1">Media</span>
-          </button>
-        </div>
-      </div>
 
-      {/* Add bottom padding to account for fixed nav */}
-      <div className="h-20"></div>
     </div>
   );
 } 
