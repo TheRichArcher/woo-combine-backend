@@ -5,7 +5,7 @@ import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar } 
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
-  { key: "40m_dash", label: "40M Dash", unit: "sec", lowerIsBetter: true },
+  { key: "40m_dash", label: "40-Yard Dash", unit: "sec", lowerIsBetter: true },
   { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false },
   { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false },
   { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false },

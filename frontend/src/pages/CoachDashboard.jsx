@@ -16,7 +16,7 @@ const DRILL_WEIGHTS = {
 };
 
 const DRILLS = [
-  { key: "40m_dash", label: "40M Dash" },
+  { key: "40m_dash", label: "40-Yard Dash" },
   { key: "vertical_jump", label: "Vertical Jump" },
   { key: "catching", label: "Catching" },
   { key: "throwing", label: "Throwing" },
@@ -425,7 +425,7 @@ export default function CoachDashboard() {
                     <th className="py-3 px-2">Name</th>
                     <th className="py-3 px-2">Player #</th>
                     <th className="py-3 px-2">Overall Score</th>
-                    <th className="py-3 px-2 text-center">40M Dash</th>
+                                                <th className="py-3 px-2 text-center">40-Yard Dash</th>
                     <th className="py-3 px-2 text-center">Vertical</th>
                     <th className="py-3 px-2 text-center">Catching</th>
                     <th className="py-3 px-2 text-center">Throwing</th>

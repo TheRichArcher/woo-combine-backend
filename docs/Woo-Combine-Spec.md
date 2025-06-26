@@ -36,7 +36,7 @@ Drill Results
 
 Record results for:
 
-40M Dash
+40-Yard Dash
 
 Vertical Jump
 
@@ -54,7 +54,7 @@ A weighted score is calculated per player based on drill results.
 
 Coaches can adjust weights on the dashboard.
 
-Default weights are: Dash 30%, Vertical 20%, Catching 15%, Throwing 15%, Agility 20%.
+Default weights are: 40-Yard Dash 30%, Vertical 20%, Catching 15%, Throwing 15%, Agility 20%.
 
 Rankings are recalculated live based on weight adjustments.
 

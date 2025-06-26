@@ -4,7 +4,7 @@ import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 
 const DRILL_TYPES = [
-  { value: "40m_dash", label: "40M Dash" },
+  { value: "40m_dash", label: "40-Yard Dash" },
   { value: "vertical_jump", label: "Vertical Jump" },
   { value: "catching", label: "Catching" },
   { value: "throwing", label: "Throwing" },

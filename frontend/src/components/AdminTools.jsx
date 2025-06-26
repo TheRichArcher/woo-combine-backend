@@ -873,7 +873,7 @@ export default function AdminTools() {
           <div className="space-y-3">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="space-y-2 text-sm text-gray-700">
-                <p>• <strong>5 Drill Types:</strong> 40M Dash, Vertical Jump, Catching, Throwing, Agility</p>
+                <p>• <strong>5 Drill Types:</strong> 40-Yard Dash, Vertical Jump, Catching, Throwing, Agility</p>
                 <p>• <strong>Auto-Complete:</strong> Type player number for instant lookup</p>
                 <p>• <strong>Smart Features:</strong> Duplicate detection, undo functionality, recent entries</p>
                 <p>• <strong>Mobile Optimized:</strong> Large touch targets, number pad inputs</p>

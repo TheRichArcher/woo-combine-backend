@@ -10,7 +10,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 
 const DRILLS = [
-  { key: "40m_dash", label: "40M Dash", unit: "sec" },
+  { key: "40m_dash", label: "40-Yard Dash", unit: "sec" },
   { key: "vertical_jump", label: "Vertical Jump", unit: "in" },
   { key: "catching", label: "Catching", unit: "pts" },
   { key: "throwing", label: "Throwing", unit: "pts" },
@@ -315,7 +315,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
             // All players have same score, give them all 50 (middle score)
             normalizedScore = 50;
           } else if (drill.key === "40m_dash") {
-            // For 40m dash: lower time = better score (invert the scale)
+            // For 40-yard dash: lower time = better score (invert the scale)
             normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
           } else {
             // For other drills: higher value = better score
@@ -693,7 +693,7 @@ export default function Players() {
             // All players have same score, give them all 50 (middle score)
             normalizedScore = 50;
           } else if (drill.key === "40m_dash") {
-            // For 40m dash: lower time = better score (invert the scale)
+            // For 40-yard dash: lower time = better score (invert the scale)
             normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
           } else {
             // For other drills: higher value = better score
@@ -1424,7 +1424,7 @@ export default function Players() {
                     const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
                     const handleExportCsv = () => {
                       if (ageGroupPlayers.length === 0) return;
-                      let csv = 'Rank,Name,Player Number,Composite Score,40M Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                      let csv = 'Rank,Name,Player Number,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
                       ageGroupPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {

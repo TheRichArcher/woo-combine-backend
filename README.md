@@ -77,7 +77,7 @@ visit https://woo-combine.com
 
 - **League Management**: Create and join leagues with invite codes
 - **Player Management**: CSV upload, manual entry, detailed profiles
-- **Drill Results**: 40m dash, vertical jump, catching, throwing, agility
+- **Drill Results**: 40-yard dash, vertical jump, catching, throwing, agility
 - **Real-time Rankings**: Weighted scoring with customizable presets
 - **Event Scheduling**: Complete event lifecycle management
 - **Role-based Access**: Organizer and coach permissions
