@@ -803,7 +803,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
+  }, [selectedEvent, user, selectedLeagueId]);
 
   useEffect(() => {
     fetchPlayers();
@@ -1229,7 +1229,16 @@ export default function Players() {
                                     {player.weightedScore.toFixed(1)}
                                   </div>
                                   <button
-                                    onClick={() => setSelectedPlayer(player)}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      console.log('View Details clicked for player:', player);
+                                      setSelectedPlayer(prevSelected => {
+                                        console.log('Previous selectedPlayer (View Details):', prevSelected?.name || 'None');
+                                        console.log('New selectedPlayer (View Details):', player.name);
+                                        return player;
+                                      });
+                                    }}
                                     className="text-xs text-blue-600 hover:text-blue-800"
                                   >
                                     View Details
@@ -1279,12 +1288,16 @@ export default function Players() {
                             
                             <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={() => {
-                                  alert(`Clicked for ${player.name}. Current selectedPlayer: ${selectedPlayer?.name || 'None'}`);
-                                  setSelectedPlayer(player);
-                                  setTimeout(() => {
-                                    alert(`After setState - selectedPlayer should be: ${player.name}`);
-                                  }, 100);
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  console.log('Button clicked for player:', player);
+                                  console.log('Setting selectedPlayer to:', player.name);
+                                  setSelectedPlayer(prevSelected => {
+                                    console.log('Previous selectedPlayer:', prevSelected?.name || 'None');
+                                    console.log('New selectedPlayer:', player.name);
+                                    return player;
+                                  });
                                 }}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
