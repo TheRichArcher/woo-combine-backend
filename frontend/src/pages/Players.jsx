@@ -362,8 +362,12 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+    <>
+      <div style={{position: 'fixed', top: 50, left: 10, zIndex: 10001, background: 'blue', color: 'white', padding: '10px'}}>
+        PLAYERDETAILSMODAL IS RENDERING FOR: {player.name}
+      </div>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
+        <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
@@ -530,6 +534,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
         </div>
       </div>
     </div>
+    </>
   );
 }
 
@@ -1274,7 +1279,13 @@ export default function Players() {
                             
                             <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={() => setSelectedPlayer(player)}
+                                onClick={() => {
+                                  alert(`Clicked for ${player.name}. Current selectedPlayer: ${selectedPlayer?.name || 'None'}`);
+                                  setSelectedPlayer(player);
+                                  setTimeout(() => {
+                                    alert(`After setState - selectedPlayer should be: ${player.name}`);
+                                  }, 100);
+                                }}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
                                 View Stats & Weights
@@ -1317,6 +1328,11 @@ export default function Players() {
               </div>
             )}
 
+            {selectedPlayer && (
+              <div style={{position: 'fixed', top: 10, left: 10, zIndex: 10000, background: 'red', color: 'white', padding: '10px'}}>
+                MODAL SHOULD RENDER FOR: {selectedPlayer.name}
+              </div>
+            )}
             {selectedPlayer && (
               <PlayerDetailsModal 
                 player={selectedPlayer} 
