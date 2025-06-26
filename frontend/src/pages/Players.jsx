@@ -1195,102 +1195,102 @@ export default function Players() {
 
             {selectedAgeGroup && rankings.length > 0 && (userRole === 'organizer' || userRole === 'coach') ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Compact Weight Controls */}
-                <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <TrendingUp className="w-5 h-5" />
-                    <h3 className="font-semibold">Live Rankings: {selectedAgeGroup}</h3>
+                {/* Ultra-Compact Weight Controls */}
+                <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="font-semibold text-sm">Live Rankings: {selectedAgeGroup}</span>
+                    </div>
                     <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
                       {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
                     </span>
                   </div>
                   
-                  {/* Preset Buttons - Compact */}
-                  <div className="grid grid-cols-4 gap-2 mb-3">
+                  {/* Preset Buttons - Single Row */}
+                  <div className="flex gap-1 mb-3">
                     {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
                       <button
                         key={key}
                         onClick={() => applyPreset(key)}
-                        className={`p-2 text-xs rounded-lg border transition-all ${
+                        className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
                           activePreset === key 
-                            ? 'border-white bg-white/20 text-white' 
+                            ? 'border-white bg-white/20 text-white font-medium' 
                             : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
                         }`}
                       >
-                        <div className="font-medium">{preset.name}</div>
+                        {preset.name}
                       </button>
                     ))}
                   </div>
 
-                  {/* Compact Sliders */}
-                  <div className="space-y-2">
-                    {DRILLS.map((drill) => (
-                      <div key={drill.key} className="flex items-center gap-3">
-                        <div className="w-20 text-xs font-medium">{drill.label}</div>
-                        <div className="flex-1">
+                  {/* Super Compact Sliders - Table Style */}
+                  <div className="bg-white/10 rounded p-2">
+                    <div className="grid grid-cols-5 gap-2 text-xs">
+                      {DRILLS.map((drill) => (
+                        <div key={drill.key} className="text-center">
+                          <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
                           <input
                             type="range"
                             defaultValue={sliderWeights[drill.key] ?? 50}
                             min={0}
                             max={100}
-                            step={1}
+                            step={5}
                             onInput={(e) => {
                               const newWeight = parseInt(e.target.value, 10);
                               setSliderWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
                             }}
                             onPointerUp={() => persistSliderWeights(sliderWeights)}
-                            className="w-full h-2 rounded-lg cursor-pointer accent-white"
+                            className="w-full h-1 rounded cursor-pointer accent-white"
+                            style={{writingMode: 'bt-lr'}}
                           />
+                          <div className="font-mono font-bold text-xs mt-1">
+                            {sliderWeights[drill.key] || 0}
+                          </div>
                         </div>
-                        <div className="w-8 text-xs font-mono font-bold text-right">
-                          {sliderWeights[drill.key] || 0}
-                        </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                {/* Live Rankings Display */}
-                <div className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-semibold text-gray-900">Top Players</h4>
+                {/* Live Rankings Display - Immediate */}
+                <div className="p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-semibold text-sm text-gray-900">Top Players</h4>
                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
-                      ⚡ Live Updates
+                      ⚡ Live
                     </span>
                   </div>
                   
                   {rankingsLoading ? (
-                    <div className="text-center py-4">
+                    <div className="text-center py-3">
                       <div className="animate-spin inline-block w-4 h-4 border-2 border-gray-300 border-t-cmf-primary rounded-full"></div>
-                      <div className="text-sm text-gray-500 mt-1">Updating...</div>
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {rankings.slice(0, 10).map((player, index) => (
-                        <div key={player.player_id} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                          <div className={`font-bold text-lg w-8 text-center ${
+                    <div className="space-y-1">
+                      {rankings.slice(0, 8).map((player, index) => (
+                        <div key={player.player_id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                          <div className={`font-bold w-6 text-center ${
                             index === 0 ? "text-yellow-500" : 
                             index === 1 ? "text-gray-500" : 
                             index === 2 ? "text-orange-500" : "text-gray-400"
                           }`}>
-                            {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `#${index + 1}`}
+                            {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900 truncate">{player.name}</div>
-                            <div className="text-xs text-gray-500">Player #{player.number}</div>
+                          <div className="flex-1 min-w-0 truncate font-medium text-gray-900">
+                            {player.name}
                           </div>
-                          <div className="text-right">
-                            <div className="font-bold text-cmf-primary">{player.composite_score.toFixed(1)}</div>
-                            <div className="text-xs text-gray-500">pts</div>
+                          <div className="font-bold text-cmf-primary text-sm">
+                            {player.composite_score.toFixed(1)}
                           </div>
                         </div>
                       ))}
                       
-                      {rankings.length > 10 && (
-                        <div className="text-center py-2">
+                      {rankings.length > 8 && (
+                        <div className="text-center pt-2">
                           <button
                             onClick={() => setActiveTab('rankings')}
-                            className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium"
+                            className="text-xs text-cmf-primary hover:text-cmf-secondary font-medium"
                           >
                             View all {rankings.length} players →
                           </button>
