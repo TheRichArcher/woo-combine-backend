@@ -320,14 +320,7 @@ export default function Navigation() {
             >
               Schedule
             </Link>
-            {(userRole === 'coach' || userRole === 'organizer') && (
-              <Link 
-                to="/coach-dashboard" 
-                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-              >
-                Rankings
-              </Link>
-            )}
+
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
