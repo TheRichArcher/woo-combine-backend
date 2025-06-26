@@ -279,6 +279,26 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   const weightedBreakdown = useMemo(() => {
     if (!player || !allPlayers || allPlayers.length === 0) return [];
     
+    // Calculate drill ranges for normalization (same age group only)
+    const ageGroupPlayers = allPlayers.filter(p => 
+      p && p.age_group === player.age_group && 
+      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+    );
+    
+    const drillRanges = {};
+    DRILLS.forEach(drill => {
+      const values = ageGroupPlayers
+        .map(p => p[drill.key])
+        .filter(val => val != null && typeof val === 'number');
+      
+      if (values.length > 0) {
+        drillRanges[drill.key] = {
+          min: Math.min(...values),
+          max: Math.max(...values)
+        };
+      }
+    });
+    
     return DRILLS.map(drill => {
       try {
         const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
@@ -287,13 +307,23 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
         const weight = weights[drill.key] || 0;
         let weightedScore = 0;
         
-        if (rawScore != null) {
-          if (drill.key === "40m_dash") {
-            const invertedScore = Math.max(0, 30 - rawScore);
-            weightedScore = invertedScore * weight;
+        if (rawScore != null && drillRanges[drill.key]) {
+          const range = drillRanges[drill.key];
+          let normalizedScore = 0;
+          
+          if (range.max === range.min) {
+            // All players have same score, give them all 50 (middle score)
+            normalizedScore = 50;
+          } else if (drill.key === "40m_dash") {
+            // For 40m dash: lower time = better score (invert the scale)
+            normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
           } else {
-            weightedScore = rawScore * weight;
+            // For other drills: higher value = better score
+            normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
           }
+          
+          // Apply weight as percentage to normalized score
+          weightedScore = normalizedScore * (weight / 100);
         }
         
         return {
@@ -313,7 +343,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
         };
       }
     });
-  }, [drillRankings, player, weights]);
+  }, [drillRankings, player, weights, allPlayers]);
 
   // Return null after all hooks if conditions aren't met
   if (!player || !allPlayers || allPlayers.length === 0) return null;
@@ -331,19 +361,44 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
     );
     
     if (ageGroupPlayers.length > 0) {
+      // Calculate drill ranges for normalized scoring
+      const playersWithAnyScore = ageGroupPlayers.filter(p => 
+        DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+      );
+      
+      const drillRanges = {};
+      DRILLS.forEach(drill => {
+        const values = playersWithAnyScore
+          .map(p => p[drill.key])
+          .filter(val => val != null && typeof val === 'number');
+        
+        if (values.length > 0) {
+          drillRanges[drill.key] = {
+            min: Math.min(...values),
+            max: Math.max(...values)
+          };
+        }
+      });
+      
       const playersWithScores = ageGroupPlayers.map(p => {
         try {
           const score = DRILLS.reduce((sum, drill) => {
-            const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : 0;
+            const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
             const weight = weights[drill.key] || 0;
+            const range = drillRanges[drill.key];
             
-            if (drillScore > 0) {
-              if (drill.key === "40m_dash") {
-                const invertedScore = Math.max(0, 30 - drillScore);
-                return sum + (invertedScore * weight);
+            if (drillScore != null && range) {
+              let normalizedScore = 0;
+              
+              if (range.max === range.min) {
+                normalizedScore = 50;
+              } else if (drill.key === "40m_dash") {
+                normalizedScore = ((range.max - drillScore) / (range.max - range.min)) * 100;
               } else {
-                return sum + (drillScore * weight);
+                normalizedScore = ((drillScore - range.min) / (range.max - range.min)) * 100;
               }
+              
+              return sum + (normalizedScore * (weight / 100));
             }
             return sum;
           }, 0);
