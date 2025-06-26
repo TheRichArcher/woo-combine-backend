@@ -1178,6 +1178,18 @@ export default function Players() {
           <>
             {/* Age Group Selection */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                  Live Prospect Rankings
+                </h2>
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                  ⚡ Real-Time Updates
+                </span>
+              </div>
+              <p className="text-sm text-gray-600 mb-3">
+                Adjust drill priorities and see your top prospects instantly. Perfect for draft preparation and scouting.
+              </p>
               <div className="flex items-center gap-3">
                 <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
                 <select
@@ -1193,7 +1205,7 @@ export default function Players() {
               </div>
             </div>
 
-            {selectedAgeGroup && rankings.length > 0 && (userRole === 'organizer' || userRole === 'coach') ? (
+            {selectedAgeGroup && liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 && (userRole === 'organizer' || userRole === 'coach') ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 {/* Ultra-Compact Weight Controls */}
                 <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
@@ -1232,15 +1244,18 @@ export default function Players() {
                           <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
                           <input
                             type="range"
-                            defaultValue={sliderWeights[drill.key] ?? 50}
+                            value={sliderWeights[drill.key] ?? 50}
                             min={0}
                             max={100}
                             step={5}
-                            onInput={(e) => {
+                            onChange={(e) => {
                               const newWeight = parseInt(e.target.value, 10);
-                              setSliderWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
+                              const newWeights = { ...sliderWeights, [drill.key]: newWeight };
+                              setSliderWeights(newWeights);
+                              // Immediate live ranking update
+                              calculateLiveRankings(newWeights);
+                              setActivePreset(''); // Clear preset when manually adjusting
                             }}
-                            onPointerUp={() => persistSliderWeights(sliderWeights)}
                             className="w-full h-1 rounded cursor-pointer accent-white"
                             style={{writingMode: 'bt-lr'}}
                           />
@@ -1268,8 +1283,8 @@ export default function Players() {
                     </div>
                   ) : (
                     <div className="space-y-1">
-                      {rankings.slice(0, 8).map((player, index) => (
-                        <div key={player.player_id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                      {liveRankings[selectedAgeGroup].slice(0, 8).map((player, index) => (
+                        <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                           <div className={`font-bold w-6 text-center ${
                             index === 0 ? "text-yellow-500" : 
                             index === 1 ? "text-gray-500" : 
@@ -1281,18 +1296,18 @@ export default function Players() {
                             {player.name}
                           </div>
                           <div className="font-bold text-cmf-primary text-sm">
-                            {player.composite_score.toFixed(1)}
+                            {player.weightedScore.toFixed(1)}
                           </div>
                         </div>
                       ))}
                       
-                      {rankings.length > 8 && (
+                      {liveRankings[selectedAgeGroup].length > 8 && (
                         <div className="text-center pt-2">
                           <button
                             onClick={() => setActiveTab('rankings')}
                             className="text-xs text-cmf-primary hover:text-cmf-secondary font-medium"
                           >
-                            View all {rankings.length} players →
+                            View all {liveRankings[selectedAgeGroup].length} players →
                           </button>
                         </div>
                       )}
@@ -1303,14 +1318,22 @@ export default function Players() {
             ) : selectedAgeGroup ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                 <div className="text-gray-500">
-                  {rankings.length === 0 ? (
+                  {(!liveRankings[selectedAgeGroup] || liveRankings[selectedAgeGroup].length === 0) ? (
                     <>
                       <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="font-semibold text-gray-900 mb-2">No Rankings Available</h3>
-                      <p>Players in <strong>{selectedAgeGroup}</strong> need drill scores to see live rankings.</p>
-                      <Link to="/live-entry" className="mt-4 inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                        Start Recording Scores
-                      </Link>
+                      <h3 className="font-semibold text-gray-900 mb-2">🏃‍♂️ Ready for Prospect Analysis!</h3>
+                      <p className="mb-4">
+                        Players in <strong>{selectedAgeGroup}</strong> need drill scores to generate live rankings. 
+                        Once scores are recorded, you'll see your top prospects ranked in real-time as you adjust priorities.
+                      </p>
+                      <div className="space-y-2">
+                        <Link to="/live-entry" className="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                          📊 Start Recording Scores
+                        </Link>
+                        <p className="text-xs text-gray-500">
+                          Tip: Use preset buttons (Speed, Skills, Athletic) or adjust individual drill sliders
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -1324,8 +1347,15 @@ export default function Players() {
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                 <Filter className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="font-semibold text-gray-900 mb-2">Select Age Group</h3>
-                <p className="text-gray-500">Choose an age group above to see live rankings with real-time weight adjustments.</p>
+                <h3 className="font-semibold text-gray-900 mb-2">🏆 Find Your Top Prospects</h3>
+                <p className="text-gray-500 mb-3">
+                  Choose an age group above to see live rankings with real-time weight adjustments.
+                </p>
+                <div className="text-xs text-gray-400 space-y-1">
+                  <p>• Adjust drill priorities instantly</p>
+                  <p>• See rankings update in real-time</p>
+                  <p>• Perfect for draft preparation</p>
+                </div>
               </div>
             )}
           </>
