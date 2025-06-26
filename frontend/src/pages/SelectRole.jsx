@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -26,13 +26,40 @@ export default function SelectRole() {
   const logout = useLogout();
   const db = getFirestore();
   
-  // Simple check for pending event invitation
+  // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
   const isInvitedUser = !!pendingEventJoin;
   
-
+  // Extract intended role from invitation data
+  let intendedRole = null;
+  if (pendingEventJoin) {
+    const parts = pendingEventJoin.split('/');
+    // Check if last part is a role (coach or viewer)
+    const lastPart = parts[parts.length - 1];
+    if (lastPart === 'coach' || lastPart === 'viewer') {
+      intendedRole = lastPart;
+    }
+  }
   
-  const roleOptions = isInvitedUser ? INVITED_ROLE_OPTIONS : ALL_ROLE_OPTIONS;
+  // Determine available role options based on invitation
+  let roleOptions;
+  if (intendedRole) {
+    // Role is enforced - only show the intended role
+    roleOptions = ALL_ROLE_OPTIONS.filter(opt => opt.key === intendedRole);
+  } else if (isInvitedUser) {
+    // General invitation - show coach/viewer options
+    roleOptions = INVITED_ROLE_OPTIONS;
+  } else {
+    // Regular user - show all options
+    roleOptions = ALL_ROLE_OPTIONS;
+  }
+
+  // Auto-select role if it's enforced
+  useEffect(() => {
+    if (intendedRole && !selectedRole) {
+      setSelectedRole(intendedRole);
+    }
+  }, [intendedRole, selectedRole]);
 
   if (!user) {
     return (
@@ -118,7 +145,17 @@ export default function SelectRole() {
         {/* Header */}
         <h1 className="text-2xl font-bold mb-4 text-gray-900">Choose Your Role</h1>
         
-        {isInvitedUser ? (
+        {intendedRole ? (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-amber-600">🔒</span>
+              <p className="text-amber-800 font-medium text-sm">Role Pre-Selected for Security</p>
+            </div>
+            <p className="text-amber-700 text-sm">
+              You've been invited as a <strong>{intendedRole === 'coach' ? 'Coach' : 'Viewer'}</strong>. This role has been pre-selected to ensure proper access permissions.
+            </p>
+          </div>
+        ) : isInvitedUser ? (
           <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-800 text-sm">
               You've been invited to join an event! Please select your role to continue.
@@ -136,6 +173,7 @@ export default function SelectRole() {
             <strong>Debug Info:</strong><br/>
             pendingEventJoin: {pendingEventJoin || 'none'}<br/>
             isInvitedUser: {isInvitedUser ? 'true' : 'false'}<br/>
+            intendedRole: {intendedRole || 'none'}<br/>
             roleOptions: {roleOptions.length} options
           </div>
         )}
@@ -173,7 +211,7 @@ export default function SelectRole() {
             className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
             disabled={!selectedRole || loading}
           >
-            {loading ? 'Saving...' : 'Continue'}
+            {loading ? 'Saving...' : intendedRole ? `Continue as ${intendedRole === 'coach' ? 'Coach' : 'Viewer'}` : 'Continue'}
           </button>
 
           <button

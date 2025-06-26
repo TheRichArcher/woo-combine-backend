@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
 import { Copy, QrCode } from 'lucide-react';
 
 export default function EventJoinCode({ event, league }) {
+  const [selectedRole, setSelectedRole] = useState('coach');
+
   if (!event || !league) return null;
 
   const joinCode = event.id;
-  const joinUrl = `https://woo-combine.com/join-event/${league.id}/${event.id}`;
+  const baseJoinUrl = `https://woo-combine.com/join-event/${league.id}/${event.id}`;
+  const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -27,43 +30,89 @@ export default function EventJoinCode({ event, league }) {
           </div>
         </div>
 
+        {/* Role-specific QR Code Section */}
         <div className="mb-4">
+          <div className="font-semibold text-gray-700 mb-3">Secure Role-Based Invitations:</div>
+          
+          {/* Role Selection */}
+          <div className="flex bg-gray-100 rounded-lg p-1 mb-3">
+            <button
+              onClick={() => setSelectedRole('coach')}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                selectedRole === 'coach'
+                  ? 'bg-blue-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              👨‍🏫 Coach
+            </button>
+            <button
+              onClick={() => setSelectedRole('viewer')}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
+                selectedRole === 'viewer'
+                  ? 'bg-green-600 text-white shadow-sm'
+                  : 'text-gray-600 hover:text-gray-800'
+              }`}
+            >
+              👥 Viewer
+            </button>
+          </div>
+
+          {/* QR Code Display */}
           <div className="flex justify-center mb-2">
             <div className="bg-white p-4 rounded-lg border">
-              <QRCode value={joinUrl} size={160} />
+              <QRCode value={roleJoinUrl} size={160} />
             </div>
           </div>
+          
+          <div className="text-xs mb-2">
+            <span className={`font-medium ${selectedRole === 'coach' ? 'text-blue-600' : 'text-green-600'}`}>
+              {selectedRole === 'coach' ? '🔵 COACH ACCESS' : '🟢 VIEWER ACCESS'} QR CODE
+            </span>
+          </div>
           <div className="text-xs text-gray-500">
-            Scan to join: {joinUrl}
+            {roleJoinUrl}
           </div>
         </div>
 
         <div className="flex flex-col gap-2 mb-4">
           <button
-            onClick={() => copyToClipboard(joinCode)}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition flex items-center justify-center gap-2"
+            onClick={() => copyToClipboard(roleJoinUrl)}
+            className={`text-white px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
+              selectedRole === 'coach' 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-green-600 hover:bg-green-700'
+            }`}
           >
             <Copy className="w-4 h-4" />
-            Copy Event Code
+            Copy {selectedRole === 'coach' ? 'Coach' : 'Viewer'} Link
           </button>
           <button
-            onClick={() => copyToClipboard(joinUrl)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-2"
+            onClick={() => copyToClipboard(baseJoinUrl)}
+            className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2 text-sm"
           >
             <QrCode className="w-4 h-4" />
-            Copy Join Link
+            Copy General Link (Legacy)
           </button>
         </div>
 
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
+          <div className="text-amber-800 text-xs">
+            <p className="font-medium mb-1">🔒 Security Feature:</p>
+            <p>Role-specific QR codes prevent unauthorized access escalation. Share Coach codes only with trusted staff.</p>
+          </div>
+        </div>
+
         <div className="text-green-700 font-semibold text-sm">
-          🏆 Share this code or QR with coaches to join this combine event!
+          🏆 Share the appropriate QR code based on the access level needed!
         </div>
       </div>
 
       <div className="text-sm text-gray-600 mb-4">
         <strong>Next steps:</strong>
         <ul className="list-disc list-inside mt-2 text-left">
-          <li>Share the code/QR with your coaches</li>
+          <li>Share Coach QR codes with refs and staff</li>
+          <li>Share Viewer QR codes with parents and spectators</li>
           <li>Upload player roster in the Admin section</li>
           <li>Start recording drill results</li>
         </ul>

@@ -8,7 +8,7 @@ import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import api from '../lib/api';
 
 export default function JoinEvent() {
-  const { leagueId, eventId } = useParams();
+  const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
   const { user, leagues, addLeague, setSelectedLeagueId, userRole } = useAuth();
   const { setSelectedEvent } = useEvent();
@@ -20,9 +20,25 @@ export default function JoinEvent() {
 
   useEffect(() => {
     const handleEventJoin = async () => {
-      // Clean parameter extraction
-      const actualLeagueId = leagueId && eventId ? leagueId : null;
-      const actualEventId = eventId || leagueId; // Handle both URL formats
+      // Clean parameter extraction - handle multiple URL formats
+      let actualLeagueId, actualEventId, intendedRole;
+      
+      if (role) {
+        // New format: /join-event/{leagueId}/{eventId}/{role}
+        actualLeagueId = leagueId;
+        actualEventId = eventId;
+        intendedRole = role;
+      } else if (leagueId && eventId) {
+        // Previous format: /join-event/{leagueId}/{eventId}
+        actualLeagueId = leagueId;
+        actualEventId = eventId;
+        intendedRole = null; // Let user choose
+      } else {
+        // Legacy format: /join-event/{eventId}
+        actualLeagueId = null;
+        actualEventId = leagueId; // eventId is actually in leagueId param
+        intendedRole = null;
+      }
       
 
       
@@ -35,8 +51,13 @@ export default function JoinEvent() {
 
       // Check authentication first
       if (!user) {
-        // Store invitation data for after login
-        const inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
+        // Store invitation data for after login including intended role
+        let inviteData;
+        if (intendedRole) {
+          inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}/${intendedRole}` : `${actualEventId}/${intendedRole}`;
+        } else {
+          inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
+        }
         localStorage.setItem('pendingEventJoin', inviteData);
 
         // CRITICAL FIX: Redirect to signup for invited users (they're typically new)
@@ -142,7 +163,7 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [leagueId, eventId, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole]);
+  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole]);
 
   if (loading) {
     return <LoadingScreen size="medium" />;

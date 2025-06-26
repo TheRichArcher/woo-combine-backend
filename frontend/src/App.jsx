@@ -180,6 +180,7 @@ function App() {
                   </RequireAuth>
                 } />
                 <Route path="/onboarding/event" element={<RequireAuth><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/join-event/:leagueId/:eventId/:role" element={<JoinEvent />} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />
                 

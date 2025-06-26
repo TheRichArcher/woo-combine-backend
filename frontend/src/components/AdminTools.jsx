@@ -92,7 +92,7 @@ export default function AdminTools() {
   const fileInputRef = useRef();
 
   // Invite to League section state
-  const [showQr, setShowQr] = useState(false);
+  const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
   
   // Generate consistent invite links
   const inviteLink = (() => {
@@ -351,9 +351,11 @@ export default function AdminTools() {
   };
 
   // Copy functionality with notifications
-  const handleCopyInviteLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    showSuccess('📋 Invite link copied to clipboard!');
+  const handleCopyInviteLink = (role) => {
+    const linkToCopy = role ? `${inviteLink}/${role}` : inviteLink;
+    navigator.clipboard.writeText(linkToCopy);
+    const roleText = role ? ` (${role.charAt(0).toUpperCase() + role.slice(1)})` : '';
+    showSuccess(`📋 Invite link${roleText} copied to clipboard!`);
   };
 
   if (userRole !== 'organizer') {
@@ -784,67 +786,138 @@ export default function AdminTools() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-            <h2 className="text-lg font-semibold text-gray-900">Invite Coaches to Event</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Invite People to Event</h2>
           </div>
           
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-blue-600 text-sm">🎯</span>
+              <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-amber-600 text-sm">🔒</span>
               </div>
               <div>
-                <p className="text-blue-800 font-medium text-sm mb-1">Direct Event Invitation</p>
-                <p className="text-blue-700 text-sm">
-                  Share the QR code or link to invite coaches directly to this specific event. They'll see Coach/Viewer role options only.
+                <p className="text-amber-800 font-medium text-sm mb-1">Secure Role-Based Invitations</p>
+                <p className="text-amber-700 text-sm">
+                  Share the appropriate QR code based on the access level you want to grant. This prevents unauthorized role escalation.
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="bg-gray-50 rounded-lg p-4">
+          <div className="space-y-6">
+            {/* Coach Invitations */}
+            <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-blue-600 text-lg">👨‍🏫</span>
+                <h3 className="text-lg font-semibold text-blue-900">Coach Invitations</h3>
+                <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">Read/Write Access</span>
+              </div>
+              <p className="text-blue-800 text-sm mb-3">
+                For refs, coaches, and staff who need to view and modify drill scores
+              </p>
+              
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Invitation Link</label>
-                  <div className="bg-white border border-gray-300 rounded-lg p-3 text-sm text-center break-all">
-                    {inviteLink || 'Loading...'}
+                  <label className="block text-sm font-medium text-blue-700 mb-1">Coach Invitation Link</label>
+                  <div className="bg-white border border-blue-200 rounded-lg p-3 text-sm text-center break-all">
+                    {inviteLink ? `${inviteLink}/coach` : 'Loading...'}
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={handleCopyInviteLink}
-                    className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+                    onClick={() => handleCopyInviteLink('coach')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                     disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
-                    Copy Link
+                    Copy Coach Link
                   </button>
                   <button
                     onClick={() => {
-                      setShowQr(!showQr);
-                      if (!showQr) showInfo('📱 QR code displayed - coaches can scan to join');
+                      setShowQr(showQr === 'coach' ? false : 'coach');
+                      if (showQr !== 'coach') showInfo('📱 Coach QR code displayed');
                     }}
-                    className="bg-cmf-secondary hover:bg-cmf-primary text-white font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                   >
                     <QrCode className="w-4 h-4" />
-                    Show QR
+                    Coach QR
                   </button>
                 </div>
                 
-                {showQr && (
-                  <div className="bg-white rounded-lg p-4 text-center border border-gray-200">
-                    <QRCode key={inviteLink} value={inviteLink} size={150} className="mx-auto mb-2" />
-                    <p className="text-xs text-gray-500">Coaches can scan this QR code to join</p>
+                {showQr === 'coach' && (
+                  <div className="bg-white rounded-lg p-4 text-center border border-blue-200">
+                    <QRCode key={`${inviteLink}/coach`} value={`${inviteLink}/coach`} size={150} className="mx-auto mb-2" />
+                    <p className="text-xs text-blue-600 font-medium">🔵 COACH ACCESS QR CODE</p>
+                    <p className="text-xs text-gray-500">Grants read/write permissions</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Viewer Invitations */}
+            <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-green-600 text-lg">👥</span>
+                <h3 className="text-lg font-semibold text-green-900">Viewer Invitations</h3>
+                <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Read-Only Access</span>
+              </div>
+              <p className="text-green-800 text-sm mb-3">
+                For parents, siblings, and spectators who should only view results
+              </p>
+              
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-green-700 mb-1">Viewer Invitation Link</label>
+                  <div className="bg-white border border-green-200 rounded-lg p-3 text-sm text-center break-all">
+                    {inviteLink ? `${inviteLink}/viewer` : 'Loading...'}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleCopyInviteLink('viewer')}
+                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    disabled={!inviteLink}
+                  >
+                    <Copy className="w-4 h-4" />
+                    Copy Viewer Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowQr(showQr === 'viewer' ? false : 'viewer');
+                      if (showQr !== 'viewer') showInfo('📱 Viewer QR code displayed');
+                    }}
+                    className="bg-green-500 hover:bg-green-600 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    Viewer QR
+                  </button>
+                </div>
+                
+                {showQr === 'viewer' && (
+                  <div className="bg-white rounded-lg p-4 text-center border border-green-200">
+                    <QRCode key={`${inviteLink}/viewer`} value={`${inviteLink}/viewer`} size={150} className="mx-auto mb-2" />
+                    <p className="text-xs text-green-600 font-medium">🟢 VIEWER ACCESS QR CODE</p>
+                    <p className="text-xs text-gray-500">Grants read-only permissions</p>
                   </div>
                 )}
               </div>
             </div>
             
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-green-800 text-sm">
-                <strong>Share with coaches:</strong> They can scan the QR code or click the invitation link to join this specific event directly.
-              </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-gray-600 text-sm">💡</span>
+                </div>
+                <div>
+                  <p className="text-gray-800 font-medium text-sm mb-1">Security Best Practices</p>
+                  <ul className="text-gray-700 text-xs space-y-1">
+                    <li>• Share <strong>Coach QR codes</strong> only with trusted staff who need to enter/modify scores</li>
+                    <li>• Share <strong>Viewer QR codes</strong> with parents and spectators for read-only access</li>
+                    <li>• Each QR code enforces the intended role - no way to escalate permissions</li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
