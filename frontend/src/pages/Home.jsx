@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Users, BarChart3 } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
 import EventSelector from '../components/EventSelector';
+import LeagueFallback from '../context/LeagueFallback';
 
 export default function Home() {
-  const { user: _user, userRole, selectedLeagueId } = useAuth();
-  const { selectedEvent } = useEvent();
+  const { user: _user, userRole, selectedLeagueId, leagues } = useAuth();
+  const { selectedEvent, noLeague } = useEvent();
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = React.useState(false);
 
@@ -39,7 +40,12 @@ export default function Home() {
 
   // Check league and event selection status
   if (!selectedLeagueId) {
-    // No league selected - redirect to league selection
+    // Check if user has no leagues at all (new user) - show guided setup
+    if (noLeague || (leagues && leagues.length === 0)) {
+      return <LeagueFallback />;
+    }
+    
+    // User has leagues but none selected - redirect to league selection
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
