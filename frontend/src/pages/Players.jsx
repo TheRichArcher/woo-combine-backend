@@ -1071,16 +1071,221 @@ export default function Players() {
 
         {activeTab === 'players' && (
           <>
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <div className="mb-6">
-                <MobileWeightControls showSliders={true} />
-                {players.length === 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2">
-                    <p className="text-yellow-700 text-sm">
-                      💡 Weight controls are ready! They'll affect player rankings once you add players to your event.
-                    </p>
+            {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
+              // Auto-select first age group for immediate prospect evaluation
+              (() => {
+                const availableAgeGroups = Object.keys(grouped);
+                const autoSelectedAgeGroup = selectedAgeGroup || availableAgeGroups[0];
+                const hasRankingsForGroup = liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
+                
+                // Auto-set the selected age group if not already set
+                if (!selectedAgeGroup && availableAgeGroups.length > 0) {
+                  setSelectedAgeGroup(availableAgeGroups[0]);
+                }
+                
+                return (
+                  <div className="space-y-4">
+                    {/* Age Group Selector */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                          Player Management & Prospect Rankings
+                        </h2>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                          ⚡ Real-Time
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
+                        <select
+                          value={autoSelectedAgeGroup}
+                          onChange={e => setSelectedAgeGroup(e.target.value)}
+                          className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                        >
+                          {availableAgeGroups.map(group => (
+                            <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    {hasRankingsForGroup ? (
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        {/* Compact Weight Controls */}
+                        <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <TrendingUp className="w-4 h-4" />
+                              <span className="font-semibold text-sm">Top Prospects: {autoSelectedAgeGroup}</span>
+                            </div>
+                            <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                              {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+                            </span>
+                          </div>
+                          
+                          {/* Preset Buttons */}
+                          <div className="flex gap-1 mb-3">
+                            {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                              <button
+                                key={key}
+                                onClick={() => applyPreset(key)}
+                                className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
+                                  activePreset === key 
+                                    ? 'border-white bg-white/20 text-white font-medium' 
+                                    : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
+                                }`}
+                              >
+                                {preset.name}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Compact Sliders */}
+                          <div className="bg-white/10 rounded p-2">
+                            <div className="grid grid-cols-5 gap-2 text-xs">
+                              {DRILLS.map((drill) => (
+                                <div key={drill.key} className="text-center">
+                                  <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
+                                  <input
+                                    type="range"
+                                    value={sliderWeights[drill.key] ?? 50}
+                                    min={0}
+                                    max={100}
+                                    step={5}
+                                    onChange={(e) => {
+                                      const newWeight = parseInt(e.target.value, 10);
+                                      const newWeights = { ...sliderWeights, [drill.key]: newWeight };
+                                      setSliderWeights(newWeights);
+                                      calculateLiveRankings(newWeights);
+                                      setActivePreset('');
+                                    }}
+                                    className="w-full h-1 rounded cursor-pointer accent-white"
+                                  />
+                                  <div className="font-mono font-bold text-xs mt-1">
+                                    {sliderWeights[drill.key] || 0}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Live Rankings */}
+                        <div className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="font-semibold text-sm text-gray-900">Top Prospects</h4>
+                            <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
+                              ⚡ Live
+                            </span>
+                          </div>
+                          
+                          <div className="space-y-1">
+                            {liveRankings[autoSelectedAgeGroup].slice(0, 10).map((player, index) => (
+                              <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                                <div className={`font-bold w-6 text-center ${
+                                  index === 0 ? "text-yellow-500" : 
+                                  index === 1 ? "text-gray-500" : 
+                                  index === 2 ? "text-orange-500" : "text-gray-400"
+                                }`}>
+                                  {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-gray-900 truncate">{player.name}</div>
+                                  <div className="text-xs text-gray-500">Player #{player.number || 'N/A'}</div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-bold text-cmf-primary text-sm">
+                                    {player.weightedScore.toFixed(1)}
+                                  </div>
+                                  <button
+                                    onClick={() => setSelectedPlayer(player)}
+                                    className="text-xs text-blue-600 hover:text-blue-800"
+                                  >
+                                    View Details
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                        <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                        <h3 className="font-semibold text-gray-900 mb-2">🏃‍♂️ Ready for Analysis!</h3>
+                        <p className="text-gray-600 mb-4">
+                          Players in <strong>{autoSelectedAgeGroup}</strong> need drill scores to generate rankings.
+                        </p>
+                        <Link to="/live-entry" className="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                          📊 Start Recording Scores
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Player Management Section */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                          👥 Manage Players ({autoSelectedAgeGroup})
+                          <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            {grouped[autoSelectedAgeGroup]?.length || 0} players
+                          </span>
+                        </h3>
+                      </div>
+                      
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {(grouped[autoSelectedAgeGroup] || []).map((player) => (
+                          <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <div>
+                                <h4 className="font-semibold text-gray-900">{player.name}</h4>
+                                <p className="text-sm text-gray-600">Player #{player.number || 'N/A'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                onClick={() => setSelectedPlayer(player)}
+                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                              >
+                                View Stats & Weights
+                              </button>
+                              <button
+                                onClick={() => setEditingPlayer(player)}
+                                className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => toggleForm(player.id)}
+                                className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                              >
+                                Add Result
+                              </button>
+                            </div>
+                            
+                            {expandedPlayerIds[player.id] && (
+                              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mt-3">
+                                <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                )}
+                );
+              })()
+            ) : players.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <p className="text-gray-500">No players found for this event.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">Coach/Organizer Access Required</h3>
+                <p className="text-gray-500">Weight adjustments and prospect rankings are available for coaches and organizers only.</p>
               </div>
             )}
 
@@ -1105,71 +1310,6 @@ export default function Players() {
                 onClose={() => setEditingPlayer(null)}
                 onSave={fetchPlayers}
               />
-            )}
-
-            {players.length === 0 ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                <p className="text-gray-500">No players found for this event.</p>
-              </div>
-            ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    👥 All Players
-                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      {players.length} players
-                    </span>
-                  </h2>
-                </div>
-                
-                <div className="space-y-2">
-                  {/* eslint-disable-next-line no-unused-vars */}
-                  {players.map((player, _index) => (
-                    <React.Fragment key={player.id}>
-                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 transition-all duration-300">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <h3 className="font-semibold text-gray-900">{player.name}</h3>
-                              <p className="text-sm text-gray-600">
-                                Player #{player.number || 'N/A'} • Age Group: {player.age_group || 'Unknown'}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            onClick={() => setSelectedPlayer(player)}
-                            className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                            disabled={userRole !== 'organizer' && !player.composite_score && !Object.values(player).some(val => typeof val === 'number' && val > 0)}
-                          >
-                            {(userRole === 'organizer' || userRole === 'coach') ? 'View Stats & Weights' : 'View Stats'}
-                          </button>
-                          <button
-                            onClick={() => setEditingPlayer(player)}
-                            className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => toggleForm(player.id)}
-                            className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                          >
-                            Add Result
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {expandedPlayerIds[player.id] && (
-                        <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 ml-4">
-                          <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
-                        </div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </div>
-              </div>
             )}
           </>
         )}
