@@ -791,6 +791,14 @@ export default function Players() {
     }
   }, [players, calculateLiveRankings]);
 
+  // Auto-select first age group when players load (prevents setState during render)
+  useEffect(() => {
+    const availableAgeGroups = Object.keys(grouped);
+    if (!selectedAgeGroup && availableAgeGroups.length > 0) {
+      setSelectedAgeGroup(availableAgeGroups[0]);
+    }
+  }, [selectedAgeGroup, grouped]);
+
   // Toggle dropdown visibility
   const toggleForm = (id) => {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -1072,16 +1080,10 @@ export default function Players() {
         {activeTab === 'players' && (
           <>
             {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
-              // Auto-select first age group for immediate prospect evaluation
               (() => {
                 const availableAgeGroups = Object.keys(grouped);
                 const autoSelectedAgeGroup = selectedAgeGroup || availableAgeGroups[0];
                 const hasRankingsForGroup = liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
-                
-                // Auto-set the selected age group if not already set
-                if (!selectedAgeGroup && availableAgeGroups.length > 0) {
-                  setSelectedAgeGroup(availableAgeGroups[0]);
-                }
                 
                 return (
                   <div className="space-y-4">
@@ -1153,10 +1155,15 @@ export default function Players() {
                                     min={0}
                                     max={100}
                                     step={5}
+                                    onInput={(e) => {
+                                      // Update weight immediately for smooth visual feedback
+                                      const newWeight = parseInt(e.target.value, 10);
+                                      setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
+                                    }}
                                     onChange={(e) => {
+                                      // Debounced calculation on change complete
                                       const newWeight = parseInt(e.target.value, 10);
                                       const newWeights = { ...sliderWeights, [drill.key]: newWeight };
-                                      setSliderWeights(newWeights);
                                       calculateLiveRankings(newWeights);
                                       setActivePreset('');
                                     }}
