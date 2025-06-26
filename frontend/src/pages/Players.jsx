@@ -859,11 +859,11 @@ export default function Players() {
     }
   }, [players, calculateLiveRankings]);
 
-  // Auto-select first age group when players load (prevents setState during render)
+  // Auto-select "all" age group when players load (prevents setState during render)
   useEffect(() => {
     const availableAgeGroups = Object.keys(grouped);
     if (!selectedAgeGroup && availableAgeGroups.length > 0) {
-      setSelectedAgeGroup(availableAgeGroups[0]);
+      setSelectedAgeGroup('all');
     }
   }, [selectedAgeGroup, grouped]);
 
@@ -1142,7 +1142,7 @@ export default function Players() {
             {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
               (() => {
                 const availableAgeGroups = Object.keys(grouped);
-                const autoSelectedAgeGroup = selectedAgeGroup || availableAgeGroups[0];
+                const autoSelectedAgeGroup = selectedAgeGroup || 'all';
                 const hasRankingsForGroup = autoSelectedAgeGroup === 'all' 
                   ? liveRankings['all'] && liveRankings['all'].length > 0
                   : liveRankings[autoSelectedAgeGroup] && liveRankings[autoSelectedAgeGroup].length > 0;
