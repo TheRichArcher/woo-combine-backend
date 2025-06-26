@@ -316,16 +316,7 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   }, [drillRankings, player, weights]);
 
   // Return null after all hooks if conditions aren't met
-  if (!player || !allPlayers || allPlayers.length === 0) {
-    console.log('PlayerDetailsModal: Missing required props', { 
-      hasPlayer: !!player, 
-      hasAllPlayers: !!allPlayers, 
-      allPlayersLength: allPlayers?.length 
-    });
-    return null;
-  }
-
-  console.log('PlayerDetailsModal: Rendering modal for player:', player.name);
+  if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
 
@@ -371,8 +362,8 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
@@ -1283,10 +1274,7 @@ export default function Players() {
                             
                             <div className="flex flex-wrap gap-2">
                               <button
-                                onClick={() => {
-                                  console.log('View Stats & Weights clicked for player:', player);
-                                  setSelectedPlayer(player);
-                                }}
+                                onClick={() => setSelectedPlayer(player)}
                                 className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
                                 View Stats & Weights
@@ -1330,21 +1318,18 @@ export default function Players() {
             )}
 
             {selectedPlayer && (
-              <>
-                {console.log('Rendering PlayerDetailsModal for:', selectedPlayer)}
-                <PlayerDetailsModal 
-                  player={selectedPlayer} 
-                  allPlayers={players} 
-                  onClose={() => setSelectedPlayer(null)}
-                  persistedWeights={persistedWeights}
-                  sliderWeights={sliderWeights}
-                  setSliderWeights={setSliderWeights}
-                  persistSliderWeights={persistSliderWeights}
-                  handleWeightChange={handleWeightChange}
-                  activePreset={activePreset}
-                  applyPreset={applyPreset}
-                />
-              </>
+              <PlayerDetailsModal 
+                player={selectedPlayer} 
+                allPlayers={players} 
+                onClose={() => setSelectedPlayer(null)}
+                persistedWeights={persistedWeights}
+                sliderWeights={sliderWeights}
+                setSliderWeights={setSliderWeights}
+                persistSliderWeights={persistSliderWeights}
+                handleWeightChange={handleWeightChange}
+                activePreset={activePreset}
+                applyPreset={applyPreset}
+              />
             )}
             {editingPlayer && (
               <EditPlayerModal
