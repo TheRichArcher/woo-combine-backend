@@ -545,7 +545,7 @@ export default function Players() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('live-rankings');
+  const [activeTab, setActiveTab] = useState('players');
   
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
