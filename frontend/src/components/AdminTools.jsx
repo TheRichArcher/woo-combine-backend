@@ -1052,9 +1052,10 @@ export default function AdminTools() {
         {/* Edit Event Modal */}
         {showEditEventModal && (
           <EditEventModal
+            open={showEditEventModal}
             event={selectedEvent}
             onClose={() => setShowEditEventModal(false)}
-            onSave={() => {
+            onUpdated={() => {
               setShowEditEventModal(false);
               // Refresh event data if needed
             }}
