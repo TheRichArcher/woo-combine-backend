@@ -678,29 +678,7 @@ export default function OnboardingEvent() {
           
           {/* IMPROVED NAVIGATION OPTIONS */}
           <div className="space-y-3">
-            {/* Primary Actions */}
-            <button
-              onClick={() => {
-                showSuccess('🎯 Opening Player Management - manage your roster and view real-time rankings');
-                navigate('/players');
-              }}
-              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
-            >
-              <Users className="w-5 h-5" />
-              Manage Players & Rankings
-            </button>
-            
-            <button
-              onClick={() => {
-                showSuccess('🚀 Opening Live Entry Mode - perfect for collecting drill results during your event');
-                navigate('/live-entry');
-              }}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
-            >
-              ⚡ Start Live Entry Mode
-            </button>
-            
-            {/* Secondary Actions */}
+            {/* Secondary Actions - Unique functionality not covered in steps above */}
             <div className="pt-2 border-t border-gray-200 space-y-2">
               <button
                 onClick={() => handleStepNavigation(2, '👥 Back to player management')}
