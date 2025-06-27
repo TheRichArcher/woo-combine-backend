@@ -90,10 +90,8 @@ export default function SelectRole() {
         created_at: serverTimestamp(),
       }, { merge: true });
       
-      // Refresh the user's ID token to pick up any custom claims
-      await user.getIdToken(true);
-      
-
+      // Small delay to ensure Firestore write completes before navigation
+      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
