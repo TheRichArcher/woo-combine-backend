@@ -113,8 +113,9 @@ export function AuthProvider({ children }) {
         const userLeagues = leagueResponse.data.leagues || [];
         setLeagues(userLeagues);
         
-        // Set up selected league and role
-        let targetLeagueId = selectedLeagueId;
+        // Set up selected league and role - get current value from localStorage
+        const currentSelectedLeagueId = localStorage.getItem('selectedLeagueId') || '';
+        let targetLeagueId = currentSelectedLeagueId;
         
         if (userLeagues.length > 0) {
           // If no league selected or selected league doesn't exist, use first available
@@ -218,7 +219,7 @@ export function AuthProvider({ children }) {
     } finally {
       setInitializing(false);
     }
-  }, [navigate, selectedLeagueId]);
+  }, [navigate]);
 
   // Firebase auth state change handler
   useEffect(() => {
