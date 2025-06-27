@@ -272,7 +272,7 @@ export default function OnboardingEvent() {
               </p>
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
                 <p className="text-blue-800 text-sm">
-                  <strong>Next:</strong> You can add players now or skip and add them later. 
+                  <strong>Next:</strong> You'll add at least 1 player to experience how the system works. 
                   Players can also join themselves using invite codes.
                 </p>
               </div>
@@ -316,13 +316,13 @@ export default function OnboardingEvent() {
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
               <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-blue-600 text-sm">💡</span>
+                <span className="text-blue-600 text-sm">👥</span>
               </div>
               <div>
-                <p className="text-blue-800 font-medium text-sm mb-1">Flexible Roster Setup</p>
+                <p className="text-blue-800 font-medium text-sm mb-1">Add At Least 1 Player to Continue</p>
                 <p className="text-blue-700 text-sm">
-                  You can add players now, skip and add them later, or let players join themselves using invite codes. 
-                  Only First Name, Last Name, and Age Group are needed.
+                  Add your first player to experience how rankings and the system work. 
+                  Only First Name, Last Name, and Age Group are needed. You can add more players anytime later.
                 </p>
               </div>
             </div>
@@ -519,35 +519,30 @@ export default function OnboardingEvent() {
               Back to Event Selection
             </button>
             
-            <div className="flex flex-col sm:flex-row items-center gap-3">
-              {/* Skip Option - More prominent */}
-              <button
-                onClick={() => handleStepNavigation(3)}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-xl transition flex items-center gap-2"
-              >
-                Skip & Continue
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              
-              {/* OR text */}
-              <span className="text-sm text-gray-500 hidden sm:inline">or</span>
-              
-              {/* Continue Button - enabled if players added */}
-              <button
-                onClick={() => handleStepNavigation(3)}
-                disabled={playerCount === 0}
-                className="bg-cmf-primary hover:bg-cmf-secondary disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition flex items-center gap-2"
-              >
-                Continue with {playerCount} Player{playerCount !== 1 ? 's' : ''}
-                <ArrowRight className="w-5 h-5" />
-              </button>
-            </div>
+            {/* Continue Button - REQUIRED: at least 1 player */}
+            <button
+              onClick={() => handleStepNavigation(3)}
+              disabled={playerCount === 0}
+              className="bg-cmf-primary hover:bg-cmf-secondary disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition flex items-center gap-2"
+            >
+              {playerCount === 0 ? (
+                <>
+                  Add At Least 1 Player to Continue
+                  <Users className="w-5 h-5" />
+                </>
+              ) : (
+                <>
+                  Continue with {playerCount} Player{playerCount !== 1 ? 's' : ''}
+                  <ArrowRight className="w-5 h-5" />
+                </>
+              )}
+            </button>
           </div>
           
           <p className="text-center text-sm text-gray-500 mt-2">
             {playerCount === 0 
-              ? "💡 You can skip this step and add players later, or invite players to join themselves"
-              : `✅ ${playerCount} player${playerCount !== 1 ? 's' : ''} ready - you can add more anytime`
+              ? "🎯 Adding your first player helps you see how the ranking system works"
+              : `✅ ${playerCount} player${playerCount !== 1 ? 's' : ''} ready - you can add more anytime after setup`
             }
           </p>
         </div>

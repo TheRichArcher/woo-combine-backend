@@ -102,9 +102,14 @@ export default function SelectRole() {
         const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {
-        // Regular user flow - go to dashboard
-
-        navigate("/dashboard", { replace: true });
+        // STREAMLINED ONBOARDING: For new organizers, go directly to create-league
+        if (selectedRole === 'organizer') {
+          // New organizers go straight to league creation for streamlined setup
+          navigate("/create-league", { replace: true });
+        } else {
+          // Non-organizers go to dashboard (which will show LeagueFallback if needed)
+          navigate("/dashboard", { replace: true });
+        }
       }
       
     } catch (err) {
