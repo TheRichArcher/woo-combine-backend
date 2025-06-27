@@ -419,8 +419,7 @@ export default function AdminTools() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-lg mx-auto py-4">
         
         {/* Welcome Header - matching dashboard style */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
@@ -1062,6 +1061,5 @@ export default function AdminTools() {
           />
         )}
       </div>
-    </div>
   );
 } 
