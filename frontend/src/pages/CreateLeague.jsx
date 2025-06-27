@@ -75,11 +75,11 @@ export function CreateLeagueForm({ onCreated }) {
 export default function CreateLeague() {
   return (
     <WelcomeLayout
-      contentClassName="min-h-[70vh]"
+      contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <CreateLeagueForm />
       </div>
     </WelcomeLayout>

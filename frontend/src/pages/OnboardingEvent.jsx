@@ -297,7 +297,7 @@ export default function OnboardingEvent() {
   if (currentStep === 2 && createdEvent) {
     return (
       <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-8">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
           {/* Step Header */}
           <div className="flex items-center justify-center gap-2 mb-6">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
@@ -589,14 +589,14 @@ export default function OnboardingEvent() {
   if (currentStep === 4 && createdEvent) {
     return (
       <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 text-center">
           {/* CONGRATULATIONS SECTION */}
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="text-center mb-4">
-              <h3 className="text-green-800 font-semibold text-lg mb-1">🎉 Congratulations, you have:</h3>
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="text-center mb-3">
+              <h3 className="text-green-800 font-semibold text-lg">🎉 Congratulations, you have:</h3>
             </div>
             
-            <div className="space-y-3 text-sm">
+            <div className="space-y-2 text-sm">
               {/* Completed Steps */}
               <div className="flex items-start gap-3">
                 <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
@@ -621,16 +621,16 @@ export default function OnboardingEvent() {
           </div>
 
           {/* WHAT'S NEXT SECTION */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="text-center mb-4">
-              <h3 className="text-blue-800 font-semibold text-lg mb-1">🎯 Get Started</h3>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="text-center mb-3">
+              <h3 className="text-blue-800 font-semibold text-lg">🎯 Get Started</h3>
               <p className="text-blue-700 text-sm">
                 See your players in action and explore the ranking system
               </p>
             </div>
             
             {/* PRIMARY ACTION - Get Started */}
-            <div className="mb-6">
+            <div className="mb-4">
               <button
                 onClick={() => {
                   navigate('/players');
@@ -643,10 +643,10 @@ export default function OnboardingEvent() {
             </div>
 
             {/* SECONDARY ACTIONS */}
-            <div className="border-t border-blue-200 pt-4">
-              <h4 className="text-blue-800 font-medium text-sm mb-3 text-center">⭐ When You're Ready:</h4>
+            <div className="border-t border-blue-200 pt-3">
+              <h4 className="text-blue-800 font-medium text-sm mb-2 text-center">⭐ When You're Ready:</h4>
               
-              <div className="space-y-3 text-sm">
+              <div className="space-y-2 text-sm">
                 {/* Secondary Action 1 - Live Entry */}
                 <div className="flex items-center justify-between">
                   <span className="text-blue-800">Familiarize with Live Entry</span>
@@ -690,7 +690,7 @@ export default function OnboardingEvent() {
           </div>
           
           {/* NAVIGATION OPTIONS */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {/* Secondary Actions */}
             <div className="space-y-2">
               <button

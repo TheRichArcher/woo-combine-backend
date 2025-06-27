@@ -168,7 +168,7 @@ function App() {
                     </div>
                   </WelcomeLayout>
                 } />
-                <Route path="/create-league" element={<RequireAuth><AuthenticatedLayout><CreateLeague /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
                 <Route path="/join" element={<RequireAuth><AuthenticatedLayout><JoinLeague /></AuthenticatedLayout></RequireAuth>} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/select-league" element={<RequireAuth><AuthenticatedLayout><SelectLeague /></AuthenticatedLayout></RequireAuth>} />
@@ -179,7 +179,7 @@ function App() {
                     <SelectRole />
                   </RequireAuth>
                 } />
-                <Route path="/onboarding/event" element={<RequireAuth><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/onboarding/event" element={<RequireAuth><OnboardingEvent /></RequireAuth>} />
                 <Route path="/join-event/:leagueId/:eventId/:role" element={<JoinEvent />} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />

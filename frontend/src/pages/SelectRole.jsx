@@ -90,8 +90,8 @@ export default function SelectRole() {
         created_at: serverTimestamp(),
       }, { merge: true });
       
-      // Small delay to ensure Firestore write completes before navigation
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Longer delay to ensure Firestore write completes and AuthContext stabilizes before navigation
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
