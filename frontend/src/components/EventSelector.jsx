@@ -143,38 +143,50 @@ export default function EventSelector({ onEventSelected }) {
         </div>
       )}
       
-      {events.length === 0 && (
-        <div className="text-center text-cmf-secondary text-lg font-semibold py-2">No events found. Please create a new event.</div>
+      {/* Conditional rendering based on whether events exist */}
+      {events.length === 0 ? (
+        // No events available - show message and only Create button
+        <div className="text-center">
+          <div className="text-cmf-secondary text-lg font-semibold py-2 mb-4">No events found. Please create a new event.</div>
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
+            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create New Event
+          </button>
+        </div>
+      ) : (
+        // Events available - show dropdown and Create button
+        <div className="flex items-center gap-4">
+          <select
+            value={selectedEvent?.id || ""}
+            onChange={handleSelect}
+            className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary flex-1"
+            data-event-selector-dropdown
+          >
+            <option value="">Select an event...</option>
+            {events.map(ev => {
+              let dateLabel = "Invalid Date";
+              if (ev.date && !isNaN(Date.parse(ev.date))) {
+                dateLabel = new Date(ev.date).toLocaleDateString();
+              }
+              return (
+                <option key={ev.id} value={ev.id}>
+                  {ev.name} – {dateLabel}
+                </option>
+              );
+            })}
+          </select>
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
+            className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Create New Event
+          </button>
+        </div>
       )}
-      <div className="flex items-center gap-4">
-        <select
-          value={selectedEvent?.id || ""}
-          onChange={handleSelect}
-          className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-          disabled={!Array.isArray(events) || events.length === 0}
-          data-event-selector-dropdown
-        >
-          <option value="">Select an event...</option>
-          {Array.isArray(events) && events.map(ev => {
-            let dateLabel = "Invalid Date";
-            if (ev.date && !isNaN(Date.parse(ev.date))) {
-              dateLabel = new Date(ev.date).toLocaleDateString();
-            }
-            return (
-              <option key={ev.id} value={ev.id}>
-                {ev.name} – {dateLabel}
-              </option>
-            );
-          })}
-        </select>
-        <button
-          onClick={() => setShowModal(true)}
-          disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
-          className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Create New Event
-        </button>
-      </div>
 
       {/* Create Event Modal */}
       {showModal && (
