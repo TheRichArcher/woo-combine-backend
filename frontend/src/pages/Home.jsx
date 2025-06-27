@@ -195,23 +195,72 @@ export default function Home() {
         {/* Getting Started Guide */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Getting Started</h2>
-          <div className="space-y-3 text-sm text-gray-600">
+          <div className="space-y-4 text-sm text-gray-600">
+            {/* Step 1 - Event Selected */}
             <div className="flex items-start gap-3">
-              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">1</span>
-              <span>Event selected: <strong>{selectedEvent.name}</strong> ✓</span>
+              <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+              <span>Event selected: <strong>{selectedEvent.name}</strong></span>
             </div>
+            
+            {/* Step 2 - View Rankings & Adjust Weights */}
             <div className="flex items-start gap-3">
               <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-              <span>
-                {userRole === 'organizer' && 'Import players and manage event settings'}
-                {userRole === 'coach' && 'View player rankings and adjust drill weights'}
-                {userRole === 'viewer' && 'View player rankings and explore different weight priorities'}
-                {userRole === 'player' && 'Submit your drill results'}
-              </span>
+              <div className="flex-1">
+                <div className="mb-2">
+                  {userRole === 'organizer' && 'Import players and manage event settings'}
+                  {userRole === 'coach' && 'View player rankings and adjust drill weights'}
+                  {userRole === 'viewer' && 'View player rankings and explore different weight priorities'}
+                  {userRole === 'player' && 'Submit your drill results'}
+                </div>
+                {userRole === 'organizer' && (
+                  <button
+                    onClick={() => handleNavigation('/admin')}
+                    className="bg-cmf-secondary text-white px-4 py-2 rounded-lg hover:bg-cmf-primary transition text-sm font-medium"
+                  >
+                    🛠️ Manage Event Settings
+                  </button>
+                )}
+                {(userRole === 'coach' || userRole === 'viewer') && (
+                  <button
+                    onClick={() => handleNavigation('/players')}
+                    className="bg-cmf-primary text-white px-4 py-2 rounded-lg hover:bg-cmf-secondary transition text-sm font-medium"
+                  >
+                    {userRole === 'coach' ? '📊 View Rankings & Adjust Weights' : '👁️ Explore Player Rankings'}
+                  </button>
+                )}
+                {userRole === 'player' && (
+                  <button
+                    onClick={() => handleNavigation('/drill-input')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                  >
+                    📝 Submit Your Results
+                  </button>
+                )}
+              </div>
             </div>
+            
+            {/* Step 3 - Real-time Rankings */}
             <div className="flex items-start gap-3">
-              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-              <span>View real-time rankings and results</span>
+              <span className="w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+              <div className="flex-1">
+                <div className="mb-2">View real-time rankings and results</div>
+                {(userRole === 'organizer' || userRole === 'coach' || userRole === 'viewer') && (
+                  <button
+                    onClick={() => handleNavigation('/players?tab=rankings')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                  >
+                    🏆 View Live Rankings
+                  </button>
+                )}
+                {userRole === 'player' && (
+                  <button
+                    onClick={() => handleNavigation('/players')}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                  >
+                    🏆 View Event Results
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
