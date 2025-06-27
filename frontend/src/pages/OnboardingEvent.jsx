@@ -585,46 +585,51 @@ export default function OnboardingEvent() {
     );
   }
 
-  // Step 4: What's Next Guidance
+  // Step 4: Congratulations & What's Next
   if (currentStep === 4 && createdEvent) {
     return (
       <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
         <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
-          {/* WIZARD GUIDANCE: What's Next */}
+          {/* CONGRATULATIONS SECTION */}
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="text-center mb-4">
+              <h3 className="text-green-800 font-semibold text-lg mb-1">🎉 Congratulations, you have:</h3>
+            </div>
+            
+            <div className="space-y-3 text-sm">
+              {/* Completed Steps */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span className="text-green-800">Set up your League</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span className="text-green-800">Set up your first event: <strong>{createdEvent.name}</strong></span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span className="text-green-800">Added players to your event</span>
+              </div>
+              
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span className="text-green-800">Invited other people to your event</span>
+              </div>
+            </div>
+          </div>
+
+          {/* WHAT'S NEXT SECTION */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="text-center mb-4">
-              <h3 className="text-blue-800 font-semibold text-lg mb-1">🎉 What's Next?</h3>
-              <p className="text-blue-700 text-sm">
-                Your event is set up! Follow these steps to run a successful combine:
-              </p>
+              <h3 className="text-blue-800 font-semibold text-lg mb-1">⭐ What's Next?</h3>
             </div>
             
             <div className="space-y-4 text-sm">
-              {/* Step 1 - Event Setup Complete */}
+              {/* Next Step 1 - Manage Players */}
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
-                <span className="text-blue-800">Event setup complete: <strong>{createdEvent.name}</strong></span>
-              </div>
-              
-              {/* Step 2 - Share QR Codes */}
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-                <div className="flex-1">
-                  <div className="mb-2 text-blue-800">Share QR codes with coaches and staff</div>
-                  <button
-                    onClick={() => {
-                      handleStepNavigation(3);
-                    }}
-                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-xs font-medium"
-                  >
-                    📱 View QR Codes
-                  </button>
-                </div>
-              </div>
-              
-              {/* Step 3 - Manage Players */}
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                <span className="text-blue-600 text-lg flex-shrink-0 mt-0.5">⭐</span>
                 <div className="flex-1">
                   <div className="mb-2 text-blue-800">Manage players and view rankings</div>
                   <button
@@ -638,27 +643,43 @@ export default function OnboardingEvent() {
                 </div>
               </div>
               
-              {/* Step 4 - Live Entry */}
+              {/* Next Step 2 - Familiarize with Live Entry */}
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+                <span className="text-blue-600 text-lg flex-shrink-0 mt-0.5">⭐</span>
                 <div className="flex-1">
-                  <div className="mb-2 text-blue-800">Use Live Entry during your event</div>
+                  <div className="mb-2 text-blue-800">Familiarize yourself with Live Stat Entry before your event</div>
                   <button
                     onClick={() => {
                       navigate('/live-entry');
                     }}
                     className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition text-xs font-medium"
                   >
-                    ⚡ Start Live Entry Mode
+                    ⚡ Explore Live Entry Mode
                   </button>
                 </div>
               </div>
               
-              {/* Step 5 - Export Results */}
+              {/* Next Step 3 - View Results */}
               <div className="flex items-start gap-3">
-                <span className="w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
+                <span className="text-blue-600 text-lg flex-shrink-0 mt-0.5">⭐</span>
                 <div className="flex-1">
-                  <div className="mb-2 text-blue-800">Export results when complete</div>
+                  <div className="mb-2 text-blue-800">View results as they are happening</div>
+                  <button
+                    onClick={() => {
+                      handleStepNavigation(3);
+                    }}
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-xs font-medium"
+                  >
+                    📱 View QR Codes & Share
+                  </button>
+                </div>
+              </div>
+              
+              {/* Next Step 4 - Export Results */}
+              <div className="flex items-start gap-3">
+                <span className="text-blue-600 text-lg flex-shrink-0 mt-0.5">⭐</span>
+                <div className="flex-1">
+                  <div className="mb-2 text-blue-800">Export results after event</div>
                   <button
                     onClick={() => {
                       navigate('/players?tab=exports');
