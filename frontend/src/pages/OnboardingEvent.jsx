@@ -101,13 +101,10 @@ export default function OnboardingEvent() {
 
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
-    notifyEventCreated(event.name);
-    showInfo('🎯 Next step: Add players to your event roster');
     setCurrentStep(2); // Move to player import step
   };
 
   const handleContinueToAdmin = () => {
-    showInfo('🛠️ Opening Admin Tools for advanced event management');
     navigate("/admin#player-upload-section");
   };
 
@@ -128,9 +125,6 @@ export default function OnboardingEvent() {
       );
       if (missingHeaders.length > 0) {
         headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
-        showError(`❌ CSV Error: Missing headers ${missingHeaders.join(", ")}`);
-      } else {
-        showInfo(`🎉 Perfect! Found ${rows.length} players in your file. Now click "Confirm Upload" to save them.`);
       }
       
       // Validate rows
@@ -168,7 +162,6 @@ export default function OnboardingEvent() {
       setUploadStatus("success");
       const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
       setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
-      notifyPlayersUploaded(data.added);
       setCsvRows([]);
       setCsvErrors([]);
       setCsvFileName("");
@@ -178,13 +171,11 @@ export default function OnboardingEvent() {
       if (data.added > 0) {
         setTimeout(() => {
           setCurrentStep(3);
-          showInfo('🎉 Players uploaded successfully! Ready to share your event with coaches.');
         }, 1500); // Give users time to see the success message
       }
     } catch (err) {
       setUploadStatus("error");
       setUploadMsg(`❌ ${err.message || "Upload failed."}`);
-      notifyError(err);
     }
   };
 
@@ -218,8 +209,6 @@ export default function OnboardingEvent() {
       setManualStatus('success');
       const autoNumbered = !manualPlayer.number || manualPlayer.number.trim() === "";
       setManualMsg(`Player added${autoNumbered ? ` with auto-number #${playerNumber}` : ''}!`);
-      const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
-      notifyPlayerAdded(playerName);
       setManualPlayer({
         first_name: '',
         last_name: '',
@@ -230,7 +219,6 @@ export default function OnboardingEvent() {
     } catch (err) {
       setManualStatus('error');
       setManualMsg(err.message || 'Failed to add player.');
-      notifyError(err);
     }
   };
 
@@ -249,7 +237,6 @@ export default function OnboardingEvent() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showInfo('📥 Sample CSV downloaded - check your Downloads folder');
   };
 
   const handleReupload = () => {
@@ -259,13 +246,11 @@ export default function OnboardingEvent() {
     setUploadStatus("idle");
     setUploadMsg("");
     if (fileInputRef.current) fileInputRef.current.value = "";
-    showInfo('🔄 Ready for new CSV file');
   };
 
-  // Step navigation with notifications
-  const handleStepNavigation = (newStep, message) => {
+  // Step navigation
+  const handleStepNavigation = (newStep) => {
     setCurrentStep(newStep);
-    if (message) showInfo(message);
   };
 
   // Step 1: Event Creation/Selection
@@ -294,7 +279,6 @@ export default function OnboardingEvent() {
               <button
                 onClick={() => {
                   setCreatedEvent(selectedEvent); 
-                  showInfo('📝 Event selected - setting up your roster options');
                   setCurrentStep(2);
                 }}
                 className="bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] w-full flex items-center justify-center gap-2"
@@ -528,7 +512,7 @@ export default function OnboardingEvent() {
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
             <button
-              onClick={() => handleStepNavigation(1, '🔙 Back to event selection')}
+              onClick={() => handleStepNavigation(1)}
               className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -538,7 +522,7 @@ export default function OnboardingEvent() {
             <div className="flex flex-col sm:flex-row items-center gap-3">
               {/* Skip Option - More prominent */}
               <button
-                onClick={() => handleStepNavigation(3, '⏭️ Skipping player setup - you can add players anytime later')}
+                onClick={() => handleStepNavigation(3)}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-6 py-3 rounded-xl transition flex items-center gap-2"
               >
                 Skip & Continue
@@ -550,7 +534,7 @@ export default function OnboardingEvent() {
               
               {/* Continue Button - enabled if players added */}
               <button
-                onClick={() => handleStepNavigation(3, '🎉 Ready to share your event with coaches!')}
+                onClick={() => handleStepNavigation(3)}
                 disabled={playerCount === 0}
                 className="bg-cmf-primary hover:bg-cmf-secondary disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold px-6 py-3 rounded-xl transition flex items-center gap-2"
               >
@@ -630,7 +614,6 @@ export default function OnboardingEvent() {
                   <div className="mb-2 text-blue-800">Manage players and view rankings</div>
                   <button
                     onClick={() => {
-                      showSuccess('🎯 Opening Player Management - manage your roster and view real-time rankings');
                       navigate('/players');
                     }}
                     className="bg-cmf-primary text-white px-3 py-1.5 rounded-lg hover:bg-cmf-secondary transition text-xs font-medium"
@@ -647,7 +630,6 @@ export default function OnboardingEvent() {
                   <div className="mb-2 text-blue-800">Use Live Entry during your event</div>
                   <button
                     onClick={() => {
-                      showSuccess('🚀 Opening Live Entry Mode - perfect for collecting drill results during your event');
                       navigate('/live-entry');
                     }}
                     className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition text-xs font-medium"
@@ -664,7 +646,6 @@ export default function OnboardingEvent() {
                   <div className="mb-2 text-blue-800">Export results when complete</div>
                   <button
                     onClick={() => {
-                      showSuccess('📊 Opening Export Tools - download ranking reports and results');
                       navigate('/players?tab=exports');
                     }}
                     className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition text-xs font-medium"
@@ -681,7 +662,7 @@ export default function OnboardingEvent() {
             {/* Secondary Actions - Unique functionality not covered in steps above */}
             <div className="pt-2 border-t border-gray-200 space-y-2">
               <button
-                onClick={() => handleStepNavigation(2, '👥 Back to player management')}
+                onClick={() => handleStepNavigation(2)}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
               >
                 <ArrowLeft className="w-4 h-4" />
