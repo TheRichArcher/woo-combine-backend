@@ -40,7 +40,7 @@ if not firebase_admin._apps:
     
     firebase_admin.initialize_app(cred)
 
-from backend.firestore_client import get_firestore_client
+from .firestore_client import get_firestore_client
 
 security = HTTPBearer(auto_error=False)
 

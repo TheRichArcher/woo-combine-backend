@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path
-from backend.firestore_client import db
-from backend.auth import get_current_user
+from ..firestore_client import db
+from ..auth import get_current_user
 from datetime import datetime
 import concurrent.futures
 import logging

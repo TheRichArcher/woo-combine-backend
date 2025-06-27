@@ -1,9 +1,9 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from pydantic import BaseModel
-from backend.models import DrillResultSchema
-from backend.auth import get_current_user
-from backend.firestore_client import db
+from ..models import DrillResultSchema
+from ..auth import get_current_user
+from ..firestore_client import db
 import logging
 from datetime import datetime
 import concurrent.futures

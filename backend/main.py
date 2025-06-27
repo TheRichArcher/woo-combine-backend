@@ -1,9 +1,9 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routes.players import router as players_router
-from backend.routes.leagues import router as leagues_router
-from backend.routes.drills import router as drills_router
-from backend.routes.events import router as events_router
+from .routes.players import router as players_router
+from .routes.leagues import router as leagues_router
+from .routes.drills import router as drills_router
+from .routes.events import router as events_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -63,7 +63,7 @@ def get_firestore_lazy():
     global _firestore_client
     if _firestore_client is None:
         try:
-            from backend.firestore_client import get_firestore_client
+            from .firestore_client import get_firestore_client
             _firestore_client = get_firestore_client()
             logging.info("[STARTUP] Firestore client initialized lazily")
         except Exception as e:

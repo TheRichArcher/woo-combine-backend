@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Dict, Any
 from pydantic import BaseModel
-from backend.auth import get_current_user, require_role
+from ..auth import get_current_user, require_role
 import logging
-from backend.firestore_client import db
+from ..firestore_client import db
 from datetime import datetime
-from backend.models import PlayerSchema
+from ..models import PlayerSchema
 import concurrent.futures
 
 router = APIRouter()
