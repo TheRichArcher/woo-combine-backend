@@ -80,21 +80,52 @@ export default function VerifyEmail() {
 
   // Auto-refresh every 10s to check verification
   useEffect(() => {
+    let isActive = true; // Flag to prevent state updates after unmount
+    
     const checkVerified = async () => {
+      // Only run if component is still active and we're on the verify-email page
+      if (!isActive || window.location.pathname !== '/verify-email') {
+        return;
+      }
+      
       if (auth.currentUser) {
-        await auth.currentUser.reload();
-        setIsVerified(auth.currentUser.emailVerified);
-        if (auth.currentUser.emailVerified) {
-          // Force refresh of ID token after verification
-          await auth.currentUser.getIdToken(true);
-          setUser(auth.currentUser);
-          navigate("/dashboard");
+        try {
+          await auth.currentUser.reload();
+          
+          // Only proceed if component is still active
+          if (!isActive) return;
+          
+          setIsVerified(auth.currentUser.emailVerified);
+          if (auth.currentUser.emailVerified) {
+            // Clear the interval before navigating to prevent further runs
+            clearInterval(interval);
+            // Force refresh of ID token after verification
+            await auth.currentUser.getIdToken(true);
+            
+            // Only update state if component is still active
+            if (isActive) {
+              setUser(auth.currentUser);
+              navigate("/dashboard");
+            }
+          }
+        } catch (error) {
+          // Silently handle errors to prevent interference
+          console.log('Verification check failed:', error);
         }
       }
     };
+    
+    // Initial check
     checkVerified();
+    
+    // Set up interval
     const interval = setInterval(checkVerified, 10000);
-    return () => clearInterval(interval);
+    
+    // Cleanup function
+    return () => {
+      isActive = false;
+      clearInterval(interval);
+    };
   }, [navigate, setUser]);
 
   // Auto-redirect to /welcome if session expired
@@ -111,6 +142,11 @@ export default function VerifyEmail() {
 
   // Manual check
   const handleCheckAgain = async () => {
+    // Don't run manual check if we're not on the verify-email page
+    if (window.location.pathname !== '/verify-email') {
+      return;
+    }
+    
     setChecking(true);
     try {
       if (auth.currentUser) {
@@ -125,8 +161,9 @@ export default function VerifyEmail() {
           setResendStatus("Still not verified. Please check your email.");
         }
       }
-    } catch {
+    } catch (error) {
       // Verification check failed
+      console.log('Manual verification check failed:', error);
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);

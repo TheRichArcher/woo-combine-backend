@@ -20,7 +20,6 @@ export default function LoginForm() {
     setSubmitting(true);
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      await cred.user.reload();
       if (!cred.user.emailVerified) {
         navigate("/verify-email");
       }
