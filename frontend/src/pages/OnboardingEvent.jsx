@@ -550,24 +550,48 @@ export default function OnboardingEvent() {
     );
   }
 
-  // Step 3: Share Event
+  // Step 3: Share Event (Compact)
   if (currentStep === 3 && createdEvent) {
     return (
       <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-6">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
             <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center">
               <CheckCircle className="w-5 h-5" />
             </div>
             <h1 className="text-2xl font-bold text-green-600">Event Ready!</h1>
           </div>
           
+          <p className="text-gray-600 mb-4">
+            Your combine event "<strong>{createdEvent.name}</strong>" is ready.
+          </p>
+          
           <div data-qr-section>
             <EventJoinCode event={createdEvent} league={selectedLeague} />
           </div>
           
+          {/* Continue Button */}
+          <div className="mt-6">
+            <button
+              onClick={() => handleStepNavigation(4)}
+              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              Continue
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </WelcomeLayout>
+    );
+  }
+
+  // Step 4: What's Next Guidance
+  if (currentStep === 4 && createdEvent) {
+    return (
+      <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
           {/* WIZARD GUIDANCE: What's Next */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 mt-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="text-center mb-4">
               <h3 className="text-blue-800 font-semibold text-lg mb-1">🎉 What's Next?</h3>
               <p className="text-blue-700 text-sm">
@@ -589,15 +613,11 @@ export default function OnboardingEvent() {
                   <div className="mb-2 text-blue-800">Share QR codes with coaches and staff</div>
                   <button
                     onClick={() => {
-                      // Scroll to the QR code section above
-                      const qrSection = document.querySelector('[data-qr-section]');
-                      if (qrSection) {
-                        qrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                      }
+                      handleStepNavigation(3);
                     }}
                     className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-xs font-medium"
                   >
-                    📱 View QR Codes Above
+                    📱 View QR Codes
                   </button>
                 </div>
               </div>
@@ -652,10 +672,10 @@ export default function OnboardingEvent() {
             </div>
           </div>
           
-          {/* IMPROVED NAVIGATION OPTIONS */}
+          {/* NAVIGATION OPTIONS */}
           <div className="space-y-3">
-            {/* Secondary Actions - Unique functionality not covered in steps above */}
-            <div className="pt-2 border-t border-gray-200 space-y-2">
+            {/* Secondary Actions */}
+            <div className="space-y-2">
               <button
                 onClick={() => handleStepNavigation(2)}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
