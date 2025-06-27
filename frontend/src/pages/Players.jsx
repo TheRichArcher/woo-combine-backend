@@ -1160,18 +1160,27 @@ export default function Players() {
 
         {/* Content area - Role-based views */}
         {userRole === 'viewer' ? (
-          /* Viewer-only interface - Read-only player list */
+          /* Viewer interface with weight controls and rankings */
           <div className="space-y-4">
-            {players.length > 0 ? (
+            {players.length > 0 && Object.keys(grouped).length > 0 ? (
               <>
-                {/* Age Group Filter for Viewers */}
+                {/* Age Group Selector */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
+                      Event Rankings & Analysis
+                    </h2>
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      👁️ Viewer Mode
+                    </span>
+                  </div>
                   <div className="flex items-center gap-3">
-                    <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
+                    <Filter className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <select
-                      value={selectedAgeGroup || 'all'}
+                      value={selectedAgeGroup}
                       onChange={e => setSelectedAgeGroup(e.target.value)}
-                      className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="all">All Players ({players.length} total)</option>
                       {Object.keys(grouped).map(group => (
@@ -1181,63 +1190,157 @@ export default function Players() {
                   </div>
                 </div>
 
-                {/* Read-only Player List */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    👥 Event Participants
-                    <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      {selectedAgeGroup === 'all' ? players.length : (grouped[selectedAgeGroup]?.length || 0)} players
-                    </span>
-                  </h3>
-                  
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {(selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || [])).map((player) => (
-                      <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-gray-900">{player.name}</h4>
-                            <p className="text-sm text-gray-600">
-                              Player #{player.number || 'N/A'}
-                              {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            {player.composite_score != null ? (
-                              <div className="text-sm font-bold text-cmf-primary">
-                                {player.composite_score.toFixed(1)} pts
+                {liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Compact Weight Controls for Viewers */}
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4" />
+                          <span className="font-semibold text-sm">Explore Rankings: {selectedAgeGroup}</span>
+                        </div>
+                        <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                          {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+                        </span>
+                      </div>
+                      
+                      {/* Preset Buttons */}
+                      <div className="flex gap-1 mb-3">
+                        {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                          <button
+                            key={key}
+                            onClick={() => applyPreset(key)}
+                            className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
+                              activePreset === key 
+                                ? 'border-white bg-white/20 text-white font-medium' 
+                                : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
+                            }`}
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Compact Sliders */}
+                      <div className="bg-white/10 rounded p-2">
+                        <div className="grid grid-cols-5 gap-2 text-xs">
+                          {DRILLS.map((drill) => (
+                            <div key={drill.key} className="text-center">
+                              <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
+                              <input
+                                type="range"
+                                value={sliderWeights[drill.key] ?? 50}
+                                min={0}
+                                max={100}
+                                step={5}
+                                onInput={(e) => {
+                                  // Update weight immediately for smooth visual feedback
+                                  const newWeight = parseInt(e.target.value, 10);
+                                  setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
+                                }}
+                                onChange={(e) => {
+                                  // Debounced calculation on change complete
+                                  const newWeight = parseInt(e.target.value, 10);
+                                  const newWeights = { ...sliderWeights, [drill.key]: newWeight };
+                                  calculateLiveRankings(newWeights);
+                                  setActivePreset('');
+                                }}
+                                className="w-full h-1 rounded cursor-pointer accent-white"
+                              />
+                              <div className="font-mono font-bold text-xs mt-1">
+                                {sliderWeights[drill.key] || 0}
                               </div>
-                            ) : (
-                              <div className="text-xs text-gray-500">No scores yet</div>
-                            )}
-                          </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
+                      
+                      {/* Helpful text for viewers */}
+                      <div className="text-xs text-white/80 mt-2 text-center">
+                        Adjust weights to see how rankings change with different priorities
+                      </div>
+                    </div>
+
+                    {/* Live Rankings */}
+                    <div className="p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-sm text-gray-900">Current Rankings</h4>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full animate-pulse">
+                          ⚡ Live Updates
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-1">
+                        {liveRankings[selectedAgeGroup].slice(0, 10).map((player, index) => (
+                          <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                            <div className={`font-bold w-6 text-center ${
+                              index === 0 ? "text-yellow-500" : 
+                              index === 1 ? "text-gray-500" : 
+                              index === 2 ? "text-orange-500" : "text-gray-400"
+                            }`}>
+                              {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 truncate">{player.name}</div>
+                              <div className="text-xs text-gray-500">
+                                Player #{player.number || 'N/A'}
+                                {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-blue-600 text-sm">
+                                {player.weightedScore.toFixed(1)}
+                              </div>
+                              <div className="text-xs text-gray-500">points</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                    <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-2">📊 Waiting for Results</h3>
+                    <p className="text-gray-600 mb-4">
+                      Players in <strong>{selectedAgeGroup}</strong> need drill scores to generate rankings.
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Check back once the combine event begins and scores are recorded!
+                    </p>
+                  </div>
+                )}
 
                 {/* Info box for viewers */}
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-blue-600 text-sm">ℹ️</span>
+                      <span className="text-blue-600 text-sm">🎯</span>
                     </div>
                     <div>
-                      <p className="text-blue-800 font-medium text-sm mb-1">Viewer Access</p>
+                      <p className="text-blue-800 font-medium text-sm mb-1">Explore Different Ranking Perspectives</p>
                       <p className="text-blue-700 text-sm">
-                        You have read-only access to view event participants and scores. 
-                        Contact your event organizer if you need additional access.
+                        Use the weight controls above to see how player rankings change based on different priorities. 
+                        Try "Speed Focused" vs "Skills Focused" to see different perspectives on player performance!
                       </p>
                     </div>
                   </div>
                 </div>
               </>
-            ) : (
+            ) : players.length === 0 ? (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                 <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-2">No Participants Yet</h3>
                 <p className="text-gray-600">
                   Players haven't been added to this event yet. Check back later!
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">📊 Players Added, Scores Coming Soon</h3>
+                <p className="text-gray-600">
+                  {players.length} players are registered for this event. Rankings will appear once drill scores are recorded!
                 </p>
               </div>
             )}

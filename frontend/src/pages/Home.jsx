@@ -157,6 +157,15 @@ export default function Home() {
                 View Players & Rankings
               </button>
             )}
+            {userRole === 'viewer' && (
+              <button
+                onClick={() => handleNavigation('/players')}
+                className="bg-blue-600 text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-3 text-lg"
+              >
+                <Users className="w-6 h-6" />
+                👁️ View Event Results
+              </button>
+            )}
             {userRole === 'player' && selectedEvent && (
               <button
                 onClick={() => handleNavigation('/drill-input')}
@@ -196,6 +205,7 @@ export default function Home() {
               <span>
                 {userRole === 'organizer' && 'Import players and manage event settings'}
                 {userRole === 'coach' && 'View player rankings and adjust drill weights'}
+                {userRole === 'viewer' && 'View player rankings and explore different weight priorities'}
                 {userRole === 'player' && 'Submit your drill results'}
               </span>
             </div>
