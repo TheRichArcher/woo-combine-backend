@@ -583,25 +583,95 @@ export default function OnboardingEvent() {
             <h1 className="text-2xl font-bold text-green-600">Event Ready!</h1>
           </div>
           
-          <EventJoinCode event={createdEvent} league={selectedLeague} />
+          <div data-qr-section>
+            <EventJoinCode event={createdEvent} league={selectedLeague} />
+          </div>
           
           {/* WIZARD GUIDANCE: What's Next */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 mt-6">
-            <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-blue-600 text-sm">🧭</span>
+            <div className="text-center mb-4">
+              <h3 className="text-blue-800 font-semibold text-lg mb-1">🎉 What's Next?</h3>
+              <p className="text-blue-700 text-sm">
+                Your event is set up! Follow these steps to run a successful combine:
+              </p>
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              {/* Step 1 - Event Setup Complete */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
+                <span className="text-blue-800">Event setup complete: <strong>{createdEvent.name}</strong></span>
               </div>
-              <div className="text-left">
-                <p className="text-blue-800 font-medium text-sm mb-1">What's Next?</p>
-                <p className="text-blue-700 text-sm mb-2">
-                  Your event is set up! Here are your next steps:
-                </p>
-                <ul className="text-blue-700 text-xs space-y-1 list-disc list-inside">
-                  <li>Share the code/QR with coaches</li>
-                  <li>Manage players and view rankings</li>
-                  <li>Use Live Entry during your event</li>
-                  <li>Export results when complete</li>
-                </ul>
+              
+              {/* Step 2 - Share QR Codes */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
+                <div className="flex-1">
+                  <div className="mb-2 text-blue-800">Share QR codes with coaches and staff</div>
+                  <button
+                    onClick={() => {
+                      // Scroll to the QR code section above
+                      const qrSection = document.querySelector('[data-qr-section]');
+                      if (qrSection) {
+                        qrSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                    className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-xs font-medium"
+                  >
+                    📱 View QR Codes Above
+                  </button>
+                </div>
+              </div>
+              
+              {/* Step 3 - Manage Players */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
+                <div className="flex-1">
+                  <div className="mb-2 text-blue-800">Manage players and view rankings</div>
+                  <button
+                    onClick={() => {
+                      showSuccess('🎯 Opening Player Management - manage your roster and view real-time rankings');
+                      navigate('/players');
+                    }}
+                    className="bg-cmf-primary text-white px-3 py-1.5 rounded-lg hover:bg-cmf-secondary transition text-xs font-medium"
+                  >
+                    👥 Manage Players & Rankings
+                  </button>
+                </div>
+              </div>
+              
+              {/* Step 4 - Live Entry */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">4</span>
+                <div className="flex-1">
+                  <div className="mb-2 text-blue-800">Use Live Entry during your event</div>
+                  <button
+                    onClick={() => {
+                      showSuccess('🚀 Opening Live Entry Mode - perfect for collecting drill results during your event');
+                      navigate('/live-entry');
+                    }}
+                    className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition text-xs font-medium"
+                  >
+                    ⚡ Start Live Entry Mode
+                  </button>
+                </div>
+              </div>
+              
+              {/* Step 5 - Export Results */}
+              <div className="flex items-start gap-3">
+                <span className="w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">5</span>
+                <div className="flex-1">
+                  <div className="mb-2 text-blue-800">Export results when complete</div>
+                  <button
+                    onClick={() => {
+                      showSuccess('📊 Opening Export Tools - download ranking reports and results');
+                      navigate('/players?tab=exports');
+                    }}
+                    className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition text-xs font-medium"
+                  >
+                    📊 Export Results & Reports
+                  </button>
+                </div>
               </div>
             </div>
           </div>
