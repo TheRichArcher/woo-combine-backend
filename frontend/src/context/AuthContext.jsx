@@ -297,6 +297,31 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
+  // Add function to refresh user role after it's been set via API
+  const refreshUserRole = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const db = getFirestore();
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const newRole = userData.role;
+        console.log('[AUTH] Refreshed user role:', newRole);
+        setUserRole(newRole);
+        
+        // If this is the first time setting a role, trigger complete initialization
+        if (newRole && !userRole) {
+          console.log('[AUTH] First-time role detected, triggering initialization');
+          await completeInitialization(user);
+        }
+      }
+    } catch (error) {
+      console.error('[AUTH] Failed to refresh user role:', error);
+    }
+  }, [user, userRole, completeInitialization]);
+
   // Expose state setters for logout functionality
   const contextValue = {
     user,
@@ -325,6 +350,7 @@ export function AuthProvider({ children }) {
     setLeagues,
     setAuthChecked,
     setRoleChecked,
+    refreshUserRole,
     logout
   };
 
