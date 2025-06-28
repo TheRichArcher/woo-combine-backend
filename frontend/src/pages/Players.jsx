@@ -615,6 +615,7 @@ export default function Players() {
   }, [location.search]);
   
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [persistedWeights, setPersistedWeights] = useState({
     "40m_dash": 20,
@@ -642,15 +643,34 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // Calculate grouped data for weight controls
+  // Filter players based on search term
+  const filteredPlayers = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return players;
+    }
+    
+    const term = searchTerm.toLowerCase().trim();
+    return players.filter(player => {
+      // Search by name
+      const nameMatch = player.name?.toLowerCase().includes(term);
+      // Search by player number
+      const numberMatch = player.number?.toString().includes(term);
+      // Search by age group
+      const ageGroupMatch = player.age_group?.toLowerCase().includes(term);
+      
+      return nameMatch || numberMatch || ageGroupMatch;
+    });
+  }, [players, searchTerm]);
+
+  // Calculate grouped data for weight controls (using filtered players)
   const grouped = useMemo(() => {
-    return players.reduce((acc, player) => {
+    return filteredPlayers.reduce((acc, player) => {
       const ageGroup = player.age_group || 'Unknown';
       if (!acc[ageGroup]) acc[ageGroup] = [];
       acc[ageGroup].push(player);
       return acc;
     }, {});
-  }, [players]);
+  }, [filteredPlayers]);
 
   // Helper function to calculate rankings for a group of players
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
@@ -727,8 +747,8 @@ export default function Players() {
     const weights = weightsToUse || currentWeights.current;
     const newRankings = {};
     
-    // Calculate "All Players" rankings first
-    const allPlayersWithScores = players.filter(player => 
+    // Calculate "All Players" rankings first (using filtered players)
+    const allPlayersWithScores = filteredPlayers.filter(player => 
       DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
     );
     
@@ -744,7 +764,7 @@ export default function Players() {
     setLiveRankings(newRankings);
     
     return newRankings;
-  }, [grouped]);
+  }, [grouped, filteredPlayers]);
 
   // Persist slider weights function
   const persistSliderWeights = useCallback((weights) => {
@@ -852,12 +872,12 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // Calculate initial live rankings when players or weights change
+  // Calculate initial live rankings when filtered players or weights change
   useEffect(() => {
-    if (players.length > 0) {
+    if (filteredPlayers.length > 0) {
       calculateLiveRankings();
     }
-  }, [players, calculateLiveRankings]);
+  }, [filteredPlayers, calculateLiveRankings]);
 
   // Auto-select "all" age group when players load (prevents setState during render)
   useEffect(() => {
@@ -1164,7 +1184,7 @@ export default function Players() {
           <div className="space-y-4">
             {players.length > 0 && Object.keys(grouped).length > 0 ? (
               <>
-                {/* Age Group Selector */}
+                {/* Search & Filter Controls */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1175,6 +1195,35 @@ export default function Players() {
                       👁️ Viewer Mode
                     </span>
                   </div>
+                  
+                  {/* Search Input */}
+                  <div className="mb-3">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search players by name, number, or age group..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <Users className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    {searchTerm && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        Found {filteredPlayers.length} player{filteredPlayers.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Age Group Filter */}
                   <div className="flex items-center gap-3">
                     <Filter className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <select
@@ -1182,7 +1231,7 @@ export default function Players() {
                       onChange={e => setSelectedAgeGroup(e.target.value)}
                       className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      <option value="all">All Players ({players.length} total)</option>
+                      <option value="all">All Players ({filteredPlayers.length} total)</option>
                       {Object.keys(grouped).map(group => (
                         <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                       ))}
@@ -1335,12 +1384,26 @@ export default function Players() {
                   Players haven't been added to this event yet. Check back later!
                 </p>
               </div>
+            ) : filteredPlayers.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="font-semibold text-gray-900 mb-2">🔍 No Matching Players</h3>
+                <p className="text-gray-600 mb-3">
+                  No players found matching "{searchTerm}". Try a different search term.
+                </p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition"
+                >
+                  Clear Search
+                </button>
+              </div>
             ) : (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                 <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="font-semibold text-gray-900 mb-2">📊 Players Added, Scores Coming Soon</h3>
                 <p className="text-gray-600">
-                  {players.length} players are registered for this event. Rankings will appear once drill scores are recorded!
+                  {filteredPlayers.length} players {searchTerm ? `matching "${searchTerm}" ` : ''}are registered for this event. Rankings will appear once drill scores are recorded!
                 </p>
               </div>
             )}
@@ -1352,7 +1415,7 @@ export default function Players() {
               <>
                 {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
                   <div className="space-y-4">
-                    {/* Age Group Selector */}
+                    {/* Search & Filter Controls */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="font-semibold text-gray-900 flex items-center gap-2">
@@ -1363,6 +1426,35 @@ export default function Players() {
                           ⚡ Real-Time
                         </span>
                       </div>
+                      
+                      {/* Search Input */}
+                      <div className="mb-3">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="Search players by name, number, or age group..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                          />
+                          <Users className="absolute left-3 top-2.5 w-4 h-4 text-gray-400" />
+                          {searchTerm && (
+                            <button
+                              onClick={() => setSearchTerm('')}
+                              className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                        </div>
+                        {searchTerm && (
+                          <p className="text-xs text-cmf-primary mt-1">
+                            Found {filteredPlayers.length} player{filteredPlayers.length !== 1 ? 's' : ''} matching "{searchTerm}"
+                          </p>
+                        )}
+                      </div>
+                      
+                      {/* Age Group Filter */}
                       <div className="flex items-center gap-3">
                         <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
                         <select
@@ -1370,7 +1462,7 @@ export default function Players() {
                           onChange={e => setSelectedAgeGroup(e.target.value)}
                           className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                         >
-                          <option value="all">All Players ({players.length} total)</option>
+                          <option value="all">All Players ({filteredPlayers.length} total)</option>
                           {Object.keys(grouped).map(group => (
                             <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                           ))}
@@ -1509,13 +1601,13 @@ export default function Players() {
                         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                           👥 Manage Players ({selectedAgeGroup === 'all' ? 'All Players' : selectedAgeGroup})
                           <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                            {selectedAgeGroup === 'all' ? players.length : (grouped[selectedAgeGroup]?.length || 0)} players
+                            {selectedAgeGroup === 'all' ? filteredPlayers.length : (grouped[selectedAgeGroup]?.length || 0)} players
                           </span>
                         </h3>
                       </div>
                       
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {(selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || [])).map((player) => (
+                        {(selectedAgeGroup === 'all' ? filteredPlayers : (grouped[selectedAgeGroup] || [])).map((player) => (
                           <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                             <div className="flex items-center justify-between mb-2">
                               <div>
@@ -1566,6 +1658,20 @@ export default function Players() {
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                     <p className="text-gray-500">No players found for this event.</p>
                   </div>
+                ) : filteredPlayers.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
+                    <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <h3 className="font-semibold text-gray-900 mb-2">🔍 No Matching Players</h3>
+                    <p className="text-gray-600 mb-3">
+                      No players found matching "{searchTerm}". Try a different search term.
+                    </p>
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm transition"
+                    >
+                      Clear Search
+                    </button>
+                  </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                     <Settings className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -1581,7 +1687,7 @@ export default function Players() {
             {selectedPlayer && (
               <PlayerDetailsModal 
                 player={selectedPlayer} 
-                allPlayers={players} 
+                allPlayers={filteredPlayers} 
                 onClose={() => setSelectedPlayer(null)}
                 persistedWeights={persistedWeights}
                 sliderWeights={sliderWeights}
@@ -1595,7 +1701,7 @@ export default function Players() {
             {editingPlayer && (
               <EditPlayerModal
                 player={editingPlayer}
-                allPlayers={players}
+                allPlayers={filteredPlayers}
                 onClose={() => setEditingPlayer(null)}
                 onSave={fetchPlayers}
               />
