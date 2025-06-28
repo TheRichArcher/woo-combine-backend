@@ -306,8 +306,21 @@ export default function AdminTools() {
       handlePostUploadSuccess();
     } catch (err) {
       setManualStatus('error');
-      setManualMsg(err.message || 'Failed to add player.');
-      notifyError(err);
+      
+      // Enhanced error handling for cold start scenarios
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setManualMsg('Server is starting up after inactivity. Please wait 30 seconds and try again.');
+        showError('⏳ Server starting up - please wait 30 seconds and retry');
+      } else if (err.message?.includes('CORS') || err.message?.includes('blocked')) {
+        setManualMsg('Connection issue detected. Server is waking up - please try again in a moment.');
+        showError('🔄 Connection issue - server is waking up, please retry');
+      } else if (err.response?.status >= 500) {
+        setManualMsg('Server error occurred. Please wait a moment and try again.');
+        showError('⚠️ Server error - please wait and try again');
+      } else {
+        setManualMsg(err.response?.data?.detail || err.message || 'Failed to add player.');
+        notifyError(err);
+      }
     }
   };
 
@@ -673,6 +686,21 @@ export default function AdminTools() {
                 Add Player Manually
               </h3>
               
+              {/* Cold Start Info */}
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                <div className="flex items-start gap-2">
+                  <div className="w-5 h-5 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-amber-600 text-xs">⏱</span>
+                  </div>
+                  <div>
+                    <p className="text-amber-800 text-sm font-medium mb-1">First time or after inactivity?</p>
+                    <p className="text-amber-700 text-xs">
+                      If the server has been idle, the first player addition may take 30-60 seconds as the server wakes up. Subsequent additions will be instant.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
               <form onSubmit={handleManualSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -755,7 +783,12 @@ export default function AdminTools() {
                     disabled={manualStatus === 'loading'}
                     className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
                   >
-                    {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
+                    {manualStatus === 'loading' ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Adding Player...
+                      </span>
+                    ) : 'Add Player'}
                   </button>
                 </div>
 
