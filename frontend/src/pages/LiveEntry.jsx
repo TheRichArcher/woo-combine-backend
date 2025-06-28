@@ -212,15 +212,20 @@ export default function LiveEntry() {
   const currentDrill = DRILLS.find(d => d.key === selectedDrill);
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
-              <ArrowLeft className="w-6 h-6" />
+            <Link 
+              to="/dashboard" 
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+              title="Back to Dashboard"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Back</span>
             </Link>
-            <div>
+            <div className="border-l border-gray-300 pl-3">
               <h1 className="text-lg font-bold text-gray-900">Live Entry Mode</h1>
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
