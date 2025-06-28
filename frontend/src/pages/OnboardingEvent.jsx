@@ -53,55 +53,18 @@ export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId, authChecked, roleChecked } = useAuth();
-  
-  // Wait for auth and league context to be ready to prevent "No League Context" flash
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
-  
-  // Simple auth check - redirect if not authenticated organizer
-  // This is just a safety check since this page is part of guided onboarding
-  if (!user || !userRole || userRole !== 'organizer') {
-    navigate('/welcome', { replace: true });
-    return null;
-  }
-  
-  useEffect(() => {
-    // Set a timeout to handle cases where league context doesn't load
-    const timer = setTimeout(() => {
-      if (!selectedLeagueId && authChecked && roleChecked) {
-        setLoadingTimeout(true);
-        // Redirect back to create-league if no league context after 3 seconds
-        navigate('/create-league', { replace: true });
-      }
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, [selectedLeagueId, authChecked, roleChecked, navigate]);
-
-  if ((!authChecked || !roleChecked || !selectedLeagueId) && !loadingTimeout) {
-    return (
-      <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cmf-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up your event creation...</p>
-        </div>
-      </WelcomeLayout>
-    );
-  }
   const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
-  // Multi-step wizard state
+  // ALL useState hooks must be at the top level before ANY conditional returns
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [playerCount, setPlayerCount] = useState(0);
-  
-  // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [uploadStatus, setUploadStatus] = useState("idle");
   const [uploadMsg, setUploadMsg] = useState("");
-  
-  // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
   const [manualPlayer, setManualPlayer] = useState({
     first_name: '',
@@ -112,10 +75,10 @@ export default function OnboardingEvent() {
   const [manualStatus, setManualStatus] = useState('idle');
   const [manualMsg, setManualMsg] = useState('');
   
+  // useRef must also be at the top level
   const fileInputRef = useRef();
-  const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
-
-  // Fetch player count
+  
+  // All useCallback and useEffect hooks must be at the top level
   const fetchPlayerCount = useCallback(async () => {
     if (!createdEvent) return;
     try {
@@ -132,6 +95,39 @@ export default function OnboardingEvent() {
       fetchPlayerCount();
     }
   }, [createdEvent, fetchPlayerCount]);
+  
+  useEffect(() => {
+    // Set a timeout to handle cases where league context doesn't load
+    const timer = setTimeout(() => {
+      if (!selectedLeagueId && authChecked && roleChecked) {
+        setLoadingTimeout(true);
+        // Redirect back to create-league if no league context after 3 seconds
+        navigate('/create-league', { replace: true });
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [selectedLeagueId, authChecked, roleChecked, navigate]);
+  
+  // Simple auth check - redirect if not authenticated organizer
+  // This is just a safety check since this page is part of guided onboarding
+  if (!user || !userRole || userRole !== 'organizer') {
+    navigate('/welcome', { replace: true });
+    return null;
+  }
+
+  if ((!authChecked || !roleChecked || !selectedLeagueId) && !loadingTimeout) {
+    return (
+      <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cmf-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your event creation...</p>
+        </div>
+      </WelcomeLayout>
+    );
+  }
+
+  const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
 
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
