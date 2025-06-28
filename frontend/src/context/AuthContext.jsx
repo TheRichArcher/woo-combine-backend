@@ -210,7 +210,7 @@ export function AuthProvider({ children }) {
       // Navigation logic - only redirect from onboarding routes, not between authenticated pages
       // Note: /select-role is excluded because it has its own navigation logic
       const currentPath = window.location.pathname;
-      const onboardingRoutes = ["/login", "/signup", "/verify-email", "/"];
+      const onboardingRoutes = ["/login", "/signup", "/"];
       
       if (onboardingRoutes.includes(currentPath)) {
         navigate("/dashboard");
@@ -298,10 +298,12 @@ export function AuthProvider({ children }) {
       setRole(null);
       setUserRole(null);
       setError(null);
-      // Clear localStorage including invitation data
+      // Clear localStorage including invitation data and any legacy auth state
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      // Clear any legacy Firebase auth cache
+      localStorage.removeItem('firebase:authUser:' + import.meta.env.VITE_FIREBASE_API_KEY);
     } catch {
       // Logout error handled internally
       // Still clear state even if signOut fails
@@ -313,6 +315,8 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      // Clear any legacy Firebase auth cache
+      localStorage.removeItem('firebase:authUser:' + import.meta.env.VITE_FIREBASE_API_KEY);
     }
   }, []);
 
