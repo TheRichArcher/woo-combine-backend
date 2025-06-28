@@ -8,7 +8,7 @@ import QRCode from 'react-qr-code';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash, Plus } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { autoAssignPlayerNumbers, getAgeGroupNumberRange } from '../utils/playerNumbering';
 
 const REQUIRED_HEADERS = [
@@ -57,8 +57,9 @@ function validateRow(row, headers) {
 
 export default function AdminTools() {
   const { user, userRole, selectedLeagueId } = useAuth();
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, setSelectedEvent, refreshEvents } = useEvent();
   const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
+  const navigate = useNavigate();
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
@@ -1112,10 +1113,18 @@ export default function AdminTools() {
           <CreateEventModal
             open={showCreateEventModal}
             onClose={() => setShowCreateEventModal(false)}
-            onCreated={(newEvent) => {
+            onCreated={async (newEvent) => {
               setShowCreateEventModal(false);
-              showSuccess(`🎉 Event "${newEvent.name}" created successfully!`);
-              // Optionally refresh events or switch to new event
+              showSuccess(`🎉 Event "${newEvent.name}" created successfully! Taking you to add players...`);
+              
+              // Refresh events list to include the new event
+              await refreshEvents();
+              
+              // Select the new event
+              setSelectedEvent(newEvent);
+              
+              // Navigate to players page for immediate player addition
+              navigate('/players');
             }}
           />
         )}
