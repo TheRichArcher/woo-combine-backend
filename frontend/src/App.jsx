@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Players from "./pages/Players";
@@ -37,12 +38,13 @@ function AuthenticatedLayout({ children }) {
 
 function App() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <EventProvider>
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <ToastProvider>
+          <AuthProvider>
+            <EventProvider>
+              <div className="min-h-screen bg-gray-50">
+                <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
                 <Route path="/welcome" element={<Welcome />} />
                 
@@ -317,6 +319,7 @@ function App() {
         </AuthProvider>
       </ToastProvider>
     </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 

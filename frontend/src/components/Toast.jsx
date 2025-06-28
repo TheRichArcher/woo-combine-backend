@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { X, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
-const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
+const Toast = memo(({ message, type = 'info', duration = 5000, onClose }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   const handleClose = useCallback(() => {
@@ -52,6 +52,8 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
       </div>
     </div>
   );
-};
+});
+
+Toast.displayName = 'Toast';
 
 export default Toast; 

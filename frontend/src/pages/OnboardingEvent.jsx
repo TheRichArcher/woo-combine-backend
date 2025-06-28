@@ -53,7 +53,7 @@ export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId, authChecked, roleChecked } = useAuth();
-  const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
+  const { notifyEventCreated: _notifyEventCreated, notifyPlayerAdded: _notifyPlayerAdded, notifyPlayersUploaded: _notifyPlayersUploaded, notifyError: _notifyError, showSuccess: _showSuccess, showError: _showError, showInfo: _showInfo } = useToast();
   
   // ALL useState hooks must be at the top level before ANY conditional returns
   const [loadingTimeout, setLoadingTimeout] = useState(false);
