@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
-import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash } from 'lucide-react';
+import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash, Plus } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
@@ -108,6 +108,9 @@ export default function AdminTools() {
 
   // Edit Event Modal state
   const [showEditEventModal, setShowEditEventModal] = useState(false);
+  
+  // Create Event Modal state
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false);
 
   // Scroll to player upload section if hash is present or changes
   useEffect(() => {
@@ -475,13 +478,22 @@ export default function AdminTools() {
             </div>
           </div>
           
-          <button
-            onClick={() => setShowEditEventModal(true)}
-            className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
-          >
-            <Edit className="w-4 h-4" />
-            Edit Event Details
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowEditEventModal(true)}
+              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <Edit className="w-4 h-4" />
+              Edit Event Details
+            </button>
+            <button
+              onClick={() => setShowCreateEventModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Create New Event
+            </button>
+          </div>
         </div>
 
         {/* Step 2: Add Players Section */}
@@ -1091,6 +1103,19 @@ export default function AdminTools() {
             onUpdated={() => {
               setShowEditEventModal(false);
               // Refresh event data if needed
+            }}
+          />
+        )}
+        
+        {/* Create Event Modal */}
+        {showCreateEventModal && (
+          <CreateEventModal
+            open={showCreateEventModal}
+            onClose={() => setShowCreateEventModal(false)}
+            onCreated={(newEvent) => {
+              setShowCreateEventModal(false);
+              showSuccess(`🎉 Event "${newEvent.name}" created successfully!`);
+              // Optionally refresh events or switch to new event
             }}
           />
         )}

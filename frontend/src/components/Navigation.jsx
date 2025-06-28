@@ -116,14 +116,14 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
             <span className="font-medium text-gray-900">My Events</span>
           </button>
 
-          {/* Create an Event */}
+          {/* Create a League */}
           {userRole === 'organizer' && (
             <button
               onClick={() => handleNavigation('/create-league')}
               className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
             >
               <Plus className="w-5 h-5 text-gray-600" />
-              <span className="font-medium text-gray-900">Create an Event</span>
+              <span className="font-medium text-gray-900">Create a League</span>
             </button>
           )}
 
