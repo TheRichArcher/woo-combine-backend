@@ -11,9 +11,32 @@ const api = axios.create({
   timeout: 45000  // 45s for extreme cold start scenarios
 });
 
-// Enhanced retry logic for cold start recovery
+// Request interceptor with auth
+api.interceptors.request.use(async (config) => {
+  // Add Authorization header if authenticated
+  const user = auth.currentUser;
+  if (user) {
+    try {
+      // Force refresh token if it's close to expiring
+      const token = await user.getIdToken(true); // Force refresh
+      config.headers = config.headers || {};
+      config.headers['Authorization'] = `Bearer ${token}`;
+      
+      // Debug logging for authentication
+      console.debug('[API] Request with auth token for:', config.url);
+    } catch (authError) {
+      console.warn('[API] Failed to get auth token:', authError);
+      // Don't fail the request, let the backend handle it
+    }
+  } else {
+    console.debug('[API] Request without authentication for:', config.url);
+  }
+  
+  // Return the config for the current request
+  return config;
+}, (error) => Promise.reject(error));
 
-// Enhanced retry logic with exponential backoff
+// COMBINED response interceptor with retry logic and error handling
 api.interceptors.response.use(
   response => response,
   async (error) => {
@@ -34,71 +57,43 @@ api.interceptors.response.use(
       !error.response                            // No response (hibernation)
     );
     
-    if (!shouldRetry) {
-      return Promise.reject(error);
-    }
-    
-    config._retryCount += 1;
-    
-    // Progressive delays: 3s, 6s, 12s
-    let delay = Math.pow(2, config._retryCount) * 3000;
-    
-    // Extended delays for cold start indicators
-    if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
-    } else if (!error.response) {
-      delay = Math.min(delay * 1.5, 12000); // Network failures
-    } else if (error.response?.status >= 500) {
-      delay = Math.min(delay * 1.5, 10000); // Server errors
-    }
-    
-    await new Promise(resolve => setTimeout(resolve, delay));
-    return api(config);
-  }
-);
-
-// Request interceptor with auth (deduplication removed to fix _retryCount bug)
-api.interceptors.request.use(async (config) => {
-  // Add Authorization header if authenticated
-  const user = auth.currentUser;
-  if (user) {
-    try {
-      const token = await user.getIdToken();
-      config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${token}`;
-    } catch (authError) {
-      console.warn('[API] Failed to get auth token:', authError);
-    }
-  }
-  
-  // Return the config for the current request
-  return config;
-}, (error) => Promise.reject(error));
-
-// Enhanced error handling with user-friendly messages
-api.interceptors.response.use(
-  response => response,
-  error => {
-    // CRITICAL FIX: Don't log 404s for endpoints where they're expected (new user onboarding)
+    // Log errors first (before retrying)
     const isExpected404 = error.response?.status === 404 && (
       error.config?.url?.includes('/leagues/me') ||
       error.config?.url?.includes('/players?event_id=')
     );
     
-    if (isExpected404) {
-      // Silent handling for expected 404s during new user onboarding
-      return Promise.reject(error);
+    if (!isExpected404 && !shouldRetry) {
+      // Only log if we're not retrying and it's not an expected 404
+      if (error.response?.data?.detail) {
+        console.error('[API] Server Error:', error.response.data.detail);
+      } else if (error.code === 'ECONNABORTED') {
+        console.error('[API] Request timeout - server may be starting up');
+      } else if (error.message.includes('Network Error')) {
+        console.error('[API] Network connectivity issue');
+      } else {
+        console.error('[API] Request failed:', error.message);
+      }
     }
     
-    // Log detailed error info for debugging (excluding expected 404s)
-    if (error.response?.data?.detail) {
-      console.error('[API] Server Error:', error.response.data.detail);
-    } else if (error.code === 'ECONNABORTED') {
-      console.error('[API] Request timeout - server may be starting up');
-    } else if (error.message.includes('Network Error')) {
-      console.error('[API] Network connectivity issue');
-    } else {
-      console.error('[API] Request failed:', error.message);
+    // Retry logic
+    if (shouldRetry) {
+      config._retryCount += 1;
+      
+      // Progressive delays: 3s, 6s, 12s
+      let delay = Math.pow(2, config._retryCount) * 3000;
+      
+      // Extended delays for cold start indicators
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
+      } else if (!error.response) {
+        delay = Math.min(delay * 1.5, 12000); // Network failures
+      } else if (error.response?.status >= 500) {
+        delay = Math.min(delay * 1.5, 10000); // Server errors
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return api(config);
     }
     
     return Promise.reject(error);

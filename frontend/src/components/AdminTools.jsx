@@ -61,6 +61,27 @@ export default function AdminTools() {
   const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
 
+  // Debug information for troubleshooting CORS/auth issues
+  useEffect(() => {
+    console.log('[DEBUG] AdminTools mount state:', {
+      hasUser: !!user,
+      userRole,
+      selectedLeagueId,
+      selectedEvent: selectedEvent?.id,
+      apiBaseUrl: import.meta.env.VITE_API_BASE,
+      origin: window.location.origin
+    });
+    
+    // Test Firebase auth token
+    if (user) {
+      user.getIdToken().then(token => {
+        console.log('[DEBUG] Firebase token available:', !!token, token?.substring(0, 20) + '...');
+      }).catch(err => {
+        console.error('[DEBUG] Firebase token error:', err);
+      });
+    }
+  }, [user, userRole, selectedLeagueId, selectedEvent]);
+
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
