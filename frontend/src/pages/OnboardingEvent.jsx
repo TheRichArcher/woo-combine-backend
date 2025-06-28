@@ -52,13 +52,40 @@ function validateRow(row, headers) {
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
-  const { user, userRole, leagues, selectedLeagueId } = useAuth();
+  const { user, userRole, leagues, selectedLeagueId, authChecked, roleChecked } = useAuth();
   
   // Simple auth check - redirect if not authenticated organizer
   // This is just a safety check since this page is part of guided onboarding
   if (!user || !userRole || userRole !== 'organizer') {
     navigate('/welcome', { replace: true });
     return null;
+  }
+
+  // Wait for auth and league context to be ready to prevent "No League Context" flash
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
+  useEffect(() => {
+    // Set a timeout to handle cases where league context doesn't load
+    const timer = setTimeout(() => {
+      if (!selectedLeagueId && authChecked && roleChecked) {
+        setLoadingTimeout(true);
+        // Redirect back to create-league if no league context after 3 seconds
+        navigate('/create-league', { replace: true });
+      }
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, [selectedLeagueId, authChecked, roleChecked, navigate]);
+
+  if ((!authChecked || !roleChecked || !selectedLeagueId) && !loadingTimeout) {
+    return (
+      <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cmf-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your event creation...</p>
+        </div>
+      </WelcomeLayout>
+    );
   }
   const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
