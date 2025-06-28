@@ -10,6 +10,48 @@ router = APIRouter()
 class SetRoleRequest(BaseModel):
     role: str
 
+@router.get("/users/me")
+def get_current_user_info(
+    request: Request,
+    current_user=Depends(get_current_user)
+):
+    """Get current user information including role"""
+    
+    user_id = current_user["uid"]
+    email = current_user["email"]
+    
+    logging.info(f"[USER-INFO] Fetching user info for {user_id}")
+    
+    try:
+        db = get_firestore_client()
+        
+        # Get user document
+        user_doc = db.collection("users").document(user_id).get()
+        
+        if not user_doc.exists:
+            logging.warning(f"[USER-INFO] User document not found for {user_id}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        user_data = user_doc.to_dict()
+        
+        logging.info(f"[USER-INFO] Successfully fetched user info for {user_id}, role: {user_data.get('role', 'none')}")
+        
+        return {
+            "id": user_id,
+            "email": email,
+            "role": user_data.get("role"),
+            "updated_at": user_data.get("updated_at"),
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"[USER-INFO] Failed to fetch user info for {user_id}: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch user information: {str(e)}"
+        )
+
 @router.post("/users/role")
 def set_user_role(
     request: Request,

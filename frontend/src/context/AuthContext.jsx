@@ -302,11 +302,17 @@ export function AuthProvider({ children }) {
     if (!user) return;
     
     try {
-      const db = getFirestore();
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const token = await user.getIdToken();
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
+      if (response.ok) {
+        const userData = await response.json();
         const newRole = userData.role;
         console.log('[AUTH] Refreshed user role:', newRole);
         setUserRole(newRole);
