@@ -992,7 +992,7 @@ export default function Players() {
   };
 
   if (!selectedEvent || !selectedEvent.id) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1016,7 +1016,7 @@ export default function Players() {
   );
 
   if (loading) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
           <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
@@ -1029,7 +1029,7 @@ export default function Players() {
   if (error) {
     if (error.includes('422')) {
       return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
           <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
               <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found</h2>
@@ -1043,7 +1043,7 @@ export default function Players() {
       );
     }
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
           <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
             <div className="text-red-500 font-semibold">Error: {error}</div>
@@ -1054,7 +1054,7 @@ export default function Players() {
   }
 
   if (players.length === 0) return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1076,7 +1076,7 @@ export default function Players() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
