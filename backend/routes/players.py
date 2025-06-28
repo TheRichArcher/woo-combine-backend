@@ -112,7 +112,14 @@ class PlayerCreate(BaseModel):
     age_group: str | None = None
     photo_url: str | None = None
 
-@router.post("/players", response_model=PlayerSchema)
+class PlayerCreateResponse(BaseModel):
+    player_id: str
+
+class PlayerUpdateResponse(BaseModel):
+    player_id: str
+    updated: bool
+
+@router.post("/players", response_model=PlayerCreateResponse)
 def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
         # Validate that the event exists
@@ -138,14 +145,14 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
             }),
             timeout=5
         )
-        return {"player_id": player_doc.id}
+        return PlayerCreateResponse(player_id=player_doc.id)
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error creating player: {e}")
         raise HTTPException(status_code=500, detail="Failed to create player")
 
-@router.put("/players/{player_id}")
+@router.put("/players/{player_id}", response_model=PlayerUpdateResponse)
 def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
         # Validate that the event exists (use longer timeout for writes)
@@ -181,7 +188,7 @@ def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(..
             timeout=5
         )
         
-        return {"player_id": player_id, "updated": True}
+        return PlayerUpdateResponse(player_id=player_id, updated=True)
     except HTTPException:
         raise
     except Exception as e:
@@ -403,7 +410,7 @@ def list_players(league_id: str, current_user=Depends(get_current_user)):
         logging.error(f"Error listing players: {e}")
         raise HTTPException(status_code=500, detail="Failed to list players")
 
-@router.post('/leagues/{league_id}/players')
+@router.post('/leagues/{league_id}/players', response_model=PlayerCreateResponse)
 def add_player(league_id: str, req: dict, current_user=Depends(get_current_user)):
     try:
         players_ref = db.collection("leagues").document(league_id).collection("players")
@@ -417,7 +424,7 @@ def add_player(league_id: str, req: dict, current_user=Depends(get_current_user)
             }),
             timeout=10
         )
-        return {"player_id": player_doc.id}
+        return PlayerCreateResponse(player_id=player_doc.id)
     except HTTPException:
         raise
     except Exception as e:

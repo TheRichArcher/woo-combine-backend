@@ -14,10 +14,49 @@ from starlette.responses import Response, JSONResponse
 from google.cloud import firestore
 from datetime import datetime
 import asyncio
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
+
+# Global exception handler to ensure CORS headers are always included
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Ensure all responses include CORS headers, even during exceptions"""
+    logging.error(f"[GLOBAL-ERROR] Unhandled exception: {exc}")
+    
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"}
+    )
+    
+    # Add CORS headers manually for all responses
+    origin = request.headers.get("origin")
+    if origin and origin in ["https://woo-combine.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:3000"]:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions with proper CORS headers"""
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+    
+    # Add CORS headers manually
+    origin = request.headers.get("origin")
+    if origin and origin in ["https://woo-combine.com", "http://localhost:5173", "http://localhost:5174", "http://localhost:5175", "http://localhost:3000"]:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
 
 # Fast OPTIONS response middleware to handle CORS preflight quickly
 class FastOptionsMiddleware(BaseHTTPMiddleware):
