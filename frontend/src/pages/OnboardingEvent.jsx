@@ -52,7 +52,14 @@ function validateRow(row, headers) {
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
-  const { leagues, selectedLeagueId } = useAuth();
+  const { user, userRole, leagues, selectedLeagueId } = useAuth();
+  
+  // Simple auth check - redirect if not authenticated organizer
+  // This is just a safety check since this page is part of guided onboarding
+  if (!user || !userRole || userRole !== 'organizer') {
+    navigate('/welcome', { replace: true });
+    return null;
+  }
   const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Multi-step wizard state
