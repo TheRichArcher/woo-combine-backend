@@ -37,14 +37,8 @@ export function AuthProvider({ children }) {
     setUser(firebaseUser);
     setAuthChecked(true);
     
-    // Quick email verification check
-    if (!firebaseUser.emailVerified) {
-      if (window.location.pathname !== '/verify-email') {
-        navigate('/verify-email');
-      }
-      return false;
-    }
-
+    // Phone authentication is automatically verified during SMS confirmation
+    // No additional email verification needed
     return true; // User is authenticated and verified
   }, [navigate, setUser, setAuthChecked]);
 

@@ -125,7 +125,6 @@ function App() {
                 />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/claim" element={
                   <WelcomeLayout
                     contentClassName="min-h-screen"
@@ -143,12 +142,6 @@ function App() {
                       <p className="text-gray-600 mb-6">Need to claim an existing account or recover access?</p>
                       
                       <div className="space-y-3 mb-6">
-                        <Link 
-                          to="/forgot-password" 
-                          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl transition block"
-                        >
-                          Reset Password
-                        </Link>
                         <Link 
                           to="/join" 
                           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition block"
@@ -170,7 +163,6 @@ function App() {
                 } />
                 <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />
                 <Route path="/join" element={<RequireAuth><AuthenticatedLayout><JoinLeague /></AuthenticatedLayout></RequireAuth>} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
                 <Route path="/select-league" element={<RequireAuth><AuthenticatedLayout><SelectLeague /></AuthenticatedLayout></RequireAuth>} />
                 {/* Redirect /league to /select-league for better UX */}
                 <Route path="/league" element={<Navigate to="/select-league" replace />} />
@@ -207,18 +199,12 @@ function App() {
                         >
                           📧 Email Support
                         </a>
-                        <Link 
-                          to="/forgot-password" 
-                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition block"
-                        >
-                          🔑 Reset Password
-                        </Link>
                       </div>
                       
                       <div className="text-sm text-gray-500 space-y-2">
                         <p>Common Issues:</p>
                         <div className="text-left space-y-1">
-                          <p>• Can't log in: Try password reset</p>
+                          <p>• Can't log in: Check phone number and verification code</p>
                           <p>• QR code not working: Check internet connection</p>
                           <p>• Missing players: Contact your organizer</p>
                         </div>

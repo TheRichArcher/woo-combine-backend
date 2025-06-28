@@ -18,7 +18,8 @@ def get_current_user_info(
     """Get current user information including role"""
     
     user_id = current_user["uid"]
-    email = current_user["email"]
+    phone_number = current_user.get("phone_number", "")
+    email = current_user.get("email", "")
     
     logging.info(f"[USER-INFO] Fetching user info for {user_id}")
     
@@ -38,7 +39,8 @@ def get_current_user_info(
         
         return {
             "id": user_id,
-            "email": email,
+            "phone_number": phone_number,
+            "email": email,  # Keep for legacy compatibility
             "role": user_data.get("role"),
             "updated_at": user_data.get("updated_at"),
         }
@@ -61,7 +63,8 @@ def set_user_role(
     """Set or update user role - used during onboarding"""
     
     user_id = current_user["uid"]
-    email = current_user["email"]
+    phone_number = current_user.get("phone_number", "")
+    email = current_user.get("email", "")
     role = req.role
     
     logging.info(f"[USER-ROLE] Setting role '{role}' for user {user_id}")
@@ -78,7 +81,8 @@ def set_user_role(
         # Update or create user document with role
         user_data = {
             "id": user_id,
-            "email": email,
+            "phone_number": phone_number,
+            "email": email,  # Keep for legacy compatibility
             "role": role,
             "updated_at": datetime.utcnow().isoformat(),
         }

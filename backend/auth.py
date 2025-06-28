@@ -78,12 +78,12 @@ def get_current_user(
         
         logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}")
         
-        if not decoded_token.get("email_verified"):
-            logging.warning(f"[AUTH] Email not verified for UID: {decoded_token.get('uid')}")
-            raise HTTPException(status_code=403, detail="Email not verified")
+        # Phone authentication is automatically verified during SMS confirmation
+        # No additional email verification needed
             
         uid = decoded_token["uid"]
-        email = decoded_token.get("email", "")
+        phone_number = decoded_token.get("phone_number", "")
+        email = decoded_token.get("email", "")  # Keep for legacy compatibility
         
         # Optimized Firestore lookup with timeout protection
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
@@ -119,7 +119,8 @@ def get_current_user(
                 # Create minimal user document to allow access
                 user_data = {
                     "id": uid,
-                    "email": email,
+                    "phone_number": phone_number,
+                    "email": email,  # Keep for legacy compatibility
                     "created_at": datetime.utcnow().isoformat(),
                     # Don't set role yet - this will be done in SelectRole
                 }
@@ -132,28 +133,30 @@ def get_current_user(
                         logging.info(f"[AUTH] Successfully created user document for UID {uid}")
                         
                         # Return with no role so user goes to SelectRole
-                        return {"uid": uid, "email": email, "role": None}
+                        return {"uid": uid, "phone_number": phone_number, "email": email, "role": None}
                         
                     except concurrent.futures.TimeoutError:
                         logging.error(f"[AUTH] User document creation timed out for UID: {uid}")
                         # Continue without role to allow SelectRole flow
-                        return {"uid": uid, "email": email, "role": None}
+                        return {"uid": uid, "phone_number": phone_number, "email": email, "role": None}
                         
             except Exception as create_error:
                 logging.error(f"[AUTH] Failed to create user document: {create_error}")
                 # Still allow access without role for SelectRole flow
-                return {"uid": uid, "email": email, "role": None}
+                return {"uid": uid, "phone_number": phone_number, "email": email, "role": None}
         
         user_data = user_doc.to_dict()
         role = user_data.get("role")
+        stored_phone = user_data.get("phone_number", phone_number)
+        stored_email = user_data.get("email", email)
         
         # GUIDED SETUP FIX: Allow access without role for SelectRole flow
         if not role:
             logging.info(f"[AUTH] User with UID {uid} found but no role set - allowing SelectRole access")
-            return {"uid": uid, "email": email, "role": None}
+            return {"uid": uid, "phone_number": stored_phone, "email": stored_email, "role": None}
             
         logging.info(f"[AUTH] Authentication successful for UID {uid} with role {role}")
-        return {"uid": uid, "email": email, "role": role}
+        return {"uid": uid, "phone_number": stored_phone, "email": stored_email, "role": role}
         
     except firebase_exceptions.FirebaseError as e:
         logging.error(f"[AUTH] Firebase token verification failed: {e}")
