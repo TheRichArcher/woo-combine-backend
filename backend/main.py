@@ -4,6 +4,7 @@ from .routes.players import router as players_router
 from .routes.leagues import router as leagues_router
 from .routes.drills import router as drills_router
 from .routes.events import router as events_router
+from .routes.users import router as users_router
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -76,6 +77,7 @@ app.include_router(players_router, prefix="/api", tags=["Players"])
 app.include_router(leagues_router, prefix="/api", tags=["Leagues"])
 app.include_router(drills_router, prefix="/api", tags=["Drills"])
 app.include_router(events_router, prefix="/api", tags=["Events"])
+app.include_router(users_router, prefix="/api", tags=["Users"])
 
 @app.get("/health")
 @app.head("/health")

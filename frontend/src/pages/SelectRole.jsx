@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
-import { getFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
+import api from '../lib/api';
 
 // Role options for different user types
 const ALL_ROLE_OPTIONS = [
@@ -24,7 +24,6 @@ export default function SelectRole() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const logout = useLogout();
-  const db = getFirestore();
   
   // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
@@ -82,16 +81,13 @@ export default function SelectRole() {
     setLoading(true);
     
     try {
-      // Save user role to Firestore
-      await setDoc(doc(db, "users", user.uid), {
-        id: user.uid,
-        email: user.email,
-        role: selectedRole,
-        created_at: serverTimestamp(),
-      }, { merge: true });
+      // Save user role via backend API (more secure than direct Firestore writes)
+      await api.post('/users/role', {
+        role: selectedRole
+      });
       
-      // Longer delay to ensure Firestore write completes and AuthContext stabilizes before navigation
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Shorter delay since backend API is more reliable
+      await new Promise(resolve => setTimeout(resolve, 200));
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
