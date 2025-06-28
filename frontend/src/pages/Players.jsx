@@ -8,6 +8,7 @@ import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
+import WelcomeLayout from "../components/layouts/WelcomeLayout";
 
 const DRILLS = [
   { key: "40m_dash", label: "40-Yard Dash", unit: "sec" },
@@ -1096,10 +1097,25 @@ export default function Players() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
-          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+    <WelcomeLayout
+      contentClassName="min-h-screen"
+      hideHeader={true}
+      showOverlay={false}
+    >
+      <div className="w-full max-w-lg mx-auto px-4">
+        {/* Header Card */}
+        <div className="bg-white rounded-2xl shadow-2xl p-6 mb-6 text-center">
+          {/* Logo */}
+          <div className="text-center mb-4">
+            <img
+              src="/favicon/woocombine-logo.png"
+              alt="Woo-Combine Logo"
+              className="w-12 h-12 mx-auto mb-3"
+              style={{ objectFit: 'contain' }}
+            />
+          </div>
+
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
             WooCombine: Players & Rankings
           </h1>
           <p className="text-gray-600 mb-4">
@@ -1110,7 +1126,7 @@ export default function Players() {
             }
           </p>
           
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap justify-center">
             {(userRole === 'organizer' || userRole === 'coach') && (
               <Link
                 to="/live-entry"
@@ -1134,7 +1150,7 @@ export default function Players() {
 
         {/* Role-based interface - Tabs only for organizers/coaches */}
         {(userRole === 'organizer' || userRole === 'coach') ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 mb-6 overflow-hidden">
             <div className="flex border-b border-gray-200">
               {TABS.map((tab) => {
                 const Icon = tab.icon;
@@ -1156,23 +1172,21 @@ export default function Players() {
               })}
             </div>
             
-            <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600">
+            <div className="px-4 py-2 bg-gray-50 text-xs text-gray-600 text-center">
               {TABS.find(tab => tab.id === activeTab)?.description}
             </div>
           </div>
         ) : (
           /* Viewer header */
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-cmf-primary" />
-                Event Participants
-              </h2>
+          <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 mb-6 p-4 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Users className="w-5 h-5 text-cmf-primary" />
+              <h2 className="font-semibold text-gray-900">Event Participants</h2>
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                 👁️ View Only
               </span>
             </div>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-gray-600">
               View all participants in this combine event
             </p>
           </div>
@@ -1185,7 +1199,7 @@ export default function Players() {
             {players.length > 0 && Object.keys(grouped).length > 0 ? (
               <>
                 {/* Search & Filter Controls */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-blue-600" />
@@ -1471,7 +1485,7 @@ export default function Players() {
                     </div>
 
                     {liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 ? (
-                      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                      <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
                         {/* Compact Weight Controls */}
                         <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
                           <div className="flex items-center justify-between mb-2">
@@ -1806,6 +1820,6 @@ export default function Players() {
           </>
         )}
       </div>
-    </div>
+    </WelcomeLayout>
   );
 }
