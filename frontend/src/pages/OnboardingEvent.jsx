@@ -54,15 +54,15 @@ export default function OnboardingEvent() {
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId, authChecked, roleChecked } = useAuth();
   
+  // Wait for auth and league context to be ready to prevent "No League Context" flash
+  const [loadingTimeout, setLoadingTimeout] = useState(false);
+  
   // Simple auth check - redirect if not authenticated organizer
   // This is just a safety check since this page is part of guided onboarding
   if (!user || !userRole || userRole !== 'organizer') {
     navigate('/welcome', { replace: true });
     return null;
   }
-
-  // Wait for auth and league context to be ready to prevent "No League Context" flash
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
   
   useEffect(() => {
     // Set a timeout to handle cases where league context doesn't load
