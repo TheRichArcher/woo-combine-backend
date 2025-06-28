@@ -3,7 +3,7 @@ import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import api from '../lib/api';
 import { useNavigate } from "react-router-dom";
-import { getFirestore, doc, getDoc } from "firebase/firestore";
+
 import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 
@@ -51,15 +51,41 @@ export function AuthProvider({ children }) {
   // OPTIMIZED: Single request initialization to prevent timeout cascade
   const completeInitialization = useCallback(async (firebaseUser) => {
     try {
-      const db = getFirestore();
       
-      // STEP 1: Role check with extended timeout for cold starts
-      const roleDoc = await Promise.race([
-        getDoc(doc(db, "users", firebaseUser.uid)),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))  // Increased to 20s
-      ]);
+      // STEP 1: Role check with extended timeout for cold starts using backend API
+      let userRole = null;
+      try {
+        const token = await firebaseUser.getIdToken();
+        const roleResponse = await Promise.race([
+          fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))  // Increased to 20s
+        ]);
 
-      if (!roleDoc.exists() || !roleDoc.data().role) {
+        if (roleResponse.ok) {
+          const userData = await roleResponse.json();
+          userRole = userData.role;
+        } else if (roleResponse.status === 404) {
+          // User document doesn't exist - new user needs role selection
+          userRole = null;
+        } else {
+          throw new Error(`Role check failed: ${roleResponse.status}`);
+        }
+      } catch (error) {
+        if (error.message.includes('Role check timeout')) {
+          throw error; // Re-throw timeout errors
+        }
+        // For other errors (like 404), treat as no role
+        console.log('[AUTH] Role check error (treating as new user):', error.message);
+        userRole = null;
+      }
+
+      if (!userRole) {
         setUserRole(null);
         setLeagues([]);
         setRole(null);
@@ -78,7 +104,6 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      const userRole = roleDoc.data().role;
       setUserRole(userRole);
 
       // STEP 2: League fetch with single request and extended timeout
