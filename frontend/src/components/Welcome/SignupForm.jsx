@@ -18,19 +18,59 @@ export default function SignupForm() {
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
 
-  // Initialize reCAPTCHA verifier
+  // Initialize reCAPTCHA verifier with proper timing and error handling
   useEffect(() => {
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
-      size: 'invisible',
-      callback: () => {
-        // reCAPTCHA solved
+    let verifier = null;
+    
+    const initializeRecaptcha = () => {
+      try {
+        // Ensure the container exists before initializing
+        const container = document.getElementById('recaptcha-container-signup');
+        if (!container) {
+          // Retry after a short delay if container doesn't exist yet
+          setTimeout(initializeRecaptcha, 100);
+          return;
+        }
+        
+        verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
+          size: 'invisible',
+          callback: () => {
+            // reCAPTCHA solved - this callback is called when verification succeeds
+            if (import.meta.env.DEV) {
+              console.log('[reCAPTCHA] Verification successful');
+            }
+          },
+          'error-callback': (error) => {
+            // Handle reCAPTCHA errors gracefully
+            if (import.meta.env.DEV) {
+              console.error('[reCAPTCHA] Error:', error);
+            }
+            setFormError("Security verification failed. Please refresh and try again.");
+          }
+        });
+        
+        setRecaptchaVerifier(verifier);
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error('[reCAPTCHA] Initialization failed:', error);
+        }
+        setFormError("Security verification setup failed. Please refresh and try again.");
       }
-    });
-    setRecaptchaVerifier(verifier);
+    };
+    
+    // Start initialization after component mounts
+    initializeRecaptcha();
     
     return () => {
       if (verifier) {
-        verifier.clear();
+        try {
+          verifier.clear();
+        } catch (error) {
+          // Silent cleanup error
+          if (import.meta.env.DEV) {
+            console.warn('[reCAPTCHA] Cleanup error:', error);
+          }
+        }
       }
     };
   }, []);
@@ -76,10 +116,16 @@ export default function SignupForm() {
       if (import.meta.env.DEV) {
         console.error("Phone sign-up error:", err);
       }
+      
+      // Enhanced error handling for reCAPTCHA and phone auth
       if (err.code === "auth/too-many-requests") {
         setFormError("Too many attempts. Please try again later.");
       } else if (err.code === "auth/invalid-phone-number") {
         setFormError("Invalid phone number. Please check and try again.");
+      } else if (err.code === "auth/missing-app-credential" || err.message?.includes("reCAPTCHA")) {
+        setFormError("Security verification failed. Please refresh the page and try again.");
+      } else if (err.code === "auth/captcha-check-failed") {
+        setFormError("Security check failed. Please try again.");
       } else {
         setFormError("Failed to send verification code. Please try again.");
       }
