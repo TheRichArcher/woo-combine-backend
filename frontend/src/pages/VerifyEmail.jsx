@@ -109,8 +109,10 @@ export default function VerifyEmail() {
             }
           }
         } catch (error) {
-          // Silently handle errors to prevent interference
-          console.log('Verification check failed:', error);
+          // Silently handle errors to prevent interference with auto-check
+          if (import.meta.env.DEV) {
+            console.debug('[VerifyEmail] Auto-verification check failed:', error);
+          }
         }
       }
     };
@@ -162,8 +164,10 @@ export default function VerifyEmail() {
         }
       }
     } catch (error) {
-      // Verification check failed
-      console.log('Manual verification check failed:', error);
+      // Manual verification check failed
+      if (import.meta.env.DEV) {
+        console.debug('[VerifyEmail] Manual verification check failed:', error);
+      }
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);

@@ -34,7 +34,9 @@ export default function EventSelector({ onEventSelected }) {
         selectedLeagueId === null || 
         selectedLeagueId === undefined || 
         selectedLeagueId.trim() === '') {
-      console.error('[EVENT-SELECTOR] Cannot create event - no selectedLeagueId available');
+      if (import.meta.env.DEV) {
+        console.error('[EVENT-SELECTOR] Cannot create event - no selectedLeagueId available');
+      }
       setCreateError('Cannot create event: No league selected. Please select a league first.');
       setCreateLoading(false);
       return;

@@ -35,7 +35,9 @@ export function EventProvider({ children }) {
         setSelectedEvent(eventsData[0]);
       }
     } catch (err) {
-      console.error('[EVENT-CONTEXT] Failed to load events:', err);
+      if (import.meta.env.DEV) {
+        console.error('[EVENT-CONTEXT] Failed to load events:', err);
+      }
       setError(err.response?.data?.detail || 'Failed to load events');
       setEvents([]);
       setSelectedEvent(null);

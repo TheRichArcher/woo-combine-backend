@@ -1,6 +1,21 @@
 import axios from 'axios';
 import { auth } from '../firebase';
 
+// Configuration constants
+const API_TIMEOUTS = {
+  DEFAULT: 45000,        // 45s for extreme cold start scenarios
+  COLD_START_RETRY: 15000,  // 15s for severe cold starts
+  NETWORK_RETRY: 12000,     // Network failures
+  SERVER_RETRY: 10000       // Server errors
+};
+
+const RETRY_CONFIG = {
+  MAX_RETRIES: 2,
+  LEAGUE_RETRIES: 1,      // Only 1 retry for league fetching to prevent cascade
+  BASE_DELAY: 3000,       // 3s base delay
+  MAX_DELAY: 15000        // Maximum delay cap
+};
+
 /*
  * Centralized axios instance with proper cold start handling
  * Base URL with fallback for production reliability
@@ -8,7 +23,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
   withCredentials: false,
-  timeout: 45000  // 45s for extreme cold start scenarios
+  timeout: API_TIMEOUTS.DEFAULT
 });
 
 // Request interceptor with auth
@@ -23,13 +38,19 @@ api.interceptors.request.use(async (config) => {
       config.headers['Authorization'] = `Bearer ${token}`;
       
       // Debug logging for authentication
-      console.debug('[API] Request with auth token for:', config.url);
+      if (import.meta.env.DEV) {
+        console.debug('[API] Request with auth token for:', config.url);
+      }
     } catch (authError) {
-      console.warn('[API] Failed to get auth token:', authError);
+      if (import.meta.env.DEV) {
+        console.warn('[API] Failed to get auth token:', authError);
+      }
       // Don't fail the request, let the backend handle it
     }
   } else {
-    console.debug('[API] Request without authentication for:', config.url);
+    if (import.meta.env.DEV) {
+      console.debug('[API] Request without authentication for:', config.url);
+    }
   }
   
   // Return the config for the current request
@@ -48,7 +69,7 @@ api.interceptors.response.use(
     }
     
     // CRITICAL FIX: Reduce retries for cold start scenarios to prevent cascade
-    const maxRetries = error.config?.url?.includes('/leagues/me') ? 1 : 2; // Only 1 retry for league fetching
+    const maxRetries = error.config?.url?.includes('/leagues/me') ? RETRY_CONFIG.LEAGUE_RETRIES : RETRY_CONFIG.MAX_RETRIES;
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
@@ -81,15 +102,15 @@ api.interceptors.response.use(
       config._retryCount += 1;
       
       // Progressive delays: 3s, 6s, 12s
-      let delay = Math.pow(2, config._retryCount) * 3000;
+      let delay = Math.pow(2, config._retryCount) * RETRY_CONFIG.BASE_DELAY;
       
       // Extended delays for cold start indicators
       if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-        delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
+        delay = Math.min(delay * 2, API_TIMEOUTS.COLD_START_RETRY);
       } else if (!error.response) {
-        delay = Math.min(delay * 1.5, 12000); // Network failures
+        delay = Math.min(delay * 1.5, API_TIMEOUTS.NETWORK_RETRY);
       } else if (error.response?.status >= 500) {
-        delay = Math.min(delay * 1.5, 10000); // Server errors
+        delay = Math.min(delay * 1.5, API_TIMEOUTS.SERVER_RETRY);
       }
       
       await new Promise(resolve => setTimeout(resolve, delay));

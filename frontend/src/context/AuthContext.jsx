@@ -75,7 +75,9 @@ export function AuthProvider({ children }) {
           throw error; // Re-throw timeout errors
         }
         // For other errors (like 404), treat as no role
-        console.log('[AUTH] Role check error (treating as new user):', error.message);
+        if (import.meta.env.DEV) {
+          console.debug('[AUTH] Role check error (treating as new user):', error.message);
+        }
         userRole = null;
       }
 
@@ -170,7 +172,9 @@ export function AuthProvider({ children }) {
           setLeagueFetchInProgress(false);
           
           // GUIDED SETUP FIX: Don't treat 404 as an error during onboarding
-          console.info('[AUTH] New user detected - no leagues found (expected for guided setup)');
+          if (import.meta.env.DEV) {
+            console.debug('[AUTH] New user detected - no leagues found (expected for guided setup)');
+          }
           
           // CRITICAL FIX: Must complete role check even for 404s to avoid infinite loading
           setRoleChecked(true);
@@ -337,17 +341,23 @@ export function AuthProvider({ children }) {
       if (response.ok) {
         const userData = await response.json();
         const newRole = userData.role;
-        console.log('[AUTH] Refreshed user role:', newRole);
+        if (import.meta.env.DEV) {
+          console.debug('[AUTH] Refreshed user role:', newRole);
+        }
         setUserRole(newRole);
         
         // If this is the first time setting a role, trigger complete initialization
         if (newRole && !userRole) {
-          console.log('[AUTH] First-time role detected, triggering initialization');
+          if (import.meta.env.DEV) {
+            console.debug('[AUTH] First-time role detected, triggering initialization');
+          }
           await completeInitialization(user);
         }
       }
     } catch (error) {
-      console.error('[AUTH] Failed to refresh user role:', error);
+      if (import.meta.env.DEV) {
+        console.error('[AUTH] Failed to refresh user role:', error);
+      }
     }
   }, [user, userRole, completeInitialization]);
 

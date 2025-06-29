@@ -50,8 +50,11 @@ export default function Roster() {
         const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
         setPlayers(data);
       } catch (error) {
-        console.error('Error fetching players:', error);
+        if (import.meta.env.DEV) {
+          console.error('[Roster] Error fetching players:', error);
+        }
         setPlayers([]);
+        // Could show user notification about fetch failure
       } finally {
         setLoading(false);
       }

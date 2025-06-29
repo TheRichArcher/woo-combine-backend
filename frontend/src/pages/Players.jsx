@@ -270,7 +270,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
         
         const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
         rankings[drill.key] = rank > 0 ? rank : null;
-      } catch {
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('[Players] Drill ranking calculation failed for', drill.key, ':', error);
+        }
         rankings[drill.key] = null;
       }
     });
@@ -334,7 +337,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
           weightedScore,
           rank: drillRankings[drill.key]
         };
-      } catch {
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('[Players] Weighted breakdown calculation failed for', drill.key, ':', error);
+        }
         return {
           ...drill,
           rawScore: null,
@@ -404,7 +410,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
             return sum;
           }, 0);
           return { ...p, currentScore: score };
-        } catch {
+        } catch (error) {
+          if (import.meta.env.DEV) {
+            console.warn('[Players] Player score calculation failed:', error);
+          }
           return { ...p, currentScore: 0 };
         }
       }).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0));
@@ -412,7 +421,10 @@ function PlayerDetailsModal({ player, allPlayers, onClose, persistedWeights, sli
       const rankIndex = playersWithScores.findIndex(p => p.id === player.id);
       currentRank = rankIndex >= 0 ? rankIndex + 1 : 1;
     }
-  } catch {
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[Players] Ranking calculation failed:', error);
+    }
     currentRank = 1;
     ageGroupPlayers = [player];
   }

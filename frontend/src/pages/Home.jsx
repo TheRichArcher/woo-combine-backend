@@ -89,7 +89,9 @@ export default function Home() {
             
             {/* Event Selection Interface */}
             <EventSelector onEventSelected={(event) => {
-              console.log('Event selected:', event);
+              if (import.meta.env.DEV) {
+      console.debug('[Home] Event selected:', event);
+    }
               // Event is automatically set in EventContext
             }} />
             

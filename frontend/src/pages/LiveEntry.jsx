@@ -41,8 +41,10 @@ export default function LiveEntry() {
     try {
       const response = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(response.data);
-          } catch {
-        // Player fetch failed
+    } catch (error) {
+      console.error('[LiveEntry] Failed to fetch players:', error);
+      setPlayers([]);
+      // Could show user notification here if needed
     }
   }, [selectedEvent]);
 
@@ -145,9 +147,10 @@ export default function LiveEntry() {
         playerNumberRef.current?.focus();
       }, 100);
       
-          } catch {
-        // Score submission failed
-      alert('Error submitting score. Please try again.');
+    } catch (error) {
+      console.error('[LiveEntry] Score submission failed:', error);
+      const userMessage = error.response?.data?.detail || 'Error submitting score. Please try again.';
+      alert(userMessage);
     } finally {
       setLoading(false);
     }

@@ -19,7 +19,9 @@ export default function LeagueFallback() {
         // Create league first - CreateLeague will then navigate to /onboarding/event
         navigate('/create-league');
       } catch (err) {
-        console.error('[GUIDED-SETUP] Navigation error:', err);
+        if (import.meta.env.DEV) {
+          console.error('[GUIDED-SETUP] Navigation error:', err);
+        }
         setFeedback(`Navigation error: ${err.message}`);
       }
     } else {

@@ -11,62 +11,65 @@
  * - Rookies: 2001, 2002, 2003...
  */
 
+// Player numbering system configuration
+const NUMBERING_CONFIG = {
+  FALLBACK_PREFIX: 99,        // Fallback prefix for unknown age groups
+  MAX_COUNTER: 999,           // Maximum counter before fallback
+  FALLBACK_MIN: 100,          // Minimum number for fallback range
+  FALLBACK_MAX: 999           // Maximum number for fallback range
+};
+
+// Age group to number prefix mapping
+const AGE_GROUP_PREFIXES = {
+  // Standard age group formats
+  '6U': 6, 'U6': 6, '5-6': 6,
+  '8U': 8, 'U8': 8, '7-8': 8,
+  '10U': 10, 'U10': 10, '9-10': 10,
+  '12U': 12, 'U12': 12, '11-12': 12,
+  '14U': 14, 'U14': 14, '13-14': 14,
+  '16U': 16, 'U16': 16, '15-16': 16,
+  '18U': 18, 'U18': 18, '17-18': 18,
+  
+  // Common variations
+  'Little League': 5,
+  'Lil Ballers': 5,
+  'Rookie': 5,
+  'Pee Wee': 7,
+  'Minor': 9,
+  'Major': 11,
+  'Junior': 13,
+  'Senior': 15,
+  'Varsity': 17,
+  'Adult': 20
+};
+
 /**
- * Maps age groups to numeric prefixes
+ * Get the numeric prefix for an age group
  */
-const getAgeGroupPrefix = (ageGroup) => {
-  if (!ageGroup || typeof ageGroup !== 'string') return 99; // Default for no age group
+export const getAgeGroupPrefix = (ageGroup) => {
+  if (!ageGroup) return NUMBERING_CONFIG.FALLBACK_PREFIX;
   
-  const normalized = ageGroup.toLowerCase().trim();
-  
-  // Extract numeric part for standard age groups (12U, 8U, etc.)
-  const numericMatch = normalized.match(/(\d+)/);
-  if (numericMatch) {
-    const num = parseInt(numericMatch[1]);
-    // Handle special cases for very young ages
-    if (num <= 5) return 5;  // 3U, 4U, 5U all use 5xx range
-    return num;
+  // Direct lookup first
+  const normalized = ageGroup.toString().trim();
+  if (AGE_GROUP_PREFIXES[normalized]) {
+    return AGE_GROUP_PREFIXES[normalized];
   }
   
-  // Map common non-numeric age groups to meaningful prefixes
-  const mappings = {
-    // Little kids variants
-    'lil ballers': 5,
-    'lil\' ballers': 5,
-    'little ballers': 5,
-    'tots': 3,
-    'tiny tots': 3,
-    'micro': 4,
-    
-    // Skill-based groupings
-    'rookies': 20,
-    'beginners': 21,
-    'novice': 22,
-    'intermediate': 23,
-    'advanced': 24,
-    'elite': 26,
-    
-    // Experience-based
-    'junior': 15,
-    'juniors': 15,
-    'senior': 25,
-    'seniors': 25,
-    'varsity': 27,
-    'jv': 16,
-    'freshman': 14,
-    'sophomore': 15,
-    'jr varsity': 16,
-    
-    // Special groups
-    'all stars': 28,
-    'champions': 29,
-    'select': 30,
-    'travel': 31,
-    'rec': 32,
-    'recreational': 32
-  };
+  // Try case-insensitive lookup
+  const lowerCase = normalized.toLowerCase();
+  for (const [key, value] of Object.entries(AGE_GROUP_PREFIXES)) {
+    if (key.toLowerCase() === lowerCase) {
+      return value;
+    }
+  }
   
-  return mappings[normalized] || 99; // Default to 99xx range for unknown groups
+  // Extract numbers from age group (e.g., "12" from "12 years old")
+  const numbers = normalized.match(/\d+/g);
+  if (numbers && numbers.length > 0) {
+    return parseInt(numbers[0]);
+  }
+  
+  return NUMBERING_CONFIG.FALLBACK_PREFIX;
 };
 
 /**
@@ -83,9 +86,11 @@ export const generatePlayerNumber = (ageGroup, existingNumbers = [], sequenceSta
     counter++;
     
     // Safety check to prevent infinite loops
-    if (counter > 999) {
+    if (counter > NUMBERING_CONFIG.MAX_COUNTER) {
       // If we can't find a number in the primary range, try the 99xx range
-      candidateNumber = 99 * 100 + Math.floor(Math.random() * 900) + 100;
+      candidateNumber = NUMBERING_CONFIG.FALLBACK_PREFIX * 100 + 
+                       Math.floor(Math.random() * (NUMBERING_CONFIG.FALLBACK_MAX - NUMBERING_CONFIG.FALLBACK_MIN + 1)) + 
+                       NUMBERING_CONFIG.FALLBACK_MIN;
       break;
     }
   } while (existingNumbers.includes(candidateNumber));
@@ -119,6 +124,17 @@ export const autoAssignPlayerNumbers = (players) => {
 };
 
 /**
+ * Get all available age group options for display in forms
+ */
+export const getAgeGroupOptions = () => {
+  return Object.keys(AGE_GROUP_PREFIXES).sort((a, b) => {
+    const prefixA = AGE_GROUP_PREFIXES[a];
+    const prefixB = AGE_GROUP_PREFIXES[b];
+    return prefixA - prefixB;
+  });
+};
+
+/**
  * Gets a preview of what number range an age group will use
  */
 export const getAgeGroupNumberRange = (ageGroup) => {
@@ -144,5 +160,6 @@ export default {
   generatePlayerNumber,
   autoAssignPlayerNumbers,
   getAgeGroupNumberRange,
-  validatePlayerNumberForAgeGroup
+  validatePlayerNumberForAgeGroup,
+  getAgeGroupOptions
 }; 

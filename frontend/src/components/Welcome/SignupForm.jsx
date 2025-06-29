@@ -73,7 +73,9 @@ export default function SignupForm() {
       setConfirmationResult(confirmation);
       setStep(2);
     } catch (err) {
-      console.error("Phone sign-up error:", err);
+      if (import.meta.env.DEV) {
+        console.error("Phone sign-up error:", err);
+      }
       if (err.code === "auth/too-many-requests") {
         setFormError("Too many attempts. Please try again later.");
       } else if (err.code === "auth/invalid-phone-number") {
@@ -102,7 +104,9 @@ export default function SignupForm() {
       await confirmationResult.confirm(verificationCode);
       // Let AuthContext handle the navigation logic for verified users
     } catch (err) {
-      console.error("Code verification error:", err);
+      if (import.meta.env.DEV) {
+        console.error("Code verification error:", err);
+      }
       if (err.code === "auth/invalid-verification-code") {
         setFormError("Invalid verification code. Please check and try again.");
       } else if (err.code === "auth/code-expired") {

@@ -16,9 +16,13 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app); 
-console.log('Firebase Config Debug:', {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? '***SET***' : 'MISSING',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  isDev: import.meta.env.DEV
-});
+
+// Only log in development
+if (import.meta.env.DEV) {
+  console.debug('[DEV] Firebase Config Status:', {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ? '***SET***' : 'MISSING',
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    isDev: import.meta.env.DEV
+  });
+}
