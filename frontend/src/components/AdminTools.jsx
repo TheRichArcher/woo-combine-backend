@@ -236,36 +236,72 @@ export default function AdminTools() {
     setUploadStatus("loading");
     setUploadMsg("");
     
-    // Prepare players and auto-assign numbers
-    const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
-    const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
-    
-    const payload = {
-      event_id: selectedEvent.id,
-      players: playersWithNumbers
-    };
-    
     try {
+      // First, fetch existing players to avoid number conflicts
+      const { data: existingPlayers } = await api.get(`/players?event_id=${selectedEvent.id}`);
+      
+      // Prepare new players and auto-assign numbers considering existing players
+      const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
+      const allPlayers = [...(existingPlayers || []), ...cleanedPlayers];
+      const playersWithNumbers = autoAssignPlayerNumbers(allPlayers);
+      
+      // Only send the new players with their assigned numbers
+      const newPlayersWithNumbers = playersWithNumbers.slice(existingPlayers?.length || 0);
+      
+      const payload = {
+        event_id: selectedEvent.id,
+        players: newPlayersWithNumbers
+      };
+      
       const res = await api.post(`/players/upload`, payload);
       const { data } = res;
-      if (data.errors && data.errors.length > 0) {
-        setUploadStatus("error");
-        setUploadMsg("Some rows failed to upload. See errors below.");
-        showError(`❌ Upload partially failed: ${data.errors.length} errors`);
-      } else {
-        setUploadStatus("success");
-        const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
-        setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
-        notifyPlayersUploaded(data.added);
-        setCsvRows([]);
-        setCsvHeaders([]);
-        setCsvFileName("");
-        handlePostUploadSuccess();
-      }
+        if (data.errors && data.errors.length > 0) {
+          setUploadStatus("error");
+          setUploadMsg("Some rows failed to upload. See errors below.");
+          showError(`❌ Upload partially failed: ${data.errors.length} errors`);
+        } else {
+          setUploadStatus("success");
+          const numbersAssigned = newPlayersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+          setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+          notifyPlayersUploaded(data.added);
+          setCsvRows([]);
+          setCsvHeaders([]);
+          setCsvFileName("");
+          handlePostUploadSuccess();
+        }
     } catch (err) {
       setUploadStatus("error");
-      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
-      notifyError(err);
+      if (err.message?.includes('players?event_id')) {
+        // Handle case where no existing players (404) - that's normal
+        try {
+          // Retry upload with just the new players
+          const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
+          const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
+          
+          const payload = {
+            event_id: selectedEvent.id,
+            players: playersWithNumbers
+          };
+          
+          const res = await api.post(`/players/upload`, payload);
+          const { data } = res;
+          
+          setUploadStatus("success");
+          const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+          setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+          notifyPlayersUploaded(data.added);
+          setCsvRows([]);
+          setCsvHeaders([]);
+          setCsvFileName("");
+          handlePostUploadSuccess();
+        } catch (retryErr) {
+          setUploadMsg(`❌ ${retryErr.message || "Upload failed."}`);
+          notifyError(retryErr);
+        }
+      } else {
+        setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+        notifyError(err);
+      }
     }
   };
 
@@ -305,10 +341,19 @@ export default function AdminTools() {
       if (manualPlayer.number && manualPlayer.number.trim() !== "") {
         playerNumber = Number(manualPlayer.number);
       } else {
-        // Auto-assign number based on age group
-        const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
-        const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
-        playerNumber = numberedPlayer.number;
+        // Auto-assign number based on age group, considering existing players
+        try {
+          const { data: existingPlayers } = await api.get(`/players?event_id=${selectedEvent.id}`);
+          const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+          const allPlayers = [...(existingPlayers || []), tempPlayer];
+          const [numberedPlayer] = autoAssignPlayerNumbers(allPlayers).slice(-1); // Get the last player (the new one)
+          playerNumber = numberedPlayer.number;
+        } catch (fetchErr) {
+          // If no existing players, just auto-assign starting from 1
+          const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+          const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
+          playerNumber = numberedPlayer.number;
+        }
       }
       
       const playerPayload = {

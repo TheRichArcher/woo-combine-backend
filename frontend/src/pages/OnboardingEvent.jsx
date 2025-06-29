@@ -172,40 +172,84 @@ export default function OnboardingEvent() {
     setUploadStatus("loading");
     setUploadMsg("");
     
-    // Prepare players and auto-assign numbers
-    const cleanedPlayers = csvRows.map(row => {
-      // Remove warnings property and return the rest
-      // eslint-disable-next-line no-unused-vars
-      const { warnings, ...rest } = row;
-      return rest;
-    });
-    const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
-    
-    const payload = {
-      event_id: createdEvent.id,
-      players: playersWithNumbers
-    };
-    
     try {
+      // First, fetch existing players to avoid number conflicts
+      const { data: existingPlayers } = await api.get(`/players?event_id=${createdEvent.id}`);
+      
+      // Prepare new players and auto-assign numbers considering existing players
+      const cleanedPlayers = csvRows.map(row => {
+        // Remove warnings property and return the rest
+        // eslint-disable-next-line no-unused-vars
+        const { warnings, ...rest } = row;
+        return rest;
+      });
+      const allPlayers = [...(existingPlayers || []), ...cleanedPlayers];
+      const playersWithNumbers = autoAssignPlayerNumbers(allPlayers);
+      
+      // Only send the new players with their assigned numbers
+      const newPlayersWithNumbers = playersWithNumbers.slice(existingPlayers?.length || 0);
+      
+      const payload = {
+        event_id: createdEvent.id,
+        players: newPlayersWithNumbers
+      };
+      
       const res = await api.post(`/players/upload`, payload);
       const { data } = res;
-      setUploadStatus("success");
-      const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
-      setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
-      setCsvRows([]);
-      setCsvErrors([]);
-      setCsvFileName("");
-      fetchPlayerCount();
-      
-      // CRITICAL FIX: Auto-advance to step 3 after successful upload
-      if (data.added > 0) {
-        setTimeout(() => {
-          setCurrentStep(3);
-        }, 1500); // Give users time to see the success message
-      }
+        setUploadStatus("success");
+        const numbersAssigned = newPlayersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+        setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+        setCsvRows([]);
+        setCsvErrors([]);
+        setCsvFileName("");
+        fetchPlayerCount();
+        
+        // CRITICAL FIX: Auto-advance to step 3 after successful upload
+        if (data.added > 0) {
+          setTimeout(() => {
+            setCurrentStep(3);
+          }, 1500); // Give users time to see the success message
+        }
     } catch (err) {
       setUploadStatus("error");
-      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      if (err.message?.includes('players?event_id')) {
+        // Handle case where no existing players (404) - that's normal for new events
+        try {
+          // Retry upload with just the new players
+          const cleanedPlayers = csvRows.map(row => {
+            // eslint-disable-next-line no-unused-vars
+            const { warnings, ...rest } = row;
+            return rest;
+          });
+          const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
+          
+          const payload = {
+            event_id: createdEvent.id,
+            players: playersWithNumbers
+          };
+          
+          const res = await api.post(`/players/upload`, payload);
+          const { data } = res;
+          
+          setUploadStatus("success");
+          const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+          setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+          setCsvRows([]);
+          setCsvErrors([]);
+          setCsvFileName("");
+          fetchPlayerCount();
+          
+          if (data.added > 0) {
+            setTimeout(() => {
+              setCurrentStep(3);
+            }, 1500);
+          }
+        } catch (retryErr) {
+          setUploadMsg(`❌ ${retryErr.message || "Upload failed."}`);
+        }
+      } else {
+        setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      }
     }
   };
 
@@ -223,10 +267,19 @@ export default function OnboardingEvent() {
       if (manualPlayer.number && manualPlayer.number.trim() !== "") {
         playerNumber = Number(manualPlayer.number);
       } else {
-        // Auto-assign number based on age group
-        const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
-        const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
-        playerNumber = numberedPlayer.number;
+        // Auto-assign number based on age group, considering existing players
+        try {
+          const { data: existingPlayers } = await api.get(`/players?event_id=${createdEvent.id}`);
+          const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+          const allPlayers = [...(existingPlayers || []), tempPlayer];
+          const [numberedPlayer] = autoAssignPlayerNumbers(allPlayers).slice(-1); // Get the last player (the new one)
+          playerNumber = numberedPlayer.number;
+        } catch (fetchErr) {
+          // If no existing players, just auto-assign starting from 1
+          const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
+          const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
+          playerNumber = numberedPlayer.number;
+        }
       }
       
       const playerPayload = {

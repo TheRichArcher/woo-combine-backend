@@ -58,36 +58,9 @@ export function validateRow(row) {
   };
 }
 
-// Auto-assign player numbers to avoid conflicts
-export function autoAssignPlayerNumbers(players) {
-  const usedNumbers = new Set();
-  const playersWithNumbers = [];
-  
-  // First pass: collect existing numbers
-  players.forEach(player => {
-    if (player.number && !isNaN(Number(player.number))) {
-      usedNumbers.add(Number(player.number));
-    }
-  });
-  
-  // Second pass: assign numbers to players without them
-  let nextNumber = 1;
-  players.forEach(player => {
-    if (!player.number || isNaN(Number(player.number))) {
-      // Find next available number
-      while (usedNumbers.has(nextNumber)) {
-        nextNumber++;
-      }
-      usedNumbers.add(nextNumber);
-      playersWithNumbers.push({ ...player, number: nextNumber });
-      nextNumber++;
-    } else {
-      playersWithNumbers.push({ ...player, number: Number(player.number) });
-    }
-  });
-  
-  return playersWithNumbers;
-}
+/* Note: Player numbering is now handled by utils/playerNumbering.js 
+   which provides age-group-based numbering (e.g., 12U players get 1201, 1202, etc.)
+   This prevents conflicts and makes player identification easier during combines. */
 
 // Validate CSV headers
 export function validateHeaders(headers) {
