@@ -26,225 +26,11 @@ export function AuthProvider({ children }) {
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
 
-  // Fast initial auth check - just Firebase auth state
-  const quickAuthCheck = useCallback(async (firebaseUser) => {
-    if (!firebaseUser) {
-      setUser(null);
-      setAuthChecked(true);
-      return false;
-    }
 
-    setUser(firebaseUser);
-    setAuthChecked(true);
-    
-    // Check if user has verified their email address
-    if (!firebaseUser.emailVerified) {
-      // User needs to verify email - redirect will be handled by RequireAuth
-      return true; // User is authenticated but not verified
-    }
-    
-    return true; // User is authenticated and verified
-  }, [navigate, setUser, setAuthChecked]);
 
-  // OPTIMIZED: Single request initialization to prevent timeout cascade
-  const completeInitialization = useCallback(async (firebaseUser) => {
-    try {
-      
-      // STEP 1: Role check with extended timeout for cold starts using backend API
-      let userRole = null;
-      try {
-        const token = await firebaseUser.getIdToken();
-        const roleResponse = await Promise.race([
-          fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))  // Increased to 20s
-        ]);
 
-        if (roleResponse.ok) {
-          const userData = await roleResponse.json();
-          userRole = userData.role;
-        } else if (roleResponse.status === 404) {
-          // User document doesn't exist - new user needs role selection
-          userRole = null;
-        } else {
-          throw new Error(`Role check failed: ${roleResponse.status}`);
-        }
-      } catch (error) {
-        if (error.message.includes('Role check timeout')) {
-          throw error; // Re-throw timeout errors
-        }
-        // For other errors (like 404), treat as no role
-        console.log('[AUTH] Role check error (treating as new user):', error.message);
-        userRole = null;
-      }
 
-      if (!userRole) {
-        setUserRole(null);
-        setLeagues([]);
-        setRole(null);
-        setRoleChecked(true);
-        
-        // CRITICAL FIX: Preserve join-event routes for invited users
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/join-event/')) {
-          // Extract the path parameters and store for after role selection
-          const joinPath = currentPath.replace('/join-event/', '');
-          localStorage.setItem('pendingEventJoin', joinPath);
-
-        }
-        
-        navigate("/select-role");
-        return;
-      }
-
-      setUserRole(userRole);
-
-      // STEP 2: League fetch with single request and extended timeout
-      // CRITICAL FIX: Prevent concurrent league fetches
-      if (leagueFetchInProgress) {
-        return; // Another fetch is already in progress
-      }
-      
-      setLeagueFetchInProgress(true);
-      let coldStartToastId = null;
-      let coldStartTimer = null;
-      
-      try {
-        // Show cold start notification after 5 seconds if still loading and no notification is active
-        coldStartTimer = setTimeout(() => {
-          if (!coldStartToastId && !isColdStartActive()) {
-            coldStartToastId = showColdStartNotification();
-          }
-        }, 5000);
-
-        const leagueResponse = await api.get(`/leagues/me`, { 
-          timeout: 45000,  // 45s timeout to match API client for extreme cold starts
-          retry: 1         // REDUCED: Only 1 retry to prevent cascade
-        });
-        
-        // Clear the cold start timer if request completes quickly
-        if (coldStartTimer) {
-          clearTimeout(coldStartTimer);
-          coldStartTimer = null;
-        }
-        
-        const userLeagues = leagueResponse.data.leagues || [];
-        setLeagues(userLeagues);
-        
-        // Set up selected league and role - get current value from localStorage
-        const currentSelectedLeagueId = localStorage.getItem('selectedLeagueId') || '';
-        let targetLeagueId = currentSelectedLeagueId;
-        
-        if (userLeagues.length > 0) {
-          // If no league selected or selected league doesn't exist, use first available
-          if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
-            targetLeagueId = userLeagues[0].id;
-          }
-          
-          setSelectedLeagueIdState(targetLeagueId);
-          localStorage.setItem('selectedLeagueId', targetLeagueId);
-          
-          const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
-          setRole(selectedLeague?.role || null);
-        } else {
-          setSelectedLeagueIdState('');
-          setRole(null);
-          localStorage.removeItem('selectedLeagueId');
-        }
-        
-      } catch (leagueError) {
-        // Clear timer to prevent duplicate notifications
-        if (coldStartTimer) {
-          clearTimeout(coldStartTimer);
-          coldStartTimer = null;
-        }
-        
-        // CRITICAL FIX: 404 "No leagues found" is NORMAL for new users - don't show as error
-        if (leagueError.response?.status === 404) {
-          // This is expected for new users going through onboarding - handle silently
-          setLeagues([]);
-          setSelectedLeagueIdState('');
-          setRole(null);
-          localStorage.removeItem('selectedLeagueId');
-          setLeagueFetchInProgress(false);
-          
-          // GUIDED SETUP FIX: Don't treat 404 as an error during onboarding
-          console.info('[AUTH] New user detected - no leagues found (expected for guided setup)');
-          
-          // CRITICAL FIX: Must complete role check even for 404s to avoid infinite loading
-          setRoleChecked(true);
-          
-          // Complete initialization and allow guided setup to proceed
-          setInitializing(false);
-          return; // Exit early without error notifications
-        }
-        
-        // Show cold start notification only for real errors (not 404) and if none is already active
-        if (!coldStartToastId && !isColdStartActive()) {
-          coldStartToastId = showColdStartNotification();
-        }
-        
-        // Enhanced error handling for cold start scenarios (excluding 404s)
-        if (leagueError.message.includes('timeout') || leagueError.code === 'ECONNABORTED') {
-          // Don't set error state for timeouts - toast notification handles this
-          setError(null);
-        } else if (leagueError.response?.status >= 500) {
-          // Don't set error state for server errors during cold start - toast handles this
-          setError(null);
-        }
-        
-        // Continue without leagues rather than blocking the entire app
-        setLeagues([]);
-        setSelectedLeagueIdState('');
-        setRole(null);
-        localStorage.removeItem('selectedLeagueId');
-      } finally {
-        // CRITICAL: Always clear the fetch flag
-        setLeagueFetchInProgress(false);
-      }
-
-      // Mark role check as complete
-      setRoleChecked(true);
-
-      // Navigation logic - only redirect from onboarding routes, not between authenticated pages
-      // Note: /select-role is excluded because it has its own navigation logic
-      const currentPath = window.location.pathname;
-      const onboardingRoutes = ["/login", "/signup", "/"];
-      
-      if (onboardingRoutes.includes(currentPath)) {
-        navigate("/dashboard");
-      }
-
-    } catch (err) {
-
-      setError(err.message);
-      setUserRole(null);
-      setLeagues([]);
-      setRole(null);
-      setRoleChecked(true);
-      
-      // Redirect to appropriate page based on error
-      if (err.message.includes('Role check timeout')) {
-        // CRITICAL FIX: Preserve join-event routes even on timeout
-        const currentPath = window.location.pathname;
-        if (currentPath.startsWith('/join-event/')) {
-          const joinPath = currentPath.replace('/join-event/', '');
-          localStorage.setItem('pendingEventJoin', joinPath);
-
-        }
-        navigate("/select-role");
-      }
-    } finally {
-      setInitializing(false);
-    }
-  }, [navigate]);
-
-  // Firebase auth state change handler
+  // CRITICAL FIX: Firebase auth state change handler with stable dependencies
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       
@@ -263,17 +49,151 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // User logged in - start initialization
-      const isAuthenticated = await quickAuthCheck(firebaseUser);
-      if (isAuthenticated) {
-        await completeInitialization(firebaseUser);
-      } else {
+      // User logged in - start initialization with inline logic to avoid dependency issues
+      // Quick auth check
+      setUser(firebaseUser);
+      setAuthChecked(true);
+      
+      if (!firebaseUser.emailVerified) {
+        // User needs to verify email - redirect will be handled by RequireAuth
+        setInitializing(false);
+        return;
+      }
+      
+      // Complete initialization inline to prevent dependency loops
+      try {
+        // STEP 1: Role check with extended timeout for cold starts using backend API
+        let userRole = null;
+        try {
+          const token = await firebaseUser.getIdToken();
+          const roleResponse = await Promise.race([
+            fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))
+          ]);
+
+          if (roleResponse.ok) {
+            const userData = await roleResponse.json();
+            userRole = userData.role;
+          } else if (roleResponse.status === 404) {
+            userRole = null;
+          } else {
+            throw new Error(`Role check failed: ${roleResponse.status}`);
+          }
+        } catch (error) {
+          if (error.message.includes('Role check timeout')) {
+            throw error;
+          }
+          console.log('[AUTH] Role check error (treating as new user):', error.message);
+          userRole = null;
+        }
+
+        if (!userRole) {
+          setUserRole(null);
+          setLeagues([]);
+          setRole(null);
+          setRoleChecked(true);
+          
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/join-event/')) {
+            const joinPath = currentPath.replace('/join-event/', '');
+            localStorage.setItem('pendingEventJoin', joinPath);
+          }
+          
+          navigate("/select-role");
+          setInitializing(false);
+          return;
+        }
+
+        setUserRole(userRole);
+
+        // STEP 2: League fetch - only if not already in progress
+        if (!leagueFetchInProgress) {
+          setLeagueFetchInProgress(true);
+          
+          try {
+            const leagueResponse = await api.get(`/leagues/me`, { 
+              timeout: 45000,
+              retry: 1
+            });
+            
+            const userLeagues = leagueResponse.data.leagues || [];
+            setLeagues(userLeagues);
+            
+            const currentSelectedLeagueId = localStorage.getItem('selectedLeagueId') || '';
+            let targetLeagueId = currentSelectedLeagueId;
+            
+            if (userLeagues.length > 0) {
+              if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
+                targetLeagueId = userLeagues[0].id;
+              }
+              
+              setSelectedLeagueIdState(targetLeagueId);
+              localStorage.setItem('selectedLeagueId', targetLeagueId);
+              
+              const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
+              setRole(selectedLeague?.role || null);
+            } else {
+              setSelectedLeagueIdState('');
+              setRole(null);
+              localStorage.removeItem('selectedLeagueId');
+            }
+            
+          } catch (leagueError) {
+            if (leagueError.response?.status === 404) {
+              setLeagues([]);
+              setSelectedLeagueIdState('');
+              setRole(null);
+              localStorage.removeItem('selectedLeagueId');
+              console.info('[AUTH] New user detected - no leagues found');
+            } else {
+              setLeagues([]);
+              setSelectedLeagueIdState('');
+              setRole(null);
+              localStorage.removeItem('selectedLeagueId');
+            }
+          } finally {
+            setLeagueFetchInProgress(false);
+          }
+        }
+
+        setRoleChecked(true);
+        
+        // Navigation logic
+        const currentPath = window.location.pathname;
+        const onboardingRoutes = ["/login", "/signup", "/"];
+        
+        if (onboardingRoutes.includes(currentPath)) {
+          navigate("/dashboard");
+        }
+
+      } catch (err) {
+        setError(err.message);
+        setUserRole(null);
+        setLeagues([]);
+        setRole(null);
+        setRoleChecked(true);
+        
+        if (err.message.includes('Role check timeout')) {
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/join-event/')) {
+            const joinPath = currentPath.replace('/join-event/', '');
+            localStorage.setItem('pendingEventJoin', joinPath);
+          }
+          navigate("/select-role");
+        }
+      } finally {
         setInitializing(false);
       }
     });
 
     return () => unsubscribe();
-  }, [quickAuthCheck, completeInitialization]);
+  }, []); // CRITICAL: Empty dependency array to prevent infinite loops
 
   // Add league function for join operations
   const addLeague = useCallback((newLeague) => {
@@ -340,16 +260,16 @@ export function AuthProvider({ children }) {
         console.log('[AUTH] Refreshed user role:', newRole);
         setUserRole(newRole);
         
-        // If this is the first time setting a role, trigger complete initialization
+        // If this is the first time setting a role, just trigger a page refresh to reload the context
         if (newRole && !userRole) {
-          console.log('[AUTH] First-time role detected, triggering initialization');
-          await completeInitialization(user);
+          console.log('[AUTH] First-time role detected, refreshing page');
+          window.location.reload();
         }
       }
     } catch (error) {
       console.error('[AUTH] Failed to refresh user role:', error);
     }
-  }, [user, userRole, completeInitialization]);
+  }, [user, userRole]);
 
   // Expose state setters for logout functionality
   const contextValue = {
