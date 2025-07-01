@@ -56,10 +56,10 @@ export default function SignupForm() {
       // Show success message and redirect to verify-email page
       setSignupSuccess(true);
       
-      // Redirect after a brief moment to let user see the success message
+      // FIXED: Shorter delay to reduce duplicate messaging
       setTimeout(() => {
         navigate("/verify-email");
-      }, 1500);
+      }, 800); // Reduced from 1500ms to 800ms
     } catch (err) {
       console.error("Email sign-up error:", err);
       if (err.code === "auth/email-already-in-use") {

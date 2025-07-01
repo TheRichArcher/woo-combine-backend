@@ -105,7 +105,7 @@ export default function VerifyEmail() {
             // Only update state if component is still active
             if (isActive) {
               setUser(auth.currentUser);
-              navigate("/dashboard");
+              navigate("/select-role");
             }
           }
         } catch (error) {
@@ -156,7 +156,7 @@ export default function VerifyEmail() {
           // Force refresh of ID token after verification
           await auth.currentUser.getIdToken(true);
           setUser(auth.currentUser);
-          navigate("/dashboard");
+          navigate("/select-role");
         } else {
           setResendStatus("Still not verified. Please check your email.");
         }
@@ -273,7 +273,7 @@ export default function VerifyEmail() {
           <div className="mt-8 space-y-4">
             {isVerified ? (
               <button
-                onClick={() => navigate("/dashboard")}
+                onClick={() => navigate("/select-role")}
                 className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               >
                 Continue to App

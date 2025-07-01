@@ -262,10 +262,10 @@ export function AuthProvider({ children }) {
         console.log('[AUTH] Refreshed user role:', newRole);
         setUserRole(newRole);
         
-        // If this is the first time setting a role, just trigger a page refresh to reload the context
+        // FIXED: Don't reload page - let the auth flow handle navigation naturally
         if (newRole && !userRole) {
-          console.log('[AUTH] First-time role detected, refreshing page');
-          window.location.reload();
+          console.log('[AUTH] First-time role detected, allowing natural navigation');
+          // Natural navigation will happen via SelectRole component
         }
       }
     } catch (error) {
