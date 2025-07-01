@@ -5,7 +5,7 @@ import api from '../lib/api';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 
 export function CreateLeagueForm({ onCreated }) {
-  const { user, addLeague } = useAuth();
+  const { user, addLeague, setSelectedLeagueId } = useAuth();
   const navigate = useNavigate();
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(false);
@@ -22,10 +22,17 @@ export function CreateLeagueForm({ onCreated }) {
         email: user?.email,
       });
       
+      const newLeagueId = data.league_id;
+      
       if (addLeague) {
-        addLeague({ id: data.league_id, name: leagueName, role: 'organizer' });
+        addLeague({ id: newLeagueId, name: leagueName, role: 'organizer' });
       }
-      if (onCreated) onCreated(data.league_id);
+      
+      if (setSelectedLeagueId) {
+        setSelectedLeagueId(newLeagueId);
+      }
+      
+      if (onCreated) onCreated(newLeagueId);
       
       // Redirect to event creation/selection page
       navigate('/onboarding/event');
