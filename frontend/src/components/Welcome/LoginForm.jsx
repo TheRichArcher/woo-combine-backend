@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
+import React, { useState } from "react";
+import { signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -12,26 +12,8 @@ export default function LoginForm() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
   const { loading } = useAuth();
   const navigate = useNavigate();
-
-  // Initialize reCAPTCHA verifier
-  useEffect(() => {
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
-      callback: () => {
-        // reCAPTCHA solved
-      }
-    });
-    setRecaptchaVerifier(verifier);
-    
-    return () => {
-      if (verifier) {
-        verifier.clear();
-      }
-    };
-  }, []);
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -60,7 +42,8 @@ export default function LoginForm() {
         return;
       }
       
-      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
+      // Simple phone authentication without reCAPTCHA
+      const confirmation = await signInWithPhoneNumber(auth, e164Phone);
       setConfirmationResult(confirmation);
       setStep(2);
     } catch (err) {
@@ -145,7 +128,7 @@ export default function LoginForm() {
           <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <Phone className="w-5 h-5 text-blue-600" />
-              <p className="text-blue-800 font-medium text-sm">Secure Phone Sign-In</p>
+              <p className="text-blue-800 font-medium text-sm">Simple Phone Sign-In</p>
             </div>
             <p className="text-blue-700 text-sm">
               Enter your phone number and we'll send you a verification code via SMS.
@@ -241,9 +224,6 @@ export default function LoginForm() {
           </form>
         </>
       )}
-
-      {/* Hidden reCAPTCHA container */}
-      <div id="recaptcha-container"></div>
     </>
   );
 } 

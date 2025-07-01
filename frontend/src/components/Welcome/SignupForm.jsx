@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
+import React, { useState } from "react";
+import { signInWithPhoneNumber } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,26 +14,8 @@ export default function SignupForm() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
-
-  // Initialize reCAPTCHA verifier
-  useEffect(() => {
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
-      size: 'invisible',
-      callback: () => {
-        // reCAPTCHA solved
-      }
-    });
-    setRecaptchaVerifier(verifier);
-    
-    return () => {
-      if (verifier) {
-        verifier.clear();
-      }
-    };
-  }, []);
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -69,7 +51,8 @@ export default function SignupForm() {
         return;
       }
       
-      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
+      // Simple phone authentication without reCAPTCHA
+      const confirmation = await signInWithPhoneNumber(auth, e164Phone);
       setConfirmationResult(confirmation);
       setStep(2);
     } catch (err) {
@@ -163,10 +146,10 @@ export default function SignupForm() {
           <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-2 mb-2">
               <Phone className="w-5 h-5 text-blue-600" />
-              <p className="text-blue-800 font-medium text-sm">Secure Phone Sign-Up</p>
+              <p className="text-blue-800 font-medium text-sm">Simple Phone Sign-Up</p>
             </div>
             <p className="text-blue-700 text-sm">
-              We'll send a verification code to your phone to create your account.
+              Enter your phone number and we'll send you a verification code via SMS.
             </p>
           </div>
           
@@ -290,9 +273,6 @@ export default function SignupForm() {
           </form>
         </>
       )}
-
-      {/* Hidden reCAPTCHA container */}
-      <div id="recaptcha-container-signup"></div>
     </div>
   );
 } 
