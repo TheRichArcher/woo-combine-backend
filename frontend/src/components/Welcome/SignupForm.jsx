@@ -13,6 +13,7 @@ export default function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [signupSuccess, setSignupSuccess] = useState(false);
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
 
@@ -52,7 +53,13 @@ export default function SignupForm() {
         // Don't block the signup process if verification email fails
       }
       
-      // Let AuthContext handle the navigation logic - user will be directed to verify email
+      // Show success message and redirect to verify-email page
+      setSignupSuccess(true);
+      
+      // Redirect after a brief moment to let user see the success message
+      setTimeout(() => {
+        navigate("/verify-email");
+      }, 1500);
     } catch (err) {
       console.error("Email sign-up error:", err);
       if (err.code === "auth/email-already-in-use") {
@@ -72,6 +79,49 @@ export default function SignupForm() {
   };
 
   if (loading) return <div>Loading...</div>;
+
+  // Show success message after signup
+  if (signupSuccess) {
+    return (
+      <div className="w-full max-w-md flex flex-col items-center relative">
+        {/* Logo */}
+        <img
+          src="/favicon/woocombine-logo.png"
+          alt="Woo-Combine Logo"
+          className="w-20 h-20 mx-auto mb-4 mt-8"
+          style={{ objectFit: 'contain' }}
+        />
+
+        {/* Success Icon */}
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+
+        <h2 className="text-3xl font-extrabold mb-4 text-center text-cyan-700 drop-shadow">Account Created!</h2>
+        
+        <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6 text-center">
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <Mail className="w-5 h-5 text-blue-600" />
+            <p className="text-blue-800 font-medium">Check Your Email</p>
+          </div>
+          <p className="text-blue-700 text-sm leading-relaxed">
+            We've sent a verification email to <span className="font-semibold">{email}</span>. 
+            Click the link in the email to activate your account.
+          </p>
+          <p className="text-blue-600 text-xs mt-2">
+            Redirecting you to the verification page...
+          </p>
+        </div>
+
+        {/* Loading animation */}
+        <div className="flex justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-700"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md flex flex-col items-center relative">
