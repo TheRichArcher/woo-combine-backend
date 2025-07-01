@@ -1,52 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
+import React, { useState } from "react";
+import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Phone, MessageSquare } from "lucide-react";
+import { ArrowLeft, Mail } from "lucide-react";
 
 export default function SignupForm() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [verificationCode, setVerificationCode] = useState("");
-  const [step, setStep] = useState(1); // 1: info input, 2: verification code
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState(null);
-  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
 
-  // Initialize reCAPTCHA verifier
-  useEffect(() => {
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
-      size: 'invisible',
-      callback: () => {
-        // reCAPTCHA solved
-      }
-    });
-    setRecaptchaVerifier(verifier);
-    
-    return () => {
-      if (verifier) {
-        verifier.clear();
-      }
-    };
-  }, []);
-
-  const formatPhoneNumber = (value) => {
-    // Remove all non-digits
-    const phoneNumber = value.replace(/\D/g, '');
-    
-    // Format as US phone number
-    if (phoneNumber.length === 0) return phoneNumber;
-    if (phoneNumber.length <= 3) return phoneNumber;
-    if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`;
-    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`;
-  };
-
-  const handlePhoneSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError("");
     setSubmitting(true);
@@ -58,59 +28,43 @@ export default function SignupForm() {
         setSubmitting(false);
         return;
       }
-      
-      // Convert formatted phone to E.164 format
-      const cleanPhone = phoneNumber.replace(/\D/g, '');
-      const e164Phone = `+1${cleanPhone}`; // Assuming US numbers
-      
-      if (cleanPhone.length !== 10) {
-        setFormError("Please enter a valid 10-digit phone number.");
-        setSubmitting(false);
-        return;
-      }
-      
-      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
-      setConfirmationResult(confirmation);
-      setStep(2);
-    } catch (err) {
-      console.error("Phone sign-up error:", err);
-      if (err.code === "auth/too-many-requests") {
-        setFormError("Too many attempts. Please try again later.");
-      } else if (err.code === "auth/invalid-phone-number") {
-        setFormError("Invalid phone number. Please check and try again.");
-      } else {
-        setFormError("Failed to send verification code. Please try again.");
-      }
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
-  const handleCodeSubmit = async (e) => {
-    e.preventDefault();
-    setFormError("");
-    setSubmitting(true);
-    
-    try {
-      if (!confirmationResult) {
-        setFormError("No verification pending. Please restart the process.");
-        setStep(1);
+      if (password !== confirmPassword) {
+        setFormError("Passwords do not match.");
+        setSubmitting(false);
+        return;
+      }
+
+      if (password.length < 6) {
+        setFormError("Password must be at least 6 characters.");
         setSubmitting(false);
         return;
       }
       
-      await confirmationResult.confirm(verificationCode);
-      // Let AuthContext handle the navigation logic for verified users
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Send email verification
+      try {
+        await sendEmailVerification(userCredential.user);
+        console.log("Email verification sent successfully");
+      } catch (verificationError) {
+        console.error("Failed to send verification email:", verificationError);
+        // Don't block the signup process if verification email fails
+      }
+      
+      // Let AuthContext handle the navigation logic - user will be directed to verify email
     } catch (err) {
-      console.error("Code verification error:", err);
-      if (err.code === "auth/invalid-verification-code") {
-        setFormError("Invalid verification code. Please check and try again.");
-      } else if (err.code === "auth/code-expired") {
-        setFormError("Verification code expired. Please request a new one.");
-        setStep(1);
-        setConfirmationResult(null);
+      console.error("Email sign-up error:", err);
+      if (err.code === "auth/email-already-in-use") {
+        setFormError("An account with this email already exists. Try signing in instead.");
+      } else if (err.code === "auth/invalid-email") {
+        setFormError("Please enter a valid email address.");
+      } else if (err.code === "auth/weak-password") {
+        setFormError("Password is too weak. Please choose a stronger password.");
+      } else if (err.code === "auth/operation-not-allowed") {
+        setFormError("Email/password accounts are not enabled. Please contact support.");
       } else {
-        setFormError("Verification failed. Please try again.");
+        setFormError("Failed to create account. Please try again.");
       }
     } finally {
       setSubmitting(false);
@@ -118,7 +72,6 @@ export default function SignupForm() {
   };
 
   if (loading) return <div>Loading...</div>;
-  // Let AuthContext handle navigation for existing users to prevent flashes
 
   return (
     <div className="w-full max-w-md flex flex-col items-center relative">
@@ -127,15 +80,7 @@ export default function SignupForm() {
         className="absolute left-4 top-4 w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none z-10"
         type="button"
         aria-label="Back to welcome"
-        onClick={() => {
-          if (step === 2) {
-            setStep(1);
-            setVerificationCode("");
-            setFormError("");
-          } else {
-            navigate("/welcome");
-          }
-        }}
+        onClick={() => navigate("/welcome")}
         style={{ left: 0, top: 0, position: 'absolute' }}
       >
         <ArrowLeft size={20} />
@@ -156,151 +101,102 @@ export default function SignupForm() {
         style={{ objectFit: 'contain' }}
       />
 
-      {/* Step 1: User Info + Phone Number */}
-      {step === 1 && (
-        <>
-          <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Let's Get Started</h2>
-          <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Phone className="w-5 h-5 text-blue-600" />
-              <p className="text-blue-800 font-medium text-sm">Simple Phone Sign-Up</p>
-            </div>
-            <p className="text-blue-700 text-sm">
-              Enter your phone number and we'll send you a verification code via SMS.
-            </p>
-          </div>
-          
-          <form onSubmit={handlePhoneSubmit} className="w-full flex flex-col items-center">
-            {/* Name fields */}
-            <div className="flex flex-row gap-4 w-full mb-6 min-w-0">
-              <input
-                type="text"
-                placeholder="First Name"
-                value={firstName}
-                onChange={e => setFirstName(e.target.value)}
-                className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
-                autoComplete="given-name"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Last Name"
-                value={lastName}
-                onChange={e => setLastName(e.target.value)}
-                className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
-                autoComplete="family-name"
-                required
-              />
-            </div>
-            
-            {/* Phone Number Input */}
-            <div className="relative w-full mb-6">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-700" />
-              <input
-                type="tel"
-                placeholder="(555) 123-4567"
-                value={phoneNumber}
-                onChange={e => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                className="w-full pl-12 pr-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
-                autoComplete="tel"
-                required
-                maxLength={14}
-              />
-            </div>
-            
-            {formError && <div className="text-red-500 mb-4 text-sm">{formError}</div>}
-            {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
-            
-            <button
-              type="submit"
-              className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-              disabled={submitting || !firstName.trim() || !lastName.trim() || phoneNumber.replace(/\D/g, '').length !== 10}
-            >
-              {submitting ? "Sending Code..." : "Send Verification Code"}
-            </button>
-            
-            {/* Legal text */}
-            <div className="text-xs text-gray-500 text-center mb-2">
-              By signing up for Woo-Combine, you agree to our{' '}
-              <Link to="/terms" className="underline hover:text-cyan-700">Terms & Conditions</Link> and{' '}
-              <Link to="/privacy" className="underline hover:text-cyan-700">Privacy Policy</Link>.
-            </div>
-          </form>
-        </>
-      )}
+      <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Let's Get Started</h2>
+      <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Mail className="w-5 h-5 text-blue-600" />
+          <p className="text-blue-800 font-medium text-sm">Email Registration</p>
+        </div>
+        <p className="text-blue-700 text-sm">
+          Create your account with email and password. We'll send you a verification email.
+        </p>
+      </div>
+      
+      <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
+        {/* Name fields */}
+        <div className="flex flex-row gap-4 w-full mb-4 min-w-0">
+          <input
+            type="text"
+            placeholder="First Name"
+            value={firstName}
+            onChange={e => setFirstName(e.target.value)}
+            className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            autoComplete="given-name"
+            required
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={e => setLastName(e.target.value)}
+            className="flex-1 min-w-0 box-border px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            autoComplete="family-name"
+            required
+          />
+        </div>
+        
+        {/* Email Input */}
+        <div className="relative w-full mb-4">
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-700" />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            className="w-full pl-12 pr-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            autoComplete="email"
+            required
+          />
+        </div>
+        
+        {/* Password Input */}
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          className="w-full mb-4 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          autoComplete="new-password"
+          required
+        />
+        
+        {/* Confirm Password Input */}
+        <input
+          type="password"
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+          className="w-full mb-4 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          autoComplete="new-password"
+          required
+        />
+        
+        {formError && <div className="text-red-500 mb-4 text-sm">{formError}</div>}
+        {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
+        
+        <button
+          type="submit"
+          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
+          disabled={submitting || !firstName.trim() || !lastName.trim() || !email || !password || !confirmPassword}
+        >
+          {submitting ? "Creating Account..." : "Create Account"}
+        </button>
+        
+        {/* Legal text */}
+        <div className="text-xs text-gray-500 text-center mb-4">
+          By creating an account, you agree to our{' '}
+          <Link to="/terms" className="underline hover:text-cyan-700">Terms & Conditions</Link> and{' '}
+          <Link to="/privacy" className="underline hover:text-cyan-700">Privacy Policy</Link>.
+        </div>
 
-      {/* Step 2: Verification Code Input */}
-      {step === 2 && (
-        <>
-          <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Enter Verification Code</h2>
-          <div className="w-full bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="w-5 h-5 text-green-600" />
-              <p className="text-green-800 font-medium text-sm">Code Sent!</p>
-            </div>
-            <p className="text-green-700 text-sm">
-              We sent a 6-digit verification code to <strong>{phoneNumber}</strong>
-            </p>
-          </div>
-          
-          <form onSubmit={handleCodeSubmit} className="w-full flex flex-col items-center">
-            <input
-              type="text"
-              placeholder="123456"
-              value={verificationCode}
-              onChange={e => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full mb-6 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition text-center text-2xl font-mono tracking-wider"
-              autoComplete="one-time-code"
-              required
-              maxLength={6}
-              autoFocus
-            />
-            
-            {formError && <div className="text-red-500 mb-4 text-sm w-full text-center">{formError}</div>}
-            {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
-            
-            <button
-              type="submit"
-              className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold px-6 py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-              disabled={submitting || verificationCode.length !== 6}
-            >
-              {submitting ? "Creating Account..." : "Verify & Create Account"}
-            </button>
-
-            {/* Go Back Option */}
-            <button
-              type="button"
-              onClick={() => {
-                setStep(1);
-                setVerificationCode("");
-                setFormError("");
-                setConfirmationResult(null);
-              }}
-              className="text-sm text-cyan-700 hover:underline mb-4"
-            >
-              Wrong number? Go back
-            </button>
-
-            {/* Legal text */}
-            <div className="text-xs text-gray-500 text-center">
-              By creating an account, you agree to our{' '}
-              <Link to="/terms" className="underline hover:text-cyan-700">Terms & Conditions</Link> and{' '}
-              <Link to="/privacy" className="underline hover:text-cyan-700">Privacy Policy</Link>.
-            </div>
-          </form>
-        </>
-      )}
-
-      {/* Completely hidden reCAPTCHA - required by Firebase but invisible to users */}
-      <div id="recaptcha-container-signup" style={{ 
-        position: 'absolute', 
-        left: '-9999px', 
-        top: '-9999px',
-        width: '1px',
-        height: '1px',
-        overflow: 'hidden',
-        opacity: 0
-      }}></div>
+        {/* Footer Links */}
+        <div className="w-full flex flex-col gap-2 text-center">
+          <span className="text-sm text-gray-600">
+            Already have an account?{' '}
+            <Link to="/login" className="text-cyan-700 font-semibold hover:underline">Sign In</Link>
+          </span>
+        </div>
+      </form>
     </div>
   );
 } 

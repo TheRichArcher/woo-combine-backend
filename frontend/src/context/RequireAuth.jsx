@@ -21,7 +21,10 @@ export default function RequireAuth({ children }) {
     return <Navigate to="/welcome" replace />;
   }
   
-  // Phone authentication users are automatically verified via SMS - no email verification needed
+  // Require email verification for new accounts
+  if (!user.emailVerified) {
+    return <Navigate to="/verify-email" replace />;
+  }
   
   // Special case: if user is authenticated but has no role,
   // redirect to select-role UNLESS we're already on that page

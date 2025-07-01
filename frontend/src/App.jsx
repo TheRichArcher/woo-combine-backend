@@ -10,6 +10,7 @@ import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
+import VerifyEmail from "./pages/VerifyEmail";
 import LiveEntry from "./pages/LiveEntry";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
@@ -125,6 +126,8 @@ function App() {
                 />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/claim" element={
                   <WelcomeLayout
                     contentClassName="min-h-screen"
@@ -204,7 +207,7 @@ function App() {
                       <div className="text-sm text-gray-500 space-y-2">
                         <p>Common Issues:</p>
                         <div className="text-left space-y-1">
-                          <p>• Can't log in: Check phone number and verification code</p>
+                          <p>• Can't log in: Check email and password, or reset your password</p>
                           <p>• QR code not working: Check internet connection</p>
                           <p>• Missing players: Contact your organizer</p>
                         </div>

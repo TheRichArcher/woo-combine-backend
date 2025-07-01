@@ -37,8 +37,12 @@ export function AuthProvider({ children }) {
     setUser(firebaseUser);
     setAuthChecked(true);
     
-    // Phone authentication is automatically verified during SMS confirmation
-    // No additional email verification needed
+    // Check if user has verified their email address
+    if (!firebaseUser.emailVerified) {
+      // User needs to verify email - redirect will be handled by RequireAuth
+      return true; // User is authenticated but not verified
+    }
+    
     return true; // User is authenticated and verified
   }, [navigate, setUser, setAuthChecked]);
 

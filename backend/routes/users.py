@@ -10,98 +10,74 @@ router = APIRouter()
 class SetRoleRequest(BaseModel):
     role: str
 
-@router.get("/users/me")
-def get_current_user_info(
-    request: Request,
-    current_user=Depends(get_current_user)
-):
-    """Get current user information including role"""
-    
-    user_id = current_user["uid"]
-    phone_number = current_user.get("phone_number", "")
-    email = current_user.get("email", "")
-    
-    logging.info(f"[USER-INFO] Fetching user info for {user_id}")
-    
+@router.get("/me", summary="Get current user profile")
+async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+    """Get the current user's profile information"""
     try:
-        db = get_firestore_client()
+        uid = current_user["uid"]
+        email = current_user.get("email", "")
+        role = current_user.get("role")
         
-        # Get user document
-        user_doc = db.collection("users").document(user_id).get()
+        db = get_firestore_client()
+        user_doc = db.collection("users").document(uid).get()
         
         if not user_doc.exists:
-            logging.warning(f"[USER-INFO] User document not found for {user_id}")
-            raise HTTPException(status_code=404, detail="User not found")
+            # Return basic info if user document doesn't exist yet
+            return {
+                "id": uid,
+                "email": email,
+                "role": role,
+                "created_at": None
+            }
         
         user_data = user_doc.to_dict()
         
-        logging.info(f"[USER-INFO] Successfully fetched user info for {user_id}, role: {user_data.get('role', 'none')}")
+        return {
+            "id": uid,
+            "email": email,
+            "role": role,
+            "created_at": user_data.get("created_at")
+        }
+        
+    except Exception as e:
+        logging.error(f"Error getting user profile: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get user profile")
+
+@router.post("/role", summary="Set user role")
+async def set_user_role(
+    role_data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Set the role for the current user"""
+    try:
+        uid = current_user["uid"]
+        email = current_user.get("email", "")
+        role = role_data.get("role")
+        
+        if not role or role not in ["organizer", "coach", "viewer", "player"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        
+        db = get_firestore_client()
+        
+        # Update or create user document with role
+        user_data = {
+            "id": uid,
+            "email": email,
+            "role": role,
+            "created_at": datetime.utcnow().isoformat()
+        }
+        
+        db.collection("users").document(uid).set(user_data, merge=True)
         
         return {
-            "id": user_id,
-            "phone_number": phone_number,
-            "email": email,  # Keep for legacy compatibility
-            "role": user_data.get("role"),
-            "updated_at": user_data.get("updated_at"),
+            "id": uid,
+            "email": email,
+            "role": role,
+            "message": "Role set successfully"
         }
         
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"[USER-INFO] Failed to fetch user info for {user_id}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch user information: {str(e)}"
-        )
-
-@router.post("/users/role")
-def set_user_role(
-    request: Request,
-    req: SetRoleRequest,
-    current_user=Depends(get_current_user)
-):
-    """Set or update user role - used during onboarding"""
-    
-    user_id = current_user["uid"]
-    phone_number = current_user.get("phone_number", "")
-    email = current_user.get("email", "")
-    role = req.role
-    
-    logging.info(f"[USER-ROLE] Setting role '{role}' for user {user_id}")
-    
-    # Validate role
-    valid_roles = ["organizer", "coach", "viewer"]
-    if role not in valid_roles:
-        logging.error(f"[USER-ROLE] Invalid role '{role}' provided")
-        raise HTTPException(status_code=400, detail=f"Invalid role. Must be one of: {valid_roles}")
-    
-    try:
-        db = get_firestore_client()
-        
-        # Update or create user document with role
-        user_data = {
-            "id": user_id,
-            "phone_number": phone_number,
-            "email": email,  # Keep for legacy compatibility
-            "role": role,
-            "updated_at": datetime.utcnow().isoformat(),
-        }
-        
-        # Use merge=True to update existing document or create if not exists
-        db.collection("users").document(user_id).set(user_data, merge=True)
-        
-        logging.info(f"[USER-ROLE] Successfully set role '{role}' for user {user_id}")
-        
-        return {
-            "success": True,
-            "message": f"Role '{role}' set successfully",
-            "user_id": user_id,
-            "role": role
-        }
-        
-    except Exception as e:
-        logging.error(f"[USER-ROLE] Failed to set role for user {user_id}: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to set user role: {str(e)}"
-        ) 
+        logging.error(f"Error setting user role: {e}")
+        raise HTTPException(status_code=500, detail="Failed to set user role") 
