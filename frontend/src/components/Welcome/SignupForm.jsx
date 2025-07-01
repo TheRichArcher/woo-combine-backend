@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { signInWithPhoneNumber } from "firebase/auth";
+import React, { useState, useEffect } from "react";
+import { signInWithPhoneNumber, RecaptchaVerifier } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
@@ -14,8 +14,26 @@ export default function SignupForm() {
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
+  const [recaptchaVerifier, setRecaptchaVerifier] = useState(null);
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize minimal invisible reCAPTCHA
+  useEffect(() => {
+    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
+      size: 'invisible',
+      callback: () => {
+        console.log('reCAPTCHA auto-solved');
+      }
+    });
+    setRecaptchaVerifier(verifier);
+    
+    return () => {
+      if (verifier) {
+        verifier.clear();
+      }
+    };
+  }, []);
 
   const formatPhoneNumber = (value) => {
     // Remove all non-digits
@@ -50,9 +68,15 @@ export default function SignupForm() {
         setSubmitting(false);
         return;
       }
+
+      if (!recaptchaVerifier) {
+        setFormError("Authentication system not ready. Please try again.");
+        setSubmitting(false);
+        return;
+      }
       
-      // Simple phone authentication without reCAPTCHA
-      const confirmation = await signInWithPhoneNumber(auth, e164Phone);
+      // Firebase phone auth with invisible reCAPTCHA
+      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
       setConfirmationResult(confirmation);
       setStep(2);
     } catch (err) {
@@ -197,9 +221,9 @@ export default function SignupForm() {
             <button
               type="submit"
               className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-              disabled={submitting || !firstName.trim() || !lastName.trim() || phoneNumber.replace(/\D/g, '').length !== 10}
+              disabled={submitting || !recaptchaVerifier || !firstName.trim() || !lastName.trim() || phoneNumber.replace(/\D/g, '').length !== 10}
             >
-              {submitting ? "Sending Code..." : "Send Verification Code"}
+              {submitting ? "Sending Code..." : !recaptchaVerifier ? "Initializing..." : "Send Verification Code"}
             </button>
             
             {/* Legal text */}
@@ -273,6 +297,17 @@ export default function SignupForm() {
           </form>
         </>
       )}
+
+      {/* Completely hidden reCAPTCHA - required by Firebase but invisible to users */}
+      <div id="recaptcha-container-signup" style={{ 
+        position: 'absolute', 
+        left: '-9999px', 
+        top: '-9999px',
+        width: '1px',
+        height: '1px',
+        overflow: 'hidden',
+        opacity: 0
+      }}></div>
     </div>
   );
 } 
