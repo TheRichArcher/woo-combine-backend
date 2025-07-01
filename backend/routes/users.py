@@ -5,7 +5,7 @@ from datetime import datetime
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
 
-router = APIRouter()
+router = APIRouter(prefix="/users")
 
 class SetRoleRequest(BaseModel):
     role: str
