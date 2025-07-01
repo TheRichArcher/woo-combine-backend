@@ -7,7 +7,7 @@ import logging
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
+def execute_with_timeout(func, timeout=15, *args, **kwargs):
     """Execute a function with timeout protection"""
     with concurrent.futures.ThreadPoolExecutor() as executor:
         future = executor.submit(func, *args, **kwargs)

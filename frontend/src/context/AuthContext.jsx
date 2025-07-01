@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
                 'Content-Type': 'application/json',
               },
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 20000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 10000))
           ]);
 
           if (roleResponse.ok) {
@@ -87,10 +87,12 @@ export function AuthProvider({ children }) {
           }
         } catch (error) {
           if (error.message.includes('Role check timeout')) {
-            throw error;
+            console.warn('[AUTH] Role check timed out - treating as new user');
+            userRole = null;
+          } else {
+            console.log('[AUTH] Role check error (treating as new user):', error.message);
+            userRole = null;
           }
-          console.log('[AUTH] Role check error (treating as new user):', error.message);
-          userRole = null;
         }
 
         if (!userRole) {

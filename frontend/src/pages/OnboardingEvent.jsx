@@ -9,6 +9,7 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
+import LoadingScreen from "../components/LoadingScreen";
 
 // CSV processing utilities (simplified from AdminTools)
 const REQUIRED_HEADERS = ["first_name", "last_name", "age_group"];
@@ -54,12 +55,20 @@ export default function OnboardingEvent() {
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId } = useAuth();
   
-  // Simple auth check - redirect if not authenticated organizer
-  // This is just a safety check since this page is part of guided onboarding
-  if (!user || !userRole || userRole !== 'organizer') {
-    navigate('/welcome', { replace: true });
-    return null;
+  // Enhanced auth check with loading state
+  if (!user) {
+    return <LoadingScreen title="Checking authentication..." subtitle="Please wait while we verify your access" size="large" />;
   }
+  
+  if (!userRole) {
+    return <LoadingScreen title="Loading your role..." subtitle="Setting up your account permissions" size="large" />;
+  }
+  
+  if (userRole !== 'organizer') {
+    navigate('/dashboard', { replace: true });
+    return <LoadingScreen title="Redirecting..." subtitle="Taking you to your dashboard" size="medium" />;
+  }
+  
   const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Multi-step wizard state

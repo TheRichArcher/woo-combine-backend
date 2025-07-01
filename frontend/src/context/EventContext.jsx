@@ -30,10 +30,14 @@ export function EventProvider({ children }) {
       const eventsData = response.data.events || [];  // ✅ Extract events array from response
       setEvents(eventsData);
       
-      // Auto-select first event if available and none is selected
-      if (eventsData.length > 0 && !selectedEvent) {
-        setSelectedEvent(eventsData[0]);
-      }
+      // Auto-select first event if available and none is currently selected
+      // Check current selectedEvent state instead of using it as dependency
+      setSelectedEvent(current => {
+        if (!current && eventsData.length > 0) {
+          return eventsData[0];
+        }
+        return current;
+      });
     } catch (err) {
       console.error('[EVENT-CONTEXT] Failed to load events:', err);
       setError(err.response?.data?.detail || 'Failed to load events');
@@ -42,7 +46,7 @@ export function EventProvider({ children }) {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent]);
+  }, []); // FIXED: Removed selectedEvent from dependencies to prevent circular dependency
 
   // Load events when league changes
   useEffect(() => {
