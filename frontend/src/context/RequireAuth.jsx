@@ -21,13 +21,11 @@ export default function RequireAuth({ children }) {
     return <Navigate to="/welcome" replace />;
   }
   
-  if (!user.emailVerified) {
-    return <Navigate to="/verify-email" replace />;
-  }
+  // Phone authentication users are automatically verified via SMS - no email verification needed
   
-  // Special case: if user is authenticated and verified but has no role,
+  // Special case: if user is authenticated but has no role,
   // redirect to select-role UNLESS we're already on that page
-  if (user.emailVerified && !userRole && location.pathname !== '/select-role') {
+  if (!userRole && location.pathname !== '/select-role') {
     // CRITICAL FIX: Preserve pendingEventJoin for invited users
     // Check if we're on a join-event route and preserve the invitation context
     if (location.pathname.startsWith('/join-event/')) {

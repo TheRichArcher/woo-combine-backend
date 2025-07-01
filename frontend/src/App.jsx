@@ -15,7 +15,7 @@ import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
-import VerifyEmail from "./pages/VerifyEmail";
+
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";

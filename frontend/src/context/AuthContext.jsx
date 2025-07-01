@@ -210,7 +210,7 @@ export function AuthProvider({ children }) {
       // Navigation logic - only redirect from onboarding routes, not between authenticated pages
       // Note: /select-role is excluded because it has its own navigation logic
       const currentPath = window.location.pathname;
-      const onboardingRoutes = ["/login", "/signup", "/verify-email", "/"];
+      const onboardingRoutes = ["/login", "/signup", "/"];
       
       if (onboardingRoutes.includes(currentPath)) {
         navigate("/dashboard");
