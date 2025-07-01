@@ -16,35 +16,11 @@ export default function LoginForm() {
   const { loading } = useAuth();
   const navigate = useNavigate();
 
-  // Initialize minimal invisible reCAPTCHA with test phone number fallback
+  // Initialize with test mode - try without reCAPTCHA first
   useEffect(() => {
-    const initializeRecaptcha = async () => {
-      try {
-        // Configure Firebase auth with test phone numbers (bypasses reCAPTCHA)
-        auth.settings.appVerificationDisabledForTesting = true;
-        
-        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          size: 'invisible',
-          callback: () => {
-            console.log('reCAPTCHA auto-solved');
-          }
-        });
-        setRecaptchaVerifier(verifier);
-        console.log('reCAPTCHA initialized with test mode');
-      } catch (error) {
-        console.error('reCAPTCHA initialization failed:', error);
-        // Set a dummy verifier to prevent blocking
-        setRecaptchaVerifier({ dummy: true });
-      }
-    };
-
-    initializeRecaptcha();
-    
-    return () => {
-      if (recaptchaVerifier && recaptchaVerifier.clear) {
-        recaptchaVerifier.clear();
-      }
-    };
+    // Set ready state immediately since test mode is configured globally
+    setRecaptchaVerifier({ ready: true });
+    console.log('Test mode ready - will try without reCAPTCHA first');
   }, []);
 
   const formatPhoneNumber = (value) => {
@@ -80,18 +56,30 @@ export default function LoginForm() {
         return;
       }
       
-      // Firebase phone auth - handle both real and dummy verifiers
+      // Try phone auth without reCAPTCHA first (test mode)
       let confirmation;
-      if (recaptchaVerifier.dummy) {
-        // In test mode, try without verifier first
+      try {
+        console.log('Attempting phone auth without reCAPTCHA...');
+        confirmation = await signInWithPhoneNumber(auth, e164Phone);
+        console.log('Phone auth succeeded without reCAPTCHA!');
+      } catch (noRecaptchaError) {
+        console.log('Phone auth without reCAPTCHA failed, trying with invisible reCAPTCHA:', noRecaptchaError);
+        
+        // Create invisible reCAPTCHA verifier only if needed
         try {
-          confirmation = await signInWithPhoneNumber(auth, e164Phone);
-        } catch (testError) {
-          console.log('Test mode failed, falling back to verifier approach');
-          throw testError;
+          const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: () => {
+              console.log('reCAPTCHA solved');
+            }
+          });
+          
+          confirmation = await signInWithPhoneNumber(auth, e164Phone, verifier);
+          console.log('Phone auth succeeded with reCAPTCHA');
+        } catch (recaptchaError) {
+          console.error('Both methods failed:', recaptchaError);
+          throw recaptchaError;
         }
-      } else {
-        confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
       }
       
       setConfirmationResult(confirmation);
@@ -104,6 +92,8 @@ export default function LoginForm() {
         setFormError("Invalid phone number. Please check and try again.");
       } else if (err.code === "auth/argument-error") {
         setFormError("Authentication system needs to reload. Please refresh the page.");
+      } else if (err.code === "auth/captcha-check-failed") {
+        setFormError("Security verification failed. Please try a different phone number or refresh the page.");
       } else {
         setFormError("Failed to send verification code. Please try again.");
       }
