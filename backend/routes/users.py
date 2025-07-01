@@ -45,14 +45,14 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
 
 @router.post("/role", summary="Set user role")
 async def set_user_role(
-    role_data: dict,
+    role_data: SetRoleRequest,
     current_user: dict = Depends(get_current_user)
 ):
     """Set the role for the current user"""
     try:
         uid = current_user["uid"]
         email = current_user.get("email", "")
-        role = role_data.get("role")
+        role = role_data.role
         
         if not role or role not in ["organizer", "coach", "viewer", "player"]:
             raise HTTPException(status_code=400, detail="Invalid role")
