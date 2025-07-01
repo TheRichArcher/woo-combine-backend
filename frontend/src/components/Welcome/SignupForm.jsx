@@ -18,11 +18,21 @@ export default function SignupForm() {
   const { user: _user, loading, error } = useAuth();
   const navigate = useNavigate();
 
-  // Initialize with test mode - try without reCAPTCHA first
+  // Initialize reCAPTCHA verifier
   useEffect(() => {
-    // Set ready state immediately since test mode is configured globally
-    setRecaptchaVerifier({ ready: true });
-    console.log('Test mode ready - will try without reCAPTCHA first');
+    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
+      size: 'invisible',
+      callback: () => {
+        // reCAPTCHA solved
+      }
+    });
+    setRecaptchaVerifier(verifier);
+    
+    return () => {
+      if (verifier) {
+        verifier.clear();
+      }
+    };
   }, []);
 
   const formatPhoneNumber = (value) => {
@@ -58,39 +68,8 @@ export default function SignupForm() {
         setSubmitting(false);
         return;
       }
-
-      if (!recaptchaVerifier) {
-        setFormError("Authentication system not ready. Please try again.");
-        setSubmitting(false);
-        return;
-      }
       
-      // Try phone auth without reCAPTCHA first (test mode)
-      let confirmation;
-      try {
-        console.log('Attempting phone auth without reCAPTCHA...');
-        confirmation = await signInWithPhoneNumber(auth, e164Phone);
-        console.log('Phone auth succeeded without reCAPTCHA!');
-      } catch (noRecaptchaError) {
-        console.log('Phone auth without reCAPTCHA failed, trying with invisible reCAPTCHA:', noRecaptchaError);
-        
-        // Create invisible reCAPTCHA verifier only if needed
-        try {
-          const verifier = new RecaptchaVerifier(auth, 'recaptcha-container-signup', {
-            size: 'invisible',
-            callback: () => {
-              console.log('reCAPTCHA solved');
-            }
-          });
-          
-          confirmation = await signInWithPhoneNumber(auth, e164Phone, verifier);
-          console.log('Phone auth succeeded with reCAPTCHA');
-        } catch (recaptchaError) {
-          console.error('Both methods failed:', recaptchaError);
-          throw recaptchaError;
-        }
-      }
-      
+      const confirmation = await signInWithPhoneNumber(auth, e164Phone, recaptchaVerifier);
       setConfirmationResult(confirmation);
       setStep(2);
     } catch (err) {
@@ -99,10 +78,6 @@ export default function SignupForm() {
         setFormError("Too many attempts. Please try again later.");
       } else if (err.code === "auth/invalid-phone-number") {
         setFormError("Invalid phone number. Please check and try again.");
-      } else if (err.code === "auth/argument-error") {
-        setFormError("Authentication system needs to reload. Please refresh the page.");
-      } else if (err.code === "auth/captcha-check-failed") {
-        setFormError("Security verification failed. Please try a different phone number or refresh the page.");
       } else {
         setFormError("Failed to send verification code. Please try again.");
       }
@@ -239,9 +214,9 @@ export default function SignupForm() {
             <button
               type="submit"
               className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-              disabled={submitting || !recaptchaVerifier || !firstName.trim() || !lastName.trim() || phoneNumber.replace(/\D/g, '').length !== 10}
+              disabled={submitting || !firstName.trim() || !lastName.trim() || phoneNumber.replace(/\D/g, '').length !== 10}
             >
-              {submitting ? "Sending Code..." : !recaptchaVerifier ? "Initializing..." : "Send Verification Code"}
+              {submitting ? "Sending Code..." : "Send Verification Code"}
             </button>
             
             {/* Legal text */}
