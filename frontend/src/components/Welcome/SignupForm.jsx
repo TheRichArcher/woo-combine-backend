@@ -44,13 +44,25 @@ export default function SignupForm() {
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Send email verification
+      // Send email verification with redirect back to our app
       try {
-        await sendEmailVerification(userCredential.user);
-        console.log("Email verification sent successfully");
+        const actionCodeSettings = {
+          // URL to redirect to after email verification
+          url: `${window.location.origin}/verify-email?verified=true`,
+          handleCodeInApp: true,
+        };
+        
+        await sendEmailVerification(userCredential.user, actionCodeSettings);
+        console.log("Email verification sent successfully with redirect URL");
       } catch (verificationError) {
         console.error("Failed to send verification email:", verificationError);
-        // Don't block the signup process if verification email fails
+        // Fallback: try without action code settings if that fails
+        try {
+          await sendEmailVerification(userCredential.user);
+          console.log("Email verification sent successfully (fallback)");
+        } catch (fallbackError) {
+          console.error("Fallback verification email also failed:", fallbackError);
+        }
       }
       
       // Show success message and redirect to verify-email page

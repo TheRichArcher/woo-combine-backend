@@ -78,6 +78,34 @@ export default function VerifyEmail() {
   const [isVerified, setIsVerified] = useState(false);
   const logout = useLogout();
 
+  // Check if user came back from verification link
+  const urlParams = new URLSearchParams(window.location.search);
+  const justVerified = urlParams.get('verified') === 'true';
+
+  // Handle users who just clicked verification link
+  useEffect(() => {
+    if (justVerified && auth.currentUser) {
+      const checkAndRedirect = async () => {
+        try {
+          await auth.currentUser.reload();
+          await auth.currentUser.getIdToken(true); // Force token refresh
+          
+          if (auth.currentUser.emailVerified) {
+            setUser(auth.currentUser);
+            setIsVerified(true);
+            // Clear URL parameter and redirect
+            window.history.replaceState({}, document.title, '/verify-email');
+            navigate("/select-role");
+          }
+        } catch (error) {
+          console.log('Auto-verification check failed:', error);
+        }
+      };
+      
+      checkAndRedirect();
+    }
+  }, [justVerified, setUser, navigate]);
+
   // Auto-refresh every 10s to check verification
   useEffect(() => {
     let isActive = true; // Flag to prevent state updates after unmount
@@ -177,8 +205,21 @@ export default function VerifyEmail() {
     try {
       if (auth.currentUser) {
         await auth.currentUser.reload();
-        await sendEmailVerification(auth.currentUser);
-        setResendStatus("Verification email sent!");
+        
+        // Send with redirect URL to ensure users come back to our app
+        const actionCodeSettings = {
+          url: `${window.location.origin}/verify-email?verified=true`,
+          handleCodeInApp: true,
+        };
+        
+        try {
+          await sendEmailVerification(auth.currentUser, actionCodeSettings);
+          setResendStatus("Verification email sent!");
+        } catch (error) {
+          // Fallback without action code settings
+          await sendEmailVerification(auth.currentUser);
+          setResendStatus("Verification email sent!");
+        }
       } else {
         setResendStatus("User not found. Please log in again.");
       }
