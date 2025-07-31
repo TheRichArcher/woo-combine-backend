@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
+import { authLogger } from "../../utils/logger";
 
 export default function SignupForm() {
   const [firstName, setFirstName] = useState("");
@@ -53,15 +54,15 @@ export default function SignupForm() {
         };
         
         await sendEmailVerification(userCredential.user, actionCodeSettings);
-        console.log("Email verification sent successfully with redirect URL");
+        authLogger.debug("Email verification sent successfully with redirect URL");
       } catch (verificationError) {
-        console.error("Failed to send verification email:", verificationError);
+        authLogger.error("Failed to send verification email", verificationError);
         // Fallback: try without action code settings if that fails
         try {
           await sendEmailVerification(userCredential.user);
-          console.log("Email verification sent successfully (fallback)");
+          authLogger.debug("Email verification sent successfully (fallback)");
         } catch (fallbackError) {
-          console.error("Fallback verification email also failed:", fallbackError);
+          authLogger.error("Fallback verification email also failed", fallbackError);
         }
       }
       
@@ -73,7 +74,7 @@ export default function SignupForm() {
         navigate("/verify-email");
       }, 800); // Reduced from 1500ms to 800ms
     } catch (err) {
-      console.error("Email sign-up error:", err);
+      authLogger.error("Email sign-up error", err);
       if (err.code === "auth/email-already-in-use") {
         setFormError("An account with this email already exists. Try signing in instead.");
       } else if (err.code === "auth/invalid-email") {

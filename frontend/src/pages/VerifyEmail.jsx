@@ -5,6 +5,7 @@ import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "../firebase";
+import { authLogger } from "../utils/logger";
 
 // Mailbox SVG Component (similar to MOJO design)
 const MailboxIcon = () => (
@@ -98,7 +99,7 @@ export default function VerifyEmail() {
             navigate("/select-role");
           }
         } catch (error) {
-          console.log('Auto-verification check failed:', error);
+          authLogger.debug('Auto-verification check failed', error);
         }
       };
       
@@ -138,7 +139,7 @@ export default function VerifyEmail() {
           }
         } catch (error) {
           // Silently handle errors to prevent interference
-          console.log('Verification check failed:', error);
+          authLogger.debug('Verification check failed', error);
         }
       }
     };
@@ -191,7 +192,7 @@ export default function VerifyEmail() {
       }
     } catch (error) {
       // Verification check failed
-      console.log('Manual verification check failed:', error);
+      authLogger.debug('Manual verification check failed', error);
       setResendStatus("Error checking verification status.");
     } finally {
       setChecking(false);

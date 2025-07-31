@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
+import { authLogger } from '../utils/logger';
 
 const AuthContext = createContext();
 
@@ -87,10 +88,10 @@ export function AuthProvider({ children }) {
           }
         } catch (error) {
           if (error.message.includes('Role check timeout')) {
-            console.warn('[AUTH] Role check timed out - treating as new user');
+            authLogger.warn('Role check timed out - treating as new user');
             userRole = null;
           } else {
-            console.log('[AUTH] Role check error (treating as new user):', error.message);
+            authLogger.debug('Role check error (treating as new user)', error.message);
             userRole = null;
           }
         }
@@ -152,7 +153,7 @@ export function AuthProvider({ children }) {
               setSelectedLeagueIdState('');
               setRole(null);
               localStorage.removeItem('selectedLeagueId');
-              console.info('[AUTH] New user detected - no leagues found');
+              authLogger.info('New user detected - no leagues found');
             } else {
               setLeagues([]);
               setSelectedLeagueIdState('');
@@ -259,17 +260,17 @@ export function AuthProvider({ children }) {
       if (response.ok) {
         const userData = await response.json();
         const newRole = userData.role;
-        console.log('[AUTH] Refreshed user role:', newRole);
+        authLogger.debug('Refreshed user role', newRole);
         setUserRole(newRole);
         
         // FIXED: Don't reload page - let the auth flow handle navigation naturally
         if (newRole && !userRole) {
-          console.log('[AUTH] First-time role detected, allowing natural navigation');
+          authLogger.debug('First-time role detected, allowing natural navigation');
           // Natural navigation will happen via SelectRole component
         }
       }
     } catch (error) {
-      console.error('[AUTH] Failed to refresh user role:', error);
+      authLogger.error('Failed to refresh user role', error);
     }
   }, [user, userRole]);
 

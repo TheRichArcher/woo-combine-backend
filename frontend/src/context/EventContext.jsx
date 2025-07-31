@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 
 const EventContext = createContext();
 
@@ -39,7 +40,7 @@ export function EventProvider({ children }) {
         return current;
       });
     } catch (err) {
-      console.error('[EVENT-CONTEXT] Failed to load events:', err);
+      logger.error('EVENT-CONTEXT', 'Failed to load events', err);
       setError(err.response?.data?.detail || 'Failed to load events');
       setEvents([]);
       setSelectedEvent(null);

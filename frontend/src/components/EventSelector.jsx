@@ -3,6 +3,7 @@ import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
+import { logger } from '../utils/logger';
 
 export default function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
@@ -34,7 +35,7 @@ export default function EventSelector({ onEventSelected }) {
         selectedLeagueId === null || 
         selectedLeagueId === undefined || 
         selectedLeagueId.trim() === '') {
-      console.error('[EVENT-SELECTOR] Cannot create event - no selectedLeagueId available');
+      logger.error('EVENT-SELECTOR', 'Cannot create event - no selectedLeagueId available');
       setCreateError('Cannot create event: No league selected. Please select a league first.');
       setCreateLoading(false);
       return;
@@ -42,7 +43,7 @@ export default function EventSelector({ onEventSelected }) {
     
     try {
       const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
-      console.info(`[EVENT-SELECTOR] Creating event in league: ${selectedLeagueId}`);
+      logger.info('EVENT-SELECTOR', `Creating event in league: ${selectedLeagueId}`);
       
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,

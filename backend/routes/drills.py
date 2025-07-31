@@ -6,22 +6,9 @@ from ..auth import get_current_user
 from ..firestore_client import db
 import logging
 from datetime import datetime
-import concurrent.futures
+from ..utils.database import execute_with_timeout
 
 router = APIRouter()
-
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
-    """Execute a function with timeout protection"""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"Database operation timed out after {timeout} seconds"
-            )
 
 # Drill endpoints are now managed as subcollections under players in Firestore.
 # Implement additional drill-related endpoints here if needed in the future.
@@ -40,7 +27,8 @@ def create_drill_result(result: DrillResultCreate, current_user=Depends(get_curr
         event_ref = db.collection("events").document(result.event_id)
         event_doc = execute_with_timeout(
             event_ref.get,
-            timeout=5
+            timeout=5,
+            operation_name="event validation"
         )
         
         if not event_doc.exists:

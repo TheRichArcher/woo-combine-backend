@@ -6,6 +6,7 @@ import api from '../lib/api';
 import { Settings } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
+import { playerLogger, rankingLogger } from '../utils/logger';
 
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
@@ -105,7 +106,7 @@ export default function CoachDashboard() {
           setPlayers([]);
         } else {
           // Other errors are actual problems
-          console.error('[CoachDashboard] Players fetch error:', error);
+          playerLogger.error('Players fetch error', error);
           setPlayers([]);
         }
       }
@@ -147,7 +148,7 @@ export default function CoachDashboard() {
           setError(null);
           setRankings([]);
         } else {
-          console.error('[CoachDashboard] Rankings fetch error:', err);
+          rankingLogger.error('Rankings fetch error', err);
           setError(err.message);
         }
       } finally {

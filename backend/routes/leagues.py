@@ -3,25 +3,14 @@ from ..firestore_client import db
 from ..auth import get_current_user
 from datetime import datetime
 import logging
-import concurrent.futures
 from google.cloud.firestore import Query
+from ..utils.database import execute_with_timeout
 
 # Fixed: Removed FieldPath import to resolve deployment issues
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=15, *args, **kwargs):
-    """Execute a function with timeout protection - OPTIMIZED for extreme cold starts"""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"Database operation timed out after {timeout} seconds"
-            )
+
 
 @router.get('/leagues/me')
 def get_my_leagues(current_user=Depends(get_current_user)):
@@ -35,7 +24,8 @@ def get_my_leagues(current_user=Depends(get_current_user)):
         user_memberships_ref = db.collection('user_memberships').document(user_id)
         user_doc = execute_with_timeout(
             user_memberships_ref.get,
-            timeout=5  # Increased timeout for extreme cold starts
+            timeout=5,  # Increased timeout for extreme cold starts
+            operation_name="user memberships lookup"
         )
         
         if user_doc.exists and user_doc.to_dict().get('leagues'):

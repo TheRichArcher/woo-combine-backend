@@ -6,7 +6,7 @@ import logging
 from ..firestore_client import db
 from datetime import datetime
 from ..models import PlayerSchema
-import concurrent.futures
+from ..utils.database import execute_with_timeout
 
 router = APIRouter()
 
@@ -58,18 +58,7 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
 #     finally:
 #         db.close()
 
-def execute_with_timeout(func, timeout=10, *args, **kwargs):
-    """Execute a function with timeout protection - OPTIMIZED like big apps"""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"Database operation timed out after {timeout} seconds"
-            )
+
 
 @router.get("/players", response_model=List[PlayerSchema])
 def get_players(request: Request, event_id: str = Query(...), current_user = Depends(get_current_user)):

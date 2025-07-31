@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { Search } from 'lucide-react';
 import api from '../lib/api';
+import { playerLogger } from '../utils/logger';
 
 export default function Roster() {
   const { user, selectedLeagueId } = useAuth();
@@ -50,7 +51,7 @@ export default function Roster() {
         const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
         setPlayers(data);
       } catch (error) {
-        console.error('Error fetching players:', error);
+        playerLogger.error('Error fetching players', error);
         setPlayers([]);
       } finally {
         setLoading(false);

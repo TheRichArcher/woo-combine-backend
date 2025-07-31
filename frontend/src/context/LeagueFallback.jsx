@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { Users, Plus, QrCode, LogOut, List, Rocket } from 'lucide-react';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
+import { logger } from '../utils/logger';
 
 export default function LeagueFallback() {
   const navigate = useNavigate();
@@ -15,11 +16,11 @@ export default function LeagueFallback() {
     if (userRole === 'organizer') {
       setFeedback("Starting guided setup...");
       try {
-        console.info('[GUIDED-SETUP] Navigating to create-league for guided setup (league creation first)');
+        logger.info('GUIDED-SETUP', 'Navigating to create-league for guided setup (league creation first)');
         // Create league first - CreateLeague will then navigate to /onboarding/event
         navigate('/create-league');
       } catch (err) {
-        console.error('[GUIDED-SETUP] Navigation error:', err);
+        logger.error('GUIDED-SETUP', 'Navigation error', err);
         setFeedback(`Navigation error: ${err.message}`);
       }
     } else {

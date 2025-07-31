@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
+import { authLogger } from "../../utils/logger";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -22,7 +23,7 @@ export default function LoginForm() {
       await signInWithEmailAndPassword(auth, email, password);
       // Let AuthContext handle the navigation logic for verified users
     } catch (err) {
-      console.error("Email sign-in error:", err);
+      authLogger.error("Email sign-in error", err);
       if (err.code === "auth/user-not-found") {
         setFormError("No account found with that email address.");
       } else if (err.code === "auth/wrong-password") {

@@ -2,23 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from ..firestore_client import db
 from ..auth import get_current_user
 from datetime import datetime
-import concurrent.futures
 import logging
+from ..utils.database import execute_with_timeout
 
 router = APIRouter()
 
-def execute_with_timeout(func, timeout=15, *args, **kwargs):
-    """Execute a function with timeout protection"""
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"Operation timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"Database operation timed out after {timeout} seconds"
-            )
+
 
 @router.get('/leagues/{league_id}/events')
 def list_events(
@@ -30,7 +19,8 @@ def list_events(
         # Add timeout to events retrieval
         events_stream = execute_with_timeout(
             lambda: list(events_ref.stream()),
-            timeout=10
+            timeout=10,
+            operation_name="events retrieval"
         )
         events = [dict(e.to_dict(), id=e.id) for e in events_stream]
         logging.info(f"Found {len(events)} events for league {league_id}")
@@ -70,14 +60,16 @@ def create_event(
         # Store event in league subcollection
         execute_with_timeout(
             lambda: event_ref.set(event_data),
-            timeout=10
+            timeout=10,
+            operation_name="event creation in league"
         )
         
         # ALSO store event in top-level events collection (for players endpoints)
         top_level_event_ref = db.collection("events").document(event_ref.id)
         execute_with_timeout(
             lambda: top_level_event_ref.set(event_data),
-            timeout=10
+            timeout=10,
+            operation_name="event creation in global collection"
         )
         
         logging.info(f"Created event {event_ref.id} in league {league_id}")
@@ -99,7 +91,8 @@ def get_event(
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
         event_doc = execute_with_timeout(
             lambda: league_event_ref.get(),
-            timeout=10
+            timeout=10,
+            operation_name="event retrieval from league"
         )
         
         if event_doc.exists:
@@ -112,7 +105,8 @@ def get_event(
         top_level_event_ref = db.collection("events").document(event_id)
         event_doc = execute_with_timeout(
             lambda: top_level_event_ref.get(),
-            timeout=10
+            timeout=10,
+            operation_name="event retrieval from global collection"
         )
         
         if event_doc.exists:
@@ -159,14 +153,16 @@ def update_event(
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
         execute_with_timeout(
             lambda: league_event_ref.update(update_data),
-            timeout=10
+            timeout=10,
+            operation_name="event update in league"
         )
         
         # Also update in top-level events collection
         top_level_event_ref = db.collection("events").document(event_id)
         execute_with_timeout(
             lambda: top_level_event_ref.update(update_data),
-            timeout=10
+            timeout=10,
+            operation_name="event update in global collection"
         )
         
         logging.info(f"Updated event {event_id} in league {league_id}")
