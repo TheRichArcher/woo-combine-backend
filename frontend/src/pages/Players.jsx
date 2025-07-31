@@ -196,7 +196,7 @@ export default function Players() {
     }, 100);
   }, [calculateLiveRankings]);
 
-  function handleWeightChange(name, value) {
+  const handleWeightChange = useCallback((name, value) => {
     // Update ref immediately (no re-render, no lag during drag)
     currentWeights.current[name] = value;
 
@@ -214,9 +214,9 @@ export default function Players() {
       // 🏆 Trigger live ranking recalculation
       calculateLiveRankings(currentWeights.current);
     }, 300);
-  }
+  }, [calculateLiveRankings]);
 
-  const applyPreset = (presetKey) => {
+  const applyPreset = useCallback((presetKey) => {
     if (WEIGHT_PRESETS[presetKey]) {
       const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
       
@@ -231,7 +231,7 @@ export default function Players() {
       // 🏆 Trigger immediate live ranking recalculation
       calculateLiveRankings(newWeights);
     }
-  };
+  }, [calculateLiveRankings]);
 
 
 

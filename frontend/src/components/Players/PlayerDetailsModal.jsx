@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 import { X, TrendingUp, Settings, Award } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../../constants/players';
 
-export default function PlayerDetailsModal({ 
+const PlayerDetailsModal = React.memo(function PlayerDetailsModal({ 
   player, 
   allPlayers, 
   onClose, 
@@ -377,4 +377,6 @@ export default function PlayerDetailsModal({
       </div>
     </div>
   );
-}
+});
+
+export default PlayerDetailsModal;

@@ -1,54 +1,60 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { X, Edit } from 'lucide-react';
 import api from '../../lib/api';
 import { AGE_GROUP_OPTIONS } from '../../constants/players';
+import { useAsyncOperation } from '../../hooks/useAsyncOperation';
+import { useToast } from '../../context/ToastContext';
+import ErrorDisplay from '../ErrorDisplay';
 
-export default function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
+const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
   const [formData, setFormData] = useState({
     name: player?.name || '',
     number: player?.number || '',
     age_group: player?.age_group || ''
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  
+  const { showError } = useToast();
+  const { loading: saving, error, execute: executeUpdate } = useAsyncOperation({
+    context: 'PLAYER_UPDATE',
+    onSuccess: () => {
+      onSave();
+      onClose();
+    },
+    onError: (err, userMessage) => {
+      showError(userMessage);
+    }
+  });
 
-  const existingAgeGroups = [...new Set(
-    allPlayers
-      .map(p => p.age_group)
-      .filter(ag => ag && ag.trim() !== '')
-  )].sort();
+  const existingAgeGroups = useMemo(() => {
+    return [...new Set(
+      allPlayers
+        .map(p => p.age_group)
+        .filter(ag => ag && ag.trim() !== '')
+    )].sort();
+  }, [allPlayers]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = useCallback((field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    setError('');
-  };
+  }, []);
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     if (!formData.name.trim()) {
-      setError('Player name is required');
+      showError('Player name is required');
       return;
     }
 
-    setSaving(true);
-    setError('');
-    
-    try {
-      const updateData = {
-        name: formData.name.trim(),
-        number: formData.number ? parseInt(formData.number) : null,
-        age_group: formData.age_group.trim() || null
-      };
+    const updateData = {
+      name: formData.name.trim(),
+      number: formData.number ? parseInt(formData.number) : null,
+      age_group: formData.age_group.trim() || null
+    };
 
-      const apiUrl = `/players/${player.id}?event_id=${player.event_id}`;
-      await api.put(apiUrl, updateData);
-      onSave();
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to update player');
-    } finally {
-      setSaving(false);
-    }
-  };
+    const apiUrl = `/players/${player.id}?event_id=${player.event_id}`;
+    
+    await executeUpdate(async () => {
+      return await api.put(apiUrl, updateData);
+    });
+  }, [formData, player, executeUpdate, showError]);
 
   if (!player) return null;
 
@@ -69,11 +75,7 @@ export default function EditPlayerModal({ player, allPlayers, onClose, onSave })
         </div>
 
         <div className="p-6 space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-              {error}
-            </div>
-          )}
+          <ErrorDisplay error={error} />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -148,4 +150,6 @@ export default function EditPlayerModal({ player, allPlayers, onClose, onSave })
       </div>
     </div>
   );
-}
+});
+
+export default EditPlayerModal;

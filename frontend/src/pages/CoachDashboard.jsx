@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 
+// Constants moved outside component
 const DRILL_WEIGHTS = {
   "40m_dash": 0.3,
   "vertical_jump": 0.2,
@@ -24,7 +25,6 @@ const DRILLS = [
   { key: "agility", label: "Agility" },
 ];
 
-// Preset weight configurations
 const WEIGHT_PRESETS = {
   balanced: {
     name: "Balanced",
@@ -48,7 +48,7 @@ const WEIGHT_PRESETS = {
   }
 };
 
-export default function CoachDashboard() {
+const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
@@ -479,4 +479,6 @@ export default function CoachDashboard() {
       </div>
     </div>
   );
-} 
+});
+
+export default CoachDashboard; 

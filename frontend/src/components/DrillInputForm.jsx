@@ -1,7 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import { useToast } from '../context/ToastContext';
+import ErrorDisplay from './ErrorDisplay';
+import { customValidators } from '../utils/validation';
 
 const DRILL_TYPES = [
   { value: "40m_dash", label: "40-Yard Dash" },
@@ -11,45 +15,59 @@ const DRILL_TYPES = [
   { value: "agility", label: "Agility" },
 ];
 
-export default function DrillInputForm({ playerId, onSuccess }) {
+const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess }) {
   const { user: _user, selectedLeagueId: _selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  
+  const { showSuccess, showError } = useToast();
+  const { loading, error, execute: executeSubmit } = useAsyncOperation({
+    context: 'DRILL_SUBMIT',
+    onSuccess: () => {
+      showSuccess("Drill result submitted!");
+      setType("");
+      setValue("");
+      if (onSuccess) onSuccess();
+    },
+    onError: (err, userMessage) => {
+      showError(userMessage);
+    }
+  });
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-    if (!type || !value) {
-      setError("Please select a drill type and enter a value.");
+    
+    // Validate required fields
+    if (!type) {
+      showError("Please select a drill type.");
+      return;
+    }
+    if (!value) {
+      showError("Please enter a value.");
       return;
     }
     if (!selectedEvent) {
-      setError("No event selected. Please select an event first.");
+      showError("No event selected. Please select an event first.");
       return;
     }
-    setLoading(true);
-    try {
-      await api.post(`/drill-results/`, {
+
+    // Validate drill value using standardized validator
+    const drillError = customValidators.drillValue(value, type);
+    if (drillError) {
+      showError(drillError);
+      return;
+    }
+
+    await executeSubmit(async () => {
+      return await api.post(`/drill-results/`, {
         player_id: playerId,
         type,
         value: parseFloat(value),
         event_id: selectedEvent.id
       });
-      setSuccess("Drill result submitted!");
-      setType("");
-      setValue("");
-      if (onSuccess) onSuccess();
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+    });
+  }, [type, value, selectedEvent, playerId, executeSubmit, showError]);
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-auto mb-6">
@@ -79,8 +97,7 @@ export default function DrillInputForm({ playerId, onSuccess }) {
           required
         />
       </div>
-      {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
-      {success && <div className="text-green-600 mb-2 text-sm">{success}</div>}
+      <ErrorDisplay error={error} className="mb-2" />
       <button
         type="submit"
         className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-2 rounded-lg shadow transition"
@@ -90,4 +107,6 @@ export default function DrillInputForm({ playerId, onSuccess }) {
       </button>
     </form>
   );
-} 
+});
+
+export default DrillInputForm; 

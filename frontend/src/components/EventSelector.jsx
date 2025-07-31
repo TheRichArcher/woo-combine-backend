@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
 
-export default function EventSelector({ onEventSelected }) {
+const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
   const { selectedLeagueId, user: _user } = useAuth();
   const [showModal, setShowModal] = useState(false);
@@ -15,16 +15,16 @@ export default function EventSelector({ onEventSelected }) {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
 
-  const handleSelect = (e) => {
+  const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
     const ev = events.find(ev => ev.id === e.target.value);
     if (ev) {
       setSelectedEvent(ev);
       if (onEventSelected) onEventSelected(ev);
     }
-  };
+  }, [events, setSelectedEvent, onEventSelected]);
 
-  const handleCreate = async (e) => {
+  const handleCreate = useCallback(async (e) => {
     e.preventDefault();
     setCreateLoading(true);
     setCreateError("");
@@ -71,7 +71,7 @@ export default function EventSelector({ onEventSelected }) {
     } finally {
       setCreateLoading(false);
     }
-  };
+  }, [selectedLeagueId, name, date, location, setEvents, refreshEvents, onEventSelected]);
 
   // Show loading state
   if (loading) {
@@ -248,4 +248,6 @@ export default function EventSelector({ onEventSelected }) {
       )}
     </div>
   );
-} 
+});
+
+export default EventSelector; 

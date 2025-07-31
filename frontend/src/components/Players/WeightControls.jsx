@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Settings } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../../constants/players';
 
@@ -11,7 +11,7 @@ import { DRILLS, WEIGHT_PRESETS } from '../../constants/players';
  * @param {string} props.activePreset - Currently active preset key
  * @param {boolean} props.showSliders - Whether to show custom sliders
  */
-function WeightControls({ 
+const WeightControls = React.memo(function WeightControls({ 
   weights, 
   onWeightChange, 
   onPresetApply, 
@@ -23,13 +23,13 @@ function WeightControls({
   const sliderRefs = useRef({});
 
   // Persist weights function for slider interactions
-  const persistWeights = () => {
+  const persistWeights = useCallback(() => {
     if (onWeightChange) {
       Object.entries(localWeights).forEach(([key, value]) => {
         onWeightChange(key, value);
       });
     }
-  };
+  }, [onWeightChange, localWeights]);
 
   return (
     <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl p-4 border border-cmf-primary/20">
@@ -136,6 +136,6 @@ function WeightControls({
       )}
     </div>
   );
-}
+});
 
 export default WeightControls; 
