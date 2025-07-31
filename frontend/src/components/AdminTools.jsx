@@ -10,50 +10,14 @@ import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 import { autoAssignPlayerNumbers, getAgeGroupNumberRange } from '../utils/playerNumbering';
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS } from '../utils/csvUtils';
 
-const REQUIRED_HEADERS = [
-  "first_name",
-  "last_name", 
-  "age_group",
-];
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
   ["Alex", "Lee", "U12"],
   ["Sam", "Jones", "6U"],
   ["Maria", "Garcia", ""], // Example showing age group is optional
 ];
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim());
-  const rows = lines.slice(1).map(line => line.split(",").map(cell => cell.trim()));
-  return { headers, rows };
-}
-
-function validateRow(row, headers) {
-  const rowWarnings = [];
-  const obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = row[i] ?? "";
-  });
-  
-  // Require first_name and last_name
-  if (!obj.first_name || obj.first_name.trim() === "") {
-    rowWarnings.push("Missing first name");
-  }
-  if (!obj.last_name || obj.last_name.trim() === "") {
-    rowWarnings.push("Missing last name");
-  }
-  
-  // Combine first and last name for backend compatibility
-  if (obj.first_name && obj.last_name) {
-    obj.name = `${obj.first_name.trim()} ${obj.last_name.trim()}`;
-  }
-  
-  // Age group is optional - any text is allowed, no validation needed
-  
-  return { ...obj, warnings: rowWarnings };
-}
 
 export default function AdminTools() {
   const { user, userRole, selectedLeagueId } = useAuth();
@@ -151,20 +115,21 @@ export default function AdminTools() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target.result;
-      const { headers, rows } = parseCsv(text);
-      // Validate headers - check if all required headers are present (flexible order)
-      const headerErrors = [];
-      const missingHeaders = REQUIRED_HEADERS.filter(required => 
-        !headers.some(header => header.toLowerCase().trim() === required.toLowerCase())
-      );
-      if (missingHeaders.length > 0) {
-        headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
-        showError(`❌ CSV Error: Missing headers ${missingHeaders.join(", ")}`);
+      const { headers, rows, mappingType } = parseCsv(text);
+      
+      // Enhanced validation with mapping type support
+      const headerErrors = validateHeaders(headers, mappingType);
+      
+      if (headerErrors.length > 0) {
+        showError(`❌ CSV Error: ${headerErrors[0]}`);
       } else {
-        showInfo(`📄 CSV loaded: ${rows.length} players found`);
+        // Show success message with mapping type information
+        const mappingDesc = getMappingDescription(mappingType);
+        showInfo(`📄 CSV loaded successfully: ${rows.length} players found. ${mappingDesc}`);
       }
+      
       // Validate rows
-      const validatedRows = rows.map(row => validateRow(row, headers));
+      const validatedRows = rows.map(row => validateRow(row));
       setCsvHeaders(headers);
       setCsvRows(validatedRows);
       setCsvErrors(headerErrors);

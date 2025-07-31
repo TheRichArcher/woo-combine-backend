@@ -12,43 +12,7 @@ import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import LoadingScreen from "../components/LoadingScreen";
 
 // CSV processing utilities (simplified from AdminTools)
-const REQUIRED_HEADERS = ["first_name", "last_name", "age_group"];
-const SAMPLE_ROWS = [
-  ["Jane", "Smith", "9-10"],
-  ["Alex", "Lee", "U12"],
-  ["Sam", "Jones", "6U"],
-  ["Maria", "Garcia", ""], // Example showing age group is optional
-];
-
-function parseCsv(text) {
-  const lines = text.trim().split(/\r?\n/);
-  const headers = lines[0].split(",").map(h => h.trim());
-  const rows = lines.slice(1).map(line => line.split(",").map(cell => cell.trim()));
-  return { headers, rows };
-}
-
-function validateRow(row, headers) {
-  const rowWarnings = [];
-  const obj = {};
-  headers.forEach((header, i) => {
-    obj[header] = row[i] ?? "";
-  });
-  
-  // Require first_name and last_name
-  if (!obj.first_name || obj.first_name.trim() === "") {
-    rowWarnings.push("Missing first name");
-  }
-  if (!obj.last_name || obj.last_name.trim() === "") {
-    rowWarnings.push("Missing last name");
-  }
-  
-  // Combine first and last name for backend compatibility
-  if (obj.first_name && obj.last_name) {
-    obj.name = `${obj.first_name.trim()} ${obj.last_name.trim()}`;
-  }
-  
-  return { ...obj, warnings: rowWarnings };
-}
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, SAMPLE_ROWS } from '../utils/csvUtils';
 
 export default function OnboardingEvent() {
   const navigate = useNavigate();
@@ -124,7 +88,7 @@ export default function OnboardingEvent() {
     navigate("/admin#player-upload-section");
   };
 
-  // CSV handling
+  // CSV handling with enhanced parsing
   const handleCsv = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -132,21 +96,18 @@ export default function OnboardingEvent() {
     const reader = new FileReader();
     reader.onload = (evt) => {
       const text = evt.target.result;
-      const { headers, rows } = parseCsv(text);
+      const { headers, rows, mappingType } = parseCsv(text);
       
-      // Validate headers
-      const headerErrors = [];
-      const missingHeaders = REQUIRED_HEADERS.filter(required => 
-        !headers.some(header => header.toLowerCase().trim() === required.toLowerCase())
-      );
-      if (missingHeaders.length > 0) {
-        headerErrors.push(`Missing required headers: ${missingHeaders.join(", ")}`);
-      }
+      // Enhanced validation with mapping type support
+      const headerErrors = validateHeaders(headers, mappingType);
       
       // Validate rows
-      const validatedRows = rows.map(row => validateRow(row, headers));
+      const validatedRows = rows.map(row => validateRow(row));
       setCsvRows(validatedRows);
       setCsvErrors(headerErrors);
+      
+      // Log mapping type for debugging
+      console.log(`CSV parsed using ${mappingType} mapping for ${rows.length} players`);
     };
     reader.readAsText(file);
   };
