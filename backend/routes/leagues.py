@@ -210,8 +210,8 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
             try:
                 league_ref.delete()
                 logging.info(f"🧹 Cleaned up league {league_ref.id} due to membership creation failure")
-            except:
-                pass
+            except Exception as cleanup_error:
+                logging.warning(f"Failed to cleanup league {league_ref.id}: {cleanup_error}")
             raise HTTPException(status_code=500, detail=f"Failed to create league membership: {str(e)}")
         
         logging.info(f"🎉 League created with id {league_ref.id} by user {user_id} with verified membership")

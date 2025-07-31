@@ -1,14 +1,16 @@
-import concurrent.futures
 import logging
 from fastapi import HTTPException
 
 def execute_with_timeout(func, timeout=10, operation_name="database operation", *args, **kwargs):
     """
-    Execute a database function with timeout protection.
+    Execute a database function with error handling.
+    
+    Note: ThreadPoolExecutor removed as it was causing delays in cold starts.
+    For Firestore operations, direct execution is much faster.
     
     Args:
         func: Function to execute
-        timeout: Timeout in seconds (default: 10)
+        timeout: Timeout in seconds (unused now, kept for API compatibility)
         operation_name: Description for error logging
         *args, **kwargs: Arguments to pass to func
         
@@ -16,21 +18,14 @@ def execute_with_timeout(func, timeout=10, operation_name="database operation", 
         Result of func execution
         
     Raises:
-        HTTPException: On timeout or execution failure
+        HTTPException: On execution failure
     """
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future = executor.submit(func, *args, **kwargs)
-        try:
-            return future.result(timeout=timeout)
-        except concurrent.futures.TimeoutError:
-            logging.error(f"{operation_name} timed out after {timeout} seconds: {func.__name__}")
-            raise HTTPException(
-                status_code=504,
-                detail=f"{operation_name} timed out after {timeout} seconds"
-            )
-        except Exception as e:
-            logging.error(f"{operation_name} failed: {func.__name__} - {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"{operation_name} failed: {str(e)}"
-            ) 
+    try:
+        # Direct execution - much faster than ThreadPoolExecutor for Firestore ops
+        return func(*args, **kwargs)
+    except Exception as e:
+        logging.error(f"{operation_name} failed: {func.__name__} - {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"{operation_name} failed: {str(e)}"
+        ) 

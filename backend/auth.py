@@ -10,7 +10,6 @@ from google.cloud import firestore
 from datetime import datetime
 import logging
 import asyncio
-import concurrent.futures
 from functools import wraps
 
 # Initialize Firebase Admin SDK if not already initialized
@@ -89,23 +88,14 @@ def get_current_user(
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         
-        # Optimized Firestore lookup with timeout protection
+        # Simple direct Firestore lookup (ThreadPoolExecutor was causing delays)
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
         try:
             db = get_firestore_client()
             
-            # Add timeout protection to Firestore lookup
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(lambda: db.collection("users").document(uid).get())
-                try:
-                    user_doc = future.result(timeout=10)  # Increased to 10 seconds for extreme cold starts
-                    logging.info(f"[AUTH] Firestore lookup completed")
-                except concurrent.futures.TimeoutError:
-                    logging.error(f"[AUTH] Firestore lookup timed out after 10 seconds for UID: {uid}")
-                    raise HTTPException(
-                        status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                        detail="Authentication service temporarily unavailable due to server startup"
-                    )
+            # Direct Firestore call - much faster than ThreadPoolExecutor
+            user_doc = db.collection("users").document(uid).get()
+            logging.info(f"[AUTH] Firestore lookup completed successfully")
             
         except HTTPException:
             raise
@@ -128,20 +118,12 @@ def get_current_user(
                     # Don't set role yet - this will be done in SelectRole
                 }
                 
-                # Create the user document
-                with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(lambda: db.collection("users").document(uid).set(user_data))
-                    try:
-                        future.result(timeout=5)  # 5 second timeout for user creation
-                        logging.info(f"[AUTH] Successfully created user document for UID {uid}")
-                        
-                        # Return with no role so user goes to SelectRole
-                        return {"uid": uid, "email": email, "role": None}
-                        
-                    except concurrent.futures.TimeoutError:
-                        logging.error(f"[AUTH] User document creation timed out for UID: {uid}")
-                        # Continue without role to allow SelectRole flow
-                        return {"uid": uid, "email": email, "role": None}
+                # Create the user document directly (ThreadPoolExecutor was causing delays)
+                db.collection("users").document(uid).set(user_data)
+                logging.info(f"[AUTH] Successfully created user document for UID {uid}")
+                
+                # Return with no role so user goes to SelectRole
+                return {"uid": uid, "email": email, "role": None}
                         
             except Exception as create_error:
                 logging.error(f"[AUTH] Failed to create user document: {create_error}")

@@ -36,8 +36,8 @@ def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
             try:
                 drill_value = float(value)
                 
-                    # For "lower is better" drills like 40-yard dash, invert the score
-    # Use a reasonable maximum (30 seconds for 40-yard dash) to create an inverted scale
+                # For "lower is better" drills like 40-yard dash, invert the score
+                # Use a reasonable maximum (30 seconds for 40-yard dash) to create an inverted scale
                 if drill in lower_is_better_drills:
                     if drill == "40m_dash":
                         # Convert to "higher is better" scale: use (30 - time) so 4 seconds becomes 26, 15 seconds becomes 15
