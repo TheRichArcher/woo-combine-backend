@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
@@ -13,6 +13,22 @@ export default function LoginForm() {
   const [submitting, setSubmitting] = useState(false);
   const { loading } = useAuth();
   const navigate = useNavigate();
+
+  // CRITICAL FIX: Clear stale invitation data when accessing login normally
+  useEffect(() => {
+    // Only clear if user didn't come from invitation flow
+    const referrer = document.referrer;
+    const currentUrl = window.location.href;
+    const cameFromJoinEvent = referrer.includes('/join-event/') || currentUrl.includes('from=invite');
+    
+    if (!cameFromJoinEvent) {
+      const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+      if (pendingEventJoin) {
+        console.log('Clearing stale pendingEventJoin from normal login access');
+        localStorage.removeItem('pendingEventJoin');
+      }
+    }
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
