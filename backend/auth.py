@@ -92,10 +92,11 @@ def get_current_user(
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
         try:
             db = get_firestore_client()
+            logging.info(f"[AUTH] Firestore client obtained successfully")
             
             # Direct Firestore call - much faster than ThreadPoolExecutor
             user_doc = db.collection("users").document(uid).get()
-            logging.info(f"[AUTH] Firestore lookup completed successfully")
+            logging.info(f"[AUTH] Firestore lookup completed successfully. User exists: {user_doc.exists}")
             
         except HTTPException:
             raise
