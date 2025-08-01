@@ -41,7 +41,20 @@ export function EventProvider({ children }) {
       });
     } catch (err) {
       logger.error('EVENT-CONTEXT', 'Failed to load events', err);
-      setError(err.response?.data?.detail || 'Failed to load events');
+      
+      // Provide user-friendly error messages based on error type
+      let errorMessage = 'Failed to load events';
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        errorMessage = 'Server is starting up. Please wait a moment and try again.';
+      } else if (err.message?.includes('Network Error')) {
+        errorMessage = 'Network connection issue. Please check your internet connection.';
+      } else if (err.response?.status >= 500) {
+        errorMessage = 'Server is temporarily unavailable. Please try again in a moment.';
+      } else if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      }
+      
+      setError(errorMessage);
       setEvents([]);
       setSelectedEvent(null);
     } finally {

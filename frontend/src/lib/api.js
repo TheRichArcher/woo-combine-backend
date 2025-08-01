@@ -8,7 +8,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
   withCredentials: false,
-  timeout: 45000  // 45s for extreme cold start scenarios
+  timeout: 20000  // 20s timeout - more reasonable for user experience
 });
 
 // Enhanced retry logic for cold start recovery
@@ -40,16 +40,16 @@ api.interceptors.response.use(
     
     config._retryCount += 1;
     
-    // Progressive delays: 3s, 6s, 12s
-    let delay = Math.pow(2, config._retryCount) * 3000;
+    // More reasonable progressive delays: 2s, 4s, 8s
+    let delay = Math.pow(2, config._retryCount) * 2000;
     
-    // Extended delays for cold start indicators
+    // Optimized delays for different error types
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      delay = Math.min(delay * 2, 15000); // Up to 15s for severe cold starts
+      delay = Math.min(delay * 1.5, 8000); // Up to 8s for cold starts
     } else if (!error.response) {
-      delay = Math.min(delay * 1.5, 12000); // Network failures
+      delay = Math.min(delay * 1.2, 6000); // Network failures
     } else if (error.response?.status >= 500) {
-      delay = Math.min(delay * 1.5, 10000); // Server errors
+      delay = Math.min(delay, 5000); // Server errors
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));
@@ -101,7 +101,7 @@ api.interceptors.response.use(
     if (error.response?.data?.detail) {
       console.error('[API] Server Error:', error.response.data.detail);
     } else if (error.code === 'ECONNABORTED') {
-      console.error('[API] Request timeout - server may be starting up');
+      console.log('[API] Request timeout - server may be starting up');
     } else if (error.message.includes('Network Error')) {
       console.error('[API] Network connectivity issue');
     } else {

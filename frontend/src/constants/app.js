@@ -14,7 +14,7 @@ export const APP_CONFIG = {
     FOCUS_DELAY: 100,            // 100ms delay for input focus
     
     // API timeouts
-    API_DEFAULT: 45000,          // 45s for extreme cold start scenarios
+    API_DEFAULT: 20000,          // 20s for better user experience
     API_COLD_START_RETRY: 15000, // 15s for severe cold starts
     API_NETWORK_RETRY: 12000,    // Network failures
     API_SERVER_RETRY: 10000,     // Server errors
