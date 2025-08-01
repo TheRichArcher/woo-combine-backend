@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -23,7 +22,7 @@ import { calculateCompositeScore } from '../utils/rankingUtils';
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   
   const [showPreview, setShowPreview] = useState(false);
   const [includeComparison, setIncludeComparison] = useState(true);

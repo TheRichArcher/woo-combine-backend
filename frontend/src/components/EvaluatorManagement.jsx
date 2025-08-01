@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { Plus, Users, UserCheck, Shield, Eye, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Users, UserCheck, Shield, Eye, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 
@@ -14,7 +13,6 @@ const EVALUATOR_ROLES = [
 ];
 
 const EvaluatorManagement = () => {
-  const { user } = useAuth();
   const { selectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
   
@@ -32,25 +30,29 @@ const EvaluatorManagement = () => {
     onError: (err, userMessage) => showError(userMessage)
   });
 
+  const loadEvaluators = useCallback(async () => {
+    if (selectedEvent?.id) {
+      await fetchEvaluators(async () => {
+        const response = await api.get(`/evaluators/events/${selectedEvent.id}/evaluators`);
+        return response.data;
+      });
+    }
+  }, [selectedEvent?.id, fetchEvaluators]);
+
   const { loading: addingEvaluator, execute: addEvaluator } = useAsyncOperation({
     context: 'ADD_EVALUATOR',
     onSuccess: () => {
       showSuccess('Evaluator added successfully!');
       setShowAddForm(false);
       setNewEvaluator({ name: '', email: '', role: 'evaluator' });
-      fetchEvaluators();
+      loadEvaluators();
     },
     onError: (err, userMessage) => showError(userMessage)
   });
 
   useEffect(() => {
-    if (selectedEvent?.id) {
-      fetchEvaluators(async () => {
-        const response = await api.get(`/evaluators/events/${selectedEvent.id}/evaluators`);
-        return response.data;
-      });
-    }
-  }, [selectedEvent]);
+    loadEvaluators();
+  }, [loadEvaluators]);
 
   const handleAddEvaluator = async () => {
     if (!newEvaluator.name.trim() || !newEvaluator.email.trim()) {

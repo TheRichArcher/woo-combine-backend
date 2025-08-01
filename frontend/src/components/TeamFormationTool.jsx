@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
 import { 
   Users, 
@@ -11,14 +9,10 @@ import {
   Minus,
   Target,
   Trophy,
-  CheckCircle,
   AlertTriangle,
   Settings,
-  Copy,
   RefreshCw
 } from 'lucide-react';
-import api from '../lib/api';
-import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { calculateCompositeScore } from '../utils/rankingUtils';
 

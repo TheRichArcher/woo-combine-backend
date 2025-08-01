@@ -77,7 +77,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
 
   const renderDrillCard = (drillType, drillEvaluations) => {
     const aggregated = aggregatedResults[drillType];
-    const scores = drillEvaluations.map(eval => eval.value);
+    const scores = drillEvaluations.map(evalItem => evalItem.value);
     const variance = getScoreVariance(scores);
     const varianceInfo = getVarianceLevel(variance, aggregated?.average_score);
 
@@ -159,35 +159,35 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
               Individual Evaluations
             </h5>
             <div className="space-y-3">
-              {drillEvaluations.map((evaluation, index) => (
-                <div key={evaluation.id} className="flex items-center justify-between p-3 bg-white rounded border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-blue-600">
-                        {evaluation.evaluator_name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {evaluation.evaluator_name}
-                      </div>
-                      {evaluation.notes && (
-                        <div className="text-xs text-gray-600 mt-1">
-                          "{evaluation.notes}"
-                        </div>
-                      )}
-                    </div>
+                          {drillEvaluations.map((evalData, index) => (
+              <div key={evalData.id} className="flex items-center justify-between p-3 bg-white rounded border">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-blue-600">
+                      {evalData.evaluator_name.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  <div className="text-right">
-                    <div className="font-bold text-lg text-gray-900">
-                      {evaluation.value}
+                  <div>
+                    <div className="font-medium text-gray-900">
+                      {evalData.evaluator_name}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(evaluation.created_at).toLocaleDateString()}
-                    </div>
+                    {evalData.notes && (
+                      <div className="text-xs text-gray-600 mt-1">
+                        "{evalData.notes}"
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+                <div className="text-right">
+                  <div className="font-bold text-lg text-gray-900">
+                    {evalData.value}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(evalData.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
             </div>
 
             {aggregated && scores.length > 1 && (

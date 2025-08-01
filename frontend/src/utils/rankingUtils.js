@@ -1,8 +1,6 @@
 // Ranking and weight calculation utilities
 import { 
-  getDefaultFootballTemplate, 
-  getDrillsFromTemplate, 
-  getDefaultWeightsFromTemplate 
+  getDefaultFootballTemplate
 } from '../constants/drillTemplates.js';
 
 // Use dynamic drills from template system
