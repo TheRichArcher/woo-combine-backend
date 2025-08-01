@@ -1,6 +1,8 @@
 // Ranking and weight calculation utilities
 import { 
-  getDefaultFootballTemplate
+  getDefaultFootballTemplate,
+  getDrillsFromTemplate,
+  getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates.js';
 
 // Use dynamic drills from template system
@@ -29,22 +31,37 @@ export function convertWeightsToPercentages(weights) {
   return percentages;
 }
 
+// Dynamic helper functions for event-specific drills and weights
+export const getDrillsForEvent = (event) => {
+  const templateId = event?.drillTemplate || 'football';
+  return getDrillsFromTemplate(templateId);
+};
+
+export const getWeightsForEvent = (event) => {
+  const templateId = event?.drillTemplate || 'football';
+  return getDefaultWeightsFromTemplate(templateId);
+};
+
 // Calculate composite score for a player
-export function calculateCompositeScore(player, weights = DRILL_WEIGHTS) {
+export function calculateCompositeScore(player, weights = DRILL_WEIGHTS, event = null) {
   let score = 0;
   let hasAnyScore = false;
   
-  DRILLS.forEach(drill => {
+  // Use event-specific drills if event is provided
+  const drillsToUse = event ? getDrillsForEvent(event) : DRILLS;
+  const weightsToUse = event && !weights ? getWeightsForEvent(event) : weights;
+  
+  drillsToUse.forEach(drill => {
     const value = player[drill.key];
     if (value !== null && value !== undefined && value !== '') {
       let drillScore = parseFloat(value);
       
-      // For 40m dash, lower time is better - invert the score
-      if (drill.key === '40m_dash') {
+      // Handle lower-is-better drills (like times)
+      if (drill.lowerIsBetter) {
         drillScore = Math.max(0, 30 - drillScore);
       }
       
-      score += drillScore * (weights[drill.key] || 0);
+      score += drillScore * (weightsToUse[drill.key] || 0);
       hasAnyScore = true;
     }
   });
@@ -53,7 +70,7 @@ export function calculateCompositeScore(player, weights = DRILL_WEIGHTS) {
 }
 
 // Calculate live rankings for a set of players
-export function calculateLiveRankings(players, weights, ageGroup = null) {
+export function calculateLiveRankings(players, weights, ageGroup = null, event = null) {
   if (!players || players.length === 0) return [];
   
   // Filter by age group if specified
@@ -64,7 +81,7 @@ export function calculateLiveRankings(players, weights, ageGroup = null) {
   // Calculate scores and rank
   const playersWithScores = filteredPlayers.map(player => ({
     ...player,
-    composite_score: calculateCompositeScore(player, weights)
+    composite_score: calculateCompositeScore(player, weights, event)
   }));
   
   // Sort by composite score (highest first)
