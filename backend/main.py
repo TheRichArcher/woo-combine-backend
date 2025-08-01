@@ -81,6 +81,29 @@ app.include_router(events_router, prefix="/api", tags=["Events"])
 app.include_router(users_router, prefix="/api", tags=["Users"])
 app.include_router(evaluators_router, prefix="/api", tags=["Evaluators"])
 
+# Health check endpoint for debugging
+@app.get("/api/health")
+def health_check():
+    """Simple health check that tests key system components"""
+    try:
+        # Test Firestore connection
+        firestore_client = get_firestore_lazy()
+        if firestore_client:
+            # Test a simple read operation
+            test_doc = firestore_client.collection("_health").document("test").get()
+            firestore_status = "connected"
+        else:
+            firestore_status = "unavailable"
+    except Exception as e:
+        firestore_status = f"error: {str(e)}"
+    
+    return {
+        "status": "running",
+        "firestore": firestore_status,
+        "timestamp": datetime.now().isoformat(),
+        "version": "1.0.2"
+    }
+
 @app.get("/health")
 @app.head("/health")
 def health_check():
