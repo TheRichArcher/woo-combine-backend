@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from ..firestore_client import db
-from ..auth import get_current_user
+from ..auth import get_current_user, require_role
 from datetime import datetime
 import logging
 from ..utils.database import execute_with_timeout
