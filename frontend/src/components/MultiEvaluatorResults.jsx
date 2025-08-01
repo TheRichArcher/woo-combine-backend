@@ -42,13 +42,13 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
     if (selectedEvent?.id && playerId) {
       // Fetch individual evaluations
       fetchEvaluations(async () => {
-        const response = await api.get(`/evaluators/events/${selectedEvent.id}/players/${playerId}/evaluations`);
+        const response = await api.get(`/events/${selectedEvent.id}/players/${playerId}/evaluations`);
         return response.data;
       });
 
       // Fetch aggregated results
       fetchAggregated(async () => {
-        const response = await api.get(`/evaluators/events/${selectedEvent.id}/aggregated-results`);
+        const response = await api.get(`/events/${selectedEvent.id}/aggregated-results`);
         return response.data;
       });
     }

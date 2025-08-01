@@ -33,7 +33,7 @@ const EvaluatorManagement = () => {
   const loadEvaluators = useCallback(async () => {
     if (selectedEvent?.id) {
       await fetchEvaluators(async () => {
-        const response = await api.get(`/evaluators/events/${selectedEvent.id}/evaluators`);
+        const response = await api.get(`/events/${selectedEvent.id}/evaluators`);
         return response.data;
       });
     }
@@ -61,7 +61,7 @@ const EvaluatorManagement = () => {
     }
 
     await addEvaluator(async () => {
-      const response = await api.post(`/evaluators/events/${selectedEvent.id}/evaluators`, newEvaluator);
+      const response = await api.post(`/events/${selectedEvent.id}/evaluators`, newEvaluator);
       return response.data;
     });
   };
