@@ -655,6 +655,9 @@ export default function OnboardingEvent() {
             <div className="mb-4">
               <button
                 onClick={() => {
+                  console.log('🚀 DEBUGGING: Navigation button clicked, attempting to navigate to /players');
+                  console.log('🔍 Current selectedEvent:', selectedEvent);
+                  console.log('🔍 Current userRole:', userRole);
                   navigate('/players');
                 }}
                 className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
