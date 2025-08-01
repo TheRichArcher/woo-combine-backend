@@ -12,24 +12,25 @@ const EvaluatorManagementPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 mt-20">
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-blue-100 rounded-xl">
-              <Users className="w-8 h-8 text-blue-600" />
+            <div className="p-2 bg-blue-100 rounded-xl">
+              <Users className="w-6 h-6 text-blue-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Multi-Evaluator System</h1>
-              <p className="text-lg text-gray-600">Reduce bias with multiple coach evaluations & statistical analysis</p>
-            </div>
-            <div className="ml-auto">
-              <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full font-medium">
-                🆕 New Feature
-              </span>
+              <h1 className="text-xl font-bold text-cmf-secondary">Multi-Evaluator System</h1>
+              <p className="text-sm text-gray-600">Reduce bias with multiple coach evaluations</p>
             </div>
           </div>
+          <div className="text-center">
+            <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
+              🆕 New Feature
+            </span>
+          </div>
+        </div>
 
           {/* Benefits Banner */}
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6 mb-6">

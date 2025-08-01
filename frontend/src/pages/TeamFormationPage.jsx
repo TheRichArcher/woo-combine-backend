@@ -41,24 +41,25 @@ const TeamFormationPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 mt-20">
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-green-200">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-green-100 rounded-xl">
-              <Users className="w-8 h-8 text-green-600" />
+            <div className="p-2 bg-green-100 rounded-xl">
+              <Users className="w-6 h-6 text-green-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Intelligent Team Formation</h1>
-              <p className="text-lg text-gray-600">Create balanced teams with advanced algorithms & real-time analysis</p>
-            </div>
-            <div className="ml-auto">
-              <span className="bg-green-100 text-green-800 text-sm px-3 py-1 rounded-full font-medium">
-                🆕 New Feature
-              </span>
+              <h1 className="text-xl font-bold text-cmf-secondary">Intelligent Team Formation</h1>
+              <p className="text-sm text-gray-600">Create balanced teams with AI algorithms</p>
             </div>
           </div>
+          <div className="text-center">
+            <span className="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-medium">
+              🆕 New Feature
+            </span>
+          </div>
+        </div>
 
           {/* Benefits Banner */}
           <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-xl p-6 mb-6">
@@ -117,40 +118,43 @@ const TeamFormationPage = () => {
             </div>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Team Formation Tool */}
-            <TeamFormationTool 
-              players={players}
-              weights={weights}
-              selectedDrillTemplate="football"
-            />
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4">
+              <h3 className="font-semibold text-gray-900 mb-3">Team Formation Tool</h3>
+              <TeamFormationTool 
+                players={players}
+                weights={weights}
+                selectedDrillTemplate="football"
+              />
+            </div>
 
             {/* Algorithm Explanation */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-blue-900 mb-3">Formation Algorithm Details</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="bg-white rounded-lg p-4 border border-blue-100">
-                  <h4 className="font-medium text-blue-900 mb-2">🔄 Balanced Distribution</h4>
-                  <p className="text-blue-700">Round-robin assignment ensures even distribution of talent across all teams.</p>
+            <div className="bg-white rounded-2xl shadow-lg border border-blue-200 p-4">
+              <h3 className="text-lg font-semibold text-blue-900 mb-3">Formation Algorithms</h3>
+              <div className="space-y-3 text-sm">
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <h4 className="font-medium text-blue-900 mb-1">🔄 Balanced Distribution</h4>
+                  <p className="text-blue-700 text-xs">Round-robin assignment ensures even distribution of talent across all teams.</p>
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-blue-100">
-                  <h4 className="font-medium text-blue-900 mb-2">🐍 Snake Draft</h4>
-                  <p className="text-blue-700">Draft-style selection (1→2→3→3→2→1) mimics professional team drafts.</p>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <h4 className="font-medium text-blue-900 mb-1">🐍 Snake Draft</h4>
+                  <p className="text-blue-700 text-xs">Draft-style selection (1→2→3→3→2→1) mimics professional team drafts.</p>
                 </div>
-                <div className="bg-white rounded-lg p-4 border border-blue-100">
-                  <h4 className="font-medium text-blue-900 mb-2">🎯 Skill-Based</h4>
-                  <p className="text-blue-700">Advanced algorithm balances specific skills rather than overall scores.</p>
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                  <h4 className="font-medium text-blue-900 mb-1">🎯 Skill-Based</h4>
+                  <p className="text-blue-700 text-xs">Advanced algorithm balances specific skills rather than overall scores.</p>
                 </div>
               </div>
             </div>
 
             {/* Success Tips */}
-            <div className="bg-green-50 border border-green-200 rounded-xl p-6">
-              <h3 className="text-lg font-semibold text-green-900 mb-3">📋 Team Formation Best Practices</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="bg-white rounded-2xl shadow-lg border border-green-200 p-4">
+              <h3 className="text-lg font-semibold text-green-900 mb-3">📋 Best Practices</h3>
+              <div className="space-y-3 text-sm">
                 <div>
                   <h4 className="font-medium text-green-900 mb-2">Before Formation:</h4>
-                  <ul className="text-green-800 space-y-1 list-disc list-inside">
+                  <ul className="text-green-800 space-y-1 list-disc list-inside text-xs">
                     <li>Ensure all players have complete drill scores</li>
                     <li>Review and adjust drill weight priorities</li>
                     <li>Consider age group and skill level differences</li>
@@ -158,7 +162,7 @@ const TeamFormationPage = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-green-900 mb-2">After Formation:</h4>
-                  <ul className="text-green-800 space-y-1 list-disc list-inside">
+                  <ul className="text-green-800 space-y-1 list-disc list-inside text-xs">
                     <li>Review team balance indicators</li>
                     <li>Make manual adjustments if needed</li>
                     <li>Export final rosters for league management</li>

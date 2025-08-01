@@ -55,24 +55,25 @@ const ScorecardsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 mt-20">
         
         {/* Header */}
-        <div className="mb-8">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-orange-200">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-3 bg-orange-100 rounded-xl">
-              <FileText className="w-8 h-8 text-orange-600" />
+            <div className="p-2 bg-orange-100 rounded-xl">
+              <FileText className="w-6 h-6 text-orange-600" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Professional Player Scorecards</h1>
-              <p className="text-lg text-gray-600">Generate detailed PDF reports & share results with players and families</p>
-            </div>
-            <div className="ml-auto">
-              <span className="bg-orange-100 text-orange-800 text-sm px-3 py-1 rounded-full font-medium">
-                🆕 New Feature
-              </span>
+              <h1 className="text-xl font-bold text-cmf-secondary">Professional Player Scorecards</h1>
+              <p className="text-sm text-gray-600">Generate detailed PDF reports & share results</p>
             </div>
           </div>
+          <div className="text-center">
+            <span className="bg-orange-100 text-orange-800 text-xs px-3 py-1 rounded-full font-medium">
+              🆕 New Feature
+            </span>
+          </div>
+        </div>
 
           {/* Benefits Banner */}
           <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-xl p-6 mb-6">
