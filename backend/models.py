@@ -31,6 +31,30 @@ class DrillResultSchema(BaseModel):
     type: str
     value: float
     created_at: str
+    evaluator_id: Optional[str] = None  # Firebase UID of evaluator
+    evaluator_name: Optional[str] = None  # Display name of evaluator
+
+class EvaluatorSchema(BaseModel):
+    id: str  # Firebase UID
+    name: str
+    email: str
+    role: str  # 'head_coach', 'assistant_coach', 'evaluator', 'scout'
+    event_id: str
+    added_by: str  # Firebase UID who added this evaluator
+    added_at: str
+    active: bool = True
+
+class MultiEvaluatorDrillResult(BaseModel):
+    """Aggregated drill result from multiple evaluators"""
+    player_id: str
+    drill_type: str
+    evaluations: list[Dict[str, Any]]  # List of individual evaluations
+    average_score: float
+    median_score: float
+    score_count: int
+    score_variance: Optional[float] = None
+    final_score: float  # The score used for rankings (usually average)
+    updated_at: str
 
 class EventSchema(BaseModel):
     id: str
