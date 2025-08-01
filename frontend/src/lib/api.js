@@ -61,14 +61,20 @@ api.interceptors.response.use(
 api.interceptors.request.use(async (config) => {
   // Add Authorization header if authenticated
   const user = auth.currentUser;
+  console.log('[API] Request interceptor - user:', user ? 'authenticated' : 'not authenticated');
+  
   if (user) {
     try {
       const token = await user.getIdToken(true); // Force refresh token to get latest verification status
+      console.log('[API] Auth token retrieved:', token ? 'success' : 'failed');
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
+      console.log('[API] Authorization header added to request:', config.url);
     } catch (authError) {
       console.warn('[API] Failed to get auth token:', authError);
     }
+  } else {
+    console.warn('[API] No authenticated user found for request:', config.url);
   }
   
   // Return the config for the current request
