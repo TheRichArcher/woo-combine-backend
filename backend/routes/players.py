@@ -104,35 +104,51 @@ class PlayerCreate(BaseModel):
 @router.post("/players", response_model=PlayerSchema)
 def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
+        logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
+        logging.info(f"[CREATE_PLAYER] Current user: {current_user.get('uid', 'unknown')}")
+        logging.info(f"[CREATE_PLAYER] Player data: {player.dict()}")
+        
         # Validate that the event exists
+        logging.info(f"[CREATE_PLAYER] Validating event exists: {event_id}")
         event = execute_with_timeout(
             db.collection("events").document(str(event_id)).get,
             timeout=3
         )
+        logging.info(f"[CREATE_PLAYER] Event validation completed. Exists: {event.exists}")
+        
         if not event.exists:
+            logging.warning(f"[CREATE_PLAYER] Event not found: {event_id}")
             raise HTTPException(status_code=404, detail="Event not found")
         
         # Create player in the event subcollection
+        logging.info(f"[CREATE_PLAYER] Creating player document in Firestore")
         player_doc = db.collection("events").document(str(event_id)).collection("players").document()
+        
+        player_data = {
+            "name": player.name,
+            "number": player.number,
+            "age_group": player.age_group,
+            "photo_url": player.photo_url,
+            "event_id": event_id,
+            "created_at": datetime.utcnow().isoformat(),
+        }
+        logging.info(f"[CREATE_PLAYER] Player data to save: {player_data}")
         
         # Add timeout to player creation
         execute_with_timeout(
-            lambda: player_doc.set({
-                "name": player.name,
-                "number": player.number,
-                "age_group": player.age_group,
-                "photo_url": player.photo_url,
-                "event_id": event_id,
-                "created_at": datetime.utcnow().isoformat(),
-            }),
+            lambda: player_doc.set(player_data),
             timeout=5
         )
+        
+        logging.info(f"[CREATE_PLAYER] Player created successfully with ID: {player_doc.id}")
         return {"player_id": player_doc.id}
     except HTTPException:
+        logging.error(f"[CREATE_PLAYER] HTTPException occurred")
         raise
     except Exception as e:
-        logging.error(f"Error creating player: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create player")
+        logging.error(f"[CREATE_PLAYER] Unexpected error creating player: {type(e).__name__}: {str(e)}")
+        logging.exception(f"[CREATE_PLAYER] Full exception trace:")
+        raise HTTPException(status_code=500, detail=f"Failed to create player: {str(e)}")
 
 @router.put("/players/{player_id}")
 def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
