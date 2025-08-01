@@ -18,7 +18,6 @@ export const eventService = {
 
   // Delete an event
   deleteEvent: (leagueId, eventId) => {
-    // TODO: Backend needs to implement DELETE /leagues/{leagueId}/events/{eventId}
     return api.delete(`/leagues/${leagueId}/events/${eventId}`);
   },
 

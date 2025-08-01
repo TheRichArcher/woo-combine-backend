@@ -1,10 +1,10 @@
 import React from 'react';
+import EvaluatorManagement from '../components/EvaluatorManagement';
 
 const EvaluatorManagementPage = () => {
   return (
-    <div>
-      <h1>Evaluator Management</h1>
-      <p>This page is under construction.</p>
+    <div className="container mx-auto px-4 py-8">
+      <EvaluatorManagement />
     </div>
   );
 };

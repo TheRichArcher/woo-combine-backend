@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -274,7 +275,7 @@ const TeamFormationPage = () => {
                 <h4 className="font-medium text-yellow-900 mb-1">No Players with Scores</h4>
                 <p className="text-sm text-yellow-800">
                   Players need to have drill scores recorded before they can be formed into teams.
-                  Head to the <a href="/players" className="underline">Players page</a> to record drill scores first.
+                  Head to the <Link to="/players" className="underline">Players page</Link> to record drill scores first.
                 </p>
               </div>
             </div>

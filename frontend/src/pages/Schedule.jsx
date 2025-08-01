@@ -1,41 +1,54 @@
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useEvent } from '../context/EventContext';
+import { useAuth } from '../context/AuthContext';
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, AlertCircle } from 'lucide-react';
+import EventSelector from '../components/EventSelector';
 
 export default function Schedule() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const { selectedEvent, events } = useEvent();
+  const { selectedLeagueId } = useAuth();
 
-
-
-  // Mock schedule data - you can replace this with real data from your API
-  const scheduleEvents = [
-    {
-      id: 1,
-      type: 'PRACTICE',
-      title: 'Practice Session',
-      date: '2024-06-15',
-      time: '12:00 PM - 12:50 PM',
-      location: 'Location TBD',
-      status: 'upcoming'
-    },
-    {
-      id: 2,
-      type: 'PRACTICE',
-      title: 'Practice Session',
-      date: '2024-06-22',
-      time: '12:00 PM - 12:50 PM',
-      location: 'Location TBD',
-      status: 'upcoming'
-    },
-    {
-      id: 3,
-      type: 'GAME',
-      title: 'Championship Game',
-      date: '2024-06-29',
-      time: '2:00 PM - 3:30 PM',
-      location: 'Main Field',
-      status: 'upcoming'
+  // Convert events to schedule format with safe date handling
+  const scheduleEvents = events.map(event => {
+    try {
+      const eventDate = new Date(event.date);
+      const isValidDate = !isNaN(eventDate.getTime());
+      const isUpcoming = isValidDate && eventDate >= new Date();
+      
+      return {
+        id: event.id,
+        type: 'COMBINE',
+        title: event.name || 'Untitled Event',
+        date: event.date,
+        time: isValidDate ? eventDate.toLocaleTimeString('en-US', { 
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true 
+        }) : 'Time TBD',
+        location: event.location || 'Location TBD',
+        status: isUpcoming ? 'upcoming' : 'completed',
+        description: `${event.name || 'Event'} - Player evaluation combine`
+      };
+    } catch (err) {
+      console.warn('Error processing event:', event, err);
+      return {
+        id: event.id || `error-${Date.now()}`,
+        type: 'COMBINE',
+        title: event.name || 'Invalid Event',
+        date: event.date || new Date().toISOString().split('T')[0],
+        time: 'Time TBD',
+        location: 'Location TBD',
+        status: 'completed',
+        description: 'Event data may be corrupted'
+      };
     }
-  ];
+  }).filter(Boolean);
+
+  // For now, only show real events (combines) - practice scheduling to be added later
+  const upcomingEvents = scheduleEvents;
+
+
 
   // Calendar helpers
   const monthNames = [
@@ -63,8 +76,9 @@ export default function Schedule() {
     // Add days of the month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const hasEvent = scheduleEvents.some(event => event.date === dateStr);
-      days.push({ day, hasEvent, dateStr });
+      const hasEvent = upcomingEvents.some(event => event.date === dateStr);
+      const dayEvents = upcomingEvents.filter(event => event.date === dateStr);
+      days.push({ day, hasEvent, dateStr, events: dayEvents });
     }
     
     return days;
@@ -78,12 +92,70 @@ export default function Schedule() {
 
   const days = getDaysInMonth(currentMonth);
 
+  // Filter upcoming events
+  const futureEvents = upcomingEvents.filter(event => {
+    const eventDate = new Date(event.date);
+    return eventDate >= new Date();
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  if (!selectedLeagueId) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-6 mt-20">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+            <div className="text-center">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">No League Selected</h2>
+              <p className="text-gray-600 mb-6">
+                Please select a league to view your schedule
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 mt-20">
-        {/* Page Title */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Schedule</h2>
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-8 h-8 text-blue-600" />
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Schedule</h2>
+              {selectedEvent && (
+                <p className="text-sm text-gray-600">
+                  {selectedEvent.name} • {futureEvents.length} upcoming events
+                </p>
+              )}
+            </div>
+          </div>
+          
+          {!selectedEvent && events.length > 0 && (
+            <div className="text-right">
+              <p className="text-sm text-gray-600 mb-2">Select an event to see schedule</p>
+              <EventSelector />
+            </div>
+          )}
+        </div>
+
+        {events.length === 0 ? (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-6 h-6 text-yellow-600 mt-0.5" />
+              <div>
+                <h3 className="font-semibold text-yellow-900 mb-2">No Events Found</h3>
+                <p className="text-yellow-800 mb-3">
+                  You don't have any events in your current league yet.
+                  Create or join an event to see your schedule.
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {/* Calendar */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -92,6 +164,7 @@ export default function Schedule() {
             <button 
               onClick={() => navigateMonth(-1)}
               className="p-2 hover:bg-gray-100 rounded-full"
+              aria-label="Previous month"
             >
               <ChevronLeft className="w-5 h-5 text-gray-600" />
             </button>
@@ -103,6 +176,7 @@ export default function Schedule() {
             <button 
               onClick={() => navigateMonth(1)}
               className="p-2 hover:bg-gray-100 rounded-full"
+              aria-label="Next month"
             >
               <ChevronRight className="w-5 h-5 text-gray-600" />
             </button>
@@ -122,15 +196,33 @@ export default function Schedule() {
             {days.map((day, index) => (
               <div 
                 key={index} 
-                className="px-2 py-3 text-center text-sm border-r border-b border-gray-100 min-h-[48px] flex items-center justify-center relative"
+                className="px-2 py-3 text-center text-sm border-r border-b border-gray-100 min-h-[64px] flex flex-col items-center justify-start relative hover:bg-gray-50 transition-colors"
+                title={day?.events?.length > 0 ? day.events.map(e => e.title).join(', ') : ''}
               >
                 {day && (
                   <>
-                    <span className={`${day.hasEvent ? 'font-bold text-purple-600' : 'text-gray-900'}`}>
+                    <span className={`${day.hasEvent ? 'font-bold text-blue-600' : 'text-gray-900'} mb-1`}>
                       {day.day}
                     </span>
                     {day.hasEvent && (
-                      <div className="absolute bottom-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <div className="flex flex-wrap gap-1 justify-center">
+                        {day.events.slice(0, 2).map((event, eventIndex) => (
+                          <div 
+                            key={eventIndex}
+                            className={`w-2 h-2 rounded-full ${
+                              event.type === 'PRACTICE' ? 'bg-purple-500' :
+                              event.type === 'COMBINE' ? 'bg-blue-500' :
+                              'bg-green-500'
+                            }`}
+                            title={event.title}
+                          ></div>
+                        ))}
+                        {day.events.length > 2 && (
+                          <div className="text-xs text-gray-500 font-medium">
+                            +{day.events.length - 2}
+                          </div>
+                        )}
+                      </div>
                     )}
                   </>
                 )}
@@ -140,47 +232,89 @@ export default function Schedule() {
         </div>
 
         {/* Upcoming Events */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-bold text-gray-900">Upcoming Events</h3>
-          
-          {scheduleEvents.map((event) => (
-            <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200">
-              <div className="p-4">
-                <div className="flex">
-                  {/* Colored accent bar */}
-                  <div className={`w-1 ${event.type === 'PRACTICE' ? 'bg-purple-500' : 'bg-green-500'} rounded-full mr-4`}></div>
-                  
-                  <div className="flex-1">
-                    {/* Event Type */}
-                    <div className={`${event.type === 'PRACTICE' ? 'text-purple-600' : 'text-green-600'} font-bold text-sm uppercase tracking-wide mb-1`}>
-                      {event.type}
+        {futureEvents.length > 0 && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">Upcoming Events</h3>
+              <span className="text-sm text-gray-500">{futureEvents.length} events</span>
+            </div>
+            
+            {futureEvents.map((event) => (
+              <div key={event.id} className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                <div className="p-4">
+                  <div className="flex">
+                    {/* Colored accent bar */}
+                    <div className={`w-1 ${
+                      event.type === 'PRACTICE' ? 'bg-purple-500' : 
+                      event.type === 'COMBINE' ? 'bg-blue-500' : 
+                      'bg-green-500'
+                    } rounded-full mr-4`}></div>
+                    
+                    <div className="flex-1">
+                      {/* Event Type */}
+                      <div className={`${
+                        event.type === 'PRACTICE' ? 'text-purple-600 bg-purple-100' : 
+                        event.type === 'COMBINE' ? 'text-blue-600 bg-blue-100' : 
+                        'text-green-600 bg-green-100'
+                      } font-bold text-xs uppercase tracking-wide mb-2 px-2 py-1 rounded-full inline-block`}>
+                        {event.type}
+                      </div>
+                      
+                      {/* Event Title */}
+                      <div className="font-bold text-lg text-gray-900 mb-1">
+                        {event.title}
+                      </div>
+                      
+                      {/* Description */}
+                      {event.description && (
+                        <div className="text-sm text-gray-600 mb-2">
+                          {event.description}
+                        </div>
+                      )}
+                      
+                      {/* Date and Time */}
+                      <div className="flex items-center text-gray-700 text-sm mb-2">
+                        <Clock className="w-4 h-4 mr-2" />
+                        {new Date(event.date).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })} at {event.time}
+                      </div>
+                      
+                      {/* Location */}
+                      <div className="flex items-center text-gray-600 text-sm">
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {event.location}
+                      </div>
                     </div>
                     
-                    {/* Event Title */}
-                    <div className="font-bold text-lg text-gray-900 mb-1">
-                      {event.title}
-                    </div>
-                    
-                    {/* Date and Time */}
-                    <div className="text-gray-700 text-sm mb-2">
-                      {new Date(event.date).toLocaleDateString('en-US', { 
-                        weekday: 'long', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })} - {event.time}
-                    </div>
-                    
-                    {/* Location */}
-                    <div className="flex items-center text-gray-600 text-sm">
-                      <span className="mr-1">📍</span>
-                      {event.location}
+                    {/* Status indicator */}
+                    <div className="flex items-start">
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        event.status === 'upcoming' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {event.status}
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
+
+        {/* No upcoming events message */}
+        {futureEvents.length === 0 && events.length > 0 && (
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <h3 className="font-semibold text-gray-900 mb-2">No Upcoming Events</h3>
+            <p className="text-gray-600">
+              All events for this league are in the past. Check back later for new events.
+            </p>
+          </div>
+        )}
       </div>
 
 

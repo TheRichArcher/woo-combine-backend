@@ -53,13 +53,12 @@ def get_event_evaluators(
 def add_evaluator(
     event_id: str,
     request: AddEvaluatorRequest,
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_role("organizer", "coach"))
 ):
     """Add an evaluator to an event (requires organizer/coach role)"""
     try:
-        # Check if user has permission to add evaluators
-        # For now, any authenticated user can add evaluators
-        # TODO: Add proper role checking
+        # Proper role checking is now enforced by the require_role decorator
+        # Only organizers and coaches can add evaluators
         
         evaluator_data = {
             "name": request.name,
