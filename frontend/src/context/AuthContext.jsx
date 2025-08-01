@@ -68,7 +68,7 @@ export function AuthProvider({ children }) {
         try {
           const token = await firebaseUser.getIdToken(true); // Force refresh token
           const roleResponse = await Promise.race([
-            fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+            fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com'}/api/users/me`, {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -259,7 +259,7 @@ export function AuthProvider({ children }) {
     
     try {
       const token = await user.getIdToken(true); // Force refresh token
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
+              const response = await fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com'}/api/users/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
