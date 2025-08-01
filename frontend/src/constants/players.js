@@ -5,6 +5,18 @@ import {
   getDefaultWeightsFromTemplate 
 } from './drillTemplates.js';
 
+// Dynamic function to get drills based on event template
+export const getDrillsForEvent = (event) => {
+  const templateId = event?.drillTemplate || 'football';
+  return getDrillsFromTemplate(templateId);
+};
+
+// Dynamic function to get weights based on event template
+export const getWeightsForEvent = (event) => {
+  const templateId = event?.drillTemplate || 'football';
+  return getDefaultWeightsFromTemplate(templateId);
+};
+
 // Default to football template for backward compatibility
 const defaultTemplate = getDefaultFootballTemplate();
 
