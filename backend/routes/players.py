@@ -106,7 +106,7 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
         logging.info(f"[CREATE_PLAYER] Current user: {current_user.get('uid', 'unknown')}")
-        logging.info(f"[CREATE_PLAYER] Player data: {player.dict()}")
+        logging.info(f"[CREATE_PLAYER] Player data: {player.model_dump()}")
         
         # Validate that the event exists
         logging.info(f"[CREATE_PLAYER] Validating event exists: {event_id}")
