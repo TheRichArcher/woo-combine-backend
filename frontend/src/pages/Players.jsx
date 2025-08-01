@@ -7,7 +7,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter } from 'lucide-react';
+import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
@@ -17,6 +17,70 @@ const ICON_MAP = {
   'Users': Users,
   'Download': Download
 };
+
+// Advanced features definition for dropdown
+const ADVANCED_FEATURES = [
+  {
+    key: 'sport-templates',
+    label: 'Sport Templates',
+    desc: '6 sports available',
+    icon: Trophy,
+    color: 'from-orange-50 to-red-50 border-orange-200',
+    route: '/sport-templates',
+    benefits: [
+      'Football, Soccer, Basketball templates',
+      'Baseball, Track & Field, Volleyball',
+      'Sport-specific drill configurations',
+      'Custom coaching presets for each sport'
+    ],
+    category: 'Configuration'
+  },
+  {
+    key: 'team-formation',
+    label: 'Team Formation',
+    desc: 'AI-powered balance',
+    icon: Users,
+    color: 'from-blue-50 to-cyan-50 border-blue-200',
+    route: '/team-formation',
+    benefits: [
+      'Automated balanced team creation',
+      'Skill-based distribution algorithms',
+      'Snake draft methodology',
+      'Export balanced rosters'
+    ],
+    category: 'Analysis'
+  },
+  {
+    key: 'evaluators',
+    label: 'Multi-Evaluator',
+    desc: 'Statistical analysis',
+    icon: BarChart3,
+    color: 'from-green-50 to-emerald-50 border-green-200',
+    route: '/evaluators',
+    benefits: [
+      'Multiple evaluator scoring',
+      'Statistical variance analysis',
+      'Bias detection & correction',
+      'Collaborative evaluation sessions'
+    ],
+    category: 'Evaluation'
+  },
+  {
+    key: 'scorecards',
+    label: 'Scorecards',
+    desc: 'Professional reports',
+    icon: FileText,
+    color: 'from-purple-50 to-indigo-50 border-purple-200',
+    route: '/scorecards',
+    benefits: [
+      'Individual player scorecards',
+      'Professional PDF reports',
+      'Performance breakdowns',
+      'Coach & parent sharing'
+    ],
+    category: 'Reports'
+  }
+];
 
 
 
@@ -64,6 +128,9 @@ export default function Players() {
   const currentWeights = useRef({ ...persistedWeights }); // Track during drag
   const timer = useRef(null); // Timer for debouncing
   const [activePreset, setActivePreset] = useState('balanced');
+  
+  // Advanced feature dropdown state
+  const [selectedFeature, setSelectedFeature] = useState('');
   
   // Live ranking state
   const [liveRankings, setLiveRankings] = useState({});
@@ -491,9 +558,9 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        {/* NEW FEATURES ANNOUNCEMENT BANNER - SAFETY FALLBACK */}
+        {/* ENHANCED FEATURES DROPDOWN - SAFETY FALLBACK */}
         <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
               <span className="text-lg">🚀</span>
             </div>
@@ -502,37 +569,89 @@ export default function Players() {
               <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button 
-              onClick={() => navigate('/sport-templates')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">🏈 Sport Templates</div>
-              <div className="text-blue-100">6 sports available</div>
-            </button>
-            <button 
-              onClick={() => navigate('/team-formation')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">⚖️ Team Formation</div>
-              <div className="text-blue-100">AI-powered balance</div>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-            <button 
-              onClick={() => navigate('/evaluators')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">👥 Multi-Evaluator</div>
-              <div className="text-blue-100">Statistical analysis</div>
-            </button>
-            <button 
-              onClick={() => navigate('/scorecards')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">📊 Scorecards</div>
-              <div className="text-blue-100">Professional reports</div>
-            </button>
+          
+          {/* Advanced Features Dropdown */}
+          <div className="space-y-3">
+            <div className="relative">
+              <select
+                value={selectedFeature}
+                onChange={(e) => setSelectedFeature(e.target.value)}
+                className="w-full p-3 pr-10 border-2 border-white/30 rounded-lg appearance-none bg-white/20 text-white cursor-pointer transition-all duration-200 hover:bg-white/30 focus:bg-white/40 focus:outline-none"
+              >
+                <option value="" className="text-gray-900">Explore Advanced Features...</option>
+                {ADVANCED_FEATURES.map((feature) => (
+                  <option key={feature.key} value={feature.key} className="text-gray-900">
+                    {feature.label} - {feature.desc}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
+            </div>
+
+            {/* Feature Preview Card */}
+            {selectedFeature && (
+              <div className={`bg-gradient-to-br ${ADVANCED_FEATURES.find(f => f.key === selectedFeature)?.color} border-2 rounded-xl p-4`}>
+                {(() => {
+                  const feature = ADVANCED_FEATURES.find(f => f.key === selectedFeature);
+                  const IconComponent = feature?.icon || Target;
+                  return (
+                    <>
+                      {/* Header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <IconComponent className="w-6 h-6 text-gray-700" />
+                        <div className="flex-1">
+                          <h4 className="text-lg font-bold text-gray-900">{feature?.label}</h4>
+                          <p className="text-sm text-gray-700">{feature?.desc}</p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+
+                      {/* Category */}
+                      <div className="bg-white/70 rounded-lg p-2 border border-gray-200 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-900">{feature?.category}</span>
+                        </div>
+                      </div>
+
+                      {/* Benefits */}
+                      <div className="bg-white/70 rounded-lg p-3 border border-gray-200 mb-3">
+                        <div className="text-sm font-medium text-gray-900 mb-2">Key Benefits:</div>
+                        <div className="grid grid-cols-1 gap-1">
+                          {feature?.benefits.slice(0, 3).map((benefit, index) => (
+                            <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                              {benefit}
+                            </div>
+                          ))}
+                          {feature?.benefits.length > 3 && (
+                            <div className="text-xs text-gray-600">
+                              +{feature.benefits.length - 3} more capabilities
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setSelectedFeature('')}
+                          className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Browse More
+                        </button>
+                        <button
+                          onClick={() => navigate(feature?.route)}
+                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Open {feature?.label}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
         
@@ -590,9 +709,9 @@ export default function Players() {
           </div>
         </div>
 
-        {/* NEW FEATURES ANNOUNCEMENT BANNER */}
+        {/* ENHANCED FEATURES DROPDOWN */}
         <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
               <span className="text-lg">🚀</span>
             </div>
@@ -601,37 +720,89 @@ export default function Players() {
               <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button 
-              onClick={() => navigate('/sport-templates')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">🏈 Sport Templates</div>
-              <div className="text-blue-100">6 sports available</div>
-            </button>
-            <button 
-              onClick={() => navigate('/team-formation')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">⚖️ Team Formation</div>
-              <div className="text-blue-100">AI-powered balance</div>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-            <button 
-              onClick={() => navigate('/evaluators')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">👥 Multi-Evaluator</div>
-              <div className="text-blue-100">Statistical analysis</div>
-            </button>
-            <button 
-              onClick={() => navigate('/scorecards')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">📊 Scorecards</div>
-              <div className="text-blue-100">Professional reports</div>
-            </button>
+          
+          {/* Advanced Features Dropdown */}
+          <div className="space-y-3">
+            <div className="relative">
+              <select
+                value={selectedFeature}
+                onChange={(e) => setSelectedFeature(e.target.value)}
+                className="w-full p-3 pr-10 border-2 border-white/30 rounded-lg appearance-none bg-white/20 text-white cursor-pointer transition-all duration-200 hover:bg-white/30 focus:bg-white/40 focus:outline-none"
+              >
+                <option value="" className="text-gray-900">Explore Advanced Features...</option>
+                {ADVANCED_FEATURES.map((feature) => (
+                  <option key={feature.key} value={feature.key} className="text-gray-900">
+                    {feature.label} - {feature.desc}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
+            </div>
+
+            {/* Feature Preview Card */}
+            {selectedFeature && (
+              <div className={`bg-gradient-to-br ${ADVANCED_FEATURES.find(f => f.key === selectedFeature)?.color} border-2 rounded-xl p-4`}>
+                {(() => {
+                  const feature = ADVANCED_FEATURES.find(f => f.key === selectedFeature);
+                  const IconComponent = feature?.icon || Target;
+                  return (
+                    <>
+                      {/* Header */}
+                      <div className="flex items-center gap-3 mb-3">
+                        <IconComponent className="w-6 h-6 text-gray-700" />
+                        <div className="flex-1">
+                          <h4 className="text-lg font-bold text-gray-900">{feature?.label}</h4>
+                          <p className="text-sm text-gray-700">{feature?.desc}</p>
+                        </div>
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      </div>
+
+                      {/* Category */}
+                      <div className="bg-white/70 rounded-lg p-2 border border-gray-200 mb-3">
+                        <div className="flex items-center gap-2">
+                          <Zap className="w-4 h-4 text-gray-600" />
+                          <span className="text-sm font-medium text-gray-900">{feature?.category}</span>
+                        </div>
+                      </div>
+
+                      {/* Benefits */}
+                      <div className="bg-white/70 rounded-lg p-3 border border-gray-200 mb-3">
+                        <div className="text-sm font-medium text-gray-900 mb-2">Key Benefits:</div>
+                        <div className="grid grid-cols-1 gap-1">
+                          {feature?.benefits.slice(0, 3).map((benefit, index) => (
+                            <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                              {benefit}
+                            </div>
+                          ))}
+                          {feature?.benefits.length > 3 && (
+                            <div className="text-xs text-gray-600">
+                              +{feature.benefits.length - 3} more capabilities
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setSelectedFeature('')}
+                          className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Browse More
+                        </button>
+                        <button
+                          onClick={() => navigate(feature?.route)}
+                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Open {feature?.label}
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         </div>
 

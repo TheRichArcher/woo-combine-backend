@@ -5,17 +5,62 @@ import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
+import { ChevronDown, Shield, Users, Eye, CheckCircle, Settings, BarChart3, Upload } from 'lucide-react';
 
-// Role options for different user types
+// Enhanced role options with detailed permissions and features
 const ALL_ROLE_OPTIONS = [
-  { key: "organizer", label: "League Operator", desc: "Manage events, upload players, run combines" },
-  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
-  { key: "viewer", label: "Parent/Viewer", desc: "View event results and player performance" }
+  { 
+    key: "organizer", 
+    label: "League Operator", 
+    desc: "Manage events, upload players, run combines",
+    icon: Shield,
+    color: "from-purple-50 to-indigo-50 border-purple-200",
+    features: [
+      "Create and manage leagues & events",
+      "Upload and manage player rosters",
+      "Configure drill templates & weights",
+      "Run live entry sessions",
+      "Generate reports & scorecards",
+      "Manage evaluators & permissions"
+    ],
+    access: "Full administrative control"
+  },
+  { 
+    key: "coach", 
+    label: "Coach", 
+    desc: "View player performance and analyze results",
+    icon: BarChart3,
+    color: "from-blue-50 to-cyan-50 border-blue-200",
+    features: [
+      "View player rankings & statistics",
+      "Analyze performance data",
+      "Export rankings & reports",
+      "Team formation tools",
+      "Custom weight configurations",
+      "Player comparison tools"
+    ],
+    access: "Read access to event data"
+  },
+  { 
+    key: "viewer", 
+    label: "Parent/Viewer", 
+    desc: "View event results and player performance",
+    icon: Eye,
+    color: "from-green-50 to-emerald-50 border-green-200",
+    features: [
+      "View event results & rankings",
+      "See individual player performance",
+      "Download player scorecards",
+      "Basic performance comparisons",
+      "Event schedule & information"
+    ],
+    access: "Read-only event viewing"
+  }
 ];
 
 const INVITED_ROLE_OPTIONS = [
-  { key: "coach", label: "Coach", desc: "View player performance and analyze results" },
-  { key: "viewer", label: "Parent/Viewer", desc: "View event results and player performance" }
+  ALL_ROLE_OPTIONS.find(role => role.key === "coach"),
+  ALL_ROLE_OPTIONS.find(role => role.key === "viewer")
 ];
 
 export default function SelectRole() {
@@ -197,23 +242,77 @@ export default function SelectRole() {
           </div>
         )}
         
-        {/* Role Options */}
-        <div className="w-full flex flex-col gap-4 mb-6">
-          {roleOptions.map(opt => (
-            <button
-              key={opt.key}
-              className={`w-full border-2 rounded-xl p-4 text-left flex flex-col transition font-semibold ${
-                selectedRole === opt.key 
-                  ? "border-cyan-600 bg-cyan-50 text-cyan-900" 
-                  : "border-gray-200 bg-white hover:border-gray-300"
-              }`}
-              onClick={() => setSelectedRole(opt.key)}
+        {/* Role Selection Dropdown */}
+        <div className="w-full mb-6">
+          <div className="relative">
+            <select
+              value={selectedRole || ''}
+              onChange={(e) => setSelectedRole(e.target.value)}
               disabled={loading}
+              className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
             >
-              <span className="text-lg mb-1">{opt.label}</span>
-              <span className="text-gray-600 text-sm">{opt.desc}</span>
-            </button>
-          ))}
+              <option value="" disabled>Choose your role...</option>
+              {roleOptions.map((role) => (
+                <option key={role.key} value={role.key}>
+                  {role.label} - {role.desc}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          </div>
+
+          {/* Role Preview Card */}
+          {selectedRole && (
+            <div className={`mt-4 bg-gradient-to-br ${roleOptions.find(r => r.key === selectedRole)?.color} border-2 rounded-xl p-6`}>
+              {(() => {
+                const selectedRoleData = roleOptions.find(r => r.key === selectedRole);
+                const IconComponent = selectedRoleData?.icon || Users;
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <IconComponent className="w-8 h-8 text-gray-700" />
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-gray-900">{selectedRoleData?.label}</h4>
+                        <p className="text-sm text-gray-700">{selectedRoleData?.desc}</p>
+                      </div>
+                      <CheckCircle className="w-6 h-6 text-cyan-600" />
+                    </div>
+
+                    {/* Access Level */}
+                    <div className="bg-white/70 rounded-lg p-3 border border-gray-200 mb-4">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Shield className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-900">Access Level</span>
+                      </div>
+                      <div className="text-sm text-gray-800">{selectedRoleData?.access}</div>
+                    </div>
+
+                    {/* Features */}
+                    <div className="bg-white/70 rounded-lg p-3 border border-gray-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Settings className="w-4 h-4 text-gray-600" />
+                        <span className="text-sm font-medium text-gray-900">What you can do:</span>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1">
+                        {selectedRoleData?.features.slice(0, 4).map((feature, index) => (
+                          <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
+                            <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                            {feature}
+                          </div>
+                        ))}
+                        {selectedRoleData?.features.length > 4 && (
+                          <div className="text-xs text-gray-600 mt-1">
+                            +{selectedRoleData.features.length - 4} more capabilities
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Error Message */}

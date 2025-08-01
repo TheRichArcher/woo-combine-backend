@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DRILLS = [
@@ -17,6 +17,7 @@ export default function LiveEntry() {
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
+  const [drillConfirmed, setDrillConfirmed] = useState(false);
   const [playerNumber, setPlayerNumber] = useState("");
   const [playerName, setPlayerName] = useState("");
   const [playerId, setPlayerId] = useState("");
@@ -50,6 +51,15 @@ export default function LiveEntry() {
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  // Auto-focus player number input when drill is confirmed
+  useEffect(() => {
+    if (selectedDrill && drillConfirmed) {
+      setTimeout(() => {
+        playerNumberRef.current?.focus();
+      }, 100);
+    }
+  }, [selectedDrill, drillConfirmed]);
   
   // Auto-complete logic
   useEffect(() => {
@@ -234,21 +244,81 @@ export default function LiveEntry() {
       
       <div className="max-w-lg mx-auto p-4 space-y-6">
         {/* Drill Selection */}
-        {!selectedDrill ? (
+        {!selectedDrill || !drillConfirmed ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4 text-center">Select Drill</h2>
-            <div className="grid grid-cols-1 gap-3">
-              {DRILLS.map(drill => (
-                <button
-                  key={drill.key}
-                  onClick={() => setSelectedDrill(drill.key)}
-                  className="p-4 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-left transition"
-                >
-                  <div className="font-semibold text-gray-900">{drill.label}</div>
-                  <div className="text-sm text-gray-600">Unit: {drill.unit}</div>
-                </button>
-              ))}
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="w-5 h-5 text-blue-600" />
+              <h2 className="text-xl font-bold text-gray-900">Select Drill</h2>
+              <div className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                <CheckCircle className="w-3 h-3" />
+                Live Entry Mode
+              </div>
             </div>
+
+            <p className="text-sm text-gray-600 mb-6 text-center">
+              Choose the drill you want to enter scores for during this live evaluation session.
+            </p>
+
+            {/* Dropdown Selector */}
+            <div className="relative mb-6">
+              <select
+                value={selectedDrill || ''}
+                onChange={(e) => setSelectedDrill(e.target.value)}
+                className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              >
+                <option value="" disabled>Select a drill to begin...</option>
+                {DRILLS.map((drill) => (
+                  <option key={drill.key} value={drill.key}>
+                    {drill.label} - {drill.unit} {drill.lowerIsBetter ? '(lower is better)' : '(higher is better)'}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Drill Preview - appears when drill is selected but not confirmed */}
+            {selectedDrill && !drillConfirmed && (
+              <div className="mt-4 bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <Target className="w-6 h-6 text-blue-600" />
+                    <div>
+                      <h4 className="text-lg font-bold text-blue-900">{currentDrill.label}</h4>
+                      <p className="text-sm text-blue-700">Unit: {currentDrill.unit}</p>
+                    </div>
+                    <CheckCircle className="w-5 h-5 text-blue-600 ml-2" />
+                  </div>
+                </div>
+
+                <div className="bg-white/70 rounded-lg p-3 border border-blue-200 mb-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Info className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">Scoring</span>
+                  </div>
+                  <div className="text-sm text-blue-800">
+                    {currentDrill.lowerIsBetter 
+                      ? "⬇️ Lower scores are better (faster times, etc.)" 
+                      : "⬆️ Higher scores are better (more points, distance, etc.)"
+                    }
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setSelectedDrill("")}
+                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Change Drill
+                  </button>
+                  <button
+                    onClick={() => setDrillConfirmed(true)}
+                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Start Entry
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -257,7 +327,10 @@ export default function LiveEntry() {
               <h2 className="text-xl font-bold">{currentDrill.label}</h2>
               <p className="text-blue-100">Entry Mode Active</p>
               <button
-                onClick={() => setSelectedDrill("")}
+                onClick={() => {
+                  setSelectedDrill("");
+                  setDrillConfirmed(false);
+                }}
                 className="mt-2 text-blue-200 hover:text-white text-sm underline"
               >
                 Change Drill

@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
+import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from 'lucide-react';
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
@@ -14,6 +15,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const [location, setLocation] = useState("");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [playerCount, setPlayerCount] = useState(0);
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
@@ -23,6 +25,30 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       if (onEventSelected) onEventSelected(ev);
     }
   }, [events, setSelectedEvent, onEventSelected]);
+
+  // Fetch player count for selected event
+  const fetchPlayerCount = useCallback(async (eventId) => {
+    if (!eventId) {
+      setPlayerCount(0);
+      return;
+    }
+    try {
+      const response = await api.get(`/players?event_id=${eventId}`);
+      setPlayerCount(response.data?.length || 0);
+    } catch (error) {
+      logger.error('Failed to fetch player count', error);
+      setPlayerCount(0);
+    }
+  }, []);
+
+  // Fetch player count when selected event changes
+  useEffect(() => {
+    if (selectedEvent?.id) {
+      fetchPlayerCount(selectedEvent.id);
+    } else {
+      setPlayerCount(0);
+    }
+  }, [selectedEvent?.id, fetchPlayerCount]);
 
   const handleCreate = useCallback(async (e) => {
     e.preventDefault();
@@ -158,34 +184,109 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
           </button>
         </div>
       ) : (
-        // Events available - show dropdown and Create button
-        <div className="flex items-center gap-4">
-          <select
-            value={selectedEvent?.id || ""}
-            onChange={handleSelect}
-            className="border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary flex-1"
-            data-event-selector-dropdown
-          >
-            <option value="">Select an event...</option>
-            {events.map(ev => {
-              let dateLabel = "Invalid Date";
-              if (ev.date && !isNaN(Date.parse(ev.date))) {
-                dateLabel = new Date(ev.date).toLocaleDateString();
-              }
-              return (
-                <option key={ev.id} value={ev.id}>
-                  {ev.name} – {dateLabel}
-                </option>
-              );
-            })}
-          </select>
-          <button
-            onClick={() => setShowModal(true)}
-            disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
-            className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Create New Event
-          </button>
+        // Events available - show enhanced dropdown with preview
+        <div className="space-y-4">
+          {/* Dropdown + Create Button Row */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1">
+              <select
+                value={selectedEvent?.id || ""}
+                onChange={handleSelect}
+                className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cmf-primary focus:ring-2 focus:ring-cmf-primary/20"
+                data-event-selector-dropdown
+              >
+                <option value="">Select an event...</option>
+                {events.map(ev => {
+                  let dateLabel = "Invalid Date";
+                  if (ev.date && !isNaN(Date.parse(ev.date))) {
+                    dateLabel = new Date(ev.date).toLocaleDateString();
+                  }
+                  return (
+                    <option key={ev.id} value={ev.id}>
+                      {ev.name} – {dateLabel}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+            <button
+              onClick={() => setShowModal(true)}
+              disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
+              className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Create New Event
+            </button>
+          </div>
+
+          {/* Event Preview Card */}
+          {selectedEvent && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="w-6 h-6 text-blue-600" />
+                <div className="flex-1">
+                  <h4 className="text-lg font-bold text-blue-900">{selectedEvent.name}</h4>
+                  <p className="text-sm text-blue-700">Selected Event</p>
+                </div>
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+              </div>
+
+              {/* Event Details Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                {/* Date */}
+                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">Date</span>
+                  </div>
+                  <div className="text-sm text-blue-800">
+                    {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) 
+                      ? new Date(selectedEvent.date).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })
+                      : 'Date not set'
+                    }
+                  </div>
+                </div>
+
+                {/* Player Count */}
+                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Users className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium text-blue-900">Players</span>
+                  </div>
+                  <div className="text-lg font-bold text-blue-800">{playerCount}</div>
+                  <div className="text-xs text-blue-600">registered</div>
+                </div>
+              </div>
+
+              {/* Location & Template */}
+              {(selectedEvent.location || selectedEvent.drillTemplate) && (
+                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                  <div className="space-y-2">
+                    {selectedEvent.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-blue-800">{selectedEvent.location}</span>
+                      </div>
+                    )}
+                    {selectedEvent.drillTemplate && (
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-blue-600" />
+                        <span className="text-sm text-blue-800">
+                          {selectedEvent.drillTemplate.charAt(0).toUpperCase() + selectedEvent.drillTemplate.slice(1)} Template
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

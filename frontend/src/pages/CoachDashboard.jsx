@@ -3,7 +3,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { Settings } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
@@ -275,19 +275,119 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         <h1 className="text-lg font-semibold text-gray-900 mb-4">
           {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
         </h1>
-        {/* Age Group Dropdown */}
+        {/* Enhanced Age Group Selector */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
-          <label className="block text-sm font-bold text-gray-700 mb-1">Select Age Group</label>
-          <select
-            value={selectedAgeGroup}
-            onChange={e => setSelectedAgeGroup(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-cmf-primary focus:border-cmf-primary sm:text-sm"
-          >
-            <option value="">Select Age Group</option>
-            {ageGroups.map(group => (
-              <option key={group} value={group}>{group}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="w-5 h-5 text-cmf-primary" />
+            <label className="text-sm font-bold text-gray-700">Select Age Group</label>
+          </div>
+          
+          {/* Dropdown */}
+          <div className="relative mb-4">
+            <select
+              value={selectedAgeGroup}
+              onChange={e => setSelectedAgeGroup(e.target.value)}
+              className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cmf-primary focus:ring-2 focus:ring-cmf-primary/20"
+            >
+              <option value="">Select Age Group</option>
+              {ageGroups.map(group => {
+                const groupPlayers = players.filter(p => p.age_group === group);
+                return (
+                  <option key={group} value={group}>
+                    {group} ({groupPlayers.length} players)
+                  </option>
+                );
+              })}
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+          </div>
+
+          {/* Age Group Preview Card */}
+          {selectedAgeGroup && (
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+              {(() => {
+                const groupPlayers = players.filter(p => p.age_group === selectedAgeGroup);
+                const completedPlayers = groupPlayers.filter(p => p.composite_score > 0);
+                const completionRate = groupPlayers.length > 0 ? (completedPlayers.length / groupPlayers.length * 100) : 0;
+                const avgScore = completedPlayers.length > 0 ? (completedPlayers.reduce((sum, p) => sum + p.composite_score, 0) / completedPlayers.length) : 0;
+                
+                return (
+                  <>
+                    {/* Header */}
+                    <div className="flex items-center gap-3 mb-4">
+                      <Users className="w-6 h-6 text-blue-600" />
+                      <div className="flex-1">
+                        <h4 className="text-lg font-bold text-blue-900">{selectedAgeGroup}</h4>
+                        <p className="text-sm text-blue-700">Age Group Analysis</p>
+                      </div>
+                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {/* Player Count */}
+                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Users className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-900">Players</span>
+                        </div>
+                        <div className="text-lg font-bold text-blue-800">{groupPlayers.length}</div>
+                        <div className="text-xs text-blue-600">registered</div>
+                      </div>
+
+                      {/* Completion Rate */}
+                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Target className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-900">Completion</span>
+                        </div>
+                        <div className="text-lg font-bold text-blue-800">{Math.round(completionRate)}%</div>
+                        <div className="text-xs text-blue-600">{completedPlayers.length} of {groupPlayers.length}</div>
+                      </div>
+                    </div>
+
+                    {/* Performance Overview */}
+                    {completedPlayers.length > 0 && (
+                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                        <div className="flex items-center gap-2 mb-2">
+                          <BarChart3 className="w-4 h-4 text-blue-600" />
+                          <span className="text-sm font-medium text-blue-900">Performance Overview</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs text-blue-700">
+                            Avg Score: <span className="font-medium">{avgScore.toFixed(1)}</span>
+                          </div>
+                          <div className="text-xs text-blue-700">
+                            Range: <span className="font-medium">
+                              {Math.min(...completedPlayers.map(p => p.composite_score)).toFixed(1)} - {Math.max(...completedPlayers.map(p => p.composite_score)).toFixed(1)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Status Indicator */}
+                    {completionRate === 100 ? (
+                      <div className="mt-3 flex items-center gap-2 text-green-700 bg-green-50 rounded-lg p-2">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">All players evaluated</span>
+                      </div>
+                    ) : completionRate > 0 ? (
+                      <div className="mt-3 flex items-center gap-2 text-yellow-700 bg-yellow-50 rounded-lg p-2">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm font-medium">Evaluation in progress</span>
+                      </div>
+                    ) : (
+                      <div className="mt-3 flex items-center gap-2 text-gray-600 bg-gray-50 rounded-lg p-2">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm font-medium">Evaluation not started</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
         </div>
         
         {/* Improved Drill Weight Controls */}
