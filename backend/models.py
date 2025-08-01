@@ -2,7 +2,7 @@
 # See the approved Firestore schema for collections and document structure.
 
 from pydantic import BaseModel, Field
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from datetime import datetime
 
 # Pydantic schemas for API responses
@@ -48,7 +48,7 @@ class MultiEvaluatorDrillResult(BaseModel):
     """Aggregated drill result from multiple evaluators"""
     player_id: str
     drill_type: str
-    evaluations: list[Dict[str, Any]]  # List of individual evaluations
+    evaluations: List[Dict[str, Any]]  # List of individual evaluations
     average_score: float
     median_score: float
     score_count: int
