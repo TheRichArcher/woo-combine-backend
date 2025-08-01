@@ -101,7 +101,7 @@ class PlayerCreate(BaseModel):
     age_group: str | None = None
     photo_url: str | None = None
 
-@router.post("/players", response_model=PlayerSchema)
+@router.post("/players")
 def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
@@ -141,7 +141,17 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
         )
         
         logging.info(f"[CREATE_PLAYER] Player created successfully with ID: {player_doc.id}")
-        return {"player_id": player_doc.id}
+        
+        # Return the created player data with the generated ID
+        return {
+            "id": player_doc.id,
+            "name": player.name,
+            "number": player.number,
+            "age_group": player.age_group,
+            "photo_url": player.photo_url,
+            "event_id": event_id,
+            "created_at": player_data["created_at"]
+        }
     except HTTPException:
         logging.error(f"[CREATE_PLAYER] HTTPException occurred")
         raise
