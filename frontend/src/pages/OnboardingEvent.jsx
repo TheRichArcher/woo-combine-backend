@@ -157,6 +157,9 @@ export default function OnboardingEvent() {
     }
   };
 
+  // Ref for auto-scrolling to manual form
+  const manualFormRef = useRef(null);
+
   // Manual player handling
   const handleManualChange = (e) => {
     setManualPlayer({ ...manualPlayer, [e.target.name]: e.target.value });
@@ -194,6 +197,11 @@ export default function OnboardingEvent() {
         age_group: '',
       });
       fetchPlayerCount();
+      // Reset status after success message is shown
+      setTimeout(() => {
+        setManualStatus('idle');
+        setManualMsg('');
+      }, 3000);
     } catch (err) {
       setManualStatus('error');
       setManualMsg(err.message || 'Failed to add player.');
@@ -309,20 +317,124 @@ export default function OnboardingEvent() {
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <button
-              onClick={handleSampleDownload}
+              onClick={() => {
+                const newState = !showManualForm;
+                setShowManualForm(newState);
+                if (newState && manualFormRef.current) {
+                  // Auto-scroll to manual form after a brief delay to allow DOM update
+                  setTimeout(() => {
+                    manualFormRef.current.scrollIntoView({ 
+                      behavior: 'smooth', 
+                      block: 'start' 
+                    });
+                  }, 100);
+                }
+              }}
               className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-            >
-              <Upload className="w-5 h-5" />
-              Sample CSV
-            </button>
-            <button
-              onClick={() => setShowManualForm(v => !v)}
-              className="bg-cmf-secondary hover:bg-cmf-primary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
               Add Manual
             </button>
+            <button
+              onClick={handleSampleDownload}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              Sample CSV
+            </button>
           </div>
+
+          {/* Manual Add Player Form */}
+          {showManualForm && (
+            <div ref={manualFormRef} className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-cmf-primary" />
+                Add Player Manually
+              </h3>
+              
+              <form onSubmit={handleManualSubmit} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
+                    <input
+                      type="text"
+                      name="first_name"
+                      value={manualPlayer.first_name}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
+                    <input
+                      type="text"
+                      name="last_name"
+                      value={manualPlayer.last_name}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Player Number</label>
+                    <input
+                      type="number"
+                      name="number"
+                      value={manualPlayer.number}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="Leave empty for auto-generated"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">(Auto-generated if empty)</p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
+                    <input
+                      type="text"
+                      name="age_group"
+                      value={manualPlayer.age_group}
+                      onChange={handleManualChange}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="e.g., 6U, 7-8, U10"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowManualForm(false)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={manualStatus === 'loading'}
+                    className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
+                  >
+                    {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
+                  </button>
+                </div>
+
+                {manualStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <p className="text-green-700 font-medium">✅ {manualMsg}</p>
+                  </div>
+                )}
+
+                {manualStatus === 'error' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 font-medium">❌ {manualMsg}</p>
+                  </div>
+                )}
+              </form>
+            </div>
+          )}
 
           {/* CSV Upload Section */}
           <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition mb-6">
@@ -396,96 +508,7 @@ export default function OnboardingEvent() {
             )}
           </div>
 
-          {/* Manual Add Player Form */}
-          {showManualForm && (
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-cmf-primary" />
-                Add Player Manually
-              </h3>
-              
-              <form onSubmit={handleManualSubmit} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">First Name *</label>
-                    <input
-                      type="text"
-                      name="first_name"
-                      value={manualPlayer.first_name}
-                      onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Last Name *</label>
-                    <input
-                      type="text"
-                      name="last_name"
-                      value={manualPlayer.last_name}
-                      onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      required
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Player Number</label>
-                    <input
-                      type="number"
-                      name="number"
-                      value={manualPlayer.number}
-                      onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      placeholder="Optional"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
-                    <input
-                      type="text"
-                      name="age_group"
-                      value={manualPlayer.age_group}
-                      onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      placeholder="e.g., 6U, 7-8, U10"
-                    />
-                  </div>
-                </div>
 
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowManualForm(false)}
-                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-lg transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={manualStatus === 'loading'}
-                    className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
-                  >
-                    {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
-                  </button>
-                </div>
-
-                {manualStatus === 'success' && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <p className="text-green-700 font-medium">✅ {manualMsg}</p>
-                  </div>
-                )}
-
-                {manualStatus === 'error' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <p className="text-red-700 font-medium">❌ {manualMsg}</p>
-                  </div>
-                )}
-              </form>
-            </div>
-          )}
 
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
