@@ -142,32 +142,21 @@ def update_event(
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
         
-        # Validate and prepare update data
-        try:
-            validated_data = validate_event_data({
-                "name": name,
-                "date": date,
-                "location": location,
-                "drillTemplate": req.get("drillTemplate")
-            })
-        except ValidationError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        
-        # Prepare update data
+        # Prepare update data with validation
         update_data = {
-            "name": validated_data["name"],
-            "date": validated_data.get("date"),
-            "location": validated_data.get("location", ""),
+            "name": name,
+            "date": date,
+            "location": location or "",
             "updated_at": datetime.utcnow().isoformat(),
         }
         
         # Add drillTemplate if provided and valid
-        if validated_data.get("drillTemplate"):
+        if req.get("drillTemplate"):
             # Validate drill template exists
             valid_templates = ["football", "soccer", "basketball", "baseball", "track", "volleyball"]
-            if validated_data["drillTemplate"] not in valid_templates:
-                raise HTTPException(status_code=400, detail="Invalid drill template")
-            update_data["drillTemplate"] = validated_data["drillTemplate"]
+            if req["drillTemplate"] not in valid_templates:
+                raise HTTPException(status_code=400, detail=f"Invalid drill template. Must be one of: {', '.join(valid_templates)}")
+            update_data["drillTemplate"] = req["drillTemplate"]
         
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
