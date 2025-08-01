@@ -210,7 +210,7 @@ export default function VerifyEmail() {
         // Send with redirect URL to ensure users come back to our app
         const actionCodeSettings = {
           url: `${window.location.origin}/verify-email?verified=true`,
-          handleCodeInApp: true,
+          handleCodeInApp: false,
         };
         
         try {

@@ -66,7 +66,7 @@ export default function SignupForm() {
         const actionCodeSettings = {
           // URL to redirect to after email verification
           url: `${window.location.origin}/verify-email?verified=true`,
-          handleCodeInApp: true,
+          handleCodeInApp: false,
         };
         
         await sendEmailVerification(userCredential.user, actionCodeSettings);
