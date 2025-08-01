@@ -59,15 +59,25 @@ async def set_user_role(
         
         db = get_firestore_client()
         
-        # Update or create user document with role
-        user_data = {
-            "id": uid,
-            "email": email,
-            "role": role,
-            "created_at": datetime.utcnow().isoformat()
-        }
+        # Check if user document exists, create or update accordingly
+        user_doc_ref = db.collection("users").document(uid)
+        user_doc = user_doc_ref.get()
         
-        db.collection("users").document(uid).set(user_data, merge=True)
+        if user_doc.exists:
+            # Document exists - only update the role
+            role_update = {
+                "role": role
+            }
+            user_doc_ref.update(role_update)
+        else:
+            # Document doesn't exist - create it with minimal data
+            user_data = {
+                "id": uid,
+                "email": email,
+                "role": role,
+                "created_at": datetime.utcnow().isoformat()
+            }
+            user_doc_ref.set(user_data)
         
         return {
             "id": uid,
