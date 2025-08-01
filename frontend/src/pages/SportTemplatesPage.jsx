@@ -1,14 +1,47 @@
 import React, { useState } from 'react';
 import DrillTemplateSelector from '../components/DrillTemplateSelector';
-import { Settings, Trophy, Star, CheckCircle, Zap } from 'lucide-react';
-import { getAllTemplates } from '../constants/drillTemplates';
+import { Settings, Trophy, Star, CheckCircle, Zap, Save, AlertCircle } from 'lucide-react';
+import { getAllTemplates, getTemplateById } from '../constants/drillTemplates';
+import { useEvent } from '../context/EventContext';
+import { useToast } from '../context/ToastContext';
 
 const SportTemplatesPage = () => {
-  const [selectedTemplateId, setSelectedTemplateId] = useState('football');
+  const { selectedEvent, updateEvent } = useEvent();
+  const { showSuccess, showError } = useToast();
+  const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || 'football');
+  const [applying, setApplying] = useState(false);
   const templates = getAllTemplates();
+
+  const currentTemplate = getTemplateById(selectedEvent?.drillTemplate || 'football');
+  const selectedTemplate = getTemplateById(selectedTemplateId);
+  const hasChanges = selectedTemplateId !== (selectedEvent?.drillTemplate || 'football');
 
   const handleTemplateSelect = (templateId, template) => {
     setSelectedTemplateId(templateId);
+  };
+
+  const handleApplyTemplate = async () => {
+    if (!selectedEvent || !hasChanges) return;
+    
+    setApplying(true);
+    try {
+      // Update the event with the new drill template
+      const updatedEventData = {
+        ...selectedEvent,
+        drillTemplate: selectedTemplateId
+      };
+      
+      await updateEvent(selectedEvent.id, updatedEventData);
+      
+      showSuccess(
+        `✅ Applied ${selectedTemplate.name} template! All drill evaluations will now use ${selectedTemplate.sport} drills.`
+      );
+    } catch (error) {
+      console.error('Error applying template:', error);
+      showError('Failed to apply template. Please try again.');
+    } finally {
+      setApplying(false);
+    }
   };
 
   return (
@@ -26,6 +59,19 @@ const SportTemplatesPage = () => {
               <p className="text-sm text-gray-600">Professional templates for {templates.length} sports</p>
             </div>
           </div>
+          
+          {/* Current Template Status */}
+          <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-gray-900">Currently Active:</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-lg">{currentTemplate?.sport === 'Football' ? '🏈' : currentTemplate?.sport === 'Soccer' ? '⚽' : currentTemplate?.sport === 'Basketball' ? '🏀' : currentTemplate?.sport === 'Baseball' ? '⚾' : currentTemplate?.sport === 'Track & Field' ? '🏃' : '🏐'}</span>
+              <span className="text-sm font-medium text-gray-900">{currentTemplate?.name}</span>
+            </div>
+          </div>
+          
           <div className="text-center">
             <span className="bg-purple-100 text-purple-800 text-xs px-3 py-1 rounded-full font-medium">
               🆕 New Feature
@@ -63,11 +109,51 @@ const SportTemplatesPage = () => {
 
         {/* Template Selector */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 mb-6">
-          <h3 className="font-semibold text-gray-900 mb-3">Select Sport Template</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900">Select Sport Template</h3>
+            {hasChanges && (
+              <div className="flex items-center gap-1 text-orange-600">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-xs font-medium">Changes not applied</span>
+              </div>
+            )}
+          </div>
           <DrillTemplateSelector
             selectedTemplateId={selectedTemplateId}
             onTemplateSelect={handleTemplateSelect}
           />
+          
+          {/* Apply Template Button */}
+          {hasChanges && (
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <h4 className="text-sm font-medium text-blue-900 mb-1">Ready to Apply Template?</h4>
+                  <p className="text-xs text-blue-700 mb-3">
+                    This will change your event to use <strong>{selectedTemplate?.name}</strong> drills and weights. 
+                    All future evaluations will use the new drill set.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleApplyTemplate}
+                disabled={applying}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+              >
+                {applying ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Applying...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4" />
+                    Apply {selectedTemplate?.name} Template
+                  </>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Template Comparison Table */}

@@ -70,6 +70,35 @@ export function EventProvider({ children }) {
     }
   }, [selectedLeagueId, loadEvents]);
 
+  // Update event function
+  const updateEvent = useCallback(async (eventId, updatedData) => {
+    if (!selectedLeagueId) {
+      throw new Error('No league selected');
+    }
+
+    try {
+      const response = await api.put(`/leagues/${selectedLeagueId}/events/${eventId}`, updatedData);
+      
+      // Update the selectedEvent if it's the one being updated
+      if (selectedEvent && selectedEvent.id === eventId) {
+        const updatedEvent = { ...selectedEvent, ...updatedData };
+        setSelectedEvent(updatedEvent);
+      }
+      
+      // Update the events list
+      setEvents(prevEvents => 
+        prevEvents.map(event => 
+          event.id === eventId ? { ...event, ...updatedData } : event
+        )
+      );
+      
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to update event:', error);
+      throw error;
+    }
+  }, [selectedLeagueId, selectedEvent]);
+
   const contextValue = {
     events,
     selectedEvent,
@@ -78,7 +107,8 @@ export function EventProvider({ children }) {
     noLeague,
     loading,
     error,
-    refreshEvents
+    refreshEvents,
+    updateEvent
   };
 
   return (

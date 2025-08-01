@@ -54,6 +54,7 @@ def create_event(
             "date": date,
             "location": location or "",
             "league_id": league_id,  # Add league_id reference
+            "drillTemplate": "football",  # Default to football template
             "created_at": datetime.utcnow().isoformat(),
         }
         
@@ -148,6 +149,10 @@ def update_event(
             "location": location or "",
             "updated_at": datetime.utcnow().isoformat(),
         }
+        
+        # Add drillTemplate if provided
+        if req.get("drillTemplate"):
+            update_data["drillTemplate"] = req["drillTemplate"]
         
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
