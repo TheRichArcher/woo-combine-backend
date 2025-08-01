@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import DrillTemplateSelector from '../components/DrillTemplateSelector';
 import { Settings, Trophy, Star, CheckCircle, Zap, Save, AlertCircle } from 'lucide-react';
 import { getAllTemplates, getTemplateById } from '../constants/drillTemplates';
@@ -55,6 +56,20 @@ const SportTemplatesPage = React.memo(() => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 mt-20">
+        
+        {/* Navigation Breadcrumb */}
+        <div className="mb-4">
+          <nav className="flex items-center gap-2 text-sm">
+            <Link 
+              to="/dashboard" 
+              className="text-blue-600 hover:text-blue-800 font-medium transition"
+            >
+              ← Back to Dashboard
+            </Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-600">Sport Templates</span>
+          </nav>
+        </div>
         
         {/* Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-purple-200">
@@ -252,6 +267,52 @@ const SportTemplatesPage = React.memo(() => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">🚀 Next Steps</h3>
+          <div className="grid grid-cols-1 gap-3">
+            <Link 
+              to="/players" 
+              className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition group"
+            >
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">1</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-blue-900 group-hover:text-blue-800">Add Players</h4>
+                <p className="text-xs text-blue-700">Start by adding athletes to your event</p>
+              </div>
+              <span className="text-blue-600">→</span>
+            </Link>
+            <Link 
+              to="/evaluators" 
+              className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition group"
+            >
+              <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">2</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-green-900 group-hover:text-green-800">Setup Evaluators</h4>
+                <p className="text-xs text-green-700">Add coaches and evaluators for scoring</p>
+              </div>
+              <span className="text-green-600">→</span>
+            </Link>
+            <Link 
+              to="/team-formation" 
+              className="flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition group"
+            >
+              <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white text-sm font-bold">3</span>
+              </div>
+              <div className="flex-1">
+                <h4 className="font-medium text-purple-900 group-hover:text-purple-800">Form Teams</h4>
+                <p className="text-xs text-purple-700">Use AI to create balanced teams</p>
+              </div>
+              <span className="text-purple-600">→</span>
+            </Link>
           </div>
         </div>
 
