@@ -281,8 +281,6 @@ const SportTemplatesPage = React.memo(() => {
       </div>
     </div>
   );
-};
-
 });
 
 export default SportTemplatesPage;
