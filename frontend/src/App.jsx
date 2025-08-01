@@ -26,6 +26,12 @@ import CoachDashboard from "./pages/CoachDashboard";
 import Schedule from "./pages/Schedule";
 import Roster from "./pages/Roster";
 
+// New Advanced Feature Pages
+import EvaluatorManagementPage from "./pages/EvaluatorManagement";
+import TeamFormationPage from "./pages/TeamFormationPage";
+import SportTemplatesPage from "./pages/SportTemplatesPage";
+import ScorecardsPage from "./pages/ScorecardsPage";
+
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
   return (
@@ -74,6 +80,48 @@ function App() {
                     <RequireAuth>
                       <AuthenticatedLayout>
                         <Schedule />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                
+                {/* NEW ADVANCED FEATURE ROUTES */}
+                <Route 
+                  path="/evaluators" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <EvaluatorManagementPage />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/team-formation" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <TeamFormationPage />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/sport-templates" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <SportTemplatesPage />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/scorecards" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <ScorecardsPage />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   } 

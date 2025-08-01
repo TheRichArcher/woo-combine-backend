@@ -240,6 +240,36 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
+        
+        {/* NEW FEATURES ANNOUNCEMENT BANNER */}
+        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <span className="text-lg">🚀</span>
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">New Advanced Features Available!</h3>
+              <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button 
+              onClick={() => navigate('/sport-templates')}
+              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
+            >
+              <div className="font-medium">🏈 Sport Templates</div>
+              <div className="text-blue-100">6 sports available</div>
+            </button>
+            <button 
+              onClick={() => navigate('/team-formation')}
+              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
+            >
+              <div className="font-medium">⚖️ Team Formation</div>
+              <div className="text-blue-100">AI-powered balance</div>
+            </button>
+          </div>
+        </div>
+
         {/* Header & Title Block */}
         <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
         <h1 className="text-lg font-semibold text-gray-900 mb-4">
