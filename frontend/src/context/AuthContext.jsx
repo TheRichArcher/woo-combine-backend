@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = null;
         try {
-          const token = await firebaseUser.getIdToken();
+          const token = await firebaseUser.getIdToken(true); // Force refresh token
           const roleResponse = await Promise.race([
             fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
               method: 'GET',
@@ -83,6 +83,16 @@ export function AuthProvider({ children }) {
             userRole = userData.role;
           } else if (roleResponse.status === 404) {
             userRole = null;
+          } else if (roleResponse.status === 403) {
+            // Email verification required - redirect to verification page
+            const errorData = await roleResponse.json().catch(() => ({}));
+            if (errorData.detail?.includes('Email verification required')) {
+              authLogger.warn('Email verification required during role check');
+              setInitializing(false);
+              navigate('/verify-email');
+              return;
+            }
+            throw new Error(`Role check failed: ${roleResponse.status}`);
           } else {
             throw new Error(`Role check failed: ${roleResponse.status}`);
           }
@@ -248,7 +258,7 @@ export function AuthProvider({ children }) {
     if (!user) return;
     
     try {
-      const token = await user.getIdToken();
+      const token = await user.getIdToken(true); // Force refresh token
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
         method: 'GET',
         headers: {

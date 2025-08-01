@@ -63,7 +63,7 @@ api.interceptors.request.use(async (config) => {
   const user = auth.currentUser;
   if (user) {
     try {
-      const token = await user.getIdToken();
+      const token = await user.getIdToken(true); // Force refresh token to get latest verification status
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     } catch (authError) {
@@ -87,6 +87,13 @@ api.interceptors.response.use(
     
     if (isExpected404) {
       // Silent handling for expected 404s during new user onboarding
+      return Promise.reject(error);
+    }
+    
+    // Handle 403 email verification errors gracefully
+    if (error.response?.status === 403 && error.response?.data?.detail?.includes('Email verification required')) {
+      console.warn('[API] Email verification required - redirecting to verification page');
+      // Don't log this as an error since it's expected behavior
       return Promise.reject(error);
     }
     
