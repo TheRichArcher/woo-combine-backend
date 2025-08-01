@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from .routes.players import router as players_router
 from .routes.leagues import router as leagues_router
@@ -6,6 +6,7 @@ from .routes.drills import router as drills_router
 from .routes.events import router as events_router
 from .routes.users import router as users_router
 from .routes.evaluators import router as evaluators_router
+from .auth import get_current_user
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -106,7 +107,7 @@ def health_check():
 
 @app.get("/health")
 @app.head("/health")
-def health_check():
+def simple_health():
     """Minimal health check endpoint for deployment monitoring"""
     return {
         "status": "ok", 
@@ -124,6 +125,27 @@ def root():
         "status": "running",
         "docs": "/docs"
     }
+
+# Simple test endpoint to debug 500 errors
+@app.post("/api/test-500")
+def test_500_debug():
+    """Test endpoint to see if 500 errors are systemic"""
+    try:
+        logging.info("[TEST] Test endpoint called successfully")
+        return {"status": "success", "message": "POST endpoint working"}
+    except Exception as e:
+        logging.error(f"[TEST] Error in test endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
+@app.post("/api/test-auth")
+def test_auth_debug(current_user=Depends(get_current_user)):
+    """Test endpoint to see if auth is causing 500 errors"""
+    try:
+        logging.info(f"[TEST-AUTH] Auth test called by user: {current_user.get('uid', 'unknown')}")
+        return {"status": "success", "user": current_user.get('uid', 'unknown'), "message": "Auth working"}
+    except Exception as e:
+        logging.error(f"[TEST-AUTH] Error in auth test: {e}")
+        raise HTTPException(status_code=500, detail=f"Auth test failed: {str(e)}")
 
 # Startup event - minimal operations for fast startup
 @app.on_event("startup")
