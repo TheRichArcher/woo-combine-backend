@@ -24,7 +24,7 @@ export default function LoginForm() {
     if (!cameFromJoinEvent) {
       const pendingEventJoin = localStorage.getItem('pendingEventJoin');
       if (pendingEventJoin) {
-        console.log('Clearing stale pendingEventJoin from normal login access');
+        authLogger.info('Clearing stale pendingEventJoin from normal login access');
         localStorage.removeItem('pendingEventJoin');
       }
     }

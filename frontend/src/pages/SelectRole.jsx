@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 
 // Role options for different user types
 const ALL_ROLE_OPTIONS = [
@@ -37,7 +38,7 @@ export default function SelectRole() {
   // Clear stale pendingEventJoin if user didn't come from invitation flow
   useEffect(() => {
     if (pendingEventJoin && !cameFromJoinEvent) {
-      console.log('Clearing stale pendingEventJoin - user did not come from invitation');
+      logger.info('SELECT-ROLE', 'Clearing stale pendingEventJoin - user did not come from invitation');
       localStorage.removeItem('pendingEventJoin');
     }
   }, [pendingEventJoin, cameFromJoinEvent]);

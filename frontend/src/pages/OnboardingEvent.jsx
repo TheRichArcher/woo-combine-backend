@@ -8,6 +8,7 @@ import { useToast } from "../context/ToastContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import LoadingScreen from "../components/LoadingScreen";
 
@@ -107,7 +108,7 @@ export default function OnboardingEvent() {
       setCsvErrors(headerErrors);
       
       // Log mapping type for debugging
-      console.log(`CSV parsed using ${mappingType} mapping for ${rows.length} players`);
+      logger.info('ONBOARDING-EVENT', `CSV parsed using ${mappingType} mapping for ${rows.length} players`);
     };
     reader.readAsText(file);
   };

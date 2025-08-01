@@ -5,6 +5,7 @@ import TeamFormationTool from '../components/TeamFormationTool';
 import EventSelector from '../components/EventSelector';
 import { Users, Target, BarChart3, Shuffle, Trophy, AlertCircle } from 'lucide-react';
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 
 const TeamFormationPage = () => {
   const { selectedEvent } = useEvent();
@@ -32,7 +33,7 @@ const TeamFormationPage = () => {
       const response = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(response.data || []);
     } catch (error) {
-      console.error('Error fetching players:', error);
+      logger.error('TEAM-FORMATION', 'Error fetching players', error);
       setPlayers([]);
     } finally {
       setLoading(false);

@@ -28,6 +28,14 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      // Additional code quality rules (warnings for gradual improvement)
+      'no-console': ['warn', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error',
+      'prefer-const': 'warn',
+      'no-var': 'warn',
+      'eqeqeq': ['warn', 'always'],
+      'no-duplicate-imports': 'warn',
+      'no-unused-expressions': 'warn',
     },
   },
 ]

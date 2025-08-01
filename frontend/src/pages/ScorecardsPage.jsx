@@ -5,6 +5,7 @@ import PlayerScorecardGenerator from '../components/PlayerScorecardGenerator';
 import EventSelector from '../components/EventSelector';
 import { FileText, Download, Mail, Award, Users, Star, BarChart3 } from 'lucide-react';
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
@@ -42,7 +43,7 @@ const ScorecardsPage = () => {
         setSelectedPlayer(playerWithScores);
       }
     } catch (error) {
-      console.error('Error fetching players:', error);
+      logger.error('SCORECARDS-PAGE', 'Error fetching players', error);
       setPlayers([]);
     } finally {
       setLoading(false);
