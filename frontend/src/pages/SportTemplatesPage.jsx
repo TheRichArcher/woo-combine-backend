@@ -1,48 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import DrillTemplateSelector from '../components/DrillTemplateSelector';
 import { Settings, Trophy, Star, CheckCircle, Zap, Save, AlertCircle } from 'lucide-react';
 import { getAllTemplates, getTemplateById } from '../constants/drillTemplates';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import ErrorDisplay from '../components/ErrorDisplay';
 
-const SportTemplatesPage = () => {
+const SportTemplatesPage = React.memo(() => {
   const { selectedEvent, updateEvent } = useEvent();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || 'football');
-  const [applying, setApplying] = useState(false);
   const templates = getAllTemplates();
 
   const currentTemplate = getTemplateById(selectedEvent?.drillTemplate || 'football');
   const selectedTemplate = getTemplateById(selectedTemplateId);
   const hasChanges = selectedTemplateId !== (selectedEvent?.drillTemplate || 'football');
 
-  const handleTemplateSelect = (templateId, template) => {
-    setSelectedTemplateId(templateId);
-  };
-
-  const handleApplyTemplate = async () => {
-    if (!selectedEvent || !hasChanges) return;
-    
-    setApplying(true);
-    try {
-      // Update the event with the new drill template
-      const updatedEventData = {
-        ...selectedEvent,
-        drillTemplate: selectedTemplateId
-      };
-      
-      await updateEvent(selectedEvent.id, updatedEventData);
-      
+  // Use standardized async operation for consistent error handling
+  const { loading: applying, error: applyError, execute: executeApply } = useAsyncOperation({
+    context: 'TEMPLATE_APPLY',
+    onSuccess: (result) => {
       showSuccess(
         `✅ Applied ${selectedTemplate.name} template! All drill evaluations will now use ${selectedTemplate.sport} drills.`
       );
-    } catch (error) {
-      console.error('Error applying template:', error);
-      showError('Failed to apply template. Please try again.');
-    } finally {
-      setApplying(false);
     }
-  };
+  });
+
+  const handleTemplateSelect = useCallback((templateId, template) => {
+    setSelectedTemplateId(templateId);
+  }, []);
+
+  const handleApplyTemplate = useCallback(async () => {
+    if (!selectedEvent || !hasChanges) return;
+    
+    await executeApply(async () => {
+      // Validate template selection
+      if (!selectedTemplate) {
+        throw new Error('Invalid template selected');
+      }
+      
+      // Update the event with the new drill template
+      const updatedEventData = {
+        name: selectedEvent.name,
+        date: selectedEvent.date,
+        location: selectedEvent.location,
+        drillTemplate: selectedTemplateId
+      };
+      
+      return await updateEvent(selectedEvent.id, updatedEventData);
+    });
+  }, [selectedEvent, hasChanges, executeApply, selectedTemplate, selectedTemplateId, updateEvent]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -135,20 +143,29 @@ const SportTemplatesPage = () => {
                   </p>
                 </div>
               </div>
+              
+              {/* Error Display */}
+              {applyError && (
+                <div className="mb-3">
+                  <ErrorDisplay error={applyError} />
+                </div>
+              )}
+              
               <button
                 onClick={handleApplyTemplate}
-                disabled={applying}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                disabled={applying || !selectedEvent}
+                aria-label={`Apply ${selectedTemplate?.name} template to current event`}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
                 {applying ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Applying...
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true"></div>
+                    <span>Applying...</span>
                   </>
                 ) : (
                   <>
-                    <Save className="w-4 h-4" />
-                    Apply {selectedTemplate?.name} Template
+                    <Save className="w-4 h-4" aria-hidden="true" />
+                    <span>Apply {selectedTemplate?.name} Template</span>
                   </>
                 )}
               </button>
@@ -265,5 +282,7 @@ const SportTemplatesPage = () => {
     </div>
   );
 };
+
+});
 
 export default SportTemplatesPage;

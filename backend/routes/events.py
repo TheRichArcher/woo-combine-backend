@@ -132,7 +132,7 @@ def update_event(
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: dict = None, 
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_role("organizer", "coach"))
 ):
     try:
         name = req.get("name")
@@ -142,17 +142,32 @@ def update_event(
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
         
+        # Validate and prepare update data
+        try:
+            validated_data = validate_event_data({
+                "name": name,
+                "date": date,
+                "location": location,
+                "drillTemplate": req.get("drillTemplate")
+            })
+        except ValidationError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        
         # Prepare update data
         update_data = {
-            "name": name,
-            "date": date,
-            "location": location or "",
+            "name": validated_data["name"],
+            "date": validated_data.get("date"),
+            "location": validated_data.get("location", ""),
             "updated_at": datetime.utcnow().isoformat(),
         }
         
-        # Add drillTemplate if provided
-        if req.get("drillTemplate"):
-            update_data["drillTemplate"] = req["drillTemplate"]
+        # Add drillTemplate if provided and valid
+        if validated_data.get("drillTemplate"):
+            # Validate drill template exists
+            valid_templates = ["football", "soccer", "basketball", "baseball", "track", "volleyball"]
+            if validated_data["drillTemplate"] not in valid_templates:
+                raise HTTPException(status_code=400, detail="Invalid drill template")
+            update_data["drillTemplate"] = validated_data["drillTemplate"]
         
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
