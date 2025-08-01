@@ -112,7 +112,7 @@ export default function LeagueFallback() {
                     <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
-                    Create event → Import players → Share with coaches
+                    Create event - Import players - Share with coaches
                   </p>
                   <button
                     onClick={handleCreateLeague}

@@ -209,7 +209,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
         <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
-            <p className="text-cmf-light text-sm">Player #{player.number} • Age Group: {player.age_group}</p>
+            <p className="text-cmf-light text-sm">Player #{player.number} - Age Group: {player.age_group}</p>
           </div>
           <div className="text-right mr-4">
             <div className="text-sm opacity-75">Overall Score</div>

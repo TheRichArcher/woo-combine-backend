@@ -255,9 +255,9 @@ function App() {
                       <div className="text-sm text-gray-500 space-y-2">
                         <p>Common Issues:</p>
                         <div className="text-left space-y-1">
-                          <p>• Can't log in: Check email and password, or reset your password</p>
-                          <p>• QR code not working: Check internet connection</p>
-                          <p>• Missing players: Contact your organizer</p>
+                                          <p>- Can't log in: Check email and password, or reset your password</p>
+                <p>- QR code not working: Check internet connection</p>
+                <p>- Missing players: Contact your organizer</p>
                         </div>
                       </div>
                       

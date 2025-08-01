@@ -471,10 +471,10 @@ export default function AdminTools() {
                   Player numbers are automatically generated for easy Live Entry lookup:
                 </p>
                 <div className="text-xs text-green-600 space-y-1">
-                  <div>• <strong>12U players:</strong> 1201, 1202, 1203...</div>
-                  <div>• <strong>8U players:</strong> 801, 802, 803...</div>
-                  <div>• <strong>Lil' Ballers:</strong> 501, 502, 503...</div>
-                  <div>• <strong>Other groups:</strong> Smart number ranges</div>
+                  <div>- <strong>12U players:</strong> 1201, 1202, 1203...</div>
+                  <div>- <strong>8U players:</strong> 801, 802, 803...</div>
+                  <div>- <strong>Lil' Ballers:</strong> 501, 502, 503...</div>
+                  <div>- <strong>Other groups:</strong> Smart number ranges</div>
                 </div>
               </div>
             </div>
@@ -876,9 +876,9 @@ export default function AdminTools() {
                 <div>
                   <p className="text-gray-800 font-medium text-sm mb-1">Security Best Practices</p>
                   <ul className="text-gray-700 text-xs space-y-1">
-                    <li>• Share <strong>Coach QR codes</strong> only with trusted staff who need to enter/modify scores</li>
-                    <li>• Share <strong>Viewer QR codes</strong> with parents and spectators for read-only access</li>
-                    <li>• Each QR code enforces the intended role - no way to escalate permissions</li>
+                    <li>- Share <strong>Coach QR codes</strong> only with trusted staff who need to enter/modify scores</li>
+                    <li>- Share <strong>Viewer QR codes</strong> with parents and spectators for read-only access</li>
+                    <li>- Each QR code enforces the intended role - no way to escalate permissions</li>
                   </ul>
                 </div>
               </div>
@@ -910,10 +910,10 @@ export default function AdminTools() {
           <div className="space-y-3">
             <div className="bg-gray-50 rounded-lg p-4">
               <div className="space-y-2 text-sm text-gray-700">
-                <p>• <strong>5 Drill Types:</strong> 40-Yard Dash, Vertical Jump, Catching, Throwing, Agility</p>
-                <p>• <strong>Auto-Complete:</strong> Type player number for instant lookup</p>
-                <p>• <strong>Smart Features:</strong> Duplicate detection, undo functionality, recent entries</p>
-                <p>• <strong>Mobile Optimized:</strong> Large touch targets, number pad inputs</p>
+                <p>- <strong>5 Drill Types:</strong> 40-Yard Dash, Vertical Jump, Catching, Throwing, Agility</p>
+                <p>- <strong>Auto-Complete:</strong> Type player number for instant lookup</p>
+                <p>- <strong>Smart Features:</strong> Duplicate detection, undo functionality, recent entries</p>
+                <p>- <strong>Mobile Optimized:</strong> Large touch targets, number pad inputs</p>
               </div>
             </div>
             

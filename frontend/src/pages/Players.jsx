@@ -807,7 +807,7 @@ export default function Players() {
                               <div className="font-medium text-gray-900 truncate">{player.name}</div>
                               <div className="text-xs text-gray-500">
                                 Player #{player.number || 'N/A'}
-                                {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                {selectedAgeGroup === 'all' && ` - ${player.age_group}`}
                               </div>
                             </div>
                             <div className="text-right">
@@ -990,7 +990,7 @@ export default function Players() {
                                   <div className="font-medium text-gray-900 truncate">{player.name}</div>
                                   <div className="text-xs text-gray-500">
                                     Player #{player.number || 'N/A'}
-                                    {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                    {selectedAgeGroup === 'all' && ` - ${player.age_group}`}
                                   </div>
                                 </div>
                                 <div className="text-right">
@@ -1045,7 +1045,7 @@ export default function Players() {
                                 <h4 className="font-semibold text-gray-900">{player.name}</h4>
                                 <p className="text-sm text-gray-600">
                                   Player #{player.number || 'N/A'}
-                                  {selectedAgeGroup === 'all' && ` • ${player.age_group}`}
+                                  {selectedAgeGroup === 'all' && ` - ${player.age_group}`}
                                 </p>
                               </div>
                             </div>

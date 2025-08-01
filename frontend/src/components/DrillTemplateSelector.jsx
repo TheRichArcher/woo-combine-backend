@@ -165,11 +165,11 @@ const DrillTemplateSelector = ({ selectedTemplateId, onTemplateSelect, disabled 
               onClick={() => setShowDetails(true)}
               className="text-blue-600 hover:text-blue-700 font-medium text-sm"
             >
-              View Details →
+                                    View Details
             </button>
           </div>
           <p className="text-xs text-gray-600 mt-1">
-            {selectedTemplate.drills.length} drills • {Object.keys(selectedTemplate.presets).length} coaching presets
+            {selectedTemplate.drills.length} drills - {Object.keys(selectedTemplate.presets).length} coaching presets
           </p>
         </div>
       )}

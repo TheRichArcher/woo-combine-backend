@@ -263,10 +263,10 @@ const EvaluatorManagement = () => {
           <div>
             <h4 className="font-medium text-green-900 mb-1">Multi-Evaluator Benefits</h4>
             <ul className="text-sm text-green-800 space-y-1">
-              <li>• Reduce individual bias with multiple perspectives</li>
-              <li>• Automatic score aggregation and variance analysis</li>
-              <li>• Real-time collaborative evaluation</li>
-              <li>• Enhanced credibility with multiple evaluators</li>
+              <li>- Reduce individual bias with multiple perspectives</li>
+              <li>- Automatic score aggregation and variance analysis</li>
+              <li>- Real-time collaborative evaluation</li>
+              <li>- Enhanced credibility with multiple evaluators</li>
             </ul>
           </div>
         </div>

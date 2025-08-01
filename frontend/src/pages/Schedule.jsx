@@ -167,7 +167,7 @@ export default function Schedule() {
                         weekday: 'long', 
                         month: 'short', 
                         day: 'numeric' 
-                      })} • {event.time}
+                      })} - {event.time}
                     </div>
                     
                     {/* Location */}
