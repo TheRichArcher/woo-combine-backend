@@ -140,7 +140,7 @@ export default function WorkflowDemo() {
     }, duration);
   };
 
-  // Auto-advance steps
+  // Progress bar animation only - step advancement handled by animations
   useEffect(() => {
     if (!isAutoPlaying) return;
 
@@ -162,20 +162,19 @@ export default function WorkflowDemo() {
       });
     }, 100);
 
-    // Step advancement
-    const timer = setTimeout(() => {
-      if (currentStep < WORKFLOW_STEPS.length - 1) {
-        setCurrentStep(prev => prev + 1);
-      } else {
-        setIsAutoPlaying(false);
-      }
-    }, step.duration);
-
     return () => {
-      clearTimeout(timer);
       clearInterval(progressInterval);
     };
   }, [currentStep, isAutoPlaying]);
+
+  // Advance to next step function
+  const advanceToNextStep = () => {
+    if (currentStep < WORKFLOW_STEPS.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    } else {
+      setIsAutoPlaying(false);
+    }
+  };
 
   const startAutoDemo = () => {
     setIsAutoPlaying(true);
@@ -298,7 +297,9 @@ export default function WorkflowDemo() {
                       
                       timeouts.push(setTimeout(() => {
                         setButtonStates(prev => ({ ...prev, 'create-league-btn': 'normal' }));
-                        setStepSubState("ready"); // Mark as ready for next step
+                        setStepSubState("ready");
+                        // Step controls its own advancement
+                        advanceToNextStep();
                       }, 1500));
                     }, 1000));
                   }, 1200));
@@ -343,6 +344,8 @@ export default function WorkflowDemo() {
                       timeouts.push(setTimeout(() => {
                         setButtonStates(prev => ({ ...prev, 'create-event-btn': 'normal' }));
                         setStepSubState("ready");
+                        // Step controls its own advancement
+                        advanceToNextStep();
                       }, 1800));
                     }, 1000));
                   }, 1000));
@@ -374,6 +377,8 @@ export default function WorkflowDemo() {
                 timeouts.push(setTimeout(() => {
                   setButtonStates(prev => ({ ...prev, 'upload-csv-btn': 'normal' }));
                   setStepSubState("ready");
+                  // Step controls its own advancement
+                  advanceToNextStep();
                 }, 1500));
               }, 1200));
             }, 2000));
