@@ -471,6 +471,7 @@ export default function WorkflowDemo() {
                 // Adjust vertical jump weight with explanation
                 timeouts.push(setTimeout(() => {
                   addNotification("⚖️ Boosting Vertical Jump weight for explosiveness...");
+                  setStepSubState("adjusting-vertical");
                   let currentWeight2 = 20;
                   const targetWeight2 = 30;
                   const sliderInterval2 = setInterval(() => {
@@ -484,6 +485,7 @@ export default function WorkflowDemo() {
                       // Final dramatic adjustment
                       timeouts.push(setTimeout(() => {
                         addNotification("⚖️ Fine-tuning throwing weight for position-specific evaluation...");
+                        setStepSubState("adjusting-throwing");
                         let currentWeight3 = 15;
                         const targetWeight3 = 25;
                         const sliderInterval3 = setInterval(() => {
@@ -1031,12 +1033,29 @@ export default function WorkflowDemo() {
                       max="50"
                       value={weight}
                       readOnly
-                      className="flex-1 accent-blue-600"
+                      className={`flex-1 transition-all duration-300 ${
+                        (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
+                        (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
+                        (drill === 'throwing' && stepSubState === 'adjusting-throwing')
+                          ? 'accent-blue-600 scale-110'
+                          : 'accent-gray-400'
+                      }`}
                     />
-                    <span className={`w-16 text-sm font-mono font-bold ${weight > 30 ? 'text-blue-600' : 'text-gray-600'}`}>
+                    <span className={`w-16 text-sm font-mono font-bold transition-all duration-300 ${
+                      (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
+                      (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
+                      (drill === 'throwing' && stepSubState === 'adjusting-throwing')
+                        ? 'text-blue-600 text-lg animate-pulse'
+                        : weight > 30 ? 'text-blue-600' : 'text-gray-600'
+                    }`}>
                       {weight}%
                     </span>
-                    {weight > 35 && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">HIGH</span>}
+                    {weight > 35 && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full animate-bounce">HIGH</span>}
+                    {((drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
+                      (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
+                      (drill === 'throwing' && stepSubState === 'adjusting-throwing')) && 
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">ADJUSTING</span>
+                    }
                   </div>
                 ))}
               </div>
