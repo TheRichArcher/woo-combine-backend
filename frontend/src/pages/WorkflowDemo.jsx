@@ -75,7 +75,7 @@ const WORKFLOW_STEPS = [
     title: "Adjust Weights",
     desc: "Coach tweaks drill importance",
     icon: "⚖️",
-    duration: 25000, // Much longer to showcase the weight adjustment feature
+    duration: 60000, // DRAMATICALLY longer - full minute to showcase the weight adjustment feature
     component: "WeightsStep"
   },
   {
@@ -436,24 +436,24 @@ export default function WorkflowDemo() {
           setStepSubState("analyzing");
         }, 1000));
 
-        // Show current rankings before adjustment
+        // Show current rankings before adjustment - MUCH LONGER
         timeouts.push(setTimeout(() => {
           addNotification("📊 Current rankings calculated with default weights...");
           setStepSubState("before-rankings");
-        }, 3000));
+        }, 4000));
 
-        // Coach commentary about the adjustment
+        // Coach commentary about the adjustment - MUCH LONGER
         timeouts.push(setTimeout(() => {
           addNotification("🧠 Coach: 'These scouts are looking for SPEED today. Let me adjust the formula...'");
           setStepSubState("coach-thinking");
-        }, 6000));
+        }, 10000));
 
-        // Start dramatic weight adjustments with explanation
+        // Start dramatic weight adjustments with explanation - MUCH SLOWER
         timeouts.push(setTimeout(() => {
           addNotification("⚖️ Increasing 40-Yard Dash importance from 30% to 45%...");
           setStepSubState("adjusting-speed");
           
-          // Slow, dramatic adjustment of 40-yard dash weight
+          // DRAMATICALLY SLOW adjustment of 40-yard dash weight  
           let currentWeight = 30;
           const targetWeight = 45;
           const sliderInterval = setInterval(() => {
@@ -464,11 +464,11 @@ export default function WorkflowDemo() {
               clearInterval(sliderInterval);
               intervals.push(sliderInterval);
               
-              // Pause and show impact
+              // LONG pause to show impact
               timeouts.push(setTimeout(() => {
                 addNotification("📈 Watch the rankings change as speed becomes more important!");
                 
-                // Adjust vertical jump weight with explanation
+                // MUCH LONGER pause before next adjustment
                 timeouts.push(setTimeout(() => {
                   addNotification("⚖️ Boosting Vertical Jump weight for explosiveness...");
                   setStepSubState("adjusting-vertical");
@@ -482,7 +482,7 @@ export default function WorkflowDemo() {
                       clearInterval(sliderInterval2);
                       intervals.push(sliderInterval2);
                       
-                      // Final dramatic adjustment
+                      // LONG pause after vertical adjustment
                       timeouts.push(setTimeout(() => {
                         addNotification("⚖️ Fine-tuning throwing weight for position-specific evaluation...");
                         setStepSubState("adjusting-throwing");
@@ -496,7 +496,7 @@ export default function WorkflowDemo() {
                             clearInterval(sliderInterval3);
                             intervals.push(sliderInterval3);
                             
-                            // Big reveal moment
+                            // VERY LONG pause before big reveal
                             timeouts.push(setTimeout(() => {
                               setStepSubState("dramatic-reveal");
                               addNotification("🚀 BOOM! Rankings completely transformed! New speed demons on top!");
@@ -504,22 +504,23 @@ export default function WorkflowDemo() {
                               timeouts.push(setTimeout(() => {
                                 addNotification("💡 THIS is what separates WooCombine from basic stopwatch apps!");
                                 
+                                // LONG final pause to let it sink in
                                 timeouts.push(setTimeout(() => {
                                   advanceToNextStep();
-                                }, 3000));
-                              }, 2000));
-                            }, 2000));
+                                }, 8000));
+                              }, 5000));
+                            }, 4000));
                           }
-                        }, 200); // Even slower for final impact
-                      }, 1500));
+                        }, 500); // MUCH slower final adjustment - half second per step!
+                      }, 6000)); // LONG pause between adjustments
                     }
-                  }, 150); // Slower animation
-                }, 2000));
-              }, 1500));
+                  }, 400); // SLOWER vertical animation
+                }, 6000)); // MUCH longer pause
+              }, 4000)); // LONGER pause to show impact
             }
-          }, 120); // Much slower than before
+          }, 300); // MUCH slower 40-yard adjustment - 300ms per step!
           intervals.push(sliderInterval);
-        }, 8000));
+        }, 15000)); // MUCH later start
         break;
     }
   }, [currentStep, players]);
