@@ -253,11 +253,21 @@ export default function WorkflowDemo() {
     const step = WORKFLOW_STEPS[currentStep];
     if (!step) return;
 
+    // Reset states when starting a new step
+    setStepSubState("initial");
+    setShowTransition(false);
+    setTransitionText("");
+    setButtonStates({});
+    setShowCursor({});
+
+    // Track timeouts for cleanup
+    const timeouts = [];
+    const intervals = [];
+
     switch (step.component) {
       case "CreateLeagueStep":
-        setStepSubState("initial");
         // Simulate typing league name
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           const text = "Spring Football League";
           let index = 0;
           setLeagueName("");
@@ -272,36 +282,37 @@ export default function WorkflowDemo() {
               setShowCursor(prev => ({ ...prev, leagueName: false }));
               
               // Animate button click after typing
-              setTimeout(() => {
+              timeouts.push(setTimeout(() => {
                 animateButtonClick('create-league-btn', () => {
                   setStepSubState("processing");
                   
                   // Show processing state
-                  setTimeout(() => {
+                  timeouts.push(setTimeout(() => {
                     setStepSubState("success");
                     addNotification("🏈 League created successfully!");
                     
                     // Show transition to event creation
-                    setTimeout(() => {
+                    timeouts.push(setTimeout(() => {
                       showTransitionScreen("Redirecting to Event Setup...", 1500);
                       setStepSubState("transitioning");
                       
-                      setTimeout(() => {
+                      timeouts.push(setTimeout(() => {
                         setButtonStates(prev => ({ ...prev, 'create-league-btn': 'normal' }));
-                      }, 1500);
-                    }, 1000);
-                  }, 1200);
+                        setStepSubState("ready"); // Mark as ready for next step
+                      }, 1500));
+                    }, 1000));
+                  }, 1200));
                 });
-              }, 800);
+              }, 800));
             }
           }, 120);
-        }, 1000);
+          intervals.push(typeInterval);
+        }, 1000));
         break;
         
       case "CreateEventStep":
-        setStepSubState("initial");
         // Simulate typing event name
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           const text = "2024 Spring Showcase";
           let index = 0;
           setEventName("");
@@ -316,56 +327,58 @@ export default function WorkflowDemo() {
               setShowCursor(prev => ({ ...prev, eventName: false }));
               
               // Animate button click
-              setTimeout(() => {
+              timeouts.push(setTimeout(() => {
                 animateButtonClick('create-event-btn', () => {
                   setStepSubState("processing");
                   
-                  setTimeout(() => {
+                  timeouts.push(setTimeout(() => {
                     setStepSubState("success");
                     addNotification("📅 Event scheduled successfully!");
                     
                     // Show event details confirmation
-                    setTimeout(() => {
+                    timeouts.push(setTimeout(() => {
                       showTransitionScreen("Event created! Setting up player management...", 1800);
                       setStepSubState("transitioning");
                       
-                      setTimeout(() => {
+                      timeouts.push(setTimeout(() => {
                         setButtonStates(prev => ({ ...prev, 'create-event-btn': 'normal' }));
-                      }, 1800);
-                    }, 1000);
-                  }, 1000);
+                        setStepSubState("ready");
+                      }, 1800));
+                    }, 1000));
+                  }, 1000));
                 });
-              }, 800);
+              }, 800));
             }
           }, 100);
-        }, 1500);
+          intervals.push(typeInterval);
+        }, 1500));
         break;
         
       case "UploadCsvStep":
-        setStepSubState("initial");
         // Simulate file upload with progress
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           animateButtonClick('upload-csv-btn', () => {
             setStepSubState("processing");
             
             // Simulate file processing
-            setTimeout(() => {
+            timeouts.push(setTimeout(() => {
               setPlayers(DEMO_PLAYERS);
               setStepSubState("success");
               addNotification("✅ 6 players uploaded successfully!");
               
               // Show player roster preview
-              setTimeout(() => {
+              timeouts.push(setTimeout(() => {
                 showTransitionScreen("Players imported! Ready for manual additions...", 1500);
                 setStepSubState("transitioning");
                 
-                setTimeout(() => {
+                timeouts.push(setTimeout(() => {
                   setButtonStates(prev => ({ ...prev, 'upload-csv-btn': 'normal' }));
-                }, 1500);
-              }, 1200);
-            }, 2000);
+                  setStepSubState("ready");
+                }, 1500));
+              }, 1200));
+            }, 2000));
           });
-        }, 2000);
+        }, 2000));
         break;
         
       case "ManualPlayerStep":
