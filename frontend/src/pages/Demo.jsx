@@ -704,7 +704,7 @@ export default function Demo() {
                           min="0"
                           max="50"
                           value={weights.fortyYardDash}
-                          onChange={(e) => adjustWeights({ ...weights, fortyYardDash: parseInt(e.target.value) })}
+                          onChange={(e) => adjustWeights({ ...weights, fortyYardDash: parseFloat(e.target.value) })}
                           className="flex-1"
                         />
                         <span className="w-8 text-xs font-mono">{weights.fortyYardDash}%</span>
@@ -717,7 +717,7 @@ export default function Demo() {
                           min="0"
                           max="50"
                           value={weights.vertical}
-                          onChange={(e) => adjustWeights({ ...weights, vertical: parseInt(e.target.value) })}
+                          onChange={(e) => adjustWeights({ ...weights, vertical: parseFloat(e.target.value) })}
                           className="flex-1"
                         />
                         <span className="w-8 text-xs font-mono">{weights.vertical}%</span>

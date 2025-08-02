@@ -471,9 +471,9 @@ export default function Players() {
                     defaultValue={localWeights[drill.key] ?? 50}
                     min={0}
                     max={100}
-                    step={1}
+                    step={0.1}
                     onInput={(e) => {
-                      const newWeight = parseInt(e.target.value, 10);
+                      const newWeight = parseFloat(e.target.value);
                       setLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
                     }}
                     onPointerUp={persistWeights}
@@ -944,12 +944,12 @@ export default function Players() {
                                 step={5}
                                 onInput={(e) => {
                                   // Update weight immediately for smooth visual feedback
-                                  const newWeight = parseInt(e.target.value, 10);
+                                  const newWeight = parseFloat(e.target.value);
                                   setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
                                 }}
                                 onChange={(e) => {
                                   // Debounced calculation on change complete
-                                  const newWeight = parseInt(e.target.value, 10);
+                                  const newWeight = parseFloat(e.target.value);
                                   const newWeights = { ...sliderWeights, [drill.key]: newWeight };
                                   calculateLiveRankings(newWeights);
                                   setActivePreset('');
@@ -1132,12 +1132,12 @@ export default function Players() {
                                     step={5}
                                     onInput={(e) => {
                                       // Update weight immediately for smooth visual feedback
-                                      const newWeight = parseInt(e.target.value, 10);
+                                      const newWeight = parseFloat(e.target.value);
                                       setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
                                     }}
                                     onChange={(e) => {
                                       // Debounced calculation on change complete
-                                      const newWeight = parseInt(e.target.value, 10);
+                                      const newWeight = parseFloat(e.target.value);
                                       const newWeights = { ...sliderWeights, [drill.key]: newWeight };
                                       calculateLiveRankings(newWeights);
                                       setActivePreset('');

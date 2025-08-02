@@ -102,9 +102,9 @@ const WeightControls = React.memo(function WeightControls({
                   defaultValue={localWeights[drill.key] ?? weights[drill.key] ?? 50}
                   min={0}
                   max={100}
-                  step={1}
+                  step={0.1}
                   onInput={(e) => {
-                    const newWeight = parseInt(e.target.value, 10);
+                    const newWeight = parseFloat(e.target.value);
                     setLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
                   }}
                   onPointerUp={persistWeights}

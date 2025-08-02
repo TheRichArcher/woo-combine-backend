@@ -252,9 +252,9 @@ const TeamFormationPage = () => {
                     type="range"
                     min="0"
                     max="50"
-                    step="1"
+                    step="0.1"
                     value={weights[drill.key] || 0}
-                    onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
+                    onChange={(e) => handleWeightChange(drill.key, parseFloat(e.target.value))}
                     className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
                   />
                   <div className="text-xs text-gray-500">

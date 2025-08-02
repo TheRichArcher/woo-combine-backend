@@ -273,9 +273,9 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                             defaultValue={modalLocalWeights[drill.key] ?? 50}
                             min={0}
                             max={100}
-                            step={1}
+                            step={0.1}
                             onInput={(e) => {
-                              const newWeight = parseInt(e.target.value, 10);
+                              const newWeight = parseFloat(e.target.value);
                               setModalLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
                             }}
                             onPointerUp={persistModalWeights}
