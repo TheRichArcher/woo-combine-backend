@@ -113,21 +113,31 @@ export default function WorkflowDemo() {
   const [typingStates, setTypingStates] = useState({});
   const [buttonStates, setButtonStates] = useState({});
   const [showCursor, setShowCursor] = useState({});
+  const [showTransition, setShowTransition] = useState(false);
+  const [transitionText, setTransitionText] = useState("");
+  const [stepSubState, setStepSubState] = useState("initial"); // initial, processing, success, transitioning
 
 
 
-  // Button click animation
+  // Button click animation with enhanced states
   const animateButtonClick = (buttonId, callback) => {
     setButtonStates(prev => ({ ...prev, [buttonId]: 'clicking' }));
     
     setTimeout(() => {
-      setButtonStates(prev => ({ ...prev, [buttonId]: 'clicked' }));
+      setButtonStates(prev => ({ ...prev, [buttonId]: 'processing' }));
       if (callback) callback();
-      
-      setTimeout(() => {
-        setButtonStates(prev => ({ ...prev, [buttonId]: 'normal' }));
-      }, 300);
     }, 150);
+  };
+
+  // Show transition between steps
+  const showTransitionScreen = (text, duration = 2000) => {
+    setShowTransition(true);
+    setTransitionText(text);
+    
+    setTimeout(() => {
+      setShowTransition(false);
+      setTransitionText("");
+    }, duration);
   };
 
   // Auto-advance steps
@@ -192,6 +202,9 @@ export default function WorkflowDemo() {
     setTypingStates({});
     setButtonStates({});
     setShowCursor({});
+    setShowTransition(false);
+    setTransitionText("");
+    setStepSubState("initial");
   };
 
   const addNotification = (message, type = "success") => {
@@ -242,6 +255,7 @@ export default function WorkflowDemo() {
 
     switch (step.component) {
       case "CreateLeagueStep":
+        setStepSubState("initial");
         // Simulate typing league name
         setTimeout(() => {
           const text = "Spring Football League";
@@ -260,7 +274,23 @@ export default function WorkflowDemo() {
               // Animate button click after typing
               setTimeout(() => {
                 animateButtonClick('create-league-btn', () => {
-                  addNotification("🏈 League created successfully!");
+                  setStepSubState("processing");
+                  
+                  // Show processing state
+                  setTimeout(() => {
+                    setStepSubState("success");
+                    addNotification("🏈 League created successfully!");
+                    
+                    // Show transition to event creation
+                    setTimeout(() => {
+                      showTransitionScreen("Redirecting to Event Setup...", 1500);
+                      setStepSubState("transitioning");
+                      
+                      setTimeout(() => {
+                        setButtonStates(prev => ({ ...prev, 'create-league-btn': 'normal' }));
+                      }, 1500);
+                    }, 1000);
+                  }, 1200);
                 });
               }, 800);
             }
@@ -269,6 +299,7 @@ export default function WorkflowDemo() {
         break;
         
       case "CreateEventStep":
+        setStepSubState("initial");
         // Simulate typing event name
         setTimeout(() => {
           const text = "2024 Spring Showcase";
@@ -287,7 +318,22 @@ export default function WorkflowDemo() {
               // Animate button click
               setTimeout(() => {
                 animateButtonClick('create-event-btn', () => {
-                  addNotification("📅 Event scheduled successfully!");
+                  setStepSubState("processing");
+                  
+                  setTimeout(() => {
+                    setStepSubState("success");
+                    addNotification("📅 Event scheduled successfully!");
+                    
+                    // Show event details confirmation
+                    setTimeout(() => {
+                      showTransitionScreen("Event created! Setting up player management...", 1800);
+                      setStepSubState("transitioning");
+                      
+                      setTimeout(() => {
+                        setButtonStates(prev => ({ ...prev, 'create-event-btn': 'normal' }));
+                      }, 1800);
+                    }, 1000);
+                  }, 1000);
                 });
               }, 800);
             }
@@ -296,13 +342,28 @@ export default function WorkflowDemo() {
         break;
         
       case "UploadCsvStep":
+        setStepSubState("initial");
         // Simulate file upload with progress
         setTimeout(() => {
           animateButtonClick('upload-csv-btn', () => {
+            setStepSubState("processing");
+            
+            // Simulate file processing
             setTimeout(() => {
               setPlayers(DEMO_PLAYERS);
+              setStepSubState("success");
               addNotification("✅ 6 players uploaded successfully!");
-            }, 1000);
+              
+              // Show player roster preview
+              setTimeout(() => {
+                showTransitionScreen("Players imported! Ready for manual additions...", 1500);
+                setStepSubState("transitioning");
+                
+                setTimeout(() => {
+                  setButtonStates(prev => ({ ...prev, 'upload-csv-btn': 'normal' }));
+                }, 1500);
+              }, 1200);
+            }, 2000);
           });
         }, 2000);
         break;
@@ -413,21 +474,41 @@ export default function WorkflowDemo() {
                   className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
                     buttonStates['create-league-btn'] === 'clicking' 
                       ? 'bg-blue-700 text-white transform scale-95' 
-                      : buttonStates['create-league-btn'] === 'clicked'
-                        ? 'bg-green-600 text-white transform scale-100'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : buttonStates['create-league-btn'] === 'processing'
+                        ? 'bg-blue-500 text-white cursor-wait'
+                        : stepSubState === 'success'
+                          ? 'bg-green-600 text-white transform scale-100'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
+                  disabled={buttonStates['create-league-btn'] === 'processing'}
                 >
-                  {buttonStates['create-league-btn'] === 'clicked' 
-                    ? '✓ League Created!' 
-                    : 'Create League & Continue'
+                  {buttonStates['create-league-btn'] === 'processing' 
+                    ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Creating League...
+                      </span>
+                    )
+                    : stepSubState === 'success'
+                      ? '✓ League Created!' 
+                      : 'Create League & Continue'
                   }
                 </button>
               </div>
             </div>
-            {leagueName && (
+            {stepSubState === 'success' && leagueName && (
               <div className="bg-green-50 border border-green-200 rounded-lg p-3 animate-fade-in">
                 <p className="text-green-800 text-sm">✅ League "{leagueName}" created successfully!</p>
+                <div className="mt-2 flex items-center gap-2 text-green-700 text-xs">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Setting up event management...</span>
+                </div>
+              </div>
+            )}
+            
+            {stepSubState === 'transitioning' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
+                <p className="text-blue-800 text-sm">🔄 Preparing event creation interface...</p>
               </div>
             )}
           </div>
@@ -486,21 +567,53 @@ export default function WorkflowDemo() {
                   className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
                     buttonStates['create-event-btn'] === 'clicking' 
                       ? 'bg-green-700 text-white transform scale-95' 
-                      : buttonStates['create-event-btn'] === 'clicked'
-                        ? 'bg-blue-600 text-white transform scale-100'
-                        : 'bg-green-600 text-white hover:bg-green-700'
+                      : buttonStates['create-event-btn'] === 'processing'
+                        ? 'bg-green-500 text-white cursor-wait'
+                        : stepSubState === 'success'
+                          ? 'bg-blue-600 text-white transform scale-100'
+                          : 'bg-green-600 text-white hover:bg-green-700'
                   }`}
+                  disabled={buttonStates['create-event-btn'] === 'processing'}
                 >
-                  {buttonStates['create-event-btn'] === 'clicked' 
-                    ? '✓ Event Created!' 
-                    : 'Create Event'
+                  {buttonStates['create-event-btn'] === 'processing' 
+                    ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Scheduling Event...
+                      </span>
+                    )
+                    : stepSubState === 'success'
+                      ? '✓ Event Created!' 
+                      : 'Create Event'
                   }
                 </button>
               </div>
             </div>
-            {eventName && (
+            {stepSubState === 'success' && eventName && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
                 <p className="text-blue-800 text-sm">📅 Event "{eventName}" scheduled!</p>
+                <div className="mt-2 p-2 bg-white rounded border border-blue-300">
+                  <div className="text-xs text-blue-700">
+                    <div className="flex justify-between mb-1">
+                      <span>📅 Date:</span>
+                      <span>April 15, 2024</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>📍 Location:</span>
+                      <span>Central High School</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>👥 Players:</span>
+                      <span>Ready for import</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {stepSubState === 'transitioning' && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 animate-fade-in">
+                <p className="text-green-800 text-sm">🔄 Loading player management tools...</p>
               </div>
             )}
           </div>
@@ -527,14 +640,22 @@ export default function WorkflowDemo() {
                   className={`px-4 py-2 rounded-lg transition-all duration-200 ${
                     buttonStates['upload-csv-btn'] === 'clicking' 
                       ? 'bg-blue-700 text-white transform scale-95' 
-                      : buttonStates['upload-csv-btn'] === 'clicked'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                      : buttonStates['upload-csv-btn'] === 'processing'
+                        ? 'bg-blue-500 text-white cursor-wait'
+                        : stepSubState === 'success'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
+                  disabled={buttonStates['upload-csv-btn'] === 'processing'}
                 >
-                  {buttonStates['upload-csv-btn'] === 'clicking' 
-                    ? 'Uploading...' 
-                    : buttonStates['upload-csv-btn'] === 'clicked'
+                  {buttonStates['upload-csv-btn'] === 'processing' 
+                    ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing CSV...
+                      </span>
+                    )
+                    : stepSubState === 'success'
                       ? '✓ Uploaded!'
                       : 'Choose File'
                   }
@@ -547,22 +668,43 @@ export default function WorkflowDemo() {
                 </div>
               )}
             </div>
-            {players.length > 0 && (
-              <div className="bg-white rounded-lg p-4 shadow-lg">
-                <h4 className="font-semibold mb-3">Uploaded Players ({players.length})</h4>
+            {stepSubState === 'processing' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 animate-fade-in">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  <div>
+                    <p className="text-blue-800 font-medium text-sm">Processing roster file...</p>
+                    <p className="text-blue-600 text-xs">Validating player data and assigning numbers</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {stepSubState === 'success' && players.length > 0 && (
+              <div className="bg-white rounded-lg p-4 shadow-lg animate-fade-in">
+                <h4 className="font-semibold mb-3 text-green-800">✅ Players Successfully Imported ({players.length})</h4>
                 <div className="space-y-2">
                   {players.slice(0, 4).map(player => (
-                    <div key={player.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
                       <span className="font-medium">{player.name}</span>
-                      <span className="text-sm text-gray-600">#{player.number} • {player.age_group}</span>
+                      <span className="text-sm text-green-700">#{player.number} • {player.age_group}</span>
                     </div>
                   ))}
                   {players.length > 4 && (
-                    <div className="text-center text-sm text-gray-500">
-                      +{players.length - 4} more players...
+                    <div className="text-center text-sm text-green-600">
+                      +{players.length - 4} more players imported...
                     </div>
                   )}
                 </div>
+                <div className="mt-3 p-2 bg-green-100 rounded">
+                  <p className="text-green-800 text-xs">✓ All player numbers auto-assigned • ✓ Age groups validated • ✓ Ready for manual additions</p>
+                </div>
+              </div>
+            )}
+            
+            {stepSubState === 'transitioning' && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 animate-fade-in">
+                <p className="text-yellow-800 text-sm">🔄 Setting up manual player entry form...</p>
               </div>
             )}
           </div>
@@ -895,6 +1037,17 @@ export default function WorkflowDemo() {
         ))}
       </div>
 
+      {/* Transition Screen Overlay */}
+      {showTransition && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
+            <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{transitionText}</h3>
+            <p className="text-gray-600 text-sm">Please wait while we prepare the next step...</p>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="text-center mb-6">
