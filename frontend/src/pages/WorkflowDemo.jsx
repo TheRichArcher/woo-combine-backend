@@ -282,12 +282,17 @@ export default function UnifiedDemo() {
     setStepSubState("initial");
   };
 
-  const addNotification = (message, type = "success") => {
+  // Clear all notifications 
+  const clearNotifications = () => {
+    setNotifications([]);
+  };
+
+  const addNotification = (message, type = "success", duration = 2500) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message, type }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 4000);
+    }, duration);
   };
 
   const calculateCompositeScore = (player) => {
@@ -334,6 +339,9 @@ export default function UnifiedDemo() {
     setTransitionText("");
     setButtonStates({});
     setShowCursor({});
+    
+    // CRITICAL: Clear all notifications when starting new step
+    clearNotifications();
 
     // Track timeouts for cleanup
     const timeouts = [];
@@ -364,7 +372,7 @@ export default function UnifiedDemo() {
                   // Show processing state
                   timeouts.push(setTimeout(() => {
                     setStepSubState("success");
-                    addNotification("🏈 League created successfully!");
+                    addNotification("🏈 League created successfully!", "success", 2500);
                     
                     // Show transition to event creation
                     timeouts.push(setTimeout(() => {
@@ -410,7 +418,7 @@ export default function UnifiedDemo() {
                   
                   timeouts.push(setTimeout(() => {
                     setStepSubState("success");
-                    addNotification("📅 Event scheduled successfully!");
+                    addNotification("📅 Event scheduled successfully!", "success", 2500);
                     
                     // Show event details confirmation
                     timeouts.push(setTimeout(() => {
@@ -443,7 +451,7 @@ export default function UnifiedDemo() {
             timeouts.push(setTimeout(() => {
               setPlayers(DEMO_PLAYERS);
               setStepSubState("success");
-              addNotification("✅ 6 players uploaded successfully!");
+              addNotification("✅ 6 players uploaded successfully!", "success", 2500);
               
               // Show player roster preview
               timeouts.push(setTimeout(() => {
@@ -471,7 +479,7 @@ export default function UnifiedDemo() {
         
         // Step 1: Type First Name
         timeouts.push(setTimeout(() => {
-          addNotification("📝 Coach typing player details...");
+          addNotification("📝 Coach typing player details...", "success", 2500);
           const firstName = "Sam";
           let index = 0;
           setShowCursor(prev => ({ ...prev, manualPlayerFirstName: true }));
@@ -514,7 +522,7 @@ export default function UnifiedDemo() {
                           
                           // Step 4: Select Age Group (simulate dropdown)
                           timeouts.push(setTimeout(() => {
-                            addNotification("🎯 Selecting age group...");
+                            addNotification("🎯 Selecting age group...", "success", 2500);
                             setManualPlayerAgeGroup("U16");
                             
                             // Step 5: Click Add Player button
@@ -533,7 +541,7 @@ export default function UnifiedDemo() {
                                     agility: null 
                                   };
                                   setPlayers(prev => [...prev, newPlayer]);
-                                  addNotification("👤 Sam Wilson added manually!");
+                                  addNotification("👤 Sam Wilson added manually!", "success", 2500);
                                   
                                   // Advance to next step
                                   timeouts.push(setTimeout(() => {
@@ -571,7 +579,7 @@ export default function UnifiedDemo() {
                 ...DRILL_RESULTS[player.id]
               }));
               setPlayers(updatedPlayers);
-              addNotification("⚡ All drill results recorded!");
+              addNotification("⚡ All drill results recorded!", "success", 2500);
               
               // Advance to next step after drill results complete
               timeouts.push(setTimeout(() => {
@@ -585,25 +593,19 @@ export default function UnifiedDemo() {
       case "WeightsStep":
         // DRAMATIC WEIGHT ADJUSTMENT SHOWCASE
         timeouts.push(setTimeout(() => {
-          addNotification("🎯 Coach realizes speed is most important for today's scouts!");
+          addNotification("🎯 Coach realizes speed is most important for today's scouts!", "success", 2500);
           setStepSubState("analyzing");
         }, 1000));
 
         // Show current rankings before adjustment - MUCH LONGER
         timeouts.push(setTimeout(() => {
-          addNotification("📊 Current rankings calculated with default weights...");
-          setStepSubState("before-rankings");
-        }, 4000));
-
-        // Coach commentary about the adjustment - MUCH LONGER
-        timeouts.push(setTimeout(() => {
-          addNotification("🧠 Coach: 'These scouts are looking for SPEED today. Let me adjust the formula...'");
+          addNotification("🧠 Coach realizing: 'These scouts want SPEED - let me adjust!'", "success", 4000);
           setStepSubState("coach-thinking");
-        }, 10000));
+        }, 4000));
 
         // Start dramatic weight adjustments with explanation - MUCH SLOWER
         timeouts.push(setTimeout(() => {
-          addNotification("⚖️ WATCH THE BLUE SLIDER MOVE: Increasing 40-Yard Dash from 30% to 45%...");
+          addNotification("⚖️ WATCH: Dramatically adjusting weights for speed emphasis", "success", 8000);
           setStepSubState("adjusting-speed");
           
           // DRAMATICALLY SLOW adjustment of 40-yard dash weight  
@@ -619,57 +621,48 @@ export default function UnifiedDemo() {
               
               // LONG pause to show impact
               timeouts.push(setTimeout(() => {
-                addNotification("📈 SEE THE SLIDER VALUE JUMP! Rankings are changing as speed becomes more important!");
+                addNotification("📈 Rankings transforming as speed becomes priority!", "success", 6000);
                 
-                // MUCH LONGER pause before next adjustment
+                // Continue with vertical and throwing adjustments
                 timeouts.push(setTimeout(() => {
-                  addNotification("⚖️ WATCH THE NEXT SLIDER: Boosting Vertical Jump weight for explosiveness...");
                   setStepSubState("adjusting-vertical");
                   let currentWeight2 = 20;
                   const targetWeight2 = 30;
                   const sliderInterval2 = setInterval(() => {
                     if (currentWeight2 < targetWeight2) {
-                      currentWeight2 += 0.25; // Smaller increments for smoother visual movement
+                      currentWeight2 += 0.25;
                       setWeights(prev => ({ ...prev, vertical: Math.round(currentWeight2 * 10) / 10 }));
                     } else {
                       clearInterval(sliderInterval2);
                       intervals.push(sliderInterval2);
                       
-                      // LONG pause after vertical adjustment
                       timeouts.push(setTimeout(() => {
-                        addNotification("⚖️ FINAL SLIDER ADJUSTMENT: Fine-tuning throwing weight for position evaluation...");
                         setStepSubState("adjusting-throwing");
                         let currentWeight3 = 15;
                         const targetWeight3 = 25;
                         const sliderInterval3 = setInterval(() => {
                           if (currentWeight3 < targetWeight3) {
-                            currentWeight3 += 0.2; // Smaller increments for smoother visual movement
+                            currentWeight3 += 0.2;
                             setWeights(prev => ({ ...prev, throwing: Math.round(currentWeight3 * 10) / 10 }));
                           } else {
                             clearInterval(sliderInterval3);
                             intervals.push(sliderInterval3);
                             
-                            // VERY LONG pause before big reveal
                             timeouts.push(setTimeout(() => {
                               setStepSubState("dramatic-reveal");
-                              addNotification("🚀 BOOM! Rankings completely transformed! New speed demons on top!");
+                              addNotification("🚀 BOOM! Rankings completely transformed!", "success", 6000);
                               
                               timeouts.push(setTimeout(() => {
-                                addNotification("💡 THIS is what separates WooCombine from basic stopwatch apps!");
-                                
-                                // LONG final pause to let it sink in
-                                timeouts.push(setTimeout(() => {
-                                  advanceToNextStep();
-                                }, 8000));
-                              }, 5000));
+                                advanceToNextStep();
+                              }, 8000));
                             }, 4000));
                           }
-                        }, 500); // MUCH slower final adjustment - half second per step!
-                      }, 6000)); // LONG pause between adjustments
+                        }, 500);
+                      }, 6000));
                     }
-                  }, 400); // SLOWER vertical animation
-                }, 6000)); // MUCH longer pause
-              }, 4000)); // LONGER pause to show impact
+                  }, 400);
+                }, 6000));
+              }, 4000));
             }
           }, 300); // MUCH slower 40-yard adjustment - 300ms per step!
           intervals.push(sliderInterval);
@@ -678,11 +671,11 @@ export default function UnifiedDemo() {
         
       case "BasicRankingsStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📊 Generating comprehensive rankings...");
+          addNotification("📊 Generating comprehensive rankings...", "success", 2500);
           setStepSubState("processing");
           
           timeouts.push(setTimeout(() => {
-            addNotification("🏆 Rankings complete! Moving to power features...");
+            addNotification("🏆 Rankings complete! Moving to power features...", "success", 2500);
             setStepSubState("complete");
             
             timeouts.push(setTimeout(() => {
@@ -694,11 +687,11 @@ export default function UnifiedDemo() {
         
       case "TransitionStep":
         timeouts.push(setTimeout(() => {
-          addNotification("🚀 Workflow complete! Now let's see the REAL power...");
+          addNotification("🚀 Workflow complete! Now let's see the REAL power...", "success", 2500);
           setStepSubState("dramatic");
           
           timeouts.push(setTimeout(() => {
-            addNotification("✨ These next features will blow your mind!");
+            addNotification("✨ These next features will blow your mind!", "success", 2500);
             
             timeouts.push(setTimeout(() => {
               advanceToNextStep();
@@ -709,123 +702,73 @@ export default function UnifiedDemo() {
         
       case "LiveUpdatesStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📱 Simulating live drill results...");
+          addNotification("📱 Live drill results flowing in real-time...", "success", 3000);
           setStepSubState("live-demo");
           
-          // Simulate rapid results coming in
-          const resultTimeouts = [1000, 2000, 3500, 4500, 6000];
-          const resultMessages = [
-            "⚡ Alex Johnson: 4.32 (40-yard dash)",
-            "📏 Jordan Smith: 38\" (vertical jump)", 
-            "🏈 Taylor Brown: 22 pts (catching)",
-            "🎯 Morgan Davis: 89 pts (throwing)",
-            "📊 Rankings updating in real-time!"
-          ];
-          
-          resultTimeouts.forEach((delay, index) => {
-            timeouts.push(setTimeout(() => {
-              addNotification(resultMessages[index]);
-            }, delay));
-          });
-          
           timeouts.push(setTimeout(() => {
-            advanceToNextStep();
-          }, 7000));
+            addNotification("📊 Rankings updating automatically as athletes complete drills!", "success", 3000);
+            
+            timeouts.push(setTimeout(() => {
+              advanceToNextStep();
+            }, 3500));
+          }, 3000));
         }, 1000));
         break;
         
       case "ParentNotificationsStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📲 Sending parent notifications...");
+          addNotification("📲 Parents receiving instant updates on their phones...", "success", 3000);
           setStepSubState("notifications");
           
-          const notificationTimeouts = [1500, 2500, 4000, 5500];
-          const notificationMessages = [
-            "📱 Alex's dad: 'Great 40-yard time!'",
-            "📱 Jordan's mom: 'Proud of that vertical!'",
-            "📱 Taylor's family: 'Excellent catching!'",
-            "📱 Morgan's parents: 'Amazing overall results!'"
-          ];
-          
-          notificationTimeouts.forEach((delay, index) => {
-            timeouts.push(setTimeout(() => {
-              addNotification(notificationMessages[index]);
-            }, delay));
-          });
-          
           timeouts.push(setTimeout(() => {
-            advanceToNextStep();
-          }, 6500));
+            addNotification("📱 Families stay engaged throughout the entire combine!", "success", 3000);
+            
+            timeouts.push(setTimeout(() => {
+              advanceToNextStep();
+            }, 3500));
+          }, 3000));
         }, 1000));
         break;
         
       case "AdvancedAnalyticsStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📈 Generating advanced analytics...");
+          addNotification("📈 AI generating advanced analytics and insights...", "success", 4000);
           setStepSubState("analytics");
           
           timeouts.push(setTimeout(() => {
-            addNotification("🔍 Trend analysis: Speed scores improving 15% vs last season");
+            addNotification("🎯 Scout recommendations and predictive insights ready!", "success", 4000);
             
             timeouts.push(setTimeout(() => {
-              addNotification("📊 Predictive insights: Top 3 players projected for varsity");
-              
-              timeouts.push(setTimeout(() => {
-                addNotification("🎯 Scout recommendations: 5 players flagged for recruitment");
-                
-                timeouts.push(setTimeout(() => {
-                  advanceToNextStep();
-                }, 2000));
-              }, 2000));
-            }, 2000));
-          }, 2000));
+              advanceToNextStep();
+            }, 4500));
+          }, 4000));
         }, 1000));
         break;
         
       case "TeamFormationStep":
         timeouts.push(setTimeout(() => {
-          addNotification("👥 AI analyzing optimal team combinations...");
+          addNotification("👥 AI creating perfectly balanced teams in seconds...", "success", 4000);
           setStepSubState("team-formation");
           
           timeouts.push(setTimeout(() => {
-            addNotification("⚖️ Balancing speed, strength, and skill across teams");
+            addNotification("🏆 Perfect balance achieved! (vs 30+ minutes manually)", "success", 4000);
             
             timeouts.push(setTimeout(() => {
-              addNotification("🏆 Perfect team balance achieved in 3 seconds!");
-              
-              timeouts.push(setTimeout(() => {
-                addNotification("💡 This would take a coach 30+ minutes manually");
-                
-                timeouts.push(setTimeout(() => {
-                  advanceToNextStep();
-                }, 2000));
-              }, 2000));
-            }, 2000));
-          }, 2000));
+              advanceToNextStep();
+            }, 4500));
+          }, 4000));
         }, 1000));
         break;
         
       case "WowFactorStep":
         timeouts.push(setTimeout(() => {
-          addNotification("🎉 DEMO COMPLETE! Let's recap what just happened...");
+          addNotification("🎉 DEMO COMPLETE! 3 minutes vs 4+ HOURS manually", "success", 5000);
           setStepSubState("wow-reveal");
           
           timeouts.push(setTimeout(() => {
-            addNotification("⏱️ Total time: 3 minutes automated vs 4+ HOURS manually");
-            
-            timeouts.push(setTimeout(() => {
-              addNotification("📊 Generated: Rankings, analytics, reports, teams, notifications");
-              
-              timeouts.push(setTimeout(() => {
-                addNotification("💰 Value delivered: Priceless insights in minutes");
-                
-                timeouts.push(setTimeout(() => {
-                  addNotification("🚀 Ready to transform your combine? Let's get started!");
-                  setStepSubState("call-to-action");
-                }, 2000));
-              }, 2000));
-            }, 2000));
-          }, 2000));
+            addNotification("🚀 Ready to transform your combine? Let's get started!", "success", 5000);
+            setStepSubState("call-to-action");
+          }, 5000));
         }, 1000));
         break;
     }
