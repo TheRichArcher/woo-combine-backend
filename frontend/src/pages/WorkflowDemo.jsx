@@ -109,6 +109,12 @@ export default function WorkflowDemo() {
   });
   const [currentDrillPlayer, setCurrentDrillPlayer] = useState(null);
   
+  // Manual player form state
+  const [manualPlayerFirstName, setManualPlayerFirstName] = useState("");
+  const [manualPlayerLastName, setManualPlayerLastName] = useState("");
+  const [manualPlayerNumber, setManualPlayerNumber] = useState("");
+  const [manualPlayerAgeGroup, setManualPlayerAgeGroup] = useState("");
+  
   // Animation state
   const [typingStates, setTypingStates] = useState({});
   const [buttonStates, setButtonStates] = useState({});
@@ -197,6 +203,10 @@ export default function WorkflowDemo() {
       agility: 20
     });
     setCurrentDrillPlayer(null);
+    setManualPlayerFirstName("");
+    setManualPlayerLastName("");
+    setManualPlayerNumber("");
+    setManualPlayerAgeGroup("");
     setNotifications([]);
     setTypingStates({});
     setButtonStates({});
@@ -387,21 +397,98 @@ export default function WorkflowDemo() {
         break;
         
       case "ManualPlayerStep":
-        // Simulate typing player details
+        // Reset form fields and start typing animation sequence
+        setManualPlayerFirstName("");
+        setManualPlayerLastName("");
+        setManualPlayerNumber("");
+        setManualPlayerAgeGroup("");
+        
+        // Step 1: Type First Name
         timeouts.push(setTimeout(() => {
-          animateButtonClick('add-player-btn', () => {
-            timeouts.push(setTimeout(() => {
-              const newPlayer = { id: 7, name: "Sam Wilson", number: 21, age_group: "U16", fortyYardDash: null, vertical: null, catching: null, throwing: null, agility: null };
-              setPlayers(prev => [...prev, newPlayer]);
-              addNotification("👤 Sam Wilson added manually!");
+          addNotification("📝 Coach typing player details...");
+          const firstName = "Sam";
+          let index = 0;
+          setShowCursor(prev => ({ ...prev, manualPlayerFirstName: true }));
+          
+          const typeFirstNameInterval = setInterval(() => {
+            if (index < firstName.length) {
+              setManualPlayerFirstName(firstName.slice(0, index + 1));
+              index++;
+            } else {
+              clearInterval(typeFirstNameInterval);
+              setShowCursor(prev => ({ ...prev, manualPlayerFirstName: false }));
               
-              // Advance to next step after manual player is added
+              // Step 2: Type Last Name after first name is done
               timeouts.push(setTimeout(() => {
-                advanceToNextStep();
-              }, 1000));
-            }, 500));
-          });
-        }, 2000));
+                const lastName = "Wilson";
+                let lastNameIndex = 0;
+                setShowCursor(prev => ({ ...prev, manualPlayerLastName: true }));
+                
+                const typeLastNameInterval = setInterval(() => {
+                  if (lastNameIndex < lastName.length) {
+                    setManualPlayerLastName(lastName.slice(0, lastNameIndex + 1));
+                    lastNameIndex++;
+                  } else {
+                    clearInterval(typeLastNameInterval);
+                    setShowCursor(prev => ({ ...prev, manualPlayerLastName: false }));
+                    
+                    // Step 3: Type Number
+                    timeouts.push(setTimeout(() => {
+                      const number = "21";
+                      let numberIndex = 0;
+                      setShowCursor(prev => ({ ...prev, manualPlayerNumber: true }));
+                      
+                      const typeNumberInterval = setInterval(() => {
+                        if (numberIndex < number.length) {
+                          setManualPlayerNumber(number.slice(0, numberIndex + 1));
+                          numberIndex++;
+                        } else {
+                          clearInterval(typeNumberInterval);
+                          setShowCursor(prev => ({ ...prev, manualPlayerNumber: false }));
+                          
+                          // Step 4: Select Age Group (simulate dropdown)
+                          timeouts.push(setTimeout(() => {
+                            addNotification("🎯 Selecting age group...");
+                            setManualPlayerAgeGroup("U16");
+                            
+                            // Step 5: Click Add Player button
+                            timeouts.push(setTimeout(() => {
+                              animateButtonClick('add-player-btn', () => {
+                                timeouts.push(setTimeout(() => {
+                                  const newPlayer = { 
+                                    id: 7, 
+                                    name: "Sam Wilson", 
+                                    number: 21, 
+                                    age_group: "U16", 
+                                    fortyYardDash: null, 
+                                    vertical: null, 
+                                    catching: null, 
+                                    throwing: null, 
+                                    agility: null 
+                                  };
+                                  setPlayers(prev => [...prev, newPlayer]);
+                                  addNotification("👤 Sam Wilson added manually!");
+                                  
+                                  // Advance to next step
+                                  timeouts.push(setTimeout(() => {
+                                    advanceToNextStep();
+                                  }, 1200));
+                                }, 500));
+                              });
+                            }, 800));
+                          }, 600));
+                        }
+                      }, 180);
+                      intervals.push(typeNumberInterval);
+                    }, 400));
+                  }
+                }, 140);
+                intervals.push(typeLastNameInterval);
+              }, 500));
+            }
+          }, 130);
+          intervals.push(typeFirstNameInterval);
+        }, 1000));
         break;
         
       case "DrillResultsStep":
@@ -809,32 +896,69 @@ export default function WorkflowDemo() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    defaultValue="Sam"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
+                        showCursor.manualPlayerFirstName 
+                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
+                          : 'border-gray-300'
+                      }`}
+                      value={manualPlayerFirstName}
+                      readOnly
+                    />
+                    {showCursor.manualPlayerFirstName && (
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    defaultValue="Wilson"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
+                        showCursor.manualPlayerLastName 
+                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
+                          : 'border-gray-300'
+                      }`}
+                      value={manualPlayerLastName}
+                      readOnly
+                    />
+                    {showCursor.manualPlayerLastName && (
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Number</label>
-                  <input
-                    type="number"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Auto-assigned"
-                    defaultValue="21"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
+                        showCursor.manualPlayerNumber 
+                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
+                          : 'border-gray-300'
+                      }`}
+                      placeholder="Auto-assigned"
+                      value={manualPlayerNumber}
+                      readOnly
+                    />
+                    {showCursor.manualPlayerNumber && (
+                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Age Group</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg" defaultValue="U16">
+                  <select 
+                    className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
+                      manualPlayerAgeGroup ? 'border-green-500 bg-green-50' : 'border-gray-300'
+                    }`} 
+                    value={manualPlayerAgeGroup}
+                    disabled
+                  >
+                    <option value="">Select age group...</option>
                     <option value="U14">U14</option>
                     <option value="U16">U16</option>
                     <option value="U18">U18</option>
