@@ -8,21 +8,21 @@ export default function WelcomeContent({ variant = 'default' }) {
     switch (variant) {
       case 'mojo-style':
         return {
-          title: "Dominate. Track. Win.",
-          subtitle: "Elevate your game with precision tracking and real-time insights that champions demand.",
-          buttonText: "Start Dominating"
+          title: "Track Every 40-Yard Dash, Score Every Drill",
+          subtitle: "Real-time combine tracking that turns raw athletic performance into championship insights. See results instantly.",
+          buttonText: "Start Tracking"
         };
       case 'sports-focused':
         return {
-          title: "Train. Compete. Excel.",
-          subtitle: "Professional-grade combine tracking and analytics for serious athletes and coaches.",
-          buttonText: "Join the Elite"
+          title: "Digital Sports Combines Made Simple",
+          subtitle: "Run professional NFL-style combines with instant digital scorecards. No more clipboards or calculators.",
+          buttonText: "Try It Free"
         };
       default:
         return {
-          title: "Coach. Manage. Never miss a moment.",
-          subtitle: "Your all-in-one platform for team management, communication, and never missing a play.",
-          buttonText: "Get Started"
+          title: "Digital Combine Tracking",
+          subtitle: "Turn your phone into a professional combine timer. Track 40-yard dashes, vertical jumps, and drills with instant digital scorecards.",
+          buttonText: "Start Free Trial"
         };
     }
   };

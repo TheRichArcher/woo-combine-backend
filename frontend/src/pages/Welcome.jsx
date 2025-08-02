@@ -29,21 +29,24 @@ export default function Welcome() {
     switch (welcomeVariant) {
       case 'mojo-style':
         return {
-          title: "Dominate. Track. Win.",
-          subtitle: "Elevate your game with precision tracking and real-time insights that champions demand.",
-          buttonText: "Start Dominating"
+          title: "Track Every 40-Yard Dash, Score Every Drill",
+          subtitle: "Real-time combine tracking that turns raw athletic performance into championship insights. See results instantly.",
+          buttonText: "Start Tracking",
+          hook: "⚡ Live combine scoring in seconds"
         };
       case 'sports-focused':
         return {
-          title: "Train. Compete. Excel.",
-          subtitle: "Professional-grade combine tracking and analytics for serious athletes and coaches.",
-          buttonText: "Join the Elite"
+          title: "Digital Sports Combines Made Simple",
+          subtitle: "Run professional NFL-style combines with instant digital scorecards. No more clipboards or calculators.",
+          buttonText: "Try It Free",
+          hook: "🏃‍♂️ From 40-yard dash to digital scorecard in 30 seconds"
         };
       default:
         return {
-          title: "Coach. Manage. Excel.",
-          subtitle: "Your all-in-one platform for team management, combine tracking, and athletic excellence.",
-          buttonText: "Get Started"
+          title: "Digital Combine Tracking",
+          subtitle: "Turn your phone into a professional combine timer. Track 40-yard dashes, vertical jumps, and drills with instant digital scorecards.",
+          buttonText: "Start Free Trial",
+          hook: "📱 Replace clipboards with instant digital scoring"
         };
     }
   };
@@ -69,6 +72,11 @@ export default function Welcome() {
 
         {/* Main Content */}
         <div className="text-center mb-8">
+          {/* Hook - Immediate Value Proposition */}
+          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg px-4 py-2 mb-4">
+            <span className="text-cyan-700 font-medium text-sm">{content.hook}</span>
+          </div>
+          
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
             {content.title}
           </h1>
@@ -76,13 +84,23 @@ export default function Welcome() {
             {content.subtitle}
           </p>
           
-          {/* Primary CTA Button */}
-          <button
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] mb-6"
-            onClick={() => navigate("/signup")}
-          >
-            {content.buttonText}
-          </button>
+          {/* Primary CTA Buttons */}
+          <div className="space-y-3 mb-6">
+            <button
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              onClick={() => navigate("/signup")}
+            >
+              {content.buttonText}
+            </button>
+            
+            {/* Demo Button - Immediate Access */}
+            <button
+              className="w-full bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 transform hover:scale-[1.02]"
+              onClick={() => navigate("/demo")}
+            >
+              👀 Try Demo - See It In Action
+            </button>
+          </div>
         </div>
 
         {/* Footer Links */}

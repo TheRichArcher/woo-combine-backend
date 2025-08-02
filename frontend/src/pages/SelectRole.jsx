@@ -7,54 +7,28 @@ import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { ChevronDown, Shield, Users, Eye, CheckCircle, Settings, BarChart3, Upload } from 'lucide-react';
 
-// Enhanced role options with detailed permissions and features
+// Simplified role options for faster onboarding
 const ALL_ROLE_OPTIONS = [
   { 
     key: "organizer", 
-    label: "League Operator", 
-    desc: "Manage events, upload players, run combines",
+    label: "League Organizer", 
+    desc: "Run combines and manage events",
     icon: Shield,
-    color: "from-purple-50 to-indigo-50 border-purple-200",
-    features: [
-      "Create and manage leagues & events",
-      "Upload and manage player rosters",
-      "Configure drill templates & weights",
-      "Run live entry sessions",
-      "Generate reports & scorecards",
-      "Manage evaluators & permissions"
-    ],
-    access: "Full administrative control"
+    emoji: "🏆"
   },
   { 
     key: "coach", 
     label: "Coach", 
-    desc: "View player performance and analyze results",
+    desc: "View player stats and rankings",
     icon: BarChart3,
-    color: "from-blue-50 to-cyan-50 border-blue-200",
-    features: [
-      "View player rankings & statistics",
-      "Analyze performance data",
-      "Export rankings & reports",
-      "Team formation tools",
-      "Custom weight configurations",
-      "Player comparison tools"
-    ],
-    access: "Read access to event data"
+    emoji: "📊"
   },
   { 
     key: "viewer", 
-    label: "Parent/Viewer", 
-    desc: "View event results and player performance",
+    label: "Parent/Fan", 
+    desc: "Watch results and scorecards",
     icon: Eye,
-    color: "from-green-50 to-emerald-50 border-green-200",
-    features: [
-      "View event results & rankings",
-      "See individual player performance",
-      "Download player scorecards",
-      "Basic performance comparisons",
-      "Event schedule & information"
-    ],
-    access: "Read-only event viewing"
+    emoji: "👀"
   }
 ];
 
@@ -207,29 +181,13 @@ export default function SelectRole() {
         </div>
 
         {/* Header */}
-        <h1 className="text-2xl font-bold mb-4 text-gray-900">Choose Your Role</h1>
-        
-        {intendedRole ? (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-amber-600">🔒</span>
-              <p className="text-amber-800 font-medium text-sm">Role Pre-Selected for Security</p>
-            </div>
-            <p className="text-amber-700 text-sm">
-              You've been invited as a <strong>{intendedRole === 'coach' ? 'Coach' : 'Viewer'}</strong>. This role has been pre-selected to ensure proper access permissions.
-            </p>
-          </div>
-        ) : isInvitedUser ? (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <p className="text-blue-800 text-sm">
-              You've been invited to join an event! Please select your role to continue.
-            </p>
-          </div>
-        ) : (
-          <p className="mb-6 text-gray-600">
-            Select the role that best describes your involvement in youth sports combines.
-          </p>
-        )}
+        <h1 className="text-2xl font-bold mb-2 text-gray-900">Almost Done!</h1>
+        <p className="mb-6 text-gray-600 text-sm">
+          {intendedRole ? 
+            `You've been invited as a ${intendedRole === 'coach' ? 'Coach' : 'Viewer'} - just confirm to continue.` :
+            "Quick setup: What's your role?"
+          }
+        </p>
 
         {/* Debug Info (Development Only) */}
         {import.meta.env.DEV && (
@@ -242,72 +200,31 @@ export default function SelectRole() {
           </div>
         )}
         
-        {/* Role Selection Dropdown */}
-        <div className="w-full mb-6">
-          <div className="relative">
-            <select
-              value={selectedRole || ''}
-              onChange={(e) => setSelectedRole(e.target.value)}
+        {/* Simplified Role Selection */}
+        <div className="w-full mb-6 space-y-3">
+          {roleOptions.map((role) => (
+            <button
+              key={role.key}
+              onClick={() => setSelectedRole(role.key)}
               disabled={loading}
-              className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200"
+              className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
+                selectedRole === role.key
+                  ? 'border-cyan-500 bg-cyan-50'
+                  : 'border-gray-200 hover:border-gray-300 bg-white'
+              }`}
             >
-              <option value="" disabled>Choose your role...</option>
-              {roleOptions.map((role) => (
-                <option key={role.key} value={role.key}>
-                  {role.label} - {role.desc}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-          </div>
-
-          {/* Role Preview Card */}
-          {selectedRole && (
-            <div className={`mt-4 bg-gradient-to-br ${roleOptions.find(r => r.key === selectedRole)?.color} border-2 rounded-xl p-6`}>
-              {(() => {
-                const selectedRoleData = roleOptions.find(r => r.key === selectedRole);
-                const IconComponent = selectedRoleData?.icon || Users;
-                return (
-                  <>
-                    {/* Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                      <IconComponent className="w-8 h-8 text-gray-700" />
-                      <div className="flex-1">
-                        <h4 className="text-lg font-bold text-gray-900">{selectedRoleData?.label}</h4>
-                        <p className="text-sm text-gray-700">{selectedRoleData?.desc}</p>
-                      </div>
-                      <CheckCircle className="w-6 h-6 text-cyan-600" />
-                    </div>
-
-                    {/* Access Level */}
-                    <div className="bg-white/70 rounded-lg p-3 border border-gray-200 mb-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <Shield className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm font-medium text-gray-900">Access Level</span>
-                      </div>
-                      <div className="text-sm text-gray-800">{selectedRoleData?.access}</div>
-                    </div>
-
-                    {/* Features */}
-                    <div className="bg-white/70 rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Settings className="w-4 h-4 text-gray-600" />
-                        <span className="text-sm font-medium text-gray-900">What you can do:</span>
-                      </div>
-                      <div className="grid grid-cols-1 gap-1">
-                        {selectedRoleData?.features.map((feature, index) => (
-                          <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
-                            {feature}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{role.emoji}</span>
+                <div className="flex-1">
+                  <h4 className="font-semibold text-gray-900">{role.label}</h4>
+                  <p className="text-sm text-gray-600">{role.desc}</p>
+                </div>
+                {selectedRole === role.key && (
+                  <CheckCircle className="w-5 h-5 text-cyan-600" />
+                )}
+              </div>
+            </button>
+          ))}
         </div>
 
         {/* Error Message */}
@@ -337,8 +254,8 @@ export default function SelectRole() {
         </div>
 
         {/* Help Text */}
-        <div className="mt-6 text-sm text-gray-500">
-          <p>You can change your role later in account settings.</p>
+        <div className="mt-4 text-xs text-gray-400">
+          <p>Can be changed later</p>
         </div>
       </div>
     </WelcomeLayout>

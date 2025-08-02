@@ -16,6 +16,7 @@ import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
+import Demo from "./pages/Demo";
 
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
@@ -52,6 +53,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
                 <Route path="/welcome" element={<Welcome />} />
+                <Route path="/demo" element={<Demo />} />
                 
                 {/* New Feature Routes */}
                 <Route 
