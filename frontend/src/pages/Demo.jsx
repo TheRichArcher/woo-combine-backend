@@ -1001,6 +1001,13 @@ export default function Demo() {
               </button>
               
               <button
+                onClick={() => navigate("/workflow-demo")}
+                className="border border-white text-white font-medium py-2 px-3 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
+              >
+                🔧 Workflow Demo
+              </button>
+              
+              <button
                 onClick={() => navigate("/welcome")}
                 className="border border-white text-white font-medium py-2 px-3 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
               >
