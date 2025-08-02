@@ -108,6 +108,27 @@ export default function WorkflowDemo() {
     agility: 20
   });
   const [currentDrillPlayer, setCurrentDrillPlayer] = useState(null);
+  
+  // Animation state
+  const [typingStates, setTypingStates] = useState({});
+  const [buttonStates, setButtonStates] = useState({});
+  const [showCursor, setShowCursor] = useState({});
+
+
+
+  // Button click animation
+  const animateButtonClick = (buttonId, callback) => {
+    setButtonStates(prev => ({ ...prev, [buttonId]: 'clicking' }));
+    
+    setTimeout(() => {
+      setButtonStates(prev => ({ ...prev, [buttonId]: 'clicked' }));
+      if (callback) callback();
+      
+      setTimeout(() => {
+        setButtonStates(prev => ({ ...prev, [buttonId]: 'normal' }));
+      }, 300);
+    }, 150);
+  };
 
   // Auto-advance steps
   useEffect(() => {
@@ -168,6 +189,9 @@ export default function WorkflowDemo() {
     });
     setCurrentDrillPlayer(null);
     setNotifications([]);
+    setTypingStates({});
+    setButtonStates({});
+    setShowCursor({});
   };
 
   const addNotification = (message, type = "success") => {
@@ -211,48 +235,141 @@ export default function WorkflowDemo() {
     .sort((a, b) => b.compositeScore - a.compositeScore)
     .map((player, index) => ({ ...player, rank: index + 1 }));
 
-  // Step-specific effects
+  // Step-specific effects with animations
   useEffect(() => {
     const step = WORKFLOW_STEPS[currentStep];
     if (!step) return;
 
     switch (step.component) {
       case "CreateLeagueStep":
-        setTimeout(() => setLeagueName("Spring Football League"), 1500);
+        // Simulate typing league name
+        setTimeout(() => {
+          const text = "Spring Football League";
+          let index = 0;
+          setLeagueName("");
+          setShowCursor(prev => ({ ...prev, leagueName: true }));
+          
+          const typeInterval = setInterval(() => {
+            if (index < text.length) {
+              setLeagueName(text.slice(0, index + 1));
+              index++;
+            } else {
+              clearInterval(typeInterval);
+              setShowCursor(prev => ({ ...prev, leagueName: false }));
+              
+              // Animate button click after typing
+              setTimeout(() => {
+                animateButtonClick('create-league-btn', () => {
+                  addNotification("🏈 League created successfully!");
+                });
+              }, 800);
+            }
+          }, 120);
+        }, 1000);
         break;
+        
       case "CreateEventStep":
-        setTimeout(() => setEventName("2024 Spring Showcase"), 2000);
+        // Simulate typing event name
+        setTimeout(() => {
+          const text = "2024 Spring Showcase";
+          let index = 0;
+          setEventName("");
+          setShowCursor(prev => ({ ...prev, eventName: true }));
+          
+          const typeInterval = setInterval(() => {
+            if (index < text.length) {
+              setEventName(text.slice(0, index + 1));
+              index++;
+            } else {
+              clearInterval(typeInterval);
+              setShowCursor(prev => ({ ...prev, eventName: false }));
+              
+              // Animate button click
+              setTimeout(() => {
+                animateButtonClick('create-event-btn', () => {
+                  addNotification("📅 Event scheduled successfully!");
+                });
+              }, 800);
+            }
+          }, 100);
+        }, 1500);
         break;
+        
       case "UploadCsvStep":
+        // Simulate file upload with progress
         setTimeout(() => {
-          setPlayers(DEMO_PLAYERS);
-          addNotification("✅ 6 players uploaded successfully!");
-        }, 3000);
+          animateButtonClick('upload-csv-btn', () => {
+            setTimeout(() => {
+              setPlayers(DEMO_PLAYERS);
+              addNotification("✅ 6 players uploaded successfully!");
+            }, 1000);
+          });
+        }, 2000);
         break;
+        
       case "ManualPlayerStep":
+        // Simulate typing player details
         setTimeout(() => {
-          const newPlayer = { id: 7, name: "Sam Wilson", number: 21, age_group: "U16", fortyYardDash: null, vertical: null, catching: null, throwing: null, agility: null };
-          setPlayers(prev => [...prev, newPlayer]);
-          addNotification("👤 Sam Wilson added manually!");
-        }, 3000);
+          animateButtonClick('add-player-btn', () => {
+            setTimeout(() => {
+              const newPlayer = { id: 7, name: "Sam Wilson", number: 21, age_group: "U16", fortyYardDash: null, vertical: null, catching: null, throwing: null, agility: null };
+              setPlayers(prev => [...prev, newPlayer]);
+              addNotification("👤 Sam Wilson added manually!");
+            }, 500);
+          });
+        }, 2000);
         break;
+        
       case "DrillResultsStep":
         setTimeout(() => {
           setCurrentDrillPlayer(players[0]);
         }, 1000);
+        
+        // Simulate entering drill result
         setTimeout(() => {
-          const updatedPlayers = players.map(player => ({
-            ...player,
-            ...DRILL_RESULTS[player.id]
-          }));
-          setPlayers(updatedPlayers);
-          addNotification("⚡ All drill results recorded!");
-        }, 5000);
-        break;
-      case "WeightsStep":
-        setTimeout(() => {
-          setWeights(prev => ({ ...prev, fortyYardDash: 45, vertical: 25 }));
+          animateButtonClick('record-result-btn', () => {
+            setTimeout(() => {
+              const updatedPlayers = players.map(player => ({
+                ...player,
+                ...DRILL_RESULTS[player.id]
+              }));
+              setPlayers(updatedPlayers);
+              addNotification("⚡ All drill results recorded!");
+            }, 800);
+          });
         }, 3000);
+        break;
+        
+      case "WeightsStep":
+        // Simulate adjusting sliders
+        setTimeout(() => {
+          // Animate first slider
+          let currentWeight = 30;
+          const targetWeight = 45;
+          const sliderInterval = setInterval(() => {
+            if (currentWeight < targetWeight) {
+              currentWeight += 1;
+              setWeights(prev => ({ ...prev, fortyYardDash: currentWeight }));
+            } else {
+              clearInterval(sliderInterval);
+              
+              // Animate second slider
+              setTimeout(() => {
+                let currentWeight2 = 20;
+                const targetWeight2 = 25;
+                const sliderInterval2 = setInterval(() => {
+                  if (currentWeight2 < targetWeight2) {
+                    currentWeight2 += 1;
+                    setWeights(prev => ({ ...prev, vertical: currentWeight2 }));
+                  } else {
+                    clearInterval(sliderInterval2);
+                    addNotification("⚖️ Weights adjusted for speed emphasis!");
+                  }
+                }, 100);
+              }, 500);
+            }
+          }, 80);
+        }, 2000);
         break;
     }
   }, [currentStep, players]);
@@ -270,21 +387,46 @@ export default function WorkflowDemo() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">League Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition"
-                    placeholder="Enter league name..."
-                    value={leagueName}
-                    onChange={(e) => setLeagueName(e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition ${
+                        showCursor.leagueName ? 'ring-2 ring-blue-400' : ''
+                      }`}
+                      placeholder="Enter league name..."
+                      value={leagueName}
+                      onChange={(e) => setLeagueName(e.target.value)}
+                      style={{ 
+                        borderColor: showCursor.leagueName ? '#3b82f6' : '#d1d5db',
+                        boxShadow: showCursor.leagueName ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none'
+                      }}
+                    />
+                    {showCursor.leagueName && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="w-0.5 h-5 bg-blue-600 animate-pulse"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
-                  Create League & Continue
+                <button 
+                  id="create-league-btn"
+                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
+                    buttonStates['create-league-btn'] === 'clicking' 
+                      ? 'bg-blue-700 text-white transform scale-95' 
+                      : buttonStates['create-league-btn'] === 'clicked'
+                        ? 'bg-green-600 text-white transform scale-100'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {buttonStates['create-league-btn'] === 'clicked' 
+                    ? '✓ League Created!' 
+                    : 'Create League & Continue'
+                  }
                 </button>
               </div>
             </div>
             {leagueName && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3 animate-fade-in">
                 <p className="text-green-800 text-sm">✅ League "{leagueName}" created successfully!</p>
               </div>
             )}
@@ -299,13 +441,26 @@ export default function WorkflowDemo() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Event Name</label>
-                  <input
-                    type="text"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                    placeholder="Enter event name..."
-                    value={eventName}
-                    onChange={(e) => setEventName(e.target.value)}
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg transition ${
+                        showCursor.eventName ? 'ring-2 ring-green-400' : ''
+                      }`}
+                      placeholder="Enter event name..."
+                      value={eventName}
+                      onChange={(e) => setEventName(e.target.value)}
+                      style={{ 
+                        borderColor: showCursor.eventName ? '#10b981' : '#d1d5db',
+                        boxShadow: showCursor.eventName ? '0 0 0 3px rgba(16, 185, 129, 0.1)' : 'none'
+                      }}
+                    />
+                    {showCursor.eventName && (
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                        <div className="w-0.5 h-5 bg-green-600 animate-pulse"></div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -326,13 +481,25 @@ export default function WorkflowDemo() {
                     />
                   </div>
                 </div>
-                <button className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold">
-                  Create Event
+                <button 
+                  id="create-event-btn"
+                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
+                    buttonStates['create-event-btn'] === 'clicking' 
+                      ? 'bg-green-700 text-white transform scale-95' 
+                      : buttonStates['create-event-btn'] === 'clicked'
+                        ? 'bg-blue-600 text-white transform scale-100'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
+                >
+                  {buttonStates['create-event-btn'] === 'clicked' 
+                    ? '✓ Event Created!' 
+                    : 'Create Event'
+                  }
                 </button>
               </div>
             </div>
             {eventName && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
                 <p className="text-blue-800 text-sm">📅 Event "{eventName}" scheduled!</p>
               </div>
             )}
@@ -344,11 +511,33 @@ export default function WorkflowDemo() {
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h3 className="text-lg font-semibold mb-4">Upload Player Roster</h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
+                buttonStates['upload-csv-btn'] === 'clicking' 
+                  ? 'border-blue-400 bg-blue-50' 
+                  : 'border-gray-300'
+              }`}>
+                <Upload className={`w-12 h-12 mx-auto mb-4 transition-all duration-300 ${
+                  buttonStates['upload-csv-btn'] === 'clicking' 
+                    ? 'text-blue-600 animate-bounce' 
+                    : 'text-gray-400'
+                }`} />
                 <p className="text-gray-600 mb-4">Drop CSV file here or click to upload</p>
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                  Choose File
+                <button 
+                  id="upload-csv-btn"
+                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${
+                    buttonStates['upload-csv-btn'] === 'clicking' 
+                      ? 'bg-blue-700 text-white transform scale-95' 
+                      : buttonStates['upload-csv-btn'] === 'clicked'
+                        ? 'bg-green-600 text-white'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {buttonStates['upload-csv-btn'] === 'clicking' 
+                    ? 'Uploading...' 
+                    : buttonStates['upload-csv-btn'] === 'clicked'
+                      ? '✓ Uploaded!'
+                      : 'Choose File'
+                  }
                 </button>
               </div>
               {players.length === 0 && (
@@ -420,9 +609,21 @@ export default function WorkflowDemo() {
                   </select>
                 </div>
               </div>
-              <button className="w-full mt-4 bg-green-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2">
+              <button 
+                id="add-player-btn"
+                className={`w-full mt-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
+                  buttonStates['add-player-btn'] === 'clicking' 
+                    ? 'bg-green-700 text-white transform scale-95' 
+                    : buttonStates['add-player-btn'] === 'clicked'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
                 <UserPlus className="w-4 h-4" />
-                Add Player
+                {buttonStates['add-player-btn'] === 'clicked' 
+                  ? '✓ Player Added!' 
+                  : 'Add Player'
+                }
               </button>
             </div>
           </div>
@@ -475,8 +676,20 @@ export default function WorkflowDemo() {
                   />
                 </div>
                 <div className="flex items-end">
-                  <button className="w-full bg-green-600 text-white py-2 rounded-lg font-semibold">
-                    Record Result
+                  <button 
+                    id="record-result-btn"
+                    className={`w-full py-2 rounded-lg font-semibold transition-all duration-200 ${
+                      buttonStates['record-result-btn'] === 'clicking' 
+                        ? 'bg-green-700 text-white transform scale-95' 
+                        : buttonStates['record-result-btn'] === 'clicked'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    {buttonStates['record-result-btn'] === 'clicked' 
+                      ? '✓ Recorded!' 
+                      : 'Record Result'
+                    }
                   </button>
                 </div>
               </div>
@@ -659,6 +872,17 @@ export default function WorkflowDemo() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fade-in {
+            animation: fade-in 0.5s ease-out;
+          }
+        `
+      }} />
       {/* Floating Notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {notifications.map(notification => (
