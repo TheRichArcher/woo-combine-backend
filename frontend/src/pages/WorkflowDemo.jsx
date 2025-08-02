@@ -450,7 +450,7 @@ export default function WorkflowDemo() {
 
         // Start dramatic weight adjustments with explanation - MUCH SLOWER
         timeouts.push(setTimeout(() => {
-          addNotification("⚖️ Increasing 40-Yard Dash importance from 30% to 45%...");
+          addNotification("⚖️ WATCH THE BLUE SLIDER MOVE: Increasing 40-Yard Dash from 30% to 45%...");
           setStepSubState("adjusting-speed");
           
           // DRAMATICALLY SLOW adjustment of 40-yard dash weight  
@@ -466,11 +466,11 @@ export default function WorkflowDemo() {
               
               // LONG pause to show impact
               timeouts.push(setTimeout(() => {
-                addNotification("📈 Watch the rankings change as speed becomes more important!");
+                addNotification("📈 SEE THE SLIDER VALUE JUMP! Rankings are changing as speed becomes more important!");
                 
                 // MUCH LONGER pause before next adjustment
                 timeouts.push(setTimeout(() => {
-                  addNotification("⚖️ Boosting Vertical Jump weight for explosiveness...");
+                  addNotification("⚖️ WATCH THE NEXT SLIDER: Boosting Vertical Jump weight for explosiveness...");
                   setStepSubState("adjusting-vertical");
                   let currentWeight2 = 20;
                   const targetWeight2 = 30;
@@ -484,7 +484,7 @@ export default function WorkflowDemo() {
                       
                       // LONG pause after vertical adjustment
                       timeouts.push(setTimeout(() => {
-                        addNotification("⚖️ Fine-tuning throwing weight for position-specific evaluation...");
+                        addNotification("⚖️ FINAL SLIDER ADJUSTMENT: Fine-tuning throwing weight for position evaluation...");
                         setStepSubState("adjusting-throwing");
                         let currentWeight3 = 15;
                         const targetWeight3 = 25;
@@ -1018,11 +1018,11 @@ export default function WorkflowDemo() {
               
               <div className="space-y-4">
                 {Object.entries(weights).map(([drill, weight]) => (
-                  <div key={drill} className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 ${
+                  <div key={drill} className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 relative ${
                     (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
                     (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
                     (drill === 'throwing' && stepSubState === 'adjusting-throwing') 
-                      ? 'bg-blue-50 border-2 border-blue-300 transform scale-105' 
+                      ? 'bg-gradient-to-r from-blue-100 to-blue-200 border-4 border-blue-500 transform scale-110 shadow-2xl animate-pulse ring-4 ring-blue-300 ring-opacity-50' 
                       : 'bg-gray-50'
                   }`}>
                     <span className="w-32 text-sm font-medium capitalize">
@@ -1038,16 +1038,23 @@ export default function WorkflowDemo() {
                         (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
                         (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
                         (drill === 'throwing' && stepSubState === 'adjusting-throwing')
-                          ? 'accent-blue-600 scale-110'
-                          : 'accent-gray-400'
+                          ? 'accent-blue-600 scale-125 h-4 shadow-lg'
+                          : 'accent-gray-400 h-2'
                       }`}
+                      style={(drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
+                             (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
+                             (drill === 'throwing' && stepSubState === 'adjusting-throwing') ? {
+                        background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
+                        borderRadius: '10px',
+                        boxShadow: '0 0 20px rgba(59, 130, 246, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3)'
+                      } : {}}
                     />
-                    <span className={`w-16 text-sm font-mono font-bold transition-all duration-300 ${
+                    <span className={`w-20 font-mono font-bold transition-all duration-300 ${
                       (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
                       (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
                       (drill === 'throwing' && stepSubState === 'adjusting-throwing')
-                        ? 'text-blue-600 text-lg animate-pulse'
-                        : weight > 30 ? 'text-blue-600' : 'text-gray-600'
+                        ? 'text-2xl text-blue-600 animate-bounce bg-yellow-200 px-3 py-1 rounded-full border-2 border-yellow-400 shadow-lg'
+                        : weight > 30 ? 'text-blue-600 text-sm' : 'text-gray-600 text-sm'
                     }`}>
                       {weight}%
                     </span>
@@ -1055,7 +1062,20 @@ export default function WorkflowDemo() {
                     {((drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
                       (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
                       (drill === 'throwing' && stepSubState === 'adjusting-throwing')) && 
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">ADJUSTING</span>
+                      <>
+                        <span className="text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-full animate-bounce font-bold shadow-lg">
+                          ⚡ ADJUSTING LIVE!
+                        </span>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full animate-ping"></div>
+                        <div className="absolute left-0 top-0 w-full h-full bg-blue-300 opacity-20 rounded-lg animate-pulse"></div>
+                        {/* Animated Arrow Pointer */}
+                        <div className="absolute -left-8 top-1/2 transform -translate-y-1/2">
+                          <div className="flex items-center animate-bounce">
+                            <span className="text-3xl text-red-500 animate-pulse">👉</span>
+                            <span className="text-red-500 font-bold text-xs ml-1 animate-pulse">WATCH!</span>
+                          </div>
+                        </div>
+                      </>
                     }
                   </div>
                 ))}
