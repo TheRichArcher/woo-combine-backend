@@ -458,8 +458,8 @@ export default function WorkflowDemo() {
           const targetWeight = 45;
           const sliderInterval = setInterval(() => {
             if (currentWeight < targetWeight) {
-              currentWeight += 1;
-              setWeights(prev => ({ ...prev, fortyYardDash: currentWeight }));
+              currentWeight += 0.3; // Smaller increments for smoother visual movement
+              setWeights(prev => ({ ...prev, fortyYardDash: Math.round(currentWeight * 10) / 10 }));
             } else {
               clearInterval(sliderInterval);
               intervals.push(sliderInterval);
@@ -476,8 +476,8 @@ export default function WorkflowDemo() {
                   const targetWeight2 = 30;
                   const sliderInterval2 = setInterval(() => {
                     if (currentWeight2 < targetWeight2) {
-                      currentWeight2 += 1;
-                      setWeights(prev => ({ ...prev, vertical: currentWeight2 }));
+                      currentWeight2 += 0.25; // Smaller increments for smoother visual movement
+                      setWeights(prev => ({ ...prev, vertical: Math.round(currentWeight2 * 10) / 10 }));
                     } else {
                       clearInterval(sliderInterval2);
                       intervals.push(sliderInterval2);
@@ -490,8 +490,8 @@ export default function WorkflowDemo() {
                         const targetWeight3 = 25;
                         const sliderInterval3 = setInterval(() => {
                           if (currentWeight3 < targetWeight3) {
-                            currentWeight3 += 1;
-                            setWeights(prev => ({ ...prev, throwing: currentWeight3 }));
+                            currentWeight3 += 0.2; // Smaller increments for smoother visual movement
+                            setWeights(prev => ({ ...prev, throwing: Math.round(currentWeight3 * 10) / 10 }));
                           } else {
                             clearInterval(sliderInterval3);
                             intervals.push(sliderInterval3);
