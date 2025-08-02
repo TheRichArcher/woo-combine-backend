@@ -93,13 +93,21 @@ export default function Welcome() {
               {content.buttonText}
             </button>
             
-            {/* Demo Button - Immediate Access */}
-            <button
-              className="w-full bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 transform hover:scale-[1.02]"
-              onClick={() => navigate("/demo")}
-            >
-              👀 Try Demo - See It In Action
-            </button>
+            {/* Demo Buttons - Immediate Access */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 text-sm"
+                onClick={() => navigate("/demo")}
+              >
+                🎮 Features Demo
+              </button>
+              <button
+                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 text-sm"
+                onClick={() => navigate("/workflow-demo")}
+              >
+                🔧 Live Workflow
+              </button>
+            </div>
           </div>
         </div>
 
