@@ -235,9 +235,17 @@ export default function LiveEntry() {
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Clock className="w-4 h-4" />
-            {recentEntries.length} entries
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              <span className="font-semibold">{recentEntries.length} entries</span>
+            </div>
+            <Link
+              to="/players"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition"
+            >
+              View All
+            </Link>
           </div>
         </div>
       </div>
@@ -415,36 +423,62 @@ export default function LiveEntry() {
               </form>
             </div>
             
-            {/* Undo Button */}
-            {recentEntries.length > 0 && (
-              <button
-                onClick={handleUndo}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2"
+            {/* Action Buttons */}
+            <div className="flex gap-3">
+              <Link
+                to="/players"
+                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
               >
-                <Undo2 className="w-5 h-5" />
-                Undo Last Entry
-              </button>
-            )}
+                <Users className="w-5 h-5" />
+                View All Entries
+              </Link>
+              {recentEntries.length > 0 && (
+                <button
+                  onClick={handleUndo}
+                  className="bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <Undo2 className="w-5 h-5" />
+                  Undo
+                </button>
+              )}
+            </div>
             
-            {/* Recent Entries */}
+            {/* Recent Entries - Enhanced */}
             {recentEntries.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Users className="w-4 h-4" />
-                  Recent Entries
-                </h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-600" />
+                    Recent Entries
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
+                      {recentEntries.length} recent
+                    </span>
+                    <Link
+                      to="/players"
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    >
+                      View All →
+                    </Link>
+                  </div>
+                </div>
+                <div className="space-y-3 max-h-80 overflow-y-auto">
                   {recentEntries.map(entry => (
-                    <div key={entry.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                      <div>
-                        <div className="font-medium">#{entry.playerNumber} {entry.playerName}</div>
-                        <div className="text-sm text-gray-600">
-                          {entry.drill.label}: {entry.score} {entry.drill.unit}
-                          {entry.overridden && <span className="text-orange-600 ml-1">(Updated)</span>}
+                    <div key={entry.id} className="flex justify-between items-center p-3 bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg border border-gray-200">
+                      <div className="flex-1">
+                        <div className="font-semibold text-gray-900">#{entry.playerNumber} {entry.playerName}</div>
+                        <div className="text-sm text-gray-700 flex items-center gap-2">
+                          <span className="font-medium">{entry.drill.label}:</span>
+                          <span className="bg-white px-2 py-1 rounded font-medium text-blue-900">
+                            {entry.score} {entry.drill.unit}
+                          </span>
+                          {entry.overridden && <span className="text-orange-600 font-medium">(Updated)</span>}
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        {entry.timestamp.toLocaleTimeString()}
+                      <div className="text-xs text-gray-500 text-right">
+                        <div>{entry.timestamp.toLocaleTimeString()}</div>
+                        <CheckCircle className="w-4 h-4 text-green-600 mx-auto mt-1" />
                       </div>
                     </div>
                   ))}
