@@ -121,6 +121,20 @@ export const useAsyncOperation = (options = {}) => {
     } catch (error) {
       logger.timeEnd(context, 'Operation');
       
+      // CRITICAL FIX: Handle 401 errors specially to prevent cascading
+      if (error.response?.status === 401) {
+        logger.warn(context, 'Session expired - redirecting to login');
+        setState(prev => ({ 
+          ...prev, 
+          loading: false, 
+          error: 'Session expired' 
+        }));
+        
+        // Don't trigger onError callback for 401 to prevent cascade
+        // The global auth handler will take care of redirect
+        throw error;
+      }
+      
       // Determine user-friendly error message
       const userMessage = getUserFriendlyError(error);
       

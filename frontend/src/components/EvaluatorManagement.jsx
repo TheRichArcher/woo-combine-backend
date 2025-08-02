@@ -27,15 +27,30 @@ const EvaluatorManagement = () => {
   const { loading: loadingEvaluators, execute: fetchEvaluators } = useAsyncOperation({
     context: 'FETCH_EVALUATORS',
     onSuccess: (data) => setEvaluators(data),
-    onError: (err, userMessage) => showError(userMessage)
+    onError: (err, userMessage) => {
+      // Don't show error toast for 401 (session expired) to prevent cascade
+      if (err.response?.status !== 401) {
+        showError(userMessage);
+      }
+    }
   });
 
   const loadEvaluators = useCallback(async () => {
     if (selectedEvent?.id) {
-      await fetchEvaluators(async () => {
-        const response = await api.get(`/events/${selectedEvent.id}/evaluators`);
-        return response.data;
-      });
+      try {
+        await fetchEvaluators(async () => {
+          const response = await api.get(`/events/${selectedEvent.id}/evaluators`);
+          return response.data;
+        });
+      } catch (error) {
+        // Stop attempting to load evaluators if session expired
+        if (error.response?.status === 401) {
+          console.warn('Session expired while loading evaluators - stopping attempts');
+          return;
+        }
+        // Re-throw other errors
+        throw error;
+      }
     }
   }, [selectedEvent?.id, fetchEvaluators]);
 
@@ -47,7 +62,12 @@ const EvaluatorManagement = () => {
       setNewEvaluator({ name: '', email: '', role: 'evaluator' });
       loadEvaluators();
     },
-    onError: (err, userMessage) => showError(userMessage)
+    onError: (err, userMessage) => {
+      // Don't show error toast for 401 (session expired) to prevent cascade
+      if (err.response?.status !== 401) {
+        showError(userMessage);
+      }
+    }
   });
 
   useEffect(() => {

@@ -76,10 +76,19 @@ api.interceptors.request.use(async (config) => {
   return config;
 }, (error) => Promise.reject(error));
 
-// Enhanced error handling with user-friendly messages
+// Enhanced error handling with user-friendly messages and auth handling
 api.interceptors.response.use(
   response => response,
   error => {
+    // CRITICAL FIX: Handle 401 errors globally to prevent cascading
+    if (error.response?.status === 401) {
+      console.warn('[API] Session expired - user needs to log in again');
+      // Don't show multiple error messages - let auth context handle it
+      // Just mark the error as handled to prevent UI cascades
+      error._handled = true;
+      return Promise.reject(error);
+    }
+    
     // CRITICAL FIX: Don't log 404s for endpoints where they're expected (new user onboarding)
     const isExpected404 = error.response?.status === 404 && (
       error.config?.url?.includes('/leagues/me') ||
@@ -98,7 +107,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Log detailed error info for debugging (excluding expected 404s)
+    // Log detailed error info for debugging (excluding expected 404s and handled 401s)
     if (error.response?.data?.detail) {
       console.error('[API] Server Error:', error.response.data.detail);
     } else if (error.code === 'ECONNABORTED') {
