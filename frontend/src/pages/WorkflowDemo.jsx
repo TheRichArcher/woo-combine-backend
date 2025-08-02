@@ -35,7 +35,7 @@ const WORKFLOW_STEPS = [
     title: "Create League",
     desc: "Coach enters league name and gets started",
     icon: "🏈",
-    duration: 4000,
+    duration: 10000, // Increased to accommodate full animation sequence
     component: "CreateLeagueStep"
   },
   {
@@ -43,7 +43,7 @@ const WORKFLOW_STEPS = [
     title: "Setup Event",
     desc: "Create combine event with details",
     icon: "📅",
-    duration: 5000,
+    duration: 9000, // Increased for event creation animations
     component: "CreateEventStep"
   },
   {
@@ -51,7 +51,7 @@ const WORKFLOW_STEPS = [
     title: "Upload Roster",
     desc: "Import players via CSV file",
     icon: "📤",
-    duration: 6000,
+    duration: 8000, // Increased for CSV processing simulation
     component: "UploadCsvStep"
   },
   {
