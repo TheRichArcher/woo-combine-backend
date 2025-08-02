@@ -388,35 +388,45 @@ export default function WorkflowDemo() {
         
       case "ManualPlayerStep":
         // Simulate typing player details
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           animateButtonClick('add-player-btn', () => {
-            setTimeout(() => {
+            timeouts.push(setTimeout(() => {
               const newPlayer = { id: 7, name: "Sam Wilson", number: 21, age_group: "U16", fortyYardDash: null, vertical: null, catching: null, throwing: null, agility: null };
               setPlayers(prev => [...prev, newPlayer]);
               addNotification("👤 Sam Wilson added manually!");
-            }, 500);
+              
+              // Advance to next step after manual player is added
+              timeouts.push(setTimeout(() => {
+                advanceToNextStep();
+              }, 1000));
+            }, 500));
           });
-        }, 2000);
+        }, 2000));
         break;
         
       case "DrillResultsStep":
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           setCurrentDrillPlayer(players[0]);
-        }, 1000);
+        }, 1000));
         
         // Simulate entering drill result
-        setTimeout(() => {
+        timeouts.push(setTimeout(() => {
           animateButtonClick('record-result-btn', () => {
-            setTimeout(() => {
+            timeouts.push(setTimeout(() => {
               const updatedPlayers = players.map(player => ({
                 ...player,
                 ...DRILL_RESULTS[player.id]
               }));
               setPlayers(updatedPlayers);
               addNotification("⚡ All drill results recorded!");
-            }, 800);
+              
+              // Advance to next step after drill results complete
+              timeouts.push(setTimeout(() => {
+                advanceToNextStep();
+              }, 1000));
+            }, 800));
           });
-        }, 3000);
+        }, 3000));
         break;
         
       case "WeightsStep":
@@ -443,6 +453,11 @@ export default function WorkflowDemo() {
                   } else {
                     clearInterval(sliderInterval2);
                     addNotification("⚖️ Weights adjusted for speed emphasis!");
+                    
+                    // Advance to next step after weights are adjusted
+                    setTimeout(() => {
+                      advanceToNextStep();
+                    }, 1000);
                   }
                 }, 100);
               }, 500);
