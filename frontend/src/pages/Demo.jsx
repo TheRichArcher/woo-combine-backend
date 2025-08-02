@@ -165,7 +165,7 @@ export default function Demo() {
     .sort((a, b) => b.compositeScore - a.compositeScore)
     .map((player, index) => ({ ...player, rank: index + 1 }));
 
-  // Demo automation
+  // Demo automation with better timing
   useEffect(() => {
     if (!isAutoPlaying) return;
     
@@ -175,7 +175,7 @@ export default function Demo() {
       } else {
         setIsAutoPlaying(false);
       }
-    }, 4000);
+    }, 6000); // Increased to 6 seconds for better user experience
     
     return () => clearTimeout(timer);
   }, [currentScenario, isAutoPlaying]);
@@ -234,120 +234,181 @@ export default function Demo() {
 
   const { team1, team2 } = balanceTeams();
 
+  // Auto-scroll to keep demo content in view
+  useEffect(() => {
+    if (isAutoPlaying) {
+      const demoContent = document.getElementById('demo-content');
+      if (demoContent) {
+        demoContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }, [currentScenario, isAutoPlaying]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-4 py-4">
         
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🏈 WooCombine Complete Demo
+        {/* Compact Header */}
+        <div className="text-center mb-4">
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h1 className="text-2xl font-bold text-gray-900 mb-1">
+              🏈 WooCombine Demo
             </h1>
-            <p className="text-gray-600">
-              Experience the full power of digital combine management
+            <p className="text-gray-600 text-sm mb-3">
+              See every feature in action
             </p>
             
-            {/* Demo Controls */}
-            <div className="flex justify-center gap-3 mt-4">
+            {/* Demo Controls & Scenario Navigation Combined */}
+            <div className="flex flex-wrap justify-center items-center gap-2">
               <button
                 onClick={startAutoDemo}
                 disabled={isAutoPlaying}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1"
               >
-                {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isAutoPlaying ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
                 {isAutoPlaying ? 'Playing...' : 'Auto Demo'}
               </button>
               
               <button
                 onClick={resetDemo}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+                className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1"
               >
-                <RotateCcw className="w-4 h-4" />
+                <RotateCcw className="w-3 h-3" />
                 Reset
               </button>
+
+              {/* Inline Scenario Tabs */}
+              <div className="flex gap-1 ml-2">
+                {DEMO_SCENARIOS.map((scenario, index) => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => setCurrentScenario(index)}
+                    className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                      currentScenario === index 
+                        ? 'bg-cyan-600 text-white' 
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {scenario.icon} {scenario.title.split(' ')[0]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Scenario Navigation */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {DEMO_SCENARIOS.map((scenario, index) => (
-            <button
-              key={scenario.id}
-              onClick={() => setCurrentScenario(index)}
-              className={`bg-gradient-to-r ${scenario.color} text-white p-4 rounded-xl shadow-lg transition-all duration-300 transform hover:scale-105 ${
-                currentScenario === index ? 'ring-4 ring-white scale-105' : ''
-              }`}
-            >
-              <div className="text-2xl mb-2">{scenario.icon}</div>
-              <div className="font-semibold text-sm">{scenario.title}</div>
-              <div className="text-xs opacity-90">{scenario.desc}</div>
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Focused Demo Content */}
+        <div id="demo-content" className={`bg-white rounded-2xl shadow-lg overflow-hidden transition-all duration-500 ${
+          isAutoPlaying ? 'ring-4 ring-green-400 shadow-2xl' : ''
+        }`}>
           
-          {/* Main Demo Content */}
-          <div className="space-y-6">
+          {/* Current Scenario Display */}
+          <div className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">{DEMO_SCENARIOS[currentScenario].icon}</div>
+                <div>
+                  <h2 className="text-xl font-bold">{DEMO_SCENARIOS[currentScenario].title}</h2>
+                  <p className="text-cyan-100 text-sm">{DEMO_SCENARIOS[currentScenario].desc}</p>
+                </div>
+              </div>
+              {isAutoPlaying && (
+                <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-sm font-medium">Live Demo</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6">
+            
+            {/* Compact Demo Content */}
             
             {/* Scenario 1: Live Entry Magic */}
             {currentScenario === 0 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  ⚡ Live Entry Magic
-                  <span className="text-sm bg-green-100 text-green-700 px-2 py-1 rounded-full">Real-time</span>
-                </h2>
-                
-                <div className="space-y-4">
-                  <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-800 mb-2">❌ Old Way: Paper & Calculators</h3>
-                    <ul className="text-sm text-red-700 space-y-1">
-                      <li>• Papers get lost in the wind</li>
-                      <li>• Manual calculations take forever</li>
-                      <li>• No instant results for parents</li>
-                      <li>• Prone to human error</li>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-3">
+                    <h3 className="font-semibold text-red-800 mb-2 text-sm">❌ Old Way</h3>
+                    <ul className="text-xs text-red-700 space-y-1">
+                      <li>• Papers get lost</li>
+                      <li>• Manual calculations</li>
+                      <li>• No instant results</li>
+                      <li>• Human error prone</li>
                     </ul>
                   </div>
 
-                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-green-800 mb-2">✅ WooCombine Way: Digital Magic</h3>
-                    <ul className="text-sm text-green-700 space-y-1">
-                      <li>• Track all 5 drills instantly</li>
-                      <li>• Real-time rankings and scorecards</li>
-                      <li>• Parents see results immediately</li>
-                      <li>• Zero manual calculations</li>
+                  <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-3">
+                    <h3 className="font-semibold text-green-800 mb-2 text-sm">✅ WooCombine Way</h3>
+                    <ul className="text-xs text-green-700 space-y-1">
+                      <li>• Track 5 drills instantly</li>
+                      <li>• Real-time rankings</li>
+                      <li>• Instant parent access</li>
+                      <li>• Zero calculations</li>
                     </ul>
                   </div>
+                </div>
 
-                  <button
-                    onClick={addMissingResults}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-all duration-200"
-                  >
-                    ⚡ Add Missing Results & Watch Magic
-                  </button>
+                <button
+                  onClick={addMissingResults}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 rounded-xl transition-all duration-200 text-sm"
+                >
+                  ⚡ Add Missing Results & Watch Rankings Update
+                </button>
+
+                {/* Live Rankings */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-yellow-600" />
+                    Live Rankings
+                    <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Real-time</span>
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {rankedPlayers.slice(0, 4).map((player) => (
+                      <div 
+                        key={player.id}
+                        className="flex items-center justify-between p-2 rounded bg-white text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
+                            player.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                            player.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                            'bg-blue-50 text-blue-600'
+                          }`}>
+                            #{player.rank}
+                          </div>
+                          <div>
+                            <div className="font-medium">{player.name}</div>
+                            <div className="text-xs text-gray-500">#{player.number}</div>
+                          </div>
+                        </div>
+                        <div className="font-mono text-sm font-bold text-cyan-600">
+                          {player.compositeScore.toFixed(1)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Scenario 2: Smart Weight System */}
             {currentScenario === 1 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  ⚖️ Smart Weight System
-                  <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">AI-Powered</span>
-                </h2>
-                
-                <p className="text-gray-600 mb-4">
-                  Adjust drill importance and watch rankings change instantly!
-                </p>
+              <div className="space-y-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-blue-800 text-sm">
+                    💡 <strong>Try this:</strong> Adjust drill importance below and watch rankings change instantly!
+                  </p>
+                </div>
 
                 <div className="space-y-3">
                   {DRILLS.map(drill => (
                     <div key={drill.key} className="flex items-center gap-3">
                       <span className="text-lg">{drill.icon}</span>
-                      <span className="w-20 text-sm font-medium">{drill.label}</span>
+                      <span className="w-16 text-xs font-medium">{drill.label.split(' ')[0]}</span>
                       <input
                         type="range"
                         min="0"
@@ -356,102 +417,143 @@ export default function Demo() {
                         onChange={(e) => adjustWeights({ ...weights, [drill.key]: parseInt(e.target.value) })}
                         className="flex-1"
                       />
-                      <span className="w-8 text-sm font-mono">{weights[drill.key]}%</span>
+                      <span className="w-8 text-xs font-mono">{weights[drill.key]}%</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
-                  <p className="text-blue-800 text-sm">
-                    💡 <strong>Try this:</strong> Increase 40-Yard Dash to 40% and watch Morgan Davis climb the rankings!
-                  </p>
+                {/* Live Rankings with Weight Impact */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-blue-600" />
+                    Weight-Adjusted Rankings
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Live</span>
+                  </h3>
+                  
+                  <div className="space-y-2">
+                    {rankedPlayers.slice(0, 4).map((player) => (
+                      <div 
+                        key={player.id}
+                        className="flex items-center justify-between p-2 rounded bg-white text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                            player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
+                            player.rank === 2 ? 'bg-gray-100 text-gray-700' :
+                            player.rank === 3 ? 'bg-orange-100 text-orange-700' :
+                            'bg-blue-50 text-blue-600'
+                          }`}>
+                            #{player.rank}
+                          </div>
+                          <div>
+                            <div className="font-medium">{player.name}</div>
+                            <div className="text-xs text-gray-500">Score: {player.compositeScore.toFixed(1)}</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {player.fortyYardDash && `${player.fortyYardDash}s`}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Scenario 3: Team Formation AI */}
             {currentScenario === 2 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  🤖 Team Formation AI
-                  <span className="text-sm bg-purple-100 text-purple-700 px-2 py-1 rounded-full">Balanced</span>
-                </h2>
-                
-                <p className="text-gray-600 mb-4">
-                  Automatically create balanced teams based on performance data
-                </p>
+              <div className="space-y-4">
+                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                  <p className="text-purple-800 text-sm">
+                    🎯 <strong>AI Team Balance:</strong> No more parent complaints about unfair teams!
+                  </p>
+                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-red-800 mb-2">🔴 Team Red</h3>
-                    <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <h3 className="font-semibold text-red-800 mb-2 text-sm">🔴 Team Red</h3>
+                    <div className="space-y-1">
                       {team1.slice(0, 3).map(player => (
-                        <div key={player.id} className="flex justify-between text-sm">
-                          <span>{player.name}</span>
+                        <div key={player.id} className="flex justify-between text-xs">
+                          <span>{player.name.split(' ')[0]}</span>
                           <span className="font-mono">{player.compositeScore.toFixed(1)}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-2 pt-2 border-t border-red-300">
-                      <div className="text-sm font-semibold">
+                    <div className="mt-2 pt-1 border-t border-red-300">
+                      <div className="text-xs font-semibold">
                         Avg: {(team1.slice(0, 3).reduce((sum, p) => sum + p.compositeScore, 0) / 3).toFixed(1)}
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h3 className="font-semibold text-blue-800 mb-2">🔵 Team Blue</h3>
-                    <div className="space-y-2">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <h3 className="font-semibold text-blue-800 mb-2 text-sm">🔵 Team Blue</h3>
+                    <div className="space-y-1">
                       {team2.slice(0, 3).map(player => (
-                        <div key={player.id} className="flex justify-between text-sm">
-                          <span>{player.name}</span>
+                        <div key={player.id} className="flex justify-between text-xs">
+                          <span>{player.name.split(' ')[0]}</span>
                           <span className="font-mono">{player.compositeScore.toFixed(1)}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="mt-2 pt-2 border-t border-blue-300">
-                      <div className="text-sm font-semibold">
+                    <div className="mt-2 pt-1 border-t border-blue-300">
+                      <div className="text-xs font-semibold">
                         Avg: {(team2.slice(0, 3).reduce((sum, p) => sum + p.compositeScore, 0) / 3).toFixed(1)}
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 p-3 bg-purple-50 rounded-lg">
-                  <p className="text-purple-800 text-sm">
-                    🎯 <strong>Perfect Balance:</strong> AI ensures fair teams every time, no more complaints from parents!
-                  </p>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <h3 className="font-semibold text-gray-800 mb-2 text-sm">Balance Analysis</h3>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <div className="flex justify-between">
+                      <span>Team Difference:</span>
+                      <span className="font-mono">
+                        {Math.abs(
+                          (team1.slice(0, 3).reduce((sum, p) => sum + p.compositeScore, 0) / 3) -
+                          (team2.slice(0, 3).reduce((sum, p) => sum + p.compositeScore, 0) / 3)
+                        ).toFixed(1)} pts
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Fairness Rating:</span>
+                      <span className="text-green-600 font-semibold">Excellent</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Scenario 4: Pro Analytics */}
             {currentScenario === 3 && (
-              <div className="bg-white rounded-2xl shadow-lg p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                  📊 Pro Analytics & Insights
-                  <span className="text-sm bg-orange-100 text-orange-700 px-2 py-1 rounded-full">Advanced</span>
-                </h2>
+              <div className="space-y-4">
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <p className="text-orange-800 text-sm">
+                    📈 <strong>Professional Reports:</strong> Generate insights that impress parents, coaches, and scouts!
+                  </p>
+                </div>
                 
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
                   {/* Performance Distribution */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-800 mb-3">Performance Distribution</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Top Performers (80-100)</span>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <h3 className="font-semibold text-gray-800 mb-2 text-sm">Performance Distribution</h3>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span>Top Performers</span>
                         <span className="font-semibold text-green-600">
                           {rankedPlayers.filter(p => p.compositeScore >= 80).length} players
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Above Average (60-79)</span>
+                      <div className="flex justify-between text-xs">
+                        <span>Above Average</span>
                         <span className="font-semibold text-blue-600">
                           {rankedPlayers.filter(p => p.compositeScore >= 60 && p.compositeScore < 80).length} players
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Developing (40-59)</span>
+                      <div className="flex justify-between text-xs">
+                        <span>Developing</span>
                         <span className="font-semibold text-yellow-600">
                           {rankedPlayers.filter(p => p.compositeScore >= 40 && p.compositeScore < 60).length} players
                         </span>
@@ -460,17 +562,17 @@ export default function Demo() {
                   </div>
 
                   {/* Age Group Comparison */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h3 className="font-semibold text-gray-800 mb-3">Age Group Analysis</h3>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <h3 className="font-semibold text-gray-800 mb-2 text-sm">Age Group Analysis</h3>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
                         <span>U16 Average</span>
                         <span className="font-mono">
                           {(rankedPlayers.filter(p => p.ageGroup === 'U16').reduce((sum, p) => sum + p.compositeScore, 0) / 
                             rankedPlayers.filter(p => p.ageGroup === 'U16').length).toFixed(1)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-sm">
+                      <div className="flex justify-between text-xs">
                         <span>U14 Average</span>
                         <span className="font-mono">
                           {(rankedPlayers.filter(p => p.ageGroup === 'U14').reduce((sum, p) => sum + p.compositeScore, 0) / 
@@ -479,161 +581,81 @@ export default function Demo() {
                       </div>
                     </div>
                   </div>
+                </div>
 
-                  <div className="p-3 bg-orange-50 rounded-lg">
-                    <p className="text-orange-800 text-sm">
-                      📈 <strong>Export Ready:</strong> Generate professional PDF reports for coaches, parents, and scouts!
-                    </p>
+                {/* Export Options */}
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <h3 className="font-semibold text-gray-800 mb-2 text-sm">Export Capabilities</h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white rounded p-2 text-center">
+                      <div className="text-lg">📊</div>
+                      <div className="text-xs font-medium">Player Reports</div>
+                    </div>
+                    <div className="bg-white rounded p-2 text-center">
+                      <div className="text-lg">🏆</div>
+                      <div className="text-xs font-medium">Team Rosters</div>
+                    </div>
+                    <div className="bg-white rounded p-2 text-center">
+                      <div className="text-lg">📈</div>
+                      <div className="text-xs font-medium">Scout Reports</div>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
 
           </div>
-
-          {/* Live Rankings & Player Details */}
-          <div className="space-y-6">
-            
-            {/* Current Rankings */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Trophy className="w-5 h-5 text-yellow-600" />
-                Live Rankings
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Real-time</span>
-              </h3>
-              
-              <div className="space-y-2">
-                {rankedPlayers.slice(0, 6).map((player) => (
-                  <div 
-                    key={player.id}
-                    onClick={() => setSelectedPlayer(player)}
-                    className="flex items-center justify-between p-3 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer transition-all"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                        player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                        player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                        player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                        'bg-blue-50 text-blue-600'
-                      }`}>
-                        #{player.rank}
-                      </div>
-                      <div>
-                        <div className="font-medium text-sm">{player.name}</div>
-                        <div className="text-xs text-gray-500">#{player.number} • {player.ageGroup}</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-mono text-sm font-bold text-cyan-600">
-                        {player.compositeScore.toFixed(1)}
-                      </div>
-                      <div className="text-xs text-gray-500">composite</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Drill Results Matrix */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-blue-600" />
-                Drill Results Matrix
-              </h3>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 font-medium">Player</th>
-                      {DRILLS.map(drill => (
-                        <th key={drill.key} className="text-center py-2 font-medium w-12">
-                          {drill.icon}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rankedPlayers.slice(0, 4).map(player => (
-                      <tr key={player.id} className="border-b border-gray-100">
-                        <td className="py-2 font-medium text-gray-900">
-                          <div className="flex items-center gap-2">
-                            <span className="w-4 h-4 bg-gray-200 rounded text-center text-xs">
-                              {player.rank}
-                            </span>
-                            {player.name.split(' ')[0]}
-                          </div>
-                        </td>
-                        {DRILLS.map(drill => (
-                          <td key={drill.key} className="text-center py-2">
-                            {player[drill.key] !== null && player[drill.key] !== undefined ? (
-                              <span className="font-mono text-xs">
-                                {typeof player[drill.key] === 'number' ? player[drill.key].toFixed(2) : player[drill.key]}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="mt-8 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-2xl shadow-lg p-8 text-white text-center">
-          <h2 className="text-2xl font-bold mb-4">
+        {/* Compact Call to Action */}
+        <div className="mt-6 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl shadow-lg p-6 text-white text-center">
+          <h2 className="text-xl font-bold mb-2">
             🚀 Ready to Transform Your Combines?
           </h2>
-          <p className="text-cyan-100 mb-6">
-            Join hundreds of coaches already using WooCombine for professional digital combine management
+          <p className="text-cyan-100 mb-4 text-sm">
+            Join hundreds of coaches using professional digital combine management
           </p>
           
-          <div className="grid grid-cols-2 gap-4 mb-6">
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">5</div>
-              <div className="text-sm text-cyan-100">Drill Types</div>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="text-lg font-bold">5</div>
+              <div className="text-xs text-cyan-100">Drills</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">∞</div>
-              <div className="text-sm text-cyan-100">Players</div>
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="text-lg font-bold">∞</div>
+              <div className="text-xs text-cyan-100">Players</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">⚡</div>
-              <div className="text-sm text-cyan-100">Real-time</div>
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="text-lg font-bold">⚡</div>
+              <div className="text-xs text-cyan-100">Real-time</div>
             </div>
-            <div className="bg-white/10 rounded-lg p-4">
-              <div className="text-2xl font-bold">🏆</div>
-              <div className="text-sm text-cyan-100">Pro Features</div>
+            <div className="bg-white/10 rounded-lg p-2">
+              <div className="text-lg font-bold">🏆</div>
+              <div className="text-xs text-cyan-100">Pro</div>
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             <button
               onClick={() => navigate("/signup")}
-              className="w-full bg-white text-cyan-600 font-semibold py-4 rounded-xl hover:bg-gray-50 transition-all duration-200 text-lg"
+              className="w-full bg-white text-cyan-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
             >
               🎯 Start Free Trial - Setup in 60 Seconds
             </button>
             
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-2">
               <button
                 onClick={resetDemo}
-                className="border-2 border-white text-white font-medium py-2 px-4 rounded-xl hover:bg-white/10 transition-all duration-200"
+                className="border border-white text-white font-medium py-2 px-3 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
               >
-                🔄 Replay Demo
+                🔄 Replay
               </button>
               
               <button
                 onClick={() => navigate("/welcome")}
-                className="border-2 border-white text-white font-medium py-2 px-4 rounded-xl hover:bg-white/10 transition-all duration-200"
+                className="border border-white text-white font-medium py-2 px-3 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
               >
-                ← Back to Welcome
+                ← Back
               </button>
             </div>
           </div>
