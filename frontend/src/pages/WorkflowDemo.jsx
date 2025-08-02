@@ -1952,14 +1952,7 @@ export default function UnifiedDemo() {
               ⚡ Start Your Free Trial Now
             </button>
             
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => navigate("/demo")}
-                className="border border-white text-white font-medium py-2 px-4 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
-              >
-                ← See Features Demo
-              </button>
-              
+            <div className="flex justify-center">
               <button
                 onClick={() => navigate("/welcome")}
                 className="border border-white text-white font-medium py-2 px-4 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"

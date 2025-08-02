@@ -93,19 +93,14 @@ export default function Welcome() {
               {content.buttonText}
             </button>
             
-            {/* Demo Buttons - Immediate Access */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Unified Demo Button */}
+            <div className="flex justify-center">
               <button
-                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 text-sm"
-                onClick={() => navigate("/demo")}
-              >
-                🎮 Features Demo
-              </button>
-              <button
-                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-3 rounded-xl border-2 border-cyan-600 transition-all duration-200 text-sm"
+                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-4 px-8 rounded-xl border-2 border-cyan-600 transition-all duration-200 transform hover:scale-105 shadow-lg"
                 onClick={() => navigate("/workflow-demo")}
               >
-                🔧 Live Workflow
+                🚀 Watch Complete Demo
+                <div className="text-xs text-gray-600 mt-1">Workflow + Features in Action</div>
               </button>
             </div>
           </div>
