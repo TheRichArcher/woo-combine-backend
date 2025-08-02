@@ -30,12 +30,14 @@ const DRILL_RESULTS = {
 };
 
 const WORKFLOW_STEPS = [
+  // === PHASE 1: WORKFLOW - "How to use WooCombine" ===
   {
     id: 1,
     title: "Create League",
     desc: "Coach enters league name and gets started",
     icon: "🏈",
-    duration: 10000, // Increased to accommodate full animation sequence
+    phase: "workflow",
+    duration: 10000,
     component: "CreateLeagueStep"
   },
   {
@@ -43,7 +45,8 @@ const WORKFLOW_STEPS = [
     title: "Setup Event",
     desc: "Create combine event with details",
     icon: "📅",
-    duration: 9000, // Increased for event creation animations
+    phase: "workflow",
+    duration: 9000,
     component: "CreateEventStep"
   },
   {
@@ -51,7 +54,8 @@ const WORKFLOW_STEPS = [
     title: "Upload Roster",
     desc: "Import players via CSV file",
     icon: "📤",
-    duration: 8000, // Increased for CSV processing simulation
+    phase: "workflow",
+    duration: 8000,
     component: "UploadCsvStep"
   },
   {
@@ -59,6 +63,7 @@ const WORKFLOW_STEPS = [
     title: "Add Manual Player",
     desc: "Manually add a player who showed up late",
     icon: "👤",
+    phase: "workflow",
     duration: 5000,
     component: "ManualPlayerStep"
   },
@@ -67,6 +72,7 @@ const WORKFLOW_STEPS = [
     title: "Enter Drill Results",
     desc: "Record 40-yard dash times live",
     icon: "⚡",
+    phase: "workflow",
     duration: 8000,
     component: "DrillResultsStep"
   },
@@ -75,20 +81,80 @@ const WORKFLOW_STEPS = [
     title: "Adjust Weights",
     desc: "Coach tweaks drill importance",
     icon: "⚖️",
-    duration: 60000, // DRAMATICALLY longer - full minute to showcase the weight adjustment feature
+    phase: "workflow",
+    duration: 60000,
     component: "WeightsStep"
   },
   {
     id: 7,
-    title: "Final Rankings",
-    desc: "Generate professional reports",
-    icon: "🏆",
-    duration: 5000,
-    component: "FinalResultsStep"
+    title: "Basic Rankings",
+    desc: "Generate initial rankings",
+    icon: "📊",
+    phase: "workflow",
+    duration: 6000,
+    component: "BasicRankingsStep"
+  },
+  
+  // === TRANSITION: WORKFLOW → FEATURES ===
+  {
+    id: 8,
+    title: "🚀 Power Features",
+    desc: "Now let's see why WooCombine is revolutionary...",
+    icon: "✨",
+    phase: "transition",
+    duration: 4000,
+    component: "TransitionStep"
+  },
+
+  // === PHASE 2: FEATURES - "Why WooCombine is powerful" ===
+  {
+    id: 9,
+    title: "Live Updates",
+    desc: "Watch results flow in real-time as drills happen",
+    icon: "📱",
+    phase: "features",
+    duration: 8000,
+    component: "LiveUpdatesStep"
+  },
+  {
+    id: 10,
+    title: "Parent Notifications",
+    desc: "Parents get instant updates on their phones",
+    icon: "📲",
+    phase: "features",
+    duration: 7000,
+    component: "ParentNotificationsStep"
+  },
+  {
+    id: 11,
+    title: "Advanced Analytics",
+    desc: "Deep insights that transform recruiting",
+    icon: "📈",
+    phase: "features",
+    duration: 9000,
+    component: "AdvancedAnalyticsStep"
+  },
+  {
+    id: 12,
+    title: "Team Formation",
+    desc: "AI-powered balanced team creation",
+    icon: "👥",
+    phase: "features",
+    duration: 8000,
+    component: "TeamFormationStep"
+  },
+  {
+    id: 13,
+    title: "🎉 The WOW Factor",
+    desc: "What just happened would take HOURS manually!",
+    icon: "🎯",
+    phase: "features",
+    duration: 10000,
+    component: "WowFactorStep"
   }
 ];
 
-export default function WorkflowDemo() {
+export default function UnifiedDemo() {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -608,6 +674,159 @@ export default function WorkflowDemo() {
           }, 300); // MUCH slower 40-yard adjustment - 300ms per step!
           intervals.push(sliderInterval);
         }, 15000)); // MUCH later start
+        break;
+        
+      case "BasicRankingsStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("📊 Generating comprehensive rankings...");
+          setStepSubState("processing");
+          
+          timeouts.push(setTimeout(() => {
+            addNotification("🏆 Rankings complete! Moving to power features...");
+            setStepSubState("complete");
+            
+            timeouts.push(setTimeout(() => {
+              advanceToNextStep();
+            }, 2000));
+          }, 3000));
+        }, 1000));
+        break;
+        
+      case "TransitionStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("🚀 Workflow complete! Now let's see the REAL power...");
+          setStepSubState("dramatic");
+          
+          timeouts.push(setTimeout(() => {
+            addNotification("✨ These next features will blow your mind!");
+            
+            timeouts.push(setTimeout(() => {
+              advanceToNextStep();
+            }, 2000));
+          }, 2000));
+        }, 1000));
+        break;
+        
+      case "LiveUpdatesStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("📱 Simulating live drill results...");
+          setStepSubState("live-demo");
+          
+          // Simulate rapid results coming in
+          const resultTimeouts = [1000, 2000, 3500, 4500, 6000];
+          const resultMessages = [
+            "⚡ Alex Johnson: 4.32 (40-yard dash)",
+            "📏 Jordan Smith: 38\" (vertical jump)", 
+            "🏈 Taylor Brown: 22 pts (catching)",
+            "🎯 Morgan Davis: 89 pts (throwing)",
+            "📊 Rankings updating in real-time!"
+          ];
+          
+          resultTimeouts.forEach((delay, index) => {
+            timeouts.push(setTimeout(() => {
+              addNotification(resultMessages[index]);
+            }, delay));
+          });
+          
+          timeouts.push(setTimeout(() => {
+            advanceToNextStep();
+          }, 7000));
+        }, 1000));
+        break;
+        
+      case "ParentNotificationsStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("📲 Sending parent notifications...");
+          setStepSubState("notifications");
+          
+          const notificationTimeouts = [1500, 2500, 4000, 5500];
+          const notificationMessages = [
+            "📱 Alex's dad: 'Great 40-yard time!'",
+            "📱 Jordan's mom: 'Proud of that vertical!'",
+            "📱 Taylor's family: 'Excellent catching!'",
+            "📱 Morgan's parents: 'Amazing overall results!'"
+          ];
+          
+          notificationTimeouts.forEach((delay, index) => {
+            timeouts.push(setTimeout(() => {
+              addNotification(notificationMessages[index]);
+            }, delay));
+          });
+          
+          timeouts.push(setTimeout(() => {
+            advanceToNextStep();
+          }, 6500));
+        }, 1000));
+        break;
+        
+      case "AdvancedAnalyticsStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("📈 Generating advanced analytics...");
+          setStepSubState("analytics");
+          
+          timeouts.push(setTimeout(() => {
+            addNotification("🔍 Trend analysis: Speed scores improving 15% vs last season");
+            
+            timeouts.push(setTimeout(() => {
+              addNotification("📊 Predictive insights: Top 3 players projected for varsity");
+              
+              timeouts.push(setTimeout(() => {
+                addNotification("🎯 Scout recommendations: 5 players flagged for recruitment");
+                
+                timeouts.push(setTimeout(() => {
+                  advanceToNextStep();
+                }, 2000));
+              }, 2000));
+            }, 2000));
+          }, 2000));
+        }, 1000));
+        break;
+        
+      case "TeamFormationStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("👥 AI analyzing optimal team combinations...");
+          setStepSubState("team-formation");
+          
+          timeouts.push(setTimeout(() => {
+            addNotification("⚖️ Balancing speed, strength, and skill across teams");
+            
+            timeouts.push(setTimeout(() => {
+              addNotification("🏆 Perfect team balance achieved in 3 seconds!");
+              
+              timeouts.push(setTimeout(() => {
+                addNotification("💡 This would take a coach 30+ minutes manually");
+                
+                timeouts.push(setTimeout(() => {
+                  advanceToNextStep();
+                }, 2000));
+              }, 2000));
+            }, 2000));
+          }, 2000));
+        }, 1000));
+        break;
+        
+      case "WowFactorStep":
+        timeouts.push(setTimeout(() => {
+          addNotification("🎉 DEMO COMPLETE! Let's recap what just happened...");
+          setStepSubState("wow-reveal");
+          
+          timeouts.push(setTimeout(() => {
+            addNotification("⏱️ Total time: 3 minutes automated vs 4+ HOURS manually");
+            
+            timeouts.push(setTimeout(() => {
+              addNotification("📊 Generated: Rankings, analytics, reports, teams, notifications");
+              
+              timeouts.push(setTimeout(() => {
+                addNotification("💰 Value delivered: Priceless insights in minutes");
+                
+                timeouts.push(setTimeout(() => {
+                  addNotification("🚀 Ready to transform your combine? Let's get started!");
+                  setStepSubState("call-to-action");
+                }, 2000));
+              }, 2000));
+            }, 2000));
+          }, 2000));
+        }, 1000));
         break;
     }
   }, [currentStep, players]);
@@ -1245,7 +1464,7 @@ export default function WorkflowDemo() {
           </div>
         );
 
-      case "FinalResultsStep":
+      case "BasicRankingsStep":
         return (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
@@ -1344,6 +1563,224 @@ export default function WorkflowDemo() {
           </div>
         );
 
+      case "TransitionStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-8 shadow-2xl text-center">
+              <div className="text-6xl mb-4">🚀</div>
+              <h3 className="text-3xl font-bold mb-4">Workflow Complete!</h3>
+              <p className="text-xl mb-6 text-purple-100">
+                You just saw how easy WooCombine is to use...
+              </p>
+              <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-yellow-300">
+                  Now let's see why it's REVOLUTIONARY! ✨
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "LiveUpdatesStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-6 shadow-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📱 Real-Time Updates
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">LIVE</span>
+              </h3>
+              <p className="text-gray-600 mb-4">Watch results flow in as athletes complete drills...</p>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <div className="font-medium">Alex Johnson - 40 Yard Dash</div>
+                    <div className="text-sm text-gray-600">4.32 seconds • Just completed</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <div className="font-medium">Jordan Smith - Vertical Jump</div>
+                    <div className="text-sm text-gray-600">38 inches • Rankings updated</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
+                  <div>
+                    <div className="font-medium">Taylor Brown - Catching</div>
+                    <div className="text-sm text-gray-600">22 points • Parents notified</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "ParentNotificationsStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-6 shadow-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📲 Parent Notifications
+                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">SENDING</span>
+              </h3>
+              <p className="text-gray-600 mb-4">Parents get instant updates on their phones...</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-100 rounded-lg p-4 border-2 border-gray-300 shadow-sm">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">📱</div>
+                    <div className="font-medium text-sm">Alex's Dad</div>
+                    <div className="text-xs text-gray-600 mt-2 bg-green-100 rounded p-2">
+                      "🏃 Alex just ran a 4.32 forty! Amazing speed improvement!"
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-gray-100 rounded-lg p-4 border-2 border-gray-300 shadow-sm">
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">📱</div>
+                    <div className="font-medium text-sm">Jordan's Mom</div>
+                    <div className="text-xs text-gray-600 mt-2 bg-blue-100 rounded p-2">
+                      "📏 38 inch vertical! So proud of that jump!"
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                <p className="text-yellow-800 text-sm">💡 Parents stay engaged and informed throughout the entire combine!</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "AdvancedAnalyticsStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-6 shadow-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                📈 Advanced Analytics
+                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full animate-pulse">ANALYZING</span>
+              </h3>
+              <p className="text-gray-600 mb-4">AI-powered insights that transform recruiting...</p>
+              
+              <div className="grid grid-cols-3 gap-4 mb-4">
+                <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-blue-800">+15%</div>
+                  <div className="text-xs text-blue-600">Speed Improvement vs Last Season</div>
+                </div>
+                <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-green-800">3</div>
+                  <div className="text-xs text-green-600">Varsity Prospects Identified</div>
+                </div>
+                <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-4 text-center">
+                  <div className="text-2xl font-bold text-purple-800">92%</div>
+                  <div className="text-xs text-purple-600">Prediction Accuracy</div>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h4 className="font-medium mb-2">🎯 Scout Recommendations</h4>
+                <ul className="text-sm space-y-1">
+                  <li>• Alex Johnson: Elite speed, track & field potential</li>
+                  <li>• Morgan Davis: Well-rounded athlete, varsity ready</li>
+                  <li>• Jordan Smith: Strong fundamentals, coachable</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "TeamFormationStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg p-6 shadow-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                👥 AI Team Formation
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">OPTIMIZING</span>
+              </h3>
+              <p className="text-gray-600 mb-4">Perfect team balance in seconds...</p>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
+                  <h4 className="font-medium text-blue-800 mb-2">🔵 Team Alpha</h4>
+                  <div className="space-y-1 text-sm">
+                    <div>Alex Johnson (Speed Leader)</div>
+                    <div>Taylor Brown (Skill Balance)</div>
+                    <div>Casey Williams (Agility)</div>
+                  </div>
+                  <div className="mt-3 text-xs text-blue-600 bg-blue-100 rounded p-2">
+                    Average Score: 73.2 | Balance: 94%
+                  </div>
+                </div>
+                
+                <div className="bg-red-50 rounded-lg p-4 border-2 border-red-200">
+                  <h4 className="font-medium text-red-800 mb-2">🔴 Team Beta</h4>
+                  <div className="space-y-1 text-sm">
+                    <div>Morgan Davis (Power)</div>
+                    <div>Jordan Smith (Consistency)</div>
+                    <div>Riley Martinez (Versatility)</div>
+                  </div>
+                  <div className="mt-3 text-xs text-red-600 bg-red-100 rounded p-2">
+                    Average Score: 73.1 | Balance: 96%
+                  </div>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-green-800 text-sm">⚡ Perfect balance achieved in 3 seconds vs 30+ minutes manually!</p>
+              </div>
+            </div>
+          </div>
+        );
+
+      case "WowFactorStep":
+        return (
+          <div className="space-y-4">
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-8 shadow-2xl text-center">
+              <div className="text-8xl mb-4">🎉</div>
+              <h3 className="text-4xl font-bold mb-4">The WOW Factor!</h3>
+              <p className="text-xl mb-6">What you just witnessed...</p>
+              
+              <div className="grid grid-cols-2 gap-6 mb-6">
+                <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                  <div className="text-3xl font-bold text-yellow-100">3 Minutes</div>
+                  <div className="text-yellow-200">With WooCombine</div>
+                </div>
+                <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                  <div className="text-3xl font-bold text-yellow-100">4+ Hours</div>
+                  <div className="text-yellow-200">Manual Process</div>
+                </div>
+              </div>
+              
+              <div className="bg-white/30 rounded-lg p-6 backdrop-blur">
+                <h4 className="text-xl font-bold mb-3">You Just Automated:</h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>✅ League & Event Setup</div>
+                  <div>✅ Player Management</div>
+                  <div>✅ Data Collection</div>
+                  <div>✅ Real-time Rankings</div>
+                  <div>✅ Parent Notifications</div>
+                  <div>✅ Advanced Analytics</div>
+                  <div>✅ Team Formation</div>
+                  <div>✅ Professional Reports</div>
+                </div>
+              </div>
+              
+              <div className="mt-6">
+                <button 
+                  onClick={() => navigate('/signup')}
+                  className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-50 transition-all transform hover:scale-105 shadow-xl"
+                >
+                  🚀 Transform Your Combine Today!
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+
       default:
         return <div>Unknown step</div>;
     }
@@ -1390,10 +1827,10 @@ export default function WorkflowDemo() {
         <div className="text-center mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              🏈 WooCombine Live Workflow Demo
+              🏈 WooCombine Complete Demo: Workflow + Features
             </h1>
             <p className="text-gray-600 mb-4">
-              Watch a complete combine setup from start to finish
+              See how easy it is to use + why it's revolutionary (Workflow → Power Features)
             </p>
             
             <div className="flex justify-center items-center gap-3 mb-4">
@@ -1449,12 +1886,40 @@ export default function WorkflowDemo() {
 
         {/* Current Step Display */}
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4">
+          <div className={`text-white p-4 ${
+            WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
+              ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
+              : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
+                ? 'bg-gradient-to-r from-purple-600 to-pink-600'
+                : 'bg-gradient-to-r from-orange-500 to-red-600'
+          }`}>
             <div className="flex items-center gap-3">
               <div className="text-3xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
-              <div>
-                <h2 className="text-xl font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
-                <p className="text-blue-100 text-sm">{WORKFLOW_STEPS[currentStep]?.desc}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="text-xl font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
+                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                    WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
+                      ? 'bg-blue-200 text-blue-800' 
+                      : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
+                        ? 'bg-purple-200 text-purple-800'
+                        : 'bg-orange-200 text-orange-800'
+                  }`}>
+                    {WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
+                      ? '📋 WORKFLOW' 
+                      : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
+                        ? '🔄 TRANSITION'
+                        : '🚀 FEATURES'
+                    }
+                  </span>
+                </div>
+                <p className={
+                  WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
+                    ? 'text-blue-100 text-sm' 
+                    : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
+                      ? 'text-purple-100 text-sm'
+                      : 'text-orange-100 text-sm'
+                }>{WORKFLOW_STEPS[currentStep]?.desc}</p>
               </div>
               {isAutoPlaying && (
                 <div className="ml-auto flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
