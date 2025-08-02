@@ -2,12 +2,13 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from "react"
 import DrillInputForm from "../components/DrillInputForm";
 import EditPlayerModal from "../components/Players/EditPlayerModal";
 import PlayerDetailsModal from "../components/Players/PlayerDetailsModal";
+import AddPlayerModal from "../components/Players/AddPlayerModal";
 
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle } from 'lucide-react';
+import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
@@ -99,6 +100,7 @@ export default function Players() {
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -665,9 +667,13 @@ export default function Players() {
             <Link to="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition">
               Upload CSV
             </Link>
-            <Link to="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-primary transition">
+            <button 
+              onClick={() => setShowAddPlayerModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
               Add Player
-            </Link>
+            </button>
           </div>
         </div>
       </div>
@@ -699,12 +705,21 @@ export default function Players() {
               </Link>
             )}
             {userRole === 'organizer' && (
-              <Link
-                to="/admin"
-                className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-              >
-                ⚙️ Admin Tools
-              </Link>
+              <>
+                <Link
+                  to="/admin"
+                  className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                >
+                  ⚙️ Admin Tools
+                </Link>
+                <button
+                  onClick={() => setShowAddPlayerModal(true)}
+                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Player
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -1291,6 +1306,13 @@ export default function Players() {
                 player={editingPlayer}
                 allPlayers={players}
                 onClose={() => setEditingPlayer(null)}
+                onSave={fetchPlayers}
+              />
+            )}
+            {showAddPlayerModal && (
+              <AddPlayerModal
+                allPlayers={players}
+                onClose={() => setShowAddPlayerModal(false)}
                 onSave={fetchPlayers}
               />
             )}
