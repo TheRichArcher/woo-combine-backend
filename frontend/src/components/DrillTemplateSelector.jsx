@@ -172,16 +172,11 @@ const DrillTemplateSelector = ({ selectedTemplateId, onTemplateSelect, disabled 
           <div className="bg-white/50 rounded-lg p-3 border border-blue-200">
             <h5 className="text-sm font-medium text-blue-900 mb-2">Key Drills Include:</h5>
             <div className="flex flex-wrap gap-2">
-              {selectedTemplate.drills.slice(0, 4).map((drill, index) => (
+              {selectedTemplate.drills.map((drill, index) => (
                 <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                   {drill.label}
                 </span>
               ))}
-              {selectedTemplate.drills.length > 4 && (
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  +{selectedTemplate.drills.length - 4} more
-                </span>
-              )}
             </div>
           </div>
         </div>

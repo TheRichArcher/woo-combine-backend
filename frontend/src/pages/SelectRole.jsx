@@ -295,17 +295,12 @@ export default function SelectRole() {
                         <span className="text-sm font-medium text-gray-900">What you can do:</span>
                       </div>
                       <div className="grid grid-cols-1 gap-1">
-                        {selectedRoleData?.features.slice(0, 4).map((feature, index) => (
+                        {selectedRoleData?.features.map((feature, index) => (
                           <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
                             <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
                             {feature}
                           </div>
                         ))}
-                        {selectedRoleData?.features.length > 4 && (
-                          <div className="text-xs text-gray-600 mt-1">
-                            +{selectedRoleData.features.length - 4} more capabilities
-                          </div>
-                        )}
                       </div>
                     </div>
                   </>

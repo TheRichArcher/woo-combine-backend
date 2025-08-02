@@ -57,8 +57,8 @@ const SportTemplatesPage = React.memo(() => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 mt-20">
         
-        {/* Navigation Breadcrumb */}
-        <div className="mb-4">
+        {/* Navigation */}
+        <div className="mb-4 flex items-center justify-between">
           <nav className="flex items-center gap-2 text-sm">
             <Link 
               to="/dashboard" 
@@ -69,6 +69,14 @@ const SportTemplatesPage = React.memo(() => {
             <span className="text-gray-400">/</span>
             <span className="text-gray-600">Sport Templates</span>
           </nav>
+          
+          <Link
+            to="/live-entry"
+            className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2"
+          >
+            <span>Start Live Entry</span>
+            <span>→</span>
+          </Link>
         </div>
         
         {/* Header */}
@@ -127,6 +135,34 @@ const SportTemplatesPage = React.memo(() => {
                 <p className="text-xs text-purple-700">Ready-made weight configurations for different focuses</p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Setup Complete Banner */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-2xl p-6 mb-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-green-900">Setup Complete!</h2>
+              <p className="text-sm text-green-700">Your event is configured and ready for live scoring</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/live-entry"
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
+            >
+              <span>🏁 Start Live Entry</span>
+              <span>→</span>
+            </Link>
+            <Link
+              to="/dashboard"
+              className="bg-white hover:bg-gray-50 text-green-700 font-medium py-3 px-4 rounded-xl border border-green-200 transition-colors duration-200 flex items-center justify-center gap-2"
+            >
+              <span>Dashboard</span>
+            </Link>
           </div>
         </div>
 
@@ -272,18 +308,18 @@ const SportTemplatesPage = React.memo(() => {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-4 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">🚀 Next Steps</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3">🚀 Quick Actions</h3>
           <div className="grid grid-cols-1 gap-3">
             <Link 
               to="/players" 
               className="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition group"
             >
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">1</span>
+                <span className="text-white text-sm font-bold">+</span>
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-blue-900 group-hover:text-blue-800">Add Players</h4>
-                <p className="text-xs text-blue-700">Start by adding athletes to your event</p>
+                <h4 className="font-medium text-blue-900 group-hover:text-blue-800">Manage Players</h4>
+                <p className="text-xs text-blue-700">Add more athletes or edit player roster</p>
               </div>
               <span className="text-blue-600">→</span>
             </Link>
@@ -292,11 +328,11 @@ const SportTemplatesPage = React.memo(() => {
               className="flex items-center gap-3 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition group"
             >
               <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">2</span>
+                <span className="text-white text-sm font-bold">+</span>
               </div>
               <div className="flex-1">
-                <h4 className="font-medium text-green-900 group-hover:text-green-800">Setup Evaluators</h4>
-                <p className="text-xs text-green-700">Add coaches and evaluators for scoring</p>
+                <h4 className="font-medium text-green-900 group-hover:text-green-800">Manage Evaluators</h4>
+                <p className="text-xs text-green-700">Add more evaluators or adjust permissions</p>
               </div>
               <span className="text-green-600">→</span>
             </Link>
@@ -305,11 +341,11 @@ const SportTemplatesPage = React.memo(() => {
               className="flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition group"
             >
               <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white text-sm font-bold">3</span>
+                <span className="text-white text-sm font-bold">⚡</span>
               </div>
               <div className="flex-1">
                 <h4 className="font-medium text-purple-900 group-hover:text-purple-800">Form Teams</h4>
-                <p className="text-xs text-purple-700">Use AI to create balanced teams</p>
+                <p className="text-xs text-purple-700">Use AI to create balanced teams from your roster</p>
               </div>
               <span className="text-purple-600">→</span>
             </Link>
