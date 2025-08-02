@@ -75,7 +75,7 @@ const WORKFLOW_STEPS = [
     title: "Adjust Weights",
     desc: "Coach tweaks drill importance",
     icon: "⚖️",
-    duration: 6000,
+    duration: 25000, // Much longer to showcase the weight adjustment feature
     component: "WeightsStep"
   },
   {
@@ -430,9 +430,30 @@ export default function WorkflowDemo() {
         break;
         
       case "WeightsStep":
-        // Simulate adjusting sliders
-        setTimeout(() => {
-          // Animate first slider
+        // DRAMATIC WEIGHT ADJUSTMENT SHOWCASE
+        timeouts.push(setTimeout(() => {
+          addNotification("🎯 Coach realizes speed is most important for today's scouts!");
+          setStepSubState("analyzing");
+        }, 1000));
+
+        // Show current rankings before adjustment
+        timeouts.push(setTimeout(() => {
+          addNotification("📊 Current rankings calculated with default weights...");
+          setStepSubState("before-rankings");
+        }, 3000));
+
+        // Coach commentary about the adjustment
+        timeouts.push(setTimeout(() => {
+          addNotification("🧠 Coach: 'These scouts are looking for SPEED today. Let me adjust the formula...'");
+          setStepSubState("coach-thinking");
+        }, 6000));
+
+        // Start dramatic weight adjustments with explanation
+        timeouts.push(setTimeout(() => {
+          addNotification("⚖️ Increasing 40-Yard Dash importance from 30% to 45%...");
+          setStepSubState("adjusting-speed");
+          
+          // Slow, dramatic adjustment of 40-yard dash weight
           let currentWeight = 30;
           const targetWeight = 45;
           const sliderInterval = setInterval(() => {
@@ -441,29 +462,62 @@ export default function WorkflowDemo() {
               setWeights(prev => ({ ...prev, fortyYardDash: currentWeight }));
             } else {
               clearInterval(sliderInterval);
+              intervals.push(sliderInterval);
               
-              // Animate second slider
-              setTimeout(() => {
-                let currentWeight2 = 20;
-                const targetWeight2 = 25;
-                const sliderInterval2 = setInterval(() => {
-                  if (currentWeight2 < targetWeight2) {
-                    currentWeight2 += 1;
-                    setWeights(prev => ({ ...prev, vertical: currentWeight2 }));
-                  } else {
-                    clearInterval(sliderInterval2);
-                    addNotification("⚖️ Weights adjusted for speed emphasis!");
-                    
-                    // Advance to next step after weights are adjusted
-                    setTimeout(() => {
-                      advanceToNextStep();
-                    }, 1000);
-                  }
-                }, 100);
-              }, 500);
+              // Pause and show impact
+              timeouts.push(setTimeout(() => {
+                addNotification("📈 Watch the rankings change as speed becomes more important!");
+                
+                // Adjust vertical jump weight with explanation
+                timeouts.push(setTimeout(() => {
+                  addNotification("⚖️ Boosting Vertical Jump weight for explosiveness...");
+                  let currentWeight2 = 20;
+                  const targetWeight2 = 30;
+                  const sliderInterval2 = setInterval(() => {
+                    if (currentWeight2 < targetWeight2) {
+                      currentWeight2 += 1;
+                      setWeights(prev => ({ ...prev, vertical: currentWeight2 }));
+                    } else {
+                      clearInterval(sliderInterval2);
+                      intervals.push(sliderInterval2);
+                      
+                      // Final dramatic adjustment
+                      timeouts.push(setTimeout(() => {
+                        addNotification("⚖️ Fine-tuning throwing weight for position-specific evaluation...");
+                        let currentWeight3 = 15;
+                        const targetWeight3 = 25;
+                        const sliderInterval3 = setInterval(() => {
+                          if (currentWeight3 < targetWeight3) {
+                            currentWeight3 += 1;
+                            setWeights(prev => ({ ...prev, throwing: currentWeight3 }));
+                          } else {
+                            clearInterval(sliderInterval3);
+                            intervals.push(sliderInterval3);
+                            
+                            // Big reveal moment
+                            timeouts.push(setTimeout(() => {
+                              setStepSubState("dramatic-reveal");
+                              addNotification("🚀 BOOM! Rankings completely transformed! New speed demons on top!");
+                              
+                              timeouts.push(setTimeout(() => {
+                                addNotification("💡 THIS is what separates WooCombine from basic stopwatch apps!");
+                                
+                                timeouts.push(setTimeout(() => {
+                                  advanceToNextStep();
+                                }, 3000));
+                              }, 2000));
+                            }, 2000));
+                          }
+                        }, 200); // Even slower for final impact
+                      }, 1500));
+                    }
+                  }, 150); // Slower animation
+                }, 2000));
+              }, 1500));
             }
-          }, 80);
-        }, 2000);
+          }, 120); // Much slower than before
+          intervals.push(sliderInterval);
+        }, 8000));
         break;
     }
   }, [currentStep, players]);
@@ -889,13 +943,86 @@ export default function WorkflowDemo() {
       case "WeightsStep":
         return (
           <div className="space-y-4">
+            {/* Dramatic Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-6 shadow-lg">
+              <h3 className="text-2xl font-bold mb-2">⚖️ The WooCombine Game Changer</h3>
+              <p className="text-blue-100">Watch how intelligent weight adjustments completely transform rankings!</p>
+              {stepSubState === "coach-thinking" && (
+                <div className="mt-3 bg-white/20 rounded-lg p-3 animate-pulse">
+                  <p className="text-sm">💭 "Speed scouts are here today. Time to emphasize what matters most..."</p>
+                </div>
+              )}
+            </div>
+
+            {/* Before/After Rankings Comparison */}
+            {(stepSubState === "before-rankings" || stepSubState === "dramatic-reveal") && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white rounded-lg p-4 shadow-lg border-2 border-gray-300">
+                  <h4 className="font-semibold mb-3 text-gray-600">📊 Before (Default Weights)</h4>
+                  <div className="space-y-2">
+                    {[
+                      { name: "Taylor Brown", rank: 1, score: "73.2" },
+                      { name: "Alex Johnson", rank: 2, score: "71.8" },
+                      { name: "Morgan Davis", rank: 3, score: "69.5" },
+                      { name: "Jordan Smith", rank: 4, score: "68.1" }
+                    ].map(player => (
+                      <div key={player.name} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold">
+                            #{player.rank}
+                          </span>
+                          <span className="font-medium text-gray-700">{player.name}</span>
+                        </div>
+                        <span className="font-mono text-sm text-gray-600">{player.score}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {stepSubState === "dramatic-reveal" && (
+                  <div className="bg-white rounded-lg p-4 shadow-lg border-2 border-green-400 animate-pulse">
+                    <h4 className="font-semibold mb-3 text-green-600">🚀 After (Speed Emphasis!)</h4>
+                    <div className="space-y-2">
+                      {rankedPlayers.slice(0, 4).map(player => (
+                        <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded transform transition-all duration-500 hover:scale-105">
+                          <div className="flex items-center gap-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                              player.rank === 1 ? 'bg-yellow-400 text-yellow-900 animate-bounce' :
+                              player.rank === 2 ? 'bg-gray-300 text-gray-700' :
+                              player.rank === 3 ? 'bg-orange-300 text-orange-700' :
+                              'bg-blue-200 text-blue-600'
+                            }`}>
+                              #{player.rank}
+                            </span>
+                            <span className="font-medium text-green-700">{player.name}</span>
+                            {player.rank === 1 && <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">NEW #1!</span>}
+                          </div>
+                          <span className="font-mono text-sm text-green-600 font-bold">{player.compositeScore.toFixed(1)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Weight Adjustment Interface */}
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Adjust Drill Weights</h3>
-              <p className="text-gray-600 text-sm mb-4">These kids are really fast today - let's emphasize speed more!</p>
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                ⚖️ Dynamic Weight Adjustment
+                {stepSubState === "adjusting-speed" && <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">Adjusting...</span>}
+              </h3>
+              
               <div className="space-y-4">
                 {Object.entries(weights).map(([drill, weight]) => (
-                  <div key={drill} className="flex items-center gap-4">
-                    <span className="w-24 text-sm font-medium capitalize">
+                  <div key={drill} className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 ${
+                    (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
+                    (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
+                    (drill === 'throwing' && stepSubState === 'adjusting-throwing') 
+                      ? 'bg-blue-50 border-2 border-blue-300 transform scale-105' 
+                      : 'bg-gray-50'
+                  }`}>
+                    <span className="w-32 text-sm font-medium capitalize">
                       {drill.replace(/([A-Z])/g, ' $1').trim()}
                     </span>
                     <input
@@ -903,16 +1030,29 @@ export default function WorkflowDemo() {
                       min="0"
                       max="50"
                       value={weight}
-                      onChange={(e) => setWeights(prev => ({ ...prev, [drill]: parseInt(e.target.value) }))}
-                      className="flex-1"
+                      readOnly
+                      className="flex-1 accent-blue-600"
                     />
-                    <span className="w-12 text-sm font-mono">{weight}%</span>
+                    <span className={`w-16 text-sm font-mono font-bold ${weight > 30 ? 'text-blue-600' : 'text-gray-600'}`}>
+                      {weight}%
+                    </span>
+                    {weight > 35 && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">HIGH</span>}
                   </div>
                 ))}
               </div>
+
+              <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-purple-800 text-sm font-medium">💡 Pro Tip: Weight adjustments let coaches customize rankings for specific needs:</p>
+                <ul className="text-purple-700 text-xs mt-2 space-y-1 ml-4">
+                  <li>• Speed scouts → Boost 40-yard dash & agility</li>
+                  <li>• Position coaches → Emphasize position-specific skills</li>
+                  <li>• Development → Balance all attributes equally</li>
+                </ul>
+              </div>
             </div>
             
-            {rankedPlayers.length > 0 && (
+            {/* Live Rankings Update */}
+            {rankedPlayers.length > 0 && stepSubState !== "before-rankings" && stepSubState !== "dramatic-reveal" && (
               <div className="bg-white rounded-lg p-4 shadow-lg">
                 <h4 className="font-semibold mb-3 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
