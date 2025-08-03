@@ -852,7 +852,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-2">
             {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-3 text-center">
+            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-1 text-center">
               <div className="text-3xl mb-1">😰</div>
               <h3 className="text-lg font-bold">Every Coach's Nightmare</h3>
               <p className="text-red-100 text-xs">This is what coaches deal with EVERY combine day...</p>
@@ -901,7 +901,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-2">
             {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-lg p-3 text-center">
+            <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-lg p-1 text-center">
               <div className="text-3xl mb-1">⚡</div>
               <h3 className="text-lg font-bold">The Game Changer</h3>
               <p className="text-green-100 text-xs">Everything updates INSTANTLY! ✨</p>
@@ -952,7 +952,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-2">
             {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg p-3 text-center">
+            <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg p-1 text-center">
               <div className="text-3xl mb-1">🏃‍♂️</div>
               <h3 className="text-lg font-bold">Setup in 60 Seconds</h3>
               <p className="text-green-100 text-xs">Zero → running combine in 1 minute! ⚡</p>
@@ -960,19 +960,19 @@ export default function UnifiedDemo() {
 
             {/* Compact Quick Steps Demo */}
             <div className="grid grid-cols-3 gap-2">
-              <div className="bg-white rounded-lg p-3 border-2 border-green-200 text-center">
+              <div className="bg-white rounded-lg p-1 border-2 border-green-200 text-center">
                 <div className="text-2xl mb-1">📝</div>
                 <h4 className="font-bold text-green-800 text-sm mb-1">Name It</h4>
                 <p className="text-green-700 text-xs">10 seconds</p>
               </div>
               
-              <div className="bg-white rounded-lg p-3 border-2 border-teal-200 text-center">
+              <div className="bg-white rounded-lg p-1 border-2 border-teal-200 text-center">
                 <div className="text-2xl mb-1">📤</div>
                 <h4 className="font-bold text-teal-800 text-sm mb-1">Upload CSV</h4>
                 <p className="text-teal-700 text-xs">15 seconds</p>
               </div>
               
-              <div className="bg-white rounded-lg p-3 border-2 border-blue-200 text-center">
+              <div className="bg-white rounded-lg p-1 border-2 border-blue-200 text-center">
                 <div className="text-2xl mb-1">🚀</div>
                 <h4 className="font-bold text-blue-800 text-sm mb-1">Go Live!</h4>
                 <p className="text-blue-700 text-xs">5 seconds</p>
@@ -980,7 +980,7 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Compact Comparison */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-3">
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-1">
               <div className="grid grid-cols-2 gap-2 text-center">
                 <div className="bg-red-600/20 rounded p-2 border border-red-500">
                   <div className="text-sm font-bold text-red-400">Traditional: 45+ min</div>
@@ -1000,16 +1000,16 @@ export default function UnifiedDemo() {
             {/* Compact Feature Header */}
             <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">📱</div>
-              <h3 className="text-lg font-bold mb-1">Smart Parent Engagement</h3>
+              <h3 className="text-sm font-bold mb-1">Smart Parent Engagement</h3>
               <p className="text-blue-100 mb-2">
                 No more "How did my kid do?" questions - EVER! 📲
               </p>
             </div>
 
             {/* Parent Phone Demo */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-1">
               <div className="bg-white rounded-lg p-2 border-2 border-blue-200">
-                <h4 className="font-bold text-blue-800 mb-3 text-center">📱 Parent's Phone</h4>
+                <h4 className="font-bold text-blue-800 mb-1 text-center">📱 Parent's Phone</h4>
                 <div className="space-y-2">
                   <div className="bg-green-50 border border-green-200 rounded p-2 text-sm">
                     <strong>Alex Johnson</strong> just ran 40-yard dash: <strong>4.38s</strong> 🏃‍♂️
@@ -1024,8 +1024,8 @@ export default function UnifiedDemo() {
               </div>
               
               <div className="bg-gray-50 rounded-lg p-2 border-2 border-gray-300">
-                <h4 className="font-bold text-gray-800 mb-3 text-center">🚫 Before WooCombine</h4>
-                <div className="space-y-2 text-sm text-gray-600">
+                <h4 className="font-bold text-gray-800 mb-1 text-center">🚫 Before WooCombine</h4>
+                <div className="space-y-1 text-sm text-gray-600">
                   <div>"How did my kid do?" ❌</div>
                   <div>"When will results be ready?" ❌</div>
                   <div>"Can I get his times?" ❌</div>
@@ -1037,17 +1037,17 @@ export default function UnifiedDemo() {
 
             {/* Impact Stats */}
             <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-2">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-green-400">98%</div>
+              <div className="grid grid-cols-3 gap-1 text-center">
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-green-400">98%</div>
                   <div className="text-xs text-gray-300">Parent Satisfaction</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-blue-400">Instant</div>
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-blue-400">Instant</div>
                   <div className="text-xs text-gray-300">Live Updates</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-purple-400">Zero</div>
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-purple-400">Zero</div>
                   <div className="text-xs text-gray-300">Questions</div>
                 </div>
               </div>
@@ -1062,7 +1062,7 @@ export default function UnifiedDemo() {
             {/* Compact Workflow Header */}
             <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">📝</div>
-              <h3 className="text-lg font-bold mb-1">Live Data Entry Magic</h3>
+              <h3 className="text-sm font-bold mb-1">Live Data Entry Magic</h3>
               <p className="text-orange-100 mb-2">
                 Tap, tap, done! Results instantly everywhere! 📱
               </p>
@@ -1070,12 +1070,12 @@ export default function UnifiedDemo() {
 
             {/* Compact Demo Interface */}
             <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-orange-200">
-              <h4 className="text-lg font-bold text-gray-800 mb-3 text-center">🏃‍♂️ 40-Yard Dash Station</h4>
+              <h4 className="text-sm font-bold text-gray-800 mb-1 text-center">🏃‍♂️ 40-Yard Dash Station</h4>
               
-              <div className="grid grid-cols-2 gap-2 mb-3">
+              <div className="grid grid-cols-2 gap-2 mb-1">
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-2">Current Player</div>
-                  <div className="bg-blue-50 rounded-lg p-3 border-2 border-blue-200">
+                  <div className="bg-blue-50 rounded-lg p-1 border-2 border-blue-200">
                     <div className="font-bold text-blue-800">#12 Alex Johnson</div>
                     <div className="text-sm text-blue-600">U16 - Ready to run</div>
                   </div>
@@ -1083,8 +1083,8 @@ export default function UnifiedDemo() {
                 
                 <div className="text-center">
                   <div className="text-sm text-gray-600 mb-2">Enter Time</div>
-                  <div className="bg-green-50 rounded-lg p-3 border-2 border-green-200">
-                    <div className="text-2xl font-bold text-green-800">4.38</div>
+                  <div className="bg-green-50 rounded-lg p-1 border-2 border-green-200">
+                    <div className="text-lg font-bold text-green-800">4.38</div>
                     <div className="text-sm text-green-600">seconds</div>
                   </div>
                 </div>
@@ -1097,17 +1097,17 @@ export default function UnifiedDemo() {
 
             {/* Compact Magic Stats */}
             <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-2">
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-green-400">0.5s</div>
+              <div className="grid grid-cols-3 gap-1 text-center">
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-green-400">0.5s</div>
                   <div className="text-xs text-gray-300">Time to Enter</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-blue-400">Instant</div>
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-blue-400">Instant</div>
                   <div className="text-xs text-gray-300">Parent Update</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-3">
-                  <div className="text-lg font-bold text-purple-400">Auto</div>
+                <div className="bg-white/10 rounded-lg p-1">
+                  <div className="text-sm font-bold text-purple-400">Auto</div>
                   <div className="text-xs text-gray-300">Ranking Update</div>
                 </div>
               </div>
@@ -1122,7 +1122,7 @@ export default function UnifiedDemo() {
             {/* Compact Feature Header */}
             <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">🎯</div>
-              <h3 className="text-lg font-bold mb-1">Intelligent Rankings</h3>
+              <h3 className="text-sm font-bold mb-1">Intelligent Rankings</h3>
               <p className="text-purple-100 mb-2">
                 AI-powered adjustments in real-time 🧠
               </p>
@@ -1130,7 +1130,7 @@ export default function UnifiedDemo() {
 
             {/* Weight Adjustment Demo */}
             <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-purple-200">
-              <h4 className="text-lg font-bold text-gray-800 mb-3 text-center">⚖️ Adjust Drill Weights</h4>
+              <h4 className="text-sm font-bold text-gray-800 mb-1 text-center">⚖️ Adjust Drill Weights</h4>
               
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -1170,8 +1170,8 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Live Rankings */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-gray-50 rounded-lg p-3 border-2 border-gray-300">
+            <div className="grid grid-cols-2 gap-1">
+              <div className="bg-gray-50 rounded-lg p-1 border-2 border-gray-300">
                 <h5 className="font-bold text-gray-800 mb-2 text-center">📊 Live Rankings</h5>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between bg-yellow-100 p-1 rounded">
@@ -1189,7 +1189,7 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-3 border-2 border-green-300">
+              <div className="bg-green-50 rounded-lg p-1 border-2 border-green-300">
                 <h5 className="font-bold text-green-800 mb-2 text-center">⚡ The Magic</h5>
                 <div className="space-y-1 text-xs text-green-700">
                   <div>✅ Instant recalculation</div>
@@ -1210,7 +1210,7 @@ export default function UnifiedDemo() {
             {/* Compact Workflow Header */}
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">📊</div>
-              <h3 className="text-lg font-bold mb-1">Instant Professional Reports</h3>
+              <h3 className="text-sm font-bold mb-1">Instant Professional Reports</h3>
               <p className="text-indigo-100 mb-2">
                 Click button → Professional PDF ready! 📄
               </p>
@@ -1218,13 +1218,13 @@ export default function UnifiedDemo() {
 
             {/* Compact Report Preview */}
             <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-indigo-200">
-              <div className="text-center mb-3">
-                <h4 className="text-lg font-bold text-gray-800">📋 Spring Football League Results</h4>
+              <div className="text-center mb-1">
+                <h4 className="text-sm font-bold text-gray-800">📋 Spring Football League Results</h4>
                 <div className="text-sm text-gray-600">Generated in 0.5 seconds • Scout-ready</div>
               </div>
               
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-lg p-1">
                   <h5 className="font-bold text-gray-800 mb-2 text-sm">🏆 Top 3</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
@@ -1242,7 +1242,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 rounded-lg p-3">
+                <div className="bg-gray-50 rounded-lg p-1">
                   <h5 className="font-bold text-gray-800 mb-2 text-sm">📈 Stats</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
@@ -1268,13 +1268,13 @@ export default function UnifiedDemo() {
 
             {/* Compact Speed Comparison */}
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-2">
-              <div className="grid grid-cols-2 gap-4 text-center">
-                <div className="bg-red-600/20 rounded-lg p-3 border border-red-500">
-                  <div className="text-lg font-bold text-red-400">Manual: 4+ hours</div>
+              <div className="grid grid-cols-2 gap-1 text-center">
+                <div className="bg-red-600/20 rounded-lg p-1 border border-red-500">
+                  <div className="text-sm font-bold text-red-400">Manual: 4+ hours</div>
                   <div className="text-xs text-red-200">Calculate, format, type</div>
                 </div>
-                <div className="bg-green-600/20 rounded-lg p-3 border border-green-500">
-                  <div className="text-lg font-bold text-green-400">WooCombine: 0.5s</div>
+                <div className="bg-green-600/20 rounded-lg p-1 border border-green-500">
+                  <div className="text-sm font-bold text-green-400">WooCombine: 0.5s</div>
                   <div className="text-xs text-green-200">One click → Pro PDF</div>
                 </div>
               </div>
@@ -1289,14 +1289,14 @@ export default function UnifiedDemo() {
             {/* Celebration Header */}
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">🎉</div>
-              <h3 className="text-lg font-bold mb-1">Your New Reality</h3>
+              <h3 className="text-sm font-bold mb-1">Your New Reality</h3>
               <p className="text-yellow-100 mb-2">
                 47+ hours saved, 100% accuracy, happy parents! 🏆
               </p>
             </div>
 
             {/* Transformation Summary */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-1">
               <div className="bg-red-50 rounded-lg p-2 border-2 border-red-200 text-center">
                 <div className="text-3xl mb-2">😰</div>
                 <h4 className="font-bold text-red-800 mb-2">Before WooCombine</h4>
@@ -1324,19 +1324,19 @@ export default function UnifiedDemo() {
 
             {/* Call to Action Preview */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-2 text-center">
-              <h4 className="text-lg font-bold mb-2">Ready to Transform YOUR Combines?</h4>
-              <p className="text-blue-100 mb-3">Join thousands of coaches who've revolutionized their workflow</p>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <h4 className="text-sm font-bold mb-2">Ready to Transform YOUR Combines?</h4>
+              <p className="text-blue-100 mb-1">Join thousands of coaches who've revolutionized their workflow</p>
+              <div className="grid grid-cols-3 gap-1 text-center">
                 <div>
-                  <div className="text-2xl font-bold">5,000+</div>
+                  <div className="text-lg font-bold">5,000+</div>
                   <div className="text-sm text-blue-200">Coaches</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">50,000+</div>
+                  <div className="text-lg font-bold">50,000+</div>
                   <div className="text-sm text-blue-200">Athletes</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">99.8%</div>
+                  <div className="text-lg font-bold">99.8%</div>
                   <div className="text-sm text-blue-200">Satisfaction</div>
                 </div>
               </div>
@@ -1352,10 +1352,10 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-2 text-center">
               <div className="text-3xl mb-1">{step.icon}</div>
-              <h3 className="text-lg font-bold mb-1">{step.title}</h3>
+              <h3 className="text-sm font-bold mb-1">{step.title}</h3>
               <p className="text-sm text-purple-100 mb-2">{step.desc}</p>
               <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                <p className="text-2xl font-bold text-yellow-300">
+                <p className="text-lg font-bold text-yellow-300">
                   Revolutionary feature coming soon! ✨
                 </p>
               </div>
@@ -1363,18 +1363,18 @@ export default function UnifiedDemo() {
 
             {/* Feature Impact */}
             <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
-              <h4 className="text-lg font-bold mb-4 text-center">💼 Professional Impact</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <h4 className="text-sm font-bold mb-4 text-center">💼 Professional Impact</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded-lg p-2">
-                  <div className="text-2xl font-bold text-green-400">{WOW_STATS.timesSaved}</div>
+                  <div className="text-sm font-bold text-green-400">{WOW_STATS.timesSaved}</div>
                   <div className="text-sm text-gray-300">Time Saved</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-2">
-                  <div className="text-2xl font-bold text-blue-400">{WOW_STATS.parentSatisfaction}</div>
+                  <div className="text-sm font-bold text-blue-400">{WOW_STATS.parentSatisfaction}</div>
                   <div className="text-sm text-gray-300">Parent Satisfaction</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-2">
-                  <div className="text-2xl font-bold text-purple-400">{WOW_STATS.errorReduction}</div>
+                  <div className="text-sm font-bold text-purple-400">{WOW_STATS.errorReduction}</div>
                   <div className="text-sm text-gray-300">Fewer Errors</div>
                 </div>
               </div>
@@ -1442,7 +1442,7 @@ export default function UnifiedDemo() {
               </div>
             </div>
             {stepSubState === 'success' && leagueName && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 animate-fade-in">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-1 animate-fade-in">
                 <p className="text-green-800 text-sm">✅ League "{leagueName}" created successfully!</p>
                 <div className="mt-2 flex items-center gap-2 text-green-700 text-xs">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -1452,7 +1452,7 @@ export default function UnifiedDemo() {
             )}
             
             {stepSubState === 'transitioning' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-1 animate-fade-in">
                 <p className="text-blue-800 text-sm">🔄 Preparing event creation interface...</p>
               </div>
             )}
@@ -1488,7 +1488,7 @@ export default function UnifiedDemo() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                     <input
@@ -1535,7 +1535,7 @@ export default function UnifiedDemo() {
               </div>
             </div>
             {stepSubState === 'success' && eventName && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 animate-fade-in">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-1 animate-fade-in">
                 <p className="text-blue-800 text-sm">📅 Event "{eventName}" scheduled!</p>
                 <div className="mt-2 p-2 bg-white rounded border border-blue-300">
                   <div className="text-xs text-blue-700">
@@ -1557,7 +1557,7 @@ export default function UnifiedDemo() {
             )}
             
             {stepSubState === 'transitioning' && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 animate-fade-in">
+              <div className="bg-green-50 border border-green-200 rounded-lg p-1 animate-fade-in">
                 <p className="text-green-800 text-sm">🔄 Loading player management tools...</p>
               </div>
             )}
@@ -1627,7 +1627,7 @@ export default function UnifiedDemo() {
             
             {stepSubState === 'success' && players.length > 0 && (
               <div className="bg-white rounded-lg p-2 shadow-lg animate-fade-in">
-                <h4 className="font-semibold mb-3 text-green-800">✅ Players Successfully Imported ({players.length})</h4>
+                <h4 className="font-semibold mb-1 text-green-800">✅ Players Successfully Imported ({players.length})</h4>
                 <div className="space-y-2">
                   {players.slice(0, 4).map(player => (
                     <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
@@ -1648,7 +1648,7 @@ export default function UnifiedDemo() {
             )}
             
             {stepSubState === 'transitioning' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 animate-fade-in">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-1 animate-fade-in">
                 <p className="text-yellow-800 text-sm">🔄 Setting up manual player entry form...</p>
               </div>
             )}
@@ -1661,7 +1661,7 @@ export default function UnifiedDemo() {
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h3 className="text-lg font-semibold mb-4">Add Walk-Up Player</h3>
               <p className="text-gray-600 text-sm mb-4">Sam Wilson just showed up - let's add him quickly!</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                   <div className="relative">
@@ -1769,7 +1769,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Player #</label>
                   <input
@@ -1821,7 +1821,7 @@ export default function UnifiedDemo() {
             
             {players.some(p => p.fortyYardDash) && (
               <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-3">Recent Entries</h4>
+                <h4 className="font-semibold mb-1">Recent Entries</h4>
                 <div className="space-y-2">
                   {players.filter(p => p.fortyYardDash).slice(0, 3).map(player => (
                     <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded">
@@ -1840,10 +1840,10 @@ export default function UnifiedDemo() {
           <div className="space-y-4">
             {/* Dramatic Header */}
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-2xl font-bold mb-2">⚖️ The WooCombine Game Changer</h3>
+              <h3 className="text-sm font-bold mb-2">⚖️ The WooCombine Game Changer</h3>
               <p className="text-blue-100">Watch how intelligent weight adjustments completely transform rankings!</p>
               {stepSubState === "coach-thinking" && (
-                <div className="mt-3 bg-white/20 rounded-lg p-3 animate-pulse">
+                <div className="mt-3 bg-white/20 rounded-lg p-1 animate-pulse">
                   <p className="text-sm">💭 "Speed scouts are here today. Time to emphasize what matters most..."</p>
                 </div>
               )}
@@ -1851,9 +1851,9 @@ export default function UnifiedDemo() {
 
             {/* Before/After Rankings Comparison */}
             {(stepSubState === "before-rankings" || stepSubState === "dramatic-reveal") && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
                 <div className="bg-white rounded-lg p-2 shadow-lg border-2 border-gray-300">
-                  <h4 className="font-semibold mb-3 text-gray-600">📊 Before (Default Weights)</h4>
+                  <h4 className="font-semibold mb-1 text-gray-600">📊 Before (Default Weights)</h4>
                   <div className="space-y-2">
                     {[
                       { name: "Taylor Brown", rank: 1, score: "73.2" },
@@ -1876,7 +1876,7 @@ export default function UnifiedDemo() {
 
                 {stepSubState === "dramatic-reveal" && (
                   <div className="bg-white rounded-lg p-2 shadow-lg border-2 border-green-400 animate-pulse">
-                    <h4 className="font-semibold mb-3 text-green-600">🚀 After (Speed Emphasis!)</h4>
+                    <h4 className="font-semibold mb-1 text-green-600">🚀 After (Speed Emphasis!)</h4>
                     <div className="space-y-2">
                       {rankedPlayers.slice(0, 4).map(player => (
                         <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded transform transition-all duration-500 hover:scale-105">
@@ -1910,7 +1910,7 @@ export default function UnifiedDemo() {
               
               <div className="space-y-4">
                 {Object.entries(weights).map(([drill, weight]) => (
-                  <div key={drill} className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 relative ${
+                  <div key={drill} className={`flex items-center gap-1 p-1 rounded-lg transition-all duration-300 relative ${
                     (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
                     (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
                     (drill === 'throwing' && stepSubState === 'adjusting-throwing') 
@@ -1973,7 +1973,7 @@ export default function UnifiedDemo() {
                 ))}
               </div>
 
-              <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="mt-4 p-1 bg-purple-50 rounded-lg border border-purple-200">
                 <p className="text-purple-800 text-sm font-medium">💡 Pro Tip: Weight adjustments let coaches customize rankings for specific needs:</p>
                 <ul className="text-purple-700 text-xs mt-2 space-y-1 ml-4">
                   <li>• Speed scouts → Boost 40-yard dash & agility</li>
@@ -1986,7 +1986,7 @@ export default function UnifiedDemo() {
             {/* Live Rankings Update */}
             {rankedPlayers.length > 0 && stepSubState !== "before-rankings" && stepSubState !== "dramatic-reveal" && (
               <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <h4 className="font-semibold mb-1 flex items-center gap-2">
                   <BarChart3 className="w-4 h-4" />
                   Live Rankings Update
                 </h4>
@@ -2018,8 +2018,8 @@ export default function UnifiedDemo() {
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
               <h3 className="text-lg font-semibold mb-4 text-purple-800">Final Results & Reports</h3>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div className="bg-white rounded-lg p-3">
+              <div className="grid grid-cols-2 gap-1 mb-4">
+                <div className="bg-white rounded-lg p-1">
                   <h4 className="font-medium text-purple-700 mb-2">Individual Scorecards</h4>
                   <ul className="text-sm text-purple-600 space-y-1">
                     <li>• Personal performance reports</li>
@@ -2027,7 +2027,7 @@ export default function UnifiedDemo() {
                     <li>• Improvement suggestions</li>
                   </ul>
                 </div>
-                <div className="bg-white rounded-lg p-3">
+                <div className="bg-white rounded-lg p-1">
                   <h4 className="font-medium text-purple-700 mb-2">Team Analytics</h4>
                   <ul className="text-sm text-purple-600 space-y-1">
                     <li>• Age group comparisons</li>
@@ -2053,13 +2053,13 @@ export default function UnifiedDemo() {
 
             {rankedPlayers.length > 0 && (
               <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <h4 className="font-semibold mb-1 flex items-center gap-2">
                   <Trophy className="w-4 h-4 text-yellow-600" />
                   Final Leaderboard
                 </h4>
                 <div className="space-y-2">
                   {rankedPlayers.map((player, index) => (
-                    <div key={player.id} className={`flex justify-between items-center p-3 rounded transition-all ${
+                    <div key={player.id} className={`flex justify-between items-center p-1 rounded transition-all ${
                       index < 3 ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'
                     }`}>
                       <div className="flex items-center gap-2">
@@ -2122,7 +2122,7 @@ export default function UnifiedDemo() {
                 You just saw how easy WooCombine is to use...
               </p>
               <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                <p className="text-2xl font-bold text-yellow-300">
+                <p className="text-lg font-bold text-yellow-300">
                   Now let's see why it's REVOLUTIONARY! ✨
                 </p>
               </div>
@@ -2141,21 +2141,21 @@ export default function UnifiedDemo() {
               <p className="text-gray-600 mb-4">Watch results flow in as athletes complete drills...</p>
               
               <div className="space-y-2">
-                <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                <div className="flex items-center gap-2 p-1 bg-green-50 rounded-lg border-l-4 border-green-500">
                   <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                   <div>
                     <div className="font-medium">Alex Johnson - 40 Yard Dash</div>
                     <div className="text-sm text-gray-600">4.32 seconds • Just completed</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <div className="flex items-center gap-2 p-1 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                   <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
                   <div>
                     <div className="font-medium">Jordan Smith - Vertical Jump</div>
                     <div className="text-sm text-gray-600">38 inches • Rankings updated</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                <div className="flex items-center gap-2 p-1 bg-purple-50 rounded-lg border-l-4 border-purple-500">
                   <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
                   <div>
                     <div className="font-medium">Taylor Brown - Catching</div>
@@ -2177,7 +2177,7 @@ export default function UnifiedDemo() {
               </h3>
               <p className="text-gray-600 mb-4">Parents get instant updates on their phones...</p>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-1">
                 <div className="bg-gray-100 rounded-lg p-2 border-2 border-gray-300 shadow-sm">
                   <div className="text-center">
                     <div className="text-3xl mb-2">📱</div>
@@ -2198,7 +2198,7 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <div className="mt-4 p-1 bg-yellow-50 rounded-lg border border-yellow-200">
                 <p className="text-yellow-800 text-sm">💡 Parents stay engaged and informed throughout the entire combine!</p>
               </div>
             </div>
@@ -2215,17 +2215,17 @@ export default function UnifiedDemo() {
               </h3>
               <p className="text-gray-600 mb-4">AI-powered insights that transform recruiting...</p>
               
-              <div className="grid grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-3 gap-1 mb-4">
                 <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-2 text-center">
-                  <div className="text-2xl font-bold text-blue-800">+15%</div>
+                  <div className="text-lg font-bold text-blue-800">+15%</div>
                   <div className="text-xs text-blue-600">Speed Improvement vs Last Season</div>
                 </div>
                 <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-2 text-center">
-                  <div className="text-2xl font-bold text-green-800">3</div>
+                  <div className="text-lg font-bold text-green-800">3</div>
                   <div className="text-xs text-green-600">Varsity Prospects Identified</div>
                 </div>
                 <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-2 text-center">
-                  <div className="text-2xl font-bold text-purple-800">92%</div>
+                  <div className="text-lg font-bold text-purple-800">92%</div>
                   <div className="text-xs text-purple-600">Prediction Accuracy</div>
                 </div>
               </div>
@@ -2252,7 +2252,7 @@ export default function UnifiedDemo() {
               </h3>
               <p className="text-gray-600 mb-4">Perfect team balance in seconds...</p>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-1">
                 <div className="bg-blue-50 rounded-lg p-2 border-2 border-blue-200">
                   <h4 className="font-medium text-blue-800 mb-2">🔵 Team Alpha</h4>
                   <div className="space-y-1 text-sm">
@@ -2278,7 +2278,7 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+              <div className="mt-4 p-1 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-green-800 text-sm">⚡ Perfect balance achieved in 3 seconds vs 30+ minutes manually!</p>
               </div>
             </div>
@@ -2305,7 +2305,7 @@ export default function UnifiedDemo() {
               </div>
               
               <div className="bg-white/30 rounded-lg p-6 backdrop-blur">
-                <h4 className="text-lg font-bold mb-3">You Just Automated:</h4>
+                <h4 className="text-sm font-bold mb-1">You Just Automated:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>✅ League & Event Setup</div>
                   <div>✅ Player Management</div>
@@ -2374,8 +2374,8 @@ export default function UnifiedDemo() {
       <div className="max-w-4xl mx-auto px-4 py-2">
         {/* Header */}
         <div className="text-center mb-2">
-          <div className="bg-white rounded-xl shadow-lg p-3">
-            <h1 className="text-lg md:text-lg font-bold text-gray-900 mb-1">
+          <div className="bg-white rounded-xl shadow-lg p-1">
+            <h1 className="text-lg md:text-sm font-bold text-gray-900 mb-1">
               🚀 WooCombine: The Revolution
             </h1>
             <p className="text-gray-600 text-xs mb-2">
@@ -2486,8 +2486,8 @@ export default function UnifiedDemo() {
         </div>
 
         {/* Call to Action */}
-        <div className="mt-2 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-3 text-white text-center">
-          <h2 className="text-lg font-bold mb-1">
+        <div className="mt-2 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-1 text-white text-center">
+          <h2 className="text-sm font-bold mb-1">
             🚀 Ready to Transform Your Combines?
           </h2>
           <p className="text-green-100 text-xs mb-2">
