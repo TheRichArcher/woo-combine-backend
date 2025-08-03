@@ -287,6 +287,20 @@ export default function UnifiedDemo() {
     setNotifications([]);
   };
 
+  // Auto-scroll to keep demo content in view
+  useEffect(() => {
+    if (isAutoPlaying) {
+      const demoContent = document.getElementById('demo-step-content');
+      if (demoContent) {
+        demoContent.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest' 
+        });
+      }
+    }
+  }, [currentStep, isAutoPlaying]);
+
   const addNotification = (message, type = "success", duration = 2500) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, message, type }]);
@@ -1758,18 +1772,18 @@ export default function UnifiedDemo() {
         </div>
       )}
       
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-3">
         {/* Header */}
-        <div className="text-center mb-6">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              🏈 WooCombine Complete Demo: Workflow + Features
+        <div className="text-center mb-3">
+          <div className="bg-white rounded-xl shadow-lg p-4">
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+              🏈 WooCombine Demo: Workflow + Features
             </h1>
-            <p className="text-gray-600 mb-4">
-              See how easy it is to use + why it's revolutionary (Workflow → Power Features)
+            <p className="text-gray-600 text-sm mb-3">
+              See how easy it is to use + why it's revolutionary
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-3">
               <button
                 onClick={startAutoDemo}
                 disabled={isAutoPlaying}
@@ -1789,12 +1803,12 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Step Progress */}
-            <div className="flex flex-wrap justify-center gap-2 mb-4">
+            <div className="flex flex-wrap justify-center gap-1 mb-2">
               {WORKFLOW_STEPS.map((step, index) => (
                 <button
                   key={step.id}
                   onClick={() => setCurrentStep(index)}
-                  className={`px-2 md:px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-1 md:px-2 py-1 rounded text-xs font-medium transition-all ${
                     currentStep === index 
                       ? 'bg-blue-600 text-white' 
                       : index < currentStep
@@ -1802,9 +1816,9 @@ export default function UnifiedDemo() {
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
-                  {index < currentStep && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                  <span className="hidden sm:inline">{step.icon} {step.title}</span>
-                  <span className="sm:hidden">{step.icon}</span>
+                  {index < currentStep && <CheckCircle className="w-2 h-2 inline mr-0.5" />}
+                  <span className="hidden lg:inline">{step.icon} {step.title}</span>
+                  <span className="lg:hidden">{step.icon}</span>
                 </button>
               ))}
             </div>
@@ -1822,7 +1836,7 @@ export default function UnifiedDemo() {
         </div>
 
         {/* Current Step Display */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden">
           <div className={`text-white p-4 ${
             WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
@@ -1867,24 +1881,24 @@ export default function UnifiedDemo() {
             </div>
           </div>
 
-          <div className="p-6">
+          <div className="p-4">
             {renderStepContent()}
           </div>
         </div>
 
         {/* Call to Action */}
-        <div className="mt-6 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-6 text-white text-center">
-          <h2 className="text-2xl font-bold mb-2">
+        <div className="mt-4 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-4 text-white text-center">
+          <h2 className="text-xl font-bold mb-1">
             🚀 Ready to Transform Your Combines?
           </h2>
-          <p className="text-green-100 mb-4">
+          <p className="text-green-100 text-sm mb-3">
             See how this complete workflow can be yours in under 60 seconds
           </p>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             <button
               onClick={() => navigate("/signup")}
-              className="w-full bg-white text-green-600 font-semibold py-3 rounded-xl hover:bg-gray-50 transition-all duration-200"
+              className="w-full bg-white text-green-600 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
             >
               ⚡ Start Your Free Trial Now
             </button>
@@ -1892,7 +1906,7 @@ export default function UnifiedDemo() {
             <div className="flex justify-center">
               <button
                 onClick={() => navigate("/welcome")}
-                className="border border-white text-white font-medium py-2 px-4 rounded-lg hover:bg-white/10 transition-all duration-200 text-sm"
+                className="border border-white text-white font-medium py-1 px-3 rounded text-sm hover:bg-white/10 transition-all duration-200"
               >
                 ← Back to Home
               </button>
