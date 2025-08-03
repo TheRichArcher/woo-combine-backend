@@ -1772,18 +1772,18 @@ export default function UnifiedDemo() {
         </div>
       )}
       
-      <div className="max-w-4xl mx-auto px-4 py-3">
+      <div className="max-w-4xl mx-auto px-4 py-2">
         {/* Header */}
-        <div className="text-center mb-3">
-          <div className="bg-white rounded-xl shadow-lg p-4">
-            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
+        <div className="text-center mb-2">
+          <div className="bg-white rounded-xl shadow-lg p-3">
+            <h1 className="text-lg md:text-xl font-bold text-gray-900 mb-1">
               🏈 WooCombine Demo: Workflow + Features
             </h1>
-            <p className="text-gray-600 text-sm mb-3">
+            <p className="text-gray-600 text-xs mb-2">
               See how easy it is to use + why it's revolutionary
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-2">
               <button
                 onClick={startAutoDemo}
                 disabled={isAutoPlaying}
@@ -1836,7 +1836,7 @@ export default function UnifiedDemo() {
         </div>
 
         {/* Current Step Display */}
-        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col" style={{ height: '60vh', maxHeight: '500px' }}>
           <div className={`text-white p-4 ${
             WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
@@ -1881,24 +1881,24 @@ export default function UnifiedDemo() {
             </div>
           </div>
 
-          <div className="p-4">
+          <div className="p-4 overflow-y-auto flex-1">
             {renderStepContent()}
           </div>
         </div>
 
         {/* Call to Action */}
-        <div className="mt-4 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-4 text-white text-center">
-          <h2 className="text-xl font-bold mb-1">
+        <div className="mt-2 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-3 text-white text-center">
+          <h2 className="text-lg font-bold mb-1">
             🚀 Ready to Transform Your Combines?
           </h2>
-          <p className="text-green-100 text-sm mb-3">
+          <p className="text-green-100 text-xs mb-2">
             See how this complete workflow can be yours in under 60 seconds
           </p>
           
-          <div className="space-y-2">
+          <div className="space-y-1">
             <button
               onClick={() => navigate("/signup")}
-              className="w-full bg-white text-green-600 font-semibold py-2 rounded-lg hover:bg-gray-50 transition-all duration-200"
+              className="w-full bg-white text-green-600 font-medium py-1.5 text-sm rounded-lg hover:bg-gray-50 transition-all duration-200"
             >
               ⚡ Start Your Free Trial Now
             </button>
@@ -1906,7 +1906,7 @@ export default function UnifiedDemo() {
             <div className="flex justify-center">
               <button
                 onClick={() => navigate("/welcome")}
-                className="border border-white text-white font-medium py-1 px-3 rounded text-sm hover:bg-white/10 transition-all duration-200"
+                className="border border-white text-white font-medium py-1 px-2 rounded text-xs hover:bg-white/10 transition-all duration-200"
               >
                 ← Back to Home
               </button>
