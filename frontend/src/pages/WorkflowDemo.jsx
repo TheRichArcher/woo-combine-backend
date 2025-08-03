@@ -875,7 +875,7 @@ export default function UnifiedDemo() {
                     )}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
                     <input
@@ -1048,7 +1048,7 @@ export default function UnifiedDemo() {
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h3 className="text-lg font-semibold mb-4">Add Walk-Up Player</h3>
               <p className="text-gray-600 text-sm mb-4">Sam Wilson just showed up - let's add him quickly!</p>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
                   <div className="relative">
@@ -1156,7 +1156,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Player #</label>
                   <input
@@ -1238,7 +1238,7 @@ export default function UnifiedDemo() {
 
             {/* Before/After Rankings Comparison */}
             {(stepSubState === "before-rankings" || stepSubState === "dramatic-reveal") && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="bg-white rounded-lg p-4 shadow-lg border-2 border-gray-300">
                   <h4 className="font-semibold mb-3 text-gray-600">📊 Before (Default Weights)</h4>
                   <div className="space-y-2">
@@ -1423,7 +1423,7 @@ export default function UnifiedDemo() {
                   </ul>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <button className="bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1">
                   <FileText className="w-3 h-3" />
                   PDFs
@@ -1680,7 +1680,7 @@ export default function UnifiedDemo() {
               <h3 className="text-4xl font-bold mb-4">The WOW Factor!</h3>
               <p className="text-xl mb-6">What you just witnessed...</p>
               
-              <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                 <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
                   <div className="text-3xl font-bold text-yellow-100">3 Minutes</div>
                   <div className="text-yellow-200">With WooCombine</div>
@@ -1693,7 +1693,7 @@ export default function UnifiedDemo() {
               
               <div className="bg-white/30 rounded-lg p-6 backdrop-blur">
                 <h4 className="text-xl font-bold mb-3">You Just Automated:</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
                   <div>✅ League & Event Setup</div>
                   <div>✅ Player Management</div>
                   <div>✅ Data Collection</div>
@@ -1758,22 +1758,22 @@ export default function UnifiedDemo() {
         </div>
       )}
       
-      <div className="max-w-6xl mx-auto px-4 py-6">
+      <div className="max-w-4xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="text-center mb-6">
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               🏈 WooCombine Complete Demo: Workflow + Features
             </h1>
             <p className="text-gray-600 mb-4">
               See how easy it is to use + why it's revolutionary (Workflow → Power Features)
             </p>
             
-            <div className="flex justify-center items-center gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 mb-4">
               <button
                 onClick={startAutoDemo}
                 disabled={isAutoPlaying}
-                className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
                 {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 {isAutoPlaying ? 'Playing...' : 'Start Auto Demo'}
@@ -1781,7 +1781,7 @@ export default function UnifiedDemo() {
               
               <button
                 onClick={resetDemo}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center gap-2"
+                className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
                 Reset
@@ -1789,12 +1789,12 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Step Progress */}
-            <div className="flex justify-center gap-2 mb-4">
+            <div className="flex flex-wrap justify-center gap-2 mb-4">
               {WORKFLOW_STEPS.map((step, index) => (
                 <button
                   key={step.id}
                   onClick={() => setCurrentStep(index)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-2 md:px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                     currentStep === index 
                       ? 'bg-blue-600 text-white' 
                       : index < currentStep
@@ -1803,7 +1803,8 @@ export default function UnifiedDemo() {
                   }`}
                 >
                   {index < currentStep && <CheckCircle className="w-3 h-3 inline mr-1" />}
-                  {step.icon} {step.title}
+                  <span className="hidden sm:inline">{step.icon} {step.title}</span>
+                  <span className="sm:hidden">{step.icon}</span>
                 </button>
               ))}
             </div>
