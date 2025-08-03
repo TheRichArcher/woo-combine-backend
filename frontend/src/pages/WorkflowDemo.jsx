@@ -73,7 +73,7 @@ const WORKFLOW_STEPS = [
     desc: "Record 40-yard dash times live",
     icon: "⚡",
     phase: "workflow",
-    duration: 8000,
+    duration: 12000,
     component: "DrillResultsStep"
   },
   {
@@ -113,7 +113,7 @@ const WORKFLOW_STEPS = [
     desc: "Watch results flow in real-time as drills happen",
     icon: "📱",
     phase: "features",
-    duration: 8000,
+    duration: 15000,
     component: "LiveUpdatesStep"
   },
   {
@@ -122,7 +122,7 @@ const WORKFLOW_STEPS = [
     desc: "Parents get instant updates on their phones",
     icon: "📲",
     phase: "features",
-    duration: 7000,
+    duration: 12000,
     component: "ParentNotificationsStep"
   },
   {
@@ -131,7 +131,7 @@ const WORKFLOW_STEPS = [
     desc: "Deep insights that transform recruiting",
     icon: "📈",
     phase: "features",
-    duration: 9000,
+    duration: 18000,
     component: "AdvancedAnalyticsStep"
   },
   {
@@ -140,7 +140,7 @@ const WORKFLOW_STEPS = [
     desc: "AI-powered balanced team creation",
     icon: "👥",
     phase: "features",
-    duration: 8000,
+    duration: 15000,
     component: "TeamFormationStep"
   },
   {
@@ -570,23 +570,31 @@ export default function UnifiedDemo() {
           setCurrentDrillPlayer(players[0]);
         }, 1000));
         
-        // Simulate entering drill result
+        // Simulate entering drill result - EXTENDED TIMING
         timeouts.push(setTimeout(() => {
-          animateButtonClick('record-result-btn', () => {
-            timeouts.push(setTimeout(() => {
-              const updatedPlayers = players.map(player => ({
-                ...player,
-                ...DRILL_RESULTS[player.id]
-              }));
-              setPlayers(updatedPlayers);
-              addNotification("⚡ All drill results recorded!", "success", 2500);
-              
-              // Advance to next step after drill results complete
+          addNotification("🏃 Athletes completing 40-yard dash drills...", "success", 4000);
+          
+          timeouts.push(setTimeout(() => {
+            animateButtonClick('record-result-btn', () => {
               timeouts.push(setTimeout(() => {
-                advanceToNextStep();
-              }, 1000));
-            }, 800));
-          });
+                const updatedPlayers = players.map(player => ({
+                  ...player,
+                  ...DRILL_RESULTS[player.id]
+                }));
+                setPlayers(updatedPlayers);
+                addNotification("⚡ All drill results recorded and uploaded instantly!", "success", 4000);
+                
+                timeouts.push(setTimeout(() => {
+                  addNotification("📊 Watch how fast results flow into the system!", "success", 3000);
+                  
+                  // Advance to next step after drill results complete
+                  timeouts.push(setTimeout(() => {
+                    advanceToNextStep();
+                  }, 3000));
+                }, 3000));
+              }, 1500));
+            });
+          }, 4000));
         }, 3000));
         break;
         
@@ -702,61 +710,81 @@ export default function UnifiedDemo() {
         
       case "LiveUpdatesStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📱 Live drill results flowing in real-time...", "success", 3000);
+          addNotification("📱 Live drill results flowing in real-time...", "success", 5000);
           setStepSubState("live-demo");
           
           timeouts.push(setTimeout(() => {
-            addNotification("📊 Rankings updating automatically as athletes complete drills!", "success", 3000);
+            addNotification("📊 Watch rankings update instantly as each athlete finishes!", "success", 5000);
             
             timeouts.push(setTimeout(() => {
-              advanceToNextStep();
-            }, 3500));
-          }, 3000));
+              addNotification("⚡ No manual data entry - everything flows automatically!", "success", 4000);
+              
+              timeouts.push(setTimeout(() => {
+                advanceToNextStep();
+              }, 4000));
+            }, 5000));
+          }, 4000));
         }, 1000));
         break;
         
       case "ParentNotificationsStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📲 Parents receiving instant updates on their phones...", "success", 3000);
+          addNotification("📲 Parents receiving instant updates on their phones...", "success", 4000);
           setStepSubState("notifications");
           
           timeouts.push(setTimeout(() => {
-            addNotification("📱 Families stay engaged throughout the entire combine!", "success", 3000);
+            addNotification("💬 Automated messages keep families engaged and informed!", "success", 4000);
             
             timeouts.push(setTimeout(() => {
-              advanceToNextStep();
-            }, 3500));
-          }, 3000));
+              addNotification("🎯 No more parents asking 'How did my kid do?' - they already know!", "success", 3000);
+              
+              timeouts.push(setTimeout(() => {
+                advanceToNextStep();
+              }, 3000));
+            }, 4000));
+          }, 4000));
         }, 1000));
         break;
         
       case "AdvancedAnalyticsStep":
         timeouts.push(setTimeout(() => {
-          addNotification("📈 AI generating advanced analytics and insights...", "success", 4000);
+          addNotification("📈 AI analyzing performance patterns and trends...", "success", 5000);
           setStepSubState("analytics");
           
           timeouts.push(setTimeout(() => {
-            addNotification("🎯 Scout recommendations and predictive insights ready!", "success", 4000);
+            addNotification("🔍 Identifying top prospects and hidden talent automatically!", "success", 5000);
             
             timeouts.push(setTimeout(() => {
-              advanceToNextStep();
-            }, 4500));
-          }, 4000));
+              addNotification("📊 Generating predictive insights that transform recruiting!", "success", 4000);
+              
+              timeouts.push(setTimeout(() => {
+                addNotification("🎯 What would take scouts HOURS is done in seconds!", "success", 3000);
+                
+                timeouts.push(setTimeout(() => {
+                  advanceToNextStep();
+                }, 3000));
+              }, 4000));
+            }, 5000));
+          }, 5000));
         }, 1000));
         break;
         
       case "TeamFormationStep":
         timeouts.push(setTimeout(() => {
-          addNotification("👥 AI creating perfectly balanced teams in seconds...", "success", 4000);
+          addNotification("👥 AI analyzing ALL player data for optimal team balance...", "success", 5000);
           setStepSubState("team-formation");
           
           timeouts.push(setTimeout(() => {
-            addNotification("🏆 Perfect balance achieved! (vs 30+ minutes manually)", "success", 4000);
+            addNotification("⚖️ Balancing speed, strength, skill, and chemistry factors!", "success", 5000);
             
             timeouts.push(setTimeout(() => {
-              advanceToNextStep();
-            }, 4500));
-          }, 4000));
+              addNotification("🏆 Perfect teams created! (vs 30+ minutes of manual work)", "success", 4000);
+              
+              timeouts.push(setTimeout(() => {
+                advanceToNextStep();
+              }, 4000));
+            }, 5000));
+          }, 5000));
         }, 1000));
         break;
         
