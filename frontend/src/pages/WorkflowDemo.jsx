@@ -853,8 +853,8 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Ultra Compact Header */}
             <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-1 text-center">
-              <div className="text-3xl mb-1">😰</div>
-              <h3 className="text-lg font-bold">Every Coach's Nightmare</h3>
+              <div className="text-2xl mb-1">😰</div>
+              <h3 className="text-base font-bold">Every Coach's Nightmare</h3>
               <p className="text-red-100 text-xs">This is what coaches deal with EVERY combine day...</p>
             </div>
 
@@ -862,7 +862,7 @@ export default function UnifiedDemo() {
             <div className="grid grid-cols-3 gap-1">
               {PAIN_POINTS.map((pain, index) => (
                 <div key={pain.id} className="bg-red-50 border border-red-200 rounded p-1 text-center">
-                  <div className="text-lg">{pain.visual}</div>
+                  <div className="text-base">{pain.visual}</div>
                   <h4 className="font-bold text-red-800 text-xs">{pain.title}</h4>
                   <p className="text-red-700 text-xs leading-tight">{pain.desc.split(',')[0]}</p>
                 </div>
@@ -902,8 +902,8 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Ultra Compact Header */}
             <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-lg p-1 text-center">
-              <div className="text-3xl mb-1">⚡</div>
-              <h3 className="text-lg font-bold">The Game Changer</h3>
+              <div className="text-2xl mb-1">⚡</div>
+              <h3 className="text-base font-bold">The Game Changer</h3>
               <p className="text-green-100 text-xs">Everything updates INSTANTLY! ✨</p>
             </div>
 
@@ -953,8 +953,8 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Ultra Compact Header */}
             <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg p-1 text-center">
-              <div className="text-3xl mb-1">🏃‍♂️</div>
-              <h3 className="text-lg font-bold">Setup in 60 Seconds</h3>
+              <div className="text-2xl mb-1">🏃‍♂️</div>
+              <h3 className="text-base font-bold">Setup in 60 Seconds</h3>
               <p className="text-green-100 text-xs">Zero → running combine in 1 minute! ⚡</p>
             </div>
 
@@ -999,9 +999,9 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Compact Feature Header */}
             <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">📱</div>
+              <div className="text-2xl mb-1">📱</div>
               <h3 className="text-sm font-bold mb-1">Smart Parent Engagement</h3>
-              <p className="text-blue-100 mb-2">
+              <p className="text-blue-100 mb-1">
                 No more "How did my kid do?" questions - EVER! 📲
               </p>
             </div>
@@ -1061,9 +1061,9 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Compact Workflow Header */}
             <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">📝</div>
+              <div className="text-2xl mb-1">📝</div>
               <h3 className="text-sm font-bold mb-1">Live Data Entry Magic</h3>
-              <p className="text-orange-100 mb-2">
+              <p className="text-orange-100 mb-1">
                 Tap, tap, done! Results instantly everywhere! 📱
               </p>
             </div>
@@ -1074,7 +1074,7 @@ export default function UnifiedDemo() {
               
               <div className="grid grid-cols-2 gap-2 mb-1">
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-2">Current Player</div>
+                  <div className="text-sm text-gray-600 mb-1">Current Player</div>
                   <div className="bg-blue-50 rounded-lg p-1 border-2 border-blue-200">
                     <div className="font-bold text-blue-800">#12 Alex Johnson</div>
                     <div className="text-sm text-blue-600">U16 - Ready to run</div>
@@ -1082,9 +1082,9 @@ export default function UnifiedDemo() {
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-2">Enter Time</div>
+                  <div className="text-sm text-gray-600 mb-1">Enter Time</div>
                   <div className="bg-green-50 rounded-lg p-1 border-2 border-green-200">
-                    <div className="text-lg font-bold text-green-800">4.38</div>
+                    <div className="text-base font-bold text-green-800">4.38</div>
                     <div className="text-sm text-green-600">seconds</div>
                   </div>
                 </div>
@@ -1121,9 +1121,9 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Compact Feature Header */}
             <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">🎯</div>
+              <div className="text-2xl mb-1">🎯</div>
               <h3 className="text-sm font-bold mb-1">Intelligent Rankings</h3>
-              <p className="text-purple-100 mb-2">
+              <p className="text-purple-100 mb-1">
                 AI-powered adjustments in real-time 🧠
               </p>
             </div>
@@ -1172,7 +1172,7 @@ export default function UnifiedDemo() {
             {/* Live Rankings */}
             <div className="grid grid-cols-2 gap-1">
               <div className="bg-gray-50 rounded-lg p-1 border-2 border-gray-300">
-                <h5 className="font-bold text-gray-800 mb-2 text-center">📊 Live Rankings</h5>
+                <h5 className="font-bold text-gray-800 mb-1 text-center">📊 Live Rankings</h5>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between bg-yellow-100 p-1 rounded">
                     <span>🥇 #15 Morgan Davis</span>
@@ -1190,7 +1190,7 @@ export default function UnifiedDemo() {
               </div>
               
               <div className="bg-green-50 rounded-lg p-1 border-2 border-green-300">
-                <h5 className="font-bold text-green-800 mb-2 text-center">⚡ The Magic</h5>
+                <h5 className="font-bold text-green-800 mb-1 text-center">⚡ The Magic</h5>
                 <div className="space-y-1 text-xs text-green-700">
                   <div>✅ Instant recalculation</div>
                   <div>✅ 99.8% accuracy</div>
@@ -1209,9 +1209,9 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Compact Workflow Header */}
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">📊</div>
+              <div className="text-2xl mb-1">📊</div>
               <h3 className="text-sm font-bold mb-1">Instant Professional Reports</h3>
-              <p className="text-indigo-100 mb-2">
+              <p className="text-indigo-100 mb-1">
                 Click button → Professional PDF ready! 📄
               </p>
             </div>
@@ -1225,7 +1225,7 @@ export default function UnifiedDemo() {
               
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-gray-50 rounded-lg p-1">
-                  <h5 className="font-bold text-gray-800 mb-2 text-sm">🏆 Top 3</h5>
+                  <h5 className="font-bold text-gray-800 mb-1 text-sm">🏆 Top 3</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span>#15 Morgan Davis</span>
@@ -1243,7 +1243,7 @@ export default function UnifiedDemo() {
                 </div>
                 
                 <div className="bg-gray-50 rounded-lg p-1">
-                  <h5 className="font-bold text-gray-800 mb-2 text-sm">📈 Stats</h5>
+                  <h5 className="font-bold text-gray-800 mb-1 text-sm">📈 Stats</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span>Athletes:</span>
@@ -1288,9 +1288,9 @@ export default function UnifiedDemo() {
           <div className="space-y-2">
             {/* Celebration Header */}
             <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">🎉</div>
+              <div className="text-2xl mb-1">🎉</div>
               <h3 className="text-sm font-bold mb-1">Your New Reality</h3>
-              <p className="text-yellow-100 mb-2">
+              <p className="text-yellow-100 mb-1">
                 47+ hours saved, 100% accuracy, happy parents! 🏆
               </p>
             </div>
@@ -1298,8 +1298,8 @@ export default function UnifiedDemo() {
             {/* Transformation Summary */}
             <div className="grid grid-cols-2 gap-1">
               <div className="bg-red-50 rounded-lg p-2 border-2 border-red-200 text-center">
-                <div className="text-3xl mb-2">😰</div>
-                <h4 className="font-bold text-red-800 mb-2">Before WooCombine</h4>
+                <div className="text-2xl mb-1">😰</div>
+                <h4 className="font-bold text-red-800 mb-1">Before WooCombine</h4>
                 <div className="space-y-1 text-sm text-red-700">
                   <div>47+ hours of manual work</div>
                   <div>38% error rate</div>
@@ -1310,8 +1310,8 @@ export default function UnifiedDemo() {
               </div>
               
               <div className="bg-green-50 rounded-lg p-2 border-2 border-green-200 text-center">
-                <div className="text-3xl mb-2">🚀</div>
-                <h4 className="font-bold text-green-800 mb-2">With WooCombine</h4>
+                <div className="text-2xl mb-1">🚀</div>
+                <h4 className="font-bold text-green-800 mb-1">With WooCombine</h4>
                 <div className="space-y-1 text-sm text-green-700">
                   <div>30 seconds setup</div>
                   <div>99.8% accuracy</div>
@@ -1324,19 +1324,19 @@ export default function UnifiedDemo() {
 
             {/* Call to Action Preview */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-2 text-center">
-              <h4 className="text-sm font-bold mb-2">Ready to Transform YOUR Combines?</h4>
+              <h4 className="text-sm font-bold mb-1">Ready to Transform YOUR Combines?</h4>
               <p className="text-blue-100 mb-1">Join thousands of coaches who've revolutionized their workflow</p>
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div>
-                  <div className="text-lg font-bold">5,000+</div>
+                  <div className="text-base font-bold">5,000+</div>
                   <div className="text-sm text-blue-200">Coaches</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold">50,000+</div>
+                  <div className="text-base font-bold">50,000+</div>
                   <div className="text-sm text-blue-200">Athletes</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold">99.8%</div>
+                  <div className="text-base font-bold">99.8%</div>
                   <div className="text-sm text-blue-200">Satisfaction</div>
                 </div>
               </div>
@@ -1351,11 +1351,11 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-2">
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-2 text-center">
-              <div className="text-3xl mb-1">{step.icon}</div>
+              <div className="text-2xl mb-1">{step.icon}</div>
               <h3 className="text-sm font-bold mb-1">{step.title}</h3>
-              <p className="text-sm text-purple-100 mb-2">{step.desc}</p>
+              <p className="text-sm text-purple-100 mb-1">{step.desc}</p>
               <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                <p className="text-lg font-bold text-yellow-300">
+                <p className="text-base font-bold text-yellow-300">
                   Revolutionary feature coming soon! ✨
                 </p>
               </div>
@@ -1389,10 +1389,10 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Create a New League</h3>
+              <h3 className="text-base font-semibold mb-4">Create a New League</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">League Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">League Name</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -1463,10 +1463,10 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Create Combine Event</h3>
+              <h3 className="text-base font-semibold mb-4">Create Combine Event</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -1490,7 +1490,7 @@ export default function UnifiedDemo() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
                     <input
                       type="date"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg"
@@ -1498,7 +1498,7 @@ export default function UnifiedDemo() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg"
@@ -1568,7 +1568,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Upload Player Roster</h3>
+              <h3 className="text-base font-semibold mb-4">Upload Player Roster</h3>
               <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
                 buttonStates['upload-csv-btn'] === 'clicking' 
                   ? 'border-blue-400 bg-blue-50' 
@@ -1608,7 +1608,7 @@ export default function UnifiedDemo() {
               </div>
               {players.length === 0 && (
                 <div className="mt-4 bg-gray-50 rounded-lg p-2">
-                  <h4 className="font-medium text-gray-800 mb-2">Sample CSV Format:</h4>
+                  <h4 className="font-medium text-gray-800 mb-1">Sample CSV Format:</h4>
                   <pre className="text-xs text-gray-600 whitespace-pre-wrap">{DEMO_CSV_DATA}</pre>
                 </div>
               )}
@@ -1659,11 +1659,11 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Add Walk-Up Player</h3>
+              <h3 className="text-base font-semibold mb-4">Add Walk-Up Player</h3>
               <p className="text-gray-600 text-sm mb-4">Sam Wilson just showed up - let's add him quickly!</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -1681,7 +1681,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                   <div className="relative">
                     <input
                       type="text"
@@ -1699,7 +1699,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Number</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Number</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -1718,7 +1718,7 @@ export default function UnifiedDemo() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Age Group</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
                   <select 
                     className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
                       manualPlayerAgeGroup ? 'border-green-500 bg-green-50' : 'border-gray-300'
@@ -1757,7 +1757,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4">Live Drill Entry</h3>
+              <h3 className="text-base font-semibold mb-4">Live Drill Entry</h3>
               {currentDrillPlayer && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4">
                   <div className="flex items-center justify-between">
@@ -1771,7 +1771,7 @@ export default function UnifiedDemo() {
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Player #</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Player #</label>
                   <input
                     type="text"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg"
@@ -1780,7 +1780,7 @@ export default function UnifiedDemo() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Drill Type</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Drill Type</label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg" defaultValue="fortyYardDash">
                     <option value="fortyYardDash">40-Yard Dash</option>
                     <option value="vertical">Vertical Jump</option>
@@ -1790,7 +1790,7 @@ export default function UnifiedDemo() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Time/Score</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Time/Score</label>
                   <input
                     type="number"
                     step="0.01"
@@ -1840,7 +1840,7 @@ export default function UnifiedDemo() {
           <div className="space-y-4">
             {/* Dramatic Header */}
             <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-sm font-bold mb-2">⚖️ The WooCombine Game Changer</h3>
+              <h3 className="text-sm font-bold mb-1">⚖️ The WooCombine Game Changer</h3>
               <p className="text-blue-100">Watch how intelligent weight adjustments completely transform rankings!</p>
               {stepSubState === "coach-thinking" && (
                 <div className="mt-3 bg-white/20 rounded-lg p-1 animate-pulse">
@@ -1903,7 +1903,7 @@ export default function UnifiedDemo() {
 
             {/* Weight Adjustment Interface */}
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 ⚖️ Dynamic Weight Adjustment
                 {stepSubState === "adjusting-speed" && <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">Adjusting...</span>}
               </h3>
@@ -2017,10 +2017,10 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
-              <h3 className="text-lg font-semibold mb-4 text-purple-800">Final Results & Reports</h3>
+              <h3 className="text-base font-semibold mb-4 text-purple-800">Final Results & Reports</h3>
               <div className="grid grid-cols-2 gap-1 mb-4">
                 <div className="bg-white rounded-lg p-1">
-                  <h4 className="font-medium text-purple-700 mb-2">Individual Scorecards</h4>
+                  <h4 className="font-medium text-purple-700 mb-1">Individual Scorecards</h4>
                   <ul className="text-sm text-purple-600 space-y-1">
                     <li>• Personal performance reports</li>
                     <li>• Ranking certificates</li>
@@ -2028,7 +2028,7 @@ export default function UnifiedDemo() {
                   </ul>
                 </div>
                 <div className="bg-white rounded-lg p-1">
-                  <h4 className="font-medium text-purple-700 mb-2">Team Analytics</h4>
+                  <h4 className="font-medium text-purple-700 mb-1">Team Analytics</h4>
                   <ul className="text-sm text-purple-600 space-y-1">
                     <li>• Age group comparisons</li>
                     <li>• Scout-ready summaries</li>
@@ -2073,12 +2073,12 @@ export default function UnifiedDemo() {
                         </span>
                         <div>
                           <span className="font-medium">{player.name}</span>
-                          {index < 3 && <span className="ml-2 text-lg">🏆</span>}
+                          {index < 3 && <span className="ml-2 text-base">🏆</span>}
                           <div className="text-xs text-gray-500">#{player.number} • {player.age_group}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-mono font-bold text-lg text-purple-600">
+                        <div className="font-mono font-bold text-base text-purple-600">
                           {player.compositeScore.toFixed(1)}
                         </div>
                         <div className="text-xs text-gray-500">Overall</div>
@@ -2090,8 +2090,8 @@ export default function UnifiedDemo() {
             )}
 
             <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-center">
-              <h4 className="font-bold text-green-800 text-lg mb-2">🎉 Combine Complete!</h4>
-              <p className="text-green-700 text-sm mb-2">
+              <h4 className="font-bold text-green-800 text-base mb-1">🎉 Combine Complete!</h4>
+              <p className="text-green-700 text-sm mb-1">
                 Total time: 2.5 hours • Old way would have taken: 8+ hours
               </p>
               <div className="grid grid-cols-3 gap-2 text-xs">
@@ -2122,7 +2122,7 @@ export default function UnifiedDemo() {
                 You just saw how easy WooCombine is to use...
               </p>
               <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                <p className="text-lg font-bold text-yellow-300">
+                <p className="text-base font-bold text-yellow-300">
                   Now let's see why it's REVOLUTIONARY! ✨
                 </p>
               </div>
@@ -2134,7 +2134,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 📱 Real-Time Updates
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">LIVE</span>
               </h3>
@@ -2171,7 +2171,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 📲 Parent Notifications
                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">SENDING</span>
               </h3>
@@ -2180,7 +2180,7 @@ export default function UnifiedDemo() {
               <div className="grid grid-cols-2 gap-1">
                 <div className="bg-gray-100 rounded-lg p-2 border-2 border-gray-300 shadow-sm">
                   <div className="text-center">
-                    <div className="text-3xl mb-2">📱</div>
+                    <div className="text-2xl mb-1">📱</div>
                     <div className="font-medium text-sm">Alex's Dad</div>
                     <div className="text-xs text-gray-600 mt-2 bg-green-100 rounded p-2">
                       "🏃 Alex just ran a 4.32 forty! Amazing speed improvement!"
@@ -2189,7 +2189,7 @@ export default function UnifiedDemo() {
                 </div>
                 <div className="bg-gray-100 rounded-lg p-2 border-2 border-gray-300 shadow-sm">
                   <div className="text-center">
-                    <div className="text-3xl mb-2">📱</div>
+                    <div className="text-2xl mb-1">📱</div>
                     <div className="font-medium text-sm">Jordan's Mom</div>
                     <div className="text-xs text-gray-600 mt-2 bg-blue-100 rounded p-2">
                       "📏 38 inch vertical! So proud of that jump!"
@@ -2209,7 +2209,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 📈 Advanced Analytics
                 <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full animate-pulse">ANALYZING</span>
               </h3>
@@ -2217,21 +2217,21 @@ export default function UnifiedDemo() {
               
               <div className="grid grid-cols-3 gap-1 mb-4">
                 <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-2 text-center">
-                  <div className="text-lg font-bold text-blue-800">+15%</div>
+                  <div className="text-base font-bold text-blue-800">+15%</div>
                   <div className="text-xs text-blue-600">Speed Improvement vs Last Season</div>
                 </div>
                 <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-2 text-center">
-                  <div className="text-lg font-bold text-green-800">3</div>
+                  <div className="text-base font-bold text-green-800">3</div>
                   <div className="text-xs text-green-600">Varsity Prospects Identified</div>
                 </div>
                 <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-2 text-center">
-                  <div className="text-lg font-bold text-purple-800">92%</div>
+                  <div className="text-base font-bold text-purple-800">92%</div>
                   <div className="text-xs text-purple-600">Prediction Accuracy</div>
                 </div>
               </div>
               
               <div className="bg-gray-50 rounded-lg p-2">
-                <h4 className="font-medium mb-2">🎯 Scout Recommendations</h4>
+                <h4 className="font-medium mb-1">🎯 Scout Recommendations</h4>
                 <ul className="text-sm space-y-1">
                   <li>• Alex Johnson: Elite speed, track & field potential</li>
                   <li>• Morgan Davis: Well-rounded athlete, varsity ready</li>
@@ -2246,7 +2246,7 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-4">
             <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                 👥 AI Team Formation
                 <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">OPTIMIZING</span>
               </h3>
@@ -2254,7 +2254,7 @@ export default function UnifiedDemo() {
               
               <div className="grid grid-cols-2 gap-1">
                 <div className="bg-blue-50 rounded-lg p-2 border-2 border-blue-200">
-                  <h4 className="font-medium text-blue-800 mb-2">🔵 Team Alpha</h4>
+                  <h4 className="font-medium text-blue-800 mb-1">🔵 Team Alpha</h4>
                   <div className="space-y-1 text-sm">
                     <div>Alex Johnson (Speed Leader)</div>
                     <div>Taylor Brown (Skill Balance)</div>
@@ -2266,7 +2266,7 @@ export default function UnifiedDemo() {
                 </div>
                 
                 <div className="bg-red-50 rounded-lg p-2 border-2 border-red-200">
-                  <h4 className="font-medium text-red-800 mb-2">🔴 Team Beta</h4>
+                  <h4 className="font-medium text-red-800 mb-1">🔴 Team Beta</h4>
                   <div className="space-y-1 text-sm">
                     <div>Morgan Davis (Power)</div>
                     <div>Jordan Smith (Consistency)</div>
@@ -2321,7 +2321,7 @@ export default function UnifiedDemo() {
               <div className="mt-6">
                 <button 
                   onClick={() => navigate('/signup')}
-                  className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold text-lg hover:bg-orange-50 transition-all transform hover:scale-105 shadow-xl"
+                  className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold text-base hover:bg-orange-50 transition-all transform hover:scale-105 shadow-xl"
                 >
                   🚀 Transform Your Combine Today!
                 </button>
@@ -2365,7 +2365,7 @@ export default function UnifiedDemo() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
             <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">{transitionText}</h3>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">{transitionText}</h3>
             <p className="text-gray-600 text-sm">Please wait while we prepare the next step...</p>
           </div>
         </div>
@@ -2373,16 +2373,16 @@ export default function UnifiedDemo() {
       
       <div className="max-w-4xl mx-auto px-4 py-2">
         {/* Header */}
-        <div className="text-center mb-2">
+        <div className="text-center mb-1">
           <div className="bg-white rounded-xl shadow-lg p-1">
-            <h1 className="text-lg md:text-sm font-bold text-gray-900 mb-1">
+            <h1 className="text-base md:text-sm font-bold text-gray-900 mb-1">
               🚀 WooCombine: The Revolution
             </h1>
-            <p className="text-gray-600 text-xs mb-2">
+            <p className="text-gray-600 text-xs mb-1">
               Pain → Solution → Wow Factor (watch the transformation!)
             </p>
             
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-2">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-1">
               <button
                 onClick={startAutoDemo}
                 disabled={isAutoPlaying}
@@ -2402,7 +2402,7 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Step Progress */}
-            <div className="flex flex-wrap justify-center gap-1 mb-2">
+            <div className="flex flex-wrap justify-center gap-1 mb-1">
               {WORKFLOW_STEPS.map((step, index) => (
                 <button
                   key={step.id}
@@ -2447,7 +2447,7 @@ export default function UnifiedDemo() {
               <div className="text-3xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-lg font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
+                  <h2 className="text-base font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
                   <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                     WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
                       ? 'bg-blue-200 text-blue-800' 
@@ -2490,7 +2490,7 @@ export default function UnifiedDemo() {
           <h2 className="text-sm font-bold mb-1">
             🚀 Ready to Transform Your Combines?
           </h2>
-          <p className="text-green-100 text-xs mb-2">
+          <p className="text-green-100 text-xs mb-1">
             See how this complete workflow can be yours in under 60 seconds
           </p>
           
