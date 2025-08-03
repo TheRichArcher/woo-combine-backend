@@ -905,11 +905,19 @@ export default function UnifiedDemo() {
             {/* Interactive Demo Button */}
             <div className="text-center">
               <button
-                onClick={addMissingResults}
-                disabled={isRunning}
+                onClick={() => {
+                  console.log("🎯 TRIGGER THE MAGIC clicked!");
+                  addNotification("⚡ Real-time magic triggered!", "success", 3000);
+                  setTimeout(() => {
+                    addNotification("📱 Parent notifications sent!", "info", 3000);
+                  }, 1000);
+                  setTimeout(() => {
+                    addNotification("📊 Rankings updated instantly!", "success", 3000);
+                  }, 2000);
+                }}
                 className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl text-lg transform hover:scale-105 transition-all duration-300 shadow-2xl"
               >
-                {isRunning ? '⚡ WATCH THE MAGIC...' : '🎯 TRIGGER THE MAGIC!'}
+                🎯 TRIGGER THE MAGIC!
               </button>
               <p className="text-gray-600 text-sm mt-2">
                 Click to see real-time updates in action
