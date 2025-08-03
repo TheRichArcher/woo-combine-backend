@@ -1260,86 +1260,165 @@ export default function Demo() {
               </div>
             )}
 
-            {/* Scenario 6: The WOW Factor */}
+            {/* Scenario 6: YOUR NEW REALITY - THE ULTIMATE WOW FACTOR */}
             {currentScenario === 5 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-300 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">✨</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-yellow-800 text-sm">The Complete Transformation</h3>
-                      <p className="text-xs text-yellow-600">What just happened in 2 hours used to take days</p>
+              <div className="space-y-8">
+                {/* Epic Header */}
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-xl p-10 text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-300 to-orange-600 opacity-30 animate-pulse"></div>
+                  <div className="relative z-10">
+                    <div className="text-8xl mb-6">🎉</div>
+                    <h3 className="text-4xl font-bold mb-4">YOUR NEW REALITY</h3>
+                    <p className="text-2xl text-yellow-100 mb-6">
+                      What you just witnessed is YOUR future!
+                    </p>
+                    <div className="bg-white/30 rounded-2xl p-6 backdrop-blur">
+                      <p className="text-3xl font-bold text-white">
+                        47+ HOURS SAVED • 100% ACCURACY • 98% PARENT SATISFACTION! ✨
+                      </p>
                     </div>
                   </div>
+                </div>
+
+                {/* The Transformation */}
+                <div className="bg-gradient-to-br from-red-600 to-green-600 text-white rounded-2xl p-8">
+                  <h4 className="text-3xl font-bold mb-6 text-center">🔥 THE COMPLETE TRANSFORMATION</h4>
                   
-                  <div className="bg-white rounded-lg p-4 border-2 border-yellow-300">
-                    <h4 className="font-bold text-yellow-800 mb-3 text-center">🎯 Mission Accomplished</h4>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <h5 className="font-semibold text-red-700 text-xs mb-2">❌ OLD WAY WOULD HAVE TAKEN:</h5>
-                        <ul className="text-xs text-red-600 space-y-1">
-                          <li>• 45 min setup + delays</li>
-                          <li>• 3+ hours manual scoring</li>
-                          <li>• 2 days for final reports</li>
-                          <li>• Countless errors & recalculations</li>
-                          <li>• Parents left in the dark</li>
-                          <li>• Coach stress through the roof</li>
-                        </ul>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* OLD NIGHTMARE */}
+                    <div className="bg-red-800/50 rounded-xl p-6 backdrop-blur">
+                      <h5 className="text-2xl font-bold mb-4 text-center">😵 OLD NIGHTMARE</h5>
+                      <div className="space-y-3">
+                        <div className="bg-red-700/60 rounded-lg p-3">
+                          <div className="font-bold text-red-100">⏰ Setup Time:</div>
+                          <div className="text-xl text-red-200">45+ minutes of chaos</div>
+                        </div>
+                        <div className="bg-red-700/60 rounded-lg p-3">
+                          <div className="font-bold text-red-100">📝 Data Entry:</div>
+                          <div className="text-xl text-red-200">3+ hours manual scoring</div>
+                        </div>
+                        <div className="bg-red-700/60 rounded-lg p-3">
+                          <div className="font-bold text-red-100">📊 Reports:</div>
+                          <div className="text-xl text-red-200">2+ days + countless errors</div>
+                        </div>
+                        <div className="bg-red-700/60 rounded-lg p-3">
+                          <div className="font-bold text-red-100">👨‍👩‍👧‍👦 Parents:</div>
+                          <div className="text-xl text-red-200">Frustrated & left out</div>
+                        </div>
+                        <div className="bg-red-900 rounded-lg p-4 text-center">
+                          <div className="text-3xl font-bold text-red-100">💀 TOTAL NIGHTMARE</div>
+                        </div>
                       </div>
-                      
-                      <div>
-                        <h5 className="font-semibold text-green-700 text-xs mb-2">✅ WOOCOMBINE DELIVERED:</h5>
-                        <ul className="text-xs text-green-600 space-y-1">
-                          <li>• 2 min digital setup</li>
-                          <li>• Real-time live scoring</li>
-                          <li>• Instant professional reports</li>
-                          <li>• Zero calculation errors</li>
-                          <li>• Parents engaged throughout</li>
-                          <li>• Coach looks like a tech hero</li>
-                        </ul>
+                    </div>
+
+                    {/* NEW REALITY */}
+                    <div className="bg-green-600/50 rounded-xl p-6 backdrop-blur">
+                      <h5 className="text-2xl font-bold mb-4 text-center">🎉 YOUR NEW REALITY</h5>
+                      <div className="space-y-3">
+                        <div className="bg-green-500/60 rounded-lg p-3">
+                          <div className="font-bold text-green-100">⚡ Setup Time:</div>
+                          <div className="text-xl text-green-200">2 minutes digital magic</div>
+                        </div>
+                        <div className="bg-green-500/60 rounded-lg p-3">
+                          <div className="font-bold text-green-100">📱 Data Entry:</div>
+                          <div className="text-xl text-green-200">Real-time, zero errors</div>
+                        </div>
+                        <div className="bg-green-500/60 rounded-lg p-3">
+                          <div className="font-bold text-green-100">📈 Reports:</div>
+                          <div className="text-xl text-green-200">0.5 seconds, pro quality</div>
+                        </div>
+                        <div className="bg-green-500/60 rounded-lg p-3">
+                          <div className="font-bold text-green-100">❤️ Parents:</div>
+                          <div className="text-xl text-green-200">Engaged & thrilled</div>
+                        </div>
+                        <div className="bg-green-800 rounded-lg p-4 text-center">
+                          <div className="text-3xl font-bold text-green-100">🚀 TOTAL HERO STATUS</div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300 rounded-lg p-4 text-center">
-                  <h4 className="font-bold text-green-800 text-lg mb-2">
-                    🎉 Time Saved: 47+ Hours
-                  </h4>
-                  <p className="text-green-700 text-sm mb-3">
-                    Accuracy: 100% • Parent Satisfaction: 98% • Coach Stress: -90%
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="bg-white/70 rounded p-2">
-                      <div className="font-bold text-green-800">24</div>
-                      <div className="text-green-600">Players Tracked</div>
+                {/* Impact Numbers */}
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl p-8">
+                  <h4 className="text-3xl font-bold mb-6 text-center">📊 BY THE NUMBERS</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="bg-white/20 rounded-xl p-6 text-center backdrop-blur">
+                      <div className="text-4xl font-bold text-yellow-300">{WOW_STATS.timesSaved}</div>
+                      <div className="text-lg text-purple-100">Saved Per Combine</div>
                     </div>
-                    <div className="bg-white/70 rounded p-2">
-                      <div className="font-bold text-green-800">120</div>
-                      <div className="text-green-600">Results Recorded</div>
+                    <div className="bg-white/20 rounded-xl p-6 text-center backdrop-blur">
+                      <div className="text-4xl font-bold text-green-300">{WOW_STATS.parentSatisfaction}</div>
+                      <div className="text-lg text-purple-100">Parent Satisfaction</div>
                     </div>
-                    <div className="bg-white/70 rounded p-2">
-                      <div className="font-bold text-green-800">∞</div>
-                      <div className="text-green-600">Possibilities</div>
+                    <div className="bg-white/20 rounded-xl p-6 text-center backdrop-blur">
+                      <div className="text-4xl font-bold text-blue-300">{WOW_STATS.errorReduction}</div>
+                      <div className="text-lg text-purple-100">Fewer Errors</div>
+                    </div>
+                    <div className="bg-white/20 rounded-xl p-6 text-center backdrop-blur">
+                      <div className="text-4xl font-bold text-cyan-300">$2,400</div>
+                      <div className="text-lg text-purple-100">Value Saved</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-4 text-center">
-                  <h4 className="font-bold text-lg mb-2">
-                    🚀 This is the Future of Youth Sports
-                  </h4>
-                  <p className="text-blue-100 text-sm mb-3">
-                    Professional combine management that makes everyone look good
-                  </p>
-                  <div className="flex justify-center gap-4 text-xs">
-                    <span>💼 Impress Parents</span>
-                    <span>🏆 Engage Athletes</span>
-                    <span>📊 Satisfy Scouts</span>
+                {/* What You Just Witnessed */}
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-2xl p-8">
+                  <h4 className="text-3xl font-bold mb-6 text-center">✅ WHAT YOU JUST WITNESSED</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white/10 rounded-lg p-4 text-center">
+                      <div className="text-3xl mb-3">😰</div>
+                      <div className="font-bold mb-2">Pain Points</div>
+                      <div className="text-sm text-gray-300">Real coach struggles exposed</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4 text-center">
+                      <div className="text-3xl mb-3">⚡</div>
+                      <div className="font-bold mb-2">Real-Time Magic</div>
+                      <div className="text-sm text-gray-300">Instant updates across devices</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4 text-center">
+                      <div className="text-3xl mb-3">📱</div>
+                      <div className="font-bold mb-2">Parent Engagement</div>
+                      <div className="text-sm text-gray-300">Live connection from anywhere</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4 text-center">
+                      <div className="text-3xl mb-3">🧠</div>
+                      <div className="font-bold mb-2">Smart Rankings</div>
+                      <div className="text-sm text-gray-300">AI-powered adjustments</div>
+                    </div>
                   </div>
+                </div>
+
+                {/* The Ultimate Question */}
+                <div className="bg-gradient-to-r from-red-500 to-yellow-500 text-white rounded-2xl p-10 text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-yellow-600 opacity-40 animate-pulse"></div>
+                  <div className="relative z-10">
+                    <div className="text-6xl mb-6">🤔</div>
+                    <h4 className="text-4xl font-bold mb-6">THE ULTIMATE QUESTION</h4>
+                    <p className="text-2xl mb-8 text-yellow-100">
+                      Now that you've seen what's possible...
+                    </p>
+                    <div className="bg-white/30 rounded-2xl p-8 backdrop-blur">
+                      <p className="text-3xl font-bold mb-4">
+                        Will you keep struggling with clipboards...
+                      </p>
+                      <p className="text-4xl font-bold text-yellow-200">
+                        OR become the HERO COACH? 🦸‍♂️
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call to Action Preview */}
+                <div className="bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-2xl p-8 text-center">
+                  <h4 className="text-3xl font-bold mb-4">🚀 YOUR TRANSFORMATION STARTS NOW</h4>
+                  <p className="text-xl mb-6 text-green-100">
+                    Join 500+ coaches who've already made the switch
+                  </p>
+                  <div className="text-6xl mb-4">👇</div>
+                  <p className="text-lg text-blue-100">
+                    Click below to start your free trial and become the coach your players deserve!
+                  </p>
                 </div>
               </div>
             )}
