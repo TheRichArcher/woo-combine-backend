@@ -108,7 +108,7 @@ const WORKFLOW_STEPS = [
     desc: "Real-time everything - watch the magic happen",
     icon: "✨",
     color: "from-green-400 to-blue-600",
-    duration: 12000,
+    duration: 20000, // Extended to 20 seconds so users can see the button
     phase: "hero"
   },
   
