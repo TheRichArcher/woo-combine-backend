@@ -1348,22 +1348,18 @@ export default function UnifiedDemo() {
       // CASE 7 - YOUR NEW REALITY (Results)
       case 7:
         return (
-          <div className="space-y-2">
-            {/* Celebration Header */}
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-2 text-center">
-              <div className="text-2xl mb-1">🎉</div>
-              <h3 className="text-sm font-bold mb-1">Your New Reality</h3>
-              <p className="text-yellow-100 mb-1">
-                47+ hours saved, 100% accuracy, happy parents! 🏆
-              </p>
+          <div className="space-y-1">
+            {/* Ultra-Compact Celebration Header */}
+            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-1 text-center">
+              <h3 className="text-sm font-bold">🎉 Your New Reality</h3>
+              <p className="text-yellow-100 text-xs">47+ hours saved, 100% accuracy, happy parents! 🏆</p>
             </div>
 
-            {/* Transformation Summary */}
+            {/* Ultra-Compact Transformation Summary */}
             <div className="grid grid-cols-2 gap-1">
-              <div className="bg-red-50 rounded-lg p-2 border-2 border-red-200 text-center">
-                <div className="text-2xl mb-1">😰</div>
-                <h4 className="font-bold text-red-800 mb-1">Before WooCombine</h4>
-                <div className="space-y-1 text-sm text-red-700">
+              <div className="bg-red-50 rounded-lg p-1 border border-red-200 text-center">
+                <h4 className="font-bold text-red-800 text-xs mb-1">😰 Before WooCombine</h4>
+                <div className="space-y-0 text-xs text-red-700">
                   <div>47+ hours of manual work</div>
                   <div>38% error rate</div>
                   <div>Frustrated parents</div>
@@ -1372,10 +1368,9 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-2 border-2 border-green-200 text-center">
-                <div className="text-2xl mb-1">🚀</div>
-                <h4 className="font-bold text-green-800 mb-1">With WooCombine</h4>
-                <div className="space-y-1 text-sm text-green-700">
+              <div className="bg-green-50 rounded-lg p-1 border border-green-200 text-center">
+                <h4 className="font-bold text-green-800 text-xs mb-1">🚀 With WooCombine</h4>
+                <div className="space-y-0 text-xs text-green-700">
                   <div>30 seconds setup</div>
                   <div>99.8% accuracy</div>
                   <div>98% parent satisfaction</div>
@@ -1385,22 +1380,22 @@ export default function UnifiedDemo() {
               </div>
             </div>
 
-            {/* Call to Action Preview */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-2 text-center">
-              <h4 className="text-sm font-bold mb-1">Ready to Transform YOUR Combines?</h4>
-              <p className="text-blue-100 mb-1">Join thousands of coaches who've revolutionized their workflow</p>
+            {/* Ultra-Compact Call to Action */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-1 text-center">
+              <h4 className="text-xs font-bold">Ready to Transform YOUR Combines?</h4>
+              <p className="text-blue-100 text-xs mb-1">Join thousands of coaches who've revolutionized their workflow</p>
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div>
-                  <div className="text-base font-bold">5,000+</div>
-                  <div className="text-sm text-blue-200">Coaches</div>
+                  <div className="text-sm font-bold">5,000+</div>
+                  <div className="text-xs text-blue-200">Coaches</div>
                 </div>
                 <div>
-                  <div className="text-base font-bold">50,000+</div>
-                  <div className="text-sm text-blue-200">Athletes</div>
+                  <div className="text-sm font-bold">50,000+</div>
+                  <div className="text-xs text-blue-200">Athletes</div>
                 </div>
                 <div>
-                  <div className="text-base font-bold">99.8%</div>
-                  <div className="text-sm text-blue-200">Satisfaction</div>
+                  <div className="text-sm font-bold">99.8%</div>
+                  <div className="text-xs text-blue-200">Satisfaction</div>
                 </div>
               </div>
             </div>
