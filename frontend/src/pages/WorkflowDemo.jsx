@@ -784,6 +784,163 @@ export default function UnifiedDemo() {
     const step = WORKFLOW_STEPS[currentStep];
     if (!step) return null;
 
+    // NEW REVOLUTIONARY CONTENT BASED ON STEP INDEX
+    switch (currentStep) {
+      // PAIN POINT SETUP
+      case 0:
+        return (
+          <div className="space-y-6">
+            {/* Dramatic Header */}
+            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 text-center">
+              <div className="text-6xl mb-4">😰</div>
+              <h3 className="text-2xl font-bold mb-2">Every Coach's Nightmare</h3>
+              <p className="text-red-100 text-lg">
+                This is what coaches deal with EVERY combine day...
+              </p>
+            </div>
+
+            {/* Pain Points Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {PAIN_POINTS.map((pain, index) => (
+                <div key={pain.id} className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center transform hover:scale-105 transition-all">
+                  <div className="text-4xl mb-3">{pain.visual}</div>
+                  <h4 className="font-bold text-red-800 mb-2">{pain.title}</h4>
+                  <p className="text-red-700 text-sm mb-2">{pain.desc}</p>
+                  <div className="text-xs text-red-600 italic bg-red-100 rounded p-2">
+                    "{pain.impact}"
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* The Cost */}
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
+              <h4 className="text-xl font-bold mb-4 text-center">💸 The TRUE Cost of Manual Combines</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-400">47+</div>
+                  <div className="text-sm text-gray-300">Hours Wasted</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-400">38%</div>
+                  <div className="text-sm text-gray-300">Error Rate</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-400">76%</div>
+                  <div className="text-sm text-gray-300">Parent Frustration</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-2xl font-bold text-red-400">$2,400</div>
+                  <div className="text-sm text-gray-300">Lost Time Value</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dramatic Transition */}
+            <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-4 text-center">
+              <p className="text-lg font-bold">
+                😤 Sound familiar? You're not alone...
+              </p>
+              <p className="text-blue-100 mt-2">
+                But what if we told you there's a COMPLETELY different way? 
+              </p>
+              <div className="mt-3 text-2xl animate-pulse">
+                👆 Keep watching to see the magic...
+              </div>
+            </div>
+          </div>
+        );
+
+      // HERO FEATURE - THE GAME CHANGER  
+      case 1:
+        return (
+          <div className="space-y-6">
+            {/* Dramatic Reveal Header */}
+            <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl p-8 text-center">
+              <div className="text-7xl mb-4">⚡</div>
+              <h3 className="text-3xl font-bold mb-2">The Game Changer</h3>
+              <p className="text-xl text-green-100 mb-4">
+                Watch REAL-TIME magic happen!
+              </p>
+              <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-yellow-300">
+                  Everything updates INSTANTLY as drills happen! ✨
+                </p>
+              </div>
+            </div>
+
+            {/* Interactive Demo Button */}
+            <div className="text-center">
+              <button
+                onClick={addMissingResults}
+                disabled={isRunning}
+                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl text-lg transform hover:scale-105 transition-all duration-300 shadow-2xl"
+              >
+                {isRunning ? '⚡ WATCH THE MAGIC...' : '🎯 TRIGGER THE MAGIC!'}
+              </button>
+              <p className="text-gray-600 text-sm mt-2">
+                Click to see real-time updates in action
+              </p>
+            </div>
+
+            {/* Impact Stats */}
+            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-4">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-green-400">{WOW_STATS.setupTime}</div>
+                  <div className="text-sm text-gray-300">Setup Time</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-400">{WOW_STATS.realTimeUpdates}</div>
+                  <div className="text-sm text-gray-300">Results Delay</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-purple-400">{WOW_STATS.parentSatisfaction}</div>
+                  <div className="text-sm text-gray-300">Parent Satisfaction</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      // DEFAULT FOR OTHER SCENARIOS (keeping simple for now)
+      default:
+        return (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-xl p-8 text-center">
+              <div className="text-6xl mb-4">{step.icon}</div>
+              <h3 className="text-3xl font-bold mb-2">{step.title}</h3>
+              <p className="text-xl text-purple-100 mb-4">{step.desc}</p>
+              <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                <p className="text-2xl font-bold text-yellow-300">
+                  Revolutionary feature coming soon! ✨
+                </p>
+              </div>
+            </div>
+
+            {/* Feature Impact */}
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
+              <h4 className="text-xl font-bold mb-4 text-center">💼 Professional Impact</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div className="bg-white/10 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-green-400">{WOW_STATS.timesSaved}</div>
+                  <div className="text-sm text-gray-300">Time Saved</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-blue-400">{WOW_STATS.parentSatisfaction}</div>
+                  <div className="text-sm text-gray-300">Parent Satisfaction</div>
+                </div>
+                <div className="bg-white/10 rounded-lg p-4">
+                  <div className="text-2xl font-bold text-purple-400">{WOW_STATS.errorReduction}</div>
+                  <div className="text-sm text-gray-300">Fewer Errors</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+    }
+
+    // OLD CONTENT BELOW (keeping as fallback)
     switch (step.component) {
       case "CreateLeagueStep":
         return (
