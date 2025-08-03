@@ -909,21 +909,84 @@ export default function UnifiedDemo() {
 
             {/* Ultra Compact Button */}
             <div className="text-center">
-              <button
-                onClick={() => {
-                  console.log("🎯 TRIGGER THE MAGIC clicked!");
-                  addNotification("⚡ Real-time magic triggered!", "success", 3000);
-                  setTimeout(() => {
-                    addNotification("📱 Parent notifications sent!", "info", 3000);
-                  }, 1000);
-                  setTimeout(() => {
-                    addNotification("📊 Rankings updated instantly!", "success", 3000);
-                  }, 2000);
-                }}
-                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base transform hover:scale-105 transition-all duration-300 shadow-lg"
-              >
-                🎯 TRIGGER THE MAGIC!
-              </button>
+                              <button
+                  onClick={() => {
+                    console.log("🎯 TRIGGER THE MAGIC clicked!");
+                    
+                    // STAGE 1: Multi-Evaluator Sync (0-3s)
+                    addNotification("⚡ MAGIC INITIATED: 4 evaluators connected!", "success", 4000);
+                    setTimeout(() => {
+                      addNotification("👥 Evaluator 1: 40-yard dash → 4.3s logged!", "info", 3000);
+                    }, 500);
+                    setTimeout(() => {
+                      addNotification("👥 Evaluator 2: Vertical jump → 34\" logged!", "info", 3000);
+                    }, 1000);
+                    setTimeout(() => {
+                      addNotification("👥 Evaluator 3: Agility drill → 7.2s logged!", "info", 3000);
+                    }, 1500);
+                    setTimeout(() => {
+                      addNotification("👥 Evaluator 4: Bench press → 225lbs logged!", "info", 3000);
+                    }, 2000);
+                    
+                    // STAGE 2: Parent Phone Explosion (3-6s)
+                    setTimeout(() => {
+                      addNotification("📱 PARENT PHONES EXPLODING! Alex's mom notified!", "success", 3000);
+                    }, 3000);
+                    setTimeout(() => {
+                      addNotification("📱 Morgan's dad: 'Wow! #1 ranking update!'", "success", 3000);
+                    }, 3500);
+                    setTimeout(() => {
+                      addNotification("📱 Riley's parents: Live combine feed activated!", "success", 3000);
+                    }, 4000);
+                    
+                    // STAGE 3: AI-Powered Ranking Magic (6-9s)
+                    setTimeout(() => {
+                      addNotification("🧠 AI RANKING ENGINE: Processing 847 data points...", "info", 4000);
+                    }, 6000);
+                    setTimeout(() => {
+                      addNotification("🏆 RANKINGS UPDATED: Morgan Davis → #1 Overall!", "success", 3000);
+                    }, 7000);
+                    setTimeout(() => {
+                      addNotification("🎯 Smart weights auto-adjusted: Speed +40%, Power +30%", "info", 3000);
+                    }, 8000);
+                    
+                    // STAGE 4: Professional Report Generation (9-12s)
+                    setTimeout(() => {
+                      addNotification("📊 GENERATING PROFESSIONAL REPORTS...", "info", 3000);
+                    }, 9000);
+                    setTimeout(() => {
+                      addNotification("📈 PDF Report: Spring Football League → COMPLETE!", "success", 3000);
+                    }, 10000);
+                    setTimeout(() => {
+                      addNotification("📧 Scout reports emailed to 12 college recruiters!", "success", 3000);
+                    }, 11000);
+                    
+                    // STAGE 5: Time Comparison Explosion (12-15s)
+                    setTimeout(() => {
+                      addNotification("⏱️ MANUAL METHOD: 47+ hours remaining...", "error", 4000);
+                    }, 12000);
+                    setTimeout(() => {
+                      addNotification("⚡ WOOCOMBINE: COMPLETE IN 30 SECONDS!", "success", 4000);
+                    }, 13000);
+                    setTimeout(() => {
+                      addNotification("🎉 TIME SAVED: 47 HOURS! ERROR RATE: 0%!", "success", 4000);
+                    }, 14000);
+                    
+                    // STAGE 6: THE FINALE (15-18s)
+                    setTimeout(() => {
+                      addNotification("🚀 TRANSFORMATION COMPLETE: Welcome to the future!", "success", 5000);
+                    }, 15000);
+                    setTimeout(() => {
+                      addNotification("🏆 Result: Happy coaches + Happy parents + Pro results!", "success", 5000);
+                    }, 16000);
+                    setTimeout(() => {
+                      addNotification("✨ MAGIC COMPLETE: This is why we exist!", "success", 6000);
+                    }, 17000);
+                  }}
+                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base transform hover:scale-105 transition-all duration-300 shadow-lg animate-pulse"
+                >
+                  🎯 TRIGGER THE MAGIC!
+                </button>
               <p className="text-gray-600 text-xs mt-1">Click to see real-time updates</p>
             </div>
 
