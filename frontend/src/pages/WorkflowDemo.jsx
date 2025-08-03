@@ -211,7 +211,7 @@ export default function UnifiedDemo() {
     }, duration);
   };
 
-  // Progress bar animation only - step advancement handled by animations
+  // Auto demo progression with progress bar animation
   useEffect(() => {
     if (!isAutoPlaying) return;
 
@@ -233,8 +233,22 @@ export default function UnifiedDemo() {
       });
     }, 100);
 
+    // Auto advance to next step after duration
+    const stepTimer = setTimeout(() => {
+      if (currentStep < WORKFLOW_STEPS.length - 1) {
+        setCurrentStep(prev => prev + 1);
+      } else {
+        setIsAutoPlaying(false);
+        // Demo complete notification
+        setTimeout(() => {
+          addNotification("🎉 Revolutionary demo complete! Ready to transform your combines?", "success", 5000);
+        }, 500);
+      }
+    }, step.duration);
+
     return () => {
       clearInterval(progressInterval);
+      clearTimeout(stepTimer);
     };
   }, [currentStep, isAutoPlaying]);
 
@@ -360,8 +374,21 @@ export default function UnifiedDemo() {
     const timeouts = [];
     const intervals = [];
 
+    // NEW REVOLUTIONARY STEP LOGIC - Simple and effective!
+    if (currentStep === 1 && isAutoPlaying) {
+      // For "The Game Changer" step, add some demo data after a delay
+      timeouts.push(setTimeout(() => {
+        addNotification("⚡ Real-time magic is happening!", "success", 3000);
+      }, 2000));
+      
+      timeouts.push(setTimeout(() => {
+        addNotification("📱 Parents are getting instant updates!", "info", 3000); 
+      }, 4000));
+    }
+
+    // OLD LOGIC DISABLED - keeping for reference but not executed
     switch (step.component) {
-      case "CreateLeagueStep":
+      case "CreateLeagueStep_DISABLED":
         // Simulate typing league name
         timeouts.push(setTimeout(() => {
           const text = "Spring Football League";
