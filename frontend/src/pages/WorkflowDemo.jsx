@@ -262,9 +262,15 @@ export default function UnifiedDemo() {
   };
 
   const startAutoDemo = () => {
-    setIsAutoPlaying(true);
-    setCurrentStep(0);
+    console.log("🚀 START AUTO DEMO CLICKED!"); // Debug log
+    console.log("Current step before:", currentStep, "isAutoPlaying before:", isAutoPlaying);
+    
+    // Reset demo first, THEN start auto playing (order matters!)
     resetDemo();
+    setCurrentStep(0);
+    setIsAutoPlaying(true);
+    
+    console.log("Demo reset and auto play started!");
   };
 
   const resetDemo = () => {
