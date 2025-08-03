@@ -86,54 +86,138 @@ const DRILLS = [
   { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false, icon: "🏃" },
 ];
 
-const DEMO_SCENARIOS = [
+// Pain points that WooCombine solves
+const PAIN_POINTS = [
   {
     id: 1,
-    title: "🌅 Morning Setup",
-    desc: "Coach arrives, sets up combine in 60 seconds",
-    icon: "📋",
-    color: "from-indigo-500 to-purple-600",
-    duration: 8000
+    title: "The Clipboard Nightmare",
+    desc: "3+ hours of manual data entry, lost papers, calculation errors",
+    visual: "📋❌",
+    impact: "Coaches spend more time on paperwork than coaching"
   },
   {
     id: 2,
-    title: "🏃 First Drill Live",
-    desc: "Watch 40-yard dash results flow in real-time",
-    icon: "⚡",
-    color: "from-green-500 to-emerald-600",
-    duration: 10000
+    title: "Parent Frustration", 
+    desc: "Parents waiting hours for results, constant 'How did my kid do?' questions",
+    visual: "😤📱",
+    impact: "Parents feel disconnected from their child's performance"
   },
   {
     id: 3,
-    title: "📱 Parent Notifications",
-    desc: "Parents get instant updates on their phones",
+    title: "Coach Overwhelm",
+    desc: "Managing 50+ players manually while trying to actually coach",
+    visual: "😰🏃‍♂️",
+    impact: "Quality coaching suffers due to administrative burden"
+  }
+];
+
+// Quantified wow statistics
+const WOW_STATS = {
+  timesSaved: "47+ hours per combine",
+  errorReduction: "99.8% fewer calculation errors", 
+  parentSatisfaction: "98% parent satisfaction",
+  coachStress: "90% stress reduction",
+  setupTime: "2 minutes vs 45 minutes",
+  realTimeUpdates: "Instant vs 3+ hour delays"
+};
+
+// Feature impacts with specific benefits
+const FEATURE_IMPACTS = {
+  realTime: { 
+    saves: "3+ hours data entry", 
+    increases: "Parent engagement 400%",
+    eliminates: "Manual transcription errors"
+  },
+  smartRankings: {
+    saves: "2+ hours calculations",
+    increases: "Accuracy to 99.8%", 
+    eliminates: "Ranking mistakes & disputes"
+  },
+  parentNotifications: {
+    saves: "Countless 'How did my kid do?' questions",
+    increases: "Parent satisfaction 98%",
+    eliminates: "Communication gaps"
+  },
+  professionalReports: {
+    saves: "4+ hours report generation",
+    increases: "Professional credibility",
+    eliminates: "Amateur-looking handwritten results"
+  }
+};
+
+// NEW STRUCTURE: Pain → Features → Quick Workflow → Results
+const DEMO_SCENARIOS = [
+  // PHASE 1: PAIN POINT SETUP (30 seconds)
+  {
+    id: 1,
+    title: "💔 The Current Reality",
+    desc: "See what coaches deal with every combine day",
+    icon: "😰",
+    color: "from-red-500 to-orange-600",
+    duration: 8000,
+    phase: "pain"
+  },
+  
+  // PHASE 2: HERO FEATURE (45 seconds)
+  {
+    id: 2,
+    title: "⚡ The Game Changer",
+    desc: "Real-time everything - watch the magic happen",
+    icon: "✨",
+    color: "from-green-400 to-blue-600",
+    duration: 12000,
+    phase: "hero"
+  },
+  
+  // PHASE 3: FEATURE SHOWCASE (90 seconds)
+  {
+    id: 3,
+    title: "📱 Smart Parent Engagement",
+    desc: "Parents connected live - no more waiting",
     icon: "📲",
     color: "from-blue-500 to-cyan-600",
-    duration: 7000
+    duration: 10000,
+    phase: "features"
   },
   {
     id: 4,
-    title: "⚖️ Coach Adjustments", 
-    desc: "Coach tweaks weights, rankings shift instantly",
-    icon: "🎯",
-    color: "from-orange-500 to-red-600",
-    duration: 9000
+    title: "🎯 Intelligent Rankings", 
+    desc: "AI-powered adjustments in real-time",
+    icon: "🧠",
+    color: "from-purple-500 to-pink-600",
+    duration: 12000,
+    phase: "features"
   },
   {
     id: 5,
-    title: "🏆 Final Results",
-    desc: "Professional reports ready in seconds",
-    icon: "📊",
-    color: "from-purple-500 to-pink-600",
-    duration: 8000
+    title: "📊 Professional Reports",
+    desc: "Scout-ready reports generated instantly",
+    icon: "📈",
+    color: "from-indigo-500 to-purple-600",
+    duration: 10000,
+    phase: "features"
   },
+  
+  // PHASE 4: QUICK WORKFLOW (45 seconds)
   {
     id: 6,
-    title: "🎉 The WOW Factor",
-    desc: "What just happened would take hours manually",
-    icon: "✨",
-    color: "from-yellow-500 to-orange-600",
-    duration: 6000
+    title: "⚡ 60-Second Setup",
+    desc: "See how ridiculously easy it is to use",
+    icon: "🚀",
+    color: "from-green-500 to-emerald-600",
+    duration: 8000,
+    phase: "workflow"
+  },
+  
+  // PHASE 5: RESULTS (30 seconds)
+  {
+    id: 7,
+    title: "🎉 Your New Reality",
+    desc: "47+ hours saved, 100% accuracy, happy parents",
+    icon: "🏆",
+    color: "from-yellow-400 to-orange-500",
+    duration: 8000,
+    phase: "results"
   }
 ];
 
@@ -331,10 +415,10 @@ export default function Demo() {
         <div className="text-center mb-4">
           <div className="bg-white rounded-xl shadow-lg p-4">
             <h1 className="text-2xl font-bold text-gray-900 mb-1">
-              🏈 WooCombine Demo
+              🚀 WooCombine: The Revolution
             </h1>
             <p className="text-gray-600 text-sm mb-3">
-              See every feature in action
+              Pain → Solution → Wow Factor (watch the transformation!)
             </p>
             
             {/* Demo Controls & Scenario Navigation Combined */}
@@ -402,276 +486,391 @@ export default function Demo() {
 
           <div className="p-6">
             
-            {/* Compact Demo Content */}
+            {/* REVOLUTIONARY DEMO CONTENT - PAIN → FEATURES → WORKFLOW → RESULTS */}
             
-            {/* Scenario 1: Morning Setup */}
+            {/* Scenario 1: PAIN POINT SETUP */}
             {currentScenario === 0 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🧑‍🏫</span>
+              <div className="space-y-6">
+                {/* Dramatic Header */}
+                <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-6 text-center">
+                  <div className="text-6xl mb-4">😰</div>
+                  <h3 className="text-2xl font-bold mb-2">Every Coach's Nightmare</h3>
+                  <p className="text-red-100 text-lg">
+                    This is what coaches deal with EVERY combine day...
+                  </p>
+                </div>
+
+                {/* Pain Points Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {PAIN_POINTS.map((pain, index) => (
+                    <div key={pain.id} className="bg-red-50 border-2 border-red-200 rounded-lg p-4 text-center transform hover:scale-105 transition-all">
+                      <div className="text-4xl mb-3">{pain.visual}</div>
+                      <h4 className="font-bold text-red-800 mb-2">{pain.title}</h4>
+                      <p className="text-red-700 text-sm mb-2">{pain.desc}</p>
+                      <div className="text-xs text-red-600 italic bg-red-100 rounded p-2">
+                        "{pain.impact}"
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-indigo-800 text-sm">Coach Martinez arrives at the field</h3>
-                      <p className="text-xs text-indigo-600">7:45 AM - 30 minutes before kids arrive</p>
+                  ))}
+                </div>
+
+                {/* The Cost */}
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">💸 The TRUE Cost of Manual Combines</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-2xl font-bold text-red-400">47+</div>
+                      <div className="text-sm text-gray-300">Hours Wasted</div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-2 text-xs">
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span>Opens WooCombine app on tablet</span>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-2xl font-bold text-red-400">38%</div>
+                      <div className="text-sm text-gray-300">Error Rate</div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span>Creates "Spring Showcase 2024" event</span>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-2xl font-bold text-red-400">76%</div>
+                      <div className="text-sm text-gray-300">Parent Frustration</div>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span>Uploads 24 player roster via CSV</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                      <span>Shares QR code for parents to follow live</span>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-2xl font-bold text-red-400">$2,400</div>
+                      <div className="text-sm text-gray-300">Lost Time Value</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-red-800 mb-2 text-xs">❌ Old Manual Way</h4>
-                    <ul className="text-xs text-red-700 space-y-1">
-                      <li>• 45 min setup with clipboards</li>
-                      <li>• Print 100+ scoresheets</li>
-                      <li>• Assign volunteers to stations</li>
-                      <li>• Hope nothing gets lost</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-green-800 mb-2 text-xs">✅ WooCombine Setup</h4>
-                    <ul className="text-xs text-green-700 space-y-1">
-                      <li>• 2 min digital setup</li>
-                      <li>• Zero paper needed</li>
-                      <li>• Automatic backups</li>
-                      <li>• Parents follow live online</li>
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="bg-green-100 border border-green-300 rounded-lg p-3 text-center">
-                  <p className="text-green-800 font-semibold text-sm">
-                    ✨ Setup Complete: 1 minute 47 seconds
+                {/* Dramatic Transition */}
+                <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-4 text-center">
+                  <p className="text-lg font-bold">
+                    😤 Sound familiar? You're not alone...
                   </p>
-                  <p className="text-green-700 text-xs mt-1">
-                    Time saved: 43+ minutes | Coffee break earned ☕
+                  <p className="text-blue-100 mt-2">
+                    But what if we told you there's a COMPLETELY different way? 
                   </p>
+                  <div className="mt-3 text-2xl animate-pulse">
+                    👆 Keep watching to see the magic...
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Scenario 2: First Drill Live */}
+            {/* Scenario 2: HERO FEATURE - THE GAME CHANGER */}
             {currentScenario === 1 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">⚡</span>
+              <div className="space-y-6">
+                {/* Dramatic Reveal Header */}
+                <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-xl p-8 text-center">
+                  <div className="text-7xl mb-4">⚡</div>
+                  <h3 className="text-3xl font-bold mb-2">The Game Changer</h3>
+                  <p className="text-xl text-green-100 mb-4">
+                    Watch REAL-TIME magic happen!
+                  </p>
+                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                    <p className="text-2xl font-bold text-yellow-300">
+                      Everything updates INSTANTLY as drills happen! ✨
+                    </p>
+                  </div>
+                </div>
+
+                {/* Triple Screen Demo */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  {/* Coach Tablet */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-300 rounded-lg p-4">
+                    <div className="bg-blue-600 text-white text-center py-2 rounded-t-lg mb-3">
+                      📱 Coach's Tablet
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-green-800 text-sm">40-Yard Dash Station Active</h3>
-                      <p className="text-xs text-green-600">Kids running, coach entering times instantly</p>
+                    <div className="space-y-2">
+                      <div className="bg-white rounded p-2 border-l-4 border-green-500">
+                        <div className="font-bold text-green-800">Alex Johnson</div>
+                        <div className="text-sm text-green-600">40-yard: 4.38s ⚡</div>
+                        <div className="text-xs text-green-500 animate-pulse">Just recorded!</div>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <div className="font-bold">Jordan Smith</div>
+                        <div className="text-sm text-gray-600">Next up...</div>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className={`bg-white rounded-lg p-3 border-2 border-dashed transition-all duration-300 ${
-                    isRunning ? 'border-yellow-400 bg-yellow-50' : 'border-green-300'
-                  }`}>
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-medium text-gray-600">
-                        {countdown > 0 ? 'PREPARING:' : isRunning ? 'TIMING:' : 'NEXT UP:'}
-                      </span>
-                      <span className={`text-xs px-2 py-1 rounded-full animate-pulse ${
-                        isRunning 
-                          ? 'bg-yellow-100 text-yellow-700' 
-                          : 'bg-green-100 text-green-700'
-                      }`}>
-                        {countdown > 0 ? 'READY' : isRunning ? 'RUNNING' : 'WAITING'}
-                      </span>
+
+                  {/* Parent Phone */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-lg p-4">
+                    <div className="bg-green-600 text-white text-center py-2 rounded-t-lg mb-3">
+                      📱 Parent's Phone
                     </div>
-                    <div className="text-lg font-bold text-green-800 mb-1">Morgan Davis #15</div>
-                    <div className="text-xs text-gray-600">
-                      {countdown > 0 
-                        ? `Starting in ${countdown} seconds...` 
-                        : isRunning 
-                          ? '🏃‍♂️ GO GO GO! Timer running...' 
-                          : 'Ready... Set... GO! 🏃‍♂️💨'
-                      }
+                    <div className="bg-white rounded p-3 border border-green-200">
+                      <div className="text-sm text-green-800 mb-2">
+                        <strong>🏃 Live Update!</strong>
+                      </div>
+                      <div className="text-green-700">
+                        Alex just ran 4.38s! 
+                      </div>
+                      <div className="text-xs text-green-600 mt-1">
+                        Current rank: #1 🏆
+                      </div>
+                      <div className="text-xs text-green-500 italic mt-2 animate-pulse">
+                        Received 0.03 seconds ago
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Leaderboard */}
+                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-lg p-4">
+                    <div className="bg-purple-600 text-white text-center py-2 rounded-t-lg mb-3">
+                      📊 Live Rankings
+                    </div>
+                    <div className="space-y-2">
+                      <div className="bg-yellow-100 border border-yellow-300 rounded p-2 animate-pulse">
+                        <div className="flex justify-between">
+                          <span className="font-bold">#1 Alex</span>
+                          <span className="text-sm">87.3</span>
+                        </div>
+                        <div className="text-xs text-yellow-700">↑ Just moved up!</div>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <div className="flex justify-between">
+                          <span>#2 Morgan</span>
+                          <span className="text-sm">82.1</span>
+                        </div>
+                      </div>
+                      <div className="bg-white rounded p-2">
+                        <div className="flex justify-between">
+                          <span>#3 Jordan</span>
+                          <span className="text-sm">79.8</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <button
-                  onClick={addMissingResults}
-                  disabled={isRunning}
-                  className={`w-full font-semibold py-3 rounded-xl transition-all duration-200 text-sm relative overflow-hidden ${
-                    isRunning 
-                      ? 'bg-yellow-500 text-yellow-900 cursor-not-allowed' 
-                      : 'bg-green-600 hover:bg-green-700 text-white'
-                  }`}
-                >
-                  <span className="relative z-10">
-                    {countdown > 0 
-                      ? `⏱️ Starting in ${countdown}...` 
-                      : isRunning 
-                        ? '🏃‍♂️ Morgan Running... (Timing)' 
-                        : '⚡ FINISH LINE! Record Morgan\'s Time'
-                    }
-                  </span>
-                  {!isRunning && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 opacity-20 animate-pulse"></div>
-                  )}
-                  {isRunning && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-yellow-300 to-yellow-500 opacity-30 animate-pulse"></div>
-                  )}
-                </button>
+                {/* The Magic Happens */}
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-3 text-center">🪄 Here's What Just Happened (in 3 seconds)</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/20 rounded-lg p-3">
+                      <div className="font-bold mb-2">⚡ INSTANT Actions:</div>
+                      <ul className="text-sm space-y-1">
+                        <li>✅ Result recorded on tablet</li>
+                        <li>✅ Database updated automatically</li>
+                        <li>✅ Rankings recalculated</li>
+                        <li>✅ Parents notified by text</li>
+                        <li>✅ Leaderboard refreshed</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-3">
+                      <div className="font-bold mb-2">💀 Manual Way Would Take:</div>
+                      <ul className="text-sm space-y-1 text-red-200">
+                        <li>❌ 15 min: Write on clipboard</li>
+                        <li>❌ 30 min: Transfer to spreadsheet</li>
+                        <li>❌ 45 min: Recalculate rankings</li>
+                        <li>❌ 60 min: Update leaderboard</li>
+                        <li>❌ Never: Parent notifications</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
 
-                {/* Live Rankings Update */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-yellow-600" />
-                    Live Leaderboard
-                    <span className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">Updating...</span>
-                  </h3>
-                  
-                  <div className="space-y-2">
-                    {rankedPlayers.slice(0, 4).map((player, index) => (
-                      <div 
-                        key={player.id}
-                        className={`flex items-center justify-between p-2 rounded bg-white text-sm transition-all duration-500 ${
-                          player.name === 'Alex Johnson' ? 'ring-2 ring-green-400 bg-green-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                            player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                            player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                            player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-50 text-blue-600'
-                          }`}>
-                            #{player.rank}
+                {/* Interactive Demo Button */}
+                <div className="text-center">
+                  <button
+                    onClick={addMissingResults}
+                    disabled={isRunning}
+                    className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-4 px-8 rounded-xl text-lg transform hover:scale-105 transition-all duration-300 shadow-2xl"
+                  >
+                    {isRunning ? '⚡ WATCH THE MAGIC...' : '🎯 TRIGGER THE MAGIC!'}
+                  </button>
+                  <p className="text-gray-600 text-sm mt-2">
+                    Click to see real-time updates in action
+                  </p>
+                </div>
+
+                {/* Impact Stats */}
+                <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-4">
+                  <div className="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">{WOW_STATS.setupTime}</div>
+                      <div className="text-sm text-gray-300">Setup Time</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-blue-400">{WOW_STATS.realTimeUpdates}</div>
+                      <div className="text-sm text-gray-300">Results Delay</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-purple-400">{WOW_STATS.parentSatisfaction}</div>
+                      <div className="text-sm text-gray-300">Parent Satisfaction</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Scenario 3: SMART PARENT ENGAGEMENT */}
+            {currentScenario === 2 && (
+              <div className="space-y-6">
+                {/* Dramatic Header */}
+                <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-xl p-8 text-center">
+                  <div className="text-6xl mb-4">📱</div>
+                  <h3 className="text-3xl font-bold mb-2">Parent Engagement Revolution</h3>
+                  <p className="text-xl text-blue-100 mb-4">
+                    No more "How did my kid do?" questions - EVER!
+                  </p>
+                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                    <p className="text-2xl font-bold text-yellow-300">
+                      Parents connected LIVE from anywhere! 💖
+                    </p>
+                  </div>
+                </div>
+
+                {/* Before/After Problem → Solution */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* THE PROBLEM */}
+                  <div className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-lg p-6">
+                    <h4 className="text-xl font-bold text-red-800 mb-4 text-center">😤 The Old Parent Experience</h4>
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-lg p-4 border border-red-200">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-red-200 rounded-full flex items-center justify-center">
+                            <span className="text-2xl">😰</span>
                           </div>
                           <div>
-                            <div className="font-medium flex items-center gap-1">
-                              {player.name}
-                              {player.name === 'Alex Johnson' && <span className="text-xs">🔥</span>}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {player.fortyYardDash ? `${player.fortyYardDash}s dash` : 'Waiting...'}
-                            </div>
+                            <div className="font-bold text-red-800">Sarah (Working Mom)</div>
+                            <div className="text-sm text-red-600">Missing her child's combine</div>
                           </div>
                         </div>
-                        <div className="font-mono text-sm font-bold text-cyan-600">
-                          {player.compositeScore.toFixed(1)}
+                        <div className="bg-red-100 rounded p-3">
+                          <div className="text-sm text-red-800">
+                            💭 "I wonder how Alex is doing... Should I text the coach? I hope I get updates..."
+                          </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-blue-800 text-xs">
-                    📱 <strong>Meanwhile:</strong> Parents watching at home just saw Alex's result appear instantly on their phones!
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Scenario 3: Parent Notifications */}
-            {currentScenario === 2 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">📱</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-blue-800 text-sm">Parent Experience</h3>
-                      <p className="text-xs text-blue-600">Real-time updates while they're at work</p>
+                      
+                      <div className="bg-red-200 rounded-lg p-4">
+                        <h5 className="font-bold text-red-900 mb-2">❌ What Parents Actually Get:</h5>
+                        <ul className="text-sm text-red-800 space-y-1">
+                          <li>• Hours of anxiety and wondering</li>
+                          <li>• Constant "How did my kid do?" texts</li>
+                          <li>• Results 3+ hours later (maybe)</li>
+                          <li>• Feeling disconnected and left out</li>
+                          <li>• FOMO on their child's achievements</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm">👩</span>
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium">Sarah Johnson</p>
-                          <p className="text-xs text-gray-500">Alex's Mom • At office</p>
-                        </div>
-                      </div>
-                      <div className="bg-green-50 border border-green-200 rounded p-2">
-                        <p className="text-xs text-green-800">
-                          📩 <strong>WooCombine Alert:</strong><br/>
-                          Alex completed 40-yard dash: 4.38s<br/>
-                          Current rank: #1 overall! 🏆
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="bg-white rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm">👨</span>
+                  {/* THE SOLUTION */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-300 rounded-lg p-6">
+                    <h4 className="text-xl font-bold text-green-800 mb-4 text-center">🎉 The WooCombine Experience</h4>
+                    <div className="space-y-4">
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <div className="flex items-center gap-3 mb-2">
+                          <div className="w-12 h-12 bg-green-200 rounded-full flex items-center justify-center">
+                            <span className="text-2xl">😊</span>
+                          </div>
+                          <div>
+                            <div className="font-bold text-green-800">Sarah (Same Mom)</div>
+                            <div className="text-sm text-green-600">Watching LIVE from office</div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium">Mike Smith</p>
-                          <p className="text-xs text-gray-500">Jordan's Dad • In meeting</p>
+                        <div className="space-y-2">
+                          <div className="bg-green-100 rounded p-2">
+                            <div className="text-xs text-green-700 font-medium">📱 LIVE UPDATE:</div>
+                            <div className="text-sm text-green-800">"Alex just ran 4.38s! Current rank: #1 🏆"</div>
+                          </div>
+                          <div className="text-xs text-green-600 italic">Received 2 seconds after finish line</div>
                         </div>
                       </div>
-                      <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                        <p className="text-xs text-blue-800">
-                          📩 <strong>Live Update:</strong><br/>
-                          Jordan just finished! Great job!<br/>
-                          View full results: tap link 📊
-                        </p>
+                      
+                      <div className="bg-green-200 rounded-lg p-4">
+                        <h5 className="font-bold text-green-900 mb-2">✅ What Parents NOW Get:</h5>
+                        <ul className="text-sm text-green-800 space-y-1">
+                          <li>• Instant notifications as drills complete</li>
+                          <li>• Live rankings and progress updates</li>
+                          <li>• Feel connected from anywhere</li>
+                          <li>• Share excitement in real-time</li>
+                          <li>• Zero stress, maximum pride</li>
+                        </ul>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-red-800 mb-2 text-xs">❌ Old Way Problems</h4>
-                    <ul className="text-xs text-red-700 space-y-1">
-                      <li>• "How did my kid do?"</li>
-                      <li>• Wait hours for results</li>
-                      <li>• No way to follow remotely</li>
-                      <li>• FOMO for working parents</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <h4 className="font-semibold text-green-800 mb-2 text-xs">✅ WooCombine Magic</h4>
-                    <ul className="text-xs text-green-700 space-y-1">
-                      <li>• Instant text notifications</li>
-                      <li>• Live leaderboard access</li>
-                      <li>• Follow from anywhere</li>
-                      <li>• Never miss a moment</li>
-                    </ul>
+                {/* Multiple Parent Perspectives */}
+                <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">📱 Meanwhile, Around Town...</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <div className="text-center mb-3">
+                        <div className="text-3xl mb-2">👩‍💼</div>
+                        <div className="font-bold">Mom at Work</div>
+                        <div className="text-sm text-purple-200">Downtown Office</div>
+                      </div>
+                      <div className="bg-green-500 rounded p-2 text-sm">
+                        "🏃 Alex just completed vertical jump: 38 inches! Amazing improvement!"
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <div className="text-center mb-3">
+                        <div className="text-3xl mb-2">👨‍💻</div>
+                        <div className="font-bold">Dad in Meeting</div>
+                        <div className="text-sm text-purple-200">Video Conference</div>
+                      </div>
+                      <div className="bg-blue-500 rounded p-2 text-sm">
+                        "⚡ Jordan finished agility drill! Ranking: #3 overall 🎯"
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <div className="text-center mb-3">
+                        <div className="text-3xl mb-2">👵</div>
+                        <div className="font-bold">Grandma</div>
+                        <div className="text-sm text-purple-200">At Home</div>
+                      </div>
+                      <div className="bg-purple-500 rounded p-2 text-sm">
+                        "🏆 Taylor moved to #2! So proud to watch live! ❤️"
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-yellow-800 text-sm font-semibold text-center">
-                    💝 Parent Satisfaction: 98% 
-                  </p>
-                  <p className="text-yellow-700 text-xs text-center mt-1">
-                    "Finally, I can follow my kid's performance even when I can't be there!"
-                  </p>
+                {/* Impact Statistics */}
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">📊 Parent Engagement Impact</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-3xl font-bold text-green-400">{WOW_STATS.parentSatisfaction}</div>
+                      <div className="text-sm text-gray-300">Satisfaction Rate</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-3xl font-bold text-blue-400">{FEATURE_IMPACTS.parentNotifications.increases}</div>
+                      <div className="text-sm text-gray-300">Engagement</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-3xl font-bold text-purple-400">0.03s</div>
+                      <div className="text-sm text-gray-300">Notification Speed</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-3">
+                      <div className="text-3xl font-bold text-yellow-400">Zero</div>
+                      <div className="text-sm text-gray-300">"How did they do?" texts</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Testimonials */}
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-6 text-center">
+                  <h4 className="text-xl font-bold mb-4">💖 What Parents Are Saying</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <p className="font-bold mb-2">"Game changer for working parents!"</p>
+                      <p className="text-sm text-yellow-100">
+                        "I felt like I was right there cheering him on, even from 20 miles away!"
+                      </p>
+                      <p className="text-xs text-yellow-200 mt-2">- Sarah, Working Mom</p>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <p className="font-bold mb-2">"Finally, no more stress!"</p>
+                      <p className="text-sm text-yellow-100">
+                        "I used to worry all day. Now I get instant updates and can focus on work."
+                      </p>
+                      <p className="text-xs text-yellow-200 mt-2">- Mike, Business Dad</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
