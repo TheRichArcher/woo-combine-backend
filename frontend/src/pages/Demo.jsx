@@ -875,195 +875,387 @@ export default function Demo() {
               </div>
             )}
 
-            {/* Scenario 4: Coach Adjustments */}
+            {/* Scenario 4: INTELLIGENT RANKINGS */}
             {currentScenario === 3 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🎯</span>
+              <div className="space-y-6">
+                {/* Dramatic Header */}
+                <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl p-8 text-center">
+                  <div className="text-6xl mb-4">🧠</div>
+                  <h3 className="text-3xl font-bold mb-2">Intelligent Rankings</h3>
+                  <p className="text-xl text-purple-100 mb-4">
+                    AI-powered adjustments that adapt to ANY scenario!
+                  </p>
+                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                    <p className="text-2xl font-bold text-yellow-300">
+                      Slider moves → Rankings shift INSTANTLY! ⚡
+                    </p>
+                  </div>
+                </div>
+
+                {/* The Scenario */}
+                <div className="bg-gradient-to-r from-orange-400 to-red-500 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-3">🎯 Real Scenario: Speed Scouts Are Here!</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <div className="font-bold mb-2">💭 Coach Realizes:</div>
+                      <p className="text-sm">
+                        "College speed coaches are watching today. I need to emphasize 40-yard dash results to help my kids get noticed!"
+                      </p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-orange-800 text-sm">Coach Makes Live Adjustments</h3>
-                      <p className="text-xs text-orange-600">Halfway through - coach notices speed is most important today</p>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                      <div className="font-bold mb-2">⚡ The Solution:</div>
+                      <p className="text-sm">
+                        Move ONE slider and instantly see who the speed prospects are. No spreadsheet formulas, no recalculations!
+                      </p>
                     </div>
                   </div>
+                </div>
+
+                {/* Interactive Weight Adjustment */}
+                <div className="bg-white rounded-lg p-6 border-2 border-purple-300">
+                  <h4 className="text-xl font-bold mb-4 text-center text-purple-800">
+                    🎮 Interactive Demo: Adjust Weights Live!
+                  </h4>
                   
-                  <div className="bg-white rounded-lg p-3 border border-orange-200">
-                    <p className="text-orange-800 text-xs mb-3">
-                      💭 <strong>Coach thinking:</strong> "These kids are really fast today. Let me emphasize speed more for scholarships..."
-                    </p>
-                    
-                    <div className="space-y-2">
+                  <div className="space-y-4">
+                    <div className="bg-purple-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">⚡</span>
+                        <div>
+                          <div className="font-bold text-purple-800">40-Yard Dash Weight</div>
+                          <div className="text-sm text-purple-600">Drag to see rankings change instantly!</div>
+                        </div>
+                      </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm">⚡</span>
-                        <span className="w-20 text-xs font-medium">40-Yard</span>
+                        <span className="text-sm font-medium">Low</span>
                         <input
                           type="range"
-                          min="0"
+                          min="5"
                           max="50"
                           value={weights.fortyYardDash}
                           onChange={(e) => adjustWeights({ ...weights, fortyYardDash: parseFloat(e.target.value) })}
-                          className="flex-1"
+                          className="flex-1 h-3 bg-gradient-to-r from-purple-200 to-purple-500 rounded-lg appearance-none cursor-pointer"
                         />
-                        <span className="w-8 text-xs font-mono">{weights.fortyYardDash}%</span>
+                        <span className="text-sm font-medium">High</span>
+                        <span className="bg-purple-600 text-white px-3 py-1 rounded-full font-bold">
+                          {weights.fortyYardDash}%
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <div className="flex items-center gap-3 mb-3">
+                        <span className="text-2xl">📏</span>
+                        <div>
+                          <div className="font-bold text-blue-800">Vertical Jump Weight</div>
+                          <div className="text-sm text-blue-600">Try adjusting this too!</div>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="text-sm">📏</span>
-                        <span className="w-20 text-xs font-medium">Vertical</span>
+                        <span className="text-sm font-medium">Low</span>
                         <input
                           type="range"
-                          min="0"
+                          min="5"
                           max="50"
                           value={weights.vertical}
                           onChange={(e) => adjustWeights({ ...weights, vertical: parseFloat(e.target.value) })}
-                          className="flex-1"
+                          className="flex-1 h-3 bg-gradient-to-r from-blue-200 to-blue-500 rounded-lg appearance-none cursor-pointer"
                         />
-                        <span className="w-8 text-xs font-mono">{weights.vertical}%</span>
+                        <span className="text-sm font-medium">High</span>
+                        <span className="bg-blue-600 text-white px-3 py-1 rounded-full font-bold">
+                          {weights.vertical}%
+                        </span>
                       </div>
                     </div>
                   </div>
+
+                  <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-3 mt-4">
+                    <p className="text-yellow-800 text-sm text-center font-bold animate-pulse">
+                      👆 DRAG THE SLIDERS ABOVE AND WATCH THE MAGIC BELOW! 👇
+                    </p>
+                  </div>
                 </div>
 
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <p className="text-yellow-800 text-xs text-center font-medium">
-                    ⚡ Watch the rankings shift as coach adjusts the weights above! ⚡
-                  </p>
-                </div>
-
-                {/* Live Rankings with Weight Impact */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                    <BarChart3 className="w-4 h-4 text-blue-600" />
-                    Weight-Adjusted Rankings
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full animate-pulse">Live Updates</span>
-                  </h3>
+                {/* Live Rankings Update */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-6 border-2 border-gray-300">
+                  <h4 className="text-xl font-bold mb-4 text-center text-gray-800">
+                    📊 Live Rankings (Updating as you adjust!)
+                  </h4>
                   
-                  <div className="space-y-2">
-                    {rankedPlayers.slice(0, 4).map((player) => (
+                  <div className="space-y-3">
+                    {rankedPlayers.slice(0, 4).map((player, index) => (
                       <div 
                         key={player.id}
-                        className="flex items-center justify-between p-2 rounded bg-white text-sm transition-all duration-300"
+                        className={`flex items-center justify-between p-4 rounded-lg bg-white border-2 transition-all duration-500 transform ${
+                          index === 0 ? 'border-yellow-400 bg-yellow-50 scale-105 shadow-lg' : 'border-gray-200'
+                        }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
-                            player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                            player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                            player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-50 text-blue-600'
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-all duration-500 ${
+                            player.rank === 1 ? 'bg-yellow-400 text-yellow-900 animate-bounce' :
+                            player.rank === 2 ? 'bg-gray-300 text-gray-700' :
+                            player.rank === 3 ? 'bg-orange-300 text-orange-700' :
+                            'bg-blue-200 text-blue-600'
                           }`}>
                             #{player.rank}
                           </div>
                           <div>
-                            <div className="font-medium">{player.name}</div>
-                            <div className="text-xs text-gray-500">Score: {player.compositeScore.toFixed(1)}</div>
+                            <div className="font-bold text-lg">{player.name}</div>
+                            <div className="text-sm text-gray-600">
+                              40-yard: {player.fortyYardDash}s | Vertical: {player.vertical}"
+                            </div>
                           </div>
+                          {player.rank === 1 && (
+                            <div className="bg-yellow-200 text-yellow-800 px-3 py-1 rounded-full text-sm font-bold animate-pulse">
+                              🏆 #1 PROSPECT!
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-gray-600">
-                          {player.fortyYardDash && `${player.fortyYardDash}s`}
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {player.compositeScore.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-500">Overall Score</div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-blue-800 text-xs">
-                    🎯 <strong>Pro Tip:</strong> Coaches can adjust weights during or after the combine based on what they observe. Perfect for college recruiters with different priorities!
-                  </p>
+                {/* The Power */}
+                <div className="bg-gradient-to-r from-green-600 to-blue-600 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">⚡ The POWER of Intelligent Rankings</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">🎯</div>
+                      <div className="font-bold mb-2">Customize for Any Scout</div>
+                      <div className="text-sm text-green-100">Speed coach? Position coach? Development coach? Adjust instantly!</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">⚡</div>
+                      <div className="font-bold mb-2">0.1 Second Updates</div>
+                      <div className="text-sm text-green-100">Rankings recalculate faster than you can blink!</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">🧠</div>
+                      <div className="font-bold mb-2">Smart Presets</div>
+                      <div className="text-sm text-green-100">Pre-built weight sets for different positions and goals!</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Manual vs WooCombine */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
+                    <h5 className="text-lg font-bold text-red-800 mb-3 text-center">😵 Manual Nightmare</h5>
+                    <ul className="text-sm text-red-700 space-y-2">
+                      <li>🔸 Open Excel spreadsheet</li>
+                      <li>🔸 Find weight columns</li>
+                      <li>🔸 Update formulas manually</li>
+                      <li>🔸 Recalculate all scores</li>
+                      <li>🔸 Resort rankings</li>
+                      <li>🔸 Print new sheets</li>
+                      <li className="font-bold text-red-900">⏰ TIME: 15-30 minutes</li>
+                    </ul>
+                  </div>
+                  
+                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6">
+                    <h5 className="text-lg font-bold text-green-800 mb-3 text-center">🎉 WooCombine Magic</h5>
+                    <ul className="text-sm text-green-700 space-y-2">
+                      <li>🔸 Drag one slider</li>
+                      <li>🔸 Watch rankings update live</li>
+                      <li>🔸 See new #1 prospect instantly</li>
+                      <li>🔸 Share with scouts immediately</li>
+                      <li>🔸 Export updated reports</li>
+                      <li>🔸 Done!</li>
+                      <li className="font-bold text-green-900">⏰ TIME: 3 seconds</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Scenario 5: Final Results */}
+            {/* Scenario 5: PROFESSIONAL REPORTS */}
             {currentScenario === 4 && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg">🏆</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-purple-800 text-sm">Final Results & Professional Reports</h3>
-                      <p className="text-xs text-purple-600">Combine complete - generating pro-quality reports</p>
-                    </div>
+              <div className="space-y-6">
+                {/* Dramatic Header */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl p-8 text-center">
+                  <div className="text-6xl mb-4">📈</div>
+                  <h3 className="text-3xl font-bold mb-2">Professional Reports</h3>
+                  <p className="text-xl text-indigo-100 mb-4">
+                    Scout-ready reports that make YOU look like a pro!
+                  </p>
+                  <div className="bg-white/20 rounded-lg p-4 backdrop-blur">
+                    <p className="text-2xl font-bold text-yellow-300">
+                      From raw data to pro reports in 0.5 seconds! 🚀
+                    </p>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-lg p-3 border border-purple-200">
-                      <h4 className="font-semibold text-purple-800 mb-2 text-xs">📊 Individual Reports</h4>
-                      <ul className="text-xs text-purple-700 space-y-1">
-                        <li>• Personal scorecards</li>
-                        <li>• Ranking certificates</li>
-                        <li>• Performance analytics</li>
-                        <li>• Improvement suggestions</li>
-                      </ul>
-                    </div>
+                </div>
 
-                    <div className="bg-white rounded-lg p-3 border border-purple-200">
-                      <h4 className="font-semibold text-purple-800 mb-2 text-xs">📈 Coach Analytics</h4>
-                      <ul className="text-xs text-purple-700 space-y-1">
-                        <li>• Team composition tools</li>
-                        <li>• Scout-ready summaries</li>
-                        <li>• Age group comparisons</li>
-                        <li>• CSV data exports</li>
-                      </ul>
+                {/* The Wow Moment */}
+                <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">🪄 WATCH: Professional Reports Generate INSTANTLY</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">📄</div>
+                      <div className="font-bold mb-2">Individual Scorecards</div>
+                      <div className="text-sm text-yellow-100">Each player gets a personalized report card!</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">📊</div>
+                      <div className="font-bold mb-2">Scout Summaries</div>
+                      <div className="text-sm text-yellow-100">College-ready analytics & rankings!</div>
+                    </div>
+                    <div className="bg-white/20 rounded-lg p-4 backdrop-blur text-center">
+                      <div className="text-3xl mb-2">📈</div>
+                      <div className="font-bold mb-2">Data Exports</div>
+                      <div className="text-sm text-yellow-100">CSV, PDF, everything scouts need!</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-800 mb-3 text-sm flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-yellow-600" />
-                    Final Leaderboard - All Drills Complete
-                  </h3>
-                  
-                  <div className="space-y-2">
-                    {rankedPlayers.map((player, index) => (
-                      <div 
-                        key={player.id}
-                        className={`flex items-center justify-between p-2 rounded bg-white text-sm ${
-                          index < 3 ? 'ring-1 ring-yellow-300 bg-yellow-50' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                            player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                            player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                            player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                            'bg-blue-50 text-blue-600'
-                          }`}>
-                            #{player.rank}
-                          </div>
-                          <div>
-                            <div className="font-medium flex items-center gap-1">
-                              {player.name}
-                              {index < 3 && <span className="text-xs">🏆</span>}
-                            </div>
-                            <div className="text-xs text-gray-500">#{player.number} • {player.ageGroup}</div>
-                          </div>
+                {/* Report Preview Mockups */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Individual Report */}
+                  <div className="bg-white border-2 border-blue-300 rounded-lg p-6 shadow-lg">
+                    <div className="bg-blue-600 text-white text-center py-3 rounded-t-lg mb-4 -mx-6 -mt-6">
+                      📄 Individual Scorecard
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-lg">Alex Johnson #12</span>
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-sm font-bold">#1 Overall</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-green-50 p-2 rounded">
+                          <div className="text-xs text-green-600">40-Yard Dash</div>
+                          <div className="font-bold text-green-800">4.38s</div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-mono text-sm font-bold text-cyan-600">
-                            {player.compositeScore.toFixed(1)}
-                          </div>
-                          <div className="text-xs text-gray-500">Overall</div>
+                        <div className="bg-blue-50 p-2 rounded">
+                          <div className="text-xs text-blue-600">Vertical Jump</div>
+                          <div className="font-bold text-blue-800">36"</div>
                         </div>
                       </div>
-                    ))}
+                      <div className="bg-purple-50 p-3 rounded">
+                        <div className="text-xs text-purple-600 mb-1">Scout Notes</div>
+                        <div className="text-sm text-purple-800">"Elite speed prospect. Strong fundamentals across all drills. College-ready athlete."</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Team Summary */}
+                  <div className="bg-white border-2 border-green-300 rounded-lg p-6 shadow-lg">
+                    <div className="bg-green-600 text-white text-center py-3 rounded-t-lg mb-4 -mx-6 -mt-6">
+                      📊 Team Summary
+                    </div>
+                    <div className="space-y-3">
+                      <h4 className="font-bold">Spring Showcase Results</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm">Top Speed (40-yard)</span>
+                          <span className="font-bold text-green-600">Alex Johnson - 4.38s</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Best Vertical</span>
+                          <span className="font-bold text-blue-600">Morgan Davis - 38"</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Most Improved</span>
+                          <span className="font-bold text-purple-600">Jordan Smith</span>
+                        </div>
+                      </div>
+                      <div className="bg-gray-50 p-3 rounded">
+                        <div className="text-xs text-gray-600 mb-1">Recruiting Recommendations</div>
+                        <div className="text-sm">3 D1 prospects, 5 D2 candidates, 2 speed specialists</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
-                  <button className="bg-purple-600 hover:bg-purple-700 text-white text-xs py-2 rounded-lg transition">
-                    📄 Generate PDFs
-                  </button>
-                  <button className="bg-green-600 hover:bg-green-700 text-white text-xs py-2 rounded-lg transition">
-                    📊 Export CSV
-                  </button>
-                  <button className="bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-lg transition">
-                    📧 Email Results
-                  </button>
+                {/* Time Comparison */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="bg-red-50 border-2 border-red-300 rounded-lg p-6">
+                    <h5 className="text-lg font-bold text-red-800 mb-4 text-center">🐌 Manual Reports</h5>
+                    <div className="space-y-3">
+                      <div className="bg-white rounded p-3 border border-red-200">
+                        <div className="text-sm text-red-700">📝 Hand-write each scorecard</div>
+                        <div className="text-xs text-red-600">45+ minutes</div>
+                      </div>
+                      <div className="bg-white rounded p-3 border border-red-200">
+                        <div className="text-sm text-red-700">📊 Calculate team stats manually</div>
+                        <div className="text-xs text-red-600">30+ minutes</div>
+                      </div>
+                      <div className="bg-white rounded p-3 border border-red-200">
+                        <div className="text-sm text-red-700">📧 Email individual results</div>
+                        <div className="text-xs text-red-600">60+ minutes</div>
+                      </div>
+                      <div className="bg-red-200 rounded p-3 text-center">
+                        <div className="font-bold text-red-900">⏰ TOTAL: 2+ HOURS</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-green-50 border-2 border-green-300 rounded-lg p-6">
+                    <h5 className="text-lg font-bold text-green-800 mb-4 text-center">⚡ WooCombine Reports</h5>
+                    <div className="space-y-3">
+                      <div className="bg-white rounded p-3 border border-green-200">
+                        <div className="text-sm text-green-700">📄 Generate all scorecards</div>
+                        <div className="text-xs text-green-600">0.3 seconds</div>
+                      </div>
+                      <div className="bg-white rounded p-3 border border-green-200">
+                        <div className="text-sm text-green-700">📊 Auto-calculate all stats</div>
+                        <div className="text-xs text-green-600">0.1 seconds</div>
+                      </div>
+                      <div className="bg-white rounded p-3 border border-green-200">
+                        <div className="text-sm text-green-700">📧 Send to all parents</div>
+                        <div className="text-xs text-green-600">0.1 seconds</div>
+                      </div>
+                      <div className="bg-green-200 rounded p-3 text-center">
+                        <div className="font-bold text-green-900">⏰ TOTAL: 0.5 SECONDS</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Report Actions */}
+                <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">🚀 One-Click Report Generation</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button className="bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg p-4 transition-all duration-300 transform hover:scale-105">
+                      <div className="text-3xl mb-2">📄</div>
+                      <div className="font-bold mb-1">Generate PDFs</div>
+                      <div className="text-sm text-blue-100">Professional scorecards for all players</div>
+                    </button>
+                    <button className="bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg p-4 transition-all duration-300 transform hover:scale-105">
+                      <div className="text-3xl mb-2">📊</div>
+                      <div className="font-bold mb-1">Export Data</div>
+                      <div className="text-sm text-blue-100">CSV files for scouts & college coaches</div>
+                    </button>
+                    <button className="bg-white/20 hover:bg-white/30 backdrop-blur rounded-lg p-4 transition-all duration-300 transform hover:scale-105">
+                      <div className="text-3xl mb-2">📧</div>
+                      <div className="font-bold mb-1">Email All</div>
+                      <div className="text-sm text-blue-100">Send results to players & parents</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* The Impact */}
+                <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-6">
+                  <h4 className="text-xl font-bold mb-4 text-center">💼 Professional Credibility Boost</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                    <div className="bg-white/10 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-green-400">{FEATURE_IMPACTS.professionalReports.saves}</div>
+                      <div className="text-sm text-gray-300">Time Saved</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-blue-400">100%</div>
+                      <div className="text-sm text-gray-300">Professional Quality</div>
+                    </div>
+                    <div className="bg-white/10 rounded-lg p-4">
+                      <div className="text-2xl font-bold text-purple-400">Instant</div>
+                      <div className="text-sm text-gray-300">Scout Sharing</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
