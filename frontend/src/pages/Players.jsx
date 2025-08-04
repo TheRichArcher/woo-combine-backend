@@ -670,6 +670,7 @@ export default function Players() {
     </div>
   );
 
+  // Main component for when there are players
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -714,90 +715,28 @@ export default function Players() {
           </div>
         </div>
 
-
-          
-          {/* Advanced Features Dropdown */}
-          <div className="space-y-3">
-            <div className="relative">
-              <select
-                value={selectedFeature}
-                onChange={(e) => setSelectedFeature(e.target.value)}
-                className="w-full p-3 pr-10 border-2 border-white/30 rounded-lg appearance-none bg-white/20 text-white cursor-pointer transition-all duration-200 hover:bg-white/30 focus:bg-white/40 focus:outline-none"
+        {/* Tab Navigation */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex border-b border-gray-200">
+            {TABS.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-b-2 border-cmf-primary text-cmf-primary bg-cmf-primary/5'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
               >
-                <option value="" className="text-gray-900">Explore Advanced Features...</option>
-                {ADVANCED_FEATURES.map((feature) => (
-                  <option key={feature.key} value={feature.key} className="text-gray-900">
-                    {feature.label} - {feature.desc}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/70 pointer-events-none" />
-            </div>
-
-            {/* Feature Preview Card */}
-            {selectedFeature && (
-              <div className={`bg-gradient-to-br ${ADVANCED_FEATURES.find(f => f.key === selectedFeature)?.color} border-2 rounded-xl p-4`}>
-                {(() => {
-                  const feature = ADVANCED_FEATURES.find(f => f.key === selectedFeature);
-                  const IconComponent = feature?.icon || Target;
-                  return (
-                    <>
-                      {/* Header */}
-                      <div className="flex items-center gap-3 mb-3">
-                        <IconComponent className="w-6 h-6 text-gray-700" />
-                        <div className="flex-1">
-                          <h4 className="text-lg font-bold text-gray-900">{feature?.label}</h4>
-                          <p className="text-sm text-gray-700">{feature?.desc}</p>
-                        </div>
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                      </div>
-
-                      {/* Category */}
-                      <div className="bg-white/70 rounded-lg p-2 border border-gray-200 mb-3">
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-4 h-4 text-gray-600" />
-                          <span className="text-sm font-medium text-gray-900">{feature?.category}</span>
-                        </div>
-                      </div>
-
-                      {/* Benefits */}
-                      <div className="bg-white/70 rounded-lg p-3 border border-gray-200 mb-3">
-                        <div className="text-sm font-medium text-gray-900 mb-2">Key Benefits:</div>
-                        <div className="grid grid-cols-1 gap-1">
-                          {feature?.benefits.slice(0, 3).map((benefit, index) => (
-                            <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
-                              {benefit}
-                            </div>
-                          ))}
-                          {feature?.benefits.length > 3 && (
-                            <div className="text-xs text-gray-600">
-                              +{feature.benefits.length - 3} more capabilities
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setSelectedFeature('')}
-                          className="flex-1 px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Browse More
-                        </button>
-                        <button
-                          onClick={() => navigate(feature?.route)}
-                          className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors"
-                        >
-                          Open {feature?.label}
-                        </button>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            )}
+                <tab.icon className="w-4 h-4 inline mr-2" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <div className="p-4">
+            <p className="text-sm text-gray-600">
+              {TABS.find(tab => tab.id === activeTab)?.description}
+            </p>
           </div>
         </div>
 
