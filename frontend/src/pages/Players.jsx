@@ -560,17 +560,7 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        {/* ENHANCED FEATURES DROPDOWN - SAFETY FALLBACK */}
-        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-lg">🚀</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">New Advanced Features Available!</h3>
-              <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
-            </div>
-          </div>
+
           
           {/* Advanced Features Dropdown */}
           <div className="space-y-3">
@@ -724,17 +714,7 @@ export default function Players() {
           </div>
         </div>
 
-        {/* ENHANCED FEATURES DROPDOWN */}
-        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-lg">🚀</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">New Advanced Features Available!</h3>
-              <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
-            </div>
-          </div>
+
           
           {/* Advanced Features Dropdown */}
           <div className="space-y-3">

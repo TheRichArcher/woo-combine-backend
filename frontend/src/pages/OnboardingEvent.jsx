@@ -621,57 +621,14 @@ export default function OnboardingEvent() {
             </div>
           </div>
 
-          {/* NEW FEATURES ANNOUNCEMENT BANNER */}
-          <div className="mb-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <span className="text-lg">🚀</span>
-              </div>
-              <div>
-                <h3 className="font-bold text-sm">New Advanced Features Available!</h3>
-                <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <button 
-                onClick={() => navigate('/sport-templates')}
-                className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-              >
-                <div className="font-medium">🏈 Sport Templates</div>
-                <div className="text-blue-100">6 sports available</div>
-              </button>
-              <button 
-                onClick={() => navigate('/team-formation')}
-                className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-              >
-                <div className="font-medium">⚖️ Team Formation</div>
-                <div className="text-blue-100">AI-powered balance</div>
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-              <button 
-                onClick={() => navigate('/evaluators')}
-                className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-              >
-                <div className="font-medium">👥 Multi-Evaluator</div>
-                <div className="text-blue-100">Statistical analysis</div>
-              </button>
-              <button 
-                onClick={() => navigate('/scorecards')}
-                className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-              >
-                <div className="font-medium">📊 Scorecards</div>
-                <div className="text-blue-100">Professional reports</div>
-              </button>
-            </div>
-          </div>
+
 
           {/* WHAT'S NEXT SECTION */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
             <div className="text-center mb-3">
-              <h3 className="text-blue-800 font-semibold text-lg">🎯 Get Started</h3>
-              <p className="text-blue-700 text-sm">
-                See your players in action and explore the ranking system
+              <h3 className="text-green-800 font-semibold text-lg">🎉 You're All Set!</h3>
+              <p className="text-green-700 text-sm">
+                Your event is ready. Now start tracking player performance and see live results.
               </p>
             </div>
             
@@ -683,7 +640,7 @@ export default function OnboardingEvent() {
                 }}
                 className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
               >
-                👥 Explore Your Player Rankings
+                🚀 Start Tracking Performance
                 <ArrowRight className="w-5 h-5" />
               </button>
             </div>
