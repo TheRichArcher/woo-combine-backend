@@ -1475,6 +1475,32 @@ export default function UnifiedDemo() {
 
         {/* Call to Action - Much More Prominent */}
         <div className="mt-2 space-y-2">
+          {/* What to Expect - Honest Timeline */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+            <h3 className="text-blue-800 font-bold text-center mb-2">📋 What Happens Next (2-3 minutes setup)</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                <span className="text-blue-700">Create account & verify email (30 seconds)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                <span className="text-blue-700">Choose your role (coach, organizer, etc.)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                <span className="text-blue-700">Create league & first event</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                <span className="text-blue-700">Add players & start timing! 🏃‍♂️</span>
+              </div>
+            </div>
+            <p className="text-center text-blue-600 text-xs mt-3 font-medium">
+              💡 This matches what you just saw, step-by-step!
+            </p>
+          </div>
+
           {/* Primary CTA - Big and Obvious */}
           <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-4 text-white text-center">
             <h2 className="text-lg font-bold mb-2">
@@ -1506,10 +1532,10 @@ export default function UnifiedDemo() {
             </button>
             
             <button
-              onClick={() => navigate("/welcome")}
+              onClick={() => navigate("/signup")}
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200"
             >
-              ← Back to Home
+              ← Ready? Let's Start
             </button>
           </div>
         </div>
