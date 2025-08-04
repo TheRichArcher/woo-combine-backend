@@ -189,6 +189,15 @@ export default function UnifiedDemo() {
   const [notifications, setNotifications] = useState([]);
   const intervalRef = useRef();
 
+  // Auto-start the demo when component mounts
+  useEffect(() => {
+    const autoStartTimer = setTimeout(() => {
+      setIsAutoPlaying(true);
+    }, 1000); // Start after 1 second to allow component to fully load
+
+    return () => clearTimeout(autoStartTimer);
+  }, []);
+
   // Demo state
   const [leagueName, setLeagueName] = useState("");
   const [eventName, setEventName] = useState("");
@@ -905,10 +914,7 @@ export default function UnifiedDemo() {
               </div>
             </div>
 
-            {/* Compact Transition */}
-            <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-1 text-center">
-              <p className="text-xs font-bold">😤 There's a COMPLETELY different way! 👆</p>
-            </div>
+
           </div>
         );
 
@@ -2348,20 +2354,11 @@ export default function UnifiedDemo() {
             
             <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-1">
               <button
-                onClick={startAutoDemo}
-                disabled={isAutoPlaying}
-                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
-              >
-                {isAutoPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                {isAutoPlaying ? 'Playing...' : 'Start Auto Demo'}
-              </button>
-              
-              <button
                 onClick={resetDemo}
                 className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
               >
                 <RotateCcw className="w-4 h-4" />
-                Reset
+                Reset Demo
               </button>
             </div>
 

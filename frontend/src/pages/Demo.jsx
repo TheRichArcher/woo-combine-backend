@@ -525,12 +525,7 @@ export default function Demo() {
                   </div>
                 </div>
 
-                {/* Transition */}
-                <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-2 text-center">
-                  <p className="text-sm font-bold">
-                    😤 There's a COMPLETELY different way! 👆
-                  </p>
-                </div>
+
               </div>
             )}
 
