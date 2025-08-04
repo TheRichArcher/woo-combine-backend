@@ -188,8 +188,7 @@ export function AuthProvider({ children }) {
 
         setRoleChecked(true);
         
-        // Navigation logic
-        const currentPath = window.location.pathname;
+        // Navigation logic (reuse currentPath from above)
         const onboardingRoutes = ["/login", "/signup", "/"];
         
         if (onboardingRoutes.includes(currentPath)) {
