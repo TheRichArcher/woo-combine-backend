@@ -1,22 +1,8 @@
 services:
-  # Frontend Static Site
-  - type: static
-    name: woo-combine-frontend
-    buildCommand: cd frontend && npm install && npm run build
-    publishDir: frontend/dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_BASE
-        value: https://woo-combine-backend.onrender.com/api
-
-  # Backend API Service  
   - type: web
     name: woo-combine-backend
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: cd frontend && rm -rf dist && npm install && VITE_API_BASE=https://woo-combine-backend.onrender.com/api npm run build && cd .. && pip install -r requirements.txt
     startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port 10000"
     healthCheckPath: "/health"
     envVars:
@@ -24,6 +10,8 @@ services:
         value: 3.11.11
       - key: POETRY_VERSION
         value: 1.7.1
+      - key: VITE_API_BASE
+        value: https://woo-combine-backend.onrender.com/api
       # Firebase credentials as environment variables (set these in Render dashboard)
       - key: GOOGLE_CLOUD_PROJECT
         sync: false
@@ -35,4 +23,6 @@ services:
       - key: FIREBASE_AUTH_DOMAIN
         sync: false
       - key: FIREBASE_API_KEY
-        sync: false 
+        sync: false
+      # (Optional) - key: FIREBASE_PROJECT_ID
+      # (Optional)   value: your-firebase-project-id 
