@@ -850,48 +850,40 @@ export default function UnifiedDemo() {
       // PAIN POINT SETUP
       case 0:
         return (
-          <div className="space-y-2">
-            {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-lg p-1 text-center">
-              <div className="text-2xl mb-1">😰</div>
-              <h3 className="text-base font-bold">Every Coach's Nightmare</h3>
-              <p className="text-red-100 text-xs">This is what coaches deal with EVERY combine day...</p>
-            </div>
-
-            {/* Ultra Compact Pain Points */}
+          <div className="space-y-1">
+            {/* Compact Pain Points */}
             <div className="grid grid-cols-3 gap-1">
               {PAIN_POINTS.map((pain, index) => (
                 <div key={pain.id} className="bg-red-50 border border-red-200 rounded p-1 text-center">
-                  <div className="text-base">{pain.visual}</div>
+                  <div className="text-lg">{pain.visual}</div>
                   <h4 className="font-bold text-red-800 text-xs">{pain.title}</h4>
                   <p className="text-red-700 text-xs leading-tight">{pain.desc.split(',')[0]}</p>
                 </div>
               ))}
             </div>
 
-            {/* Ultra Compact Cost Stats - Single Row */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-2">
-              <h4 className="text-sm font-bold mb-1 text-center">💸 The TRUE Cost</h4>
+            {/* Compact Cost Stats */}
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-1">
+              <h4 className="text-xs font-bold mb-1 text-center">💸 Manual Combine Costs</h4>
               <div className="grid grid-cols-4 gap-1 text-center">
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-red-400">47+ Hours</div>
+                  <div className="text-xs font-bold text-red-400">47+ Hours</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-red-400">38% Errors</div>
+                  <div className="text-xs font-bold text-red-400">38% Errors</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-red-400">76% Frustrated</div>
+                  <div className="text-xs font-bold text-red-400">76% Frustrated</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-red-400">$2,400 Lost</div>
+                  <div className="text-xs font-bold text-red-400">$2,400 Lost</div>
                 </div>
               </div>
             </div>
 
-            {/* Ultra Compact Transition */}
-            <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-2 text-center">
-              <p className="text-xs font-bold">😤 Sound familiar? There's a COMPLETELY different way!</p>
-              <div className="text-sm animate-pulse">👆 Keep watching...</div>
+            {/* Compact Transition */}
+            <div className="bg-gradient-to-r from-gray-700 to-blue-600 text-white rounded-lg p-1 text-center">
+              <p className="text-xs font-bold">😤 There's a COMPLETELY different way! 👆</p>
             </div>
           </div>
         );
@@ -899,111 +891,44 @@ export default function UnifiedDemo() {
       // HERO FEATURE - THE GAME CHANGER  
       case 1:
         return (
-          <div className="space-y-2">
-            {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-green-400 to-blue-600 text-white rounded-lg p-1 text-center">
-              <div className="text-2xl mb-1">⚡</div>
-              <h3 className="text-base font-bold">The Game Changer</h3>
-              <p className="text-green-100 text-xs">Everything updates INSTANTLY! ✨</p>
-            </div>
-
-            {/* Ultra Compact Button */}
+          <div className="space-y-1">
+            {/* Compact Button */}
             <div className="text-center">
-                              <button
-                  onClick={() => {
-                    console.log("🎯 TRIGGER THE MAGIC clicked!");
-                    
-                    // STAGE 1: Multi-Evaluator Sync (0-3s)
-                    addNotification("⚡ MAGIC INITIATED: 4 evaluators connected!", "success", 4000);
-                    setTimeout(() => {
-                      addNotification("👥 Evaluator 1: 40-yard dash → 4.3s logged!", "info", 3000);
-                    }, 500);
-                    setTimeout(() => {
-                      addNotification("👥 Evaluator 2: Vertical jump → 34\" logged!", "info", 3000);
-                    }, 1000);
-                    setTimeout(() => {
-                      addNotification("👥 Evaluator 3: Agility drill → 7.2s logged!", "info", 3000);
-                    }, 1500);
-                    setTimeout(() => {
-                      addNotification("👥 Evaluator 4: Bench press → 225lbs logged!", "info", 3000);
-                    }, 2000);
-                    
-                    // STAGE 2: Parent Phone Explosion (3-6s)
-                    setTimeout(() => {
-                      addNotification("📱 PARENT PHONES EXPLODING! Alex's mom notified!", "success", 3000);
-                    }, 3000);
-                    setTimeout(() => {
-                      addNotification("📱 Morgan's dad: 'Wow! #1 ranking update!'", "success", 3000);
-                    }, 3500);
-                    setTimeout(() => {
-                      addNotification("📱 Riley's parents: Live combine feed activated!", "success", 3000);
-                    }, 4000);
-                    
-                    // STAGE 3: AI-Powered Ranking Magic (6-9s)
-                    setTimeout(() => {
-                      addNotification("🧠 AI RANKING ENGINE: Processing 847 data points...", "info", 4000);
-                    }, 6000);
-                    setTimeout(() => {
-                      addNotification("🏆 RANKINGS UPDATED: Morgan Davis → #1 Overall!", "success", 3000);
-                    }, 7000);
-                    setTimeout(() => {
-                      addNotification("🎯 Smart weights auto-adjusted: Speed +40%, Power +30%", "info", 3000);
-                    }, 8000);
-                    
-                    // STAGE 4: Professional Report Generation (9-12s)
-                    setTimeout(() => {
-                      addNotification("📊 GENERATING PROFESSIONAL REPORTS...", "info", 3000);
-                    }, 9000);
-                    setTimeout(() => {
-                      addNotification("📈 PDF Report: Spring Football League → COMPLETE!", "success", 3000);
-                    }, 10000);
-                    setTimeout(() => {
-                      addNotification("📧 Scout reports emailed to 12 college recruiters!", "success", 3000);
-                    }, 11000);
-                    
-                    // STAGE 5: Time Comparison Explosion (12-15s)
-                    setTimeout(() => {
-                      addNotification("⏱️ MANUAL METHOD: 47+ hours remaining...", "error", 4000);
-                    }, 12000);
-                    setTimeout(() => {
-                      addNotification("⚡ WOOCOMBINE: COMPLETE IN 30 SECONDS!", "success", 4000);
-                    }, 13000);
-                    setTimeout(() => {
-                      addNotification("🎉 TIME SAVED: 47 HOURS! ERROR RATE: 0%!", "success", 4000);
-                    }, 14000);
-                    
-                    // STAGE 6: THE FINALE (15-18s)
-                    setTimeout(() => {
-                      addNotification("🚀 TRANSFORMATION COMPLETE: Welcome to the future!", "success", 5000);
-                    }, 15000);
-                    setTimeout(() => {
-                      addNotification("🏆 Result: Happy coaches + Happy parents + Pro results!", "success", 5000);
-                    }, 16000);
-                    setTimeout(() => {
-                      addNotification("✨ MAGIC COMPLETE: This is why we exist!", "success", 6000);
-                    }, 17000);
-                  }}
-                  className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg text-base transform hover:scale-105 transition-all duration-300 shadow-lg animate-pulse"
-                >
-                  🎯 TRIGGER THE MAGIC!
-                </button>
+              <button
+                onClick={() => {
+                  // Simplified notification sequence for demo
+                  addNotification("⚡ MAGIC INITIATED: Multi-evaluator sync!", "success", 3000);
+                  setTimeout(() => {
+                    addNotification("📱 Parent phones exploding with updates!", "success", 3000);
+                  }, 1000);
+                  setTimeout(() => {
+                    addNotification("🧠 AI rankings updated instantly!", "success", 3000);
+                  }, 2000);
+                  setTimeout(() => {
+                    addNotification("📊 Professional reports generated!", "success", 3000);
+                  }, 3000);
+                  setTimeout(() => {
+                    addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
+                  }, 4000);
+                }}
+                className="bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transform hover:scale-105 transition-all duration-300 shadow-lg animate-pulse"
+              >
+                🎯 TRIGGER THE MAGIC!
+              </button>
               <p className="text-gray-600 text-xs mt-1">Click to see real-time updates</p>
             </div>
 
-            {/* Ultra Compact Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-2">
+            {/* Compact Stats */}
+            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-green-400">{WOW_STATS.setupTime}</div>
-                  <div className="text-xs text-gray-300">Setup</div>
+                  <div className="text-xs font-bold text-green-400">2 min setup</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-blue-400">{WOW_STATS.realTimeUpdates}</div>
-                  <div className="text-xs text-gray-300">Results</div>
+                  <div className="text-xs font-bold text-blue-400">Instant results</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-sm font-bold text-purple-400">{WOW_STATS.parentSatisfaction}</div>
-                  <div className="text-xs text-gray-300">Satisfaction</div>
+                  <div className="text-xs font-bold text-purple-400">98% satisfaction</div>
                 </div>
               </div>
             </div>
@@ -1059,58 +984,48 @@ export default function UnifiedDemo() {
       // CASE 3 - SMART PARENT ENGAGEMENT (Feature Power)
       case 3:
         return (
-          <div className="space-y-2">
-            {/* Compact Feature Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg p-2 text-center">
-              <div className="text-2xl mb-1">📱</div>
-              <h3 className="text-sm font-bold mb-1">Smart Parent Engagement</h3>
-              <p className="text-blue-100 mb-1">
-                No more "How did my kid do?" questions - EVER! 📲
-              </p>
-            </div>
-
+          <div className="space-y-1">
             {/* Parent Phone Demo */}
             <div className="grid grid-cols-2 gap-1">
-              <div className="bg-white rounded-lg p-2 border-2 border-blue-200">
-                <h4 className="font-bold text-blue-800 mb-1 text-center">📱 Parent's Phone</h4>
-                <div className="space-y-2">
-                  <div className="bg-green-50 border border-green-200 rounded p-2 text-sm">
-                    <strong>Alex Johnson</strong> just ran 40-yard dash: <strong>4.38s</strong> 🏃‍♂️
+              <div className="bg-white rounded-lg p-1 border-2 border-blue-200">
+                <h4 className="font-bold text-blue-800 mb-1 text-center text-xs">📱 Parent's Phone</h4>
+                <div className="space-y-1">
+                  <div className="bg-green-50 border border-green-200 rounded p-1 text-xs">
+                    <strong>Alex Johnson</strong> 40-yard: <strong>4.38s</strong> 🏃‍♂️
                   </div>
-                  <div className="bg-blue-50 border border-blue-200 rounded p-2 text-sm">
-                    <strong>Current ranking:</strong> #2 overall 🥈
+                  <div className="bg-blue-50 border border-blue-200 rounded p-1 text-xs">
+                    Ranking: <strong>#2 overall</strong> 🥈
                   </div>
-                  <div className="bg-purple-50 border border-purple-200 rounded p-2 text-sm">
-                    Next drill: <strong>Vertical Jump</strong> at Station 3 📍
+                  <div className="bg-purple-50 border border-purple-200 rounded p-1 text-xs">
+                    Next: <strong>Vertical Jump</strong> 📍
                   </div>
                 </div>
               </div>
               
-              <div className="bg-gray-50 rounded-lg p-2 border-2 border-gray-300">
-                <h4 className="font-bold text-gray-800 mb-1 text-center">🚫 Before WooCombine</h4>
-                <div className="space-y-1 text-sm text-gray-600">
+              <div className="bg-gray-50 rounded-lg p-1 border-2 border-gray-300">
+                <h4 className="font-bold text-gray-800 mb-1 text-center text-xs">🚫 Before</h4>
+                <div className="space-y-1 text-xs text-gray-600">
                   <div>"How did my kid do?" ❌</div>
                   <div>"When will results be ready?" ❌</div>
-                  <div>"Can I get his times?" ❌</div>
                   <div>"What's his ranking?" ❌</div>
-                  <div className="text-red-600 font-bold">Parents frustrated & disconnected</div>
+                  <div className="text-red-600 font-bold">Frustrated parents</div>
                 </div>
               </div>
             </div>
 
             {/* Impact Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-2">
+            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-green-400">98%</div>
-                  <div className="text-xs text-gray-300">Parent Satisfaction</div>
+                  <div className="text-xs font-bold text-green-400">98%</div>
+                  <div className="text-xs text-gray-300">Satisfaction</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-blue-400">Instant</div>
-                  <div className="text-xs text-gray-300">Live Updates</div>
+                  <div className="text-xs font-bold text-blue-400">Instant</div>
+                  <div className="text-xs text-gray-300">Updates</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-purple-400">Zero</div>
+                  <div className="text-xs font-bold text-purple-400">Zero</div>
                   <div className="text-xs text-gray-300">Questions</div>
                 </div>
               </div>
@@ -1121,57 +1036,48 @@ export default function UnifiedDemo() {
       // CASE 4 - LIVE DATA ENTRY MAGIC (Workflow Ease)
       case 4:
         return (
-          <div className="space-y-2">
-            {/* Compact Workflow Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg p-2 text-center">
-              <div className="text-2xl mb-1">📝</div>
-              <h3 className="text-sm font-bold mb-1">Live Data Entry Magic</h3>
-              <p className="text-orange-100 mb-1">
-                Tap, tap, done! Results instantly everywhere! 📱
-              </p>
-            </div>
-
+          <div className="space-y-1">
             {/* Compact Demo Interface */}
-            <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-orange-200">
-              <h4 className="text-sm font-bold text-gray-800 mb-1 text-center">🏃‍♂️ 40-Yard Dash Station</h4>
+            <div className="bg-white rounded-lg p-1 shadow-lg border border-orange-200">
+              <h4 className="text-xs font-bold text-gray-800 mb-1 text-center">🏃‍♂️ 40-Yard Dash Station</h4>
               
-              <div className="grid grid-cols-2 gap-2 mb-1">
+              <div className="grid grid-cols-2 gap-1 mb-1">
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">Current Player</div>
-                  <div className="bg-blue-50 rounded-lg p-1 border-2 border-blue-200">
-                    <div className="font-bold text-blue-800">#12 Alex Johnson</div>
-                    <div className="text-sm text-blue-600">U16 - Ready to run</div>
+                  <div className="text-xs text-gray-600 mb-1">Current Player</div>
+                  <div className="bg-blue-50 rounded p-1 border border-blue-200">
+                    <div className="font-bold text-blue-800 text-xs">#12 Alex Johnson</div>
+                    <div className="text-xs text-blue-600">U16 - Ready</div>
                   </div>
                 </div>
                 
                 <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">Enter Time</div>
-                  <div className="bg-green-50 rounded-lg p-1 border-2 border-green-200">
-                    <div className="text-base font-bold text-green-800">4.38</div>
-                    <div className="text-sm text-green-600">seconds</div>
+                  <div className="text-xs text-gray-600 mb-1">Enter Time</div>
+                  <div className="bg-green-50 rounded p-1 border border-green-200">
+                    <div className="text-sm font-bold text-green-800">4.38</div>
+                    <div className="text-xs text-green-600">seconds</div>
                   </div>
                 </div>
               </div>
               
-              <button className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold py-2 rounded-lg">
+              <button className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold py-1 rounded text-xs">
                 ✅ SAVE & NEXT PLAYER
               </button>
             </div>
 
             {/* Compact Magic Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-2">
+            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
-                <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-green-400">0.5s</div>
-                  <div className="text-xs text-gray-300">Time to Enter</div>
+                <div className="bg-white/10 rounded p-1">
+                  <div className="text-xs font-bold text-green-400">0.5s</div>
+                  <div className="text-xs text-gray-300">Entry</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-blue-400">Instant</div>
-                  <div className="text-xs text-gray-300">Parent Update</div>
+                <div className="bg-white/10 rounded p-1">
+                  <div className="text-xs font-bold text-blue-400">Instant</div>
+                  <div className="text-xs text-gray-300">Parent</div>
                 </div>
-                <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-sm font-bold text-purple-400">Auto</div>
-                  <div className="text-xs text-gray-300">Ranking Update</div>
+                <div className="bg-white/10 rounded p-1">
+                  <div className="text-xs font-bold text-purple-400">Auto</div>
+                  <div className="text-xs text-gray-300">Ranking</div>
                 </div>
               </div>
             </div>
@@ -1181,85 +1087,75 @@ export default function UnifiedDemo() {
       // CASE 5 - INTELLIGENT RANKINGS (Feature Power)
       case 5:
         return (
-          <div className="space-y-2">
-            {/* Compact Feature Header */}
-            <div className="bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg p-2 text-center">
-              <div className="text-2xl mb-1">🎯</div>
-              <h3 className="text-sm font-bold mb-1">Intelligent Rankings</h3>
-              <p className="text-purple-100 mb-1">
-                AI-powered adjustments in real-time 🧠
-              </p>
-            </div>
-
+          <div className="space-y-1">
             {/* Weight Adjustment Demo */}
-            <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-purple-200">
-              <h4 className="text-sm font-bold text-gray-800 mb-1 text-center">⚖️ Adjust Drill Weights</h4>
+            <div className="bg-white rounded-lg p-1 shadow-lg border border-purple-200">
+              <h4 className="text-xs font-bold text-gray-800 mb-1 text-center">⚖️ Adjust Drill Weights</h4>
               
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">40-Yard Dash</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{width: '40%'}}></div>
+                  <span className="text-xs font-medium">40-Yard Dash</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-16 bg-gray-200 rounded-full h-1">
+                      <div className="bg-blue-600 h-1 rounded-full" style={{width: '40%'}}></div>
                     </div>
-                    <span className="text-sm font-bold text-blue-600">40%</span>
+                    <span className="text-xs font-bold text-blue-600">40%</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Vertical Jump</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div className="bg-green-600 h-2 rounded-full" style={{width: '30%'}}></div>
+                  <span className="text-xs font-medium">Vertical Jump</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-16 bg-gray-200 rounded-full h-1">
+                      <div className="bg-green-600 h-1 rounded-full" style={{width: '30%'}}></div>
                     </div>
-                    <span className="text-sm font-bold text-green-600">30%</span>
+                    <span className="text-xs font-bold text-green-600">30%</span>
                   </div>
                 </div>
                 
                 <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Agility</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-24 bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full" style={{width: '30%'}}></div>
+                  <span className="text-xs font-medium">Agility</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-16 bg-gray-200 rounded-full h-1">
+                      <div className="bg-orange-600 h-1 rounded-full" style={{width: '30%'}}></div>
                     </div>
-                    <span className="text-sm font-bold text-orange-600">30%</span>
+                    <span className="text-xs font-bold text-orange-600">30%</span>
                   </div>
                 </div>
               </div>
               
-              <div className="mt-3 text-center text-sm text-gray-600">
-                🔄 Rankings update instantly as you adjust weights
+              <div className="text-center text-xs text-gray-600">
+                🔄 Rankings update instantly
               </div>
             </div>
 
             {/* Live Rankings */}
             <div className="grid grid-cols-2 gap-1">
-              <div className="bg-gray-50 rounded-lg p-1 border-2 border-gray-300">
-                <h5 className="font-bold text-gray-800 mb-1 text-center">📊 Live Rankings</h5>
-                <div className="space-y-1 text-sm">
+              <div className="bg-gray-50 rounded p-1 border border-gray-300">
+                <h5 className="font-bold text-gray-800 mb-1 text-center text-xs">📊 Live Rankings</h5>
+                <div className="space-y-1 text-xs">
                   <div className="flex justify-between bg-yellow-100 p-1 rounded">
-                    <span>🥇 #15 Morgan Davis</span>
+                    <span>🥇 Morgan</span>
                     <span className="font-bold">94.2</span>
                   </div>
                   <div className="flex justify-between bg-gray-100 p-1 rounded">
-                    <span>🥈 #12 Alex Johnson</span>
+                    <span>🥈 Alex</span>
                     <span className="font-bold">91.8</span>
                   </div>
                   <div className="flex justify-between bg-orange-100 p-1 rounded">
-                    <span>🥉 #8 Riley Martinez</span>
+                    <span>🥉 Riley</span>
                     <span className="font-bold">89.4</span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-1 border-2 border-green-300">
-                <h5 className="font-bold text-green-800 mb-1 text-center">⚡ The Magic</h5>
-                <div className="space-y-1 text-xs text-green-700">
-                  <div>✅ Instant recalculation</div>
+              <div className="bg-green-50 rounded p-1 border border-green-300">
+                <h5 className="font-bold text-green-800 mb-1 text-center text-xs">⚡ The Magic</h5>
+                <div className="space-y-0 text-xs text-green-700">
+                  <div>✅ Instant recalc</div>
                   <div>✅ 99.8% accuracy</div>
                   <div>✅ No manual math</div>
-                  <div>✅ Parent notifications</div>
-                  <div>✅ Scout reports updated</div>
+                  <div>✅ Parent alerts</div>
                 </div>
               </div>
             </div>
@@ -1269,75 +1165,66 @@ export default function UnifiedDemo() {
       // CASE 6 - INSTANT PROFESSIONAL REPORTS (Workflow Ease)
       case 6:
         return (
-          <div className="space-y-2">
-            {/* Compact Workflow Header */}
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg p-2 text-center">
-              <div className="text-2xl mb-1">📊</div>
-              <h3 className="text-sm font-bold mb-1">Instant Professional Reports</h3>
-              <p className="text-indigo-100 mb-1">
-                Click button → Professional PDF ready! 📄
-              </p>
-            </div>
-
+          <div className="space-y-1">
             {/* Compact Report Preview */}
-            <div className="bg-white rounded-xl p-4 shadow-lg border-2 border-indigo-200">
+            <div className="bg-white rounded-lg p-1 shadow-lg border border-indigo-200">
               <div className="text-center mb-1">
-                <h4 className="text-sm font-bold text-gray-800">📋 Spring Football League Results</h4>
-                <div className="text-sm text-gray-600">Generated in 0.5 seconds • Scout-ready</div>
+                <h4 className="text-xs font-bold text-gray-800">📋 Spring Football League Results</h4>
+                <div className="text-xs text-gray-600">Generated in 0.5 seconds • Scout-ready</div>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-gray-50 rounded-lg p-1">
-                  <h5 className="font-bold text-gray-800 mb-1 text-sm">🏆 Top 3</h5>
+              <div className="grid grid-cols-2 gap-1">
+                <div className="bg-gray-50 rounded p-1">
+                  <h5 className="font-bold text-gray-800 mb-1 text-xs">🏆 Top 3</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
-                      <span>#15 Morgan Davis</span>
+                      <span>Morgan</span>
                       <span className="font-bold text-green-600">94.2</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>#12 Alex Johnson</span>
+                      <span>Alex</span>
                       <span className="font-bold text-blue-600">91.8</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>#8 Riley Martinez</span>
+                      <span>Riley</span>
                       <span className="font-bold text-purple-600">89.4</span>
                     </div>
                   </div>
                 </div>
                 
-                <div className="bg-gray-50 rounded-lg p-1">
-                  <h5 className="font-bold text-gray-800 mb-1 text-sm">📈 Stats</h5>
+                <div className="bg-gray-50 rounded p-1">
+                  <h5 className="font-bold text-gray-800 mb-1 text-xs">📈 Stats</h5>
                   <div className="space-y-1 text-xs">
                     <div className="flex justify-between">
                       <span>Athletes:</span>
                       <span className="font-bold">24</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Avg 40-Yard:</span>
+                      <span>Avg 40:</span>
                       <span className="font-bold">4.52s</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Avg Vertical:</span>
+                      <span>Avg Vert:</span>
                       <span className="font-bold">33.2"</span>
                     </div>
                   </div>
                 </div>
               </div>
               
-              <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-2 rounded-lg mt-3">
+              <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-1 rounded text-xs">
                 📧 EMAIL TO SCOUTS & PARENTS
               </button>
             </div>
 
             {/* Compact Speed Comparison */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-2">
+            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-1">
               <div className="grid grid-cols-2 gap-1 text-center">
-                <div className="bg-red-600/20 rounded-lg p-1 border border-red-500">
-                  <div className="text-sm font-bold text-red-400">Manual: 4+ hours</div>
+                <div className="bg-red-600/20 rounded p-1 border border-red-500">
+                  <div className="text-xs font-bold text-red-400">Manual: 4+ hours</div>
                   <div className="text-xs text-red-200">Calculate, format, type</div>
                 </div>
-                <div className="bg-green-600/20 rounded-lg p-1 border border-green-500">
-                  <div className="text-sm font-bold text-green-400">WooCombine: 0.5s</div>
+                <div className="bg-green-600/20 rounded p-1 border border-green-500">
+                  <div className="text-xs font-bold text-green-400">WooCombine: 0.5s</div>
                   <div className="text-xs text-green-200">One click → Pro PDF</div>
                 </div>
               </div>
@@ -1348,53 +1235,44 @@ export default function UnifiedDemo() {
       // CASE 7 - YOUR NEW REALITY (Results)
       case 7:
         return (
-          <div className="space-y-1">
-            {/* Ultra-Compact Celebration Header */}
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-1 text-center">
-              <h3 className="text-sm font-bold">🎉 Your New Reality</h3>
-              <p className="text-yellow-100 text-xs">47+ hours saved, 100% accuracy, happy parents! 🏆</p>
-            </div>
-
-            {/* Ultra-Compact Transformation Summary */}
-            <div className="grid grid-cols-2 gap-1">
-              <div className="bg-red-50 rounded-lg p-1 border border-red-200 text-center">
-                <h4 className="font-bold text-red-800 text-xs mb-1">😰 Before WooCombine</h4>
-                <div className="space-y-0 text-xs text-red-700">
+          <div className="space-y-2">
+            {/* Compact Before/After Comparison */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-red-50 rounded-lg p-2 border border-red-200 text-center">
+                <h4 className="font-bold text-red-800 text-sm mb-1">😰 Before WooCombine</h4>
+                <div className="space-y-1 text-xs text-red-700">
                   <div>47+ hours of manual work</div>
                   <div>38% error rate</div>
                   <div>Frustrated parents</div>
-                  <div>Amateur-looking results</div>
                   <div>$2,400 lost time value</div>
                 </div>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-1 border border-green-200 text-center">
-                <h4 className="font-bold text-green-800 text-xs mb-1">🚀 With WooCombine</h4>
-                <div className="space-y-0 text-xs text-green-700">
+              <div className="bg-green-50 rounded-lg p-2 border border-green-200 text-center">
+                <h4 className="font-bold text-green-800 text-sm mb-1">✅ With WooCombine</h4>
+                <div className="space-y-1 text-xs text-green-700">
                   <div>30 seconds setup</div>
                   <div>99.8% accuracy</div>
                   <div>98% parent satisfaction</div>
-                  <div>Professional reports</div>
                   <div>Focus on actual coaching</div>
                 </div>
               </div>
             </div>
 
-            {/* Ultra-Compact Call to Action */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-1 text-center">
-              <h4 className="text-xs font-bold">Ready to Transform YOUR Combines?</h4>
-              <p className="text-blue-100 text-xs mb-1">Join thousands of coaches who've revolutionized their workflow</p>
-              <div className="grid grid-cols-3 gap-1 text-center">
+            {/* Compact Statistics */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-2 text-center">
+              <h4 className="text-sm font-bold mb-1">Join thousands of coaches who've revolutionized their workflow</h4>
+              <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div className="text-sm font-bold">5,000+</div>
+                  <div className="text-lg font-bold">5,000+</div>
                   <div className="text-xs text-blue-200">Coaches</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold">50,000+</div>
+                  <div className="text-lg font-bold">50,000+</div>
                   <div className="text-xs text-blue-200">Athletes</div>
                 </div>
                 <div>
-                  <div className="text-sm font-bold">99.8%</div>
+                  <div className="text-lg font-bold">99.8%</div>
                   <div className="text-xs text-blue-200">Satisfaction</div>
                 </div>
               </div>
@@ -2493,8 +2371,8 @@ export default function UnifiedDemo() {
         </div>
 
         {/* Current Step Display */}
-        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col" style={{ height: '60vh', maxHeight: '500px' }}>
-          <div className={`text-white p-4 ${
+        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col" style={{ height: '320px', maxHeight: '320px' }}>
+          <div className={`text-white p-2 ${
             WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
               : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
@@ -2502,11 +2380,11 @@ export default function UnifiedDemo() {
                 : 'bg-gradient-to-r from-orange-500 to-red-600'
           }`}>
             <div className="flex items-center gap-2">
-              <div className="text-3xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
+              <div className="text-xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <h2 className="text-base font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                  <h2 className="text-sm font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
+                  <span className={`text-xs px-1 py-0.5 rounded-full font-medium ${
                     WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
                       ? 'bg-blue-200 text-blue-800' 
                       : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
@@ -2514,58 +2392,62 @@ export default function UnifiedDemo() {
                         : 'bg-orange-200 text-orange-800'
                   }`}>
                     {WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
-                      ? '📋 WORKFLOW' 
+                      ? 'WORKFLOW' 
                       : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
-                        ? '🔄 TRANSITION'
-                        : '🚀 FEATURES'
+                        ? 'TRANSITION'
+                        : 'FEATURES'
                     }
                   </span>
                 </div>
                 <p className={
                   WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
-                    ? 'text-blue-100 text-sm' 
+                    ? 'text-blue-100 text-xs' 
                     : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
-                      ? 'text-purple-100 text-sm'
-                      : 'text-orange-100 text-sm'
+                      ? 'text-purple-100 text-xs'
+                      : 'text-orange-100 text-xs'
                 }>{WORKFLOW_STEPS[currentStep]?.desc}</p>
               </div>
               {isAutoPlaying && (
-                <div className="ml-auto flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium">Live Demo</span>
+                <div className="ml-auto flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-medium">Live</span>
                 </div>
               )}
             </div>
           </div>
 
-          <div className="p-4 overflow-y-auto flex-1">
+          <div className="p-2 overflow-hidden flex-1">
             {renderStepContent()}
           </div>
         </div>
 
         {/* Call to Action */}
-        <div className="mt-2 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-1 text-white text-center">
-          <h2 className="text-sm font-bold mb-1">
+        <div className="mt-1 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-1 text-white text-center">
+          <h2 className="text-xs font-bold mb-1">
             🚀 Ready to Transform Your Combines?
           </h2>
-          <p className="text-green-100 text-xs mb-1">
-            See how this complete workflow can be yours in under 60 seconds
-          </p>
           
           <div className="space-y-1">
             <button
               onClick={() => navigate("/signup")}
-              className="w-full bg-white text-green-600 font-medium py-1.5 text-sm rounded-lg hover:bg-gray-50 transition-all duration-200"
+              className="w-full bg-white text-green-600 font-medium py-1 text-xs rounded-lg hover:bg-gray-50 transition-all duration-200"
             >
               ⚡ Start Your Free Trial Now
             </button>
             
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-1">
+              <button
+                onClick={resetDemo}
+                className="border border-white text-white font-medium py-0.5 px-1 rounded text-xs hover:bg-white/10 transition-all duration-200"
+              >
+                🔄 Replay
+              </button>
+              
               <button
                 onClick={() => navigate("/welcome")}
-                className="border border-white text-white font-medium py-1 px-2 rounded text-xs hover:bg-white/10 transition-all duration-200"
+                className="border border-white text-white font-medium py-0.5 px-1 rounded text-xs hover:bg-white/10 transition-all duration-200"
               >
-                ← Back to Home
+                ← Back
               </button>
             </div>
           </div>
