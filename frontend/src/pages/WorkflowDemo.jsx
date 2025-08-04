@@ -1365,59 +1365,6 @@ export default function UnifiedDemo() {
     );
   };
 
-  // Calculate composite score for player rankings
-  const calculateCompositeScore = (player) => {
-    let score = 0;
-    let totalWeight = 0;
-    
-    const drills = ['fortyYardDash', 'vertical', 'catching', 'throwing', 'agility'];
-    drills.forEach(drill => {
-      const value = player[drill];
-      if (value !== null && value !== undefined) {
-        const weight = weights[drill];
-        let normalizedScore;
-        if (drill === 'fortyYardDash') {
-          normalizedScore = Math.max(0, 100 - (value - 4.0) * 20);
-        } else if (drill === 'vertical') {
-          normalizedScore = Math.min(100, value * 2.5);
-        } else {
-          normalizedScore = Math.min(100, value * 5);
-        }
-        score += normalizedScore * (weight / 100);
-        totalWeight += weight;
-      }
-    });
-    
-    return totalWeight > 0 ? (score / totalWeight) * 100 : 0;
-  };
-
-  // Add notification function
-  const addNotification = (message, type = "success", duration = 2500) => {
-    const id = Date.now();
-    setNotifications(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, duration);
-  };
-
-  // Reset demo function
-  const resetDemo = () => {
-    setCurrentStep(0);
-    setStepProgress(0);
-    setIsAutoPlaying(false);
-    setLeagueName("");
-    setEventName("");
-    setPlayers([]);
-    setWeights({
-      fortyYardDash: 30,
-      vertical: 20,
-      catching: 15,
-      throwing: 15,
-      agility: 20
-    });
-    setNotifications([]);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Notifications */}
