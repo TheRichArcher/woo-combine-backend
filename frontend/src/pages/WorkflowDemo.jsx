@@ -280,6 +280,30 @@ export default function UnifiedDemo() {
     };
   }, [currentStep, isAutoPlaying]);
 
+  // Auto-trigger magic for "The Game Changer" step
+  useEffect(() => {
+    if (isAutoPlaying && currentStep === 1) {
+      const autoTriggerTimer = setTimeout(() => {
+        // Simplified notification sequence for demo
+        addNotification("⚡ MAGIC INITIATED: Multi-evaluator sync!", "success", 3000);
+        setTimeout(() => {
+          addNotification("📱 Parent phones exploding with updates!", "success", 3000);
+        }, 1000);
+        setTimeout(() => {
+          addNotification("🧠 AI rankings updated instantly!", "success", 3000);
+        }, 2000);
+        setTimeout(() => {
+          addNotification("📊 Professional reports generated!", "success", 3000);
+        }, 3000);
+        setTimeout(() => {
+          addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
+        }, 4000);
+      }, 1500); // Auto-trigger after 1.5 seconds in auto-play mode
+
+      return () => clearTimeout(autoTriggerTimer);
+    }
+  }, [isAutoPlaying, currentStep, addNotification]);
+
   // Advance to next step function
   const advanceToNextStep = () => {
     if (currentStep < WORKFLOW_STEPS.length - 1) {
@@ -890,29 +914,6 @@ export default function UnifiedDemo() {
 
       // HERO FEATURE - THE GAME CHANGER  
       case 1:
-        // Auto-trigger magic during auto-play after a short delay
-        useEffect(() => {
-          if (isAutoPlaying && currentStep === 1) {
-            const autoTriggerTimer = setTimeout(() => {
-              // Simplified notification sequence for demo
-              addNotification("⚡ MAGIC INITIATED: Multi-evaluator sync!", "success", 3000);
-              setTimeout(() => {
-                addNotification("📱 Parent phones exploding with updates!", "success", 3000);
-              }, 1000);
-              setTimeout(() => {
-                addNotification("🧠 AI rankings updated instantly!", "success", 3000);
-              }, 2000);
-              setTimeout(() => {
-                addNotification("📊 Professional reports generated!", "success", 3000);
-              }, 3000);
-              setTimeout(() => {
-                addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
-              }, 4000);
-            }, 1500); // Auto-trigger after 1.5 seconds in auto-play mode
-
-            return () => clearTimeout(autoTriggerTimer);
-          }
-        }, [isAutoPlaying, currentStep]);
 
         return (
           <div className="space-y-1">
