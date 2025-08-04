@@ -302,7 +302,7 @@ export default function UnifiedDemo() {
 
       return () => clearTimeout(autoTriggerTimer);
     }
-  }, [isAutoPlaying, currentStep, addNotification]);
+  }, [isAutoPlaying, currentStep]);
 
   // Advance to next step function
   const advanceToNextStep = () => {
