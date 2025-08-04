@@ -141,10 +141,10 @@ export default function SelectRole() {
         // STREAMLINED ONBOARDING: For new organizers, go directly to create-league
         if (selectedRole === 'organizer') {
           // New organizers go straight to league creation for streamlined setup
-          navigate("/create-league", { replace: true });
+          navigate("/create-league");
         } else {
           // Non-organizers go to dashboard (which will show LeagueFallback if needed)
-          navigate("/dashboard", { replace: true });
+          navigate("/dashboard");
         }
       }
       

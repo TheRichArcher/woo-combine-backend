@@ -30,7 +30,7 @@ export default function OnboardingEvent() {
   }
   
   if (userRole !== 'organizer') {
-    navigate('/dashboard', { replace: true });
+    navigate('/dashboard');
     return <LoadingScreen title="Redirecting..." subtitle="Taking you to your dashboard" size="medium" />;
   }
   
