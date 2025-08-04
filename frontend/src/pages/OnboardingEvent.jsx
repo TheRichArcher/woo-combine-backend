@@ -104,6 +104,26 @@ export default function OnboardingEvent() {
       
       // Validate rows
       const validatedRows = rows.map(row => validateRow(row));
+      
+      // Count validation issues
+      const rowsWithErrors = validatedRows.filter(row => row.warnings.length > 0);
+      const criticalErrors = validatedRows.filter(row => 
+        row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"))
+      );
+      const validPlayers = validatedRows.filter(row => row.isValid);
+      
+      // Show appropriate feedback
+      if (headerErrors.length > 0) {
+        showError(`❌ CSV Error: ${headerErrors[0]}`);
+      } else if (criticalErrors.length > 0) {
+        showError(`❌ ${criticalErrors.length} players missing required names. Review and fix before uploading.`);
+      } else if (rowsWithErrors.length > 0) {
+        showInfo(`⚠️ ${validPlayers.length} players ready, ${rowsWithErrors.length} have warnings. Review table below.`);
+      } else {
+        const mappingDesc = getMappingDescription(mappingType);
+        showSuccess(`✅ ${rows.length} players validated successfully! ${mappingDesc}`);
+      }
+      
       setCsvRows(validatedRows);
       setCsvErrors(headerErrors);
       
