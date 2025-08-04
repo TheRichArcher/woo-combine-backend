@@ -121,7 +121,7 @@ const WORKFLOW_STEPS = [
     desc: "Watch how fast you can go from zero to running a combine",
     icon: "🏃‍♂️",
     color: "from-green-500 to-teal-600",
-    duration: 6000, // Faster reading pace
+    duration: 8000, // Better reading time
     phase: "workflow_ease"
   },
   
@@ -132,7 +132,7 @@ const WORKFLOW_STEPS = [
     desc: "Parents connected live - no more waiting",
     icon: "📲",
     color: "from-blue-500 to-cyan-600",
-    duration: 5000, // Optimized timing
+    duration: 7000, // Better reading time
     phase: "features"
   },
   
@@ -143,7 +143,7 @@ const WORKFLOW_STEPS = [
     desc: "See how ridiculously easy it is to enter drill results",
     icon: "⚡",
     color: "from-orange-500 to-red-600",
-    duration: 6000, // Faster for data entry demo
+    duration: 8000, // Better demo time
     phase: "workflow_ease"
   },
   
@@ -154,7 +154,7 @@ const WORKFLOW_STEPS = [
     desc: "AI-powered adjustments in real-time",
     icon: "🧠",
     color: "from-purple-500 to-pink-600",
-    duration: 5000, // Quick ranking demo
+    duration: 7000, // Better ranking demo time
     phase: "features"
   },
   
@@ -165,7 +165,7 @@ const WORKFLOW_STEPS = [
     desc: "From raw data to scout-ready reports in 0.5 seconds",
     icon: "📈",
     color: "from-indigo-500 to-purple-600",
-    duration: 5000, // Fast report generation
+    duration: 7000, // Better report time
     phase: "workflow_ease"
   },
   
@@ -176,7 +176,7 @@ const WORKFLOW_STEPS = [
     desc: "47+ hours saved, 100% accuracy, happy parents",
     icon: "🏆",
     color: "from-yellow-400 to-orange-500",
-    duration: 5000, // Final impact showcase
+    duration: 10000, // Important final message needs time
     phase: "results"
   }
 ];
@@ -1353,991 +1353,88 @@ export default function UnifiedDemo() {
         );
     }
 
-    // OLD CONTENT BELOW (keeping as fallback)
-    switch (step.component) {
-      case "CreateLeagueStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4">Create a New League</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">League Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition ${
-                        showCursor.leagueName ? 'ring-2 ring-blue-400' : ''
-                      }`}
-                      placeholder="Enter league name..."
-                      value={leagueName}
-                      onChange={(e) => setLeagueName(e.target.value)}
-                      style={{ 
-                        borderColor: showCursor.leagueName ? '#3b82f6' : '#d1d5db',
-                        boxShadow: showCursor.leagueName ? '0 0 0 3px rgba(59, 130, 246, 0.1)' : 'none'
-                      }}
-                    />
-                    {showCursor.leagueName && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="w-0.5 h-5 bg-blue-600 animate-pulse"></div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button 
-                  id="create-league-btn"
-                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
-                    buttonStates['create-league-btn'] === 'clicking' 
-                      ? 'bg-blue-700 text-white transform scale-95' 
-                      : buttonStates['create-league-btn'] === 'processing'
-                        ? 'bg-blue-500 text-white cursor-wait'
-                        : stepSubState === 'success'
-                          ? 'bg-green-600 text-white transform scale-100'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                  disabled={buttonStates['create-league-btn'] === 'processing'}
-                >
-                  {buttonStates['create-league-btn'] === 'processing' 
-                    ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Creating League...
-                      </span>
-                    )
-                    : stepSubState === 'success'
-                      ? '✓ League Created!' 
-                      : 'Create League & Continue'
-                  }
-                </button>
-              </div>
-            </div>
-            {stepSubState === 'success' && leagueName && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-1 animate-fade-in">
-                <p className="text-green-800 text-sm">✅ League "{leagueName}" created successfully!</p>
-                <div className="mt-2 flex items-center gap-2 text-green-700 text-xs">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span>Setting up event management...</span>
-                </div>
-              </div>
-            )}
-            
-            {stepSubState === 'transitioning' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-1 animate-fade-in">
-                <p className="text-blue-800 text-sm">🔄 Preparing event creation interface...</p>
-              </div>
-            )}
-          </div>
-        );
+    // Fallback for any undefined steps
+    return (
+      <div className="space-y-2">
+        <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-lg p-4 text-center">
+          <div className="text-2xl mb-2">{step.icon}</div>
+          <h3 className="text-lg font-bold mb-1">{step.title}</h3>
+          <p className="text-sm text-gray-100">{step.desc}</p>
+        </div>
+      </div>
+    );
+  };
 
-      case "CreateEventStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4">Create Combine Event</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg transition ${
-                        showCursor.eventName ? 'ring-2 ring-green-400' : ''
-                      }`}
-                      placeholder="Enter event name..."
-                      value={eventName}
-                      onChange={(e) => setEventName(e.target.value)}
-                      style={{ 
-                        borderColor: showCursor.eventName ? '#10b981' : '#d1d5db',
-                        boxShadow: showCursor.eventName ? '0 0 0 3px rgba(16, 185, 129, 0.1)' : 'none'
-                      }}
-                    />
-                    {showCursor.eventName && (
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                        <div className="w-0.5 h-5 bg-green-600 animate-pulse"></div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                    <input
-                      type="date"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                      defaultValue="2024-04-15"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg"
-                      placeholder="Field location"
-                      defaultValue="Central High School"
-                    />
-                  </div>
-                </div>
-                <button 
-                  id="create-event-btn"
-                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-200 ${
-                    buttonStates['create-event-btn'] === 'clicking' 
-                      ? 'bg-green-700 text-white transform scale-95' 
-                      : buttonStates['create-event-btn'] === 'processing'
-                        ? 'bg-green-500 text-white cursor-wait'
-                        : stepSubState === 'success'
-                          ? 'bg-blue-600 text-white transform scale-100'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                  }`}
-                  disabled={buttonStates['create-event-btn'] === 'processing'}
-                >
-                  {buttonStates['create-event-btn'] === 'processing' 
-                    ? (
-                      <span className="flex items-center justify-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Scheduling Event...
-                      </span>
-                    )
-                    : stepSubState === 'success'
-                      ? '✓ Event Created!' 
-                      : 'Create Event'
-                  }
-                </button>
-              </div>
-            </div>
-            {stepSubState === 'success' && eventName && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-1 animate-fade-in">
-                <p className="text-blue-800 text-sm">📅 Event "{eventName}" scheduled!</p>
-                <div className="mt-2 p-2 bg-white rounded border border-blue-300">
-                  <div className="text-xs text-blue-700">
-                    <div className="flex justify-between mb-1">
-                      <span>📅 Date:</span>
-                      <span>April 15, 2024</span>
-                    </div>
-                    <div className="flex justify-between mb-1">
-                      <span>📍 Location:</span>
-                      <span>Central High School</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>👥 Players:</span>
-                      <span>Ready for import</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {stepSubState === 'transitioning' && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-1 animate-fade-in">
-                <p className="text-green-800 text-sm">🔄 Loading player management tools...</p>
-              </div>
-            )}
-          </div>
-        );
+  // Calculate composite score for player rankings
+  const calculateCompositeScore = (player) => {
+    let score = 0;
+    let totalWeight = 0;
+    
+    const drills = ['fortyYardDash', 'vertical', 'catching', 'throwing', 'agility'];
+    drills.forEach(drill => {
+      const value = player[drill];
+      if (value !== null && value !== undefined) {
+        const weight = weights[drill];
+        let normalizedScore;
+        if (drill === 'fortyYardDash') {
+          normalizedScore = Math.max(0, 100 - (value - 4.0) * 20);
+        } else if (drill === 'vertical') {
+          normalizedScore = Math.min(100, value * 2.5);
+        } else {
+          normalizedScore = Math.min(100, value * 5);
+        }
+        score += normalizedScore * (weight / 100);
+        totalWeight += weight;
+      }
+    });
+    
+    return totalWeight > 0 ? (score / totalWeight) * 100 : 0;
+  };
 
-      case "UploadCsvStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4">Upload Player Roster</h3>
-              <div className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 ${
-                buttonStates['upload-csv-btn'] === 'clicking' 
-                  ? 'border-blue-400 bg-blue-50' 
-                  : 'border-gray-300'
-              }`}>
-                <Upload className={`w-12 h-12 mx-auto mb-4 transition-all duration-300 ${
-                  buttonStates['upload-csv-btn'] === 'clicking' 
-                    ? 'text-blue-600 animate-bounce' 
-                    : 'text-gray-400'
-                }`} />
-                <p className="text-gray-600 mb-4">Drop CSV file here or click to upload</p>
-                <button 
-                  id="upload-csv-btn"
-                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                    buttonStates['upload-csv-btn'] === 'clicking' 
-                      ? 'bg-blue-700 text-white transform scale-95' 
-                      : buttonStates['upload-csv-btn'] === 'processing'
-                        ? 'bg-blue-500 text-white cursor-wait'
-                        : stepSubState === 'success'
-                          ? 'bg-green-600 text-white'
-                          : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                  disabled={buttonStates['upload-csv-btn'] === 'processing'}
-                >
-                  {buttonStates['upload-csv-btn'] === 'processing' 
-                    ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Processing CSV...
-                      </span>
-                    )
-                    : stepSubState === 'success'
-                      ? '✓ Uploaded!'
-                      : 'Choose File'
-                  }
-                </button>
-              </div>
-              {players.length === 0 && (
-                <div className="mt-4 bg-gray-50 rounded-lg p-2">
-                  <h4 className="font-medium text-gray-800 mb-1">Sample CSV Format:</h4>
-                  <pre className="text-xs text-gray-600 whitespace-pre-wrap">{DEMO_CSV_DATA}</pre>
-                </div>
-              )}
-            </div>
-            {stepSubState === 'processing' && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 animate-fade-in">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <div>
-                    <p className="text-blue-800 font-medium text-sm">Processing roster file...</p>
-                    <p className="text-blue-600 text-xs">Validating player data and assigning numbers</p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
-            {stepSubState === 'success' && players.length > 0 && (
-              <div className="bg-white rounded-lg p-2 shadow-lg animate-fade-in">
-                <h4 className="font-semibold mb-1 text-green-800">✅ Players Successfully Imported ({players.length})</h4>
-                <div className="space-y-2">
-                  {players.slice(0, 4).map(player => (
-                    <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded border border-green-200">
-                      <span className="font-medium">{player.name}</span>
-                      <span className="text-sm text-green-700">#{player.number} • {player.age_group}</span>
-                    </div>
-                  ))}
-                  {players.length > 4 && (
-                    <div className="text-center text-sm text-green-600">
-                      +{players.length - 4} more players imported...
-                    </div>
-                  )}
-                </div>
-                <div className="mt-3 p-2 bg-green-100 rounded">
-                  <p className="text-green-800 text-xs">✓ All player numbers auto-assigned • ✓ Age groups validated • ✓ Ready for manual additions</p>
-                </div>
-              </div>
-            )}
-            
-            {stepSubState === 'transitioning' && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-1 animate-fade-in">
-                <p className="text-yellow-800 text-sm">🔄 Setting up manual player entry form...</p>
-              </div>
-            )}
-          </div>
-        );
+  // Add notification function
+  const addNotification = (message, type = "success", duration = 2500) => {
+    const id = Date.now();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, duration);
+  };
 
-      case "ManualPlayerStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4">Add Walk-Up Player</h3>
-              <p className="text-gray-600 text-sm mb-4">Sam Wilson just showed up - let's add him quickly!</p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
-                        showCursor.manualPlayerFirstName 
-                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
-                          : 'border-gray-300'
-                      }`}
-                      value={manualPlayerFirstName}
-                      readOnly
-                    />
-                    {showCursor.manualPlayerFirstName && (
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
-                        showCursor.manualPlayerLastName 
-                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
-                          : 'border-gray-300'
-                      }`}
-                      value={manualPlayerLastName}
-                      readOnly
-                    />
-                    {showCursor.manualPlayerLastName && (
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Number</label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
-                        showCursor.manualPlayerNumber 
-                          ? 'border-blue-500 bg-blue-50 shadow-lg' 
-                          : 'border-gray-300'
-                      }`}
-                      placeholder="Auto-assigned"
-                      value={manualPlayerNumber}
-                      readOnly
-                    />
-                    {showCursor.manualPlayerNumber && (
-                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-600 animate-pulse">|</span>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Age Group</label>
-                  <select 
-                    className={`w-full px-3 py-2 border rounded-lg transition-all duration-300 ${
-                      manualPlayerAgeGroup ? 'border-green-500 bg-green-50' : 'border-gray-300'
-                    }`} 
-                    value={manualPlayerAgeGroup}
-                    disabled
-                  >
-                    <option value="">Select age group...</option>
-                    <option value="U14">U14</option>
-                    <option value="U16">U16</option>
-                    <option value="U18">U18</option>
-                  </select>
-                </div>
-              </div>
-              <button 
-                id="add-player-btn"
-                className={`w-full mt-4 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all duration-200 ${
-                  buttonStates['add-player-btn'] === 'clicking' 
-                    ? 'bg-green-700 text-white transform scale-95' 
-                    : buttonStates['add-player-btn'] === 'clicked'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                <UserPlus className="w-4 h-4" />
-                {buttonStates['add-player-btn'] === 'clicked' 
-                  ? '✓ Player Added!' 
-                  : 'Add Player'
-                }
-              </button>
-            </div>
-          </div>
-        );
-
-      case "DrillResultsStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4">Live Drill Entry</h3>
-              {currentDrillPlayer && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold text-blue-800">Now Running: {currentDrillPlayer.name}</h4>
-                      <p className="text-blue-600 text-sm">40-Yard Dash • #{currentDrillPlayer.number}</p>
-                    </div>
-                    <div className="text-2xl animate-pulse">🏃‍♂️</div>
-                  </div>
-                </div>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Player #</label>
-                  <input
-                    type="text"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="Enter number..."
-                    defaultValue={currentDrillPlayer?.number || ""}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Drill Type</label>
-                  <select className="w-full px-3 py-2 border border-gray-300 rounded-lg" defaultValue="fortyYardDash">
-                    <option value="fortyYardDash">40-Yard Dash</option>
-                    <option value="vertical">Vertical Jump</option>
-                    <option value="catching">Catching</option>
-                    <option value="throwing">Throwing</option>
-                    <option value="agility">Agility</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time/Score</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    placeholder="4.38"
-                    defaultValue={currentDrillPlayer ? "4.38" : ""}
-                  />
-                </div>
-                <div className="flex items-end">
-                  <button 
-                    id="record-result-btn"
-                    className={`w-full py-2 rounded-lg font-semibold transition-all duration-200 ${
-                      buttonStates['record-result-btn'] === 'clicking' 
-                        ? 'bg-green-700 text-white transform scale-95' 
-                        : buttonStates['record-result-btn'] === 'clicked'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {buttonStates['record-result-btn'] === 'clicked' 
-                      ? '✓ Recorded!' 
-                      : 'Record Result'
-                    }
-                  </button>
-                </div>
-              </div>
-            </div>
-            
-            {players.some(p => p.fortyYardDash) && (
-              <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-1">Recent Entries</h4>
-                <div className="space-y-2">
-                  {players.filter(p => p.fortyYardDash).slice(0, 3).map(player => (
-                    <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded">
-                      <span className="font-medium">{player.name}</span>
-                      <span className="text-sm text-green-700">{player.fortyYardDash}s</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case "WeightsStep":
-        return (
-          <div className="space-y-4">
-            {/* Dramatic Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-sm font-bold mb-1">⚖️ The WooCombine Game Changer</h3>
-              <p className="text-blue-100">Watch how intelligent weight adjustments completely transform rankings!</p>
-              {stepSubState === "coach-thinking" && (
-                <div className="mt-3 bg-white/20 rounded-lg p-1 animate-pulse">
-                  <p className="text-sm">💭 "Speed scouts are here today. Time to emphasize what matters most..."</p>
-                </div>
-              )}
-            </div>
-
-            {/* Before/After Rankings Comparison */}
-            {(stepSubState === "before-rankings" || stepSubState === "dramatic-reveal") && (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-1">
-                <div className="bg-white rounded-lg p-2 shadow-lg border-2 border-gray-300">
-                  <h4 className="font-semibold mb-1 text-gray-600">📊 Before (Default Weights)</h4>
-                  <div className="space-y-2">
-                    {[
-                      { name: "Taylor Brown", rank: 1, score: "73.2" },
-                      { name: "Alex Johnson", rank: 2, score: "71.8" },
-                      { name: "Morgan Davis", rank: 3, score: "69.5" },
-                      { name: "Jordan Smith", rank: 4, score: "68.1" }
-                    ].map(player => (
-                      <div key={player.name} className="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-xs font-bold">
-                            #{player.rank}
-                          </span>
-                          <span className="font-medium text-gray-700">{player.name}</span>
-                        </div>
-                        <span className="font-mono text-sm text-gray-600">{player.score}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {stepSubState === "dramatic-reveal" && (
-                  <div className="bg-white rounded-lg p-2 shadow-lg border-2 border-green-400 animate-pulse">
-                    <h4 className="font-semibold mb-1 text-green-600">🚀 After (Speed Emphasis!)</h4>
-                    <div className="space-y-2">
-                      {rankedPlayers.slice(0, 4).map(player => (
-                        <div key={player.id} className="flex justify-between items-center p-2 bg-green-50 rounded transform transition-all duration-500 hover:scale-105">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                              player.rank === 1 ? 'bg-yellow-400 text-yellow-900 animate-bounce' :
-                              player.rank === 2 ? 'bg-gray-300 text-gray-700' :
-                              player.rank === 3 ? 'bg-orange-300 text-orange-700' :
-                              'bg-blue-200 text-blue-600'
-                            }`}>
-                              #{player.rank}
-                            </span>
-                            <span className="font-medium text-green-700">{player.name}</span>
-                            {player.rank === 1 && <span className="text-xs bg-green-200 text-green-800 px-2 py-1 rounded-full">NEW #1!</span>}
-                          </div>
-                          <span className="font-mono text-sm text-green-600 font-bold">{player.compositeScore.toFixed(1)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Weight Adjustment Interface */}
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                ⚖️ Dynamic Weight Adjustment
-                {stepSubState === "adjusting-speed" && <span className="text-sm bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">Adjusting...</span>}
-              </h3>
-              
-              <div className="space-y-4">
-                {Object.entries(weights).map(([drill, weight]) => (
-                  <div key={drill} className={`flex items-center gap-1 p-1 rounded-lg transition-all duration-300 relative ${
-                    (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
-                    (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
-                    (drill === 'throwing' && stepSubState === 'adjusting-throwing') 
-                      ? 'bg-gradient-to-r from-blue-100 to-blue-200 border-4 border-blue-500 transform scale-110 shadow-2xl animate-pulse ring-4 ring-blue-300 ring-opacity-50' 
-                      : 'bg-gray-50'
-                  }`}>
-                    <span className="w-32 text-sm font-medium capitalize">
-                      {drill.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="50"
-                      value={weight}
-                      readOnly
-                      className={`flex-1 transition-all duration-300 ${
-                        (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
-                        (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
-                        (drill === 'throwing' && stepSubState === 'adjusting-throwing')
-                          ? 'accent-blue-600 scale-125 h-4 shadow-lg'
-                          : 'accent-gray-400 h-2'
-                      }`}
-                      style={(drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
-                             (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
-                             (drill === 'throwing' && stepSubState === 'adjusting-throwing') ? {
-                        background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)',
-                        borderRadius: '10px',
-                        boxShadow: '0 0 20px rgba(59, 130, 246, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.3)'
-                      } : {}}
-                    />
-                    <span className={`w-20 font-mono font-bold transition-all duration-300 ${
-                      (drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
-                      (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
-                      (drill === 'throwing' && stepSubState === 'adjusting-throwing')
-                        ? 'text-2xl text-blue-600 animate-bounce bg-yellow-200 px-3 py-1 rounded-full border-2 border-yellow-400 shadow-lg'
-                        : weight > 30 ? 'text-blue-600 text-sm' : 'text-gray-600 text-sm'
-                    }`}>
-                      {weight}%
-                    </span>
-                    {weight > 35 && <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full animate-bounce">HIGH</span>}
-                    {((drill === 'fortyYardDash' && stepSubState === 'adjusting-speed') ||
-                      (drill === 'vertical' && stepSubState === 'adjusting-vertical') ||
-                      (drill === 'throwing' && stepSubState === 'adjusting-throwing')) && 
-                      <>
-                        <span className="text-sm bg-gradient-to-r from-red-500 to-orange-500 text-white px-4 py-2 rounded-full animate-bounce font-bold shadow-lg">
-                          ⚡ ADJUSTING LIVE!
-                        </span>
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full animate-ping"></div>
-                        <div className="absolute left-0 top-0 w-full h-full bg-blue-300 opacity-20 rounded-lg animate-pulse"></div>
-                        {/* Animated Arrow Pointer */}
-                        <div className="absolute -left-8 top-1/2 transform -translate-y-1/2">
-                          <div className="flex items-center animate-bounce">
-                            <span className="text-3xl text-red-500 animate-pulse">👉</span>
-                            <span className="text-red-500 font-bold text-xs ml-1 animate-pulse">WATCH!</span>
-                          </div>
-                        </div>
-                      </>
-                    }
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-4 p-1 bg-purple-50 rounded-lg border border-purple-200">
-                <p className="text-purple-800 text-sm font-medium">💡 Pro Tip: Weight adjustments let coaches customize rankings for specific needs:</p>
-                <ul className="text-purple-700 text-xs mt-2 space-y-1 ml-4">
-                  <li>• Speed scouts → Boost 40-yard dash & agility</li>
-                  <li>• Position coaches → Emphasize position-specific skills</li>
-                  <li>• Development → Balance all attributes equally</li>
-                </ul>
-              </div>
-            </div>
-            
-            {/* Live Rankings Update */}
-            {rankedPlayers.length > 0 && stepSubState !== "before-rankings" && stepSubState !== "dramatic-reveal" && (
-              <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-1 flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Live Rankings Update
-                </h4>
-                <div className="space-y-2">
-                  {rankedPlayers.slice(0, 4).map(player => (
-                    <div key={player.id} className="flex justify-between items-center p-2 bg-gray-50 rounded transition-all duration-300">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                          player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                          player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                          'bg-blue-50 text-blue-600'
-                        }`}>
-                          #{player.rank}
-                        </span>
-                        <span className="font-medium">{player.name}</span>
-                      </div>
-                      <span className="font-mono text-sm">{player.compositeScore.toFixed(1)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        );
-
-      case "BasicRankingsStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-6 border border-purple-200">
-              <h3 className="text-base font-semibold mb-4 text-purple-800">Final Results & Reports</h3>
-              <div className="grid grid-cols-2 gap-1 mb-4">
-                <div className="bg-white rounded-lg p-1">
-                  <h4 className="font-medium text-purple-700 mb-1">Individual Scorecards</h4>
-                  <ul className="text-sm text-purple-600 space-y-1">
-                    <li>• Personal performance reports</li>
-                    <li>• Ranking certificates</li>
-                    <li>• Improvement suggestions</li>
-                  </ul>
-                </div>
-                <div className="bg-white rounded-lg p-1">
-                  <h4 className="font-medium text-purple-700 mb-1">Team Analytics</h4>
-                  <ul className="text-sm text-purple-600 space-y-1">
-                    <li>• Age group comparisons</li>
-                    <li>• Scout-ready summaries</li>
-                    <li>• CSV data exports</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button className="bg-purple-600 text-white py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1">
-                  <FileText className="w-3 h-3" />
-                  PDFs
-                </button>
-                <button className="bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1">
-                  <Download className="w-3 h-3" />
-                  CSV
-                </button>
-                <button className="bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium flex items-center justify-center gap-1">
-                  📧 Email
-                </button>
-              </div>
-            </div>
-
-            {rankedPlayers.length > 0 && (
-              <div className="bg-white rounded-lg p-2 shadow-lg">
-                <h4 className="font-semibold mb-1 flex items-center gap-2">
-                  <Trophy className="w-4 h-4 text-yellow-600" />
-                  Final Leaderboard
-                </h4>
-                <div className="space-y-2">
-                  {rankedPlayers.map((player, index) => (
-                    <div key={player.id} className={`flex justify-between items-center p-1 rounded transition-all ${
-                      index < 3 ? 'bg-yellow-50 border border-yellow-200' : 'bg-gray-50'
-                    }`}>
-                      <div className="flex items-center gap-2">
-                        <span className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                          player.rank === 1 ? 'bg-yellow-100 text-yellow-800' :
-                          player.rank === 2 ? 'bg-gray-100 text-gray-700' :
-                          player.rank === 3 ? 'bg-orange-100 text-orange-700' :
-                          'bg-blue-50 text-blue-600'
-                        }`}>
-                          #{player.rank}
-                        </span>
-                        <div>
-                          <span className="font-medium">{player.name}</span>
-                          {index < 3 && <span className="ml-2 text-base">🏆</span>}
-                          <div className="text-xs text-gray-500">#{player.number} • {player.age_group}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-mono font-bold text-base text-purple-600">
-                          {player.compositeScore.toFixed(1)}
-                        </div>
-                        <div className="text-xs text-gray-500">Overall</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-green-100 border border-green-300 rounded-lg p-2 text-center">
-              <h4 className="font-bold text-green-800 text-base mb-1">🎉 Combine Complete!</h4>
-              <p className="text-green-700 text-sm mb-1">
-                Total time: 2.5 hours • Old way would have taken: 8+ hours
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-xs">
-                <div className="bg-white/70 rounded p-2">
-                  <div className="font-bold text-green-800">{players.length}</div>
-                  <div className="text-green-600">Players</div>
-                </div>
-                <div className="bg-white/70 rounded p-2">
-                  <div className="font-bold text-green-800">{players.length * 5}</div>
-                  <div className="text-green-600">Results</div>
-                </div>
-                <div className="bg-white/70 rounded p-2">
-                  <div className="font-bold text-green-800">100%</div>
-                  <div className="text-green-600">Accuracy</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "TransitionStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg p-8 shadow-2xl text-center">
-              <div className="text-6xl mb-4">🚀</div>
-              <h3 className="text-3xl font-bold mb-4">Workflow Complete!</h3>
-              <p className="text-xl mb-6 text-purple-100">
-                You just saw how easy WooCombine is to use...
-              </p>
-              <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                <p className="text-base font-bold text-yellow-300">
-                  Now let's see why it's REVOLUTIONARY! ✨
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "LiveUpdatesStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                📱 Real-Time Updates
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">LIVE</span>
-              </h3>
-              <p className="text-gray-600 mb-4">Watch results flow in as athletes complete drills...</p>
-              
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 p-1 bg-green-50 rounded-lg border-l-4 border-green-500">
-                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                  <div>
-                    <div className="font-medium">Alex Johnson - 40 Yard Dash</div>
-                    <div className="text-sm text-gray-600">4.32 seconds • Just completed</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 p-1 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
-                  <div>
-                    <div className="font-medium">Jordan Smith - Vertical Jump</div>
-                    <div className="text-sm text-gray-600">38 inches • Rankings updated</div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 p-1 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                  <div className="w-3 h-3 bg-purple-500 rounded-full animate-pulse"></div>
-                  <div>
-                    <div className="font-medium">Taylor Brown - Catching</div>
-                    <div className="text-sm text-gray-600">22 points • Parents notified</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "ParentNotificationsStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                📲 Parent Notifications
-                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full animate-pulse">SENDING</span>
-              </h3>
-              <p className="text-gray-600 mb-4">Parents get instant updates on their phones...</p>
-              
-              <div className="grid grid-cols-2 gap-1">
-                <div className="bg-gray-100 rounded-lg p-2 border-2 border-gray-300 shadow-sm">
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">📱</div>
-                    <div className="font-medium text-sm">Alex's Dad</div>
-                    <div className="text-xs text-gray-600 mt-2 bg-green-100 rounded p-2">
-                      "🏃 Alex just ran a 4.32 forty! Amazing speed improvement!"
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-100 rounded-lg p-2 border-2 border-gray-300 shadow-sm">
-                  <div className="text-center">
-                    <div className="text-2xl mb-1">📱</div>
-                    <div className="font-medium text-sm">Jordan's Mom</div>
-                    <div className="text-xs text-gray-600 mt-2 bg-blue-100 rounded p-2">
-                      "📏 38 inch vertical! So proud of that jump!"
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 p-1 bg-yellow-50 rounded-lg border border-yellow-200">
-                <p className="text-yellow-800 text-sm">💡 Parents stay engaged and informed throughout the entire combine!</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "AdvancedAnalyticsStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                📈 Advanced Analytics
-                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full animate-pulse">ANALYZING</span>
-              </h3>
-              <p className="text-gray-600 mb-4">AI-powered insights that transform recruiting...</p>
-              
-              <div className="grid grid-cols-3 gap-1 mb-4">
-                <div className="bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg p-2 text-center">
-                  <div className="text-base font-bold text-blue-800">+15%</div>
-                  <div className="text-xs text-blue-600">Speed Improvement vs Last Season</div>
-                </div>
-                <div className="bg-gradient-to-br from-green-100 to-green-200 rounded-lg p-2 text-center">
-                  <div className="text-base font-bold text-green-800">3</div>
-                  <div className="text-xs text-green-600">Varsity Prospects Identified</div>
-                </div>
-                <div className="bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg p-2 text-center">
-                  <div className="text-base font-bold text-purple-800">92%</div>
-                  <div className="text-xs text-purple-600">Prediction Accuracy</div>
-                </div>
-              </div>
-              
-              <div className="bg-gray-50 rounded-lg p-2">
-                <h4 className="font-medium mb-1">🎯 Scout Recommendations</h4>
-                <ul className="text-sm space-y-1">
-                  <li>• Alex Johnson: Elite speed, track & field potential</li>
-                  <li>• Morgan Davis: Well-rounded athlete, varsity ready</li>
-                  <li>• Jordan Smith: Strong fundamentals, coachable</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "TeamFormationStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-white rounded-lg p-6 shadow-lg">
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
-                👥 AI Team Formation
-                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full animate-pulse">OPTIMIZING</span>
-              </h3>
-              <p className="text-gray-600 mb-4">Perfect team balance in seconds...</p>
-              
-              <div className="grid grid-cols-2 gap-1">
-                <div className="bg-blue-50 rounded-lg p-2 border-2 border-blue-200">
-                  <h4 className="font-medium text-blue-800 mb-1">🔵 Team Alpha</h4>
-                  <div className="space-y-1 text-sm">
-                    <div>Alex Johnson (Speed Leader)</div>
-                    <div>Taylor Brown (Skill Balance)</div>
-                    <div>Casey Williams (Agility)</div>
-                  </div>
-                  <div className="mt-3 text-xs text-blue-600 bg-blue-100 rounded p-2">
-                    Average Score: 73.2 | Balance: 94%
-                  </div>
-                </div>
-                
-                <div className="bg-red-50 rounded-lg p-2 border-2 border-red-200">
-                  <h4 className="font-medium text-red-800 mb-1">🔴 Team Beta</h4>
-                  <div className="space-y-1 text-sm">
-                    <div>Morgan Davis (Power)</div>
-                    <div>Jordan Smith (Consistency)</div>
-                    <div>Riley Martinez (Versatility)</div>
-                  </div>
-                  <div className="mt-3 text-xs text-red-600 bg-red-100 rounded p-2">
-                    Average Score: 73.1 | Balance: 96%
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 p-1 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-green-800 text-sm">⚡ Perfect balance achieved in 3 seconds vs 30+ minutes manually!</p>
-              </div>
-            </div>
-          </div>
-        );
-
-      case "WowFactorStep":
-        return (
-          <div className="space-y-4">
-            <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-lg p-8 shadow-2xl text-center">
-              <div className="text-8xl mb-4">🎉</div>
-              <h3 className="text-3xl font-bold mb-4">The WOW Factor!</h3>
-              <p className="text-xl mb-6">What you just witnessed...</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-                <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                  <div className="text-3xl font-bold text-yellow-100">3 Minutes</div>
-                  <div className="text-yellow-200">With WooCombine</div>
-                </div>
-                <div className="bg-white/20 rounded-lg p-2 backdrop-blur">
-                  <div className="text-3xl font-bold text-yellow-100">4+ Hours</div>
-                  <div className="text-yellow-200">Manual Process</div>
-                </div>
-              </div>
-              
-              <div className="bg-white/30 rounded-lg p-6 backdrop-blur">
-                <h4 className="text-sm font-bold mb-1">You Just Automated:</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  <div>✅ League & Event Setup</div>
-                  <div>✅ Player Management</div>
-                  <div>✅ Data Collection</div>
-                  <div>✅ Real-time Rankings</div>
-                  <div>✅ Parent Notifications</div>
-                  <div>✅ Advanced Analytics</div>
-                  <div>✅ Team Formation</div>
-                  <div>✅ Professional Reports</div>
-                </div>
-              </div>
-              
-              <div className="mt-6">
-                <button 
-                  onClick={() => navigate('/signup')}
-                  className="bg-white text-orange-600 px-8 py-4 rounded-xl font-bold text-base hover:bg-orange-50 transition-all transform hover:scale-105 shadow-xl"
-                >
-                  🚀 Transform Your Combine Today!
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return <div>Unknown step</div>;
-    }
+  // Reset demo function
+  const resetDemo = () => {
+    setCurrentStep(0);
+    setStepProgress(0);
+    setIsAutoPlaying(false);
+    setLeagueName("");
+    setEventName("");
+    setPlayers([]);
+    setWeights({
+      fortyYardDash: 30,
+      vertical: 20,
+      catching: 15,
+      throwing: 15,
+      agility: 20
+    });
+    setNotifications([]);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <style dangerouslySetInnerHTML={{
-        __html: `
-          @keyframes fade-in {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .animate-fade-in {
-            animation: fade-in 0.5s ease-out;
-          }
-        `
-      }} />
-      {/* Floating Notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {notifications.map(notification => (
-          <div
-            key={notification.id}
-            className="bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg animate-pulse border border-green-400"
-          >
-            <div className="text-sm font-medium">{notification.message}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Transition Screen Overlay */}
-      {showTransition && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-8 max-w-md mx-4 text-center shadow-2xl">
-            <div className="w-16 h-16 mx-auto mb-4 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">{transitionText}</h3>
-            <p className="text-gray-600 text-sm">Please wait while we prepare the next step...</p>
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {notifications.map((notification) => (
+            <div
+              key={notification.id}
+              className={`px-4 py-2 rounded-lg shadow-lg transition-all duration-300 transform ${
+                notification.type === 'success' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-red-600 text-white'
+              } animate-slide-in`}
+            >
+              {notification.message}
+            </div>
+          ))}
         </div>
       )}
       
@@ -2385,9 +1482,9 @@ export default function UnifiedDemo() {
 
             {/* Progress Bar */}
             {isAutoPlaying && (
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-gray-200 rounded-full h-1 mb-1">
                 <div 
-                  className="bg-blue-600 h-2 rounded-full transition-all duration-100"
+                  className="bg-blue-600 h-1 rounded-full transition-all duration-100"
                   style={{ width: `${stepProgress}%` }}
                 ></div>
               </div>
@@ -2395,42 +1492,30 @@ export default function UnifiedDemo() {
           </div>
         </div>
 
-        {/* Current Step Display */}
-        <div id="demo-step-content" className="bg-white rounded-2xl shadow-lg overflow-hidden flex flex-col" style={{ height: '320px', maxHeight: '320px' }}>
+        {/* Main Demo Content */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          {/* Step Header */}
           <div className={`text-white p-2 ${
-            WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
+            WORKFLOW_STEPS[currentStep]?.phase === 'workflow_ease' 
               ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
-              : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
+              : WORKFLOW_STEPS[currentStep]?.phase === 'features'
                 ? 'bg-gradient-to-r from-purple-600 to-pink-600'
-                : 'bg-gradient-to-r from-orange-500 to-red-600'
+                : WORKFLOW_STEPS[currentStep]?.phase === 'pain'
+                  ? 'bg-gradient-to-r from-red-500 to-orange-600'
+                  : WORKFLOW_STEPS[currentStep]?.phase === 'hero'
+                    ? 'bg-gradient-to-r from-green-400 to-blue-600'
+                    : 'bg-gradient-to-r from-yellow-400 to-orange-500'
           }`}>
             <div className="flex items-center gap-2">
               <div className="text-xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <h2 className="text-sm font-bold">{WORKFLOW_STEPS[currentStep]?.title}</h2>
-                  <span className={`text-xs px-1 py-0.5 rounded-full font-medium ${
-                    WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
-                      ? 'bg-blue-200 text-blue-800' 
-                      : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
-                        ? 'bg-purple-200 text-purple-800'
-                        : 'bg-orange-200 text-orange-800'
-                  }`}>
-                    {WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
-                      ? 'WORKFLOW' 
-                      : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
-                        ? 'TRANSITION'
-                        : 'FEATURES'
-                    }
+                  <span className="text-xs px-1 py-0.5 rounded-full font-medium bg-white/20">
+                    {WORKFLOW_STEPS[currentStep]?.phase?.toUpperCase()}
                   </span>
                 </div>
-                <p className={
-                  WORKFLOW_STEPS[currentStep]?.phase === 'workflow' 
-                    ? 'text-blue-100 text-xs' 
-                    : WORKFLOW_STEPS[currentStep]?.phase === 'transition'
-                      ? 'text-purple-100 text-xs'
-                      : 'text-orange-100 text-xs'
-                }>{WORKFLOW_STEPS[currentStep]?.desc}</p>
+                <p className="text-white/90 text-xs">{WORKFLOW_STEPS[currentStep]?.desc}</p>
               </div>
               {isAutoPlaying && (
                 <div className="ml-auto flex items-center gap-1 bg-white/20 px-2 py-1 rounded-full">
@@ -2480,4 +1565,4 @@ export default function UnifiedDemo() {
       </div>
     </div>
   );
-}// Force rebuild Sat Aug  2 14:41:10 EDT 2025
+}
