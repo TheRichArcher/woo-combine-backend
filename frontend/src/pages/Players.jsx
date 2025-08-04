@@ -8,7 +8,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
-import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus } from 'lucide-react';
+import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
@@ -599,33 +599,41 @@ export default function Players() {
             }
           </p>
           
-          <div className="flex gap-2 flex-wrap">
-            {(userRole === 'organizer' || userRole === 'coach') && (
+          {/* Primary Action - Most users want this next */}
+          {(userRole === 'organizer' || userRole === 'coach') && (
+            <div className="mb-4">
               <Link
                 to="/live-entry"
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
               >
-                🚀 Live Entry
+                🚀 Start Recording Drill Results
+                <ArrowRight className="w-5 h-5" />
               </Link>
-            )}
-            {userRole === 'organizer' && (
-              <>
-                <Link
-                  to="/admin"
-                  className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-                >
-                  ⚙️ Admin Tools
-                </Link>
+              <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
+            </div>
+          )}
+          
+          {/* Secondary Actions - Less prominent */}
+          {userRole === 'organizer' && (
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-500 mb-3 text-center">Additional Options:</p>
+              <div className="flex gap-2 justify-center">
                 <button
                   onClick={() => setShowAddPlayerModal(true)}
-                  className="bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
                 >
                   <UserPlus className="w-4 h-4" />
                   Add Player
                 </button>
-              </>
-            )}
-          </div>
+                <Link
+                  to="/admin"
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
+                >
+                  ⚙️ Settings
+                </Link>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tab Navigation */}
@@ -1034,13 +1042,10 @@ export default function Players() {
                     ) : (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                         <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <h3 className="font-semibold text-gray-900 mb-2">🏃‍♂️ Ready for Analysis!</h3>
-                        <p className="text-gray-600 mb-4">
-                          Players in <strong>{selectedAgeGroup}</strong> need drill scores to generate rankings.
+                        <h3 className="font-semibold text-gray-900 mb-2">Ready to See Rankings!</h3>
+                        <p className="text-gray-600">
+                          Players in <strong>{selectedAgeGroup}</strong> need drill scores first. Use the "Start Recording Drill Results" button above to begin.
                         </p>
-                        <Link to="/live-entry" className="inline-block bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
-                          📊 Start Recording Scores
-                        </Link>
                       </div>
                     )}
 

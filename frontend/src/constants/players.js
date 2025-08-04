@@ -42,15 +42,15 @@ export const WEIGHT_PRESETS = defaultTemplate.presets;
 export const TABS = [
   { 
     id: 'players', 
-    label: 'Player Management & Rankings', 
+    label: 'Players & Rankings', 
     icon: 'Users',
-    description: 'Manage players and analyze prospects with real-time weight adjustments'
+    description: 'View player performance and rankings'
   },
   { 
     id: 'exports', 
     label: 'Export & Reports', 
     icon: 'Download',
-    description: 'Export data and view analytics'
+    description: 'Download results and share reports'
   }
 ];
 
