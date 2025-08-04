@@ -10,6 +10,13 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
   const { selectedLeagueId, user: _user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  
+  // Auto-show modal when no events exist (streamlined UX)
+  useEffect(() => {
+    if (!loading && events.length === 0 && selectedLeagueId && !showModal) {
+      setShowModal(true);
+    }
+  }, [loading, events.length, selectedLeagueId, showModal]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
@@ -172,15 +179,17 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       
       {/* Conditional rendering based on whether events exist */}
       {events.length === 0 ? (
-        // No events available - show message and only Create button
+        // No events available - simplified message (modal auto-shows)
         <div className="text-center">
-          <div className="text-cmf-secondary text-lg font-semibold py-2 mb-4">No events found. Please create a new event.</div>
+          <div className="text-gray-500 text-sm py-2 mb-4">
+            Setting up your first event...
+          </div>
           <button
             onClick={() => setShowModal(true)}
             disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
             className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Create New Event
+            Create Event
           </button>
         </div>
       ) : (
@@ -294,7 +303,14 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-bold mb-4">Create New Event</h3>
+            <h3 className="text-lg font-bold mb-2">
+              {events.length === 0 ? "Create Your First Event" : "Create New Event"}
+            </h3>
+            {events.length === 0 && (
+              <p className="text-gray-600 text-sm mb-4">
+                Set up your combine event with a name, date, and location.
+              </p>
+            )}
             <form onSubmit={handleCreate}>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Event Name</label>
