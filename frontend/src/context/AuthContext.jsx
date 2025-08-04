@@ -126,12 +126,16 @@ export function AuthProvider({ children }) {
         setUserRole(userRole);
 
         // STEP 2: League fetch - only if not already in progress
-        if (!leagueFetchInProgress) {
+        // PERFORMANCE OPTIMIZATION: Skip league fetch for new organizers going to create-league
+        const currentPath = window.location.pathname;
+        const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
+        
+        if (!leagueFetchInProgress && !isNewOrganizerFlow) {
           setLeagueFetchInProgress(true);
           
           try {
             const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 45000,
+              timeout: 15000,  // Reduced from 45s to 15s
               retry: 1
             });
             
@@ -173,6 +177,13 @@ export function AuthProvider({ children }) {
           } finally {
             setLeagueFetchInProgress(false);
           }
+        } else if (isNewOrganizerFlow) {
+          // Fast path for new organizers - skip league fetch, set empty state immediately
+          setLeagues([]);
+          setSelectedLeagueIdState('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
+          authLogger.info('PERFORMANCE: Skipped league fetch for new organizer flow');
         }
 
         setRoleChecked(true);

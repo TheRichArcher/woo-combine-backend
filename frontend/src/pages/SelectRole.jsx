@@ -41,7 +41,7 @@ const INVITED_ROLE_OPTIONS = [
 ];
 
 export default function SelectRole() {
-  const { user, refreshUserRole } = useAuth();
+  const { user, refreshUserRole, setUserRole } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,11 +125,9 @@ export default function SelectRole() {
         role: selectedRole
       });
       
-      // Refresh AuthContext to detect the new role
-      await refreshUserRole();
-      
-      // Small delay to ensure role is properly set in AuthContext
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // PERFORMANCE: Skip redundant role refresh - AuthContext will handle this automatically
+      // Just update local state for immediate navigation
+      setUserRole(selectedRole);
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
