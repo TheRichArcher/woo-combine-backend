@@ -110,50 +110,7 @@ export default function Home() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        {/* NEW FEATURES ANNOUNCEMENT BANNER */}
-        <div className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-4 shadow-lg">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <span className="text-lg">🚀</span>
-            </div>
-            <div>
-              <h3 className="font-bold text-sm">New Advanced Features Available!</h3>
-              <p className="text-xs text-blue-100">Multi-sport templates, team formation, evaluator management & more</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <button 
-              onClick={() => handleNavigation('/sport-templates')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">🏈 Sport Templates</div>
-              <div className="text-blue-100">6 sports available</div>
-            </button>
-            <button 
-              onClick={() => handleNavigation('/team-formation')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">⚖️ Team Formation</div>
-              <div className="text-blue-100">AI-powered balance</div>
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-xs mt-2">
-            <button 
-              onClick={() => handleNavigation('/evaluators')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">👥 Multi-Evaluator</div>
-              <div className="text-blue-100">Statistical analysis</div>
-            </button>
-            <button 
-              onClick={() => handleNavigation('/scorecards')}
-              className="bg-white/20 hover:bg-white/30 rounded-lg p-2 text-left transition-colors"
-            >
-              <div className="font-medium">📊 Scorecards</div>
-              <div className="text-blue-100">Professional reports</div>
-            </button>
-          </div>
-        </div>
+
 
         {/* Welcome Header */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
@@ -237,75 +194,62 @@ export default function Home() {
           </div>
         )}
 
-        {/* Getting Started Guide */}
+        {/* Next Steps - Simplified */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Getting Started</h2>
-          <div className="space-y-4 text-sm text-gray-600">
-            {/* Step 1 - Event Selected */}
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">✓</span>
-              <span>Event selected: <strong>{selectedEvent.name}</strong></span>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Next Steps</h2>
+          <div className="space-y-3">
+            {/* Event Status */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">✓</span>
+              <span className="text-sm text-gray-600">Event selected: <strong>{selectedEvent.name}</strong></span>
             </div>
             
-            {/* Step 2 - View Rankings & Adjust Weights */}
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 bg-cmf-primary text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">2</span>
-              <div className="flex-1">
-                <div className="mb-2">
-                  {userRole === 'organizer' && 'Import players and manage event settings'}
-                  {userRole === 'coach' && 'View player rankings and adjust drill weights'}
-                  {userRole === 'viewer' && 'View player rankings and explore different weight priorities'}
-                  {userRole === 'player' && 'Submit your drill results'}
-                </div>
-                {userRole === 'organizer' && (
+            {/* Primary Action */}
+            <div className="bg-gray-50 rounded-lg p-4">
+              {userRole === 'organizer' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">Ready to add players and set up your event?</p>
                   <button
                     onClick={() => handleNavigation('/admin')}
-                    className="bg-cmf-secondary text-white px-4 py-2 rounded-lg hover:bg-cmf-primary transition text-sm font-medium"
+                    className="bg-cmf-primary text-white px-6 py-3 rounded-lg hover:bg-cmf-secondary transition font-medium"
                   >
-                    🛠️ Manage Event Settings
+                    🚀 Set Up Event
                   </button>
-                )}
-                {(userRole === 'coach' || userRole === 'viewer') && (
+                </div>
+              )}
+              {userRole === 'coach' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">View player performance and rankings</p>
                   <button
                     onClick={() => handleNavigation('/players')}
-                    className="bg-cmf-primary text-white px-4 py-2 rounded-lg hover:bg-cmf-secondary transition text-sm font-medium"
+                    className="bg-cmf-primary text-white px-6 py-3 rounded-lg hover:bg-cmf-secondary transition font-medium"
                   >
-                    {userRole === 'coach' ? '📊 View Rankings & Adjust Weights' : '👁️ Explore Player Rankings'}
+                    📊 View Players
                   </button>
-                )}
-                {userRole === 'player' && (
+                </div>
+              )}
+              {userRole === 'viewer' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">Check out the latest results and rankings</p>
+                  <button
+                    onClick={() => handleNavigation('/players')}
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+                  >
+                    👁️ View Results
+                  </button>
+                </div>
+              )}
+              {userRole === 'player' && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">Submit your combine performance results</p>
                   <button
                     onClick={() => handleNavigation('/drill-input')}
-                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition text-sm font-medium"
+                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
                   >
-                    📝 Submit Your Results
+                    📝 Submit Results
                   </button>
-                )}
-              </div>
-            </div>
-            
-            {/* Step 3 - Real-time Rankings */}
-            <div className="flex items-start gap-3">
-              <span className="w-6 h-6 bg-gray-300 text-white rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">3</span>
-              <div className="flex-1">
-                <div className="mb-2">View real-time rankings and results</div>
-                {(userRole === 'organizer' || userRole === 'coach' || userRole === 'viewer') && (
-                  <button
-                    onClick={() => handleNavigation('/players?tab=rankings')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                  >
-                    🏆 View Live Rankings
-                  </button>
-                )}
-                {userRole === 'player' && (
-                  <button
-                    onClick={() => handleNavigation('/players')}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                  >
-                    🏆 View Event Results
-                  </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

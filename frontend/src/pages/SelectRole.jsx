@@ -11,24 +11,27 @@ import { ChevronDown, Shield, Users, Eye, CheckCircle, Settings, BarChart3, Uplo
 const ALL_ROLE_OPTIONS = [
   { 
     key: "organizer", 
-    label: "League Organizer", 
-    desc: "Run combines and manage events",
+    label: "Event Organizer", 
+    desc: "I'm setting up and running combine events",
     icon: Shield,
-    emoji: "🏆"
+    emoji: "🏆",
+    benefits: "Create events, add players, manage everything"
   },
   { 
     key: "coach", 
     label: "Coach", 
-    desc: "View player stats and rankings",
+    desc: "I want to evaluate players and see rankings",
     icon: BarChart3,
-    emoji: "📊"
+    emoji: "📊",
+    benefits: "View detailed stats, adjust rankings, export data"
   },
   { 
     key: "viewer", 
-    label: "Parent/Fan", 
-    desc: "Watch results and scorecards",
+    label: "Parent/Spectator", 
+    desc: "I want to follow results and see reports",
     icon: Eye,
-    emoji: "👀"
+    emoji: "👀",
+    benefits: "Watch live results, view player reports"
   }
 ];
 
@@ -213,14 +216,15 @@ export default function SelectRole() {
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{role.emoji}</span>
+              <div className="flex items-start gap-3">
+                <span className="text-2xl mt-1">{role.emoji}</span>
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900">{role.label}</h4>
-                  <p className="text-sm text-gray-600">{role.desc}</p>
+                  <p className="text-sm text-gray-600 mb-1">{role.desc}</p>
+                  <p className="text-xs text-gray-500">{role.benefits}</p>
                 </div>
                 {selectedRole === role.key && (
-                  <CheckCircle className="w-5 h-5 text-cyan-600" />
+                  <CheckCircle className="w-5 h-5 text-cyan-600 mt-1" />
                 )}
               </div>
             </button>

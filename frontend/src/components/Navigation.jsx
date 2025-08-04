@@ -139,62 +139,6 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
           {/* Divider */}
           <div className="border-t border-gray-200 my-2"></div>
 
-          {/* NEW ADVANCED FEATURES */}
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-bold text-blue-600 uppercase tracking-wide">New Features</span>
-              <span className="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-medium">Advanced</span>
-            </div>
-          </div>
-
-          {/* Multi-Evaluator Management */}
-          <button
-            onClick={() => handleNavigation('/evaluators')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Users className="w-5 h-5 text-blue-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Multi-Evaluator System</span>
-              <div className="text-xs text-gray-500">Manage coaches & get statistical analysis</div>
-            </div>
-          </button>
-
-          {/* Team Formation Tools */}
-          <button
-            onClick={() => handleNavigation('/team-formation')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Users className="w-5 h-5 text-green-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Team Formation</span>
-              <div className="text-xs text-gray-500">Create balanced teams with AI algorithms</div>
-            </div>
-          </button>
-
-          {/* Sport Templates */}
-          <button
-            onClick={() => handleNavigation('/sport-templates')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Settings className="w-5 h-5 text-purple-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Sport Templates</span>
-              <div className="text-xs text-gray-500">Football, Soccer, Basketball & more</div>
-            </div>
-          </button>
-
-          {/* Player Scorecards */}
-          <button
-            onClick={() => handleNavigation('/scorecards')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Edit className="w-5 h-5 text-orange-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Professional Scorecards</span>
-              <div className="text-xs text-gray-500">Share detailed reports with players</div>
-            </div>
-          </button>
-
           {/* Notifications - Now Functional */}
           <div className="px-4 py-3 hover:bg-gray-50 rounded-lg transition">
             <div className="flex items-center justify-between">
@@ -240,6 +184,64 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
               {notificationsEnabled ? 'Manage browser settings' : 'Open device settings'}
             </button>
           </div>
+
+          {/* Advanced Tools Section */}
+          <div className="px-4 py-2">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Advanced Tools</span>
+            </div>
+          </div>
+
+          {/* Multi-Evaluator Management */}
+          <button
+            onClick={() => handleNavigation('/evaluators')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+          >
+            <Users className="w-5 h-5 text-blue-600" />
+            <div className="flex-1">
+              <span className="font-medium text-gray-900">Team Evaluations</span>
+              <div className="text-xs text-gray-500">Multi-evaluator scoring & analysis</div>
+            </div>
+          </button>
+
+          {/* Team Formation Tools */}
+          <button
+            onClick={() => handleNavigation('/team-formation')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+          >
+            <Users className="w-5 h-5 text-green-600" />
+            <div className="flex-1">
+              <span className="font-medium text-gray-900">Create Teams</span>
+              <div className="text-xs text-gray-500">AI-powered balanced teams</div>
+            </div>
+          </button>
+
+          {/* Sport Templates */}
+          <button
+            onClick={() => handleNavigation('/sport-templates')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+          >
+            <Settings className="w-5 h-5 text-purple-600" />
+            <div className="flex-1">
+              <span className="font-medium text-gray-900">Sport Settings</span>
+              <div className="text-xs text-gray-500">Templates for different sports</div>
+            </div>
+          </button>
+
+          {/* Player Scorecards */}
+          <button
+            onClick={() => handleNavigation('/scorecards')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+          >
+            <Edit className="w-5 h-5 text-orange-600" />
+            <div className="flex-1">
+              <span className="font-medium text-gray-900">Player Reports</span>
+              <div className="text-xs text-gray-500">Professional scorecards</div>
+            </div>
+          </button>
+
+          {/* Divider */}
+          <div className="border-t border-gray-200 my-2"></div>
 
           {/* Subscription */}
           <button className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition">

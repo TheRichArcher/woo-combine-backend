@@ -2,56 +2,20 @@ import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 
-// Simple feature flags system - in production this could be from a service like LaunchDarkly
-const useFeatureFlags = () => {
-  // For now, randomly assign variant or use localStorage to persist choice
-  const getVariant = () => {
-    const stored = localStorage.getItem('welcome_variant');
-    if (stored) return stored;
-    
-    // Randomly assign variant for A/B testing
-    const variants = ['default', 'mojo-style', 'sports-focused'];
-    const variant = variants[Math.floor(Math.random() * variants.length)];
-    localStorage.setItem('welcome_variant', variant);
-    return variant;
-  };
-  
+// Simplified welcome content - no more confusing A/B testing
+const getWelcomeContent = () => {
   return {
-    welcomeVariant: getVariant()
+    title: "Digital Combine Management",
+    subtitle: "Turn your phone into a professional sports combine timer. Track performance, generate rankings, and share instant digital reports.",
+    buttonText: "Get Started Free",
+    hook: "📱 Replace clipboards with instant digital scoring"
   };
 };
 
 export default function Welcome() {
   const navigate = useNavigate();
-  const { welcomeVariant } = useFeatureFlags();
   
-  const getContent = () => {
-    switch (welcomeVariant) {
-      case 'mojo-style':
-        return {
-          title: "Track Every 40-Yard Dash, Score Every Drill",
-          subtitle: "Real-time combine tracking that turns raw athletic performance into championship insights. See results instantly.",
-          buttonText: "Start Tracking",
-          hook: "⚡ Live combine scoring in seconds"
-        };
-      case 'sports-focused':
-        return {
-          title: "Digital Sports Combines Made Simple",
-          subtitle: "Run professional NFL-style combines with instant digital scorecards. No more clipboards or calculators.",
-          buttonText: "Try It Free",
-          hook: "🏃‍♂️ From 40-yard dash to digital scorecard in 30 seconds"
-        };
-      default:
-        return {
-          title: "Digital Combine Tracking",
-          subtitle: "Turn your phone into a professional combine timer. Track 40-yard dashes, vertical jumps, and drills with instant digital scorecards.",
-          buttonText: "Start Free Trial",
-          hook: "📱 Replace clipboards with instant digital scoring"
-        };
-    }
-  };
-
-  const content = getContent();
+  const content = getWelcomeContent();
 
   return (
     <WelcomeLayout
