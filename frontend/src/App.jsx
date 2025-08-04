@@ -21,6 +21,7 @@ import WorkflowDemo from "./pages/WorkflowDemo";
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
 import OnboardingEvent from "./pages/OnboardingEvent";
+import CreateEvent from "./pages/CreateEvent";
 import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
 import CoachDashboard from "./pages/CoachDashboard";
@@ -225,6 +226,11 @@ function App() {
                   </RequireAuth>
                 } />
                 <Route path="/onboarding/event" element={<OnboardingEvent />} />
+                <Route path="/create-event" element={
+                  <RequireAuth>
+                    <CreateEvent />
+                  </RequireAuth>
+                } />
                 <Route path="/join-event/:leagueId/:eventId/:role" element={<JoinEvent />} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />
