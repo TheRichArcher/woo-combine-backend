@@ -97,7 +97,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     } finally {
       setCreateLoading(false);
     }
-  }, [selectedLeagueId, name, date, location, setEvents, refreshEvents, onEventSelected]);
+  }, [selectedLeagueId, name, date, location, setEvents, setSelectedEvent, onEventSelected]);
 
   // Show loading state
   if (loading) {

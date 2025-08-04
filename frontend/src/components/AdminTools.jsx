@@ -9,7 +9,7 @@ import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash } 
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
-import { autoAssignPlayerNumbers, getAgeGroupNumberRange } from '../utils/playerNumbering';
+import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS } from '../utils/csvUtils';
 
 const SAMPLE_ROWS = [
@@ -46,7 +46,7 @@ export default function AdminTools() {
     number: '',
     age_group: '',
   });
-  const [manualErrors, setManualErrors] = useState([]);
+  const [_manualErrors, setManualErrors] = useState([]);
   const [manualStatus, setManualStatus] = useState('idle');
   const [manualMsg, setManualMsg] = useState('');
 

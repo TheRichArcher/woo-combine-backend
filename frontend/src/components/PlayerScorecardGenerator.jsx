@@ -62,7 +62,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     
     return drills.map(drill => {
       const playerScore = player[drill.key];
-      if (playerScore == null) {
+      if (playerScore === null || playerScore === undefined) {
         return {
           ...drill,
           playerScore: null,
@@ -74,7 +74,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
       
       // Calculate rank for this specific drill
       const ageGroupPlayers = allPlayers.filter(p => 
-        p.age_group === player.age_group && p[drill.key] != null
+        p.age_group === player.age_group && p[drill.key] !== null && p[drill.key] !== undefined
       );
       
       const sortedByDrill = ageGroupPlayers.sort((a, b) => {
@@ -196,11 +196,11 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
                 <div class="drill-card">
                   <div class="drill-title">${drill.label}</div>
                   <div class="score-large">
-                    ${drill.playerScore != null ? drill.playerScore + ' ' + drill.unit : 'Not Evaluated'}
+                    ${drill.playerScore !== null && drill.playerScore !== undefined ? drill.playerScore + ' ' + drill.unit : 'Not Evaluated'}
                   </div>
                   ${drill.rank ? `
                     <div class="rank-info">
-                      Rank: ${drill.rank} of ${allPlayers.filter(p => p.age_group === player.age_group && p[drill.key] != null).length} 
+                      Rank: ${drill.rank} of ${allPlayers.filter(p => p.age_group === player.age_group && p[drill.key] !== null && p[drill.key] !== undefined).length} 
                       (${drill.percentile}th percentile)
                     </div>
                   ` : ''}

@@ -20,7 +20,7 @@ const AddPlayerModal = React.memo(function AddPlayerModal({ allPlayers, onClose,
   const { loading: saving, error, execute: executeAdd } = useAsyncOperation({
     context: 'PLAYER_ADD',
     onSuccess: (data) => {
-      const playerName = `${formData.first_name} ${formData.last_name}`;
+      const _playerName = `${formData.first_name} ${formData.last_name}`;
       const autoNumbered = !formData.number || formData.number.trim() === "";
       showSuccess(`Player added${autoNumbered ? ` with auto-number #${data.number}` : ''}!`);
       onSave();

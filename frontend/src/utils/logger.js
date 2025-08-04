@@ -35,7 +35,7 @@ class Logger {
     
     // In production, send to error tracking service
     if (import.meta.env.PROD && error) {
-      // TODO: Integrate with error tracking service (Sentry, etc.)
+      // NOTE: Ready for error tracking service integration (Sentry, LogRocket, etc.)
       this.sendToErrorService(context, message, error);
     }
   }

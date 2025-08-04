@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+// Removed unused import: useAuth
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
 import { 
@@ -52,7 +52,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
         return response.data;
       });
     }
-  }, [selectedEvent, playerId]);
+  }, [selectedEvent, playerId, fetchAggregated, fetchEvaluations]);
 
   const getScoreVariance = (scores) => {
     if (scores.length < 2) return null;
@@ -159,7 +159,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
               Individual Evaluations
             </h5>
             <div className="space-y-3">
-                          {drillEvaluations.map((evalData, index) => (
+                          {drillEvaluations.map((evalData) => (
               <div key={evalData.id} className="flex items-center justify-between p-3 bg-white rounded border">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
