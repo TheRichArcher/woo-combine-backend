@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 // Removed unused import: useAuth
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
@@ -24,18 +24,25 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
   const [aggregatedResults, setAggregatedResults] = useState({});
   const [selectedDrill, setSelectedDrill] = useState(null);
 
+  // Stabilize callbacks to prevent infinite loops
+  const onEvaluationsSuccess = useCallback((data) => setEvaluations(data), []);
+  const onEvaluationsError = useCallback((err, userMessage) => showError(userMessage), [showError]);
+
+  const onAggregatedSuccess = useCallback((data) => {
+    setAggregatedResults(data[playerId] || {});
+  }, [playerId]);
+  const onAggregatedError = useCallback((err, userMessage) => showError(userMessage), [showError]);
+
   const { loading: loadingEvaluations, execute: fetchEvaluations } = useAsyncOperation({
     context: 'FETCH_MULTI_EVALUATIONS',
-    onSuccess: (data) => setEvaluations(data),
-    onError: (err, userMessage) => showError(userMessage)
+    onSuccess: onEvaluationsSuccess,
+    onError: onEvaluationsError
   });
 
   const { loading: loadingAggregated, execute: fetchAggregated } = useAsyncOperation({
     context: 'FETCH_AGGREGATED_RESULTS',
-    onSuccess: (data) => {
-      setAggregatedResults(data[playerId] || {});
-    },
-    onError: (err, userMessage) => showError(userMessage)
+    onSuccess: onAggregatedSuccess,
+    onError: onAggregatedError
   });
 
   useEffect(() => {

@@ -24,15 +24,19 @@ const EvaluatorManagement = () => {
     role: 'evaluator'
   });
 
+    // Stabilize callbacks to prevent infinite loops
+  const onFetchSuccess = useCallback((data) => setEvaluators(data), []);
+  const onFetchError = useCallback((err, userMessage) => {
+    // Don't show error toast for 401 (session expired) to prevent cascade
+    if (err.response?.status !== 401) {
+      showError(userMessage);
+    }
+  }, [showError]);
+
   const { loading: loadingEvaluators, execute: fetchEvaluators } = useAsyncOperation({
     context: 'FETCH_EVALUATORS',
-    onSuccess: (data) => setEvaluators(data),
-    onError: (err, userMessage) => {
-      // Don't show error toast for 401 (session expired) to prevent cascade
-      if (err.response?.status !== 401) {
-        showError(userMessage);
-      }
-    }
+    onSuccess: onFetchSuccess,
+    onError: onFetchError
   });
 
   const loadEvaluators = useCallback(async () => {
@@ -54,20 +58,25 @@ const EvaluatorManagement = () => {
     }
   }, [selectedEvent?.id, fetchEvaluators]);
 
+  // Stabilize callbacks for add evaluator
+  const onAddSuccess = useCallback(() => {
+    showSuccess('Evaluator added successfully!');
+    setShowAddForm(false);
+    setNewEvaluator({ name: '', email: '', role: 'evaluator' });
+    loadEvaluators();
+  }, [showSuccess, loadEvaluators]);
+
+  const onAddError = useCallback((err, userMessage) => {
+    // Don't show error toast for 401 (session expired) to prevent cascade
+    if (err.response?.status !== 401) {
+      showError(userMessage);
+    }
+  }, [showError]);
+
   const { loading: addingEvaluator, execute: addEvaluator } = useAsyncOperation({
     context: 'ADD_EVALUATOR',
-    onSuccess: () => {
-      showSuccess('Evaluator added successfully!');
-      setShowAddForm(false);
-      setNewEvaluator({ name: '', email: '', role: 'evaluator' });
-      loadEvaluators();
-    },
-    onError: (err, userMessage) => {
-      // Don't show error toast for 401 (session expired) to prevent cascade
-      if (err.response?.status !== 401) {
-        showError(userMessage);
-      }
-    }
+    onSuccess: onAddSuccess,
+    onError: onAddError
   });
 
   useEffect(() => {
