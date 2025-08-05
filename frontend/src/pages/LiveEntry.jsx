@@ -437,10 +437,11 @@ export default function LiveEntry() {
                   </label>
                   <input
                     ref={scoreRef}
-                    type="number"
-                    step="0.1"
+                    type="text"
+                    inputMode="decimal"
                     value={score}
                     onChange={(e) => setScore(e.target.value)}
+                    onWheel={(e) => e.preventDefault()}
                     placeholder={`Enter ${currentDrill.unit}`}
                     className="w-full text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-center"
                     required
