@@ -425,7 +425,7 @@ export default function LiveEntry() {
             {/* Action Buttons - Forward-looking flow */}
             <div className="flex gap-3">
               <Link
-                to="/players"
+                to="/live-standings"
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
               >
                 <Target className="w-5 h-5" />

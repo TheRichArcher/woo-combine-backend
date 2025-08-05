@@ -33,6 +33,7 @@ import EvaluatorManagementPage from "./pages/EvaluatorManagement";
 import TeamFormationPage from "./pages/TeamFormationPage";
 import SportTemplatesPage from "./pages/SportTemplatesPage";
 import ScorecardsPage from "./pages/ScorecardsPage";
+import LiveStandings from "./pages/LiveStandings";
 
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
@@ -171,6 +172,16 @@ function App() {
                     <RequireAuth>
                       <AuthenticatedLayout>
                         <LiveEntry />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/live-standings"
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <LiveStandings />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   }
