@@ -242,9 +242,9 @@ export default function LiveEntry() {
             </div>
             <Link
               to="/players"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition"
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition"
             >
-              View All
+              Live Standings
             </Link>
           </div>
         </div>
@@ -423,14 +423,14 @@ export default function LiveEntry() {
               </form>
             </div>
             
-            {/* Action Buttons */}
+            {/* Action Buttons - Forward-looking flow */}
             <div className="flex gap-3">
               <Link
                 to="/players"
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
+                className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
               >
-                <Users className="w-5 h-5" />
-                View All Entries
+                <Target className="w-5 h-5" />
+                View Live Standings
               </Link>
               {recentEntries.length > 0 && (
                 <button
@@ -457,9 +457,9 @@ export default function LiveEntry() {
                     </span>
                     <Link
                       to="/players"
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                      className="text-green-600 hover:text-green-700 text-sm font-medium"
                     >
-                      View All →
+                      Live Standings →
                     </Link>
                   </div>
                 </div>
