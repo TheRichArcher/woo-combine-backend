@@ -242,12 +242,9 @@ export default function LiveEntry() {
               <Users className="w-4 h-4" />
               <span className="font-semibold">{recentEntries.length} entries</span>
             </div>
-            <Link
-              to="/players"
-              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm font-medium transition"
-            >
-              Live Standings
-            </Link>
+            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-lg">
+              Recording Active
+            </div>
           </div>
         </div>
       </div>
@@ -468,9 +465,9 @@ export default function LiveEntry() {
                     </span>
                     <Link
                       to="/players"
-                      className="text-green-600 hover:text-green-700 text-sm font-medium"
+                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
-                      Live Standings →
+                      View All →
                     </Link>
                   </div>
                 </div>
