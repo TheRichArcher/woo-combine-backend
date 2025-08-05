@@ -8,7 +8,17 @@ const EventContext = createContext();
 export function EventProvider({ children }) {
   const { selectedLeagueId, authChecked, roleChecked } = useAuth();
   const [events, setEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  
+  // Initialize selectedEvent from localStorage if available
+  const [selectedEvent, setSelectedEvent] = useState(() => {
+    try {
+      const stored = localStorage.getItem('selectedEvent');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+  
   const [noLeague, setNoLeague] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -18,6 +28,7 @@ export function EventProvider({ children }) {
     if (!leagueId) {
       setEvents([]);
       setSelectedEvent(null);
+      localStorage.removeItem('selectedEvent');
       setNoLeague(true);
       return;
     }
@@ -35,7 +46,10 @@ export function EventProvider({ children }) {
       // Check current selectedEvent state instead of using it as dependency
       setSelectedEvent(current => {
         if (!current && eventsData.length > 0) {
-          return eventsData[0];
+          const firstEvent = eventsData[0];
+          // Persist the auto-selected event
+          localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
+          return firstEvent;
         }
         return current;
       });
@@ -57,6 +71,7 @@ export function EventProvider({ children }) {
       setError(errorMessage);
       setEvents([]);
       setSelectedEvent(null);
+      localStorage.removeItem('selectedEvent');
     } finally {
       setLoading(false);
     }
@@ -72,6 +87,7 @@ export function EventProvider({ children }) {
     } else {
       setEvents([]);
       setSelectedEvent(null);
+      localStorage.removeItem('selectedEvent');
       setNoLeague(true);
     }
   }, [selectedLeagueId, authChecked, roleChecked, loadEvents]);
@@ -112,10 +128,20 @@ export function EventProvider({ children }) {
     }
   }, [selectedLeagueId, selectedEvent]);
 
+  // Wrapper to persist selectedEvent to localStorage
+  const setSelectedEventWithPersistence = useCallback((event) => {
+    setSelectedEvent(event);
+    if (event) {
+      localStorage.setItem('selectedEvent', JSON.stringify(event));
+    } else {
+      localStorage.removeItem('selectedEvent');
+    }
+  }, []);
+
   const contextValue = {
     events,
     selectedEvent,
-    setSelectedEvent,
+    setSelectedEvent: setSelectedEventWithPersistence,
     setEvents,
     noLeague,
     loading,
