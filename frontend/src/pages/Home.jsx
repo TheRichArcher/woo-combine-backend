@@ -13,6 +13,17 @@ export default function Home() {
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = React.useState(false);
 
+  // Debug logging for league state
+  React.useEffect(() => {
+    console.log('🏠 HOME COMPONENT STATE:', {
+      userRole,
+      selectedLeagueId,
+      leagues: leagues?.length || 0,
+      noLeague,
+      selectedEvent: selectedEvent?.id || 'none'
+    });
+  }, [userRole, selectedLeagueId, leagues, noLeague, selectedEvent]);
+
   // Format event date
   const formattedDate = selectedEvent && selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) 
     ? new Date(selectedEvent.date).toLocaleDateString() 

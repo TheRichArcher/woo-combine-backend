@@ -246,6 +246,11 @@ export function AuthProvider({ children }) {
         // Navigation logic (reuse currentPath from above)
         const onboardingRoutes = ["/login", "/signup", "/"];
         console.log('🧭 Checking navigation - current path:', currentPath, 'onboarding routes:', onboardingRoutes);
+        console.log('🏆 Auth state after role check:', {
+          userRole,
+          selectedLeagueId: localStorage.getItem('selectedLeagueId'),
+          leaguesLoaded: leagues?.length || 0
+        });
         
         if (onboardingRoutes.includes(currentPath)) {
           console.log('🚀 Navigating to /dashboard');
