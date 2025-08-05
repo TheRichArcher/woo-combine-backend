@@ -1,14 +1,30 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
+import { getAllTemplates } from '../constants/drillTemplates';
+
+const getSportIcon = (sport) => {
+  switch(sport) {
+    case 'Football': return '🏈';
+    case 'Soccer': return '⚽';
+    case 'Basketball': return '🏀';
+    case 'Baseball': return '⚾';
+    case 'Track & Field': return '🏃';
+    case 'Volleyball': return '🏐';
+    default: return '🏆';
+  }
+};
 
 export default function CreateEventModal({ open, onClose, onCreated }) {
   const { selectedLeagueId, user: _user } = useAuth();
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("football");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const templates = getAllTemplates();
 
   if (!open) return null;
 
@@ -22,7 +38,8 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date: isoDate,
-        location
+        location,
+        drillTemplate: selectedTemplate
       });
       
       const newEvent = {
@@ -35,6 +52,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       setName("");
       setDate("");
       setLocation("");
+      setSelectedTemplate("football");
       if (onCreated) onCreated(newEvent);
       if (onClose) onClose();
     } catch (err) {
@@ -64,6 +82,21 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
             className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
             required
           />
+          
+          <label className="block mb-2 font-semibold">Sport Template</label>
+          <select
+            value={selectedTemplate}
+            onChange={e => setSelectedTemplate(e.target.value)}
+            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            required
+          >
+            {templates.map(template => (
+              <option key={template.id} value={template.id}>
+                {getSportIcon(template.sport)} {template.name}
+              </option>
+            ))}
+          </select>
+          
           <label className="block mb-2 font-semibold">Event Date</label>
           <input
             type="date"

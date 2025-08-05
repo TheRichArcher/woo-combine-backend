@@ -5,6 +5,19 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
 import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from 'lucide-react';
+import { getAllTemplates } from '../constants/drillTemplates';
+
+const getSportIcon = (sport) => {
+  switch(sport) {
+    case 'Football': return '🏈';
+    case 'Soccer': return '⚽';
+    case 'Basketball': return '🏀';
+    case 'Baseball': return '⚾';
+    case 'Track & Field': return '🏃';
+    case 'Volleyball': return '🏐';
+    default: return '🏆';
+  }
+};
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
@@ -20,9 +33,12 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [selectedTemplate, setSelectedTemplate] = useState("football");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
   const [playerCount, setPlayerCount] = useState(0);
+  
+  const templates = getAllTemplates();
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
@@ -81,7 +97,8 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,
         date: isoDate,
-        location
+        location,
+        drillTemplate: selectedTemplate
       });
       
       // Fix: Backend returns {event_id: ...}, so we need to create the full event object
@@ -98,6 +115,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       setName("");
       setDate("");
       setLocation("");
+      setSelectedTemplate("football");
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
       setCreateError(err.response?.data?.detail || err.message || 'Failed to create event');
@@ -322,6 +340,23 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                   required
                 />
               </div>
+              
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">Sport Template</label>
+                <select
+                  value={selectedTemplate}
+                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  required
+                >
+                  {templates.map(template => (
+                    <option key={template.id} value={template.id}>
+                      {getSportIcon(template.sport)} {template.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">Event Date</label>
                 <input
