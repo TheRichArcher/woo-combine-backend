@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
+import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -14,6 +15,7 @@ const DRILLS = [
 
 export default function LiveEntry() {
   const { selectedEvent } = useEvent();
+  const { userRole } = useAuth();
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
