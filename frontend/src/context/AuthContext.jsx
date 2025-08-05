@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
                 'Content-Type': 'application/json',
               },
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 2000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 10000)) // Increased to 10s for cold starts
           ]);
 
           console.log('📡 API Response status:', roleResponse.status);
@@ -121,8 +121,8 @@ export function AuthProvider({ children }) {
         } catch (error) {
           console.log('❌ Role check error:', error.message);
           if (error.message.includes('Role check timeout')) {
-            console.log('⏰ Role check timed out after 2s - treating as new user');
-            authLogger.warn('Role check timed out after 2s - treating as new user (fast fail)');
+            console.log('⏰ Role check timed out after 10s - treating as new user');
+            authLogger.warn('Role check timed out after 10s - treating as new user (backend may be cold starting)');
             userRole = null;
           } else if (error.message.includes('Firebase auth token unavailable')) {
             console.log('🔑 Firebase token issue - treating as new user');
@@ -178,7 +178,7 @@ export function AuthProvider({ children }) {
             setTimeout(async () => {
               try {
                 const leagueResponse = await api.get(`/leagues/me`, { 
-                  timeout: 5000, // Even more aggressive
+                  timeout: 15000, // Increased for cold starts
                   retry: 0
                 });
                 
@@ -205,7 +205,7 @@ export function AuthProvider({ children }) {
           
           try {
             const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 5000, // Even more aggressive 
+              timeout: 15000, // Increased for cold starts
               retry: 0
             });
             
