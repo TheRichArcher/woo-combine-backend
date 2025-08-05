@@ -8,7 +8,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
   withCredentials: false,
-  timeout: 20000  // 20s timeout - more reasonable for user experience
+  timeout: 30000  // 30s timeout for Render cold starts
 });
 
 // Enhanced retry logic for cold start recovery

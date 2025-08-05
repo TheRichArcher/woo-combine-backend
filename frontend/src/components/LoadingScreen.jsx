@@ -5,15 +5,15 @@ const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
   const [coldStartMessage, setColdStartMessage] = useState(false);
 
   useEffect(() => {
-    // Show extended loading message after 10 seconds
+    // Show extended loading message after 5 seconds
     const extendedTimer = setTimeout(() => {
       setExtendedLoading(true);
-    }, 10000);
+    }, 5000);
 
-    // Show cold start message after 20 seconds
+    // Show cold start message after 10 seconds
     const coldStartTimer = setTimeout(() => {
       setColdStartMessage(true);
-    }, 20000);
+    }, 10000);
 
     return () => {
       clearTimeout(extendedTimer);
@@ -65,9 +65,9 @@ const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
 
         {coldStartMessage && (
           <div className="text-gray-500 text-sm max-w-md mx-auto bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <p className="mb-2">🚀 <strong>Server is starting up</strong></p>
-            <p className="mb-2">This can take up to a minute on the first visit.</p>
-            <p className="text-xs">Free hosting services need time to initialize.</p>
+            <p className="mb-2">☕ <strong>Server is waking up</strong></p>
+            <p className="mb-2">This can take up to 30 seconds on the first visit after inactivity.</p>
+            <p className="text-xs">Your data is safe - just waiting for the server to start.</p>
           </div>
         )}
       </div>
