@@ -64,7 +64,7 @@ export default function OnboardingEvent() {
 
   // Fetch player count
   const fetchPlayerCount = useCallback(async () => {
-    if (!createdEvent) return;
+    if (!createdEvent?.id) return;
     try {
       const { data } = await api.get(`/players?event_id=${createdEvent.id}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
@@ -211,12 +211,15 @@ export default function OnboardingEvent() {
     setManualMsg('Adding player...');
 
     try {
+      // Transform data to match backend PlayerCreate model
       const playerData = {
-        ...manualPlayer,
-        event_id: createdEvent.id
+        name: `${manualPlayer.first_name} ${manualPlayer.last_name}`.trim(),
+        number: manualPlayer.number ? parseInt(manualPlayer.number) : null,
+        age_group: manualPlayer.age_group || null,
+        photo_url: null
       };
 
-      await api.post('/players', playerData);
+      await api.post(`/players?event_id=${createdEvent.id}`, playerData);
       
       setManualStatus('success');
       setManualMsg('✅ Player added successfully!');
