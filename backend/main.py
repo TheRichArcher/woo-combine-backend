@@ -46,17 +46,11 @@ app.add_middleware(FastOptionsMiddleware)
 # CORS configuration for production and development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://woo-combine.com",
-        "https://woo-combine-backend.onrender.com",
-        "http://localhost:5173",  # Local development
-        "http://localhost:5174",  # Alternative dev port 
-        "http://localhost:5175",  # Alternative dev port 
-        "http://localhost:3000",  # Alternative dev port
-    ],
+    allow_origins=["*"],  # Temporarily allow all origins to fix immediate issue
     allow_credentials=False,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Lazy Firestore initialization to speed up startup
