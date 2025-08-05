@@ -42,15 +42,15 @@ export const WEIGHT_PRESETS = defaultTemplate.presets;
 export const TABS = [
   { 
     id: 'players', 
-    label: 'Players & Rankings', 
+    label: 'Analyze & Rank', 
     icon: 'Users',
-    description: 'View player performance and rankings'
+    description: '🔧 Interactive workspace: Manage players, adjust drill weights, and see live rankings update'
   },
   { 
     id: 'exports', 
-    label: 'Export & Reports', 
+    label: 'Download Results', 
     icon: 'Download',
-    description: 'Download results and share reports'
+    description: '📊 Export final results: Download rankings as CSV files to share with parents and coaches'
   }
 ];
 

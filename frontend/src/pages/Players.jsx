@@ -935,10 +935,15 @@ export default function Players() {
                     {/* Age Group Selector */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-cmf-primary" />
-                          Player Management & Prospect Rankings
-                        </h2>
+                        <div>
+                          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                            <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                            Player Analysis Workspace
+                          </h2>
+                          <p className="text-sm text-gray-600 mt-1">
+                            🔧 Adjust drill weights below to see rankings update instantly
+                          </p>
+                        </div>
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                           ⚡ Real-Time
                         </span>
@@ -1194,10 +1199,15 @@ export default function Players() {
             {Object.keys(grouped).length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Download className="w-5 h-5 text-cmf-primary" />
-                    Export Rankings by Age Group
-                  </h2>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                      <Download className="w-5 h-5 text-cmf-primary" />
+                      Download Final Rankings
+                    </h2>
+                    <p className="text-sm text-gray-600 mt-1">
+                      💾 Create spreadsheet files to share with parents, coaches, and league officials
+                    </p>
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
