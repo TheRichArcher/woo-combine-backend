@@ -32,11 +32,14 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('📝 Login form submitted for:', email);
     setFormError("");
     setSubmitting(true);
     
     try {
+      console.log('🔑 Attempting Firebase authentication...');
       await signInWithEmailAndPassword(auth, email, password);
+      console.log('✅ Firebase authentication successful - waiting for AuthContext...');
       // Let AuthContext handle the navigation logic for verified users
     } catch (err) {
       authLogger.error("Email sign-in error", err);

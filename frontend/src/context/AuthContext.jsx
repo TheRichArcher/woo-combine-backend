@@ -34,6 +34,7 @@ export function AuthProvider({ children }) {
   // CRITICAL FIX: Firebase auth state change handler with stable dependencies
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('🔐 AUTH STATE CHANGE:', firebaseUser ? 'USER LOGGED IN' : 'USER LOGGED OUT');
       
       if (!firebaseUser) {
         // User logged out
@@ -63,6 +64,7 @@ export function AuthProvider({ children }) {
       
       // Complete initialization inline to prevent dependency loops
       try {
+        console.log('🔍 Starting role check for user:', firebaseUser.email);
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = null;
         try {
@@ -80,8 +82,11 @@ export function AuthProvider({ children }) {
             }
           }
           
+          const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
+          console.log('🌐 Making API call to:', apiUrl);
+          
           const roleResponse = await Promise.race([
-            fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
+            fetch(apiUrl, {
               method: 'GET',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -91,10 +96,14 @@ export function AuthProvider({ children }) {
             new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 2000))
           ]);
 
+          console.log('📡 API Response status:', roleResponse.status);
+          
           if (roleResponse.ok) {
             const userData = await roleResponse.json();
+            console.log('✅ User data received:', userData);
             userRole = userData.role;
           } else if (roleResponse.status === 404) {
+            console.log('ℹ️ User not found (404) - treating as new user');
             userRole = null;
           } else if (roleResponse.status === 403) {
             // Email verification required - redirect to verification page
@@ -110,40 +119,49 @@ export function AuthProvider({ children }) {
             throw new Error(`Role check failed: ${roleResponse.status}`);
           }
         } catch (error) {
+          console.log('❌ Role check error:', error.message);
           if (error.message.includes('Role check timeout')) {
+            console.log('⏰ Role check timed out after 2s - treating as new user');
             authLogger.warn('Role check timed out after 2s - treating as new user (fast fail)');
             userRole = null;
           } else if (error.message.includes('Firebase auth token unavailable')) {
+            console.log('🔑 Firebase token issue - treating as new user');
             authLogger.error('Firebase token issue - treating as new user');
             userRole = null;
           } else {
+            console.log('🔄 Other role check error - treating as new user:', error.message);
             authLogger.debug('Role check error (treating as new user)', error.message);
             userRole = null;
           }
         }
 
         if (!userRole) {
+          console.log('👤 No user role found - redirecting to select-role');
           setUserRole(null);
           setLeagues([]);
           setRole(null);
           setRoleChecked(true);
           
           const currentPath = window.location.pathname;
+          console.log('📍 Current path:', currentPath);
           if (currentPath.startsWith('/join-event/')) {
             const joinPath = currentPath.replace('/join-event/', '');
             localStorage.setItem('pendingEventJoin', joinPath);
           }
           
+          console.log('🚀 Navigating to /select-role');
           navigate("/select-role");
           setInitializing(false);
           return;
         }
 
+        console.log('✅ User role found:', userRole);
         setUserRole(userRole);
 
         // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
         // Do it in background after navigation completes
         const currentPath = window.location.pathname;
+        console.log('📍 Current path (with role):', currentPath);
         const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
         const isInitialLoad = currentPath === '/select-role';
         
@@ -227,9 +245,13 @@ export function AuthProvider({ children }) {
         
         // Navigation logic (reuse currentPath from above)
         const onboardingRoutes = ["/login", "/signup", "/"];
+        console.log('🧭 Checking navigation - current path:', currentPath, 'onboarding routes:', onboardingRoutes);
         
         if (onboardingRoutes.includes(currentPath)) {
+          console.log('🚀 Navigating to /dashboard');
           navigate("/dashboard");
+        } else {
+          console.log('📍 Staying on current path:', currentPath);
         }
 
       } catch (err) {
