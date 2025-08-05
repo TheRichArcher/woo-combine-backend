@@ -10,9 +10,10 @@ export default function RequireAuth({ children }) {
   if (initializing || !authChecked || !roleChecked) {
     return (
       <LoadingScreen 
-        title="Verifying access..."
-        subtitle="Checking your authentication"
+        title="Setting up your account..."
+        subtitle="This should only take a few seconds"
         size="large"
+        showProgress={true}
       />
     );
   }

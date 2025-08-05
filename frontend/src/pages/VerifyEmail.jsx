@@ -104,8 +104,7 @@ export default function VerifyEmail() {
           if (auth.currentUser.emailVerified) {
             // Clear the interval before navigating to prevent further runs
             clearInterval(interval);
-            // Force refresh of ID token after verification
-            await auth.currentUser.getIdToken(true);
+            // Skip token refresh here - AuthContext will handle it
             
             // Only update state if component is still active
             if (isActive) {
@@ -158,8 +157,7 @@ export default function VerifyEmail() {
         await auth.currentUser.reload();
         setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
-          // Force refresh of ID token after verification
-          await auth.currentUser.getIdToken(true);
+          // Skip token refresh here - AuthContext will handle it for speed
           setUser(auth.currentUser);
           navigate("/select-role");
         } else {

@@ -66,7 +66,7 @@ export function AuthProvider({ children }) {
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = null;
         try {
-          const token = await firebaseUser.getIdToken(true); // Force refresh token
+          const token = await firebaseUser.getIdToken(false); // Use cached token first for speed
           const roleResponse = await Promise.race([
             fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
               method: 'GET',
@@ -75,7 +75,7 @@ export function AuthProvider({ children }) {
                 'Content-Type': 'application/json',
               },
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 10000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 5000))
           ]);
 
           if (roleResponse.ok) {
@@ -125,18 +125,54 @@ export function AuthProvider({ children }) {
 
         setUserRole(userRole);
 
-        // STEP 2: League fetch - only if not already in progress
-        // PERFORMANCE OPTIMIZATION: Skip league fetch for new organizers going to create-league
+        // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
+        // Do it in background after navigation completes
         const currentPath = window.location.pathname;
         const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
+        const isInitialLoad = currentPath === '/select-role';
         
-        if (!leagueFetchInProgress && !isNewOrganizerFlow) {
+        if (isNewOrganizerFlow || isInitialLoad) {
+          // FAST PATH: Set empty state immediately, fetch leagues in background
+          setLeagues([]);
+          setSelectedLeagueIdState('');
+          setRole(null);
+          localStorage.removeItem('selectedLeagueId');
+          authLogger.info('PERFORMANCE: Fast path - will fetch leagues in background');
+          
+          // Background league fetch (non-blocking)
+          if (!isNewOrganizerFlow) {
+            setTimeout(async () => {
+              try {
+                const leagueResponse = await api.get(`/leagues/me`, { 
+                  timeout: 8000,
+                  retry: 0
+                });
+                
+                const userLeagues = leagueResponse.data.leagues || [];
+                setLeagues(userLeagues);
+                
+                if (userLeagues.length > 0) {
+                  const targetLeagueId = userLeagues[0].id;
+                  setSelectedLeagueIdState(targetLeagueId);
+                  localStorage.setItem('selectedLeagueId', targetLeagueId);
+                  
+                  const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
+                  setRole(selectedLeague?.role || null);
+                  authLogger.info('BACKGROUND: Leagues loaded successfully');
+                }
+              } catch (error) {
+                authLogger.info('BACKGROUND: League fetch failed (non-critical)');
+              }
+            }, 100); // Minimal delay to let navigation complete
+          }
+        } else if (!leagueFetchInProgress) {
+          // Normal path for existing users not on select-role
           setLeagueFetchInProgress(true);
           
           try {
             const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 15000,  // Reduced from 45s to 15s
-              retry: 1
+              timeout: 8000,
+              retry: 0
             });
             
             const userLeagues = leagueResponse.data.leagues || [];
@@ -162,28 +198,13 @@ export function AuthProvider({ children }) {
             }
             
           } catch (leagueError) {
-            if (leagueError.response?.status === 404) {
-              setLeagues([]);
-              setSelectedLeagueIdState('');
-              setRole(null);
-              localStorage.removeItem('selectedLeagueId');
-              authLogger.info('New user detected - no leagues found');
-            } else {
-              setLeagues([]);
-              setSelectedLeagueIdState('');
-              setRole(null);
-              localStorage.removeItem('selectedLeagueId');
-            }
+            setLeagues([]);
+            setSelectedLeagueIdState('');
+            setRole(null);
+            localStorage.removeItem('selectedLeagueId');
           } finally {
             setLeagueFetchInProgress(false);
           }
-        } else if (isNewOrganizerFlow) {
-          // Fast path for new organizers - skip league fetch, set empty state immediately
-          setLeagues([]);
-          setSelectedLeagueIdState('');
-          setRole(null);
-          localStorage.removeItem('selectedLeagueId');
-          authLogger.info('PERFORMANCE: Skipped league fetch for new organizer flow');
         }
 
         setRoleChecked(true);
