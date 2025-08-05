@@ -288,6 +288,41 @@ const TeamFormationPage = () => {
           weights={normalizedWeights}
           selectedDrillTemplate={drillTemplate}
         />
+        
+        {/* Continue Your Event Actions */}
+        <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4 mt-6">
+          <div className="flex items-start gap-3">
+            <div className="text-2xl">⚡</div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-900 mb-1">Continue Building Your Event</h3>
+              <p className="text-green-700 text-sm mb-3">
+                Great! You've created balanced teams. Keep building your combine event.
+              </p>
+              <div className="grid grid-cols-1 gap-2">
+                <Link
+                  to="/players"
+                  className="flex items-center gap-2 p-3 bg-white rounded-lg border border-green-200 hover:bg-green-50 transition"
+                >
+                  <Users className="w-5 h-5 text-green-600" />
+                  <div className="flex-1">
+                    <span className="font-medium text-green-900">Add More Players & View Rankings</span>
+                    <div className="text-xs text-green-700">Add athletes or view current standings</div>
+                  </div>
+                </Link>
+                <Link
+                  to="/live-entry"
+                  className="flex items-center gap-2 p-3 bg-white rounded-lg border border-green-200 hover:bg-green-50 transition"
+                >
+                  <Target className="w-5 h-5 text-green-600" />
+                  <div className="flex-1">
+                    <span className="font-medium text-green-900">Record Drill Results</span>
+                    <div className="text-xs text-green-700">Time 40-yard dash, vertical jump, and more</div>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

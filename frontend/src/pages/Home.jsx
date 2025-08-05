@@ -133,22 +133,13 @@ export default function Home() {
           {/* Quick Actions - Mojo Style Large Buttons */}
           <div className="grid grid-cols-1 gap-3">
             {userRole === 'organizer' && (
-              <>
-                <button
-                  onClick={() => handleNavigation('/admin')}
-                  className="bg-cmf-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-primary transition flex items-center justify-center gap-3 text-lg"
-                >
-                  <BarChart3 className="w-6 h-6" />
-                  Manage Event
-                </button>
-                <button
-                  onClick={() => handleNavigation('/players')}
-                  className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
-                >
-                  <Users className="w-6 h-6" />
-                  View Players & Rankings
-                </button>
-              </>
+              <button
+                onClick={() => handleNavigation('/players')}
+                className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
+              >
+                <Users className="w-6 h-6" />
+                Manage Players & Start Event
+              </button>
             )}
             {userRole === 'coach' && (
               <button
@@ -208,12 +199,12 @@ export default function Home() {
             <div className="bg-gray-50 rounded-lg p-4">
               {userRole === 'organizer' && (
                 <div>
-                  <p className="text-sm text-gray-600 mb-3">Ready to add players and set up your event?</p>
+                  <p className="text-sm text-gray-600 mb-3">Ready to add players and start your event?</p>
                   <button
-                    onClick={() => handleNavigation('/admin')}
+                    onClick={() => handleNavigation('/players')}
                     className="bg-cmf-primary text-white px-6 py-3 rounded-lg hover:bg-cmf-secondary transition font-medium"
                   >
-                    🚀 Set Up Event
+                    🚀 Manage Players & Start Event
                   </button>
                 </div>
               )}

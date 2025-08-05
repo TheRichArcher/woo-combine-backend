@@ -567,8 +567,8 @@ export default function Players() {
           <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found Yet</h2>
           <p className="text-gray-600 mb-6">You can upload a CSV or add them manually to get started.</p>
           <div className="flex gap-3 justify-center">
-            <Link to="/admin#player-upload-section" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition">
-              Upload CSV
+            <Link to="/onboarding/event" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition">
+              Upload CSV Players
             </Link>
             <button 
               onClick={() => setShowAddPlayerModal(true)}
@@ -626,15 +626,46 @@ export default function Players() {
                   Add Player
                 </button>
                 <Link
-                  to="/admin"
+                  to="/onboarding/event"
                   className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
                 >
-                  ⚙️ Settings
+                  📋 Upload More Players
                 </Link>
               </div>
             </div>
           )}
         </div>
+
+        {/* Contextual Feature Discovery - Show when users have data */}
+        {players.length >= 3 && (userRole === 'organizer' || userRole === 'coach') && (
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <div className="text-2xl">🚀</div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-purple-900 mb-1">Ready for Advanced Features?</h3>
+                <p className="text-purple-700 text-sm mb-3">
+                  You have {players.length} players! Unlock powerful tools to analyze performance and create balanced teams.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    to="/team-formation"
+                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-purple-200 hover:bg-purple-50 transition text-xs"
+                  >
+                    <Users className="w-4 h-4 text-purple-600" />
+                    <span className="font-medium text-purple-900">Create Balanced Teams</span>
+                  </Link>
+                  <Link
+                    to="/evaluators"
+                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-purple-200 hover:bg-purple-50 transition text-xs"
+                  >
+                    <BarChart3 className="w-4 h-4 text-purple-600" />
+                    <span className="font-medium text-purple-900">Multi-Evaluator Analysis</span>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">

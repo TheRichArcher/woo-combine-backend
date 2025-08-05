@@ -432,6 +432,15 @@ export default function LiveEntry() {
                 <Target className="w-5 h-5" />
                 View Live Standings
               </Link>
+              {recentEntries.length >= 3 && (userRole === 'organizer' || userRole === 'coach') && (
+                <Link
+                  to="/team-formation"
+                  className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <Users className="w-5 h-5" />
+                  Create Teams
+                </Link>
+              )}
               {recentEntries.length > 0 && (
                 <button
                   onClick={handleUndo}
