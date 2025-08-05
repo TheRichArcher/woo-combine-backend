@@ -44,13 +44,13 @@ export const TABS = [
     id: 'players', 
     label: 'Analyze & Rank', 
     icon: 'Users',
-    description: '🔧 Interactive workspace: Manage players, adjust drill weights, and see live rankings update'
+    description: 'Manage players and adjust ranking weights'
   },
   { 
     id: 'exports', 
     label: 'Download Results', 
     icon: 'Download',
-    description: '📊 Export final results: Download rankings as CSV files to share with parents and coaches'
+    description: 'Export rankings as spreadsheets'
   }
 ];
 

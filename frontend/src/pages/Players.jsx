@@ -19,69 +19,7 @@ const ICON_MAP = {
   'Download': Download
 };
 
-// Advanced features definition for dropdown
-const ADVANCED_FEATURES = [
-  {
-    key: 'sport-templates',
-    label: 'Sport Templates',
-    desc: '6 sports available',
-    icon: Trophy,
-    color: 'from-orange-50 to-red-50 border-orange-200',
-    route: '/sport-templates',
-    benefits: [
-      'Football, Soccer, Basketball templates',
-      'Baseball, Track & Field, Volleyball',
-      'Sport-specific drill configurations',
-      'Custom coaching presets for each sport'
-    ],
-    category: 'Configuration'
-  },
-  {
-    key: 'team-formation',
-    label: 'Team Formation',
-    desc: 'AI-powered balance',
-    icon: Users,
-    color: 'from-blue-50 to-cyan-50 border-blue-200',
-    route: '/team-formation',
-    benefits: [
-      'Automated balanced team creation',
-      'Skill-based distribution algorithms',
-      'Snake draft methodology',
-      'Export balanced rosters'
-    ],
-    category: 'Analysis'
-  },
-  {
-    key: 'evaluators',
-    label: 'Multi-Evaluator',
-    desc: 'Statistical analysis',
-    icon: BarChart3,
-    color: 'from-green-50 to-emerald-50 border-green-200',
-    route: '/evaluators',
-    benefits: [
-      'Multiple evaluator scoring',
-      'Statistical variance analysis',
-      'Bias detection & correction',
-      'Collaborative evaluation sessions'
-    ],
-    category: 'Evaluation'
-  },
-  {
-    key: 'scorecards',
-    label: 'Scorecards',
-    desc: 'Professional reports',
-    icon: FileText,
-    color: 'from-purple-50 to-indigo-50 border-purple-200',
-    route: '/scorecards',
-    benefits: [
-      'Individual player scorecards',
-      'Professional PDF reports',
-      'Performance breakdowns',
-      'Coach & parent sharing'
-    ],
-    category: 'Reports'
-  }
-];
+
 
 
 
@@ -131,8 +69,7 @@ export default function Players() {
   const timer = useRef(null); // Timer for debouncing
   const [activePreset, setActivePreset] = useState('balanced');
   
-  // Advanced feature dropdown state
-  const [selectedFeature, setSelectedFeature] = useState('');
+
   
   // Live ranking state
   const [liveRankings, setLiveRankings] = useState({});
@@ -613,84 +550,20 @@ export default function Players() {
             </div>
           )}
           
-          {/* Secondary Actions - Less prominent */}
+          {/* Simple Add Player Option */}
           {userRole === 'organizer' && (
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-sm text-gray-500 mb-3 text-center">Additional Options:</p>
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => setShowAddPlayerModal(true)}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Player
-                </button>
-                <Link
-                  to="/onboarding/event"
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2"
-                >
-                  📋 Upload More Players
-                </Link>
-              </div>
+            <div className="border-t border-gray-200 pt-3 text-center">
+              <button
+                onClick={() => setShowAddPlayerModal(true)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add Player
+              </button>
             </div>
           )}
         </div>
 
-        {/* Contextual Feature Discovery - Show when users have data */}
-        {players.length >= 3 && (userRole === 'organizer' || userRole === 'coach') && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-xl p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">🚀</div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-purple-900 mb-1">Ready for Advanced Features?</h3>
-                <p className="text-purple-700 text-sm mb-3">
-                  You have {players.length} players! Unlock powerful tools to analyze performance and create balanced teams.
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    to="/team-formation"
-                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-purple-200 hover:bg-purple-50 transition text-xs"
-                  >
-                    <Users className="w-4 h-4 text-purple-600" />
-                    <span className="font-medium text-purple-900">Create Balanced Teams</span>
-                  </Link>
-                  <Link
-                    to="/evaluators"
-                    className="flex items-center gap-2 p-2 bg-white rounded-lg border border-purple-200 hover:bg-purple-50 transition text-xs"
-                  >
-                    <BarChart3 className="w-4 h-4 text-purple-600" />
-                    <span className="font-medium text-purple-900">Multi-Evaluator Analysis</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex border-b border-gray-200">
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-b-2 border-cmf-primary text-cmf-primary bg-cmf-primary/5'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                <tab.icon className="w-4 h-4 inline mr-2" />
-                {tab.label}
-              </button>
-            ))}
-          </div>
-          <div className="p-4">
-            <p className="text-sm text-gray-600">
-              {TABS.find(tab => tab.id === activeTab)?.description}
-            </p>
-          </div>
-        </div>
 
         {/* Role-based interface - Tabs only for organizers/coaches */}
         {(userRole === 'organizer' || userRole === 'coach') ? (
@@ -935,15 +808,10 @@ export default function Players() {
                     {/* Age Group Selector */}
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                            <TrendingUp className="w-5 h-5 text-cmf-primary" />
-                            Player Analysis Workspace
-                          </h2>
-                          <p className="text-sm text-gray-600 mt-1">
-                            🔧 Adjust drill weights below to see rankings update instantly
-                          </p>
-                        </div>
+                        <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                          Player Rankings
+                        </h2>
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
                           ⚡ Real-Time
                         </span>
@@ -1199,15 +1067,10 @@ export default function Players() {
             {Object.keys(grouped).length > 0 && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div className="flex justify-between items-center mb-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Download className="w-5 h-5 text-cmf-primary" />
-                      Download Final Rankings
-                    </h2>
-                    <p className="text-sm text-gray-600 mt-1">
-                      💾 Create spreadsheet files to share with parents, coaches, and league officials
-                    </p>
-                  </div>
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Download className="w-5 h-5 text-cmf-primary" />
+                    Download Rankings
+                  </h2>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
