@@ -18,7 +18,7 @@ import {
   Info
 } from 'lucide-react';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
-import { calculateCompositeScore } from '../utils/rankingUtils';
+import { calculateNormalizedCompositeScore, calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();
@@ -32,16 +32,21 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   const template = getTemplateById(selectedDrillTemplate);
   const drills = getDrillsFromTemplate(selectedDrillTemplate);
   
-  // Calculate player stats
+  // Calculate player stats using normalized scoring
   const playerStats = React.useMemo(() => {
     if (!player) return null;
     
-    const compositeScore = calculateCompositeScore(player, weights);
+    // Convert decimal weights to percentage format expected by normalized scoring
+    const percentageWeights = {};
+    Object.entries(weights).forEach(([key, value]) => {
+      percentageWeights[key] = value * 100; // Convert 0.2 to 20
+    });
+    
+    const compositeScore = calculateNormalizedCompositeScore(player, allPlayers, percentageWeights);
     
     // Calculate rank among age group
     const ageGroupPlayers = allPlayers.filter(p => p.age_group === player.age_group);
-    const rankedPlayers = ageGroupPlayers
-      .map(p => ({ ...p, compositeScore: calculateCompositeScore(p, weights) }))
+    const rankedPlayers = calculateNormalizedCompositeScores(ageGroupPlayers, percentageWeights)
       .sort((a, b) => b.compositeScore - a.compositeScore);
     
     const rank = rankedPlayers.findIndex(p => p.id === player.id) + 1;

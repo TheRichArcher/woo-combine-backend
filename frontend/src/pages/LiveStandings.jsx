@@ -4,7 +4,7 @@ import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
-import { calculateCompositeScore } from '../utils/rankingUtils';
+import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import api from '../lib/api';
 
 export default function LiveStandings() {
@@ -44,21 +44,11 @@ export default function LiveStandings() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // Calculate live rankings
+  // Calculate live rankings using normalized scores (consistent with all other pages)
   const liveRankings = useMemo(() => {
     if (!players.length) return [];
     
-    // Convert weights to decimal format for calculation
-    const normalizedWeights = {};
-    Object.entries(weights).forEach(([key, value]) => {
-      normalizedWeights[key] = value / 100;
-    });
-
-    return players
-      .map(player => ({
-        ...player,
-        compositeScore: calculateCompositeScore(player, normalizedWeights)
-      }))
+    return calculateNormalizedCompositeScores(players, weights)
       .filter(player => player.compositeScore > 0)
       .sort((a, b) => b.compositeScore - a.compositeScore);
   }, [players, weights]);

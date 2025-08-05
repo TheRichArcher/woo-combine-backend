@@ -29,15 +29,17 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   // Get current drill template
   const currentDrills = getDrillsFromTemplate(selectedDrillTemplate);
 
-  // Calculate composite scores for all players
+  // Calculate composite scores for all players using normalized scoring
   const rankedPlayers = useMemo(() => {
     if (!players || players.length === 0) return [];
     
-    return players
-      .map(player => ({
-        ...player,
-        compositeScore: calculateCompositeScore(player, weights)
-      }))
+    // Convert decimal weights to percentage format expected by normalized scoring
+    const percentageWeights = {};
+    Object.entries(weights).forEach(([key, value]) => {
+      percentageWeights[key] = value * 100; // Convert 0.2 to 20
+    });
+    
+    return calculateNormalizedCompositeScores(players, percentageWeights)
       .filter(player => player.compositeScore > 0) // Only include players with scores
       .sort((a, b) => b.compositeScore - a.compositeScore);
   }, [players, weights]);

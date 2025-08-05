@@ -126,8 +126,9 @@ export default function SelectRole() {
       });
       
       // PERFORMANCE: Skip redundant role refresh - AuthContext will handle this automatically
-      // Just update local state for immediate navigation
+      // Just update local state for immediate navigation and persist to localStorage
       setUserRole(selectedRole);
+      localStorage.setItem('userRole', selectedRole);
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {

@@ -5,6 +5,7 @@ import { AGE_GROUP_OPTIONS } from '../../constants/players';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { useToast } from '../../context/ToastContext';
 import { useEvent } from '../../context/EventContext';
+import { generatePlayerNumber } from '../../utils/playerNumbering';
 import ErrorDisplay from '../ErrorDisplay';
 
 const AddPlayerModal = React.memo(function AddPlayerModal({ allPlayers, onClose, onSave }) {
@@ -39,17 +40,13 @@ const AddPlayerModal = React.memo(function AddPlayerModal({ allPlayers, onClose,
     )].sort();
   }, [allPlayers]);
 
-  // Auto-assign player number logic (simplified version from AdminTools)
+  // Auto-assign player number using the sophisticated numbering system
   const autoAssignPlayerNumber = useCallback((ageGroup) => {
-    const playersInGroup = allPlayers.filter(p => p.age_group === ageGroup);
-    const usedNumbers = playersInGroup.map(p => p.number).filter(n => n != null);
+    const existingNumbers = allPlayers
+      .filter(p => p.number != null)
+      .map(p => parseInt(p.number));
     
-    // Find next available number starting from 1
-    let nextNumber = 1;
-    while (usedNumbers.includes(nextNumber)) {
-      nextNumber++;
-    }
-    return nextNumber;
+    return generatePlayerNumber(ageGroup, existingNumbers);
   }, [allPlayers]);
 
   const handleInputChange = useCallback((field, value) => {

@@ -20,7 +20,11 @@ export function AuthProvider({ children }) {
   const [leagues, setLeagues] = useState([]);
   const [selectedLeagueId, setSelectedLeagueIdState] = useState(() => localStorage.getItem('selectedLeagueId') || '');
   const [role, setRole] = useState(null);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(() => {
+    // Try to restore userRole from localStorage on initialization
+    const storedRole = localStorage.getItem('userRole');
+    return storedRole && storedRole !== 'null' ? storedRole : null;
+  });
   const navigate = useNavigate();
   const { showColdStartNotification, isColdStartActive } = useToast();
   
@@ -65,79 +69,122 @@ export function AuthProvider({ children }) {
       // Complete initialization inline to prevent dependency loops
       try {
         console.log('🔍 Starting role check for user:', firebaseUser.email);
-        // STEP 1: Role check with extended timeout for cold starts using backend API
-        let userRole = null;
-        try {
-          let token;
-          try {
-            // Try cached token first, fallback to refresh only if needed
-            token = await firebaseUser.getIdToken(false);
-          } catch (tokenError) {
-            authLogger.warn('Cached token failed, trying refresh:', tokenError.message);
+        
+        // Check if we already have a cached role to speed up initialization
+        const cachedRole = localStorage.getItem('userRole');
+        if (cachedRole && cachedRole !== 'null') {
+          console.log('⚡ Using cached role for faster startup:', cachedRole);
+          setUserRole(cachedRole);
+          // Still verify role in background, but proceed with cached role for now
+          setTimeout(async () => {
             try {
-              token = await firebaseUser.getIdToken(true);
-            } catch (refreshError) {
-              authLogger.error('Token refresh failed:', refreshError.message);
-              throw new Error('Firebase auth token unavailable');
+              const token = await firebaseUser.getIdToken(false);
+              const response = await fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+              });
+              if (response.ok) {
+                const userData = await response.json();
+                if (userData.role !== cachedRole) {
+                  console.log('🔄 Role changed on server, updating cache');
+                  setUserRole(userData.role);
+                  localStorage.setItem('userRole', userData.role);
+                }
+              }
+            } catch (error) {
+              console.log('Background role verification failed:', error.message);
             }
-          }
-          
-          const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
-          console.log('🌐 Making API call to:', apiUrl);
-          
-          const roleResponse = await Promise.race([
-            fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 30000)) // Increased to 30s for Render cold starts
-          ]);
+          }, 1000); // Verify in background after 1 second
+        }
+        
+        // STEP 1: Role check with extended timeout for cold starts using backend API
+        let userRole = cachedRole;
+        
+        // If we have a cached role, skip the API call to speed up startup
+        if (!cachedRole || cachedRole === 'null') {
+          console.log('🌐 No cached role found, fetching from API...');
+          try {
+            let token;
+            try {
+              // Try cached token first, fallback to refresh only if needed
+              token = await firebaseUser.getIdToken(false);
+            } catch (tokenError) {
+              authLogger.warn('Cached token failed, trying refresh:', tokenError.message);
+              try {
+                token = await firebaseUser.getIdToken(true);
+              } catch (refreshError) {
+                authLogger.error('Token refresh failed:', refreshError.message);
+                throw new Error('Firebase auth token unavailable');
+              }
+            }
+            
+            const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
+            console.log('🌐 Making API call to:', apiUrl);
+            
+            const roleResponse = await Promise.race([
+              fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              }),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 30000)) // Increased to 30s for Render cold starts
+            ]);
 
-          console.log('📡 API Response status:', roleResponse.status);
-          
-          if (roleResponse.ok) {
-            const userData = await roleResponse.json();
-            console.log('✅ User data received:', userData);
-            userRole = userData.role;
-          } else if (roleResponse.status === 404) {
-            console.log('ℹ️ User not found (404) - treating as new user');
-            userRole = null;
-          } else if (roleResponse.status === 403) {
-            // Email verification required - redirect to verification page
-            const errorData = await roleResponse.json().catch(() => ({}));
-            if (errorData.detail?.includes('Email verification required')) {
-              authLogger.warn('Email verification required during role check');
-              setInitializing(false);
-              navigate('/verify-email');
-              return;
+            console.log('📡 API Response status:', roleResponse.status);
+            
+            if (roleResponse.ok) {
+              const userData = await roleResponse.json();
+              console.log('✅ User data received:', userData);
+              userRole = userData.role;
+            } else if (roleResponse.status === 404) {
+              console.log('ℹ️ User not found (404) - treating as new user');
+              userRole = null;
+            } else if (roleResponse.status === 403) {
+              // Email verification required - redirect to verification page
+              const errorData = await roleResponse.json().catch(() => ({}));
+              if (errorData.detail?.includes('Email verification required')) {
+                authLogger.warn('Email verification required during role check');
+                setInitializing(false);
+                navigate('/verify-email');
+                return;
+              }
+              throw new Error(`Role check failed: ${roleResponse.status}`);
+            } else {
+              throw new Error(`Role check failed: ${roleResponse.status}`);
             }
-            throw new Error(`Role check failed: ${roleResponse.status}`);
-          } else {
-            throw new Error(`Role check failed: ${roleResponse.status}`);
+          } catch (error) {
+            console.log('❌ Role check error:', error.message);
+            
+            // Check if we have a cached role in localStorage as fallback
+            const fallbackCachedRole = localStorage.getItem('userRole');
+            if (fallbackCachedRole && fallbackCachedRole !== 'null') {
+              console.log('💾 API failed, but found cached role:', fallbackCachedRole);
+              authLogger.warn(`API role check failed (${error.message}), using cached role: ${fallbackCachedRole}`);
+              userRole = fallbackCachedRole;
+            } else {
+              if (error.message.includes('Role check timeout')) {
+                console.log('⏰ Role check timed out after 30s - no cached role available');
+                authLogger.warn('Role check timed out after 30s - no cached role available (backend may be cold starting)');
+              } else if (error.message.includes('Firebase auth token unavailable')) {
+                console.log('🔑 Firebase token issue - no cached role available');
+                authLogger.error('Firebase token issue - no cached role available');
+              } else {
+                console.log('🔄 Other role check error - no cached role available:', error.message);
+                authLogger.debug('Role check error - no cached role available', error.message);
+              }
+              userRole = null;
+            }
           }
-        } catch (error) {
-          console.log('❌ Role check error:', error.message);
-          if (error.message.includes('Role check timeout')) {
-            console.log('⏰ Role check timed out after 30s - treating as new user');
-            authLogger.warn('Role check timed out after 30s - treating as new user (backend may be cold starting)');
-            userRole = null;
-          } else if (error.message.includes('Firebase auth token unavailable')) {
-            console.log('🔑 Firebase token issue - treating as new user');
-            authLogger.error('Firebase token issue - treating as new user');
-            userRole = null;
-          } else {
-            console.log('🔄 Other role check error - treating as new user:', error.message);
-            authLogger.debug('Role check error (treating as new user)', error.message);
-            userRole = null;
-          }
+        } else {
+          console.log('⚡ Skipping API call, using cached role for faster startup');
         }
 
         if (!userRole) {
           console.log('👤 No user role found - redirecting to select-role');
           setUserRole(null);
+          localStorage.removeItem('userRole'); // Clear any stale role data
           setLeagues([]);
           setRole(null);
           setRoleChecked(true);
@@ -157,6 +204,8 @@ export function AuthProvider({ children }) {
 
         console.log('✅ User role found:', userRole);
         setUserRole(userRole);
+        // Persist role to localStorage for browser refresh resilience
+        localStorage.setItem('userRole', userRole);
 
         // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
         // Do it in background after navigation completes
@@ -313,6 +362,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      localStorage.removeItem('userRole');
     } catch {
       // Logout error handled internally
       // Still clear state even if signOut fails
@@ -324,6 +374,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      localStorage.removeItem('userRole');
     }
   }, []);
 
@@ -346,6 +397,8 @@ export function AuthProvider({ children }) {
         const newRole = userData.role;
         authLogger.debug('Refreshed user role', newRole);
         setUserRole(newRole);
+        // Persist role to localStorage for browser refresh resilience
+        localStorage.setItem('userRole', newRole);
         
         // FIXED: Don't reload page - let the auth flow handle navigation naturally
         if (newRole && !userRole) {
