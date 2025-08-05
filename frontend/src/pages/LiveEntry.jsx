@@ -185,6 +185,40 @@ export default function LiveEntry() {
       scoreRef.current?.focus();
     }, 100);
   };
+
+  // Smart scroll through actual player numbers only
+  const handlePlayerNumberScroll = (e) => {
+    e.preventDefault(); // Prevent page scroll
+    
+    if (players.length === 0) return;
+    
+    // Get all existing player numbers, sorted
+    const playerNumbers = players
+      .map(p => p.number)
+      .filter(num => num !== null && num !== undefined)
+      .map(num => parseInt(num))
+      .filter(num => !isNaN(num))
+      .sort((a, b) => a - b);
+    
+    if (playerNumbers.length === 0) return;
+    
+    const currentNum = parseInt(playerNumber) || 0;
+    const currentIndex = playerNumbers.indexOf(currentNum);
+    
+    let newIndex;
+    if (e.deltaY < 0) {
+      // Scroll up - go to previous player
+      newIndex = currentIndex <= 0 ? playerNumbers.length - 1 : currentIndex - 1;
+    } else {
+      // Scroll down - go to next player  
+      newIndex = currentIndex >= playerNumbers.length - 1 ? 0 : currentIndex + 1;
+    }
+    
+    const newPlayerNumber = playerNumbers[newIndex];
+    setPlayerNumber(newPlayerNumber.toString());
+    
+    // Auto-complete will handle setting the player name and ID
+  };
   
   if (!selectedEvent) {
     return (
@@ -354,9 +388,11 @@ export default function LiveEntry() {
                   </label>
                   <input
                     ref={playerNumberRef}
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
                     value={playerNumber}
                     onChange={(e) => setPlayerNumber(e.target.value)}
+                    onWheel={handlePlayerNumberScroll}
                     placeholder="Enter player #"
                     className="w-full text-2xl p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-center"
                     autoFocus
