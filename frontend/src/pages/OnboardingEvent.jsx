@@ -85,8 +85,8 @@ export default function OnboardingEvent() {
     setCurrentStep(2); // Move to player import step
   };
 
-  const handleContinueToAdmin = () => {
-    navigate("/admin#player-upload-section");
+  const handleContinueToPlayers = () => {
+    navigate("/players");
   };
 
   // CSV handling with enhanced parsing
@@ -571,10 +571,10 @@ export default function OnboardingEvent() {
                 </button>
                 
                 <button
-                  onClick={handleContinueToAdmin}
+                  onClick={handleContinueToPlayers}
                   className="w-full bg-cmf-secondary hover:bg-cmf-primary text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
                 >
-                  Advanced Admin Tools
+                  View Players & Rankings
                 </button>
               </div>
             </div>
