@@ -66,7 +66,20 @@ export function AuthProvider({ children }) {
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = null;
         try {
-          const token = await firebaseUser.getIdToken(false); // Use cached token first for speed
+          let token;
+          try {
+            // Try cached token first, fallback to refresh only if needed
+            token = await firebaseUser.getIdToken(false);
+          } catch (tokenError) {
+            authLogger.warn('Cached token failed, trying refresh:', tokenError.message);
+            try {
+              token = await firebaseUser.getIdToken(true);
+            } catch (refreshError) {
+              authLogger.error('Token refresh failed:', refreshError.message);
+              throw new Error('Firebase auth token unavailable');
+            }
+          }
+          
           const roleResponse = await Promise.race([
             fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
               method: 'GET',
@@ -75,7 +88,7 @@ export function AuthProvider({ children }) {
                 'Content-Type': 'application/json',
               },
             }),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 5000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 2000))
           ]);
 
           if (roleResponse.ok) {
@@ -98,7 +111,10 @@ export function AuthProvider({ children }) {
           }
         } catch (error) {
           if (error.message.includes('Role check timeout')) {
-            authLogger.warn('Role check timed out - treating as new user');
+            authLogger.warn('Role check timed out after 2s - treating as new user (fast fail)');
+            userRole = null;
+          } else if (error.message.includes('Firebase auth token unavailable')) {
+            authLogger.error('Firebase token issue - treating as new user');
             userRole = null;
           } else {
             authLogger.debug('Role check error (treating as new user)', error.message);
@@ -144,7 +160,7 @@ export function AuthProvider({ children }) {
             setTimeout(async () => {
               try {
                 const leagueResponse = await api.get(`/leagues/me`, { 
-                  timeout: 8000,
+                  timeout: 5000, // Even more aggressive
                   retry: 0
                 });
                 
@@ -171,7 +187,7 @@ export function AuthProvider({ children }) {
           
           try {
             const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 8000,
+              timeout: 5000, // Even more aggressive 
               retry: 0
             });
             

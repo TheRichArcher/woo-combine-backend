@@ -24,8 +24,10 @@ api.interceptors.response.use(
       config._retryCount = 0;
     }
     
-    // CRITICAL FIX: Reduce retries for cold start scenarios to prevent cascade
-    const maxRetries = error.config?.url?.includes('/leagues/me') ? 1 : 2; // Only 1 retry for league fetching
+    // CRITICAL FIX: Aggressive retry reduction for speed
+    const maxRetries = error.config?.url?.includes('/leagues/me') ? 0 : // No retries for league fetch 
+                      error.config?.url?.includes('/users/me') ? 0 : // No retries for role check
+                      1; // Max 1 retry for other endpoints
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
