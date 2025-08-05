@@ -163,21 +163,22 @@ export default function OnboardingEvent() {
       // Assign player numbers automatically
       const playersWithNumbers = autoAssignPlayerNumbers(validRows);
       
-      // Create player objects for API
+      // Create player objects for API (backend expects 'name', not first_name/last_name)
       const players = playersWithNumbers.map(row => ({
-        first_name: row.first_name || '',
-        last_name: row.last_name || '',
+        name: row.name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
         number: row.number || '',
-        age_group: row.age_group || '',
-        event_id: createdEvent.id
+        age_group: row.age_group || ''
       }));
 
       // Upload to backend
-      const { data } = await api.post('/players/bulk', { players });
+      const { data } = await api.post('/players/upload', { 
+        event_id: createdEvent.id,
+        players: players 
+      });
       
       setUploadStatus("success");
-      setUploadMsg(`✅ Successfully uploaded ${data.created} players!`);
-      notifyPlayersUploaded(data.created);
+      setUploadMsg(`✅ Successfully uploaded ${data.added} players!`);
+      notifyPlayersUploaded(data.added);
       
       // Refresh player count
       await fetchPlayerCount();
