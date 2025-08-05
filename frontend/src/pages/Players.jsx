@@ -1201,6 +1201,45 @@ export default function Players() {
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
+                  {/* Export All Players Button */}
+                  {(() => {
+                    const allPlayers = Object.values(grouped).flat().filter(p => p.composite_score != null);
+                    const handleExportAllCsv = () => {
+                      if (allPlayers.length === 0) return;
+                      let csv = 'Rank,Name,Player Number,Age Group,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                      allPlayers
+                        .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
+                        .forEach((player, index) => {
+                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unknown'}",${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
+                        });
+                      const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
+                      const filename = `rankings_all_players_${eventDate}.csv`;
+                      const blob = new Blob([csv], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = filename;
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                      URL.revokeObjectURL(url);
+                    };
+                    
+                    return allPlayers.length > 0 ? (
+                      <button
+                        onClick={handleExportAllCsv}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-medium transition text-left flex justify-between items-center mb-2 border-2 border-blue-200"
+                      >
+                        <div>
+                          <div className="font-semibold">Export All Players</div>
+                          <div className="text-sm opacity-75">Complete rankings across all age groups</div>
+                        </div>
+                        <div className="text-sm opacity-75">({allPlayers.length} players)</div>
+                      </button>
+                    ) : null;
+                  })()}
+                  
+                  {/* Age Group Specific Exports */}
                   {Object.keys(grouped).sort().map(ageGroup => {
                     const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
                     const handleExportCsv = () => {
