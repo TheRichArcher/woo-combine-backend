@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
   // CRITICAL FIX: Firebase auth state change handler with stable dependencies
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('🔐 AUTH STATE CHANGE:', firebaseUser ? 'USER LOGGED IN' : 'USER LOGGED OUT');
+      authLogger.debug('Auth state change', firebaseUser ? 'User logged in' : 'User logged out');
       
       if (!firebaseUser) {
         // User logged out
@@ -68,12 +68,12 @@ export function AuthProvider({ children }) {
       
       // Complete initialization inline to prevent dependency loops
       try {
-        console.log('🔍 Starting role check for user:', firebaseUser.email);
+        authLogger.debug('Starting role check for user', firebaseUser.email);
         
         // Check if we already have a cached role to speed up initialization
         const cachedRole = localStorage.getItem('userRole');
         if (cachedRole && cachedRole !== 'null') {
-          console.log('⚡ Using cached role for faster startup:', cachedRole);
+          authLogger.debug('Using cached role for faster startup', cachedRole);
           setUserRole(cachedRole);
           // Still verify role in background, but proceed with cached role for now
           setTimeout(async () => {
@@ -86,13 +86,13 @@ export function AuthProvider({ children }) {
               if (response.ok) {
                 const userData = await response.json();
                 if (userData.role !== cachedRole) {
-                  console.log('🔄 Role changed on server, updating cache');
+                  authLogger.debug('Role changed on server, updating cache');
                   setUserRole(userData.role);
                   localStorage.setItem('userRole', userData.role);
                 }
               }
             } catch (error) {
-              console.log('Background role verification failed:', error.message);
+              authLogger.warn('Background role verification failed', error.message);
             }
           }, 1000); // Verify in background after 1 second
         }
@@ -102,7 +102,7 @@ export function AuthProvider({ children }) {
         
         // If we have a cached role, skip the API call to speed up startup
         if (!cachedRole || cachedRole === 'null') {
-          console.log('🌐 No cached role found, fetching from API...');
+          authLogger.debug('No cached role found, fetching from API');
           try {
             let token;
             try {
@@ -119,7 +119,7 @@ export function AuthProvider({ children }) {
             }
             
             const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
-            console.log('🌐 Making API call to:', apiUrl);
+            authLogger.debug('Making API call to', apiUrl);
             
             const roleResponse = await Promise.race([
               fetch(apiUrl, {
@@ -132,14 +132,14 @@ export function AuthProvider({ children }) {
               new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 30000)) // Increased to 30s for Render cold starts
             ]);
 
-            console.log('📡 API Response status:', roleResponse.status);
+            authLogger.debug('API Response status', roleResponse.status);
             
             if (roleResponse.ok) {
               const userData = await roleResponse.json();
-              console.log('✅ User data received:', userData);
+              authLogger.debug('User data received', userData);
               userRole = userData.role;
             } else if (roleResponse.status === 404) {
-              console.log('ℹ️ User not found (404) - treating as new user');
+              authLogger.debug('User not found (404) - treating as new user');
               userRole = null;
             } else if (roleResponse.status === 403) {
               // Email verification required - redirect to verification page
@@ -155,34 +155,34 @@ export function AuthProvider({ children }) {
               throw new Error(`Role check failed: ${roleResponse.status}`);
             }
           } catch (error) {
-            console.log('❌ Role check error:', error.message);
+            authLogger.error('Role check error', error.message);
             
             // Check if we have a cached role in localStorage as fallback
             const fallbackCachedRole = localStorage.getItem('userRole');
             if (fallbackCachedRole && fallbackCachedRole !== 'null') {
-              console.log('💾 API failed, but found cached role:', fallbackCachedRole);
+              authLogger.debug('API failed, but found cached role', fallbackCachedRole);
               authLogger.warn(`API role check failed (${error.message}), using cached role: ${fallbackCachedRole}`);
               userRole = fallbackCachedRole;
             } else {
               if (error.message.includes('Role check timeout')) {
-                console.log('⏰ Role check timed out after 30s - no cached role available');
+                authLogger.warn('Role check timed out after 30s - no cached role available');
                 authLogger.warn('Role check timed out after 30s - no cached role available (backend may be cold starting)');
               } else if (error.message.includes('Firebase auth token unavailable')) {
-                console.log('🔑 Firebase token issue - no cached role available');
+                authLogger.error('Firebase token issue - no cached role available');
                 authLogger.error('Firebase token issue - no cached role available');
               } else {
-                console.log('🔄 Other role check error - no cached role available:', error.message);
+                authLogger.error('Other role check error - no cached role available', error.message);
                 authLogger.debug('Role check error - no cached role available', error.message);
               }
               userRole = null;
             }
           }
         } else {
-          console.log('⚡ Skipping API call, using cached role for faster startup');
+          authLogger.debug('Skipping API call, using cached role for faster startup');
         }
 
         if (!userRole) {
-          console.log('👤 No user role found - redirecting to select-role');
+          authLogger.debug('No user role found - redirecting to select-role');
           setUserRole(null);
           localStorage.removeItem('userRole'); // Clear any stale role data
           setLeagues([]);
@@ -190,19 +190,19 @@ export function AuthProvider({ children }) {
           setRoleChecked(true);
           
           const currentPath = window.location.pathname;
-          console.log('📍 Current path:', currentPath);
+          authLogger.debug('Current path', currentPath);
           if (currentPath.startsWith('/join-event/')) {
             const joinPath = currentPath.replace('/join-event/', '');
             localStorage.setItem('pendingEventJoin', joinPath);
           }
           
-          console.log('🚀 Navigating to /select-role');
+          authLogger.debug('Navigating to /select-role');
           navigate("/select-role");
           setInitializing(false);
           return;
         }
 
-        console.log('✅ User role found:', userRole);
+        authLogger.debug('User role found', userRole);
         setUserRole(userRole);
         // Persist role to localStorage for browser refresh resilience
         localStorage.setItem('userRole', userRole);
@@ -210,7 +210,7 @@ export function AuthProvider({ children }) {
         // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
         // Do it in background after navigation completes
         const currentPath = window.location.pathname;
-        console.log('📍 Current path (with role):', currentPath);
+        authLogger.debug('Current path (with role)', currentPath);
         const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
         const isInitialLoad = currentPath === '/select-role';
         
@@ -294,18 +294,18 @@ export function AuthProvider({ children }) {
         
         // Navigation logic (reuse currentPath from above)
         const onboardingRoutes = ["/login", "/signup", "/"];
-        console.log('🧭 Checking navigation - current path:', currentPath, 'onboarding routes:', onboardingRoutes);
-        console.log('🏆 Auth state after role check:', {
+        authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
+        authLogger.debug('Auth state after role check', {
           userRole,
           selectedLeagueId: localStorage.getItem('selectedLeagueId'),
           leaguesLoaded: leagues?.length || 0
         });
         
         if (onboardingRoutes.includes(currentPath)) {
-          console.log('🚀 Navigating to /dashboard');
+          authLogger.debug('Navigating to /dashboard');
           navigate("/dashboard");
         } else {
-          console.log('📍 Staying on current path:', currentPath);
+          authLogger.debug('Staying on current path', currentPath);
         }
 
       } catch (err) {

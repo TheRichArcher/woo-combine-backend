@@ -1,211 +1,94 @@
 /**
- * Standardized validation utilities for consistent input validation
- * across the WooCombine application
+ * Frontend validation utilities for form inputs and user data
  */
-
-// Validation rule types
-export const VALIDATION_RULES = {
-  REQUIRED: 'required',
-  EMAIL: 'email',
-  NUMBER: 'number',
-  MIN_LENGTH: 'minLength',
-  MAX_LENGTH: 'maxLength',
-  PATTERN: 'pattern'
-};
 
 /**
- * Basic validation functions
+ * Validates email address format
+ * @param {string} email - Email address to validate
+ * @returns {string} - Cleaned email address
+ * @throws {Error} - If email is invalid
  */
-export const validators = {
-  required: (value) => {
-    if (value === null || value === undefined || value === '') {
-      return 'This field is required';
-    }
-    if (typeof value === 'string' && value.trim() === '') {
-      return 'This field is required';
-    }
-    return null;
-  },
-
-  email: (value) => {
-    if (!value) return null; // Allow empty if not required
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return 'Please enter a valid email address';
-    }
-    return null;
-  },
-
-  number: (value) => {
-    if (!value) return null; // Allow empty if not required
-    if (isNaN(Number(value))) {
-      return 'Please enter a valid number';
-    }
-    return null;
-  },
-
-  minLength: (min) => (value) => {
-    if (!value) return null; // Allow empty if not required
-    if (value.length < min) {
-      return `Must be at least ${min} characters long`;
-    }
-    return null;
-  },
-
-  maxLength: (max) => (value) => {
-    if (!value) return null; // Allow empty if not required
-    if (value.length > max) {
-      return `Must be no more than ${max} characters long`;
-    }
-    return null;
-  },
-
-  pattern: (regex, message) => (value) => {
-    if (!value) return null; // Allow empty if not required
-    if (!regex.test(value)) {
-      return message || 'Invalid format';
-    }
-    return null;
+export function validateEmail(email) {
+  if (!email || typeof email !== 'string') {
+    throw new Error('Email is required');
   }
-};
-
-/**
- * Validate a single field against multiple rules
- * @param {any} value - Value to validate
- * @param {Array} rules - Array of validation rules
- * @returns {string|null} - Error message or null if valid
- */
-export const validateField = (value, rules = []) => {
-  for (const rule of rules) {
-    if (typeof rule === 'function') {
-      const error = rule(value);
-      if (error) return error;
-    } else if (typeof rule === 'object') {
-      const { type, ...params } = rule;
-      let validator;
-      
-      switch (type) {
-        case VALIDATION_RULES.REQUIRED:
-          validator = validators.required;
-          break;
-        case VALIDATION_RULES.EMAIL:
-          validator = validators.email;
-          break;
-        case VALIDATION_RULES.NUMBER:
-          validator = validators.number;
-          break;
-        case VALIDATION_RULES.MIN_LENGTH:
-          validator = validators.minLength(params.min);
-          break;
-        case VALIDATION_RULES.MAX_LENGTH:
-          validator = validators.maxLength(params.max);
-          break;
-        case VALIDATION_RULES.PATTERN:
-          validator = validators.pattern(params.regex, params.message);
-          break;
-        default:
-          continue;
-      }
-      
-      const error = validator(value);
-      if (error) return error;
-    }
-  }
-  return null;
-};
-
-/**
- * Validate an entire form object
- * @param {Object} formData - Form data object
- * @param {Object} validationSchema - Validation schema with field rules
- * @returns {Object} - Object with field errors and isValid flag
- */
-export const validateForm = (formData, validationSchema) => {
-  const errors = {};
-  let isValid = true;
-
-  for (const [field, rules] of Object.entries(validationSchema)) {
-    const value = formData[field];
-    const error = validateField(value, rules);
-    if (error) {
-      errors[field] = error;
-      isValid = false;
-    }
-  }
-
-  return { errors, isValid };
-};
-
-/**
- * Common validation schemas for reuse
- */
-export const commonSchemas = {
-  player: {
-    name: [validators.required, validators.maxLength(100)],
-    number: [validators.number],
-    age_group: [validators.maxLength(20)]
-  },
   
-  drill: {
-    type: [validators.required],
-    value: [validators.required, validators.number]
-  },
+  const trimmedEmail = email.trim().toLowerCase();
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   
-  event: {
-    name: [validators.required, validators.maxLength(100)],
-    date: [validators.required],
-    location: [validators.maxLength(200)]
-  },
-  
-  league: {
-    name: [validators.required, validators.maxLength(100)],
-    description: [validators.maxLength(500)]
+  if (!emailRegex.test(trimmedEmail)) {
+    throw new Error('Invalid email format');
   }
-};
+  
+  return trimmedEmail;
+}
 
 /**
- * Custom validation helpers
+ * Validates player name format and length
+ * @param {string} name - Player name to validate
+ * @returns {string} - Cleaned player name
+ * @throws {Error} - If name is invalid
  */
-export const customValidators = {
-  playerNumber: (value, existingNumbers = []) => {
-    if (!value) return null;
-    const num = Number(value);
-    if (isNaN(num) || num < 1 || num > 999) {
-      return 'Player number must be between 1 and 999';
-    }
-    if (existingNumbers.includes(num)) {
-      return 'This player number is already taken';
-    }
-    return null;
-  },
-
-  drillValue: (value, drillType) => {
-    if (!value) return null;
-    const num = Number(value);
-    if (isNaN(num)) {
-      return 'Please enter a valid number';
-    }
-    
-    // Drill-specific validation
-    switch (drillType) {
-      case '40m_dash':
-        if (num <= 0 || num > 60) {
-          return '40-yard dash time should be between 0 and 60 seconds';
-        }
-        break;
-      case 'vertical_jump':
-        if (num < 0 || num > 100) {
-          return 'Vertical jump should be between 0 and 100 inches';
-        }
-        break;
-      case 'catching':
-      case 'throwing':
-      case 'agility':
-        if (num < 0 || num > 100) {
-          return 'Score should be between 0 and 100 points';
-        }
-        break;
-    }
-    return null;
+export function validatePlayerName(name) {
+  if (!name || typeof name !== 'string') {
+    throw new Error('Player name is required');
   }
-};
+  
+  const trimmedName = name.trim();
+  
+  if (trimmedName.length < 2) {
+    throw new Error('Player name must be at least 2 characters long');
+  }
+  
+  if (trimmedName.length > 50) {
+    throw new Error('Player name must be no more than 50 characters long');
+  }
+  
+  // Allow letters, spaces, hyphens, apostrophes, and periods
+  const nameRegex = /^[a-zA-ZÀ-ÿ\s\-'\.]+$/;
+  if (!nameRegex.test(trimmedName)) {
+    throw new Error('Player name contains invalid characters');
+  }
+  
+  return trimmedName;
+}
+
+/**
+ * Validates password strength
+ * @param {string} password - Password to validate
+ * @returns {string} - The password if valid
+ * @throws {Error} - If password is invalid
+ */
+export function validatePassword(password) {
+  if (!password || typeof password !== 'string') {
+    throw new Error('Password is required');
+  }
+  
+  if (password.length < 6) {
+    throw new Error('Password must be at least 6 characters long');
+  }
+  
+  return password;
+}
+
+/**
+ * Validates age group format
+ * @param {string} ageGroup - Age group to validate
+ * @returns {string} - Cleaned age group
+ * @throws {Error} - If age group is invalid
+ */
+export function validateAgeGroup(ageGroup) {
+  if (!ageGroup || typeof ageGroup !== 'string') {
+    throw new Error('Age group is required');
+  }
+  
+  const trimmedAgeGroup = ageGroup.trim();
+  
+  // Allow formats like: 7-8, 9-10, U12, 12U, etc.
+  const ageGroupRegex = /^((\d{1,2}-\d{1,2})|(U\d{1,2})|(\d{1,2}U))$/;
+  if (!ageGroupRegex.test(trimmedAgeGroup)) {
+    throw new Error('Invalid age group format. Examples: 7-8, U12, 12U');
+  }
+  
+  return trimmedAgeGroup;
+}

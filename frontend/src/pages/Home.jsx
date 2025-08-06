@@ -15,7 +15,7 @@ export default function Home() {
 
   // Debug logging for league state
   React.useEffect(() => {
-    console.log('🏠 HOME COMPONENT STATE:', {
+    // Debug: Component state logging removed for production
       userRole,
       selectedLeagueId,
       leagues: leagues?.length || 0,

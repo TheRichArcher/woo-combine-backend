@@ -42,9 +42,9 @@ function getDrillRangeCacheKey(players, ageGroup) {
 
 /**
  * Calculate drill ranges with caching for performance
- * @param {Array} players - All players
+ * @param {Array<Object>} players - All players with drill scores
  * @param {string} ageGroup - Age group to calculate ranges for
- * @returns {Object} Drill ranges { drillKey: { min, max } }
+ * @returns {Object<string, {min: number, max: number}>} Drill ranges by drill key
  */
 function getCachedDrillRanges(players, ageGroup) {
   const cacheKey = getDrillRangeCacheKey(players, ageGroup);
@@ -88,8 +88,8 @@ function getCachedDrillRanges(players, ageGroup) {
 /**
  * Calculate normalized score for a single drill value
  * @param {number} rawScore - Raw drill score
- * @param {Object} range - { min, max } for the drill
- * @param {string} drillKey - Drill identifier
+ * @param {{min: number, max: number}} range - Min/max range for the drill
+ * @param {string} drillKey - Drill identifier (e.g., '40m_dash', 'vertical_jump')
  * @returns {number} Normalized score (0-100)
  */
 function calculateNormalizedDrillScore(rawScore, range, drillKey) {

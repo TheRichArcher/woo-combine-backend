@@ -4,6 +4,19 @@
  * Replaces the complex weight management logic in Players.jsx
  * with a clean, performance-optimized solution using debouncing
  * and memoized calculations.
+ * 
+ * @param {Array<Object>} players - Array of player objects with drill scores
+ * @returns {{
+ *   persistedWeights: Object,
+ *   sliderWeights: Object,
+ *   handleWeightChange: Function,
+ *   applyPreset: Function,
+ *   batchUpdateWeights: Function,
+ *   rankings: Array<Object>,
+ *   groupedRankings: Object,
+ *   liveRankings: Array<Object>,
+ *   activePreset: string|null
+ * }} Hook state and methods for weight management
  */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
@@ -11,6 +24,11 @@ import { WEIGHT_PRESETS } from '../constants/players';
 import { debounce } from '../utils/debounce';
 import { calculateOptimizedRankings } from '../utils/optimizedScoring';
 
+/**
+ * Custom hook for optimized weight management with performance optimizations
+ * @param {Array<Object>} players - Array of player objects
+ * @returns {Object} Weight management state and methods
+ */
 export function useOptimizedWeights(players = []) {
   // Persisted weights (the source of truth)
   const [persistedWeights, setPersistedWeights] = useState({

@@ -160,6 +160,13 @@ export const dataCache = new DataCache();
  * @param {number} ttl - Cache TTL in milliseconds
  * @returns {Function} Cached API function
  */
+/**
+ * Higher-order function that adds caching to an API function
+ * @param {Function} apiFunction - The API function to cache
+ * @param {string} cachePrefix - Cache key prefix for categorization
+ * @param {number} ttl - Time to live in milliseconds (default: 5 minutes)
+ * @returns {Function} Cached version of the API function
+ */
 export function withCache(apiFunction, cachePrefix, ttl = 5 * 60 * 1000) {
   return async function cachedApiCall(...args) {
     // Generate cache key from function arguments
@@ -227,6 +234,11 @@ export const cacheInvalidation = {
 /**
  * Prefetch data for better performance
  * @param {Array} requests - Array of { apiFunction, args, cachePrefix } objects
+ */
+/**
+ * Prefetch multiple data requests concurrently
+ * @param {Array<{key: string, apiCall: Function}>} requests - Array of prefetch requests
+ * @returns {Promise<Object>} Map of results by key
  */
 export async function prefetchData(requests) {
   const promises = requests.map(async ({ apiFunction, args, cachePrefix }) => {

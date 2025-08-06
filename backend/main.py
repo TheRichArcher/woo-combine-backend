@@ -8,6 +8,8 @@ from .routes.users import router as users_router
 from .routes.evaluators import router as evaluators_router
 from .routes.batch import router as batch_router
 from .auth import get_current_user
+from .middleware.rate_limiting import add_rate_limiting, health_rate_limit
+from .middleware.security import add_security_middleware
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -21,6 +23,12 @@ import asyncio
 logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
+
+# Add security middleware (first for maximum protection)
+add_security_middleware(app)
+
+# Add rate limiting middleware
+add_rate_limiting(app)
 
 # Fast OPTIONS response middleware to handle CORS preflight quickly
 class FastOptionsMiddleware(BaseHTTPMiddleware):
@@ -80,6 +88,7 @@ app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 
 # Health check endpoint for debugging
 @app.get("/api/health")
+@health_rate_limit()
 def health_check():
     """Simple health check that tests key system components"""
     try:
@@ -103,6 +112,7 @@ def health_check():
 
 @app.get("/health")
 @app.head("/health")
+@health_rate_limit()
 def simple_health():
     """Minimal health check endpoint for deployment monitoring"""
     return {
