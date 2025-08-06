@@ -4,7 +4,7 @@ import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
 import { QrCode, Copy, ArrowLeft, Users, UserPlus } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import QRCode from 'qrcode.react';
+import QRCode from 'react-qr-code';
 import LoadingScreen from '../components/LoadingScreen';
 
 export default function EventSharing() {
