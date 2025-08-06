@@ -105,36 +105,65 @@ async def set_user_role(
         if not role or role not in ["organizer", "coach", "viewer", "player"]:
             raise HTTPException(status_code=400, detail="Invalid role")
         
-        # Database operations with error handling
+        # Database operations with comprehensive error handling
         try:
             db = get_firestore_client()
             if not db:
+                logging.error("Firestore client is None")
                 raise HTTPException(status_code=500, detail="Database connection failed")
+            
+            logging.info(f"Setting role for user {uid}: {role}")
+            
+            # Test Firestore connectivity first
+            try:
+                # Try a simple operation to test connection
+                test_doc = db.collection("_test").document("connectivity").get()
+                logging.info("Firestore connectivity test passed")
+            except Exception as conn_error:
+                logging.error(f"Firestore connectivity test failed: {conn_error}")
+                logging.error(f"Connectivity error type: {type(conn_error).__name__}")
+                raise HTTPException(status_code=500, detail="Database connectivity issue")
             
             # Check if user document exists, create or update accordingly
             user_doc_ref = db.collection("users").document(uid)
-            user_doc = user_doc_ref.get()
             
-            if user_doc.exists:
-                # Document exists - only update the role
-                role_update = {
-                    "role": role
-                }
-                user_doc_ref.update(role_update)
-                logging.info(f"Updated role for existing user {uid}: {role}")
-            else:
-                # Document doesn't exist - create it with minimal data
-                user_data = {
-                    "id": uid,
-                    "email": email,
-                    "role": role,
-                    "created_at": datetime.utcnow().isoformat()
-                }
-                user_doc_ref.set(user_data)
-                logging.info(f"Created new user document for {uid} with role: {role}")
+            try:
+                user_doc = user_doc_ref.get()
+                logging.info(f"Successfully retrieved user document. Exists: {user_doc.exists}")
+            except Exception as get_error:
+                logging.error(f"Failed to get user document: {get_error}")
+                logging.error(f"Get error type: {type(get_error).__name__}")
+                raise HTTPException(status_code=500, detail="Failed to read user data")
+            
+            try:
+                if user_doc.exists:
+                    # Document exists - only update the role
+                    role_update = {
+                        "role": role
+                    }
+                    user_doc_ref.update(role_update)
+                    logging.info(f"✅ Updated role for existing user {uid}: {role}")
+                else:
+                    # Document doesn't exist - create it with minimal data
+                    user_data = {
+                        "id": uid,
+                        "email": email,
+                        "role": role,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                    user_doc_ref.set(user_data)
+                    logging.info(f"✅ Created new user document for {uid} with role: {role}")
+            except Exception as write_error:
+                logging.error(f"Failed to write user role: {write_error}")
+                logging.error(f"Write error type: {type(write_error).__name__}")
+                logging.error(f"Write error args: {write_error.args}")
+                raise HTTPException(status_code=500, detail="Failed to save role to database")
             
             # PERFORMANCE: Clear cache after role update to ensure fresh data
-            _get_cached_user_profile.cache_clear()
+            try:
+                _get_cached_user_profile.cache_clear()
+            except Exception as cache_error:
+                logging.warning(f"Failed to clear cache (non-critical): {cache_error}")
             
             return {
                 "id": uid,
@@ -146,11 +175,78 @@ async def set_user_role(
         except HTTPException:
             raise
         except Exception as db_error:
-            logging.error(f"Database error during role setting: {db_error}")
+            logging.error(f"Unexpected database error during role setting: {db_error}")
+            logging.error(f"Unexpected error type: {type(db_error).__name__}")
+            logging.error(f"Unexpected error args: {db_error.args}")
             raise HTTPException(status_code=500, detail="Failed to save role to database")
         
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error setting user role: {e}")
-        raise HTTPException(status_code=500, detail="Failed to set user role") 
+        raise HTTPException(status_code=500, detail="Failed to set user role")
+
+@router.post("/debug-role", summary="Debug role setting with simplified auth")
+async def debug_set_user_role(
+    role_data: SetRoleRequest,
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+):
+    """Debug endpoint for role setting with detailed logging"""
+    try:
+        logging.info(f"[DEBUG-ROLE] Starting role setting debug")
+        
+        # Very basic Firebase token verification
+        token = credentials.credentials
+        logging.info(f"[DEBUG-ROLE] Token received: {token[:20]}...")
+        
+        try:
+            decoded_token = auth.verify_id_token(token)
+            uid = decoded_token["uid"]
+            email = decoded_token.get("email", "")
+            logging.info(f"[DEBUG-ROLE] Token verified for UID: {uid}, Email: {email}")
+        except Exception as e:
+            logging.error(f"[DEBUG-ROLE] Token verification failed: {e}")
+            return {"error": f"Token verification failed: {str(e)}", "success": False}
+        
+        role = role_data.role
+        logging.info(f"[DEBUG-ROLE] Role to set: {role}")
+        
+        # Test Firestore connection
+        try:
+            db = get_firestore_client()
+            logging.info(f"[DEBUG-ROLE] Firestore client obtained: {type(db)}")
+            
+            # Simple connectivity test
+            test_doc = db.collection("_debug").document("test").get()
+            logging.info(f"[DEBUG-ROLE] Connectivity test passed")
+            
+            # Try to create a simple test document
+            test_data = {"test": "value", "timestamp": datetime.utcnow().isoformat()}
+            db.collection("_debug").document(f"test_{uid}").set(test_data)
+            logging.info(f"[DEBUG-ROLE] Test document created successfully")
+            
+            return {
+                "success": True,
+                "message": "Debug test passed - Firestore is working",
+                "uid": uid,
+                "email": email,
+                "role": role
+            }
+            
+        except Exception as db_error:
+            logging.error(f"[DEBUG-ROLE] Database error: {db_error}")
+            logging.error(f"[DEBUG-ROLE] Error type: {type(db_error).__name__}")
+            return {
+                "success": False,
+                "error": f"Database error: {str(db_error)}",
+                "error_type": type(db_error).__name__
+            }
+            
+    except Exception as e:
+        logging.error(f"[DEBUG-ROLE] Unexpected error: {e}")
+        return {
+            "success": False,
+            "error": f"Unexpected error: {str(e)}",
+            "error_type": type(e).__name__
+        } 
