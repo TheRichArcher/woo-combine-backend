@@ -78,7 +78,9 @@ export default function Players() {
     applyPreset,
     rankings: optimizedRankings,
     liveRankings,
-    groupedRankings
+    groupedRankings,
+    setSliderWeights,
+    persistSliderWeights
   } = useOptimizedWeights(players);
 
   const [showCustomControls, setShowCustomControls] = useState(false);

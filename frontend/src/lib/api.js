@@ -8,7 +8,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
   withCredentials: false,
-  timeout: 15000  // Reduced to 15s - faster failure for better UX
+  timeout: 30000  // Increased to 30s to handle cold starts better
 });
 
 // Enhanced retry logic for cold start recovery
@@ -24,11 +24,11 @@ api.interceptors.response.use(
       config._retryCount = 0;
     }
     
-    // PERFORMANCE FIX: Reduce retries for faster failure recovery
-    const maxRetries = error.config?.url?.includes('/leagues/me') ? 0 : // No retries for league fetch 
-                      error.config?.url?.includes('/users/me') ? 0 : // No retries for role check
-                      error.config?.url?.includes('/warmup') ? 0 : // No retries for warmup
-                      0; // AGGRESSIVE: No retries for faster UX
+    // COLD START FIX: Enable retries for timeout errors to handle cold starts
+    const maxRetries = error.config?.url?.includes('/warmup') ? 0 : // No retries for warmup
+                      error.code === 'ECONNABORTED' || error.message.includes('timeout') ? 2 : // 2 retries for timeouts
+                      error.response?.status >= 500 ? 1 : // 1 retry for server errors
+                      0; // No retries for other errors
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
@@ -148,6 +148,10 @@ api.interceptors.response.use(
       console.error('[API] Server Error:', error.response.data.detail);
     } else if (error.code === 'ECONNABORTED') {
       console.log('[API] Request timeout - server may be starting up');
+      // Add user-friendly timeout message
+      if (config._retryCount === 0) {
+        console.log('[API] First timeout - will retry automatically');
+      }
     } else if (error.message.includes('Network Error')) {
       console.error('[API] Network connectivity issue');
     } else {

@@ -169,6 +169,12 @@ export function useOptimizedWeights(players = []) {
     }
   }, [persistedWeights, detectActivePreset, activePreset]);
 
+  // Persist slider weights function for backward compatibility
+  const persistSliderWeights = useCallback((weights) => {
+    setSliderWeights({ ...weights });
+    debouncedPersistWeights(weights);
+  }, [debouncedPersistWeights]);
+
   return {
     // Weight state
     persistedWeights,
@@ -179,6 +185,8 @@ export function useOptimizedWeights(players = []) {
     handleWeightChange,
     applyPreset,
     batchUpdateWeights,
+    setSliderWeights, // Export for backward compatibility
+    persistSliderWeights, // Export for backward compatibility
     
     // Rankings data
     rankings: memoizedRankings,
