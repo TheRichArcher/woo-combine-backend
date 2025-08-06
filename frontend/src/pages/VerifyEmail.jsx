@@ -104,7 +104,9 @@ export default function VerifyEmail() {
           if (auth.currentUser.emailVerified) {
             // Clear the interval before navigating to prevent further runs
             clearInterval(interval);
-            // Skip token refresh here - AuthContext will handle it
+            
+            // CRITICAL: Force token refresh so backend gets updated email_verified status
+            await auth.currentUser.getIdToken(true);
             
             // Only update state if component is still active
             if (isActive) {
@@ -122,8 +124,8 @@ export default function VerifyEmail() {
     // Initial check
     checkVerified();
     
-    // Set up interval
-    const interval = setInterval(checkVerified, 10000);
+    // Set up interval - check more frequently for better UX
+    const interval = setInterval(checkVerified, 3000); // Check every 3 seconds instead of 10
     
     // Cleanup function
     return () => {
@@ -157,7 +159,8 @@ export default function VerifyEmail() {
         await auth.currentUser.reload();
         setIsVerified(auth.currentUser.emailVerified);
         if (auth.currentUser.emailVerified) {
-          // Skip token refresh here - AuthContext will handle it for speed
+          // CRITICAL: Force token refresh so backend gets updated email_verified status
+          await auth.currentUser.getIdToken(true);
           setUser(auth.currentUser);
           navigate("/select-role");
         } else {

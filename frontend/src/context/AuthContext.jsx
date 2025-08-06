@@ -173,16 +173,12 @@ export function AuthProvider({ children }) {
           try {
             let token;
             try {
-              // Try cached token first, fallback to refresh only if needed
-              token = await firebaseUser.getIdToken(false);
-            } catch (tokenError) {
-              authLogger.warn('Cached token failed, trying refresh:', tokenError.message);
-              try {
-                token = await firebaseUser.getIdToken(true);
-              } catch (refreshError) {
-                authLogger.error('Token refresh failed:', refreshError.message);
-                throw new Error('Firebase auth token unavailable');
-              }
+              // For role checking, always refresh token to ensure email_verified is current
+              // This is crucial after email verification
+              token = await firebaseUser.getIdToken(true);
+            } catch (refreshError) {
+              authLogger.error('Token refresh failed:', refreshError.message);
+              throw new Error('Firebase auth token unavailable');
             }
             
             const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
