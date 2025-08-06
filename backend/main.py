@@ -74,6 +74,8 @@ def get_firestore_lazy():
             logging.info("[STARTUP] Firestore client initialized lazily")
         except Exception as e:
             logging.warning(f"[STARTUP] Firestore lazy initialization issue: {e}")
+            if "DefaultCredentialsError" in str(e) or "credentials" in str(e).lower():
+                logging.error("[STARTUP] ❗ Missing Firebase credentials! Set GOOGLE_APPLICATION_CREDENTIALS_JSON in environment")
             _firestore_client = None
     return _firestore_client
 

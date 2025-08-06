@@ -13,7 +13,9 @@ The following issues have been resolved in the codebase:
 
 To complete the deployment, you need to set these **environment variables** in your Render service dashboard:
 
-### **Required Variables:**
+### **❗ CRITICAL - Required Variables:**
+
+⚠️ **Without these, your deployment will fail with Firestore errors!**
 
 1. **GOOGLE_CLOUD_PROJECT**
    - Value: Your Firebase project ID (e.g., `woo-combine-12345`)
@@ -21,10 +23,11 @@ To complete the deployment, you need to set these **environment variables** in y
 2. **FIREBASE_PROJECT_ID** 
    - Value: Same as above (your Firebase project ID)
 
-3. **GOOGLE_APPLICATION_CREDENTIALS_JSON**
+3. **GOOGLE_APPLICATION_CREDENTIALS_JSON** ⭐ **MOST IMPORTANT**
    - Value: Your Firebase service account JSON as a single line
    - Get this from: Firebase Console → Project Settings → Service Accounts → Generate new private key
-   - **Important:** Compress the JSON to a single line (remove all newlines)
+   - **Critical:** Must be valid JSON compressed to a single line (no newlines/spaces)
+   - **This fixes the "DefaultCredentialsError" in your logs**
 
 ### **Optional Variables (for enhanced functionality):**
 
@@ -59,17 +62,23 @@ python scripts/deploy-debug.py
 
 ### Common Issues
 
-**"Firestore connection error"**
-- Ensure `GOOGLE_APPLICATION_CREDENTIALS_JSON` is set correctly
-- JSON must be valid and on a single line
+**🔴 "DefaultCredentialsError" or "Failed to parse JSON credentials"**
+- **Solution**: Set `GOOGLE_APPLICATION_CREDENTIALS_JSON` in Render environment variables
+- JSON must be valid and compressed to a single line
+- This is the most common deployment failure
 
-**"Frontend not found"**
-- The build process creates the frontend automatically
-- Check build logs in Render dashboard
+**🔴 "Client.__init__() got an unexpected keyword argument 'options'"**
+- **Fixed**: This was caused by incompatible Firestore client options
+- The latest code removes the problematic options parameter
 
-**"Health check timeout"**
-- Server is probably starting but crashing due to missing environment variables
+**🟡 "Frontend not found"**
+- **Expected**: This warning is normal for backend-only deployments
+- The build process creates the frontend automatically for full-stack deployments
+
+**🔴 "Health check timeout"**
+- Server is starting but crashing due to missing environment variables
 - Check Render logs for specific error messages
+- Usually caused by missing Firebase credentials
 
 ## 📋 Firebase Service Account Setup
 
