@@ -123,82 +123,8 @@ export default function Players() {
     }));
   }, [optimizedRankings, persistedWeights]);
 
-  // 🏆 Live ranking calculation function
-  const calculateLiveRankings = useCallback((weightsToUse = null) => {
-    const weights = weightsToUse || currentWeights.current;
-    const newRankings = {};
-    
-    // Calculate "All Players" rankings first
-    const allPlayersWithScores = players.filter(player => 
-      DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
-    );
-    
-    if (allPlayersWithScores.length > 0) {
-      newRankings['all'] = calculateRankingsForGroup(allPlayersWithScores, weights);
-    }
-    
-    // Process each age group
-    Object.entries(grouped).forEach(([ageGroup, ageGroupPlayers]) => {
-      newRankings[ageGroup] = calculateRankingsForGroup(ageGroupPlayers, weights);
-    });
-    
-    setLiveRankings(newRankings);
-    
-    return newRankings;
-  }, [grouped]);
-
-  // Persist slider weights function
-  const persistSliderWeights = useCallback((weights) => {
-    if (timer.current) clearTimeout(timer.current);
-    
-    timer.current = setTimeout(() => {
-      // Persist to state
-      setPersistedWeights({ ...weights });
-      
-      // Clear active preset after calculation
-      setActivePreset('');
-      
-      // 🏆 Trigger live ranking recalculation
-      calculateLiveRankings(weights);
-    }, 100);
-  }, [calculateLiveRankings]);
-
-  const handleWeightChange = useCallback((name, value) => {
-    // Update ref immediately (no re-render, no lag during drag)
-    currentWeights.current[name] = value;
-
-    // Cancel previous timer
-    if (timer.current) clearTimeout(timer.current);
-
-    // Debounce persistence to avoid snapback
-    timer.current = setTimeout(() => {
-      // Persist to state (this causes re-render but after drag ends)
-      setPersistedWeights({ ...currentWeights.current });
-      
-      // Clear active preset after calculation
-      setActivePreset('');
-      
-      // 🏆 Trigger live ranking recalculation
-      calculateLiveRankings(currentWeights.current);
-    }, 300);
-  }, [calculateLiveRankings]);
-
-  const applyPreset = useCallback((presetKey) => {
-    if (WEIGHT_PRESETS[presetKey]) {
-      const newWeights = { ...WEIGHT_PRESETS[presetKey].weights };
-      
-      // Update both ref and persisted state immediately for presets
-      currentWeights.current = newWeights;
-      setPersistedWeights(newWeights);
-      setActivePreset(presetKey);
-      
-      // Trigger immediate recalculation for presets
-      if (timer.current) clearTimeout(timer.current);
-      
-      // 🏆 Trigger immediate live ranking recalculation
-      calculateLiveRankings(newWeights);
-    }
-  }, [calculateLiveRankings]);
+  // PERFORMANCE OPTIMIZATION: Removed old weight management functions
+  // These are now handled by useOptimizedWeights hook
 
 
 
@@ -256,12 +182,7 @@ export default function Players() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // Calculate initial live rankings when players or weights change
-  useEffect(() => {
-    if (players.length > 0) {
-      calculateLiveRankings();
-    }
-  }, [players, calculateLiveRankings]);
+  // PERFORMANCE OPTIMIZATION: Rankings are now calculated automatically by useOptimizedWeights hook
 
   // Auto-select "all" age group when players load (prevents setState during render)
   useEffect(() => {
@@ -639,16 +560,13 @@ export default function Players() {
                                 max={100}
                                 step={5}
                                 onInput={(e) => {
-                                  // Update weight immediately for smooth visual feedback
-                                  const newWeight = parseFloat(e.target.value);
-                                  setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
+                                  // Visual feedback is now handled by the optimized hook
+                                  // No need for immediate updates
                                 }}
                                 onChange={(e) => {
-                                  // Debounced calculation on change complete
+                                  // Use optimized weight change handler
                                   const newWeight = parseFloat(e.target.value);
-                                  const newWeights = { ...sliderWeights, [drill.key]: newWeight };
-                                  calculateLiveRankings(newWeights);
-                                  setActivePreset('');
+                                  handleWeightChange(drill.key, newWeight);
                                 }}
                                 className="w-full h-1 rounded cursor-pointer accent-white"
                               />
@@ -826,17 +744,10 @@ export default function Players() {
                                     min={0}
                                     max={100}
                                     step={5}
-                                    onInput={(e) => {
-                                      // Update weight immediately for smooth visual feedback
-                                      const newWeight = parseFloat(e.target.value);
-                                      setSliderWeights(prev => ({ ...prev, [drill.key]: newWeight }));
-                                    }}
                                     onChange={(e) => {
-                                      // Debounced calculation on change complete
+                                      // Use optimized weight change handler
                                       const newWeight = parseFloat(e.target.value);
-                                      const newWeights = { ...sliderWeights, [drill.key]: newWeight };
-                                      calculateLiveRankings(newWeights);
-                                      setActivePreset('');
+                                      handleWeightChange(drill.key, newWeight);
                                     }}
                                     className="w-full h-1 rounded cursor-pointer accent-white"
                                   />
