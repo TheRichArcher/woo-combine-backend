@@ -11,7 +11,7 @@ export default function RequireAuth({ children }) {
     return (
       <LoadingScreen 
         title="Setting up your account..."
-        subtitle="This should only take a few seconds"
+        subtitle="Almost there..."
         size="large"
         showProgress={true}
       />

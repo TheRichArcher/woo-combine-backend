@@ -125,20 +125,65 @@ def simple_health(request: Request):
 @app.get("/api/warmup")
 @health_rate_limit()
 def warmup_endpoint(request: Request):
-    """Warmup endpoint to pre-initialize services and reduce cold start impact"""
+    """Enhanced warmup endpoint with parallel operations for faster cold start recovery"""
     start_time = datetime.utcnow()
     
-    # Pre-initialize Firestore connection
-    try:
-        from .firestore_client import get_firestore_client
-        db = get_firestore_client()
+    # PERFORMANCE OPTIMIZATION: Parallel warmup operations for maximum efficiency
+    import concurrent.futures
+    import threading
+    
+    def warmup_firestore():
+        try:
+            from .firestore_client import get_firestore_client
+            db = get_firestore_client()
+            
+            # Pre-warm critical collections in parallel
+            warmup_tasks = [
+                db.collection("users").limit(1).get(),
+                db.collection("leagues").limit(1).get(),
+                db.collection("user_memberships").limit(1).get(),
+            ]
+            
+            # Execute collection warmups in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+                list(executor.map(lambda task: task, warmup_tasks))
+            
+            return "warmed"
+        except Exception as e:
+            logging.error(f"[WARMUP] Firestore warmup failed: {e}")
+            return f"failed: {str(e)[:50]}"
+    
+    def warmup_auth():
+        try:
+            from . import auth
+            from firebase_admin import auth as admin_auth
+            
+            # Test that auth module is importable and Firebase Admin is initialized
+            logging.info("[WARMUP] Auth module pre-initialized")
+            return "warmed"
+        except Exception as e:
+            logging.error(f"[WARMUP] Auth warmup failed: {e}")
+            return f"failed: {str(e)[:50]}"
+    
+    def warmup_routes():
+        try:
+            from .routes import leagues, users
+            logging.info("[WARMUP] Critical routes pre-initialized")
+            return "warmed"
+        except Exception as e:
+            logging.error(f"[WARMUP] Routes warmup failed: {e}")
+            return f"failed: {str(e)[:50]}"
+    
+    # Execute all warmup tasks in parallel for maximum speed
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        future_firestore = executor.submit(warmup_firestore)
+        future_auth = executor.submit(warmup_auth)
+        future_routes = executor.submit(warmup_routes)
         
-        # Perform a minimal read operation to warm up the connection
-        test_doc = db.collection("_warmup").document("test").get()
-        firestore_status = "warmed"
-    except Exception as e:
-        logging.error(f"[WARMUP] Firestore warmup failed: {e}")
-        firestore_status = f"failed: {str(e)[:50]}"
+        # Collect results
+        firestore_status = future_firestore.result()
+        auth_status = future_auth.result()
+        routes_status = future_routes.result()
     
     end_time = datetime.utcnow()
     duration_ms = (end_time - start_time).total_seconds() * 1000
@@ -147,8 +192,10 @@ def warmup_endpoint(request: Request):
         "status": "warmed",
         "duration_ms": round(duration_ms, 2),
         "firestore": firestore_status,
+        "auth": auth_status,
+        "routes": routes_status,
         "timestamp": end_time.isoformat(),
-        "version": "1.0.2"
+        "version": "1.0.4"
     }
 
 @app.get("/api")

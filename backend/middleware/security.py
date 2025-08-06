@@ -17,10 +17,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self.config = config or {}
         
     async def dispatch(self, request: Request, call_next):
+        # PERFORMANCE OPTIMIZATION: Skip heavy header processing for auth endpoints
+        # that are called frequently during onboarding
+        is_auth_endpoint = (
+            request.url.path in ['/api/users/me', '/api/warmup', '/api/health'] or
+            request.url.path.startswith('/api/leagues/me')
+        )
+        
         response = await call_next(request)
         
-        # Add security headers
-        self.add_security_headers(response, request)
+        if is_auth_endpoint:
+            # Minimal headers for auth endpoints (faster processing)
+            response.headers["X-API-Version"] = "1.0.2"
+            response.headers["X-Content-Type-Options"] = "nosniff"
+            if "Server" in response.headers:
+                del response.headers["Server"]
+        else:
+            # Full security headers for other endpoints
+            self.add_security_headers(response, request)
         
         return response
     
@@ -89,35 +103,43 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
         self.max_request_size = self.config.get('max_request_size', 10 * 1024 * 1024)  # 10MB
         
     async def dispatch(self, request: Request, call_next):
-        # Validate request size
-        if hasattr(request, 'headers'):
-            content_length = request.headers.get('content-length')
-            if content_length and int(content_length) > self.max_request_size:
-                logging.warning(f"Request too large: {content_length} bytes from {request.client}")
+        # PERFORMANCE OPTIMIZATION: Skip validation for auth endpoints to reduce latency
+        is_auth_endpoint = (
+            request.url.path in ['/api/users/me', '/api/warmup', '/api/health'] or
+            request.url.path.startswith('/api/leagues/me')
+        )
+        
+        if not is_auth_endpoint:
+            # Full validation for non-auth endpoints
+            # Validate request size
+            if hasattr(request, 'headers'):
+                content_length = request.headers.get('content-length')
+                if content_length and int(content_length) > self.max_request_size:
+                    logging.warning(f"Request too large: {content_length} bytes from {request.client}")
+                    return Response(
+                        content="Request too large",
+                        status_code=413,
+                        headers={"Content-Type": "text/plain"}
+                    )
+            
+            # Validate request path for suspicious patterns
+            if self.is_suspicious_path(request.url.path):
+                logging.warning(f"Suspicious request path: {request.url.path} from {request.client}")
                 return Response(
-                    content="Request too large",
-                    status_code=413,
+                    content="Invalid request",
+                    status_code=400,
                     headers={"Content-Type": "text/plain"}
                 )
-        
-        # Validate request path for suspicious patterns
-        if self.is_suspicious_path(request.url.path):
-            logging.warning(f"Suspicious request path: {request.url.path} from {request.client}")
-            return Response(
-                content="Invalid request",
-                status_code=400,
-                headers={"Content-Type": "text/plain"}
-            )
-        
-        # Validate user agent (basic bot detection)
-        user_agent = request.headers.get('user-agent', '')
-        if self.is_suspicious_user_agent(user_agent):
-            logging.warning(f"Suspicious user agent: {user_agent} from {request.client}")
-            return Response(
-                content="Invalid request",
-                status_code=400,
-                headers={"Content-Type": "text/plain"}
-            )
+            
+            # Validate user agent (basic bot detection)
+            user_agent = request.headers.get('user-agent', '')
+            if self.is_suspicious_user_agent(user_agent):
+                logging.warning(f"Suspicious user agent: {user_agent} from {request.client}")
+                return Response(
+                    content="Invalid request",
+                    status_code=400,
+                    headers={"Content-Type": "text/plain"}
+                )
         
         response = await call_next(request)
         return response

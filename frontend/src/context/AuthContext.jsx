@@ -31,21 +31,27 @@ export function AuthProvider({ children }) {
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
 
-  // PERFORMANCE: Backend warmup to reduce cold start impact
+  // PERFORMANCE: Enhanced backend warmup with parallel health checks
   const warmupBackend = useCallback(async () => {
     try {
-      authLogger.debug('Warming up backend...');
+      authLogger.debug('Starting enhanced backend warmup...');
       const warmupStart = performance.now();
       
-      await Promise.race([
+      // Parallel warmup requests for maximum efficiency
+      const warmupPromises = [
         fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/warmup`),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 3000))
+        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/health`)
+      ];
+      
+      await Promise.race([
+        Promise.allSettled(warmupPromises),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 2000)) // Reduced to 2s
       ]);
       
       const warmupTime = performance.now() - warmupStart;
-      authLogger.debug(`Backend warmed up in ${warmupTime.toFixed(0)}ms`);
+      authLogger.debug(`Enhanced backend warmup completed in ${warmupTime.toFixed(0)}ms`);
     } catch (error) {
-      authLogger.warn('Backend warmup failed', error.message);
+      authLogger.warn('Backend warmup failed (non-critical)', error.message);
     }
   }, []);
 
@@ -161,9 +167,9 @@ export function AuthProvider({ children }) {
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = cachedRole;
         
-        // If we have a cached role, skip the API call to speed up startup
-        if (!cachedRole || cachedRole === 'null') {
-          authLogger.debug('No cached role found, fetching from API');
+        // PERFORMANCE OPTIMIZATION: Skip API call completely if we have valid cached role
+        if (!cachedRole || cachedRole === 'null' || cachedEmail !== firebaseUser.email) {
+          authLogger.debug('No valid cached role found, fetching from API');
           try {
             let token;
             try {
@@ -190,7 +196,7 @@ export function AuthProvider({ children }) {
                   'Content-Type': 'application/json',
                 },
               }),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 8000)) // Reduced to 8s - if backend takes longer, use cache
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 5000)) // Reduced to 5s for faster fallback
             ]);
 
             authLogger.debug('API Response status', roleResponse.status);
@@ -239,7 +245,8 @@ export function AuthProvider({ children }) {
             }
           }
         } else {
-          authLogger.debug('Skipping API call, using cached role for faster startup');
+          authLogger.debug('Using cached role for instant startup - skipping API call entirely');
+          userRole = cachedRole;
         }
 
         if (!userRole) {
@@ -269,54 +276,27 @@ export function AuthProvider({ children }) {
         localStorage.setItem('userRole', userRole);
         localStorage.setItem('userEmail', firebaseUser.email);
 
-        // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
-        // Do it in background after navigation completes
+        // STEP 2: INTELLIGENT LEAGUE LOADING - Skip only for new organizers
         const currentPath = window.location.pathname;
         authLogger.debug('Current path (with role)', currentPath);
         const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
-        const isInitialLoad = currentPath === '/select-role';
         
-        if (isNewOrganizerFlow || isInitialLoad) {
-          // FAST PATH: Set empty state immediately, fetch leagues in background
+        if (isNewOrganizerFlow) {
+          // ULTRA-FAST PATH: New organizers get immediate state setup and navigation
           setLeagues([]);
           setSelectedLeagueIdState('');
-          setRole(null);
+          setRole(userRole);
           localStorage.removeItem('selectedLeagueId');
-          authLogger.info('PERFORMANCE: Fast path - will fetch leagues in background');
-          
-          // Background league fetch (non-blocking)
-          if (!isNewOrganizerFlow) {
-            setTimeout(async () => {
-              try {
-                const leagueResponse = await api.get(`/leagues/me`, { 
-                  timeout: 30000, // Increased to 30s for Render cold starts
-                  retry: 0
-                });
-                
-                const userLeagues = leagueResponse.data.leagues || [];
-                setLeagues(userLeagues);
-                
-                if (userLeagues.length > 0) {
-                  const targetLeagueId = userLeagues[0].id;
-                  setSelectedLeagueIdState(targetLeagueId);
-                  localStorage.setItem('selectedLeagueId', targetLeagueId);
-                  
-                  const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
-                  setRole(selectedLeague?.role || null);
-                  authLogger.info('BACKGROUND: Leagues loaded successfully');
-                }
-              } catch (error) {
-                authLogger.info('BACKGROUND: League fetch failed (non-critical)');
-              }
-            }, 100); // Minimal delay to let navigation complete
-          }
+          setRoleChecked(true);
+          setInitializing(false);
+          authLogger.info('PERFORMANCE: New organizer ultra-fast path - immediate navigation ready');
         } else if (!leagueFetchInProgress) {
           // Normal path for existing users not on select-role
           setLeagueFetchInProgress(true);
           
           try {
             const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 30000, // Increased to 30s for Render cold starts
+              timeout: 10000, // Reduced to 10s for faster loading
               retry: 0
             });
             

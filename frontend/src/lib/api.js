@@ -8,7 +8,7 @@ import { auth } from '../firebase';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
   withCredentials: false,
-  timeout: 30000  // 30s timeout for Render cold starts
+  timeout: 15000  // Reduced to 15s - faster failure for better UX
 });
 
 // Enhanced retry logic for cold start recovery
@@ -24,10 +24,11 @@ api.interceptors.response.use(
       config._retryCount = 0;
     }
     
-    // CRITICAL FIX: Aggressive retry reduction for speed
+    // PERFORMANCE FIX: Reduce retries for faster failure recovery
     const maxRetries = error.config?.url?.includes('/leagues/me') ? 0 : // No retries for league fetch 
                       error.config?.url?.includes('/users/me') ? 0 : // No retries for role check
-                      1; // Max 1 retry for other endpoints
+                      error.config?.url?.includes('/warmup') ? 0 : // No retries for warmup
+                      0; // AGGRESSIVE: No retries for faster UX
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
@@ -66,11 +67,44 @@ api.interceptors.request.use(async (config) => {
   
   if (user) {
     try {
-      const token = await user.getIdToken(true); // Force refresh token to get latest verification status
+      // ULTRA-PERFORMANCE OPTIMIZATION: Smart token caching with expiry checking
+      let token;
+      try {
+        // Get cached token first
+        token = await user.getIdToken(false);
+        
+        // ADVANCED: Check token expiry to avoid unnecessary refreshes
+        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+        const expiresAt = tokenPayload.exp * 1000; // Convert to milliseconds
+        const now = Date.now();
+        const timeUntilExpiry = expiresAt - now;
+        
+        // Only refresh if token expires in less than 5 minutes
+        if (timeUntilExpiry < 5 * 60 * 1000) {
+          console.log('[API] Token expires soon, refreshing proactively');
+          token = await user.getIdToken(true);
+        }
+        
+      } catch (cachedTokenError) {
+        // Fallback: Only refresh if it's been > 50 minutes since last refresh
+        const lastRefresh = localStorage.getItem('lastTokenRefresh');
+        const now = Date.now();
+        if (!lastRefresh || (now - parseInt(lastRefresh)) > 50 * 60 * 1000) {
+          console.log('[API] Cached token failed, refreshing');
+          token = await user.getIdToken(true);
+          localStorage.setItem('lastTokenRefresh', now.toString());
+        } else {
+          // Token should still be valid, continue without refresh
+          console.warn('[API] Cached token failed but recently refreshed, continuing without token');
+          return config;
+        }
+      }
+      
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     } catch (authError) {
       console.warn('[API] Failed to get auth token:', authError);
+      // Continue without token for non-auth endpoints
     }
   }
   

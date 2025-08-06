@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 import logging
 from datetime import datetime
+from functools import lru_cache
+import time
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
 
@@ -10,18 +12,35 @@ router = APIRouter(prefix="/users")
 class SetRoleRequest(BaseModel):
     role: str
 
+# PERFORMANCE OPTIMIZATION: Cache user profiles for 5 minutes to reduce database calls
+@lru_cache(maxsize=1000)
+def _get_cached_user_profile(uid: str, cache_time: int):
+    """Cache user profiles using 5-minute time buckets for automatic invalidation"""
+    try:
+        db = get_firestore_client()
+        user_doc = db.collection("users").document(uid).get()
+        
+        if not user_doc.exists:
+            return None
+        
+        return user_doc.to_dict()
+    except Exception as e:
+        logging.error(f"Error in cached user profile lookup: {e}")
+        return None
+
 @router.get("/me", summary="Get current user profile")
 async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
-    """Get the current user's profile information"""
+    """Get the current user's profile information with caching"""
     try:
         uid = current_user["uid"]
         email = current_user.get("email", "")
         role = current_user.get("role")
         
-        db = get_firestore_client()
-        user_doc = db.collection("users").document(uid).get()
+        # PERFORMANCE: Use cached lookup with 5-minute invalidation
+        cache_time = int(time.time() // 300)  # 5-minute time buckets
+        user_data = _get_cached_user_profile(uid, cache_time)
         
-        if not user_doc.exists:
+        if not user_data:
             # Return basic info if user document doesn't exist yet
             return {
                 "id": uid,
@@ -29,8 +48,6 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
                 "role": role,
                 "created_at": None
             }
-        
-        user_data = user_doc.to_dict()
         
         return {
             "id": uid,
