@@ -422,15 +422,28 @@ export default function Players() {
             </div>
           )}
           
-          {/* Simple Add Player Option */}
+          {/* Player Management Options */}
           {userRole === 'organizer' && (
-            <div className="border-t border-gray-200 pt-3 text-center">
-              <button
-                onClick={() => setShowAddPlayerModal(true)}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-              >
-                + Add Player
-              </button>
+            <div className="border-t border-gray-200 pt-4">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowAddPlayerModal(true)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Player
+                </button>
+                <button
+                  onClick={() => navigate('/admin#player-upload')}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  Import CSV
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 text-center mt-2">
+                Add individual players or import from spreadsheet
+              </p>
             </div>
           )}
         </div>

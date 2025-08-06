@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart } from 'lucide-react';
+import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode } from 'lucide-react';
 
 // Notification settings helper
 const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
@@ -135,6 +135,20 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
             <UserPlus className="w-5 h-5 text-gray-600" />
             <span className="font-medium text-gray-900">Join an Event</span>
           </button>
+
+          {/* Share Event QR Codes - For Organizers */}
+          {userRole === 'organizer' && (
+            <button
+              onClick={() => handleNavigation('/event-sharing')}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+            >
+              <QrCode className="w-5 h-5 text-blue-600" />
+              <div className="flex-1">
+                <span className="font-medium text-gray-900">Share Event QR Codes</span>
+                <div className="text-xs text-gray-500">Share with staff & participants</div>
+              </div>
+            </button>
+          )}
 
           {/* Divider */}
           <div className="border-t border-gray-200 my-2"></div>

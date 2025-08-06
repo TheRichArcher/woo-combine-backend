@@ -138,13 +138,33 @@ export default function Home() {
           {/* Quick Actions - Mojo Style Large Buttons */}
           <div className="grid grid-cols-1 gap-3">
             {userRole === 'organizer' && (
-              <button
-                onClick={() => handleNavigation('/players')}
-                className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
-              >
-                <Users className="w-6 h-6" />
-                Manage Players & Start Event
-              </button>
+              <>
+                <button
+                  onClick={() => handleNavigation('/players')}
+                  className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
+                >
+                  <Users className="w-6 h-6" />
+                  Manage Players & Start Event
+                </button>
+                
+                {/* Additional Quick Actions for Organizers */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleNavigation('/event-sharing')}
+                    className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                  >
+                    <BarChart3 className="w-5 h-5" />
+                    Share QR Codes
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/admin#player-upload')}
+                    className="bg-green-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
+                  >
+                    <Users className="w-5 h-5" />
+                    Import Players
+                  </button>
+                </div>
+              </>
             )}
             {userRole === 'coach' && (
               <button

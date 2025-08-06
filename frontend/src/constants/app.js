@@ -102,7 +102,8 @@ export const ROUTES = {
   JOIN_LEAGUE: '/join',
   VERIFY_EMAIL: '/verify-email',
   FORGOT_PASSWORD: '/forgot-password',
-  ONBOARDING_EVENT: '/onboarding/event'
+  ONBOARDING_EVENT: '/onboarding/event',
+  EVENT_SHARING: '/event-sharing'
 };
 
 // Error messages

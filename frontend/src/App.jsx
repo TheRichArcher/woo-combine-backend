@@ -34,6 +34,7 @@ import TeamFormationPage from "./pages/TeamFormationPage";
 import SportTemplatesPage from "./pages/SportTemplatesPage";
 import ScorecardsPage from "./pages/ScorecardsPage";
 import LiveStandings from "./pages/LiveStandings";
+import EventSharing from "./pages/EventSharing";
 
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
@@ -126,6 +127,16 @@ function App() {
                     <RequireAuth>
                       <AuthenticatedLayout>
                         <ScorecardsPage />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
+                  path="/event-sharing" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <EventSharing />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   } 
