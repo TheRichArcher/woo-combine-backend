@@ -222,11 +222,22 @@ def get_current_user_for_role_setting(
         logging.info(f"[AUTH] Starting Firestore lookup for role setting: {uid}")
         try:
             db = get_firestore_client()
+            if not db:
+                logging.error(f"[AUTH] Failed to get Firestore client")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Database connection failed"
+                )
+            
             user_doc = db.collection("users").document(uid).get()
             logging.info(f"[AUTH] Firestore lookup completed. User exists: {user_doc.exists}")
             
+        except HTTPException:
+            raise
         except Exception as e:
-            logging.error(f"[AUTH] Firestore lookup failed: {e}")
+            logging.error(f"[AUTH] Firestore lookup failed for role setting: {e}")
+            logging.error(f"[AUTH] Exception type: {type(e).__name__}")
+            logging.error(f"[AUTH] Exception args: {e.args}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Database lookup failed"
@@ -247,7 +258,9 @@ def get_current_user_for_role_setting(
                 return {"uid": uid, "email": email, "role": None}
                         
             except Exception as create_error:
-                logging.error(f"[AUTH] Failed to create user document: {create_error}")
+                logging.error(f"[AUTH] Failed to create user document for role setting: {create_error}")
+                logging.error(f"[AUTH] Create error type: {type(create_error).__name__}")
+                # Still allow the role setting to proceed
                 return {"uid": uid, "email": email, "role": None}
         
         user_data = user_doc.to_dict()

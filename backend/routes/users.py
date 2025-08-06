@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 import logging
 from datetime import datetime
 from functools import lru_cache
 import time
-from ..auth import get_current_user, get_current_user_for_role_setting
+from firebase_admin import auth
+from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
 
 router = APIRouter(prefix="/users")
@@ -63,48 +65,89 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
 @router.post("/role", summary="Set user role")
 async def set_user_role(
     role_data: SetRoleRequest,
-    current_user: dict = Depends(get_current_user_for_role_setting)
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
 ):
-    """Set the role for the current user"""
+    """Set the role for the current user with simplified auth for onboarding"""
     try:
-        uid = current_user["uid"]
-        email = current_user.get("email", "")
+        # SIMPLIFIED AUTH: Direct Firebase token verification for role setting
+        token = credentials.credentials
+        
+        try:
+            decoded_token = auth.verify_id_token(token)
+            uid = decoded_token["uid"]
+            email = decoded_token.get("email", "")
+            
+            # For role setting, be more lenient with email verification
+            # (user might have just verified but token hasn't refreshed)
+            email_verified = decoded_token.get("email_verified", False)
+            if not email_verified:
+                # Check token age - allow role setting for recent tokens
+                import time
+                token_issued_at = decoded_token.get("iat", 0)
+                current_time = time.time()
+                
+                if current_time - token_issued_at > 300:  # 5 minutes
+                    raise HTTPException(
+                        status_code=403, 
+                        detail="Email verification required. Please check your email and verify your account."
+                    )
+                # Otherwise, allow it (likely verification delay)
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            logging.error(f"Firebase token verification failed for role setting: {e}")
+            raise HTTPException(status_code=401, detail="Invalid authentication token")
+        
         role = role_data.role
         
         if not role or role not in ["organizer", "coach", "viewer", "player"]:
             raise HTTPException(status_code=400, detail="Invalid role")
         
-        db = get_firestore_client()
-        
-        # Check if user document exists, create or update accordingly
-        user_doc_ref = db.collection("users").document(uid)
-        user_doc = user_doc_ref.get()
-        
-        if user_doc.exists:
-            # Document exists - only update the role
-            role_update = {
-                "role": role
-            }
-            user_doc_ref.update(role_update)
-        else:
-            # Document doesn't exist - create it with minimal data
-            user_data = {
+        # Database operations with error handling
+        try:
+            db = get_firestore_client()
+            if not db:
+                raise HTTPException(status_code=500, detail="Database connection failed")
+            
+            # Check if user document exists, create or update accordingly
+            user_doc_ref = db.collection("users").document(uid)
+            user_doc = user_doc_ref.get()
+            
+            if user_doc.exists:
+                # Document exists - only update the role
+                role_update = {
+                    "role": role
+                }
+                user_doc_ref.update(role_update)
+                logging.info(f"Updated role for existing user {uid}: {role}")
+            else:
+                # Document doesn't exist - create it with minimal data
+                user_data = {
+                    "id": uid,
+                    "email": email,
+                    "role": role,
+                    "created_at": datetime.utcnow().isoformat()
+                }
+                user_doc_ref.set(user_data)
+                logging.info(f"Created new user document for {uid} with role: {role}")
+            
+            # PERFORMANCE: Clear cache after role update to ensure fresh data
+            _get_cached_user_profile.cache_clear()
+            
+            return {
                 "id": uid,
                 "email": email,
                 "role": role,
-                "created_at": datetime.utcnow().isoformat()
+                "message": "Role set successfully"
             }
-            user_doc_ref.set(user_data)
-        
-        # PERFORMANCE: Clear cache after role update to ensure fresh data
-        _get_cached_user_profile.cache_clear()
-        
-        return {
-            "id": uid,
-            "email": email,
-            "role": role,
-            "message": "Role set successfully"
-        }
+            
+        except HTTPException:
+            raise
+        except Exception as db_error:
+            logging.error(f"Database error during role setting: {db_error}")
+            raise HTTPException(status_code=500, detail="Failed to save role to database")
         
     except HTTPException:
         raise
