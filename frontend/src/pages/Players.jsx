@@ -14,6 +14,11 @@ import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
+// PERFORMANCE OPTIMIZATION: New optimized imports
+import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
+import { withCache, dataCache, cacheInvalidation } from '../utils/dataCache';
+import { debounce } from '../utils/debounce';
+
 // Icon mapping for TABS
 const ICON_MAP = {
   'Users': Users,
@@ -29,6 +34,16 @@ const ICON_MAP = {
 
 
 
+
+// PERFORMANCE OPTIMIZATION: Cached API function
+const cachedFetchPlayers = withCache(
+  async (eventId) => {
+    const res = await api.get(`/players?event_id=${eventId}`);
+    return res.data;
+  },
+  'players',
+  3 * 60 * 1000 // 3 minute cache
+);
 
 export default function Players() {
   const { selectedEvent } = useEvent();
@@ -55,49 +70,50 @@ export default function Players() {
   
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 
-  const [persistedWeights, setPersistedWeights] = useState({
-    "40m_dash": 20,
-    "vertical_jump": 20, 
-    "catching": 20,
-    "throwing": 20,
-    "agility": 20
-  });
-  
-  // Live slider values for smooth interaction
-  const [sliderWeights, setSliderWeights] = useState(persistedWeights);
-  
-  const currentWeights = useRef({ ...persistedWeights }); // Track during drag
-  const timer = useRef(null); // Timer for debouncing
-  const [activePreset, setActivePreset] = useState('balanced');
-  
-
-  
-  // Live ranking state
-  const [liveRankings, setLiveRankings] = useState({});
-
-  // Sync ref and sliderWeights when persisted weights change (from presets, etc.)
-  useEffect(() => {
-    currentWeights.current = { ...persistedWeights };
-    setSliderWeights({ ...persistedWeights });
-  }, [persistedWeights]);
+  // PERFORMANCE OPTIMIZATION: Replace complex weight management with optimized hook
+  const {
+    persistedWeights,
+    sliderWeights,
+    activePreset,
+    handleWeightChange,
+    applyPreset,
+    rankings: optimizedRankings,
+    liveRankings,
+    groupedRankings
+  } = useOptimizedWeights(players);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
 
-  // Calculate grouped data for weight controls
+  // PERFORMANCE OPTIMIZATION: Use grouped rankings from optimized hook
   const grouped = useMemo(() => {
+    // Use the optimized groupedRankings if available, otherwise fall back to basic grouping
+    if (Object.keys(groupedRankings).length > 0) {
+      return groupedRankings;
+    }
+    
     return players.reduce((acc, player) => {
       const ageGroup = player.age_group || 'Unknown';
       if (!acc[ageGroup]) acc[ageGroup] = [];
       acc[ageGroup].push(player);
       return acc;
     }, {});
-  }, [players]);
+  }, [players, groupedRankings]);
 
-  // Helper function to calculate rankings for a group of players using normalized scoring
+  // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
-    const rankedPlayers = calculateNormalizedCompositeScores(playersGroup, weights);
+    // Use the optimized rankings if this is for the current weights
+    const weightsMatch = Object.keys(weights).every(
+      key => Math.abs(weights[key] - persistedWeights[key]) < 0.1
+    );
     
-    // Sort by composite score (highest first) and add rank numbers
+    if (weightsMatch && optimizedRankings.length > 0) {
+      return optimizedRankings.filter(player => 
+        playersGroup.some(p => p.id === player.id)
+      );
+    }
+    
+    // Fallback to original calculation for different weights
+    const rankedPlayers = calculateNormalizedCompositeScores(playersGroup, weights);
     rankedPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
     
     return rankedPlayers.map((player, index) => ({
@@ -105,7 +121,7 @@ export default function Players() {
       weightedScore: player.compositeScore, // Keep backward compatibility with existing UI
       rank: index + 1
     }));
-  }, []);
+  }, [optimizedRankings, persistedWeights]);
 
   // 🏆 Live ranking calculation function
   const calculateLiveRankings = useCallback((weightsToUse = null) => {
@@ -205,6 +221,7 @@ export default function Players() {
     </div>
   );
 
+  // PERFORMANCE OPTIMIZATION: Use cached API calls
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
       setPlayers([]);
@@ -215,11 +232,13 @@ export default function Players() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.get(`/players?event_id=${selectedEvent.id}`);
-      setPlayers(res.data);
+      
+      // Use cached fetch for better performance
+      const playersData = await cachedFetchPlayers(selectedEvent.id);
+      setPlayers(playersData);
       
       if (selectedPlayer) {
-        const updatedPlayer = res.data.find(p => p.id === selectedPlayer.id);
+        const updatedPlayer = playersData.find(p => p.id === selectedPlayer.id);
         setSelectedPlayer(updatedPlayer || null);
       }
     } catch (err) {
@@ -231,7 +250,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, selectedPlayer]);
 
   useEffect(() => {
     fetchPlayers();
@@ -257,20 +276,9 @@ export default function Players() {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // MobileWeightControls component for weight adjustments
-  const MobileWeightControls = ({ showSliders = false }) => {
+  // PERFORMANCE OPTIMIZATION: Simplified weight controls using optimized hook
+  const MobileWeightControls = React.memo(({ showSliders = false }) => {
     const sliderRefs = useRef({});
-    const [localWeights, setLocalWeights] = useState(sliderWeights);
-    
-    // Sync local weights when sliderWeights change
-    useEffect(() => {
-      setLocalWeights(sliderWeights);
-    }, [sliderWeights]);
-    
-    // Persist weights function
-    const persistWeights = useCallback(() => {
-      persistSliderWeights(localWeights);
-    }, [localWeights, persistSliderWeights]);
     
     // Always call hooks at the top level before any conditional logic
     useEffect(() => {
@@ -342,7 +350,7 @@ export default function Players() {
                     <div className="text-xs text-gray-500">Higher = more important</div>
                   </div>
                   <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                    {localWeights[drill.key]}
+                    {sliderWeights[drill.key]}
                   </span>
                 </div>
                 
@@ -350,15 +358,14 @@ export default function Players() {
                   <input
                     type="range"
                     ref={(el) => (sliderRefs.current[drill.key] = el)}
-                    defaultValue={localWeights[drill.key] ?? 50}
+                    value={sliderWeights[drill.key] ?? 50}
                     min={0}
                     max={100}
                     step={0.1}
-                    onInput={(e) => {
+                    onChange={(e) => {
                       const newWeight = parseFloat(e.target.value);
-                      setLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
+                      handleWeightChange(drill.key, newWeight);
                     }}
-                    onPointerUp={persistWeights}
                     name={drill.key}
                     className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
                   />
@@ -374,7 +381,7 @@ export default function Players() {
         )}
       </div>
     );
-  };
+  });
 
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
@@ -949,7 +956,14 @@ export default function Players() {
                             
                             {expandedPlayerIds[player.id] && (
                               <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mt-3">
-                                <DrillInputForm playerId={player.id} onSuccess={() => { toggleForm(player.id); fetchPlayers(); }} />
+                                <DrillInputForm playerId={player.id} onSuccess={() => { 
+                                  toggleForm(player.id); 
+                                  // Invalidate cache on data update
+                                  if (selectedEvent) {
+                                    cacheInvalidation.playersUpdated(selectedEvent.id);
+                                  }
+                                  fetchPlayers(); 
+                                }} />
                               </div>
                             )}
                           </div>
@@ -992,14 +1006,26 @@ export default function Players() {
                 player={editingPlayer}
                 allPlayers={players}
                 onClose={() => setEditingPlayer(null)}
-                onSave={fetchPlayers}
+                onSave={() => {
+                  // Invalidate cache on player edit
+                  if (selectedEvent) {
+                    cacheInvalidation.playersUpdated(selectedEvent.id);
+                  }
+                  fetchPlayers();
+                }}
               />
             )}
             {showAddPlayerModal && (
               <AddPlayerModal
                 allPlayers={players}
                 onClose={() => setShowAddPlayerModal(false)}
-                onSave={fetchPlayers}
+                onSave={() => {
+                  // Invalidate cache on player creation
+                  if (selectedEvent) {
+                    cacheInvalidation.playersUpdated(selectedEvent.id);
+                  }
+                  fetchPlayers();
+                }}
               />
             )}
           </>

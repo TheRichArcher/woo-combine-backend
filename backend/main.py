@@ -6,6 +6,7 @@ from .routes.drills import router as drills_router
 from .routes.events import router as events_router
 from .routes.users import router as users_router
 from .routes.evaluators import router as evaluators_router
+from .routes.batch import router as batch_router
 from .auth import get_current_user
 import logging
 from pathlib import Path
@@ -75,6 +76,7 @@ app.include_router(drills_router, prefix="/api", tags=["Drills"])
 app.include_router(events_router, prefix="/api", tags=["Events"])
 app.include_router(users_router, prefix="/api", tags=["Users"])
 app.include_router(evaluators_router, prefix="/api", tags=["Evaluators"])
+app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 
 # Health check endpoint for debugging
 @app.get("/api/health")

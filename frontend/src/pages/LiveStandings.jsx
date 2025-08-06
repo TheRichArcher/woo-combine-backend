@@ -6,6 +6,8 @@ import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-reac
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import api from '../lib/api';
+// PERFORMANCE OPTIMIZATION: Add caching for LiveStandings
+import { withCache } from '../utils/dataCache';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -24,14 +26,24 @@ export default function LiveStandings() {
   });
   const [activePreset, setActivePreset] = useState('balanced');
 
+  // PERFORMANCE OPTIMIZATION: Cached fetch for LiveStandings
+  const cachedFetchPlayersLive = withCache(
+    async (eventId) => {
+      const response = await api.get(`/players?event_id=${eventId}`);
+      return response.data || [];
+    },
+    'live-players',
+    2 * 60 * 1000 // 2 minute cache for live data
+  );
+
   // Fetch players
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent) return;
     
     try {
       setLoading(true);
-      const response = await api.get(`/players?event_id=${selectedEvent.id}`);
-      setPlayers(response.data || []);
+      const playersData = await cachedFetchPlayersLive(selectedEvent.id);
+      setPlayers(playersData);
     } catch (error) {
       console.error('Failed to fetch players:', error);
       setPlayers([]);
