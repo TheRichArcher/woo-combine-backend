@@ -92,3 +92,63 @@ export function validateAgeGroup(ageGroup) {
   
   return trimmedAgeGroup;
 }
+
+/**
+ * Custom validators for specific form types
+ */
+export const customValidators = {
+  /**
+   * Validates drill values based on drill type
+   * @param {string|number} value - The drill value to validate
+   * @param {string} type - The type of drill (40m_dash, vertical_jump, etc.)
+   * @returns {string|null} - Error message if invalid, null if valid
+   */
+  drillValue(value, type) {
+    if (!value && value !== 0) {
+      return "Drill value is required";
+    }
+
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      return "Drill value must be a valid number";
+    }
+
+    if (numValue < 0) {
+      return "Drill value cannot be negative";
+    }
+
+    // Type-specific validation
+    switch (type) {
+      case "40m_dash":
+        if (numValue > 20) {
+          return "40m dash time seems unrealistic (max 20 seconds)";
+        }
+        if (numValue < 3) {
+          return "40m dash time seems unrealistic (min 3 seconds)";
+        }
+        break;
+      
+      case "vertical_jump":
+        if (numValue > 200) {
+          return "Vertical jump height seems unrealistic (max 200cm)";
+        }
+        break;
+      
+      case "catching":
+      case "throwing":
+      case "agility":
+        if (numValue > 100) {
+          return "Score cannot exceed 100";
+        }
+        break;
+      
+      default:
+        // Generic validation for unknown drill types
+        if (numValue > 10000) {
+          return "Value seems unrealistically high";
+        }
+    }
+
+    return null; // Valid
+  }
+};
