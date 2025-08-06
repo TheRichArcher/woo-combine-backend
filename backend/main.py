@@ -122,6 +122,35 @@ def simple_health(request: Request):
         "cors_debug": "woo-combine.com should be allowed"
     }
 
+@app.get("/api/warmup")
+@health_rate_limit()
+def warmup_endpoint(request: Request):
+    """Warmup endpoint to pre-initialize services and reduce cold start impact"""
+    start_time = datetime.utcnow()
+    
+    # Pre-initialize Firestore connection
+    try:
+        from .firestore_client import get_firestore_client
+        db = get_firestore_client()
+        
+        # Perform a minimal read operation to warm up the connection
+        test_doc = db.collection("_warmup").document("test").get()
+        firestore_status = "warmed"
+    except Exception as e:
+        logging.error(f"[WARMUP] Firestore warmup failed: {e}")
+        firestore_status = f"failed: {str(e)[:50]}"
+    
+    end_time = datetime.utcnow()
+    duration_ms = (end_time - start_time).total_seconds() * 1000
+    
+    return {
+        "status": "warmed",
+        "duration_ms": round(duration_ms, 2),
+        "firestore": firestore_status,
+        "timestamp": end_time.isoformat(),
+        "version": "1.0.2"
+    }
+
 @app.get("/api")
 def root():
     """Root endpoint for basic API info"""

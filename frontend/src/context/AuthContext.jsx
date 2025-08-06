@@ -31,6 +31,53 @@ export function AuthProvider({ children }) {
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
 
+  // PERFORMANCE: Backend warmup to reduce cold start impact
+  const warmupBackend = useCallback(async () => {
+    try {
+      authLogger.debug('Warming up backend...');
+      const warmupStart = performance.now();
+      
+      await Promise.race([
+        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/warmup`),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 3000))
+      ]);
+      
+      const warmupTime = performance.now() - warmupStart;
+      authLogger.debug(`Backend warmed up in ${warmupTime.toFixed(0)}ms`);
+    } catch (error) {
+      authLogger.warn('Backend warmup failed', error.message);
+    }
+  }, []);
+
+  // PERFORMANCE: Concurrent league fetching to reduce wait time
+  const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
+    if (leagueFetchInProgress) return;
+    
+    setLeagueFetchInProgress(true);
+    authLogger.debug('Starting concurrent league fetch');
+    
+    try {
+      const token = await firebaseUser.getIdToken(false);
+      const response = await Promise.race([
+        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/leagues/my`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 5000))
+      ]);
+
+      if (response.ok) {
+        const leagueData = await response.json();
+        setLeagues(leagueData);
+        authLogger.debug('Leagues loaded concurrently', leagueData.length);
+      }
+    } catch (error) {
+      authLogger.warn('Concurrent league fetch failed', error.message);
+      // Don't block UI for failed league fetch
+    } finally {
+      setLeagueFetchInProgress(false);
+    }
+  }, [leagueFetchInProgress]);
+
 
 
 
@@ -60,6 +107,9 @@ export function AuthProvider({ children }) {
       setUser(firebaseUser);
       setAuthChecked(true);
       
+      // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
+      warmupBackend();
+      
       if (!firebaseUser.emailVerified) {
         // User needs to verify email - redirect will be handled by RequireAuth
         setInitializing(false);
@@ -70,12 +120,23 @@ export function AuthProvider({ children }) {
       try {
         authLogger.debug('Starting role check for user', firebaseUser.email);
         
-        // Check if we already have a cached role to speed up initialization
+        // PERFORMANCE FIX: Always use cached role for immediate UI load
         const cachedRole = localStorage.getItem('userRole');
-        if (cachedRole && cachedRole !== 'null') {
-          authLogger.debug('Using cached role for faster startup', cachedRole);
+        const cachedEmail = localStorage.getItem('userEmail');
+        
+        if (cachedRole && cachedRole !== 'null' && cachedEmail === firebaseUser.email) {
+          authLogger.debug('Using cached role for immediate startup', cachedRole);
           setUserRole(cachedRole);
-          // Still verify role in background, but proceed with cached role for now
+          setRole(cachedRole);
+          setRoleChecked(true);
+          setInitializing(false); // Don't wait for API verification
+          
+          // Start league fetch immediately if we have a role
+          if (cachedRole !== null) {
+            fetchLeaguesConcurrently(firebaseUser, cachedRole);
+          }
+          
+          // Still verify role in background, but don't block UI
           setTimeout(async () => {
             try {
               const token = await firebaseUser.getIdToken(false);
@@ -129,7 +190,7 @@ export function AuthProvider({ children }) {
                   'Content-Type': 'application/json',
                 },
               }),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 30000)) // Increased to 30s for Render cold starts
+              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 8000)) // Reduced to 8s - if backend takes longer, use cache
             ]);
 
             authLogger.debug('API Response status', roleResponse.status);
@@ -204,8 +265,9 @@ export function AuthProvider({ children }) {
 
         authLogger.debug('User role found', userRole);
         setUserRole(userRole);
-        // Persist role to localStorage for browser refresh resilience
+        // Persist role AND email to localStorage for browser refresh resilience
         localStorage.setItem('userRole', userRole);
+        localStorage.setItem('userEmail', firebaseUser.email);
 
         // STEP 2: AGGRESSIVE OPTIMIZATION - Skip league fetch on initial load for speed
         // Do it in background after navigation completes

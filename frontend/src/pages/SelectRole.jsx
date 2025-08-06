@@ -129,6 +129,7 @@ export default function SelectRole() {
       // Just update local state for immediate navigation and persist to localStorage
       setUserRole(selectedRole);
       localStorage.setItem('userRole', selectedRole);
+      localStorage.setItem('userEmail', user.email);
       
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
