@@ -6,6 +6,7 @@ import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import { useToast } from '../context/ToastContext';
 import ErrorDisplay from './ErrorDisplay';
 import { customValidators } from '../utils/validation';
+import { cacheInvalidation } from '../utils/dataCache';
 
 const DRILL_TYPES = [
   { value: "40m_dash", label: "40-Yard Dash" },
@@ -26,6 +27,10 @@ const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess 
     context: 'DRILL_SUBMIT',
     onSuccess: () => {
       showSuccess("Drill result submitted!");
+      // Invalidate cache to ensure live standings update immediately
+      if (selectedEvent?.id) {
+        cacheInvalidation.playersUpdated(selectedEvent.id);
+      }
       setType("");
       setValue("");
       if (onSuccess) onSuccess();

@@ -150,9 +150,6 @@ export default function SelectRole() {
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
         // User was invited to an event - redirect back to join flow
-
-        
-        // Navigate back to the join-event URL
         const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {

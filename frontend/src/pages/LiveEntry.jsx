@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { cacheInvalidation } from '../utils/dataCache';
 
 const DRILLS = [
   { key: "40m_dash", label: "40-Yard Dash", unit: "sec", lowerIsBetter: true },
@@ -148,6 +149,9 @@ export default function LiveEntry() {
       setScore("");
       setShowDuplicateDialog(false);
       setDuplicateData(null);
+      
+      // Invalidate cache to ensure live standings update immediately
+      cacheInvalidation.playersUpdated(selectedEvent.id);
       
       // Refresh players data
       await fetchPlayers();
