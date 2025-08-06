@@ -16,12 +16,6 @@ export default function Home() {
   // Debug logging for league state
   React.useEffect(() => {
     // Debug: Component state logging removed for production
-      userRole,
-      selectedLeagueId,
-      leagues: leagues?.length || 0,
-      noLeague,
-      selectedEvent: selectedEvent?.id || 'none'
-    });
   }, [userRole, selectedLeagueId, leagues, noLeague, selectedEvent]);
 
   // Format event date
