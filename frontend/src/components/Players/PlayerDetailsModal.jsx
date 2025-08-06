@@ -11,15 +11,6 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   persistSliderWeights, 
   activePreset, 
   applyPreset 
-}, (prevProps, nextProps) => {
-  // Custom comparison for better performance
-  return (
-    prevProps.player?.id === nextProps.player?.id &&
-    prevProps.player?.updated_at === nextProps.player?.updated_at &&
-    prevProps.allPlayers?.length === nextProps.allPlayers?.length &&
-    JSON.stringify(prevProps.persistedWeights) === JSON.stringify(nextProps.persistedWeights) &&
-    prevProps.activePreset === nextProps.activePreset
-  );
 }) {
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
@@ -385,6 +376,15 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
         </div>
       </div>
     </div>
+  );
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.player?.id === nextProps.player?.id &&
+    prevProps.player?.updated_at === nextProps.player?.updated_at &&
+    prevProps.allPlayers?.length === nextProps.allPlayers?.length &&
+    JSON.stringify(prevProps.persistedWeights) === JSON.stringify(nextProps.persistedWeights) &&
+    prevProps.activePreset === nextProps.activePreset
   );
 });
 
