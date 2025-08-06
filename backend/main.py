@@ -89,7 +89,7 @@ app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 # Health check endpoint for debugging
 @app.get("/api/health")
 @health_rate_limit()
-def health_check():
+def health_check(request: Request):
     """Simple health check that tests key system components"""
     try:
         # Test Firestore connection
@@ -113,7 +113,7 @@ def health_check():
 @app.get("/health")
 @app.head("/health")
 @health_rate_limit()
-def simple_health():
+def simple_health(request: Request):
     """Minimal health check endpoint for deployment monitoring"""
     return {
         "status": "ok", 
