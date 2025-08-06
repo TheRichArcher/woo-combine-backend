@@ -12,6 +12,7 @@ import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filte
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
+import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
 // Icon mapping for TABS
 const ICON_MAP = {

@@ -14,7 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
-import { calculateCompositeScore } from '../utils/rankingUtils';
+import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
 const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { showSuccess, showError } = useToast();
