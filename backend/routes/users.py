@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from functools import lru_cache
 import time
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_for_role_setting
 from ..firestore_client import get_firestore_client
 
 router = APIRouter(prefix="/users")
@@ -63,7 +63,7 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
 @router.post("/role", summary="Set user role")
 async def set_user_role(
     role_data: SetRoleRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user_for_role_setting)
 ):
     """Set the role for the current user"""
     try:
@@ -95,6 +95,9 @@ async def set_user_role(
                 "created_at": datetime.utcnow().isoformat()
             }
             user_doc_ref.set(user_data)
+        
+        # PERFORMANCE: Clear cache after role update to ensure fresh data
+        _get_cached_user_profile.cache_clear()
         
         return {
             "id": uid,

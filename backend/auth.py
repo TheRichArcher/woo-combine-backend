@@ -159,6 +159,113 @@ def get_current_user(
             detail=f"Unexpected error in get_current_user: {e}",
         )
 
+def get_current_user_for_role_setting(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> dict:
+    """
+    Special auth dependency for role setting that allows unverified users
+    who have just completed email verification but the token hasn't refreshed yet
+    """
+    # Skip authentication for OPTIONS requests (CORS preflight)
+    if request.method == "OPTIONS":
+        logging.info("[AUTH] Skipping authentication for OPTIONS request")
+        return {"uid": "options", "email": "options@system", "role": "system"}
+    
+    # Check if credentials are provided
+    if not credentials:
+        logging.error("[AUTH] No credentials provided")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials required"
+        )
+        
+    token = credentials.credentials
+    try:
+        logging.info(f"[AUTH] Starting token verification for role setting")
+        
+        # Simplified Firebase token verification
+        try:
+            decoded_token = auth.verify_id_token(token)
+            logging.info(f"[AUTH] Token verification completed successfully")
+        except Exception as e:
+            logging.error(f"[AUTH] Firebase token verification failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+        
+        uid = decoded_token["uid"]
+        email = decoded_token.get("email", "")
+        
+        # FOR ROLE SETTING: Check email verification but allow recent verifications
+        email_verified = decoded_token.get("email_verified", False)
+        
+        if not email_verified:
+            # Check if user has very recently verified (token might be stale)
+            # Allow role setting if user exists and token is recent
+            import time
+            token_issued_at = decoded_token.get("iat", 0)
+            current_time = time.time()
+            
+            # If token is less than 5 minutes old, be more lenient
+            if current_time - token_issued_at < 300:  # 5 minutes
+                logging.info(f"[AUTH] Allowing role setting for recent token (might be verification delay)")
+            else:
+                logging.warning(f"[AUTH] User {uid} has not verified their email (for role setting)")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Email verification required. Please check your email and verify your account."
+                )
+        
+        # Get user from Firestore
+        logging.info(f"[AUTH] Starting Firestore lookup for role setting: {uid}")
+        try:
+            db = get_firestore_client()
+            user_doc = db.collection("users").document(uid).get()
+            logging.info(f"[AUTH] Firestore lookup completed. User exists: {user_doc.exists}")
+            
+        except Exception as e:
+            logging.error(f"[AUTH] Firestore lookup failed: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Database lookup failed"
+            )
+        
+        if not user_doc.exists:
+            # Auto-create user document for role setting
+            logging.info(f"[AUTH] Creating new user document for role setting: {uid}")
+            try:
+                user_data = {
+                    "id": uid,
+                    "email": email,
+                    "created_at": datetime.utcnow().isoformat(),
+                    # Don't set role yet - this will be done by the role endpoint
+                }
+                db.collection("users").document(uid).set(user_data)
+                logging.info(f"[AUTH] Successfully created user document for role setting: {uid}")
+                return {"uid": uid, "email": email, "role": None}
+                        
+            except Exception as create_error:
+                logging.error(f"[AUTH] Failed to create user document: {create_error}")
+                return {"uid": uid, "email": email, "role": None}
+        
+        user_data = user_doc.to_dict()
+        role = user_data.get("role")
+        stored_email = user_data.get("email", email)
+        
+        logging.info(f"[AUTH] Role setting auth successful for UID {uid}")
+        return {"uid": uid, "email": stored_email, "role": role}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"[AUTH] Unexpected error in role setting auth: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Authentication failed: {e}",
+        )
+
 def require_role(*allowed_roles):
     def wrapper(user=Depends(get_current_user)):
         if user["role"] not in allowed_roles:
