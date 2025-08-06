@@ -6,8 +6,9 @@ import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-reac
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import api from '../lib/api';
-// PERFORMANCE OPTIMIZATION: Add caching for LiveStandings
+// PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
+import { calculateOptimizedRankings } from '../utils/optimizedScoring';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -56,13 +57,12 @@ export default function LiveStandings() {
     fetchPlayers();
   }, [fetchPlayers]);
 
-  // Calculate live rankings using normalized scores (consistent with all other pages)
+  // PERFORMANCE OPTIMIZATION: Use optimized rankings calculation
   const liveRankings = useMemo(() => {
     if (!players.length) return [];
     
-    return calculateNormalizedCompositeScores(players, weights)
-      .filter(player => player.compositeScore > 0)
-      .sort((a, b) => b.compositeScore - a.compositeScore);
+    return calculateOptimizedRankings(players, weights)
+      .filter(player => player.compositeScore > 0);
   }, [players, weights]);
 
   // Handle weight changes

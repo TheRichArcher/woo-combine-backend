@@ -11,13 +11,12 @@ import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
-import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS, TABS } from '../constants/players';
+import { DRILLS, WEIGHT_PRESETS, TABS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
 // PERFORMANCE OPTIMIZATION: New optimized imports
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
-import { withCache, dataCache, cacheInvalidation } from '../utils/dataCache';
-import { debounce } from '../utils/debounce';
+import { withCache, cacheInvalidation } from '../utils/dataCache';
 
 // Icon mapping for TABS
 const ICON_MAP = {

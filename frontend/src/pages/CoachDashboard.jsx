@@ -8,45 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 
-// Constants moved outside component
-const DRILL_WEIGHTS = {
-  "40m_dash": 0.3,
-  "vertical_jump": 0.2,
-  "catching": 0.15,
-  "throwing": 0.15,
-  "agility": 0.2,
-};
-
-const DRILLS = [
-  { key: "40m_dash", label: "40-Yard Dash" },
-  { key: "vertical_jump", label: "Vertical Jump" },
-  { key: "catching", label: "Catching" },
-  { key: "throwing", label: "Throwing" },
-  { key: "agility", label: "Agility" },
-];
-
-const WEIGHT_PRESETS = {
-  balanced: {
-    name: "Balanced",
-    description: "Equal emphasis on all skills",
-    weights: { "40m_dash": 0.2, "vertical_jump": 0.2, "catching": 0.2, "throwing": 0.2, "agility": 0.2 }
-  },
-  speed: {
-    name: "Speed Focused",
-    description: "Emphasizes speed and athleticism",
-    weights: { "40m_dash": 0.4, "vertical_jump": 0.3, "catching": 0.1, "throwing": 0.1, "agility": 0.1 }
-  },
-  skills: {
-    name: "Skills Focused", 
-    description: "Emphasizes catching and throwing",
-    weights: { "40m_dash": 0.1, "vertical_jump": 0.1, "catching": 0.35, "throwing": 0.35, "agility": 0.1 }
-  },
-  athletic: {
-    name: "Athletic",
-    description: "Emphasizes physical abilities",
-    weights: { "40m_dash": 0.25, "vertical_jump": 0.25, "catching": 0.15, "throwing": 0.15, "agility": 0.2 }
-  }
-};
+// PERFORMANCE OPTIMIZATION: Use centralized constants
+import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS } from '../constants/players';
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
