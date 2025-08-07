@@ -32,19 +32,28 @@ add_rate_limiting(app)
 
 # CORS configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else []
+allowed_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX")
 if not allowed_origins:
-    # Safe default for local/dev only; set ALLOWED_ORIGINS in production
+    # Safe defaults for local/dev
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
+    # Also allow production domain by default via regex if env not provided
+    if not allowed_origin_regex:
+        allowed_origin_regex = r"^https://(www\.)?woo-combine\.com$"
+
+logging.info(f"[CORS] allowed_origins={allowed_origins}")
+if allowed_origin_regex:
+    logging.info(f"[CORS] allowed_origin_regex={allowed_origin_regex}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type"],
+    allow_headers=["*"],
 )
 
 # Lazy Firestore initialization to speed up startup

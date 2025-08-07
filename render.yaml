@@ -20,6 +20,8 @@ services:
     startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port 10000"
     healthCheckPath: "/health"
     envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://woo-combine.com,https://www.woo-combine.com
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: POETRY_VERSION
