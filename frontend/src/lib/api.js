@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { auth } from '../firebase';
 import { apiLogger } from '../utils/logger';
+import { useToast } from '../context/ToastContext';
 
 /*
  * Centralized axios instance with proper cold start handling
@@ -117,6 +118,14 @@ api.interceptors.request.use(async (config) => {
 api.interceptors.response.use(
   response => response,
   error => {
+    try {
+      // Surface 429 with retry-after if present
+      if (error.response?.status === 429) {
+        const retryAfter = error.response.headers?.['retry-after'] || error.response.headers?.['x-ratelimit-reset'];
+        const waitMsg = retryAfter ? `Please wait ${retryAfter} seconds and try again.` : 'Please slow down and try again.';
+        console.warn('[API] Rate limit exceeded. ' + waitMsg);
+      }
+    } catch {}
     // CRITICAL FIX: Handle 401 errors globally to prevent cascading
     if (error.response?.status === 401) {
       console.warn('[API] Session expired - user needs to log in again');

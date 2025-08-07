@@ -24,32 +24,41 @@ A comprehensive full-stack platform for managing youth sports combines and playe
 - **Health Check**: `/health` endpoint for monitoring
 
 ### **Required Environment Variables**
-Set these in your Render dashboard:
+Set these in your Render dashboard (and local `.env` files):
 
 ```bash
-# Firebase Configuration
+# Backend (FastAPI)
+ALLOWED_ORIGINS=https://woo-combine.com
+ENABLE_ROLE_SIMPLE=false
 GOOGLE_CLOUD_PROJECT=your-project-id
-FIREBASE_PROJECT_ID=your-project-id  
+FIREBASE_PROJECT_ID=your-project-id
 GOOGLE_APPLICATION_CREDENTIALS_JSON={"type":"service_account",...}
 
-# Build Configuration
-PYTHON_VERSION=3.11.11
-VITE_API_BASE=https://woo-combine-backend.onrender.com
+# Frontend (Vite)
+VITE_API_BASE=https://woo-combine-backend.onrender.com/api
+VITE_FIREBASE_API_KEY=...
+VITE_FIREBASE_AUTH_DOMAIN=...
+VITE_FIREBASE_PROJECT_ID=...
+VITE_FIREBASE_STORAGE_BUCKET=...
+VITE_FIREBASE_APP_ID=...
 ```
 
 ## 🛠️ **Local Development**
 
 ### **Backend Setup**
 ```bash
-cd backend
+# in repo root
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn main:app --reload
+export ALLOWED_ORIGINS=http://localhost:5173
+uvicorn backend.main:app --reload --port 10000
 ```
 
 ### **Frontend Setup**  
 ```bash
 cd frontend
 npm install
+# copy .env.example to .env and set VITE_API_BASE=http://localhost:10000/api
 npm run dev
 ```
 
@@ -66,8 +75,10 @@ cd backend && python -m pip check
 
 ### **Health Checks**
 ```bash
-# Backend health
+# Backend health (prod)
 curl https://woo-combine-backend.onrender.com/health
+# Backend meta (debug flags)
+curl https://woo-combine-backend.onrender.com/api/meta
 
 # Full system test
 visit https://woo-combine.com
@@ -91,6 +102,6 @@ visit https://woo-combine.com
 ## 🔒 **Security**
 
 - Firebase Authentication with email verification
-- CORS configured for production domains
+- CORS configured for production domains via `ALLOWED_ORIGINS`
 - Input validation and sanitization
 - No known security vulnerabilities (regularly audited)
