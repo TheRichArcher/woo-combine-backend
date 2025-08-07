@@ -73,6 +73,15 @@ app.include_router(users_router, prefix="/api", tags=["Users"])
 app.include_router(evaluators_router, prefix="/api", tags=["Evaluators"])
 app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 
+# Simple config/meta endpoint to help frontend adapt and for debugging
+@app.get("/api/meta")
+def meta():
+    return {
+        "version": "1.0.2",
+        "allowed_origins": os.getenv("ALLOWED_ORIGINS", ""),
+        "role_simple_enabled": os.getenv("ENABLE_ROLE_SIMPLE", "false").lower() in ("1", "true", "yes")
+    }
+
 # Health check endpoint for debugging
 @app.get("/api/health")
 @health_rate_limit()

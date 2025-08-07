@@ -1,12 +1,13 @@
 import axios from 'axios';
 import { auth } from '../firebase';
+import { apiLogger } from '../utils/logger';
 
 /*
  * Centralized axios instance with proper cold start handling
  * Base URL with fallback for production reliability
  */
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_BASE,
   withCredentials: false,
   timeout: 30000  // Increased to 30s to handle cold starts better
 });
@@ -163,3 +164,7 @@ api.interceptors.response.use(
 );
 
 export default api; 
+
+// Convenience helpers for health and warmup
+export const apiHealth = () => api.get('/health');
+export const apiWarmup = () => api.get('/warmup');

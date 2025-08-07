@@ -44,8 +44,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Content Security Policy - Protect against XSS
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' https://apis.google.com https://www.gstatic.com",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+            "script-src 'self' https://apis.google.com https://www.gstatic.com",
+            "style-src 'self' https://fonts.googleapis.com",
             "font-src 'self' https://fonts.gstatic.com",
             "img-src 'self' data: https:",
             "connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com",

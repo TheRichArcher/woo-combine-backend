@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
-import api from '../lib/api';
+import api, { apiHealth, apiWarmup } from '../lib/api';
 import { useNavigate } from "react-router-dom";
 
 import { useToast } from './ToastContext';
@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
     return storedRole && storedRole !== 'null' ? storedRole : null;
   });
   const navigate = useNavigate();
-  const { showColdStartNotification, isColdStartActive } = useToast();
+  const { showColdStartNotification, isColdStartActive, showWarning } = useToast();
   
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
@@ -38,11 +38,7 @@ export function AuthProvider({ children }) {
       const warmupStart = performance.now();
       
       // Parallel warmup requests for maximum efficiency
-      const base = import.meta.env.VITE_API_BASE;
-      const warmupPromises = [
-        fetch(`${base}/warmup`),
-        fetch(`${base}/health`)
-      ];
+      const warmupPromises = [apiWarmup().catch(() => null), apiHealth().catch(() => null)];
       
       await Promise.race([
         Promise.allSettled(warmupPromises),
@@ -65,17 +61,15 @@ export function AuthProvider({ children }) {
     
     try {
       const token = await firebaseUser.getIdToken(false);
-      const response = await Promise.race([
-        fetch(`${import.meta.env.VITE_API_BASE}/leagues/my`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-        }),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 5000))
-      ]);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const response = await api.get(`/leagues/my`, { signal: controller.signal }).catch((e) => { throw e; });
+      clearTimeout(timeout);
 
-      if (response.ok) {
-        const leagueData = await response.json();
+      if (response?.data) {
+        const leagueData = response.data;
         setLeagues(leagueData);
-        authLogger.debug('Leagues loaded concurrently', leagueData.length);
+        authLogger.debug('Leagues loaded concurrently', Array.isArray(leagueData) ? leagueData.length : (leagueData.leagues?.length || 0));
       }
     } catch (error) {
       authLogger.warn('Concurrent league fetch failed', error.message);
@@ -147,12 +141,9 @@ export function AuthProvider({ children }) {
           setTimeout(async () => {
             try {
               const token = await firebaseUser.getIdToken(false);
-              const response = await fetch(`${import.meta.env.VITE_API_BASE}/users/me`, {
-                method: 'GET',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-              });
-              if (response.ok) {
-                const userData = await response.json();
+              const response = await api.get(`/users/me`, { headers: { Authorization: `Bearer ${token}` } });
+              if (response?.data) {
+                const userData = response.data;
                 if (userData.role !== cachedRole) {
                   authLogger.debug('Role changed on server, updating cache');
                   setUserRole(userData.role);
@@ -182,41 +173,29 @@ export function AuthProvider({ children }) {
               throw new Error('Firebase auth token unavailable');
             }
             
-            const apiUrl = `${import.meta.env.VITE_API_BASE}/users/me`;
+            const apiUrl = `/users/me`;
             authLogger.debug('Making API call to', apiUrl);
-            
-            const roleResponse = await Promise.race([
-              fetch(apiUrl, {
-                method: 'GET',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-              }),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('Role check timeout')), 5000)) // Reduced to 5s for faster fallback
-            ]);
-
+            const roleResponse = await api.get(apiUrl, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 });
             authLogger.debug('API Response status', roleResponse.status);
-            
-            if (roleResponse.ok) {
-              const userData = await roleResponse.json();
+            if (roleResponse?.data) {
+              const userData = roleResponse.data;
               authLogger.debug('User data received', userData);
               userRole = userData.role;
-            } else if (roleResponse.status === 404) {
+            } else if (roleResponse?.status === 404) {
               authLogger.debug('User not found (404) - treating as new user');
               userRole = null;
-            } else if (roleResponse.status === 403) {
+            } else if (roleResponse?.status === 403) {
               // Email verification required - redirect to verification page
-              const errorData = await roleResponse.json().catch(() => ({}));
+              const errorData = roleResponse.data || {};
               if (errorData.detail?.includes('Email verification required')) {
                 authLogger.warn('Email verification required during role check');
                 setInitializing(false);
                 navigate('/verify-email');
                 return;
               }
-              throw new Error(`Role check failed: ${roleResponse.status}`);
+              throw new Error(`Role check failed: ${roleResponse?.status}`);
             } else {
-              throw new Error(`Role check failed: ${roleResponse.status}`);
+              throw new Error(`Role check failed: ${roleResponse?.status}`);
             }
           } catch (error) {
             authLogger.error('Role check error', error.message);
