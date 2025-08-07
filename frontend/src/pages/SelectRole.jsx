@@ -127,18 +127,9 @@ export default function SelectRole() {
         });
         console.log('[ROLE-SETTING] Successfully set role via primary endpoint');
       } catch (primaryError) {
-        console.warn('[ROLE-SETTING] Primary endpoint failed, trying fallback:', primaryError.message);
-        
-        // Fallback to simplified endpoint for Firebase configuration issues
-        try {
-          await api.post('/users/role-simple', {
-            role: selectedRole
-          });
-          console.log('[ROLE-SETTING] Successfully set role via fallback endpoint');
-        } catch (fallbackError) {
-          console.error('[ROLE-SETTING] Both endpoints failed:', fallbackError.message);
-          throw new Error('Failed to set role. Please try again or contact support.');
-        }
+        console.warn('[ROLE-SETTING] Primary endpoint failed');
+        // Fallback endpoint is disabled by default in production for security
+        throw primaryError;
       }
       
       // PERFORMANCE: Skip redundant role refresh - AuthContext will handle this automatically

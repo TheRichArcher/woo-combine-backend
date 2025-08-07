@@ -38,9 +38,10 @@ export function AuthProvider({ children }) {
       const warmupStart = performance.now();
       
       // Parallel warmup requests for maximum efficiency
+      const base = import.meta.env.VITE_API_BASE;
       const warmupPromises = [
-        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/warmup`),
-        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/health`)
+        fetch(`${base}/warmup`),
+        fetch(`${base}/health`)
       ];
       
       await Promise.race([
@@ -65,7 +66,7 @@ export function AuthProvider({ children }) {
     try {
       const token = await firebaseUser.getIdToken(false);
       const response = await Promise.race([
-        fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/leagues/my`, {
+        fetch(`${import.meta.env.VITE_API_BASE}/leagues/my`, {
           headers: { 'Authorization': `Bearer ${token}` },
         }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('League fetch timeout')), 5000))
@@ -146,7 +147,7 @@ export function AuthProvider({ children }) {
           setTimeout(async () => {
             try {
               const token = await firebaseUser.getIdToken(false);
-              const response = await fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
+              const response = await fetch(`${import.meta.env.VITE_API_BASE}/users/me`, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
               });
@@ -181,7 +182,7 @@ export function AuthProvider({ children }) {
               throw new Error('Firebase auth token unavailable');
             }
             
-            const apiUrl = `${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`;
+            const apiUrl = `${import.meta.env.VITE_API_BASE}/users/me`;
             authLogger.debug('Making API call to', apiUrl);
             
             const roleResponse = await Promise.race([
@@ -422,7 +423,7 @@ export function AuthProvider({ children }) {
     
     try {
       const token = await user.getIdToken(true); // Force refresh token
-              const response = await fetch(`${import.meta.env.VITE_API_BASE || 'https://woo-combine-backend.onrender.com/api'}/users/me`, {
+              const response = await fetch(`${import.meta.env.VITE_API_BASE}/users/me`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

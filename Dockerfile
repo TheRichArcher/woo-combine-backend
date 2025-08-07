@@ -10,6 +10,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     build-essential \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better layer caching
@@ -30,7 +31,7 @@ EXPOSE 10000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:10000/health || exit 1
+    CMD curl -fsS http://localhost:10000/health || exit 1
 
 # Run application
 CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "10000"] 

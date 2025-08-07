@@ -62,7 +62,7 @@ def get_current_user(
         
     token = credentials.credentials
     try:
-        logging.info(f"[AUTH] Starting token verification for token: {token[:20]}...")
+        logging.info("[AUTH] Starting token verification")
         
         # Simplified Firebase token verification with shorter timeout
         try:

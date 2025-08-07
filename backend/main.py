@@ -27,39 +27,24 @@ app = FastAPI(title="WooCombine API", version="1.0.2")
 # Add security middleware (first for maximum protection)
 add_security_middleware(app)
 
-# Add rate limiting middleware
+# Add rate limiting middleware (must be added before requests are handled)
 add_rate_limiting(app)
 
-# Fast OPTIONS response middleware to handle CORS preflight quickly
-class FastOptionsMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Handle OPTIONS requests immediately without processing
-        if request.method == "OPTIONS":
-            logging.info(f"[FAST-OPTIONS] Handling OPTIONS request for {request.url.path}")
-            return Response(
-                status_code=200,
-                headers={
-                    "Access-Control-Allow-Origin": "*",
-                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-                    "Access-Control-Allow-Headers": "*",
-                    "Access-Control-Max-Age": "86400",  # Cache preflight for 24 hours
-                }
-            )
-        
-        response = await call_next(request)
-        return response
+# CORS configuration
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else []
+if not allowed_origins:
+    # Safe default for local/dev only; set ALLOWED_ORIGINS in production
+    allowed_origins = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
 
-# Add fast OPTIONS middleware first
-app.add_middleware(FastOptionsMiddleware)
-
-# CORS configuration for production and development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Temporarily allow all origins to fix immediate issue
+    allow_origins=allowed_origins,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # Lazy Firestore initialization to speed up startup

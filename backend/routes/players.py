@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
 import logging
@@ -19,7 +19,7 @@ DRILL_WEIGHTS = {
     "agility": 0.2,
 }
 
-def calculate_composite_score(player_data: dict, weights: dict = None) -> float:
+def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dict[str, float]] = None) -> float:
     """Calculate composite score for a player based on their drill results"""
     use_weights = weights if weights is not None else DRILL_WEIGHTS
     score = 0.0
@@ -97,9 +97,9 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
 from pydantic import BaseModel
 class PlayerCreate(BaseModel):
     name: str
-    number: int | None = None
-    age_group: str | None = None
-    photo_url: str | None = None
+    number: Optional[int] = None
+    age_group: Optional[str] = None
+    photo_url: Optional[str] = None
 
 @router.post("/players")
 def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
@@ -233,11 +233,12 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
             # More flexible number validation
             if player.get("number") not in (None, ""):
                 try:
-                    # Allow empty strings or convert to int
-                    if str(player.get("number")).strip() != "":
-                        int(player.get("number"))
+                    raw_number = player.get("number")
+                    number_str = str(raw_number).strip()
+                    if number_str != "":
+                        int(number_str)
                 except (ValueError, TypeError):
-                    row_errors.append(f"Invalid number: '{player.get('number')}')")
+                    row_errors.append(f"Invalid number: '{player.get('number')}'")
             # Allow any age group format - don't restrict to specific values
             # if player.get("age_group") not in (None, ""):
             #     if player.get("age_group") not in ["7-8", "9-10", "11-12"]:

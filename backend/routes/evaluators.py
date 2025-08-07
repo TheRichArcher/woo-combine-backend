@@ -65,7 +65,7 @@ def add_evaluator(
             "email": request.email, 
             "role": request.role,
             "event_id": event_id,
-            "added_by": current_user.uid,
+            "added_by": current_user["uid"],
             "added_at": datetime.utcnow().isoformat(),
             "active": True
         }
@@ -100,8 +100,8 @@ def submit_drill_evaluation(
             "player_id": evaluation.player_id,
             "type": evaluation.drill_type,
             "value": evaluation.value,
-            "evaluator_id": current_user.uid,
-            "evaluator_name": current_user.name or current_user.email,
+            "evaluator_id": current_user["uid"],
+            "evaluator_name": current_user.get("name") or current_user.get("email"),
             "notes": evaluation.notes,
             "created_at": datetime.utcnow().isoformat(),
             "event_id": event_id

@@ -4,6 +4,8 @@ from ..auth import get_current_user, require_role
 from datetime import datetime
 import logging
 from ..utils.database import execute_with_timeout
+from pydantic import BaseModel
+from typing import Dict
 
 router = APIRouter()
 
@@ -31,16 +33,21 @@ def list_events(
         logging.error(f"Error listing events for league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to list events")
 
+class EventCreateRequest(BaseModel):
+    name: str
+    date: str | None = None
+    location: str | None = None
+
 @router.post('/leagues/{league_id}/events')
 def create_event(
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
-    req: dict = None, 
+    req: EventCreateRequest | None = None, 
     current_user=Depends(get_current_user)
 ):
     try:
-        name = req.get("name")
-        date = req.get("date")
-        location = req.get("location")
+        name = req.name if req else None
+        date = req.date if req else None
+        location = req.location if req else None
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
@@ -127,17 +134,23 @@ def get_event(
         logging.error(f"Error fetching event {event_id} from league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch event")
 
+class EventUpdateRequest(BaseModel):
+    name: str
+    date: str | None = None
+    location: str | None = None
+    drillTemplate: str | None = None
+
 @router.put('/leagues/{league_id}/events/{event_id}')
 def update_event(
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
-    req: dict = None, 
+    req: EventUpdateRequest | None = None, 
     current_user=Depends(require_role("organizer", "coach"))
 ):
     try:
-        name = req.get("name")
-        date = req.get("date")
-        location = req.get("location")
+        name = req.name if req else None
+        date = req.date if req else None
+        location = req.location if req else None
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
@@ -151,12 +164,12 @@ def update_event(
         }
         
         # Add drillTemplate if provided and valid
-        if req.get("drillTemplate"):
+        if req and req.drillTemplate:
             # Validate drill template exists
             valid_templates = ["football", "soccer", "basketball", "baseball", "track", "volleyball"]
-            if req["drillTemplate"] not in valid_templates:
+            if req.drillTemplate not in valid_templates:
                 raise HTTPException(status_code=400, detail=f"Invalid drill template. Must be one of: {', '.join(valid_templates)}")
-            update_data["drillTemplate"] = req["drillTemplate"]
+            update_data["drillTemplate"] = req.drillTemplate
         
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
@@ -211,11 +224,10 @@ def delete_event(
                 raise HTTPException(status_code=404, detail="Event not found")
         
         # Delete event data in sequence to avoid orphaned data
-        # 1. Delete all players associated with this event
-        players_ref = db.collection("players")
-        players_query = players_ref.where("event_id", "==", event_id)
+        # 1. Delete all players associated with this event (correct subcollection path)
+        players_ref = db.collection("events").document(event_id).collection("players")
         players_docs = execute_with_timeout(
-            lambda: list(players_query.stream()),
+            lambda: list(players_ref.stream()),
             timeout=15,
             operation_name="players cleanup for event deletion"
         )

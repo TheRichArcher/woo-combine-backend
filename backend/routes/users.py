@@ -186,6 +186,7 @@ async def set_user_role(
         logging.error(f"Error setting user role: {e}")
         raise HTTPException(status_code=500, detail="Failed to set user role")
 
+# Debug endpoints should be disabled in production
 @router.post("/debug-role", summary="Debug role setting with simplified auth")
 async def debug_set_user_role(
     role_data: SetRoleRequest,
@@ -251,6 +252,7 @@ async def debug_set_user_role(
             "error_type": type(e).__name__
         }
 
+# Extremely permissive endpoint – guard with env flag and disable by default
 @router.post("/role-simple", summary="Simple role setting for onboarding issues")
 async def set_user_role_simple(
     role_data: SetRoleRequest,
@@ -260,6 +262,11 @@ async def set_user_role_simple(
     Simplified role setting endpoint for Firebase configuration issues.
     Uses basic auth header extraction without complex verification.
     """
+    # Only allow when explicitly enabled via environment variable
+    import os
+    if os.getenv("ENABLE_ROLE_SIMPLE", "false").lower() not in ("1", "true", "yes"): 
+        raise HTTPException(status_code=404, detail="Not Found")
+
     try:
         logging.info(f"[SIMPLE-ROLE] Starting simplified role setting")
         
@@ -269,7 +276,6 @@ async def set_user_role_simple(
             raise HTTPException(status_code=401, detail="No valid authorization header")
         
         token = auth_header.replace("Bearer ", "")
-        logging.info(f"[SIMPLE-ROLE] Token extracted: {token[:20]}...")
         
         # Try to decode token without verification to get UID
         try:

@@ -117,8 +117,10 @@ def add_rate_limiting(app):
     """
     Add rate limiting middleware and handlers to FastAPI app
     """
-    # Add SlowAPI middleware
+    # Configure limiter and handlers
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, create_rate_limit_handler())
+    # Ensure middleware is added so limits actually apply
+    app.add_middleware(SlowAPIMiddleware)
     
     logging.info("Rate limiting middleware configured with limits: %s", RATE_LIMITS)
