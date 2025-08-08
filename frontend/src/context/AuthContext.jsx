@@ -297,6 +297,13 @@ export function AuthProvider({ children }) {
           setRoleChecked(true);
           setInitializing(false);
           authLogger.info('PERFORMANCE: New organizer ultra-fast path - immediate navigation ready');
+
+          // Seamless onboarding: auto-create a default league so event creation is immediately available
+          try {
+            await createDefaultLeagueIfNeeded(firebaseUser, userRole);
+          } catch (autoLeagueErr) {
+            authLogger.warn('AUTO-LEAGUE', `Auto-create on ultra-fast path failed: ${autoLeagueErr.message}`);
+          }
         } else if (!leagueFetchInProgress) {
           // Normal path for existing users not on select-role
           setLeagueFetchInProgress(true);
