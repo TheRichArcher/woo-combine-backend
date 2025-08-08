@@ -21,7 +21,7 @@ const getSportIcon = (sport) => {
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
-  const { selectedLeagueId, user: _user } = useAuth();
+  const { selectedLeagueId, user: _user, setSelectedLeagueId } = useAuth();
   const [showModal, setShowModal] = useState(false);
   
   // Auto-show modal when no events exist (streamlined UX)
@@ -36,6 +36,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const [selectedTemplate, setSelectedTemplate] = useState("football");
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError] = useState("");
+  const [creatingLeague, setCreatingLeague] = useState(false);
   const [playerCount, setPlayerCount] = useState(0);
   
   const templates = getAllTemplates();
@@ -124,6 +125,25 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     }
   }, [selectedLeagueId, name, date, location, setEvents, setSelectedEvent, onEventSelected]);
 
+  const handleCreateLeagueNow = useCallback(async () => {
+    setCreatingLeague(true);
+    setCreateError("");
+    try {
+      const defaultName = 'My First League';
+      const res = await api.post('/leagues', { name: defaultName });
+      const newLeagueId = res?.data?.league_id;
+      if (newLeagueId) {
+        setSelectedLeagueId(newLeagueId);
+        // Immediately allow event creation modal to open
+        setShowModal(true);
+      }
+    } catch (err) {
+      setCreateError(err.response?.data?.detail || err.message || 'Failed to create league');
+    } finally {
+      setCreatingLeague(false);
+    }
+  }, [setSelectedLeagueId]);
+
   // Show loading state
   if (loading) {
     return (
@@ -209,6 +229,18 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
           >
             Create Event
           </button>
+          {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
+            <div className="mt-3">
+              <button
+                onClick={handleCreateLeagueNow}
+                disabled={creatingLeague}
+                className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              >
+                {creatingLeague ? 'Creating League...' : 'Create League'}
+              </button>
+              <div className="text-xs text-gray-500 mt-2">No league yet? Create one, then create your event.</div>
+            </div>
+          )}
         </div>
       ) : (
         // Events available - show enhanced dropdown with preview
