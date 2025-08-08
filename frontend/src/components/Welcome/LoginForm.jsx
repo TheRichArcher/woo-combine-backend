@@ -37,7 +37,8 @@ export default function LoginForm() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let AuthContext handle the navigation logic for verified users
+      // Proactively navigate; protected routes will further guard/redirect
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       authLogger.error("Email sign-in error", err);
       if (err.code === "auth/user-not-found") {
