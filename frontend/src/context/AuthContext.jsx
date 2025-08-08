@@ -68,8 +68,12 @@ export function AuthProvider({ children }) {
 
       if (response?.data) {
         const leagueData = response.data;
-        setLeagues(leagueData);
-        authLogger.debug('Leagues loaded concurrently', Array.isArray(leagueData) ? leagueData.length : (leagueData.leagues?.length || 0));
+        // Normalize to array shape for state to avoid runtime errors
+        const leagueArray = Array.isArray(leagueData)
+          ? leagueData
+          : (Array.isArray(leagueData?.leagues) ? leagueData.leagues : []);
+        setLeagues(leagueArray);
+        authLogger.debug('Leagues loaded concurrently', leagueArray.length);
       }
     } catch (error) {
       authLogger.warn('Concurrent league fetch failed', error.message);
@@ -276,7 +280,10 @@ export function AuthProvider({ children }) {
               retry: 0
             });
             
-            const userLeagues = leagueResponse.data.leagues || [];
+            // Normalize possible shapes: array or { leagues: [...] }
+            const userLeagues = Array.isArray(leagueResponse.data)
+              ? leagueResponse.data
+              : (Array.isArray(leagueResponse.data?.leagues) ? leagueResponse.data.leagues : []);
             setLeagues(userLeagues);
             
             const currentSelectedLeagueId = localStorage.getItem('selectedLeagueId') || '';
