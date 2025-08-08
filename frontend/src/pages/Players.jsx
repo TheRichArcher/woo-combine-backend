@@ -13,6 +13,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, WEIGHT_PRESETS, TABS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
+import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 // PERFORMANCE OPTIMIZATION: New optimized imports
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
@@ -99,6 +100,47 @@ export default function Players() {
       return acc;
     }, {});
   }, [players, groupedRankings]);
+
+  // Determine rankings for the currently selected group. This enables showing
+  // rankings even if some players have not recorded any scores yet.
+  const selectedGroupRankings = useMemo(() => {
+    if (!selectedAgeGroup) return [];
+    if (selectedAgeGroup === 'all') {
+      return calculateOptimizedRankingsAcrossAll(players, persistedWeights);
+    }
+    return groupedRankings[selectedAgeGroup] || [];
+  }, [selectedAgeGroup, players, persistedWeights, groupedRankings]);
+
+  // Live rankings for the selected group based on current slider weights
+  const selectedLiveRankings = useMemo(() => {
+    if (!selectedAgeGroup) return [];
+    if (selectedAgeGroup === 'all') {
+      return calculateOptimizedRankingsAcrossAll(players, sliderWeights);
+    }
+    // liveRankings is a flat array across age groups; filter to the selected group
+    const filtered = (Array.isArray(liveRankings) ? liveRankings : [])
+      .filter(p => p && p.age_group === selectedAgeGroup);
+    return filtered.length > 0 ? filtered : selectedGroupRankings;
+  }, [selectedAgeGroup, players, sliderWeights, liveRankings, selectedGroupRankings]);
+
+  // Selected group players and completion stats (supports partial/no-shows)
+  const selectedGroupPlayers = useMemo(() => {
+    if (!selectedAgeGroup) return [];
+    return selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || []);
+  }, [selectedAgeGroup, players, grouped]);
+
+  const selectedGroupScoredCount = useMemo(() => {
+    if (!selectedGroupPlayers || selectedGroupPlayers.length === 0) return 0;
+    return selectedGroupPlayers.filter(p =>
+      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+    ).length;
+  }, [selectedGroupPlayers]);
+
+  const selectedGroupCompletionPct = useMemo(() => {
+    const total = selectedGroupPlayers.length || 0;
+    if (total === 0) return 0;
+    return Math.round((selectedGroupScoredCount / total) * 100);
+  }, [selectedGroupScoredCount, selectedGroupPlayers]);
 
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
@@ -530,7 +572,7 @@ export default function Players() {
                   </div>
                 </div>
 
-                {liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 ? (
+                {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Compact Weight Controls for Viewers */}
                     <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3">
@@ -539,9 +581,20 @@ export default function Players() {
                           <TrendingUp className="w-4 h-4" />
                           <span className="font-semibold text-sm">Explore Rankings: {selectedAgeGroup}</span>
                         </div>
-                        <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                          {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                            {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+                          </span>
+                          <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                            {selectedGroupScoredCount}/{selectedGroupPlayers.length} with scores ({selectedGroupCompletionPct}%)
+                          </span>
+                          <Link
+                            to="/live-entry"
+                            className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
+                          >
+                            Record Results
+                          </Link>
+                        </div>
                       </div>
                       
                       {/* Preset Buttons */}
@@ -598,6 +651,13 @@ export default function Players() {
                       </div>
                     </div>
 
+                    {/* Low completion notice (viewer) */}
+                    {selectedGroupPlayers.length > 0 && selectedGroupCompletionPct < 60 && (
+                      <div className="mx-3 mt-2 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded p-2 text-xs">
+                        Only {selectedGroupCompletionPct}% of players in this group have recorded scores. Rankings reflect available results and will update as more scores are entered.
+                      </div>
+                    )}
+
                     {/* Live Rankings */}
                     <div className="p-3">
                       <div className="flex items-center justify-between mb-2">
@@ -608,7 +668,7 @@ export default function Players() {
                       </div>
                       
                       <div className="space-y-1">
-                        {liveRankings[selectedAgeGroup].slice(0, 10).map((player, index) => (
+                        {selectedLiveRankings.slice(0, 10).map((player, index) => (
                           <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                             <div className={`font-bold w-6 text-center ${
                               index === 0 ? "text-yellow-500" : 
@@ -626,7 +686,7 @@ export default function Players() {
                             </div>
                             <div className="text-right">
                               <div className="font-bold text-blue-600 text-sm">
-                                {player.weightedScore.toFixed(1)}
+                                 {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
                               </div>
                               <div className="text-xs text-gray-500">points</div>
                             </div>
@@ -715,7 +775,7 @@ export default function Players() {
                       </div>
                     </div>
 
-                    {liveRankings[selectedAgeGroup] && liveRankings[selectedAgeGroup].length > 0 ? (
+                    {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {/* Compact Weight Controls */}
                         <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
@@ -724,9 +784,20 @@ export default function Players() {
                               <TrendingUp className="w-4 h-4" />
                               <span className="font-semibold text-sm">Top Prospects: {selectedAgeGroup}</span>
                             </div>
-                            <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                              {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                                {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+                              </span>
+                              <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
+                                {selectedGroupScoredCount}/{selectedGroupPlayers.length} with scores ({selectedGroupCompletionPct}%)
+                              </span>
+                              <Link
+                                to="/live-entry"
+                                className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
+                              >
+                                Record Results
+                              </Link>
+                            </div>
                           </div>
                           
                           {/* Preset Buttons */}
@@ -784,7 +855,7 @@ export default function Players() {
                           </div>
                           
                           <div className="space-y-1">
-                            {liveRankings[selectedAgeGroup].slice(0, 10).map((player, index) => (
+                            {selectedLiveRankings.slice(0, 10).map((player, index) => (
                               <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                                 <div className={`font-bold w-6 text-center ${
                                   index === 0 ? "text-yellow-500" : 
@@ -802,7 +873,7 @@ export default function Players() {
                                 </div>
                                 <div className="text-right">
                                   <div className="font-bold text-cmf-primary text-sm">
-                                    {player.weightedScore.toFixed(1)}
+                                    {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
                                   </div>
                                   <button
                                     onClick={(e) => {
@@ -823,9 +894,9 @@ export default function Players() {
                     ) : (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
                         <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                        <h3 className="font-semibold text-gray-900 mb-2">Ready to See Rankings!</h3>
+                        <h3 className="font-semibold text-gray-900 mb-2">📊 Players Added, Scores Coming Soon</h3>
                         <p className="text-gray-600">
-                          Players in <strong>{selectedAgeGroup}</strong> need drill scores first. Use the "Start Recording Drill Results" button above to begin.
+                          Rankings will appear as soon as results are recorded. You can still manage players below.
                         </p>
                       </div>
                     )}
@@ -967,12 +1038,25 @@ export default function Players() {
                     <Download className="w-5 h-5 text-cmf-primary" />
                     Download Rankings
                   </h2>
+                  <div className="flex items-center gap-2 text-xs">
+                    {(() => {
+                      const total = players.length;
+                      const scored = players.filter(p => p.composite_score != null).length;
+                      const pct = total > 0 ? Math.round((scored / total) * 100) : 0;
+                      return (
+                        <span className="bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-1">
+                          Overall: {scored}/{total} with scores ({pct}%)
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-3">
                   {/* Export All Players Button */}
                   {(() => {
-                    const allPlayers = Object.values(grouped).flat().filter(p => p.composite_score != null);
+                    const flatAll = Object.values(grouped).flat();
+                    const allPlayers = flatAll.filter(p => p.composite_score != null);
                     const handleExportAllCsv = () => {
                       if (allPlayers.length === 0) return;
                       let csv = 'Rank,Name,Player Number,Age Group,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
@@ -982,7 +1066,7 @@ export default function Players() {
                           csv += `${index + 1},"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unknown'}",${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
                         });
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-                      const filename = `rankings_all_players_${eventDate}.csv`;
+                      const filename = `rankings_all_players_${eventDate}_${allPlayers.length}-of-${flatAll.length}.csv`;
                       const blob = new Blob([csv], { type: 'text/csv' });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
@@ -1003,14 +1087,15 @@ export default function Players() {
                           <div className="font-semibold">Export All Players</div>
                           <div className="text-sm opacity-75">Complete rankings across all age groups</div>
                         </div>
-                        <div className="text-sm opacity-75">({allPlayers.length} players)</div>
+                        <div className="text-sm opacity-75">({allPlayers.length} with scores)</div>
                       </button>
                     ) : null;
                   })()}
                   
                   {/* Age Group Specific Exports */}
                   {Object.keys(grouped).sort().map(ageGroup => {
-                    const ageGroupPlayers = grouped[ageGroup].filter(p => p.composite_score != null);
+                    const ageGroupAll = grouped[ageGroup];
+                    const ageGroupPlayers = ageGroupAll.filter(p => p.composite_score != null);
                     const handleExportCsv = () => {
                       if (ageGroupPlayers.length === 0) return;
                       let csv = 'Rank,Name,Player Number,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
@@ -1020,7 +1105,7 @@ export default function Players() {
                           csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
                         });
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-                      const filename = `rankings_${ageGroup}_${eventDate}.csv`;
+                      const filename = `rankings_${ageGroup}_${eventDate}_${ageGroupPlayers.length}-of-${ageGroupAll.length}.csv`;
                       const blob = new Blob([csv], { type: 'text/csv' });
                       const url = URL.createObjectURL(blob);
                       const a = document.createElement('a');
@@ -1043,7 +1128,7 @@ export default function Players() {
                           <div className="font-semibold">Export {ageGroup} Rankings</div>
                           <div className="text-sm opacity-75">Full rankings with drill scores</div>
                         </div>
-                        <div className="text-sm opacity-75">({ageGroupPlayers.length} players)</div>
+                        <div className="text-sm opacity-75">({ageGroupPlayers.length} with scores)</div>
                       </button>
                     );
                   })}
