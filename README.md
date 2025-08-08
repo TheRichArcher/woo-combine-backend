@@ -95,9 +95,11 @@ visit https://woo-combine.com
 
 ## 📝 **Documentation**
 
-- `PM_HANDOFF_GUIDE.md` - System architecture and debugging
-- `RENDER_DEPLOYMENT.md` - Deployment configuration guide
-- `COMPLETION_SUMMARY.md` - Project status and achievements
+- See `docs/README.md` for the full documentation index
+- Key entries:
+  - `docs/guides/PM_HANDOFF_GUIDE.md` - System architecture and debugging
+  - `docs/guides/RENDER_DEPLOYMENT.md` - Deployment configuration guide
+  - `docs/reports/COMPLETION_SUMMARY.md` - Project status and achievements
 
 ## 🔒 **Security**
 
