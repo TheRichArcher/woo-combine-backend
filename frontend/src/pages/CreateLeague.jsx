@@ -34,8 +34,8 @@ export function CreateLeagueForm({ onCreated }) {
       
       if (onCreated) onCreated(newLeagueId);
       
-      // Redirect to event creation/selection page
-      navigate('/onboarding/event');
+      // Redirect to event creation/selection page and replace history
+      navigate('/onboarding/event', { replace: true });
     } catch (err) {
       setError(err.message || 'Error creating league');
     } finally {

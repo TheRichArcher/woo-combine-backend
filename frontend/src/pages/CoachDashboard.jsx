@@ -171,7 +171,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
           <p className="text-cmf-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
             <p className="text-gray-700 mb-4">To get started, create your first league below:</p>
-            <CreateLeagueForm onCreated={() => navigate('/onboarding/event')} />
+            <CreateLeagueForm onCreated={() => navigate('/onboarding/event', { replace: true })} />
           </div>
         </div>
       );

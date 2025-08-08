@@ -86,7 +86,7 @@ export default function OnboardingEvent() {
   };
 
   const handleContinueToPlayers = () => {
-    navigate("/players");
+    navigate("/players", { replace: true });
   };
 
   // CSV handling with enhanced parsing
