@@ -91,7 +91,7 @@ def add_evaluator(
 def submit_drill_evaluation(
     event_id: str,
     evaluation: DrillEvaluationRequest,
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_role("organizer", "coach"))
 ):
     """Submit a drill evaluation from an evaluator"""
     try:

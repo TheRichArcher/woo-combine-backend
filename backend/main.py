@@ -19,6 +19,7 @@ from starlette.responses import Response, JSONResponse
 from google.cloud import firestore
 from datetime import datetime
 import asyncio
+from .utils.error_handling import StandardError, handle_standard_error
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,6 +30,12 @@ add_security_middleware(app)
 
 # Add rate limiting middleware (must be added before requests are handled)
 add_rate_limiting(app)
+
+# Global handler for application-standard errors
+@app.exception_handler(StandardError)
+async def standard_error_handler(request: Request, exc: StandardError):
+    he = handle_standard_error(exc)
+    return JSONResponse(status_code=he.status_code, content={"detail": he.detail})
 
 # CORS configuration
 allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else []

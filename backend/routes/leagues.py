@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
+from typing import Annotated, Optional
 from ..firestore_client import db
 from ..auth import get_current_user
 from datetime import datetime
@@ -267,12 +268,20 @@ def join_league(
 @router.get('/leagues/{league_id}/teams')
 def list_teams(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
+    page: Annotated[Optional[int], Query(None)] = None,
+    limit: Annotated[Optional[int], Query(None)] = None,
     current_user=Depends(get_current_user)
 ):
     try:
         teams_ref = db.collection("leagues").document(league_id).collection("teams")
         teams_stream = list(teams_ref.stream())
-        teams = [dict(t.to_dict(), id=t.id) for t in teams_stream]
+        items = [dict(t.to_dict(), id=t.id) for t in teams_stream]
+        if page is not None and limit is not None:
+            start = (page - 1) * limit
+            end = start + limit
+            teams = items[start:end]
+        else:
+            teams = items
         return {"teams": teams}
     except Exception as e:
         logging.error(f"Error retrieving teams: {str(e)}")
@@ -281,12 +290,20 @@ def list_teams(
 @router.get('/leagues/{league_id}/invitations')
 def list_invitations(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
+    page: Annotated[Optional[int], Query(None)] = None,
+    limit: Annotated[Optional[int], Query(None)] = None,
     current_user=Depends(get_current_user)
 ):
     try:
         invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
         invitations_stream = list(invitations_ref.stream())
-        invitations = [dict(i.to_dict(), id=i.id) for i in invitations_stream]
+        items = [dict(i.to_dict(), id=i.id) for i in invitations_stream]
+        if page is not None and limit is not None:
+            start = (page - 1) * limit
+            end = start + limit
+            invitations = items[start:end]
+        else:
+            invitations = items
         return {"invitations": invitations}
     except Exception as e:
         logging.error(f"Error retrieving invitations: {str(e)}")

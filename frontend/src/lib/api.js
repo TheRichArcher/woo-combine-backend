@@ -1,7 +1,5 @@
 import axios from 'axios';
 import { auth } from '../firebase';
-import { apiLogger } from '../utils/logger';
-import { useToast } from '../context/ToastContext';
 
 /*
  * Centralized axios instance with proper cold start handling

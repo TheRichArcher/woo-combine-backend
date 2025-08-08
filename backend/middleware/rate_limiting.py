@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi import Request, Response
+import hashlib
 import logging
 
 # Initialize rate limiter with remote address as key function
@@ -48,8 +49,12 @@ def get_client_identifier(request: Request) -> str:
         client_ip = get_remote_address(request)
     
     # Add user agent to make identifier more unique
-    user_agent = request.headers.get("User-Agent", "unknown")
-    return f"{client_ip}:{hash(user_agent) % 10000}"
+    ua = request.headers.get("User-Agent", "unknown")
+    try:
+        ua_hash = hashlib.sha256(ua.encode("utf-8")).hexdigest()[:8]
+    except Exception:
+        ua_hash = "noua"
+    return f"{client_ip}:{ua_hash}"
 
 # Create limiter with custom key function
 limiter = Limiter(key_func=get_client_identifier)

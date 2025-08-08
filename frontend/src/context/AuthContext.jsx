@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
       const token = await firebaseUser.getIdToken(false);
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 5000);
-      const response = await api.get(`/leagues/my`, { signal: controller.signal }).catch((e) => { throw e; });
+      const response = await api.get(`/leagues/me`, { signal: controller.signal }).catch((e) => { throw e; });
       clearTimeout(timeout);
 
       if (response?.data) {

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
+from typing import Annotated, Optional
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from datetime import datetime
@@ -13,7 +14,9 @@ router = APIRouter()
 
 @router.get('/leagues/{league_id}/events')
 def list_events(
-    league_id: str = Path(..., regex=r"^.{1,50}$"), 
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    page: Annotated[Optional[int], Query(None)] = None,
+    limit: Annotated[Optional[int], Query(None)] = None,
     current_user=Depends(get_current_user)
 ):
     try:
@@ -24,7 +27,14 @@ def list_events(
             timeout=10,
             operation_name="events retrieval"
         )
-        events = [dict(e.to_dict(), id=e.id) for e in events_stream]
+        events_list = [dict(e.to_dict(), id=e.id) for e in events_stream]
+        # Optional in-memory pagination (non-breaking; only applies when provided)
+        if page is not None and limit is not None:
+            start = (page - 1) * limit
+            end = start + limit
+            events = events_list[start:end]
+        else:
+            events = events_list
         logging.info(f"Found {len(events)} events for league {league_id}")
         return {"events": events}
     except HTTPException:

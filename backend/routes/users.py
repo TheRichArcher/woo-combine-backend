@@ -8,6 +8,7 @@ import time
 from firebase_admin import auth
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
+import os
 
 router = APIRouter(prefix="/users")
 
@@ -195,6 +196,9 @@ async def debug_set_user_role(
 ):
     """Debug endpoint for role setting with detailed logging"""
     try:
+        # Disable in production unless explicitly enabled
+        if os.getenv("ENABLE_DEBUG_ENDPOINTS", "false").lower() not in ("1", "true", "yes"):
+            raise HTTPException(status_code=404, detail="Not Found")
         logging.info(f"[DEBUG-ROLE] Starting role setting debug")
         
         # Very basic Firebase token verification

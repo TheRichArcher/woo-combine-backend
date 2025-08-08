@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Annotated
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
 import logging
@@ -61,7 +61,13 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
 
 
 @router.get("/players", response_model=List[PlayerSchema])
-def get_players(request: Request, event_id: str = Query(...), current_user = Depends(get_current_user)):
+def get_players(
+    request: Request,
+    event_id: str = Query(...),
+    page: Annotated[Optional[int], Query(None)] = None,
+    limit: Annotated[Optional[int], Query(None)] = None,
+    current_user = Depends(get_current_user)
+):
     try:
         if 'user_id' in request.query_params:
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
@@ -79,9 +85,18 @@ def get_players(request: Request, event_id: str = Query(...), current_user = Dep
             return list(db.collection("events").document(str(event_id)).collection("players").stream())
         
         players_stream = execute_with_timeout(get_players_stream, timeout=15)
-        
+
+        players_list = list(players_stream)
+        # Optional in-memory pagination
+        if page is not None and limit is not None:
+            start = (page - 1) * limit
+            end = start + limit
+            paged = players_list[start:end]
+        else:
+            paged = players_list
+
         result = []
-        for player in players_stream:
+        for player in paged:
             player_dict = player.to_dict()
             player_dict["id"] = player.id
             # Calculate and add composite score
@@ -102,7 +117,11 @@ class PlayerCreate(BaseModel):
     photo_url: Optional[str] = None
 
 @router.post("/players")
-def create_player(player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
+def create_player(
+    player: PlayerCreate,
+    event_id: str = Query(...),
+    current_user=Depends(require_role("organizer", "coach"))
+):
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
         logging.info(f"[CREATE_PLAYER] Current user: {current_user.get('uid', 'unknown')}")
@@ -161,7 +180,12 @@ def create_player(player: PlayerCreate, event_id: str = Query(...), current_user
         raise HTTPException(status_code=500, detail=f"Failed to create player: {str(e)}")
 
 @router.put("/players/{player_id}")
-def update_player(player_id: str, player: PlayerCreate, event_id: str = Query(...), current_user=Depends(get_current_user)):
+def update_player(
+    player_id: str,
+    player: PlayerCreate,
+    event_id: str = Query(...),
+    current_user=Depends(require_role("organizer", "coach"))
+):
     try:
         # Validate that the event exists (use longer timeout for writes)
         event = execute_with_timeout(
@@ -403,7 +427,12 @@ def get_rankings(
 # Admin functionality is handled by the frontend /admin route.
 
 @router.get('/leagues/{league_id}/players')
-def list_players(league_id: str, current_user=Depends(get_current_user)):
+def list_players(
+    league_id: str,
+    page: Annotated[Optional[int], Query(None)] = None,
+    limit: Annotated[Optional[int], Query(None)] = None,
+    current_user=Depends(get_current_user)
+):
     try:
         players_ref = db.collection("leagues").document(league_id).collection("players")
         # Add timeout to players retrieval
@@ -411,7 +440,13 @@ def list_players(league_id: str, current_user=Depends(get_current_user)):
             lambda: list(players_ref.stream()),
             timeout=10
         )
-        players = [dict(p.to_dict(), id=p.id) for p in players_stream]
+        items = [dict(p.to_dict(), id=p.id) for p in players_stream]
+        if page is not None and limit is not None:
+            start = (page - 1) * limit
+            end = start + limit
+            players = items[start:end]
+        else:
+            players = items
         return {"players": players}
     except HTTPException:
         raise

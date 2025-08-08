@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from pydantic import BaseModel
 from ..models import DrillResultSchema
-from ..auth import get_current_user
+from ..auth import get_current_user, require_role
 from ..firestore_client import db
 import logging
 from datetime import datetime
@@ -20,7 +20,10 @@ class DrillResultCreate(BaseModel):
     event_id: str
 
 @router.post("/drill-results/", response_model=dict)
-def create_drill_result(result: DrillResultCreate, current_user=Depends(get_current_user)):
+def create_drill_result(
+    result: DrillResultCreate,
+    current_user=Depends(require_role("organizer", "coach"))
+):
     """Create a new drill result for a player"""
     try:
         # Validate that the event exists with timeout protection
