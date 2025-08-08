@@ -143,8 +143,9 @@ export function AuthProvider({ children }) {
       warmupBackend();
       
       if (!firebaseUser.emailVerified) {
-        // User needs to verify email - redirect will be handled by RequireAuth
+        // User needs to verify email - redirect immediately to avoid being stuck on login
         setInitializing(false);
+        navigate('/verify-email');
         return;
       }
       
