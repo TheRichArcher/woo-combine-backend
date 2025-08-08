@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from typing import List, Dict, Any, Optional, Annotated
+from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
 import logging
@@ -64,8 +64,8 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
 def get_players(
     request: Request,
     event_id: str = Query(...),
-    page: Annotated[Optional[int], Query(None)] = None,
-    limit: Annotated[Optional[int], Query(None)] = None,
+    page: Optional[int] = Query(None, ge=1),
+    limit: Optional[int] = Query(None, ge=1, le=500),
     current_user = Depends(get_current_user)
 ):
     try:
@@ -429,8 +429,8 @@ def get_rankings(
 @router.get('/leagues/{league_id}/players')
 def list_players(
     league_id: str,
-    page: Annotated[Optional[int], Query(None)] = None,
-    limit: Annotated[Optional[int], Query(None)] = None,
+    page: Optional[int] = Query(None, ge=1),
+    limit: Optional[int] = Query(None, ge=1, le=500),
     current_user=Depends(get_current_user)
 ):
     try:

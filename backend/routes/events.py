@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
-from typing import Annotated, Optional
+from typing import Optional
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from datetime import datetime
@@ -15,8 +15,8 @@ router = APIRouter()
 @router.get('/leagues/{league_id}/events')
 def list_events(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
-    page: Annotated[Optional[int], Query(None)] = None,
-    limit: Annotated[Optional[int], Query(None)] = None,
+    page: Optional[int] = Query(None, ge=1),
+    limit: Optional[int] = Query(None, ge=1, le=500),
     current_user=Depends(get_current_user)
 ):
     try:
