@@ -334,9 +334,9 @@ export default function OnboardingEvent() {
 
             {/* Event Creation */}
             <EventSelector onEventSelected={handleEventCreated} />
-            {/* If no league is selected yet but user is organizer, nudge to auto-setup */}
+             {/* If no league is selected yet but user is organizer, background auto-setup will create one */}
             {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
-              <div className="text-xs text-gray-500 mt-4">Preparing your league... if this doesn’t change in a few seconds, click Create Event to continue.</div>
+              <div className="text-xs text-gray-500 mt-4">Preparing your league... this will update automatically in a moment.</div>
             )}
           </div>
         </div>

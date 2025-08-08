@@ -74,6 +74,31 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     }
   }, [selectedEvent?.id, fetchPlayerCount]);
 
+  // Helper: ensure we have a league before opening the create-event modal
+  const ensureLeagueThenOpenModal = useCallback(async () => {
+    // If league already selected, just open the modal
+    if (selectedLeagueId && selectedLeagueId.trim() !== '') {
+      setShowModal(true);
+      return;
+    }
+
+    // Otherwise create a lightweight default league and proceed
+    try {
+      setCreatingLeague(true);
+      const defaultName = 'My First League';
+      const res = await api.post('/leagues', { name: defaultName });
+      const newLeagueId = res?.data?.league_id;
+      if (newLeagueId) {
+        setSelectedLeagueId(newLeagueId);
+        setShowModal(true);
+      }
+    } catch (err) {
+      setCreateError(err.response?.data?.detail || err.message || 'Failed to prepare league for event creation');
+    } finally {
+      setCreatingLeague(false);
+    }
+  }, [selectedLeagueId, setSelectedLeagueId]);
+
   const handleCreate = useCallback(async (e) => {
     e.preventDefault();
     setCreateLoading(true);
@@ -86,7 +111,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
         selectedLeagueId === undefined || 
         selectedLeagueId.trim() === '') {
       logger.error('EVENT-SELECTOR', 'Cannot create event - no selectedLeagueId available');
-      setCreateError('Cannot create event: No league selected. Please select a league first.');
+      setCreateError('Cannot create event: No league selected.');
       setCreateLoading(false);
       return;
     }
@@ -125,24 +150,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     }
   }, [selectedLeagueId, name, date, location, setEvents, setSelectedEvent, onEventSelected]);
 
-  const handleCreateLeagueNow = useCallback(async () => {
-    setCreatingLeague(true);
-    setCreateError("");
-    try {
-      const defaultName = 'My First League';
-      const res = await api.post('/leagues', { name: defaultName });
-      const newLeagueId = res?.data?.league_id;
-      if (newLeagueId) {
-        setSelectedLeagueId(newLeagueId);
-        // Immediately allow event creation modal to open
-        setShowModal(true);
-      }
-    } catch (err) {
-      setCreateError(err.response?.data?.detail || err.message || 'Failed to create league');
-    } finally {
-      setCreatingLeague(false);
-    }
-  }, [setSelectedLeagueId]);
+  // Deprecated create-league pathway removed from UI. Using ensureLeagueThenOpenModal instead.
 
   // Show loading state
   if (loading) {
@@ -222,15 +230,13 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
           <div className="text-gray-500 text-sm py-2 mb-4">
             Setting up your first event...
           </div>
-          {selectedLeagueId && selectedLeagueId.trim() !== '' && (
-            <button
-              onClick={() => setShowModal(true)}
-              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
-            >
-              Create Event
-            </button>
-          )}
-          {(!selectedLeagueId || selectedLeagueId.trim() === '') && null}
+          <button
+            onClick={ensureLeagueThenOpenModal}
+            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50"
+            disabled={createLoading || creatingLeague}
+          >
+            {creatingLeague ? 'Preparing…' : 'Create Event'}
+          </button>
         </div>
       ) : (
         // Events available - show enhanced dropdown with preview
@@ -260,11 +266,11 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
             <button
-              onClick={() => setShowModal(true)}
-              disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
-              className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              onClick={ensureLeagueThenOpenModal}
+              disabled={createLoading || creatingLeague}
+              className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 whitespace-nowrap"
             >
-              Create New Event
+              {creatingLeague ? 'Preparing…' : 'Create New Event'}
             </button>
           </div>
 
