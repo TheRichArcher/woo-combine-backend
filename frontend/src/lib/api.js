@@ -5,22 +5,21 @@ import { auth } from '../firebase';
  * Centralized axios instance with proper cold start handling
  * Base URL with fallback for production reliability
  */
-// Resolve base URL in both Vite runtime and Jest/node environments
+// Resolve base URL in both Vite (build-time) and Jest/node environments
 const resolveBaseUrl = () => {
-  // Jest/node fallback first
+  // Prefer Vite-injected env at build time (production frontend)
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE) {
+    return import.meta.env.VITE_API_BASE;
+  }
+  // Jest/node fallback for tests or server-side tooling
   if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE) {
     return process.env.VITE_API_BASE;
   }
-  // Browser: prefer same-origin /api if env not set
+  // Browser fallback: same-origin /api (useful in local dev with proxy)
   if (typeof window !== 'undefined' && window.location && window.location.origin) {
     return `${window.location.origin}/api`;
   }
-  // Vite runtime (guarded via dynamic function to avoid Jest parsing import.meta)
-  try {
-    // eslint-disable-next-line no-new-func
-    const viteBase = new Function('try { return import.meta && import.meta.env && import.meta.env.VITE_API_BASE } catch (e) { return undefined }')();
-    if (viteBase) return viteBase;
-  } catch {}
+  // Final fallback
   return 'http://localhost:3000/api';
 };
 
