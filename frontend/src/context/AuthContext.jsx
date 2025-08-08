@@ -394,10 +394,17 @@ export function AuthProvider({ children }) {
             }
             
           } catch (leagueError) {
+            // Preserve any previously selected league on transient errors
             setLeagues([]);
-            setSelectedLeagueIdState('');
+            const persistedSelectedRaw = localStorage.getItem('selectedLeagueId');
+            const persistedSelected = (persistedSelectedRaw && persistedSelectedRaw !== 'null' && persistedSelectedRaw !== 'undefined' && persistedSelectedRaw.trim() !== '') ? persistedSelectedRaw : '';
+            if (persistedSelected) {
+              setSelectedLeagueIdState(persistedSelected);
+            } else {
+              setSelectedLeagueIdState('');
+            }
             setRole(null);
-            localStorage.removeItem('selectedLeagueId');
+            // Do not remove from localStorage here to avoid wiping user context on intermittent failures
           } finally {
             setLeagueFetchInProgress(false);
           }

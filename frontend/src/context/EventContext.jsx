@@ -77,13 +77,34 @@ export function EventProvider({ children }) {
     }
   }, []); // FIXED: Removed selectedEvent from dependencies to prevent circular dependency
 
-  // Load events when league changes
+  // Load events when league changes, restoring previous selection if still valid
   useEffect(() => {
     // Only load events after auth is complete
     if (!authChecked || !roleChecked) return;
     
     if (selectedLeagueId) {
-      loadEvents(selectedLeagueId);
+      // Capture previously selectedEvent id, if any
+      let previouslySelectedId = null;
+      try {
+        const stored = localStorage.getItem('selectedEvent');
+        if (stored) previouslySelectedId = JSON.parse(stored)?.id || null;
+      } catch {}
+
+      (async () => {
+        await loadEvents(selectedLeagueId);
+        if (previouslySelectedId) {
+          // After events load, if the prior event is still in the list, reselect it
+          setSelectedEvent(current => {
+            if (current && current.id === previouslySelectedId) return current;
+            const found = events.find(e => e.id === previouslySelectedId);
+            if (found) {
+              localStorage.setItem('selectedEvent', JSON.stringify(found));
+              return found;
+            }
+            return current;
+          });
+        }
+      })();
     } else {
       setEvents([]);
       setSelectedEvent(null);
