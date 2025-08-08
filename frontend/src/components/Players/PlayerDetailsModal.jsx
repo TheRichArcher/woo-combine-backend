@@ -287,7 +287,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                           More important
                         </span>
                         <div className="text-sm font-bold text-cmf-primary min-w-[40px] text-center">
-                          {modalLocalWeights[drill.key] || 0}
+                          {(modalLocalWeights[drill.key] || 0).toFixed(0)}%
                         </div>
                       </div>
                     </div>

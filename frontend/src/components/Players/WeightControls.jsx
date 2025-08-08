@@ -91,7 +91,7 @@ const WeightControls = React.memo(function WeightControls({
                   <div className="text-xs text-gray-500">Higher = more important</div>
                 </div>
                 <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
-                  {localWeights[drill.key] || weights[drill.key] || 0}
+                  {((localWeights[drill.key] ?? weights[drill.key] ?? 0)).toFixed(0)}%
                 </span>
               </div>
               

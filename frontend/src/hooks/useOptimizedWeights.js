@@ -88,12 +88,15 @@ export function useOptimizedWeights(players = []) {
     const preset = WEIGHT_PRESETS[presetKey];
     if (!preset) return;
 
-    const newWeights = { ...preset.weights };
-    
+    // Preset weights are defined as fractions (0-1). Convert to percentage (0-100)
+    const newWeights = Object.fromEntries(
+      Object.entries(preset.weights).map(([key, value]) => [key, value * 100])
+    );
+
     setSliderWeights(newWeights);
     setPersistedWeights(newWeights);
     setActivePreset(presetKey);
-    
+
     isUpdating.current = true;
     setTimeout(() => {
       isUpdating.current = false;
@@ -148,10 +151,12 @@ export function useOptimizedWeights(players = []) {
   // Check if weights match a preset
   const detectActivePreset = useCallback(() => {
     for (const [key, preset] of Object.entries(WEIGHT_PRESETS)) {
-      const matches = Object.keys(preset.weights).every(
-        drillKey => Math.abs(persistedWeights[drillKey] - preset.weights[drillKey]) < 0.1
-      );
-      
+      // Compare against percentage scale
+      const matches = Object.keys(preset.weights).every((drillKey) => {
+        const expected = (preset.weights[drillKey] || 0) * 100;
+        return Math.abs((persistedWeights[drillKey] || 0) - expected) < 0.1;
+      });
+
       if (matches) {
         return key;
       }
