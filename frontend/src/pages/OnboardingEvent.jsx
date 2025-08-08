@@ -18,7 +18,7 @@ import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
-  const { user, userRole, leagues, selectedLeagueId } = useAuth();
+  const { user, userRole, leagues, selectedLeagueId, setSelectedLeagueId, setLeagues } = useAuth();
   
   // Enhanced auth check with loading state
   if (!user) {
@@ -61,6 +61,40 @@ export default function OnboardingEvent() {
   
   const fileInputRef = useRef();
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
+
+  // Auto-setup: ensure an organizer has a league context
+  useEffect(() => {
+    let cancelled = false;
+    const ensureLeagueContext = async () => {
+      if (userRole !== 'organizer') return;
+      const hasSelectedLeague = !!(selectedLeagueId && selectedLeagueId.trim() !== '');
+      if (hasSelectedLeague) return;
+      // If leagues already loaded, pick the first
+      if (Array.isArray(leagues) && leagues.length > 0) {
+        setSelectedLeagueId(leagues[0].id);
+        return;
+      }
+      // Otherwise create a default league seamlessly
+      try {
+        const defaultName = 'My First League';
+        const res = await api.post('/leagues', { name: defaultName });
+        if (cancelled) return;
+        const newLeagueId = res?.data?.league_id;
+        if (newLeagueId) {
+          setSelectedLeagueId(newLeagueId);
+          setLeagues(prev => {
+            const exists = Array.isArray(prev) && prev.some(l => l.id === newLeagueId);
+            if (exists) return prev;
+            return [...(prev || []), { id: newLeagueId, name: defaultName, role: 'organizer' }];
+          });
+        }
+      } catch {
+        // Silent fail; UI already shows guidance and manual Create League button
+      }
+    };
+    ensureLeagueContext();
+    return () => { cancelled = true; };
+  }, [userRole, selectedLeagueId, leagues, setSelectedLeagueId, setLeagues]);
 
   // Fetch player count
   const fetchPlayerCount = useCallback(async () => {
