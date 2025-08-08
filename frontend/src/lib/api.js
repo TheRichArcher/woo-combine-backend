@@ -11,6 +11,10 @@ const resolveBaseUrl = () => {
   if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE) {
     return process.env.VITE_API_BASE;
   }
+  // Browser: prefer same-origin /api if env not set
+  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+    return `${window.location.origin}/api`;
+  }
   // Vite runtime (guarded via dynamic function to avoid Jest parsing import.meta)
   try {
     // eslint-disable-next-line no-new-func
