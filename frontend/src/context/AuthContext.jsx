@@ -11,7 +11,8 @@ import { authLogger } from '../utils/logger';
 const AuthContext = createContext();
 
 // Role utilities to avoid treating 'undefined'/'null' as valid roles
-const VALID_ROLES = ['organizer', 'coach', 'evaluator', 'admin'];
+// Align with backend-accepted roles while keeping internal roles for UI/admin
+const VALID_ROLES = ['organizer', 'coach', 'viewer', 'player', 'evaluator', 'admin'];
 function sanitizeRole(value) {
   if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();
@@ -397,7 +398,8 @@ export function AuthProvider({ children }) {
         setRoleChecked(true);
         
         // Navigation logic (reuse currentPath from above)
-        const onboardingRoutes = ["/login", "/signup", "/"];
+        // Include '/welcome' so authenticated users land on the dashboard automatically
+        const onboardingRoutes = ["/login", "/signup", "/", "/welcome"];
         authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
         authLogger.debug('Auth state after role check', {
           userRole,
