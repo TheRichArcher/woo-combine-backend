@@ -134,7 +134,7 @@ export default function SelectLeague() {
           {/* Bottom Actions - Mojo Style */}
           <div className="p-4 space-y-3 border-t border-gray-200">
             <button
-              onClick={() => navigate('/create-league')}
+              onClick={() => navigate('/create-league', { replace: true })}
               className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
             >
               <Plus className="w-5 h-5" />

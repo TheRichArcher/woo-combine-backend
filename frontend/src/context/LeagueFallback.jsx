@@ -17,8 +17,8 @@ export default function LeagueFallback() {
       setFeedback("Starting guided setup...");
       try {
         logger.info('GUIDED-SETUP', 'Navigating to create-league for guided setup (league creation first)');
-        // Create league first - CreateLeague will then navigate to /onboarding/event
-        navigate('/create-league');
+        // Replace history entry to prevent accidental back to this screen
+        navigate('/create-league', { replace: true });
       } catch (err) {
         logger.error('GUIDED-SETUP', 'Navigation error', err);
         setFeedback(`Navigation error: ${err.message}`);
@@ -26,7 +26,7 @@ export default function LeagueFallback() {
     } else {
       setFeedback("Redirecting to Create League...");
       try {
-        navigate('/create-league');
+        navigate('/create-league', { replace: true });
       } catch (err) {
         setFeedback(`Navigation error: ${err.message}`);
       }
