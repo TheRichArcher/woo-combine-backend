@@ -10,6 +10,14 @@ import { authLogger } from '../utils/logger';
 
 const AuthContext = createContext();
 
+// Role utilities to avoid treating 'undefined'/'null' as valid roles
+const VALID_ROLES = ['organizer', 'coach', 'evaluator', 'admin'];
+function sanitizeRole(value) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return VALID_ROLES.includes(trimmed) ? trimmed : null;
+}
+
 export function AuthProvider({ children }) {
   // Optimized state management with faster initial checks
   const [user, setUser] = useState(null);
@@ -26,9 +34,8 @@ export function AuthProvider({ children }) {
   });
   const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(() => {
-    // Try to restore userRole from localStorage on initialization
-    const storedRole = localStorage.getItem('userRole');
-    return storedRole && storedRole !== 'null' ? storedRole : null;
+    // Restore from localStorage, but ignore invalid values
+    return sanitizeRole(localStorage.getItem('userRole'));
   });
   const navigate = useNavigate();
   const { showColdStartNotification, isColdStartActive, showWarning } = useToast();
@@ -82,6 +89,19 @@ export function AuthProvider({ children }) {
     } catch (error) {
       authLogger.warn('Backend warmup failed (non-critical)', error.message);
     }
+  }, []);
+
+  // One-time cleanup: remove accidental string literals from older sessions
+  useEffect(() => {
+    const fixKey = (k) => {
+      const v = localStorage.getItem(k);
+      if (v === 'undefined' || v === 'null' || v === '') {
+        localStorage.removeItem(k);
+      }
+    };
+    fixKey('selectedLeagueId');
+    const safeRole = sanitizeRole(localStorage.getItem('userRole'));
+    if (!safeRole) localStorage.removeItem('userRole');
   }, []);
 
   // PERFORMANCE: Concurrent league fetching to reduce wait time
@@ -159,10 +179,10 @@ export function AuthProvider({ children }) {
         authLogger.debug('Starting role check for user', firebaseUser.email);
         
         // PERFORMANCE FIX: Always use cached role for immediate UI load
-        const cachedRole = localStorage.getItem('userRole');
+        const cachedRole = sanitizeRole(localStorage.getItem('userRole'));
         const cachedEmail = localStorage.getItem('userEmail');
         
-        if (cachedRole && cachedRole !== 'null' && cachedEmail === firebaseUser.email) {
+        if (cachedRole && cachedEmail === firebaseUser.email) {
           authLogger.debug('Using cached role for immediate startup', cachedRole);
           setUserRole(cachedRole);
           setRole(cachedRole);
@@ -181,10 +201,11 @@ export function AuthProvider({ children }) {
               const response = await api.get(`/users/me`, { headers: { Authorization: `Bearer ${token}` } });
               if (response?.data) {
                 const userData = response.data;
-                if (userData.role !== cachedRole) {
+                const serverRole = sanitizeRole(userData.role);
+                if (serverRole && serverRole !== cachedRole) {
                   authLogger.debug('Role changed on server, updating cache');
-                  setUserRole(userData.role);
-                  localStorage.setItem('userRole', userData.role);
+                  setUserRole(serverRole);
+                  localStorage.setItem('userRole', serverRole);
                 }
               }
             } catch (error) {
@@ -197,7 +218,7 @@ export function AuthProvider({ children }) {
         let userRole = cachedRole;
         
         // PERFORMANCE OPTIMIZATION: Skip API call completely if we have valid cached role
-        if (!cachedRole || cachedRole === 'null' || cachedEmail !== firebaseUser.email) {
+        if (!cachedRole || cachedEmail !== firebaseUser.email) {
           authLogger.debug('No valid cached role found, fetching from API');
           try {
             let token;
@@ -217,7 +238,7 @@ export function AuthProvider({ children }) {
             if (roleResponse?.data) {
               const userData = roleResponse.data;
               authLogger.debug('User data received', userData);
-              userRole = userData.role;
+              userRole = sanitizeRole(userData.role);
             } else if (roleResponse?.status === 404) {
               authLogger.debug('User not found (404) - treating as new user');
               userRole = null;
@@ -238,8 +259,8 @@ export function AuthProvider({ children }) {
             authLogger.error('Role check error', error.message);
             
             // Check if we have a cached role in localStorage as fallback
-            const fallbackCachedRole = localStorage.getItem('userRole');
-            if (fallbackCachedRole && fallbackCachedRole !== 'null') {
+            const fallbackCachedRole = sanitizeRole(localStorage.getItem('userRole'));
+            if (fallbackCachedRole) {
               authLogger.debug('API failed, but found cached role', fallbackCachedRole);
               authLogger.warn(`API role check failed (${error.message}), using cached role: ${fallbackCachedRole}`);
               userRole = fallbackCachedRole;
@@ -285,8 +306,12 @@ export function AuthProvider({ children }) {
 
         authLogger.debug('User role found', userRole);
         setUserRole(userRole);
-        // Persist role AND email to localStorage for browser refresh resilience
-        localStorage.setItem('userRole', userRole);
+        // Persist only valid roles to localStorage
+        if (userRole && VALID_ROLES.includes(userRole)) {
+          localStorage.setItem('userRole', userRole);
+        } else {
+          localStorage.removeItem('userRole');
+        }
         localStorage.setItem('userEmail', firebaseUser.email);
 
         // STEP 2: INTELLIGENT LEAGUE LOADING - Skip only for new organizers
