@@ -18,7 +18,12 @@ export function AuthProvider({ children }) {
   const [roleChecked, setRoleChecked] = useState(false); // NEW: role verification complete
   const [error, setError] = useState(null);
   const [leagues, setLeagues] = useState([]);
-  const [selectedLeagueId, setSelectedLeagueIdState] = useState(() => localStorage.getItem('selectedLeagueId') || '');
+  const [selectedLeagueId, setSelectedLeagueIdState] = useState(() => {
+    const raw = localStorage.getItem('selectedLeagueId');
+    if (!raw) return '';
+    const trimmed = String(raw).trim();
+    return trimmed === '' || trimmed === 'null' || trimmed === 'undefined' ? '' : trimmed;
+  });
   const [role, setRole] = useState(null);
   const [userRole, setUserRole] = useState(() => {
     // Try to restore userRole from localStorage on initialization
@@ -321,7 +326,8 @@ export function AuthProvider({ children }) {
               : (Array.isArray(leagueResponse.data?.leagues) ? leagueResponse.data.leagues : []);
             setLeagues(userLeagues);
             
-            const currentSelectedLeagueId = localStorage.getItem('selectedLeagueId') || '';
+            const rawStored = localStorage.getItem('selectedLeagueId');
+            const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
             let targetLeagueId = currentSelectedLeagueId;
             
             if (userLeagues.length > 0) {
@@ -341,7 +347,8 @@ export function AuthProvider({ children }) {
               // Do not clear an explicitly selected league that might have just been set
               // by the Create League flow or another tab. Respect any existing selection
               // in localStorage and only clear if none exists.
-              const persistedSelected = localStorage.getItem('selectedLeagueId');
+              const persistedSelectedRaw = localStorage.getItem('selectedLeagueId');
+              const persistedSelected = (persistedSelectedRaw && persistedSelectedRaw !== 'null' && persistedSelectedRaw !== 'undefined' && persistedSelectedRaw.trim() !== '') ? persistedSelectedRaw : '';
               if (!persistedSelected || persistedSelected.trim() === '') {
                 setSelectedLeagueIdState('');
                 setRole(null);
@@ -487,12 +494,18 @@ export function AuthProvider({ children }) {
     leagues,
     selectedLeagueId,
     setSelectedLeagueId: useCallback((id) => {
-      setSelectedLeagueIdState(id);  // Set the state
-      localStorage.setItem('selectedLeagueId', id);  // Persist to localStorage
+      const sanitized = (id === undefined || id === null) ? '' : String(id).trim();
+      setSelectedLeagueIdState(sanitized);
+      // Persist only valid values; avoid 'undefined'/'null' strings
+      if (sanitized) {
+        localStorage.setItem('selectedLeagueId', sanitized);
+      } else {
+        localStorage.removeItem('selectedLeagueId');
+      }
       
       // Update role when league changes
       if (leagues.length > 0) {
-        const selectedLeague = leagues.find(l => l.id === id);
+        const selectedLeague = leagues.find(l => l.id === sanitized);
         setRole(selectedLeague?.role || null);
       }
     }, [leagues]),

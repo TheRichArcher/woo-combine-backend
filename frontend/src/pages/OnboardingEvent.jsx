@@ -19,6 +19,7 @@ export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId, setSelectedLeagueId, setLeagues } = useAuth();
+  const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Enhanced auth check with loading state
   if (!user) {
@@ -29,12 +30,15 @@ export default function OnboardingEvent() {
     return <LoadingScreen title="Loading your role..." subtitle="Setting up your account permissions" size="large" />;
   }
   
+  // Redirect non-organizers safely via effect to avoid hook order issues
+  useEffect(() => {
+    if (userRole && userRole !== 'organizer') {
+      navigate('/dashboard');
+    }
+  }, [userRole, navigate]);
   if (userRole !== 'organizer') {
-    navigate('/dashboard');
     return <LoadingScreen title="Redirecting..." subtitle="Taking you to your dashboard" size="medium" />;
   }
-  
-  const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Multi-step wizard state
   const [currentStep, setCurrentStep] = useState(1);
