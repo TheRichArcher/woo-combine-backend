@@ -4,11 +4,10 @@ import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
-import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
-import { calculateOptimizedRankings } from '../utils/optimizedScoring';
+import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -26,6 +25,8 @@ export default function LiveStandings() {
     return defaultWeights;
   });
   const [activePreset, setActivePreset] = useState('balanced');
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
+  const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
 
   // PERFORMANCE OPTIMIZATION: Cached fetch for LiveStandings
   const cachedFetchPlayersLive = withCache(
@@ -58,12 +59,24 @@ export default function LiveStandings() {
   }, [fetchPlayers]);
 
   // PERFORMANCE OPTIMIZATION: Use optimized rankings calculation
+  const ageGroups = useMemo(() => {
+    const groups = new Set();
+    players.forEach(p => { if (p.age_group) groups.add(p.age_group); });
+    return ['ALL', ...Array.from(groups).sort()];
+  }, [players]);
+
+  const filteredPlayers = useMemo(() => {
+    if (selectedAgeGroup === 'ALL') return players;
+    return players.filter(p => p.age_group === selectedAgeGroup);
+  }, [players, selectedAgeGroup]);
+
   const liveRankings = useMemo(() => {
-    if (!players.length) return [];
-    
-    return calculateOptimizedRankings(players, weights)
-      .filter(player => player.compositeScore > 0);
-  }, [players, weights]);
+    if (!filteredPlayers.length) return [];
+    const source = normalizeAcrossAll && selectedAgeGroup === 'ALL'
+      ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights)
+      : calculateOptimizedRankings(filteredPlayers, weights);
+    return source.filter(player => player.compositeScore > 0);
+  }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
 
   // Handle weight changes
   const handleWeightChange = (drillKey, value) => {
@@ -144,11 +157,32 @@ export default function LiveStandings() {
           </div>
         </div>
 
-        {/* Weight Controls */}
+        {/* Filters & Weight Controls */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Settings className="w-5 h-5 text-gray-600" />
-            <h2 className="font-semibold text-gray-900">Ranking Weights</h2>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-gray-600" />
+              <h2 className="font-semibold text-gray-900">Ranking Controls</h2>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-1 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={normalizeAcrossAll}
+                  onChange={(e) => setNormalizeAcrossAll(e.target.checked)}
+                />
+                Normalize across all players
+              </label>
+              <select
+                value={selectedAgeGroup}
+                onChange={(e) => setSelectedAgeGroup(e.target.value)}
+                className="border border-gray-300 rounded px-2 py-1"
+              >
+                {ageGroups.map(g => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+              </select>
+            </div>
           </div>
           <p className="text-sm text-gray-600 mb-4">
             Adjust drill importance for live ranking calculations
