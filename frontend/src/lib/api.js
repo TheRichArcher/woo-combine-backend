@@ -5,8 +5,23 @@ import { auth } from '../firebase';
  * Centralized axios instance with proper cold start handling
  * Base URL with fallback for production reliability
  */
+// Resolve base URL in both Vite runtime and Jest/node environments
+const resolveBaseUrl = () => {
+  // Jest/node fallback first
+  if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE) {
+    return process.env.VITE_API_BASE;
+  }
+  // Vite runtime (guarded via dynamic function to avoid Jest parsing import.meta)
+  try {
+    // eslint-disable-next-line no-new-func
+    const viteBase = new Function('try { return import.meta && import.meta.env && import.meta.env.VITE_API_BASE } catch (e) { return undefined }')();
+    if (viteBase) return viteBase;
+  } catch {}
+  return 'http://localhost:3000/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE,
+  baseURL: resolveBaseUrl(),
   withCredentials: false,
   timeout: 30000  // Increased to 30s to handle cold starts better
 });

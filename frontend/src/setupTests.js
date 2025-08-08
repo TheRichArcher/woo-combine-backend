@@ -1,8 +1,14 @@
 import '@testing-library/jest-dom';
 
 // Polyfill for TextEncoder/TextDecoder
+import { TextEncoder, TextDecoder } from 'util';
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
+
+// Provide a minimal fetch stub for libraries that expect it
+if (!global.fetch) {
+  global.fetch = jest.fn(() => Promise.reject(new Error('fetch not implemented in test env')));
+}
 
 // Mock Firebase modules
 jest.mock('./firebase', () => ({
@@ -14,6 +20,19 @@ jest.mock('./firebase', () => ({
   },
   db: {},
 }));
+
+// Mock firebase/auth to avoid Node fetch dependency and control auth flow in tests
+jest.mock('firebase/auth', () => {
+  return {
+    onAuthStateChanged: (_auth, callback) => {
+      // Simulate next tick to avoid setState outside act warnings
+      setTimeout(() => callback(null), 0);
+      // Return unsubscribe function
+      return () => {};
+    },
+    signOut: jest.fn(),
+  };
+});
 
 // Mock react-router-dom
 jest.mock('react-router-dom', () => ({

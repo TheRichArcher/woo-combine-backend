@@ -402,16 +402,12 @@ export function AuthProvider({ children }) {
     
     try {
       const token = await user.getIdToken(true); // Force refresh token
-              const response = await fetch(`${import.meta.env.VITE_API_BASE}/users/me`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+      const response = await api.get(`/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
       
-      if (response.ok) {
-        const userData = await response.json();
+      if (response?.data) {
+        const userData = response.data;
         const newRole = userData.role;
         authLogger.debug('Refreshed user role', newRole);
         setUserRole(newRole);
@@ -461,14 +457,10 @@ export function AuthProvider({ children }) {
     logout
   };
 
-  // Show loading screen while initializing
-  if (initializing) {
-    return <LoadingScreen size="large" />;
-  }
-
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
+      {initializing && <LoadingScreen size="large" />}
     </AuthContext.Provider>
   );
 }

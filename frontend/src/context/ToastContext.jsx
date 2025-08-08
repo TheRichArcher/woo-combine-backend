@@ -122,7 +122,7 @@ export function ToastProvider({ children }) {
       {children}
       
       {/* Render all toasts */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm">
+      <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm" role="status" aria-live="polite">
         {toasts.map((toast) => (
           <Toast
             key={toast.id}

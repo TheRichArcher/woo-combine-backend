@@ -11,8 +11,18 @@ const LOG_LEVELS = {
 };
 
 const getCurrentLogLevel = () => {
-  if (import.meta.env.PROD) return LOG_LEVELS.ERROR;
-  if (import.meta.env.VITE_LOG_LEVEL) return LOG_LEVELS[import.meta.env.VITE_LOG_LEVEL] || LOG_LEVELS.INFO;
+  // Node/Jest env
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env.NODE_ENV === 'production') return LOG_LEVELS.ERROR;
+    if (process.env.VITE_LOG_LEVEL) return LOG_LEVELS[process.env.VITE_LOG_LEVEL] || LOG_LEVELS.INFO;
+  }
+  // Vite runtime (guarded)
+  try {
+    // eslint-disable-next-line no-new-func
+    const env = new Function('try { return import.meta && import.meta.env } catch (e) { return {} }')();
+    if (env && env.PROD) return LOG_LEVELS.ERROR;
+    if (env && env.VITE_LOG_LEVEL) return LOG_LEVELS[env.VITE_LOG_LEVEL] || LOG_LEVELS.INFO;
+  } catch {}
   return LOG_LEVELS.DEBUG;
 };
 
@@ -34,7 +44,17 @@ class Logger {
     }
     
     // In production, send to error tracking service
-    if (import.meta.env.PROD && error) {
+    // Only attempt external reporting in production
+    const isProd = (() => {
+      if (typeof process !== 'undefined' && process.env) return process.env.NODE_ENV === 'production';
+      try {
+        // eslint-disable-next-line no-new-func
+        const env = new Function('try { return import.meta && import.meta.env && import.meta.env.PROD } catch (e) { return false }')();
+        return !!env;
+      } catch { return false; }
+    })();
+
+    if (isProd && error) {
       // NOTE: Ready for error tracking service integration (Sentry, LogRocket, etc.)
       this.sendToErrorService(context, message, error);
     }

@@ -64,9 +64,12 @@ def create_rate_limit_handler():
     async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
         from fastapi.responses import JSONResponse
         
-        # Create JSON response similar to the default handler
+        # Create JSON response in standardized format used across the API
         response = JSONResponse(
-            {"error": f"Rate limit exceeded: {exc.detail}. Please slow down."},
+            {
+                "detail": f"Rate limit exceeded: {exc.detail}. Please slow down.",
+                "category": "rate_limit"
+            },
             status_code=429
         )
         

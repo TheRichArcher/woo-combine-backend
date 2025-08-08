@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Navigation from '../Navigation';
 import { AuthProvider } from '../../context/AuthContext';
+import { EventProvider } from '../../context/EventContext';
 import { ToastProvider } from '../../context/ToastContext';
 
 // Mock the AuthContext hook
@@ -23,7 +24,9 @@ const NavigationWrapper = ({ children }) => (
   <BrowserRouter>
     <ToastProvider>
       <AuthProvider>
-        {children}
+        <EventProvider>
+          {children}
+        </EventProvider>
       </AuthProvider>
     </ToastProvider>
   </BrowserRouter>
@@ -36,8 +39,9 @@ describe('Navigation', () => {
         <Navigation />
       </NavigationWrapper>
     );
-
-    expect(screen.getByText('WooCombine')).toBeInTheDocument();
+    // Basic nav links render
+    expect(screen.getByText('Home')).toBeInTheDocument();
+    expect(screen.getByText('Players')).toBeInTheDocument();
   });
 
   it('displays user role in navigation', () => {
@@ -47,7 +51,7 @@ describe('Navigation', () => {
       </NavigationWrapper>
     );
 
-    // Check if organizer-specific elements are shown
-    expect(screen.getByText('WooCombine')).toBeInTheDocument();
+    // Organizer-specific Admin link is visible
+    expect(screen.getByText('Admin')).toBeInTheDocument();
   });
 });

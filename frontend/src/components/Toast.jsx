@@ -37,7 +37,7 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
   return (
     <div className={`max-w-sm p-4 border rounded-lg shadow-lg transition-all duration-300 ${
       isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-full'
-    } ${typeStyles[type]}`}>
+    } ${typeStyles[type]}`} role="status" aria-live="polite">
       <div className="flex items-start gap-3">
         {iconMap[type]}
         <div className="flex-1">

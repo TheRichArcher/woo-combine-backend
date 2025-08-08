@@ -1,6 +1,6 @@
 export default {
   testEnvironment: 'jsdom',
-  setupFilesAfterEnv: ['<rootDir>/setupTests.js'],
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
     '^@/(.*)$': '<rootDir>/src/$1'
@@ -12,6 +12,16 @@ export default {
         ['@babel/preset-react', { runtime: 'automatic' }]
       ]
     }]
+  },
+  transformIgnorePatterns: [
+    '/node_modules/'
+  ],
+  globals: {
+    'import.meta': {
+      env: {
+        VITE_API_BASE: 'http://localhost:3000/api'
+      }
+    }
   },
   collectCoverageFrom: [
     'src/**/*.{js,jsx}',

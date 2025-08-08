@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
 
-const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
+// Enhanced LoadingScreen supports title, subtitle, message and optional progress
+const LoadingScreen = ({ 
+  size = 'large', 
+  title = 'Loading...', 
+  subtitle = '', 
+  message = '', 
+  showProgress = false 
+}) => {
   const [extendedLoading, setExtendedLoading] = useState(false);
   const [coldStartMessage, setColdStartMessage] = useState(false);
 
@@ -50,10 +57,22 @@ const LoadingScreen = ({ size = 'large', message = 'Loading...' }) => {
           <div className={`${spinnerSizes[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin`}></div>
         </div>
 
-        {/* Main message */}
-        <h2 className="text-xl font-semibold text-gray-700 mb-2">
-          {message}
+        {/* Titles/messages */}
+        <h2 className="text-2xl font-semibold text-gray-800 mb-1">
+          {title || 'Loading...'}
         </h2>
+        {subtitle && (
+          <p className="text-gray-600 mb-3">{subtitle}</p>
+        )}
+        {message && (
+          <p className="text-gray-500 text-sm mb-2">{message}</p>
+        )}
+
+        {showProgress && (
+          <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden mx-auto mb-4" aria-hidden="true">
+            <div className="h-full w-1/2 bg-cyan-600 animate-pulse" />
+          </div>
+        )}
 
         {/* Extended loading messages */}
         {extendedLoading && !coldStartMessage && (
