@@ -30,6 +30,33 @@ export function AuthProvider({ children }) {
   
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
+  const [creatingDefaultLeague, setCreatingDefaultLeague] = useState(false);
+
+  const createDefaultLeagueIfNeeded = useCallback(async (firebaseUserParam, roleParam) => {
+    try {
+      if (creatingDefaultLeague) return;
+      const effectiveRole = roleParam || userRole || role;
+      if (effectiveRole !== 'organizer') return;
+      // Only create if user has no leagues
+      if (leagues && leagues.length > 0) return;
+      setCreatingDefaultLeague(true);
+      const defaultName = 'My First League';
+      authLogger.info('AUTO-LEAGUE', `Creating default league: ${defaultName}`);
+      const response = await api.post('/leagues', { name: defaultName });
+      const newLeagueId = response?.data?.league_id;
+      if (newLeagueId) {
+        const newLeague = { id: newLeagueId, name: defaultName, role: 'organizer' };
+        setLeagues([newLeague]);
+        setSelectedLeagueIdState(newLeagueId);
+        localStorage.setItem('selectedLeagueId', newLeagueId);
+        authLogger.info('AUTO-LEAGUE', `Default league created: ${newLeagueId}`);
+      }
+    } catch (e) {
+      authLogger.warn('AUTO-LEAGUE', `Default league creation failed: ${e.message}`);
+    } finally {
+      setCreatingDefaultLeague(false);
+    }
+  }, [creatingDefaultLeague, leagues, role, userRole]);
 
   // PERFORMANCE: Enhanced backend warmup with parallel health checks
   const warmupBackend = useCallback(async () => {
@@ -300,9 +327,13 @@ export function AuthProvider({ children }) {
               const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
               setRole(selectedLeague?.role || null);
             } else {
-              setSelectedLeagueIdState('');
-              setRole(null);
-              localStorage.removeItem('selectedLeagueId');
+              // No leagues found for organizer: auto-create for smoother onboarding
+              await createDefaultLeagueIfNeeded(firebaseUser, userRole);
+              if (!(leagues && leagues.length > 0)) {
+                setSelectedLeagueIdState('');
+                setRole(null);
+                localStorage.removeItem('selectedLeagueId');
+              }
             }
             
           } catch (leagueError) {
