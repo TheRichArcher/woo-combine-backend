@@ -49,8 +49,8 @@ export default function JoinEvent() {
         return;
       }
 
-      // Check authentication first
-      if (!user) {
+        // Check authentication first
+        if (!user) {
         // Store invitation data for after login including intended role
         let inviteData;
         if (intendedRole) {
@@ -63,7 +63,20 @@ export default function JoinEvent() {
         // CRITICAL FIX: Redirect to signup for invited users (they're typically new)
         navigate("/signup");
         return;
-      }
+        }
+
+        // If authenticated but role not selected yet, push to role selection first
+        if (user && !userRole) {
+          let inviteData;
+          if (intendedRole) {
+            inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}/${intendedRole}` : `${actualEventId}/${intendedRole}`;
+          } else {
+            inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
+          }
+          localStorage.setItem('pendingEventJoin', inviteData);
+          navigate('/select-role');
+          return;
+        }
 
       try {
         let targetLeague = null;
@@ -80,17 +93,17 @@ export default function JoinEvent() {
             // Need to join the league first
 
             
-            const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
+              const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
               user_id: user.uid,
               email: user.email,
-              role: userRole || 'coach'
+                role: intendedRole || userRole || 'coach'
             });
 
             const joinData = joinResponse.data;
             targetLeague = { 
               id: actualLeagueId, 
               name: joinData.league_name || 'League', 
-              role: userRole || 'coach' 
+              role: intendedRole || userRole || 'coach' 
             };
             
             // Add to user context

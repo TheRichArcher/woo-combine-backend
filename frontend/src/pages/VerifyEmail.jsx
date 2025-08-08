@@ -111,7 +111,14 @@ export default function VerifyEmail() {
             // Only update state if component is still active
             if (isActive) {
               setUser(auth.currentUser);
-              navigate("/select-role");
+              // If we have a pending invite, return to join flow first
+              const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+              if (pendingEventJoin) {
+                const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+                navigate(`/join-event/${safePath}`, { replace: true });
+              } else {
+                navigate("/select-role");
+              }
             }
           }
         } catch (error) {
@@ -157,12 +164,18 @@ export default function VerifyEmail() {
     try {
       if (auth.currentUser) {
         await auth.currentUser.reload();
-        setIsVerified(auth.currentUser.emailVerified);
-        if (auth.currentUser.emailVerified) {
+          setIsVerified(auth.currentUser.emailVerified);
+          if (auth.currentUser.emailVerified) {
           // CRITICAL: Force token refresh so backend gets updated email_verified status
           await auth.currentUser.getIdToken(true);
           setUser(auth.currentUser);
-          navigate("/select-role");
+            const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+            if (pendingEventJoin) {
+              const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+              navigate(`/join-event/${safePath}`, { replace: true });
+            } else {
+              navigate("/select-role");
+            }
         } else {
           setResendStatus("Still not verified. Please check your email.");
         }

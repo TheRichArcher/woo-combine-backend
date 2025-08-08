@@ -45,6 +45,9 @@ export function AuthProvider({ children }) {
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
   const [creatingDefaultLeague, setCreatingDefaultLeague] = useState(false);
 
+  // Feature flag to control default league auto-creation during onboarding
+  const AUTO_CREATE_DEFAULT_LEAGUE = false;
+
   const createDefaultLeagueIfNeeded = useCallback(async (firebaseUserParam, roleParam) => {
     try {
       if (creatingDefaultLeague) return;
@@ -330,11 +333,13 @@ export function AuthProvider({ children }) {
           setInitializing(false);
           authLogger.info('PERFORMANCE: New organizer ultra-fast path - immediate navigation ready');
 
-          // Seamless onboarding: auto-create a default league so event creation is immediately available
-          try {
-            await createDefaultLeagueIfNeeded(firebaseUser, userRole);
-          } catch (autoLeagueErr) {
-            authLogger.warn('AUTO-LEAGUE', `Auto-create on ultra-fast path failed: ${autoLeagueErr.message}`);
+          // Optional: auto-create a default league
+          if (AUTO_CREATE_DEFAULT_LEAGUE) {
+            try {
+              await createDefaultLeagueIfNeeded(firebaseUser, userRole);
+            } catch (autoLeagueErr) {
+              authLogger.warn('AUTO-LEAGUE', `Auto-create on ultra-fast path failed: ${autoLeagueErr.message}`);
+            }
           }
         } else if (!leagueFetchInProgress) {
           // Normal path for existing users not on select-role
@@ -367,8 +372,11 @@ export function AuthProvider({ children }) {
               const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
               setRole(selectedLeague?.role || null);
             } else {
-              // No leagues found for organizer: auto-create for smoother onboarding
-              await createDefaultLeagueIfNeeded(firebaseUser, userRole);
+              // No leagues found for organizer
+              // Optional: auto-create for smoother onboarding
+              if (AUTO_CREATE_DEFAULT_LEAGUE) {
+                await createDefaultLeagueIfNeeded(firebaseUser, userRole);
+              }
               // RACE CONDITION FIX:
               // Do not clear an explicitly selected league that might have just been set
               // by the Create League flow or another tab. Respect any existing selection
@@ -408,8 +416,16 @@ export function AuthProvider({ children }) {
         });
         
         if (onboardingRoutes.includes(currentPath)) {
-          authLogger.debug('Navigating to /dashboard');
-          navigate("/dashboard");
+          // If we have a pending invited join, honor it first
+          const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+          if (pendingEventJoin) {
+            const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+            authLogger.debug('Redirecting to pending invited event join');
+            navigate(`/join-event/${safePath}`, { replace: true });
+          } else {
+            authLogger.debug('Navigating to /dashboard');
+            navigate("/dashboard");
+          }
         } else {
           authLogger.debug('Staying on current path', currentPath);
         }
@@ -518,6 +534,7 @@ export function AuthProvider({ children }) {
     user,
     userRole,
     role,
+      initializing,
     leagues,
     selectedLeagueId,
     setSelectedLeagueId: useCallback((id) => {

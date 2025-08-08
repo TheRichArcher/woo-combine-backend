@@ -20,18 +20,8 @@ export default function SignupForm() {
 
   // CRITICAL FIX: Clear stale invitation data when accessing signup normally
   useEffect(() => {
-    // Only clear if user didn't come from invitation flow
-    const referrer = document.referrer;
-    const currentUrl = window.location.href;
-    const cameFromJoinEvent = referrer.includes('/join-event/') || currentUrl.includes('from=invite');
-    
-    if (!cameFromJoinEvent) {
-      const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-      if (pendingEventJoin) {
-        authLogger.info('Clearing stale pendingEventJoin from normal signup access');
-        localStorage.removeItem('pendingEventJoin');
-      }
-    }
+    // Preserve pendingEventJoin; it can originate from QR flows without referrer
+    // No-op: do not clear here to avoid losing invite context
   }, []);
 
   const handleSubmit = async (e) => {

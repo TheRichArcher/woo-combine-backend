@@ -51,22 +51,8 @@ export default function SelectRole() {
   // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
   
-  // CRITICAL FIX: Only treat as invited user if they actually came via invitation
-  // Check if the previous page was a join-event route to validate invitation
-  const referrer = document.referrer;
-  const currentUrl = window.location.href;
-  const cameFromJoinEvent = referrer.includes('/join-event/') || currentUrl.includes('from=invite');
-  
-  // Clear stale pendingEventJoin if user didn't come from invitation flow
-  useEffect(() => {
-    if (pendingEventJoin && !cameFromJoinEvent) {
-      logger.info('SELECT-ROLE', 'Clearing stale pendingEventJoin - user did not come from invitation');
-      localStorage.removeItem('pendingEventJoin');
-    }
-  }, [pendingEventJoin, cameFromJoinEvent]);
-  
-  // Only consider as invited user if they have pending invite AND came from invitation flow
-  const isInvitedUser = !!pendingEventJoin && cameFromJoinEvent;
+  // Treat as invited user if we have stored invite context
+  const isInvitedUser = !!pendingEventJoin;
   
   // Extract intended role from invitation data
   let intendedRole = null;
