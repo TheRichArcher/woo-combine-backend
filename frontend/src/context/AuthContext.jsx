@@ -337,10 +337,18 @@ export function AuthProvider({ children }) {
             } else {
               // No leagues found for organizer: auto-create for smoother onboarding
               await createDefaultLeagueIfNeeded(firebaseUser, userRole);
-              if (!(leagues && leagues.length > 0)) {
+              // RACE CONDITION FIX:
+              // Do not clear an explicitly selected league that might have just been set
+              // by the Create League flow or another tab. Respect any existing selection
+              // in localStorage and only clear if none exists.
+              const persistedSelected = localStorage.getItem('selectedLeagueId');
+              if (!persistedSelected || persistedSelected.trim() === '') {
                 setSelectedLeagueIdState('');
                 setRole(null);
-                localStorage.removeItem('selectedLeagueId');
+                // Do not remove key unnecessarily to avoid thrashing between tabs/routes
+              } else {
+                // If there is a persisted selection, reflect it in state
+                setSelectedLeagueIdState(persistedSelected);
               }
             }
             
