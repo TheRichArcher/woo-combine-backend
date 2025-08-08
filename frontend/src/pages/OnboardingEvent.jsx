@@ -69,11 +69,35 @@ export default function OnboardingEvent() {
       if (userRole !== 'organizer') return;
       const hasSelectedLeague = !!(selectedLeagueId && selectedLeagueId.trim() !== '');
       if (hasSelectedLeague) return;
-      // If leagues already loaded, pick the first
+      // 1) If leagues already loaded, pick the first
       if (Array.isArray(leagues) && leagues.length > 0) {
         setSelectedLeagueId(leagues[0].id);
         return;
       }
+      // 2) Check localStorage (guards against race conditions)
+      try {
+        const stored = localStorage.getItem('selectedLeagueId');
+        if (stored && stored !== 'null' && stored.trim() !== '') {
+          setSelectedLeagueId(stored);
+          return;
+        }
+      } catch {}
+      // 3) Try fetching leagues from API (in case AuthContext fetch lagged)
+      try {
+        const res = await api.get('/leagues/me');
+        if (cancelled) return;
+        const leagueArray = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.leagues) ? res.data.leagues : []);
+        if (leagueArray.length > 0) {
+          const first = leagueArray[0];
+          setSelectedLeagueId(first.id);
+          setLeagues(prev => {
+            const prevArr = Array.isArray(prev) ? prev : [];
+            const exists = prevArr.some(l => l.id === first.id);
+            return exists ? prevArr : [first, ...prevArr];
+          });
+          return;
+        }
+      } catch {}
       // Otherwise create a default league seamlessly
       try {
         const defaultName = 'My First League';

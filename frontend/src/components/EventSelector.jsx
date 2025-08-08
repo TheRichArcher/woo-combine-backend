@@ -26,10 +26,10 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   
   // Auto-show modal when no events exist (streamlined UX)
   useEffect(() => {
-    if (!loading && events.length === 0 && selectedLeagueId && !showModal) {
+    if (!loading && Array.isArray(events) && events.length === 0 && selectedLeagueId && selectedLeagueId.trim() !== '' && !showModal) {
       setShowModal(true);
     }
-  }, [loading, events.length, selectedLeagueId, showModal]);
+  }, [loading, events, selectedLeagueId, showModal]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
@@ -216,31 +216,21 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       )}
       
       {/* Conditional rendering based on whether events exist */}
-      {events.length === 0 ? (
+      {Array.isArray(events) && events.length === 0 ? (
         // No events available - simplified message (modal auto-shows)
         <div className="text-center">
           <div className="text-gray-500 text-sm py-2 mb-4">
             Setting up your first event...
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            disabled={!selectedLeagueId || selectedLeagueId.trim() === ''}
-            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Create Event
-          </button>
-          {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
-            <div className="mt-3">
-              <button
-                onClick={handleCreateLeagueNow}
-                disabled={creatingLeague}
-                className="bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {creatingLeague ? 'Creating League...' : 'Create League'}
-              </button>
-              <div className="text-xs text-gray-500 mt-2">No league yet? Create one, then create your event.</div>
-            </div>
+          {selectedLeagueId && selectedLeagueId.trim() !== '' && (
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+            >
+              Create Event
+            </button>
           )}
+          {(!selectedLeagueId || selectedLeagueId.trim() === '') && null}
         </div>
       ) : (
         // Events available - show enhanced dropdown with preview
