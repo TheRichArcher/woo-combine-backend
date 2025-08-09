@@ -32,13 +32,13 @@ const WeightControls = React.memo(function WeightControls({
   }, [onWeightChange, localWeights]);
 
   return (
-    <div className="bg-gradient-to-r from-cmf-primary/10 to-cmf-secondary/10 rounded-xl p-4 border border-cmf-primary/20">
+    <div className="bg-gradient-to-r from-brand-primary/10 to-brand-secondary/10 rounded-xl p-4 border border-brand-primary/20">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Settings className="w-5 h-5 text-cmf-primary" />
+          <Settings className="w-5 h-5 text-brand-primary" />
           <h3 className="font-semibold text-gray-900">Weight Adjustment Controls</h3>
         </div>
-        <span className="bg-cmf-primary/10 text-cmf-primary px-2 py-1 rounded-full text-xs font-medium">
+        <span className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full text-xs font-medium">
           {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
         </span>
       </div>
@@ -55,8 +55,8 @@ const WeightControls = React.memo(function WeightControls({
             onClick={() => onPresetApply && onPresetApply(key)}
             className={`p-3 rounded-lg border-2 transition-all text-left ${
               activePreset === key
-                ? 'border-cmf-primary bg-cmf-primary text-white ring-2 ring-cmf-primary ring-opacity-20'
-                : 'border-gray-200 bg-white hover:border-cmf-primary/50 text-gray-700 hover:text-cmf-primary'
+                ? 'border-brand-primary bg-brand-primary text-white ring-2 ring-brand-primary ring-opacity-20'
+                : 'border-gray-200 bg-white hover:border-brand-primary/50 text-gray-700 hover:text-brand-primary'
             }`}
           >
             <div className="font-semibold text-sm">{preset.name}</div>
@@ -72,7 +72,7 @@ const WeightControls = React.memo(function WeightControls({
           onClick={() => setShowCustomControls(!showCustomControls)}
           className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
             showCustomControls
-              ? 'bg-cmf-primary text-white'
+              ? 'bg-brand-primary text-white'
               : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
           }`}
         >
@@ -90,7 +90,7 @@ const WeightControls = React.memo(function WeightControls({
                   <label className="text-sm font-medium text-gray-700">{drill.label}</label>
                   <div className="text-xs text-gray-500">Higher = more important</div>
                 </div>
-                <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
+                <span className="text-lg font-mono text-brand-primary bg-brand-primary/10 px-3 py-1 rounded-full min-w-[50px] text-center">
                   {((localWeights[drill.key] ?? weights[drill.key] ?? 0)).toFixed(0)}%
                 </span>
               </div>
@@ -109,9 +109,9 @@ const WeightControls = React.memo(function WeightControls({
                   }}
                   onPointerUp={persistWeights}
                   name={drill.key}
-                  className="w-full h-6 rounded-lg cursor-pointer accent-blue-600"
+                  className="w-full h-6 rounded-lg cursor-pointer accent-brand-primary"
                   style={{
-                    background: 'linear-gradient(to right, #ddd 0%, #ddd 50%, #3b82f6 50%, #3b82f6 100%)',
+                    background: 'linear-gradient(to right, var(--color-border) 0%, var(--color-border) 50%, var(--color-primary) 50%, var(--color-primary) 100%)',
                     WebkitAppearance: 'none',
                     height: '8px',
                     borderRadius: '5px',

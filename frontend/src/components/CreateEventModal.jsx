@@ -65,21 +65,21 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-sm relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-400 hover:text-cmf-primary text-2xl font-bold"
+          className="absolute top-2 right-2 text-gray-400 hover:text-brand-primary text-2xl font-bold"
         >
           ×
         </button>
-        <h2 className="text-xl font-bold mb-4 text-cmf-primary">Create New Event</h2>
+        <h2 className="text-xl font-bold mb-4 text-brand-primary">Create New Event</h2>
         <form onSubmit={handleCreate}>
           <label className="block mb-2 font-semibold">Event Name</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
           
@@ -87,7 +87,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
           <select
             value={selectedTemplate}
             onChange={e => setSelectedTemplate(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           >
             {templates.map(template => (
@@ -102,7 +102,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
           <label className="block mb-2 font-semibold">Location</label>
@@ -111,12 +111,12 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="e.g., Central Park Football Field"
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
           {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
           <button
             type="submit"
-            className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:bg-cmf-secondary transition"
+            className="bg-brand-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:opacity-90 transition"
             disabled={loading}
           >
             {loading ? "Creating..." : "Create Event"}

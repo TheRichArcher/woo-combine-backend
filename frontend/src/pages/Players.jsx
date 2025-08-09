@@ -258,10 +258,10 @@ export default function Players() {
     return (
       <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Settings className="w-5 h-5 text-cmf-primary" />
-          <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
+          <Settings className="w-5 h-5 text-brand-primary" />
+          <h2 className="text-lg font-semibold text-brand-secondary">Ranking Weight Controls</h2>
         </div>
-        <p className="text-cmf-primary text-sm mb-3">
+        <p className="text-brand-primary text-sm mb-3">
           Set drill priorities for ranking calculations. Higher values = more important to you.
           <span className="block text-xs mt-1 opacity-75">
             Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong> 
@@ -278,8 +278,8 @@ export default function Players() {
               onClick={() => applyPreset(key)} 
               className={`p-4 text-left rounded-lg border-2 transition-all touch-manipulation min-h-[70px] ${
                 activePreset === key 
-                  ? 'border-cmf-primary bg-cmf-primary text-white shadow-lg' 
-                  : 'border-gray-200 hover:border-cmf-primary bg-white text-gray-700 hover:shadow-md'
+                  ? 'border-brand-primary bg-brand-primary text-white shadow-lg' 
+                  : 'border-gray-200 hover:border-brand-primary bg-white text-gray-700 hover:shadow-md'
               }`}
             >
               <div className="font-medium text-sm">{preset.name}</div>
@@ -297,7 +297,7 @@ export default function Players() {
             onClick={() => setShowCustomControls(!showCustomControls)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-w-[80px] touch-manipulation ${
               showCustomControls ? 
-                'bg-cmf-primary text-white' 
+                'bg-brand-primary text-white' 
                 : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
             }`}
           >
@@ -353,9 +353,9 @@ export default function Players() {
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="w-8 h-8 text-cmf-primary" />
+            <TrendingUp className="w-8 h-8 text-brand-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
+          <h2 className="text-2xl font-bold text-brand-primary mb-4">No Event Selected</h2>
           <p className="text-gray-600 mb-6">
             {userRole === "organizer"
               ? "Select or create an event to manage players and drills."
@@ -363,7 +363,7 @@ export default function Players() {
           </p>
           <button
             onClick={() => navigate('/select-league')}
-            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+            className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
           >
             Select Event
           </button>
@@ -389,9 +389,9 @@ export default function Players() {
         <div className="min-h-screen bg-gray-50">
           <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
             <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
-              <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found</h2>
+              <h2 className="text-2xl font-bold text-brand-primary mb-4">No Players Found</h2>
               <p className="text-gray-600 mb-6">Use the Admin tab to upload or import players to get started.</p>
-              <Link to="/admin" className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition">
+              <Link to="/admin" className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition">
                 Go to Admin
               </Link>
             </div>
@@ -416,12 +416,12 @@ export default function Players() {
         
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
           <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="w-8 h-8 text-cmf-primary" />
+            <TrendingUp className="w-8 h-8 text-brand-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found Yet</h2>
+          <h2 className="text-2xl font-bold text-brand-primary mb-4">No Players Found Yet</h2>
           <p className="text-gray-600 mb-6">You can upload a CSV or add them manually to get started.</p>
           <div className="flex gap-3 justify-center">
-            <Link to="/onboarding/event" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition">
+            <Link to="/onboarding/event" className="bg-brand-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-brand-secondary transition">
               Upload CSV Players
             </Link>
             <button 
@@ -442,7 +442,7 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
-          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+          <h1 className="text-2xl font-bold text-brand-secondary mb-2">
             WooCombine: Players & Rankings
           </h1>
           <p className="text-gray-600 mb-4">
@@ -507,8 +507,8 @@ export default function Players() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-cmf-primary text-white border-b-2 border-cmf-primary'
-                        : 'text-gray-600 hover:text-cmf-primary hover:bg-gray-50'
+                        ? 'bg-brand-primary text-white border-b-2 border-brand-primary'
+                        : 'text-gray-600 hover:text-brand-primary hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -528,7 +528,7 @@ export default function Players() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-cmf-primary" />
+                <Users className="w-5 h-5 text-brand-primary" />
                 Event Participants
               </h2>
               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
@@ -754,7 +754,7 @@ export default function Players() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                          <TrendingUp className="w-5 h-5 text-brand-primary" />
                           Player Rankings
                         </h2>
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
@@ -762,11 +762,11 @@ export default function Players() {
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
+                        <Filter className="w-5 h-5 text-brand-primary flex-shrink-0" />
                         <select
                           value={selectedAgeGroup}
                           onChange={e => setSelectedAgeGroup(e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                          className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                         >
                           <option value="all">All Players ({players.length} total)</option>
                           {Object.keys(grouped).map(group => (
@@ -779,7 +779,7 @@ export default function Players() {
                     {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {/* Compact Weight Controls */}
-                        <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
+                        <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <TrendingUp className="w-4 h-4" />
@@ -873,7 +873,7 @@ export default function Players() {
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="font-bold text-cmf-primary text-sm">
+                                  <div className="font-bold text-brand-primary text-sm">
                                     {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
                                   </div>
                                   <button
@@ -1036,7 +1036,7 @@ export default function Players() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Download className="w-5 h-5 text-cmf-primary" />
+                    <Download className="w-5 h-5 text-brand-primary" />
                     Download Rankings
                   </h2>
                   <div className="flex items-center gap-2 text-xs">
@@ -1145,7 +1145,7 @@ export default function Players() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-cmf-primary" />
+                <BarChart3 className="w-5 h-5 text-brand-primary" />
                 Event Analytics
               </h2>
               

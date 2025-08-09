@@ -86,7 +86,7 @@ const SportTemplatesPage = React.memo(() => {
               <Settings className="w-6 h-6 text-purple-600" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-cmf-secondary">Multi-Sport Templates</h1>
+              <h1 className="text-xl font-bold text-brand-secondary">Multi-Sport Templates</h1>
               <p className="text-sm text-gray-600">Professional templates for {templates.length} sports</p>
             </div>
           </div>

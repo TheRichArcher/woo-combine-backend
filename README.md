@@ -69,18 +69,6 @@ npm run dev
 
 See `docs/RELEASE_FLOW.md` and `docs/ENV_VARS_AND_RENDER_SETUP.md` for details.
 
-### ⚡ Demo Seed (dev/staging)
-
-Seed a ready-to-demo dataset in under 1 minute.
-
-1) Ensure API has env:
-   - `ENABLE_DEMO_SEED=true`
-   - `DEMO_SEED_TOKEN=<secret>`
-2) Run the seed script:
-   - Local: `DEMO_SEED_TOKEN=$TOKEN python3 scripts/seed_demo.py --base-url http://localhost:10000`
-   - Staging: `DEMO_SEED_TOKEN=$TOKEN python3 scripts/seed_demo.py --base-url https://<staging-host>`
-3) Open the app and select `Demo League`. Follow `docs/guides/DEMO_SCRIPT.md` (5–7 min talk track).
-
 ## 🧪 **Testing & Quality**
 
 ### **Run Tests**

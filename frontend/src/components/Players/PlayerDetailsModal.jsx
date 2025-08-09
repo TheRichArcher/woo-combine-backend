@@ -206,10 +206,10 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
         <div className="bg-white rounded-xl shadow-2xl max-w-4xl lg:max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-cmf-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
+        <div className="bg-brand-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
-            <p className="text-cmf-light text-sm">Player #{player.number} - Age Group: {player.age_group}</p>
+            <p className="text-brand-light text-sm">Player #{player.number} - Age Group: {player.age_group}</p>
           </div>
           <div className="text-right mr-4">
             <div className="text-sm opacity-75">Overall Score</div>
@@ -230,7 +230,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
             <div className="flex-1 p-4 min-h-0">
               <div className="h-full flex flex-col">
                 <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-cmf-primary" />
+                  <TrendingUp className="w-5 h-5 text-brand-primary" />
                   Ranking Weight Controls
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
@@ -245,11 +245,11 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                           <div className="min-w-0 flex-1">
                             <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-base font-bold text-cmf-primary">
+                              <span className="text-base font-bold text-brand-primary">
                                 {drill.rawScore != null ? drill.rawScore + ' ' + drill.unit : 'No score'}
                               </span>
                               {drill.rank && (
-                                <span className="bg-cmf-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
+                                <span className="bg-brand-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
                                   #{drill.rank}
                                 </span>
                               )}
@@ -258,7 +258,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                         </div>
                         <div className="text-right ml-2">
                           <div className="text-xs text-gray-600">Contribution</div>
-                          <div className="text-base font-bold text-cmf-secondary">{drill.weightedScore.toFixed(2)} pts</div>
+                          <div className="text-base font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)} pts</div>
                         </div>
                       </div>
                 
@@ -280,13 +280,13 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                             }}
                             onPointerUp={persistModalWeights}
                             name={drill.key}
-                            className="w-full h-8 rounded-lg cursor-pointer accent-cmf-primary"
+                            className="w-full h-8 rounded-lg cursor-pointer accent-brand-primary"
                           />
                         </div>
                         <span className="text-xs font-medium text-gray-600 text-right hidden sm:block" style={{minWidth: '64px'}}>
                           More important
                         </span>
-                        <div className="text-sm font-bold text-cmf-primary min-w-[40px] text-center">
+                        <div className="text-sm font-bold text-brand-primary min-w-[40px] text-center">
                           {(modalLocalWeights[drill.key] || 0).toFixed(0)}%
                         </div>
                       </div>
@@ -297,7 +297,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg border-2 border-blue-200 flex-shrink-0">
                   <div className="text-center sm:text-left">
                     <span className="font-semibold text-gray-900 text-sm block sm:inline">Total Composite Score: </span>
-                    <span className="text-lg font-bold text-cmf-primary block sm:inline">
+                    <span className="text-lg font-bold text-brand-primary block sm:inline">
                       {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
                     </span>
                   </div>
@@ -310,7 +310,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               <div className="h-full flex flex-col">
                 <div className="mb-4">
                   <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                    <Settings className="w-4 h-4 text-cmf-primary" />
+                    <Settings className="w-4 h-4 text-brand-primary" />
                     Weight Scenarios
                   </h3>
                   
@@ -321,7 +321,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                         onClick={() => applyPreset(key)}
                         className={`p-2 text-left rounded-lg border-2 transition-all ${
                           activePreset === key 
-                            ? 'border-cmf-primary bg-cmf-primary bg-opacity-5 text-cmf-primary' 
+                            ? 'border-brand-primary bg-brand-primary bg-opacity-5 text-brand-primary' 
                             : 'border-gray-200 hover:border-gray-300 text-gray-700'
                         }`}
                       >
@@ -341,12 +341,12 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                   <div className="space-y-2 text-sm overflow-y-auto">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Age Group Rank:</span>
-                      <span className="font-bold text-cmf-primary">#{currentRank} of {ageGroupPlayers.length}</span>
+                      <span className="font-bold text-brand-primary">#{currentRank} of {ageGroupPlayers.length}</span>
                     </div>
                     
                     <div className="flex justify-between">
                       <span className="text-gray-600">Overall Score:</span>
-                      <span className="font-bold text-cmf-secondary">{totalWeightedScore.toFixed(2)} pts</span>
+                      <span className="font-bold text-brand-secondary">{totalWeightedScore.toFixed(2)} pts</span>
                     </div>
                     
                     <div className="pt-2 border-t border-gray-200">

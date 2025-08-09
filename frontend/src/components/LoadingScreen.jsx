@@ -41,7 +41,7 @@ const LoadingScreen = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-brand-primary/5 to-brand-primary/10 flex items-center justify-center">
       <div className="text-center">
         {/* Logo */}
         <div className={`mx-auto mb-8 ${sizeClasses[size]} flex items-center justify-center`}>
@@ -54,7 +54,7 @@ const LoadingScreen = ({
 
         {/* Spinner */}
         <div className="flex justify-center mb-6">
-          <div className={`${spinnerSizes[size]} border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin`}></div>
+          <div className={`${spinnerSizes[size]} border-4 border-brand-primary/20 border-t-brand-primary rounded-full animate-spin`}></div>
         </div>
 
         {/* Titles/messages */}
@@ -70,7 +70,7 @@ const LoadingScreen = ({
 
         {showProgress && (
           <div className="w-64 h-2 bg-gray-200 rounded-full overflow-hidden mx-auto mb-4" aria-hidden="true">
-            <div className="h-full w-1/2 bg-cyan-600 animate-pulse" />
+            <div className="h-full w-1/2 bg-brand-primary animate-pulse" />
           </div>
         )}
 
@@ -83,7 +83,7 @@ const LoadingScreen = ({
         )}
 
         {coldStartMessage && (
-          <div className="text-gray-500 text-sm max-w-md mx-auto bg-blue-50 p-4 rounded-lg border border-blue-200">
+          <div className="text-gray-500 text-sm max-w-md mx-auto bg-brand-primary/10 p-4 rounded-lg border border-brand-primary/20">
             <p className="mb-2">☕ <strong>Server is waking up</strong></p>
             <p className="mb-2">This can take up to 30 seconds on the first visit after inactivity.</p>
             <p className="text-xs">Your data is safe - just waiting for the server to start.</p>

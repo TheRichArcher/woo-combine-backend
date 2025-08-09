@@ -190,7 +190,7 @@ export default function JoinEvent() {
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <div className="mb-6">
-          <QrCode className="w-16 h-16 mx-auto mb-4 text-cyan-600" />
+          <QrCode className="w-16 h-16 mx-auto mb-4 text-brand-primary" />
           <h1 className="text-2xl font-bold mb-2">Join Event</h1>
         </div>
 
@@ -229,7 +229,7 @@ export default function JoinEvent() {
             <div className="space-y-3">
               <button
                 onClick={() => navigate("/join")}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
+                className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
               >
                 Join League with Code
               </button>

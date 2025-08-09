@@ -89,7 +89,7 @@ export default function JoinLeague() {
     >
       {/* Floating QR Scan Button */}
       <button
-        className="fixed bottom-6 right-6 z-50 bg-cmf-primary hover:bg-cmf-secondary text-white rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold transition"
+        className="fixed bottom-6 right-6 z-50 bg-brand-primary hover:bg-brand-secondary text-white rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold transition"
         onClick={() => setShowQrScanner(true)}
         aria-label="Scan QR to Join"
         style={{ boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}
@@ -107,7 +107,7 @@ export default function JoinLeague() {
             </div>
             {qrError && <div className="text-red-500 text-sm mb-2">{qrError}</div>}
             <button 
-              className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded font-semibold mt-2 transition" 
+              className="bg-brand-primary hover:bg-brand-secondary text-white px-4 py-2 rounded font-semibold mt-2 transition" 
               onClick={() => setShowQrScanner(false)}
             >
               Cancel
@@ -135,7 +135,7 @@ export default function JoinLeague() {
           <form onSubmit={handleSubmit} className="space-y-4 w-full">
             <input
               type="text"
-              className="w-full px-4 py-3 border border-cmf-primary/30 rounded-xl focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition text-center font-mono text-lg tracking-widest"
+              className="w-full px-4 py-3 border border-brand-primary/30 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition text-center font-mono text-lg tracking-widest"
               placeholder="Enter League Code"
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
@@ -144,7 +144,7 @@ export default function JoinLeague() {
             />
             <button
               type="submit"
-              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               disabled={loading}
             >
               {loading ? 'Joining...' : 'Join League'}
@@ -156,7 +156,7 @@ export default function JoinLeague() {
             <div className="mb-4 text-green-600 font-semibold">Successfully joined league!</div>
             <div className="mb-2">Welcome to <span className="font-bold">{leagueName}</span></div>
             <button
-              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] mt-4"
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] mt-4"
               onClick={() => navigate('/dashboard')}
             >
               Go to Dashboard

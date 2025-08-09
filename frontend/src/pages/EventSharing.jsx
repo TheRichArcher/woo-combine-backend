@@ -27,7 +27,7 @@ export default function EventSharing() {
             <p className="text-gray-600 mb-6">You need organizer permissions to share event QR codes.</p>
             <button
               onClick={() => navigate('/dashboard')}
-              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+              className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
             >
               Back to Dashboard
             </button>
@@ -65,20 +65,20 @@ export default function EventSharing() {
         <div className="mb-6">
           <button
             onClick={() => navigate(-1)}
-            className="flex items-center gap-2 text-gray-600 hover:text-cmf-primary transition mb-4"
+            className="flex items-center gap-2 text-gray-600 hover:text-brand-primary transition mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
             Back
           </button>
-          <h1 className="text-3xl font-bold text-cmf-secondary mb-2">Share Event QR Codes</h1>
+          <h1 className="text-3xl font-bold text-brand-secondary mb-2">Share Event QR Codes</h1>
           <p className="text-gray-600">
             Share secure access links with your staff and participants for <strong>{selectedEvent.name}</strong>
           </p>
         </div>
 
         {/* Event Join Code Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
-          <h2 className="text-xl font-semibold text-cmf-secondary mb-4 flex items-center gap-2">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">
+          <h2 className="text-xl font-semibold text-brand-secondary mb-4 flex items-center gap-2">
             <QrCode className="w-6 h-6" />
             Event Join Code
           </h2>
@@ -86,7 +86,7 @@ export default function EventSharing() {
           <div className="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-4">
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">Simple Join Code:</div>
-              <div className="text-3xl font-mono bg-white rounded-lg p-4 inline-block border-2 border-cmf-primary/20 shadow-sm">
+              <div className="text-3xl font-mono bg-white rounded-lg p-4 inline-block border-2 border-brand-primary/20 shadow-sm">
                 {joinCode}
               </div>
             </div>
@@ -97,8 +97,8 @@ export default function EventSharing() {
         </div>
 
         {/* Role-Specific QR Codes Card */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
-          <h2 className="text-xl font-semibold text-cmf-secondary mb-4">Role-Based Invitations</h2>
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">
+          <h2 className="text-xl font-semibold text-brand-secondary mb-4">Role-Based Invitations</h2>
           
           {/* Role Selection */}
           <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
@@ -204,7 +204,7 @@ export default function EventSharing() {
         <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             onClick={() => navigate('/players')}
-            className="bg-cmf-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-cmf-secondary transition flex items-center justify-center gap-2"
+            className="bg-brand-primary text-white font-semibold py-3 px-6 rounded-xl hover:bg-brand-secondary transition flex items-center justify-center gap-2"
           >
             <Users className="w-5 h-5" />
             Manage Players

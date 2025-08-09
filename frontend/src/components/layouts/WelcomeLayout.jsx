@@ -26,7 +26,7 @@ export default function WelcomeLayout({
   backgroundVideoUrl 
 }) {
   // Default background styling
-  const defaultBackground = backgroundColor || "bg-gradient-to-br from-cyan-900 via-blue-900 to-cyan-700";
+  const defaultBackground = backgroundColor || "bg-gradient-to-br from-brand-primary/80 via-brand-primary/60 to-brand-primary/50";
   
   return (
     <div className={`min-h-screen flex flex-col ${useBackgroundVideo ? "bg-black" : defaultBackground} relative overflow-hidden`}>

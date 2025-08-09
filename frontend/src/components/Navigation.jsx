@@ -92,7 +92,7 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
         </div>
 
         {/* Profile Section with Gradient Background */}
-        <div className="bg-gradient-to-br from-cmf-primary to-cmf-secondary px-6 py-8 text-center text-white">
+        <div className="bg-gradient-to-br from-brand-primary to-brand-secondary px-6 py-8 text-center text-white">
           <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
             {getUserInitials()}
           </div>
@@ -102,7 +102,7 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
               <Edit className="w-4 h-4" />
             </button>
           </div>
-          <p className="text-cmf-light text-sm mt-1">{user?.email}</p>
+          <p className="text-brand-light text-sm mt-1">{user?.email}</p>
         </div>
 
         {/* Menu Items */}
@@ -193,7 +193,7 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
             </div>
             <button 
               onClick={handleOpenDeviceSettings}
-              className="text-cmf-primary text-sm font-medium mt-1 hover:underline"
+              className="text-brand-primary text-sm font-medium mt-1 hover:underline"
             >
               {notificationsEnabled ? 'Manage browser settings' : 'Open device settings'}
             </button>
@@ -343,7 +343,7 @@ export default function Navigation() {
           <div className="flex items-center">
             <button
               onClick={() => setProfileModalOpen(true)}
-              className="w-10 h-10 bg-cmf-primary rounded-full flex items-center justify-center text-white font-bold text-sm hover:bg-cmf-secondary transition"
+              className="w-10 h-10 bg-brand-primary rounded-full flex items-center justify-center text-white font-bold text-sm hover:bg-brand-secondary transition"
             >
               {getUserInitials()}
             </button>
@@ -373,25 +373,25 @@ export default function Navigation() {
           <div className="hidden sm:flex items-center gap-2 md:gap-4">
             <Link 
               to="/dashboard" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Home
             </Link>
             <Link 
               to="/players" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Players
             </Link>
             <Link 
               to="/roster" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Roster
             </Link>
             <Link 
               to="/schedule" 
-              className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Schedule
             </Link>
@@ -399,7 +399,7 @@ export default function Navigation() {
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
-                className="text-gray-700 hover:text-cmf-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
               >
                 Admin
               </Link>

@@ -157,7 +157,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     return (
       <div className="flex flex-col gap-2 mb-6">
         <div className="text-center text-gray-500 py-4">
-          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full"></div>
+          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-brand-primary rounded-full"></div>
           <div className="mt-2">Loading events...</div>
         </div>
       </div>
@@ -232,7 +232,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
           </div>
           <button
             onClick={ensureLeagueThenOpenModal}
-            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50"
+            className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition disabled:opacity-50"
             disabled={createLoading || creatingLeague}
           >
             {creatingLeague ? 'Preparing…' : 'Create Event'}
@@ -247,7 +247,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
               <select
                 value={selectedEvent?.id || ""}
                 onChange={handleSelect}
-                className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cmf-primary focus:ring-2 focus:ring-cmf-primary/20"
+                className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
                 data-event-selector-dropdown
               >
                 <option value="">Select an event...</option>
@@ -268,7 +268,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
             <button
               onClick={ensureLeagueThenOpenModal}
               disabled={createLoading || creatingLeague}
-              className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 whitespace-nowrap"
+              className="bg-brand-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-brand-secondary transition disabled:opacity-50 whitespace-nowrap"
             >
               {creatingLeague ? 'Preparing…' : 'Create New Event'}
             </button>
@@ -364,7 +364,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  className="w-full border rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
                   required
                 />
               </div>
@@ -374,7 +374,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                 <select
                   value={selectedTemplate}
                   onChange={(e) => setSelectedTemplate(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  className="w-full border rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
                   required
                 >
                   {templates.map(template => (
@@ -391,7 +391,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  className="w-full border rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
                   required
                 />
               </div>
@@ -402,7 +402,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   placeholder="e.g., Central Park Football Field"
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                  className="w-full border rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
                 />
               </div>
               {createError && <div className="text-red-500 text-sm mb-4">{createError}</div>}
@@ -410,7 +410,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                 <button
                   type="submit"
                   disabled={createLoading}
-                  className="bg-cmf-primary text-white px-4 py-2 rounded hover:bg-cmf-secondary transition disabled:opacity-50"
+                  className="bg-brand-primary text-white px-4 py-2 rounded hover:bg-brand-secondary transition disabled:opacity-50"
                 >
                   {createLoading ? "Creating..." : "Create"}
                 </button>
