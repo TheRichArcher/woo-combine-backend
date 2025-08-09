@@ -27,3 +27,4 @@ firebase-admin==6.5.0
 google-cloud-firestore==2.21.0
 slowapi==0.1.9
 limits>=5.5.0
+pytest==8.3.3

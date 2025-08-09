@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
 from ..firestore_client import db
-from ..auth import get_current_user
+from ..auth import get_current_user, require_role
+from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
 from google.cloud.firestore import Query
@@ -13,7 +14,8 @@ router = APIRouter()
 
 
 @router.get('/leagues/me')
-def get_my_leagues(current_user=Depends(get_current_user)):
+@read_rate_limit()
+def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
     user_id = current_user["uid"]
     
@@ -136,7 +138,8 @@ def get_my_leagues(current_user=Depends(get_current_user)):
             raise HTTPException(status_code=500, detail="Failed to retrieve leagues due to server initialization")
 
 @router.post('/leagues')
-def create_league(req: dict, current_user=Depends(get_current_user)):
+@write_rate_limit()
+def create_league(request: Request, req: dict, current_user=Depends(require_role("organizer"))):
     logging.info(f"[POST] /leagues called by user: {current_user} with req: {req}")
     user_id = current_user["uid"]
     name = req.get("name")
@@ -196,7 +199,9 @@ def create_league(req: dict, current_user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail="Failed to create league")
 
 @router.post('/leagues/join/{code}')
+@write_rate_limit()
 def join_league(
+    request: Request,
     code: str = Path(..., regex=r"^.{1,50}$"),
     req: dict | None = None, 
     current_user=Depends(get_current_user)
@@ -265,7 +270,9 @@ def join_league(
         raise HTTPException(status_code=500, detail="Failed to join league")
 
 @router.get('/leagues/{league_id}/teams')
+@read_rate_limit()
 def list_teams(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     page: int = 0,
     limit: int = 0,
@@ -287,7 +294,9 @@ def list_teams(
         raise HTTPException(status_code=500, detail="Failed to retrieve teams")
 
 @router.get('/leagues/{league_id}/invitations')
+@read_rate_limit()
 def list_invitations(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     page: int = 0,
     limit: int = 0,

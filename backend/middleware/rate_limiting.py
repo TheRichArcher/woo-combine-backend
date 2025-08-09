@@ -21,12 +21,13 @@ def _normalize_rate_string(rate_value: str, default_value: str) -> str:
 
 # Defaults if env not provided
 _DEFAULTS = {
-    "auth": "10/minute",
-    "users": "60/minute",
-    "read": "100/minute",
-    "write": "30/minute",
-    "bulk": "5/minute",
-    "health": "300/minute",
+    # Per requirements
+    "auth": "5/minute",
+    "users": "300/minute",   # align user reads with general reads
+    "read": "300/minute",
+    "write": "120/minute",
+    "bulk": "30/minute",
+    "health": "600/minute",
 }
 
 # Rate limiting configurations for different endpoint types (env-overridable)

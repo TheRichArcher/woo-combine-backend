@@ -1,3 +1,7 @@
+WooCombine API Contracts
+
+This folder will contain the OpenAPI contract and endpoint documentation.
+
 # Documentation Index
 
 - Guides

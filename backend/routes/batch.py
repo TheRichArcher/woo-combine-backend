@@ -5,15 +5,17 @@ Provides optimized batch endpoints to reduce API call overhead
 and improve performance for frontend operations.
 """
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from ..auth import get_current_user
+from ..middleware.rate_limiting import bulk_rate_limit
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
 import logging
 
 router = APIRouter()
+MAX_ITEMS_PER_BATCH = 200
 
 class BatchPlayerRequest(BaseModel):
     event_ids: List[str]
@@ -21,9 +23,14 @@ class BatchPlayerRequest(BaseModel):
 class BatchEventRequest(BaseModel):
     league_ids: List[str]
 
+class BatchEventsByIdsRequest(BaseModel):
+    event_ids: List[str]
+
 @router.post("/batch/players")
+@bulk_rate_limit()
 def get_batch_players(
-    request: BatchPlayerRequest,
+    request: Request,
+    payload: BatchPlayerRequest,
     current_user=Depends(get_current_user)
 ):
     """
@@ -31,15 +38,16 @@ def get_batch_players(
     Reduces API call overhead for pages that need data from multiple events
     """
     try:
-        if len(request.event_ids) > 10:
+        MAX_ITEMS_PER_BATCH = 200
+        if len(payload.event_ids) > MAX_ITEMS_PER_BATCH:
             raise HTTPException(
                 status_code=400,
-                detail="Maximum 10 events per batch request"
+                detail=f"Maximum {MAX_ITEMS_PER_BATCH} items per batch request"
             )
         
         batch_results = {}
         
-        for event_id in request.event_ids:
+        for event_id in payload.event_ids:
             try:
                 # Validate event exists
                 event = execute_with_timeout(
@@ -90,7 +98,7 @@ def get_batch_players(
         return {
             "success": True,
             "results": batch_results,
-            "total_events": len(request.event_ids),
+            "total_events": len(payload.event_ids),
             "successful_events": sum(1 for r in batch_results.values() if r["success"])
         }
         
@@ -101,8 +109,10 @@ def get_batch_players(
         raise HTTPException(status_code=500, detail="Failed to fetch batch players")
 
 @router.post("/batch/events")
+@bulk_rate_limit()
 def get_batch_events(
-    request: BatchEventRequest,
+    request: Request,
+    payload: BatchEventRequest,
     current_user=Depends(get_current_user)
 ):
     """
@@ -110,15 +120,16 @@ def get_batch_events(
     Optimizes dashboard loading and multi-league views
     """
     try:
-        if len(request.league_ids) > 5:
+        MAX_ITEMS_PER_BATCH = 200
+        if len(payload.league_ids) > MAX_ITEMS_PER_BATCH:
             raise HTTPException(
                 status_code=400,
-                detail="Maximum 5 leagues per batch request"
+                detail=f"Maximum {MAX_ITEMS_PER_BATCH} items per batch request"
             )
         
         batch_results = {}
         
-        for league_id in request.league_ids:
+        for league_id in payload.league_ids:
             try:
                 # Get events for this league
                 events_ref = db.collection("leagues").document(str(league_id)).collection("events")
@@ -152,7 +163,7 @@ def get_batch_events(
         return {
             "success": True,
             "results": batch_results,
-            "total_leagues": len(request.league_ids),
+            "total_leagues": len(payload.league_ids),
             "successful_leagues": sum(1 for r in batch_results.values() if r["success"])
         }
         
@@ -162,8 +173,54 @@ def get_batch_events(
         logging.error(f"Error in batch events request: {e}")
         raise HTTPException(status_code=500, detail="Failed to fetch batch events")
 
+@router.post("/batch/events-by-ids")
+@bulk_rate_limit()
+def get_batch_events_by_ids(
+    request: Request,
+    payload: BatchEventsByIdsRequest,
+    current_user=Depends(get_current_user)
+):
+    """
+    Get multiple events by their event IDs.
+    """
+    try:
+        MAX_ITEMS_PER_BATCH = 200
+        if len(payload.event_ids) > MAX_ITEMS_PER_BATCH:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Maximum {MAX_ITEMS_PER_BATCH} items per batch request"
+            )
+
+        results: Dict[str, Any] = {}
+        for event_id in payload.event_ids:
+            try:
+                ref = db.collection("events").document(event_id)
+                doc = execute_with_timeout(
+                    ref.get,
+                    timeout=5,
+                    operation_name=f"event fetch {event_id}"
+                )
+                if doc.exists:
+                    data = doc.to_dict()
+                    data["id"] = doc.id
+                    results[event_id] = {"success": True, "event": data}
+                else:
+                    results[event_id] = {"success": False, "error": "Not found"}
+            except Exception as ex:
+                logging.error(f"Error fetching event {event_id}: {ex}")
+                results[event_id] = {"success": False, "error": str(ex)}
+
+        return {"success": True, "results": results, "total_events": len(payload.event_ids)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error in events-by-ids batch request: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch events by ids")
+
 @router.get("/batch/dashboard-data/{league_id}")
+@bulk_rate_limit()
 def get_dashboard_data(
+    request: Request,
     league_id: str,
     current_user=Depends(get_current_user)
 ):

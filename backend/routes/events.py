@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
 from typing import Optional
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
+from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
 from ..utils.database import execute_with_timeout
@@ -13,7 +14,9 @@ router = APIRouter()
 
 
 @router.get('/leagues/{league_id}/events')
+@read_rate_limit()
 def list_events(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     page: Optional[int] = Query(None, ge=1),
     limit: Optional[int] = Query(None, ge=1, le=500),
@@ -49,10 +52,12 @@ class EventCreateRequest(BaseModel):
     location: str | None = None
 
 @router.post('/leagues/{league_id}/events')
+@write_rate_limit()
 def create_event(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: EventCreateRequest | None = None, 
-    current_user=Depends(get_current_user)
+    current_user=Depends(require_role("organizer", "coach"))
 ):
     try:
         name = req.name if req else None
@@ -99,7 +104,9 @@ def create_event(
         raise HTTPException(status_code=500, detail="Failed to create event")
 
 @router.get('/leagues/{league_id}/events/{event_id}')
+@read_rate_limit()
 def get_event(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
@@ -151,7 +158,9 @@ class EventUpdateRequest(BaseModel):
     drillTemplate: str | None = None
 
 @router.put('/leagues/{league_id}/events/{event_id}')
+@write_rate_limit()
 def update_event(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: EventUpdateRequest | None = None, 
@@ -206,7 +215,9 @@ def update_event(
         raise HTTPException(status_code=500, detail="Failed to update event")
 
 @router.delete('/leagues/{league_id}/events/{event_id}')
+@write_rate_limit()
 def delete_event(
+    request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
     current_user=Depends(require_role("organizer"))

@@ -77,14 +77,9 @@ def get_current_user(
         
         logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}")
         
-        # Check if user has verified their email
-        if not decoded_token.get("email_verified", False):
-            logging.warning(f"[AUTH] User {decoded_token.get('uid')} has not verified their email")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Email verification required. Please check your email and verify your account."
-            )
-            
+        # Note: Do not block unverified emails here. Verification is enforced on role-gated routes.
+        email_verified = decoded_token.get("email_verified", False)
+        
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         
@@ -124,7 +119,7 @@ def get_current_user(
                 logging.info(f"[AUTH] Successfully created user document for UID {uid}")
                 
                 # Return with no role so user goes to SelectRole
-                return {"uid": uid, "email": email, "role": None}
+                return {"uid": uid, "email": email, "role": None, "email_verified": email_verified}
                         
             except Exception as create_error:
                 logging.error(f"[AUTH] Failed to create user document: {create_error}")
@@ -138,10 +133,10 @@ def get_current_user(
         # GUIDED SETUP FIX: Allow access without role for SelectRole flow
         if not role:
             logging.info(f"[AUTH] User with UID {uid} found but no role set - allowing SelectRole access")
-            return {"uid": uid, "email": stored_email, "role": None}
+            return {"uid": uid, "email": stored_email, "role": None, "email_verified": email_verified}
             
         logging.info(f"[AUTH] Authentication successful for UID {uid} with role {role}")
-        return {"uid": uid, "email": stored_email, "role": role}
+        return {"uid": uid, "email": stored_email, "role": role, "email_verified": email_verified}
         
     except firebase_exceptions.FirebaseError as e:
         logging.error(f"[AUTH] Firebase token verification failed: {e}")
@@ -281,7 +276,10 @@ def get_current_user_for_role_setting(
 
 def require_role(*allowed_roles):
     def wrapper(user=Depends(get_current_user)):
+        # Enforce email verification on role-gated endpoints
+        if not user.get("email_verified", False):
+            raise HTTPException(status_code=403, detail="Email verification required")
         if user["role"] not in allowed_roles:
             raise HTTPException(status_code=403, detail="Access denied")
         return user
-    return wrapper 
+    return wrapper

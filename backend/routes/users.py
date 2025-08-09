@@ -7,6 +7,7 @@ from functools import lru_cache
 import time
 from firebase_admin import auth
 from ..auth import get_current_user
+from ..middleware.rate_limiting import auth_rate_limit, user_rate_limit
 from ..firestore_client import get_firestore_client
 import os
 
@@ -32,7 +33,8 @@ def _get_cached_user_profile(uid: str, cache_time: int):
         return None
 
 @router.get("/me", summary="Get current user profile")
-async def get_current_user_profile(current_user: dict = Depends(get_current_user)):
+@user_rate_limit()
+async def get_current_user_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the current user's profile information with caching"""
     try:
         uid = current_user["uid"]
@@ -64,6 +66,7 @@ async def get_current_user_profile(current_user: dict = Depends(get_current_user
         raise HTTPException(status_code=500, detail="Failed to get user profile")
 
 @router.post("/role", summary="Set user role")
+@auth_rate_limit()
 async def set_user_role(
     role_data: SetRoleRequest,
     request: Request,
@@ -189,6 +192,7 @@ async def set_user_role(
 
 # Debug endpoints should be disabled in production
 @router.post("/debug-role", summary="Debug role setting with simplified auth")
+@auth_rate_limit()
 async def debug_set_user_role(
     role_data: SetRoleRequest,
     request: Request,
@@ -258,6 +262,7 @@ async def debug_set_user_role(
 
 # Extremely permissive endpoint – guard with env flag and disable by default
 @router.post("/role-simple", summary="Simple role setting for onboarding issues")
+@auth_rate_limit()
 async def set_user_role_simple(
     role_data: SetRoleRequest,
     request: Request

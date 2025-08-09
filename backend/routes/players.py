@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
+from ..middleware.rate_limiting import read_rate_limit, write_rate_limit, bulk_rate_limit
 import logging
 from ..firestore_client import db
 from datetime import datetime
@@ -61,6 +62,7 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
 
 
 @router.get("/players", response_model=List[PlayerSchema])
+@read_rate_limit()
 def get_players(
     request: Request,
     event_id: str = Query(...),
@@ -117,7 +119,9 @@ class PlayerCreate(BaseModel):
     photo_url: Optional[str] = None
 
 @router.post("/players")
+@write_rate_limit()
 def create_player(
+    request: Request,
     player: PlayerCreate,
     event_id: str = Query(...),
     current_user=Depends(require_role("organizer", "coach"))
@@ -180,7 +184,9 @@ def create_player(
         raise HTTPException(status_code=500, detail=f"Failed to create player: {str(e)}")
 
 @router.put("/players/{player_id}")
+@write_rate_limit()
 def update_player(
+    request: Request,
     player_id: str,
     player: PlayerCreate,
     event_id: str = Query(...),
@@ -232,7 +238,8 @@ class UploadRequest(BaseModel):
     players: List[Dict[str, Any]]
 
 @router.post("/players/upload")
-def upload_players(req: UploadRequest, current_user=Depends(require_role("organizer"))):
+@bulk_rate_limit()
+def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_role("organizer"))):
     try:
         # Add timeout to event lookup
         event = execute_with_timeout(
@@ -249,6 +256,35 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
         errors = []
         added = 0
         
+        # Hard limits
+        MAX_ROWS = 5000
+        if len(players) > MAX_ROWS:
+            raise HTTPException(status_code=400, detail=f"Too many rows: max {MAX_ROWS}")
+
+        # Duplicate detection within the same event
+        seen_ids = set()
+        seen_name_number = set()
+
+        # Load existing players to check duplicates against DB for this event
+        existing_players_stream = execute_with_timeout(
+            lambda: list(db.collection("events").document(event_id).collection("players").stream()),
+            timeout=10
+        )
+        existing_name_number = set()
+        existing_ids = set()
+        for ep in existing_players_stream:
+            epd = ep.to_dict()
+            first = str(epd.get("first") or "").strip().lower()
+            last = str(epd.get("last") or "").strip().lower()
+            number_key = epd.get("number")
+            if number_key not in (None, ""):
+                try:
+                    number_key = int(str(number_key).strip())
+                except Exception:
+                    number_key = None
+            existing_name_number.add((first, last, number_key))
+            existing_ids.add(("id", ep.id))
+
         for idx, player in enumerate(players):
             row_errors = []
             for field in required_fields:
@@ -275,6 +311,38 @@ def upload_players(req: UploadRequest, current_user=Depends(require_role("organi
                         float(val)
                     except (ValueError, TypeError):
                         row_errors.append(f"Invalid {drill}: '{val}' (must be a number)")
+            # Duplicate checks
+            player_id = str(player.get("id") or "").strip()
+            first = str(player.get("first") or "").strip().lower()
+            last = str(player.get("last") or "").strip().lower()
+            number_key = None
+            if player.get("number") not in (None, ""):
+                try:
+                    number_key = int(str(player.get("number")).strip())
+                except Exception:
+                    # already captured as validation
+                    pass
+
+            if player_id:
+                key = ("id", player_id)
+                if key in seen_ids:
+                    row_errors.append("Duplicate playerId within upload")
+                else:
+                    seen_ids.add(key)
+                # Check against existing DB ids
+                if key in existing_ids:
+                    row_errors.append("Duplicate playerId already exists in event")
+
+            name_number_key = (first, last, number_key)
+            if any([first, last, number_key is not None]):
+                if name_number_key in seen_name_number:
+                    row_errors.append("Duplicate (first,last,number) within upload")
+                else:
+                    seen_name_number.add(name_number_key)
+                # Check against existing DB
+                if name_number_key in existing_name_number:
+                    row_errors.append("Duplicate (first,last,number) already exists in event")
+
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
@@ -455,7 +523,8 @@ def list_players(
         raise HTTPException(status_code=500, detail="Failed to list players")
 
 @router.post('/leagues/{league_id}/players')
-def add_player(league_id: str, req: dict, current_user=Depends(get_current_user)):
+@write_rate_limit()
+def add_player(request: Request, league_id: str, req: dict, current_user=Depends(require_role("organizer", "coach"))):
     try:
         players_ref = db.collection("leagues").document(league_id).collection("players")
         player_doc = players_ref.document()
@@ -476,7 +545,7 @@ def add_player(league_id: str, req: dict, current_user=Depends(get_current_user)
         raise HTTPException(status_code=500, detail="Failed to add player")
 
 @router.get('/leagues/{league_id}/players/{player_id}/drill_results')
-def list_drill_results(league_id: str, player_id: str, current_user=Depends(get_current_user)):
+def list_drill_results(request: Request, league_id: str, player_id: str, current_user=Depends(get_current_user)):
     try:
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")
         # Add timeout to drill results retrieval

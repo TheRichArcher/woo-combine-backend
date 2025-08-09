@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
+from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 import logging
 from ..firestore_client import db
 from datetime import datetime
@@ -23,7 +24,9 @@ class DrillEvaluationRequest(BaseModel):
     notes: str = ""
 
 @router.get('/events/{event_id}/evaluators', response_model=List[EvaluatorSchema])
+@read_rate_limit()
 def get_event_evaluators(
+    request: Request,
     event_id: str,
     current_user=Depends(get_current_user)
 ):
@@ -50,9 +53,11 @@ def get_event_evaluators(
         raise HTTPException(status_code=500, detail="Failed to get evaluators")
 
 @router.post('/events/{event_id}/evaluators')
+@write_rate_limit()
 def add_evaluator(
+    request: Request,
     event_id: str,
-    request: AddEvaluatorRequest,
+    payload: AddEvaluatorRequest,
     current_user=Depends(require_role("organizer", "coach"))
 ):
     """Add an evaluator to an event (requires organizer/coach role)"""
@@ -61,9 +66,9 @@ def add_evaluator(
         # Only organizers and coaches can add evaluators
         
         evaluator_data = {
-            "name": request.name,
-            "email": request.email, 
-            "role": request.role,
+            "name": payload.name,
+            "email": payload.email, 
+            "role": payload.role,
             "event_id": event_id,
             "added_by": current_user["uid"],
             "added_at": datetime.utcnow().isoformat(),
@@ -80,7 +85,7 @@ def add_evaluator(
             operation_name="add evaluator"
         )
         
-        logging.info(f"Added evaluator {request.name} to event {event_id}")
+        logging.info(f"Added evaluator {payload.name} to event {event_id}")
         return {"evaluator_id": doc_ref.id}
         
     except Exception as e:
@@ -88,13 +93,19 @@ def add_evaluator(
         raise HTTPException(status_code=500, detail="Failed to add evaluator")
 
 @router.post('/events/{event_id}/evaluations')
+@write_rate_limit()
 def submit_drill_evaluation(
+    request: Request,
     event_id: str,
     evaluation: DrillEvaluationRequest,
     current_user=Depends(require_role("organizer", "coach"))
 ):
     """Submit a drill evaluation from an evaluator"""
     try:
+        # Enforce verified email on write
+        if not current_user.get("email_verified", False):
+            raise HTTPException(status_code=403, detail="Email verification required")
+
         # Create individual drill result with evaluator info
         drill_result = {
             "player_id": evaluation.player_id,
@@ -128,7 +139,9 @@ def submit_drill_evaluation(
         raise HTTPException(status_code=500, detail="Failed to submit evaluation")
 
 @router.get('/events/{event_id}/players/{player_id}/evaluations')
+@read_rate_limit()
 def get_player_evaluations(
+    request: Request,
     event_id: str,
     player_id: str,
     current_user=Depends(get_current_user)
@@ -167,7 +180,9 @@ def get_player_evaluations(
         raise HTTPException(status_code=500, detail="Failed to get player evaluations")
 
 @router.get('/events/{event_id}/aggregated-results')
+@read_rate_limit()
 def get_aggregated_results(
+    request: Request,
     event_id: str,
     current_user=Depends(get_current_user)
 ):

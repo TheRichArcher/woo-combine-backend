@@ -252,10 +252,18 @@ def add_security_middleware(app, config=None):
         app: FastAPI application instance
         config: Optional configuration dictionary
     """
-    # Add request validation middleware first
-    app.add_middleware(RequestValidationMiddleware, config=config)
-    
-    # Add security headers middleware
+    # Retained for backward compatibility: keep behavior but log deprecation
+    logging.warning("add_security_middleware is deprecated. Use add_security_headers_middleware and add_request_validation_middleware to control ordering.")
     app.add_middleware(SecurityHeadersMiddleware, config=config)
-    
-    logging.info("Security middleware configured successfully")
+    app.add_middleware(RequestValidationMiddleware, config=config)
+    logging.info("Security middleware (headers + request validation) configured")
+
+def add_security_headers_middleware(app, config=None):
+    """Add only the security headers middleware."""
+    app.add_middleware(SecurityHeadersMiddleware, config=config)
+    logging.info("Security headers middleware configured")
+
+def add_request_validation_middleware(app, config=None):
+    """Add only the request validation middleware (should come after rate limiting)."""
+    app.add_middleware(RequestValidationMiddleware, config=config)
+    logging.info("Request validation middleware configured")

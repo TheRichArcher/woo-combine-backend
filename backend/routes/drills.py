@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from pydantic import BaseModel
 from ..models import DrillResultSchema
 from ..auth import get_current_user, require_role
+from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from ..firestore_client import db
 import logging
 from datetime import datetime
@@ -20,7 +21,9 @@ class DrillResultCreate(BaseModel):
     event_id: str
 
 @router.post("/drill-results/", response_model=dict)
+@write_rate_limit()
 def create_drill_result(
+    request: Request,
     result: DrillResultCreate,
     current_user=Depends(require_role("organizer", "coach"))
 ):
