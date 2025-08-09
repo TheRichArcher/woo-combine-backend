@@ -19,7 +19,8 @@ npx --yes lighthouse "$URL" \
   --only-categories=performance,accessibility,best-practices,seo \
   --throttling.cpuSlowdownMultiplier=1 \
   --emulated-form-factor=desktop \
-  --skip-audits=uses-http2
+  --skip-audits=uses-http2 \
+  --enable-error-reporting=false
 
 echo "Wrote $OUT_DIR/lighthouse-report.html"
 
