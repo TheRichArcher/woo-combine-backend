@@ -1,0 +1,12 @@
+first_name,last_name,jersey_number,age_group,external_id,team_name,position,notes,40m_dash,vertical_jump,catching,throwing,agility
+Alex,Johnson,7,12U,ext-001,Wolves,QB,Leader,5.1,22,85,78,80
+Maria,Gonzalez,12,14U,ext-002,Wolves,WR,Fast,5.4,24,92,70,88
+Jamal,Brown,23,14U,ext-003,Hawks,RB,Strong,5.3,26,75,65,82
+Sofia,Lee,9,12U,ext-004,Hawks,WR,Agile,5.6,21,88,68,90
+Liam,Smith,15,10U,ext-005,Bears,QB,Accurate,5.9,19,80,85,76
+Noah,Davis,33,10U,ext-006,Bears,TE,Consistent,6.2,18,70,72,74
+Emma,Martinez,3,8U,ext-007,Eagles,RB,Explosive,6.0,17,78,60,86
+Olivia,Garcia,11,8U,ext-008,Eagles,WR,Reliable,6.1,16,82,58,84
+Ethan,Miller,5,6U,ext-009,Lions,RB,Tough,6.5,14,68,55,72
+Ava,Wilson,19,6U,ext-010,Lions,WR,Sharp,6.4,15,76,57,78
+

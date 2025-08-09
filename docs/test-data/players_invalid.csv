@@ -1,0 +1,12 @@
+first_name,last_name,jersey_number,age_group,external_id,team_name,position,notes,40m_dash,vertical_jump,catching,throwing,agility
+,,7,12U,ext-101,Wolves,QB,Missing names,5.1,22,85,78,80
+Riley,Nguyen,ABC,14U,ext-102,Wolves,WR,Non-numeric jersey,5.4,24,92,70,88
+Kai,Patel,0,14U,ext-103,Hawks,RB,Zero jersey number,5.3,26,75,65,82
+Mia,Kim,10000,12U,ext-104,Hawks,WR,Too large jersey,5.6,21,88,68,90
+Lucas,White,15,10u,ext-105,Bears,QB,Lowercase age group,5.9,19,80,85,76
+Zoe,Hall,33,10U,ext-106,Bears,TE,Invalid 40 time,2.5,18,70,72,74
+Leo,Young,3,8U,ext-107,Eagles,RB,Too high vertical,6.0,65,78,60,86
+Ivy,King,11,8U,ext-108,Eagles,WR,Score over 100,6.1,16,82,58,120
+Owen,Wright,5,6U,ext-109,Lions,RB,Text in numeric field,6.5,14,sixty,55,72
+Aria,Scott,,6U,ext-110,Lions,WR,Missing jersey,,15,76,57,78
+
