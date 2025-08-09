@@ -112,3 +112,5 @@ backend/.env
 # Virtual environment
 .venv/ temp_features/
 frontend/dist/
+# Ignore Alembic template
+alembic/script.py.mako
