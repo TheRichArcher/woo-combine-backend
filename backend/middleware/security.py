@@ -84,19 +84,50 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     def add_security_headers(self, response: Response, request: Request):
         """Add comprehensive security headers"""
         
-        # Content Security Policy - Protect against XSS
+        # Content Security Policy - Protect against XSS (report-only in staging)
+        env = os.getenv("ENVIRONMENT", "").lower()
+        report_only = os.getenv("CSP_REPORT_ONLY", "false").lower() in ("1", "true", "yes") or env == "staging"
+
+        # Derive backend origin for connect-src if not provided
+        request_origin = f"{request.url.scheme}://{request.url.netloc}" if getattr(request, "url", None) else ""
+
+        # Determine whether to allow inline scripts (only if absolutely required, e.g., Vite in dev)
+        allow_unsafe_inline_scripts = os.getenv("CSP_ALLOW_UNSAFE_INLINE_SCRIPTS", "false").lower() in ("1", "true", "yes")
+
+        script_src_values = ["'self'"] + (["'unsafe-inline'"] if allow_unsafe_inline_scripts else [])
+        style_src_values = ["'self'", "'unsafe-inline'"]
+        img_src_values = ["'self'", "data:"]
+
+        # Build connect-src: always include 'self' and backend origin; allow Firebase endpoints by default
+        connect_src_values = ["'self'"]
+        if request_origin:
+            connect_src_values.append(request_origin)
+        # Additional connect-src from env (comma-separated)
+        extra_connect = [v.strip() for v in os.getenv("CSP_CONNECT_SRC", "").split(",") if v.strip()]
+        connect_src_values.extend(extra_connect)
+        # Common Firebase endpoints (frontend may call them)
+        connect_src_values.extend([
+            "https://*.googleapis.com",
+            "https://*.firebaseio.com",
+            "wss://*.firebaseio.com",
+        ])
+
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' https://apis.google.com https://www.gstatic.com",
-            "style-src 'self' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com",
-            "img-src 'self' data: https:",
-            "connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com",
+            f"script-src {' '.join(script_src_values)}",
+            f"style-src {' '.join(style_src_values)}",
+            f"img-src {' '.join(img_src_values)}",
+            f"connect-src {' '.join(dict.fromkeys(connect_src_values))}",  # dedupe while preserving order
             "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "form-action 'self'"
         ]
-        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+
+        # Optional reporting endpoint
+        report_uri = os.getenv("CSP_REPORT_URI")
+        if report_uri:
+            csp_directives.append(f"report-uri {report_uri}")
+
+        csp_header_name = "Content-Security-Policy-Report-Only" if report_only else "Content-Security-Policy"
+        response.headers[csp_header_name] = "; ".join(csp_directives)
         
         # X-Frame-Options - Protect against clickjacking
         response.headers["X-Frame-Options"] = "DENY"
@@ -104,7 +135,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # X-Content-Type-Options - Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
         
-        # X-XSS-Protection - Enable XSS filtering
+        # X-XSS-Protection - legacy header; harmless for older browsers
         response.headers["X-XSS-Protection"] = "1; mode=block"
         
         # Referrer-Policy - Control referrer information

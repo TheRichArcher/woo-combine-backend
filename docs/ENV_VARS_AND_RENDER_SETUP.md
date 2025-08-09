@@ -20,6 +20,35 @@ This document lists all environment variables required across backend and fronte
   - Staging: `https://staging.woo-combine.com`
   - Prod: `https://woo-combine.com,https://www.woo-combine.com`
 
+- **ALLOWED_ORIGIN_REGEX** (optional)
+  - Storage: Render → backend → Environment
+  - Description: Regex to match additional allowed origins
+  - Example: `^https://(staging\.)?woo-combine\.com$`
+
+- **CSP_REPORT_ONLY**
+  - Storage: Render → backend → Environment
+  - Description: If true, sets CSP as Report-Only (recommended in staging first)
+  - Dev: `true`
+  - Staging: `true`
+  - Prod: `false`
+
+- **CSP_ALLOW_UNSAFE_INLINE_SCRIPTS**
+  - Storage: Render → backend → Environment
+  - Description: Temporarily allow `'unsafe-inline'` in script-src (avoid in prod)
+  - Dev: `true` (if required for Vite)
+  - Staging: `false`
+  - Prod: `false`
+
+- **CSP_CONNECT_SRC** (optional)
+  - Storage: Render → backend → Environment
+  - Description: Extra `connect-src` entries (comma-separated)
+  - Example: `https://api.segment.io,https://*.pusher.com,wss://*.pusher.com`
+
+- **CSP_REPORT_URI** (optional)
+  - Storage: Render → backend → Environment
+  - Description: CSP report endpoint to collect violations
+  - Example: `https://csp.report.woo-combine.com/report`
+
 - **RATE_LIMITS_AUTH**
   - Storage: Render → backend → Environment
   - Description: Rate limit for auth endpoints
@@ -54,6 +83,13 @@ This document lists all environment variables required across backend and fronte
   - Dev: `600/min`
   - Staging: `600/min`
   - Prod: `600/min`
+
+- Abuse protection
+  - **ABUSE_PROTECTION_ENABLED**: enable PoW challenge for auth bursts (Dev: `false`, Staging: `true`, Prod: `true`)
+  - **ABUSE_WINDOW_SECONDS**: window to count requests (default `30`)
+  - **ABUSE_MAX_REQUESTS**: max requests per window (default `10`)
+  - **ABUSE_CHALLENGE_DIFFICULTY**: PoW difficulty leading zeros (default `4`)
+  - **ABUSE_SENSITIVE_PATH_PREFIXES**: prefixes to protect (default `/api/users,/api/test-auth`)
 
 - **ENABLE_ROLE_SIMPLE**
   - Storage: Render → backend → Environment

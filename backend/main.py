@@ -9,6 +9,7 @@ from .routes.evaluators import router as evaluators_router
 from .routes.batch import router as batch_router
 from .auth import get_current_user
 from .middleware.rate_limiting import add_rate_limiting, health_rate_limit, read_rate_limit
+from .middleware.abuse_protection import add_abuse_protection_middleware
 from .middleware.security import (
     add_security_headers_middleware,
     add_request_validation_middleware,
@@ -41,7 +42,7 @@ logging.basicConfig(level=_get_log_level_from_env())
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
 
-# Middleware order: security headers → CORS → rate limiting → request validation → routing
+# Middleware order: security headers → CORS → abuse protection → rate limiting → request validation → routing
 # 1) Security headers
 add_security_headers_middleware(app)
 
@@ -79,10 +80,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 3) Rate limiting (must come before request validation so 413s do not bypass limits)
+# 3) Abuse protection for auth flows
+add_abuse_protection_middleware(app)
+
+# 4) Rate limiting (must come before request validation so 413s do not bypass limits)
 add_rate_limiting(app)
 
-# 4) Request validation (after rate limiting)
+# 5) Request validation (after rate limiting)
 add_request_validation_middleware(app, config={"max_request_size": 5 * 1024 * 1024})
 
 # Lazy Firestore initialization to speed up startup

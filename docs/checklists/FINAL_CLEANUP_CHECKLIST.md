@@ -49,6 +49,21 @@ cd frontend && npm audit
 cd backend && python -m pip check
 ```
 
+## Security Validation (CORS, Headers, Abuse Protection)
+
+- [ ] CORS configured with `ALLOWED_ORIGINS` per environment; unauthorized origins rejected; credentials disabled
+- [ ] CSP validated in staging with Report-Only; enforced in prod
+  - [ ] default-src 'self'
+  - [ ] script-src 'self' ('unsafe-inline' only if temporarily required for Vite)
+  - [ ] style-src 'self' 'unsafe-inline'
+  - [ ] img-src 'self' data:
+  - [ ] connect-src includes backend API base and Firebase endpoints
+  - [ ] frame-ancestors 'none'
+- [ ] HSTS present over HTTPS: `max-age=31536000; includeSubDomains; preload`
+- [ ] X-Frame-Options: `DENY`; X-Content-Type-Options: `nosniff`; Referrer-Policy: `strict-origin-when-cross-origin`
+- [ ] Abuse protection: challenge triggers on abnormal auth/login/signup bursts; `X-Abuse-Nonce`/`X-Abuse-Answer` accepted; within rate limits scripts fail to bypass
+- [ ] Secrets: service account rotation scheduled annually; incident rotation procedure documented
+
 ## Production Readiness Score: 95/100
 
 **Current Status**: ✅ READY FOR PRODUCTION
