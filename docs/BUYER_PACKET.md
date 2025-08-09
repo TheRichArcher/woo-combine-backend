@@ -15,10 +15,10 @@ Sign-off checklist: `docs/checklists/FINAL_CLEANUP_CHECKLIST.md`
 
 ### CI/QA Proof Links
 
-- CI (unit + backend tests): [latest runs](https://github.com/TheRichArcher/woo-combine-backend/actions)
-- k6 performance: [HTML report](docs/perf/k6-report.html), [JSON summary](docs/perf/k6-summary.json)
-- Lighthouse: [summary](docs/qa/lighthouse-summary.md), [HTML report](docs/qa/lighthouse-report.html)
-- Smoke test: [latest run log](docs/qa/smoke-run-latest.md)
+- CI (unit + backend tests): [latest runs](https://github.com/TheRichArcher/woo-combine-backend/actions/workflows/ci.yml)
+- Perf (k6): [workflow run](https://github.com/TheRichArcher/woo-combine-backend/actions/workflows/perf.yml) • Artifacts: [HTML report](docs/perf/k6-report.html), [JSON summary](docs/perf/k6-summary.json)
+- Lighthouse: [workflow run](https://github.com/TheRichArcher/woo-combine-backend/actions/workflows/lighthouse.yml) • Artifacts: [summary](docs/qa/lighthouse-summary.md), [HTML report](docs/qa/lighthouse-report.html)
+- Smoke: [workflow run](https://github.com/TheRichArcher/woo-combine-backend/actions/workflows/smoke.yml) • Artifact: [latest run log](docs/qa/smoke-run-latest.md)
 
 ### Attached Artifacts (Release)
 

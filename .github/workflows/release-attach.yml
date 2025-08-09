@@ -1,0 +1,43 @@
+name: Attach artifacts to release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to attach to'
+        required: true
+        default: 'v1.0-buyer-ready'
+
+jobs:
+  attach:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gather artifact list
+        id: gather
+        run: |
+          FILES=(
+            docs/perf/k6-report.html
+            docs/perf/k6-summary.json
+            docs/qa/lighthouse-report.html
+            docs/qa/smoke-run-latest.md
+            docs/reports/uptime-90d.png
+            docs/arch/architecture.svg
+          )
+          EXISTING=()
+          for f in "${FILES[@]}"; do
+            if [ -f "$f" ]; then EXISTING+=("$f"); fi
+          done
+          printf '%s\n' "${EXISTING[@]}" > files.txt
+          echo "files=$(paste -sd ',' files.txt)" >> "$GITHUB_OUTPUT"
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag }}
+          files: ${{ steps.gather.outputs.files }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+

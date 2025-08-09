@@ -20,3 +20,6 @@ Owner sign-off: ____  Date: ____
 
 
 
+One-sentence production check:
+
+- ENABLE_ROLE_SIMPLE is false in production (verified on <date>).

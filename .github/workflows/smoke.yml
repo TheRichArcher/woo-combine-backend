@@ -8,8 +8,12 @@ on:
 jobs:
   smoke:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare artifact directory
+        run: mkdir -p docs/qa
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Prepare environment
@@ -28,4 +32,12 @@ jobs:
         with:
           name: smoke-report
           path: docs/qa/smoke-run-latest.md
+      - name: Commit smoke report to repo (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/qa/smoke-run-latest.md
+          git commit -m "ci(smoke): update smoke run log [skip ci]" || echo "No changes to commit"
+          git push
 

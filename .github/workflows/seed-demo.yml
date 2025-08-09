@@ -1,0 +1,27 @@
+name: Seed Demo (staging)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Prepare environment
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          DEMO_SEED_TOKEN: ${{ secrets[vars.DEMO_SEED_TOKEN_KEY] }}
+        run: |
+          echo "BASE_URL=$STAGING_BASE_URL" >> $GITHUB_ENV
+          echo "DEMO_SEED_TOKEN=$DEMO_SEED_TOKEN" >> $GITHUB_ENV
+          echo "ENABLE_DEMO_SEED=true" >> $GITHUB_ENV
+      - name: Seed demo data
+        run: |
+          python3 scripts/seed_demo.py --base-url "$BASE_URL"
+
+
