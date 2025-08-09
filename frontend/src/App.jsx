@@ -4,6 +4,7 @@ import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
@@ -52,8 +53,9 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <EventProvider>
-            <div className="min-h-screen bg-gray-50">
-              <Routes>
+            <div className="min-h-screen bg-gray-50 flex flex-col">
+              <div className="flex-1">
+                <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
                 <Route path="/welcome" element={<Welcome />} />
                             <Route path="/workflow-demo" element={<WorkflowDemo />} />
@@ -388,6 +390,8 @@ function App() {
                   </WelcomeLayout>
                 } />
               </Routes>
+              </div>
+              <Footer />
             </div>
           </EventProvider>
         </AuthProvider>

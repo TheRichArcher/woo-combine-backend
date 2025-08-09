@@ -55,6 +55,15 @@ export default function WelcomeLayout({
       </main>
       <footer className="w-full flex flex-col items-center gap-2 pb-8 mt-auto relative z-10">
         {footerLinks}
+        {!footerLinks && (
+          <div className="flex gap-3 text-white/80 text-sm">
+            <a href="/terms" className="hover:underline">Terms</a>
+            <span>·</span>
+            <a href="/privacy" className="hover:underline">Privacy</a>
+            <span>·</span>
+            <a href="/help" className="hover:underline">Contact</a>
+          </div>
+        )}
       </footer>
       {showOverlay !== false && (
         <div className="absolute inset-0 bg-black/40 pointer-events-none z-5" />

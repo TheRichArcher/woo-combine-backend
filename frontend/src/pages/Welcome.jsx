@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
+import { Link as RouterLink } from "react-router-dom";
 
 // Simplified welcome content - no more confusing A/B testing
 const getWelcomeContent = () => {
@@ -22,6 +23,15 @@ export default function Welcome() {
       contentClassName="min-h-[70vh]"
       hideHeader={true}
       showOverlay={false}
+      footerLinks={(
+        <div className="flex flex-col sm:flex-row gap-2 text-white/80 text-sm">
+          <RouterLink to="/terms" className="hover:underline">Terms</RouterLink>
+          <span className="hidden sm:inline">·</span>
+          <RouterLink to="/privacy" className="hover:underline">Privacy</RouterLink>
+          <span className="hidden sm:inline">·</span>
+          <RouterLink to="/help" className="hover:underline">Contact</RouterLink>
+        </div>
+      )}
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
         {/* Logo */}
