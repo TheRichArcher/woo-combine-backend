@@ -8,6 +8,7 @@ This folder will contain the OpenAPI contract and endpoint documentation.
   - Deployment: `docs/guides/RENDER_DEPLOYMENT.md`
   - Debug testing: `docs/guides/DEBUG_TESTING_GUIDE.md`
   - PM handoff: `docs/guides/PM_HANDOFF_GUIDE.md`
+  - Demo script: `docs/guides/DEMO_SCRIPT.md`
 - Reports
   - Comprehensive audit: `docs/reports/COMPREHENSIVE_AUDIT_REPORT.md`
   - Code review actions: `docs/reports/CODE_REVIEW_ACTIONABLE_RECOMMENDATIONS.md`
