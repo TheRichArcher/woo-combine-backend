@@ -250,9 +250,15 @@ export default function OnboardingEvent() {
         players: players 
       });
       
-      setUploadStatus("success");
-      setUploadMsg(`✅ Successfully uploaded ${data.added} players!`);
-      notifyPlayersUploaded(data.added);
+      if (data?.errors && data.errors.length > 0) {
+        setUploadStatus("error");
+        setBackendErrors(data.errors);
+        setUploadMsg(`Some rows failed to upload. ${data.added || 0} added, ${data.errors.length} errors.`);
+      } else {
+        setUploadStatus("success");
+        setUploadMsg(`✅ Successfully uploaded ${data.added} players!`);
+        notifyPlayersUploaded(data.added);
+      }
       
       // Refresh player count
       await fetchPlayerCount();

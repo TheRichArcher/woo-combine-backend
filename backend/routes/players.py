@@ -256,8 +256,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
         event_id = req.event_id
         players = req.players
-        # New CSV contract: require first_name, last_name, jersey_number, age_group; optional fields are allowed
-        required_fields = ["first_name", "last_name", "jersey_number", "age_group"]
+        # CSV contract: require first_name, last_name, jersey_number; age_group is optional
+        required_fields = ["first_name", "last_name", "jersey_number"]
         drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
         errors = []
         added = 0
@@ -314,11 +314,13 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append("jersey_number must be between 1 and 9999")
             except Exception:
                 row_errors.append("Invalid jersey_number (must be numeric)")
-            # Age group: enforce allowed list
-            try:
-                _ = validate_age_group(str(player.get("age_group") or ""))
-            except Exception as ve:
-                row_errors.append(str(ve))
+            # Age group: optional; validate only if provided (non-empty)
+            age_group_val = player.get("age_group")
+            if age_group_val not in (None, ""):
+                try:
+                    _ = validate_age_group(str(age_group_val))
+                except Exception as ve:
+                    row_errors.append(str(ve))
             # More flexible drill validation - only validate non-empty values
             for drill in drill_fields:
                 val = player.get(drill, "")

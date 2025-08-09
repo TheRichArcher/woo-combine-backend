@@ -52,8 +52,10 @@ export function parseCsv(text) {
     });
   } else {
     // Positional-based parsing (new feature)
+    // Expected order (legacy compatible):
+    // A = first_name, B = last_name, C = jersey_number, D = age_group
     mappingType = 'positional-based';
-    headers = ['first_name', 'last_name', 'age_group', 'jersey_number']; // Standard headers for compatibility
+    headers = ['first_name', 'last_name', 'jersey_number', 'age_group'];
     
     // Include first line as data since it's not headers
     const allDataLines = [lines[0], ...dataLines];
@@ -62,8 +64,8 @@ export function parseCsv(text) {
       return {
         first_name: values[0] || '',
         last_name: values[1] || '',
-        age_group: values[2] || '',
-        jersey_number: values[3] || ''
+        jersey_number: values[2] || '',
+        age_group: values[3] || ''
       };
     });
   }
@@ -132,7 +134,7 @@ export function getMappingDescription(mappingType) {
     case 'header-based':
       return 'Using header names to map columns (first_name, last_name, age_group)';
     case 'positional-based':
-      return 'Using column positions: A=First Name, B=Last Name, C=Age Group';
+      return 'Using column positions: A=First Name, B=Last Name, C=Player Number, D=Age Group';
     default:
       return 'Unknown mapping type';
   }
