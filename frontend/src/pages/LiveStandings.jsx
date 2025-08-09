@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Skeleton from '../components/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
@@ -35,7 +36,7 @@ export default function LiveStandings() {
       return response.data || [];
     },
     'live-players',
-    2 * 60 * 1000 // 2 minute cache for live data
+    15 * 1000 // 15s cache for live rankings data
   );
 
   // Fetch players
@@ -243,8 +244,10 @@ export default function LiveStandings() {
           </div>
 
           {loading ? (
-            <div className="text-center py-8">
-              <div className="text-gray-500">Loading standings...</div>
+            <div className="space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
             </div>
           ) : liveRankings.length === 0 ? (
             <div className="text-center py-8">

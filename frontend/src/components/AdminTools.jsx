@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext";
 import EventSelector from "./EventSelector";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
+import { cacheInvalidation } from '../utils/dataCache';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
@@ -101,6 +102,8 @@ export default function AdminTools() {
       setStatus("success");
       setConfirmInput("");
       showSuccess(`🗑️ All player data for "${selectedEvent.name}" has been reset`);
+      // Invalidate caches after destructive change
+      cacheInvalidation.playersUpdated(selectedEvent.id);
       fetchPlayerCount(); // Refresh count
     } catch (err) {
       setStatus("error");
@@ -198,7 +201,7 @@ export default function AdminTools() {
     };
     
     try {
-      const res = await api.post(`/players/upload`, payload);
+       const res = await api.post(`/players/upload`, payload);
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
         setUploadStatus("error");
@@ -212,6 +215,7 @@ export default function AdminTools() {
         setCsvRows([]);
         setCsvHeaders([]);
         setCsvFileName("");
+        cacheInvalidation.playersUpdated(selectedEvent.id);
         handlePostUploadSuccess();
       }
     } catch (err) {
@@ -282,6 +286,7 @@ export default function AdminTools() {
         age_group: '',
       });
       // Don't hide form immediately - let user see next steps
+      cacheInvalidation.playersUpdated(selectedEvent.id);
       handlePostUploadSuccess();
       // Reset status after success message is shown
       setTimeout(() => {
@@ -500,7 +505,7 @@ export default function AdminTools() {
           </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-2 gap-3 mb-6">
             <button
               onClick={() => {
                 const newState = !showManualForm;
@@ -663,7 +668,7 @@ export default function AdminTools() {
             {Array.isArray(csvRows) && csvRows.length > 0 && csvErrors.length === 0 && (
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
                 <h3 className="font-medium text-gray-900 mb-3">Preview ({csvRows.length} players)</h3>
-                <div className="overflow-x-auto max-h-64">
+                <div className="overflow-x-auto max-h-64" role="table" aria-label="CSV Preview">
                   <table className="min-w-full text-sm">
                     <thead className="bg-gray-50">
                       <tr>
@@ -685,7 +690,7 @@ export default function AdminTools() {
                         
                         return (
                           <tr key={i} className={hasCriticalErrors ? "bg-red-50" : hasWarnings ? "bg-yellow-50" : "bg-green-50"}>
-                            <td className="px-3 py-2 text-center">
+                            <td className="px-3 py-2 text-center" aria-label={isUploadable ? 'Valid row' : 'Invalid row'}>
                               {!isUploadable ? "❌" : "✅"}
                             </td>
                             <td className="px-3 py-2 font-mono text-gray-500">{i + 1}</td>

@@ -65,7 +65,7 @@ export function useOptimizedWeights(players = []) {
       setTimeout(() => {
         isUpdating.current = false;
       }, 100);
-    }, 300), // 300ms debounce
+    }, 250), // 250ms debounce per requirements
     []
   );
 

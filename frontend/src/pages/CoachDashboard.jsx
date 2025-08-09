@@ -3,6 +3,8 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
+import { withCache } from '../utils/dataCache';
+import { debounce } from '../utils/debounce';
 import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
@@ -56,12 +58,22 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     setActivePreset(presetKey);
   };
 
+  // Cached players fetcher for dashboard (TTL 60s)
+  const cachedFetchPlayers = useMemo(() => withCache(
+    async (eventId) => {
+      const { data } = await api.get(`/players?event_id=${eventId}`);
+      return Array.isArray(data) ? data : [];
+    },
+    'players',
+    60 * 1000
+  ), []);
+
   // Fetch all players to get available age groups
   useEffect(() => {
     async function fetchPlayers() {
       if (!selectedEvent || !user || !selectedLeagueId) return;
       try {
-        const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
+        const data = await cachedFetchPlayers(selectedEvent.id);
         setPlayers(data);
       } catch (error) {
         if (error.response?.status === 404) {
@@ -82,6 +94,15 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   // Auto-update rankings when weights or age group changes
   useEffect(() => {
+    const cachedFetchRankings = withCache(
+      async (paramsString) => {
+        const res = await api.get(`/rankings?${paramsString}`);
+        return res.data || [];
+      },
+      'rankings',
+      15 * 1000
+    );
+
     const updateRankings = async () => {
       if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
         setRankings([]);
@@ -104,8 +125,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         params.append("weight_throwing", weights["throwing"]);
         params.append("weight_agility", weights["agility"]);
         
-        const res = await api.get(`/rankings?${params.toString()}`);
-        setRankings(res.data);
+        const data = await cachedFetchRankings(params.toString());
+        setRankings(data);
       } catch (err) {
         if (err.response?.status === 404) {
           setError(null);
@@ -119,9 +140,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
       }
     };
 
-    // Debounce the API call to avoid too many requests
-    const timeoutId = setTimeout(updateRankings, 300);
-    return () => clearTimeout(timeoutId);
+    // Debounce the API call to avoid too many requests (250ms)
+    const debounced = debounce(updateRankings, 250);
+    debounced();
+    return () => {};
   }, [selectedAgeGroup, weights, user, selectedLeagueId, selectedEvent]);
 
   // CSV Export logic

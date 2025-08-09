@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 import { authLogger } from '../utils/logger';
+import { cacheInvalidation } from '../utils/dataCache';
 
 const AuthContext = createContext();
 
@@ -492,6 +493,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
       localStorage.removeItem('userRole');
+      cacheInvalidation.userLoggedOut();
     } catch {
       // Logout error handled internally
       // Still clear state even if signOut fails
@@ -504,6 +506,7 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
       localStorage.removeItem('userRole');
+      cacheInvalidation.userLoggedOut();
     }
   }, []);
 

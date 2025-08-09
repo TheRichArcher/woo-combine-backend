@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
+import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 
 const EventContext = createContext();
@@ -23,6 +24,19 @@ export function EventProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Cached events fetcher: TTL 120s per requirements
+  const cachedFetchEvents = useCallback(
+    withCache(
+      async (leagueId) => {
+        const response = await api.get(`/leagues/${leagueId}/events`);
+        return response.data?.events || [];
+      },
+      'events',
+      120 * 1000
+    ),
+    []
+  );
+
   // Load events when league is selected
   const loadEvents = useCallback(async (leagueId) => {
     if (!leagueId) {
@@ -38,8 +52,7 @@ export function EventProvider({ children }) {
     setNoLeague(false);
 
     try {
-      const response = await api.get(`/leagues/${leagueId}/events`);
-      const eventsData = response.data.events || [];  // ✅ Extract events array from response
+      const eventsData = await cachedFetchEvents(leagueId);
       setEvents(eventsData);
       
       // Auto-select first event if available and none is currently selected

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import Skeleton from "../components/Skeleton";
 import DrillInputForm from "../components/DrillInputForm";
 import EditPlayerModal from "../components/Players/EditPlayerModal";
 import PlayerDetailsModal from "../components/Players/PlayerDetailsModal";
@@ -42,7 +43,7 @@ const cachedFetchPlayers = withCache(
     return res.data;
   },
   'players',
-  3 * 60 * 1000 // 3 minute cache
+  60 * 1000 // 60s cache per requirements
 );
 
 export default function Players() {
@@ -373,11 +374,11 @@ export default function Players() {
 
   if (loading) return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-          <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
-          <div className="text-gray-500">Loading players...</div>
-        </div>
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8 space-y-3">
+        <Skeleton className="h-24 w-full" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
       </div>
     </div>
   );
