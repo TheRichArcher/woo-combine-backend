@@ -8,6 +8,7 @@ from ..firestore_client import db
 import logging
 from datetime import datetime
 from ..utils.database import execute_with_timeout
+from ..utils.validation import validate_drill_score, get_unit_for_drill
 
 router = APIRouter()
 
@@ -19,6 +20,8 @@ class DrillResultCreate(BaseModel):
     type: str
     value: float
     event_id: str
+    recorded_at: str | None = None
+    notes: str | None = None
 
 @router.post("/drill-results/", response_model=dict)
 @write_rate_limit()
@@ -50,13 +53,19 @@ def create_drill_result(
         if not player_doc.exists:
             raise HTTPException(status_code=404, detail="Player not found")
         
-        # Create drill result data
+        # Validate value and attach unit
+        validated_value = validate_drill_score(float(result.value), result.type)
+        unit = get_unit_for_drill(result.type)
+        now_iso = datetime.utcnow().isoformat()
         drill_result_data = {
             "player_id": result.player_id,
             "type": result.type,
-            "value": result.value,
+            "value": validated_value,
+            "unit": unit,
             "event_id": result.event_id,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_iso,
+            "recorded_at": result.recorded_at or now_iso,
+            "notes": result.notes or "",
             "created_by": current_user["uid"]
         }
         
@@ -73,7 +82,7 @@ def create_drill_result(
         
         # Update player document with the new drill score with timeout protection
         execute_with_timeout(
-            lambda: player_ref.update({drill_field_name: result.value}),
+            lambda: player_ref.update({drill_field_name: validated_value}),
             timeout=10
         )
         

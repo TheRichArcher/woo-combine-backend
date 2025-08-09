@@ -51,6 +51,7 @@ export default function OnboardingEvent() {
   const [csvFileName, setCsvFileName] = useState("");
   const [uploadStatus, setUploadStatus] = useState("idle");
   const [uploadMsg, setUploadMsg] = useState("");
+  const [backendErrors, setBackendErrors] = useState([]);
   
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -220,16 +221,27 @@ export default function OnboardingEvent() {
 
     setUploadStatus("uploading");
     setUploadMsg("Uploading players...");
+    setBackendErrors([]);
 
     try {
-      // Assign player numbers automatically
-      const playersWithNumbers = autoAssignPlayerNumbers(validRows);
+      // Normalize for numbering: use `number` field expected by autoAssign
+      const rowsForNumbering = validRows.map(r => ({ ...r, number: r.jersey_number ?? r.number }));
+      // Assign jersey numbers automatically if missing
+      const playersWithNumbers = autoAssignPlayerNumbers(rowsForNumbering).map(p => ({
+        ...p,
+        jersey_number: p.jersey_number || p.number
+      }));
       
-      // Create player objects for API (backend expects 'name', not first_name/last_name)
+      // Create player objects for API per contract
       const players = playersWithNumbers.map(row => ({
-        name: row.name || `${row.first_name || ''} ${row.last_name || ''}`.trim(),
-        number: row.number || '',
-        age_group: row.age_group || ''
+        first_name: row.first_name,
+        last_name: row.last_name,
+        age_group: row.age_group || '',
+        jersey_number: row.jersey_number || '',
+        external_id: row.external_id,
+        team_name: row.team_name,
+        position: row.position,
+        notes: row.notes,
       }));
 
       // Upload to backend
@@ -252,6 +264,10 @@ export default function OnboardingEvent() {
       
     } catch (error) {
       setUploadStatus("error");
+      const backendDetail = error.response?.data;
+      if (backendDetail?.errors) {
+        setBackendErrors(backendDetail.errors);
+      }
       setUploadMsg(error.response?.data?.detail || "Failed to upload players. Please try again.");
       notifyError(error.response?.data?.detail || "Upload failed");
     }
@@ -424,6 +440,29 @@ export default function OnboardingEvent() {
                 {uploadMsg && (
                   <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-blue-600"}`}>
                     {uploadMsg}
+                  </div>
+                )}
+                {uploadStatus === 'error' && backendErrors.length > 0 && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
+                    <div className="text-sm text-red-800 font-medium mb-1">Row Errors</div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="bg-red-100">
+                            <th className="px-2 py-1 text-left">Row</th>
+                            <th className="px-2 py-1 text-left">Message</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {backendErrors.map((err, idx) => (
+                            <tr key={idx} className="border-t border-red-200">
+                              <td className="px-2 py-1">{err.row}</td>
+                              <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 )}
               </div>

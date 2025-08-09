@@ -7,6 +7,11 @@ import logging
 from ..firestore_client import db
 from datetime import datetime
 from ..models import PlayerSchema
+from ..utils.validation import (
+    validate_player_data,
+    validate_age_group,
+    canonicalize_age_group,
+)
 from ..utils.database import execute_with_timeout
 
 router = APIRouter()
@@ -251,7 +256,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
         event_id = req.event_id
         players = req.players
-        required_fields = ["name"]
+        # New CSV contract: require first_name, last_name, jersey_number, age_group; optional fields are allowed
+        required_fields = ["first_name", "last_name", "jersey_number", "age_group"]
         drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
         errors = []
         added = 0
@@ -272,6 +278,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         )
         existing_name_number = set()
         existing_ids = set()
+        existing_external_ids = set()
+        existing_first_last_age = set()
         for ep in existing_players_stream:
             epd = ep.to_dict()
             first = str(epd.get("first") or "").strip().lower()
@@ -284,25 +292,33 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     number_key = None
             existing_name_number.add((first, last, number_key))
             existing_ids.add(("id", ep.id))
+            ext_id = str(epd.get("external_id") or "").strip()
+            if ext_id:
+                existing_external_ids.add(ext_id)
+            age_val = str(epd.get("age_group") or "").strip().lower()
+            if first or last:
+                existing_first_last_age.add((first, last, age_val))
 
         for idx, player in enumerate(players):
             row_errors = []
+            # Required fields per contract
             for field in required_fields:
-                if not player.get(field):
+                if player.get(field) in (None, ""):
                     row_errors.append(f"Missing {field}")
-            # More flexible number validation
-            if player.get("number") not in (None, ""):
-                try:
-                    raw_number = player.get("number")
-                    number_str = str(raw_number).strip()
-                    if number_str != "":
-                        int(number_str)
-                except (ValueError, TypeError):
-                    row_errors.append(f"Invalid number: '{player.get('number')}'")
-            # Allow any age group format - don't restrict to specific values
-            # if player.get("age_group") not in (None, ""):
-            #     if player.get("age_group") not in ["7-8", "9-10", "11-12"]:
-            #         row_errors.append("Invalid age_group")
+            # jersey_number must be numeric 1-9999
+            try:
+                num = int(str(player.get("jersey_number")).strip()) if player.get("jersey_number") not in (None, "") else None
+                if num is None:
+                    row_errors.append("Missing jersey_number")
+                elif num < 1 or num > 9999:
+                    row_errors.append("jersey_number must be between 1 and 9999")
+            except Exception:
+                row_errors.append("Invalid jersey_number (must be numeric)")
+            # Age group: enforce allowed list
+            try:
+                _ = validate_age_group(str(player.get("age_group") or ""))
+            except Exception as ve:
+                row_errors.append(str(ve))
             # More flexible drill validation - only validate non-empty values
             for drill in drill_fields:
                 val = player.get(drill, "")
@@ -313,14 +329,13 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         row_errors.append(f"Invalid {drill}: '{val}' (must be a number)")
             # Duplicate checks
             player_id = str(player.get("id") or "").strip()
-            first = str(player.get("first") or "").strip().lower()
-            last = str(player.get("last") or "").strip().lower()
+            first = str(player.get("first_name") or "").strip().lower()
+            last = str(player.get("last_name") or "").strip().lower()
             number_key = None
-            if player.get("number") not in (None, ""):
+            if player.get("jersey_number") not in (None, ""):
                 try:
-                    number_key = int(str(player.get("number")).strip())
+                    number_key = int(str(player.get("jersey_number")).strip())
                 except Exception:
-                    # already captured as validation
                     pass
 
             if player_id:
@@ -343,6 +358,21 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 if name_number_key in existing_name_number:
                     row_errors.append("Duplicate (first,last,number) already exists in event")
 
+            # External ID duplicate detection
+            ext_id = str(player.get("external_id") or "").strip()
+            if ext_id:
+                if ext_id in existing_external_ids:
+                    row_errors.append("Duplicate external_id already exists in event")
+            # When jersey_number is missing/invalid, fallback duplicate check on (first,last,age_group)
+            if number_key is None and (first or last):
+                try:
+                    age_val_canon = canonicalize_age_group(str(player.get("age_group") or ""))
+                except Exception:
+                    age_val_canon = str(player.get("age_group") or "").strip()
+                age_l = str(age_val_canon or "").strip().lower()
+                if (first, last, age_l) in existing_first_last_age:
+                    row_errors.append("Duplicate (first,last,age_group) already exists in event")
+
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
@@ -350,11 +380,30 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # CRITICAL FIX: Store players in event subcollection where they're retrieved from
             player_doc = db.collection("events").document(event_id).collection("players").document()
             
-            # Prepare player data with drill scores
+            # Prepare player data with drill scores and canonical fields
+            canonical_age = canonicalize_age_group(str(player.get("age_group") or "")) if player.get("age_group") else None
+            first_name = (player.get("first_name") or "").strip()
+            last_name = (player.get("last_name") or "").strip()
+            full_name = f"{first_name} {last_name}".strip()
+            # Precompute jersey number safely for typing
+            jersey_raw = player.get("jersey_number")
+            number_value = None
+            if jersey_raw not in (None, ""):
+                try:
+                    number_value = int(str(jersey_raw).strip())
+                except Exception:
+                    number_value = None
+
             player_data = {
-                "name": player["name"],
-                "number": int(player["number"]) if player.get("number") not in (None, "") else None,
-                "age_group": player["age_group"] if player.get("age_group") not in (None, "") else None,
+                "name": full_name,
+                "first": first_name,
+                "last": last_name,
+                "number": number_value,
+                "age_group": canonical_age,
+                "external_id": (player.get("external_id") or None),
+                "team_name": (player.get("team_name") or None),
+                "position": (player.get("position") or None),
+                "notes": (player.get("notes") or None),
                 "photo_url": None,
                 "event_id": event_id,
                 "created_at": datetime.utcnow().isoformat(),

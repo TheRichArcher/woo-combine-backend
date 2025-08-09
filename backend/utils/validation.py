@@ -29,6 +29,52 @@ DRILL_SCORE_RANGES = {
     'agility': {'min': 0, 'max': 100, 'unit': 'points'}
 }
 
+# Allowed age groups (canonical values). Importers may accept case-insensitive inputs
+# and map equivalent strings to these canonical forms.
+ALLOWED_AGE_GROUPS = [
+    # Range forms
+    '5-6', '7-8', '9-10', '11-12', '13-14', '15-16', '17-18',
+    # U forms (canonicalized to uppercase)
+    '6U', '8U', '10U', '12U', '14U', '16U', '18U',
+]
+
+def canonicalize_age_group(value: str) -> str:
+    """Return a canonical age group string or raise ValidationError."""
+    if not value or not isinstance(value, str):
+        raise ValidationError("Age group is required")
+    raw = value.strip()
+    # Normalize common forms like 'u12', '12u', 'U12', and hyphen ranges
+    upper = raw.upper()
+    # If looks like '12U' or 'U12', normalize to '12U'
+    if upper.endswith('U') and upper[:-1].isdigit():
+        candidate = f"{int(upper[:-1])}U"
+        if candidate in ALLOWED_AGE_GROUPS:
+            return candidate
+    if upper.startswith('U') and upper[1:].isdigit():
+        candidate = f"{int(upper[1:])}U"
+        if candidate in ALLOWED_AGE_GROUPS:
+            return candidate
+    # Range form '7-8'
+    if '-' in raw:
+        parts = raw.split('-')
+        try:
+            a = int(parts[0].strip())
+            b = int(parts[1].strip())
+            candidate = f"{a}-{b}"
+            if candidate in ALLOWED_AGE_GROUPS:
+                return candidate
+        except Exception:
+            pass
+    # Direct match
+    if raw in ALLOWED_AGE_GROUPS:
+        return raw
+    raise ValidationError("Invalid age group. Allowed values: " + ", ".join(ALLOWED_AGE_GROUPS))
+
+def get_unit_for_drill(drill_type: str) -> str:
+    if drill_type not in DRILL_SCORE_RANGES:
+        raise ValidationError(f"Unknown drill type: {drill_type}")
+    return DRILL_SCORE_RANGES[drill_type]['unit']
+
 # Valid roles
 VALID_ROLES = ['organizer', 'coach', 'viewer', 'player']
 
@@ -82,10 +128,10 @@ def validate_age_group(age_group: str) -> str:
         raise ValidationError("Age group is required")
     
     age_group = age_group.strip()
+    # Keep legacy regex for general validation, then enforce allowed list canonicalization
     if not PATTERNS['age_group'].match(age_group):
         raise ValidationError("Invalid age group format. Examples: 7-8, 9-10, U12, 12U")
-    
-    return age_group
+    return canonicalize_age_group(age_group)
 
 def validate_drill_score(score: float, drill_type: str) -> float:
     """Validate drill score is within valid range for the drill type"""
@@ -114,7 +160,7 @@ class Validator:
         return value
     
     @staticmethod
-    def string_length(value: str, field_name: str, min_length: int = 0, max_length: int = None) -> str:
+    def string_length(value: str, field_name: str, min_length: int = 0, max_length: Optional[int] = None) -> str:
         """Validate string length"""
         if not isinstance(value, str):
             raise ValidationError(f"{field_name} must be a string")
@@ -140,7 +186,7 @@ class Validator:
         return value
     
     @staticmethod
-    def number_range(value: Union[int, float], field_name: str, min_val: float = None, max_val: float = None) -> Union[int, float]:
+    def number_range(value: Union[int, float], field_name: str, min_val: Optional[float] = None, max_val: Optional[float] = None) -> Union[int, float]:
         """Validate number is within specified range"""
         if not isinstance(value, (int, float)):
             raise ValidationError(f"{field_name} must be a number")
@@ -264,7 +310,7 @@ def validate_role(role: str) -> str:
 
 def validate_pagination(page: int = 1, limit: int = 50) -> Dict[str, int]:
     """Validate pagination parameters"""
-    validated_page = Validator.number_range(page, 'page', 1, 1000)
-    validated_limit = Validator.number_range(limit, 'limit', 1, 500)
+    validated_page_val = int(Validator.number_range(page, 'page', 1, 1000))
+    validated_limit_val = int(Validator.number_range(limit, 'limit', 1, 500))
     
-    return {'page': validated_page, 'limit': validated_limit} 
+    return {'page': validated_page_val, 'limit': validated_limit_val}

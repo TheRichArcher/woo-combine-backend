@@ -1,7 +1,9 @@
 // CSV parsing and validation utilities
 
-export const REQUIRED_HEADERS = ["first_name", "last_name"];
-export const OPTIONAL_HEADERS = ["number", "age_group"];
+// Required by data contract: first_name, last_name, jersey_number, age_group
+export const REQUIRED_HEADERS = ["first_name", "last_name", "jersey_number", "age_group"];
+// Optional columns supported by backend
+export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 export const SAMPLE_ROWS = [
@@ -41,12 +43,17 @@ export function parseCsv(text) {
       headers.forEach((header, i) => {
         row[header] = values[i] || '';
       });
+      // Backward compatibility: support 'number' -> 'jersey_number'
+      if (row.number && !row.jersey_number) {
+        row.jersey_number = row.number;
+        delete row.number;
+      }
       return row;
     });
   } else {
     // Positional-based parsing (new feature)
     mappingType = 'positional-based';
-    headers = ['first_name', 'last_name', 'age_group']; // Standard headers for compatibility
+    headers = ['first_name', 'last_name', 'age_group', 'jersey_number']; // Standard headers for compatibility
     
     // Include first line as data since it's not headers
     const allDataLines = [lines[0], ...dataLines];
@@ -56,7 +63,7 @@ export function parseCsv(text) {
         first_name: values[0] || '',
         last_name: values[1] || '',
         age_group: values[2] || '',
-        number: values[3] || '' // Support optional 4th column for numbers
+        jersey_number: values[3] || ''
       };
     });
   }
@@ -76,9 +83,9 @@ export function validateRow(row) {
     warnings.push('Missing last name');
   }
   
-  // Validate number if provided
-  if (row.number && row.number.trim() !== '' && isNaN(Number(row.number))) {
-    warnings.push('Invalid number (must be numeric)');
+  // Validate jersey number if provided (will be auto-assigned if blank before upload)
+  if (row.jersey_number && row.jersey_number.trim() !== '' && isNaN(Number(row.jersey_number))) {
+    warnings.push('Invalid jersey_number (must be numeric)');
   }
   
   // Create combined name for display

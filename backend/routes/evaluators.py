@@ -8,6 +8,7 @@ from ..firestore_client import db
 from datetime import datetime
 from ..models import EvaluatorSchema, DrillResultSchema, MultiEvaluatorDrillResult
 from ..utils.database import execute_with_timeout
+from ..utils.validation import validate_drill_score, get_unit_for_drill
 import statistics
 
 router = APIRouter()
@@ -22,6 +23,7 @@ class DrillEvaluationRequest(BaseModel):
     drill_type: str
     value: float
     notes: str = ""
+    recorded_at: str | None = None
 
 @router.get('/events/{event_id}/evaluators', response_model=List[EvaluatorSchema])
 @read_rate_limit()
@@ -106,15 +108,20 @@ def submit_drill_evaluation(
         if not current_user.get("email_verified", False):
             raise HTTPException(status_code=403, detail="Email verification required")
 
-        # Create individual drill result with evaluator info
+        # Create individual drill result with evaluator info and enforce constraints
+        validated_value = validate_drill_score(float(evaluation.value), evaluation.drill_type)
+        unit = get_unit_for_drill(evaluation.drill_type)
+        now_iso = datetime.utcnow().isoformat()
         drill_result = {
             "player_id": evaluation.player_id,
             "type": evaluation.drill_type,
-            "value": evaluation.value,
+            "value": validated_value,
+            "unit": unit,
             "evaluator_id": current_user["uid"],
             "evaluator_name": current_user.get("name") or current_user.get("email"),
             "notes": evaluation.notes,
-            "created_at": datetime.utcnow().isoformat(),
+            "created_at": now_iso,
+            "recorded_at": evaluation.recorded_at or now_iso,
             "event_id": event_id
         }
         
@@ -211,7 +218,7 @@ def get_aggregated_results(
                 'score_count': result_data['score_count'],
                 'score_variance': result_data.get('score_variance'),
                 'evaluations': result_data['evaluations'],
-                'updated_at': result_data['updated_at']
+                'last_updated': result_data.get('last_updated') or result_data.get('updated_at')
             }
         
         logging.info(f"Retrieved aggregated results for event {event_id}")
@@ -274,7 +281,8 @@ def _update_aggregated_drill_results(event_id: str, player_id: str, drill_type: 
             'score_count': len(scores),
             'score_variance': score_variance,
             'final_score': final_score,
-            'updated_at': datetime.utcnow().isoformat()
+            'attempts_count': len(scores),
+            'last_updated': datetime.utcnow().isoformat()
         }
         
         # Store aggregated result

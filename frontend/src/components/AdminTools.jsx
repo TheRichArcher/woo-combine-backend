@@ -38,6 +38,7 @@ export default function AdminTools() {
 
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle | loading | success | error
   const [uploadMsg, setUploadMsg] = useState("");
+  const [backendErrors, setBackendErrors] = useState([]);
 
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -190,14 +191,31 @@ export default function AdminTools() {
     if (!selectedEvent || !user || !selectedLeagueId) return;
     setUploadStatus("loading");
     setUploadMsg("");
+    setBackendErrors([]);
     
     // Prepare players and auto-assign numbers
     const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
-    const playersWithNumbers = autoAssignPlayerNumbers(cleanedPlayers);
+    // Normalize for numbering: use `number` field expected by autoAssign
+    const rowsForNumbering = cleanedPlayers.map(r => ({ ...r, number: r.jersey_number ?? r.number }));
+    // Ensure jersey_number present (auto-assign if missing)
+    const playersWithNumbers = autoAssignPlayerNumbers(rowsForNumbering).map(p => ({
+      ...p,
+      jersey_number: p.jersey_number || p.number || p.number === 0 ? p.number : p.jersey_number
+    }));
     
+    // Shape per contract
     const payload = {
       event_id: selectedEvent.id,
-      players: playersWithNumbers
+      players: playersWithNumbers.map(r => ({
+        first_name: r.first_name,
+        last_name: r.last_name,
+        age_group: r.age_group,
+        jersey_number: r.jersey_number || r.number,
+        external_id: r.external_id,
+        team_name: r.team_name,
+        position: r.position,
+        notes: r.notes,
+      }))
     };
     
     try {
@@ -209,7 +227,12 @@ export default function AdminTools() {
         showError(`❌ Upload partially failed: ${data.errors.length} errors`);
       } else {
         setUploadStatus("success");
-        const numbersAssigned = playersWithNumbers.filter(p => !cleanedPlayers.find(cp => cp.name === p.name && cp.number)).length;
+        const numbersAssigned = playersWithNumbers.filter(p => {
+          const fn = p.first_name?.trim();
+          const ln = p.last_name?.trim();
+          const match = cleanedPlayers.find(cp => cp.first_name?.trim() === fn && cp.last_name?.trim() === ln && (cp.jersey_number || cp.number));
+          return !match;
+        }).length;
         setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
         notifyPlayersUploaded(data.added);
         setCsvRows([]);
@@ -758,6 +781,29 @@ export default function AdminTools() {
             {uploadStatus === "error" && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
                 <p className="text-red-700 font-medium">{uploadMsg}</p>
+                {Array.isArray(backendErrors) && backendErrors.length > 0 && (
+                  <div className="mt-3">
+                    <div className="text-sm text-red-800 font-medium mb-1">Row Errors</div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm">
+                        <thead>
+                          <tr className="bg-red-100">
+                            <th className="px-2 py-1 text-left">Row</th>
+                            <th className="px-2 py-1 text-left">Message</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {backendErrors.map((err, idx) => (
+                            <tr key={idx} className="border-t border-red-200">
+                              <td className="px-2 py-1">{err.row}</td>
+                              <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
