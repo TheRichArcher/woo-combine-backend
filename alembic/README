@@ -1,1 +1,7 @@
-Generic single-database configuration.
+Firestore is authoritative storage.
+
+Legacy notice
+
+This project uses Firestore as the authoritative storage. SQL migrations are not used.
+
+The `alembic/` directory remains for historical context only and should not be used going forward.

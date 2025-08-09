@@ -1,21 +1,16 @@
-WooCombine API Contracts
+### Documentation Index
 
-This folder will contain the OpenAPI contract and endpoint documentation.
+Start here to get productive quickly. Each section links to focused docs.
 
-# Documentation Index
+- Getting Started: `docs/GETTING_STARTED.md`
+- API Reference (OpenAPI): `docs/API_REFERENCE.md`
+- Data Contracts: `docs/DATA_CONTRACTS.md`
+- Runbooks: `docs/runbooks/` (see: Incident Response, Firestore Quota Exceeded, Credential Outage, Rate Limit Tuning)
+- Security (headers, CSP, rate limits, auth): `docs/SECURITY.md`
+- Release Process: `docs/RELEASE_FLOW.md`
 
-- Guides
-  - Deployment: `docs/guides/RENDER_DEPLOYMENT.md`
-  - Debug testing: `docs/guides/DEBUG_TESTING_GUIDE.md`
-  - PM handoff: `docs/guides/PM_HANDOFF_GUIDE.md`
-  - Demo script: `docs/guides/DEMO_SCRIPT.md`
-- Reports
-  - Comprehensive audit: `docs/reports/COMPREHENSIVE_AUDIT_REPORT.md`
-  - Code review actions: `docs/reports/CODE_REVIEW_ACTIONABLE_RECOMMENDATIONS.md`
-  - Performance optimization: `docs/reports/PERFORMANCE_OPTIMIZATION_SUMMARY.md`
-  - Phone auth removal: `docs/reports/PHONE_AUTH_REMOVAL_SUMMARY.md`
-  - Cleanup summaries and fixes: see `docs/reports/`
-- Checklists
-  - Final cleanup: `docs/checklists/FINAL_CLEANUP_CHECKLIST.md`
-
-Use the root README for quickstart; this folder holds deeper references.
+Additional resources:
+- Environment variables and Render setup: `docs/ENV_VARS_AND_RENDER_SETUP.md`
+- Guides: `docs/guides/`
+- Reports: `docs/reports/`
+- Checklists: `docs/checklists/`
