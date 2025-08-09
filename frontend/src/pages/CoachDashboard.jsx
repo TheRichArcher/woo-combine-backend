@@ -189,9 +189,9 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     if (!leagues || leagues.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
-                  <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
-          <p className="text-cmf-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
+                  <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-brand-primary/30">
+          <h2 className="text-2xl font-bold text-brand-secondary mb-4">Welcome to Woo-Combine!</h2>
+          <p className="text-brand-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
             <p className="text-gray-700 mb-4">To get started, create your first league below:</p>
             <CreateLeagueForm onCreated={() => navigate('/onboarding/event', { replace: true })} />
           </div>
@@ -201,13 +201,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     // If user has leagues, show Import Players for organizers
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
-          <p className="text-cmf-secondary mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-brand-primary/30">
+          <h2 className="text-2xl font-bold text-brand-secondary mb-4">Welcome to Woo-Combine!</h2>
+          <p className="text-brand-secondary mb-2">It looks like you haven't added any players yet. That's totally normal for new leagues!</p>
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
             {userRole === 'organizer' ? (
-              <button onClick={handleImport} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">📥 Import Players</button>
+              <button onClick={handleImport} className="bg-brand-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-brand-primary transition w-full max-w-xs">📥 Import Players</button>
             ) : (
               <span className="text-gray-500">Waiting for organizer to import players.</span>
             )}
@@ -222,7 +222,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const percentages = getPercentages();
 
   return (
-    <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
+    <div className="min-h-screen bg-gray-50 text-brand-contrast font-sans">
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
         
@@ -236,7 +236,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         {/* Enhanced Age Group Selector */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
-            <Users className="w-5 h-5 text-cmf-primary" />
+            <Users className="w-5 h-5 text-brand-primary" />
             <label className="text-sm font-bold text-gray-700">Select Age Group</label>
           </div>
           
@@ -245,7 +245,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             <select
               value={selectedAgeGroup}
               onChange={e => setSelectedAgeGroup(e.target.value)}
-              className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-cmf-primary focus:ring-2 focus:ring-cmf-primary/20"
+              className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
             >
               <option value="">Select Age Group</option>
               {ageGroups.map(group => {
@@ -352,7 +352,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         {userRole === 'organizer' && (
           <div className="bg-white shadow-sm border border-gray-200 rounded-2xl p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
-              <Settings className="w-4 h-4 text-cmf-primary" />
+              <Settings className="w-4 h-4 text-brand-primary" />
               <h2 className="text-sm font-medium text-gray-800">Ranking Priorities</h2>
             </div>
             
@@ -366,7 +366,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     onClick={() => applyPreset(key)}
                     className={`p-3 text-left rounded-lg border-2 transition-all ${
                       activePreset === key 
-                        ? 'border-cmf-primary bg-cmf-primary/5 text-cmf-primary' 
+                        ? 'border-brand-primary bg-brand-primary/5 text-brand-primary' 
                         : 'border-gray-200 hover:border-gray-300 text-gray-700'
                     }`}
                   >
@@ -401,10 +401,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           value={percentages[drill.key]}
                           onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                          className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
+                          className="flex-1 accent-brand-primary h-2 rounded-lg bg-gray-100"
                         />
                         <div className="w-12 text-right">
-                          <span className="text-sm font-mono text-cmf-primary">
+                          <span className="text-sm font-mono text-brand-primary">
                             {percentages[drill.key]}%
                           </span>
                         </div>
@@ -424,7 +424,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         {/* Rankings Table and Loading/Error States */}
         {loading ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-            <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
+            <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-brand-primary rounded-full mb-2"></div>
             <div className="text-gray-500">Updating rankings...</div>
           </div>
         ) : error ? (
@@ -480,7 +480,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Overall Score</div>
-                        <div className="font-mono font-bold text-lg text-cmf-primary">{player.composite_score.toFixed(2)}</div>
+                        <div className="font-mono font-bold text-lg text-brand-primary">{player.composite_score.toFixed(2)}</div>
                       </div>
                     </div>
                     

@@ -24,8 +24,8 @@ const MailboxIcon = () => (
       width="60"
       height="35"
       rx="8"
-      fill="#e5e7eb"
-      stroke="#9ca3af"
+      fill="var(--color-surface-subtle)"
+      stroke="var(--color-border)"
       strokeWidth="2"
     />
     {/* Mailbox flag */}
@@ -35,7 +35,7 @@ const MailboxIcon = () => (
       width="15"
       height="8"
       rx="2"
-      fill="#ec4899"
+      fill="var(--color-primary)"
     />
     {/* Mailbox post */}
     <rect
@@ -43,12 +43,12 @@ const MailboxIcon = () => (
       y="75"
       width="6"
       height="25"
-      fill="#9ca3af"
+      fill="var(--color-border)"
     />
     {/* Ground grass */}
-    <ellipse cx="35" cy="100" rx="8" ry="3" fill="#10b981" />
-    <ellipse cx="55" cy="102" rx="6" ry="2" fill="#10b981" />
-    <ellipse cx="75" cy="100" rx="7" ry="3" fill="#10b981" />
+    <ellipse cx="35" cy="100" rx="8" ry="3" fill="var(--color-success)" />
+    <ellipse cx="55" cy="102" rx="6" ry="2" fill="var(--color-success)" />
+    <ellipse cx="75" cy="100" rx="7" ry="3" fill="var(--color-success)" />
     {/* Envelope in mailbox */}
     <rect
       x="35"
@@ -57,16 +57,16 @@ const MailboxIcon = () => (
       height="12"
       rx="2"
       fill="white"
-      stroke="#6366f1"
+      stroke="var(--color-primary)"
       strokeWidth="2"
     />
     {/* Envelope lines */}
-    <line x1="37" y1="52" x2="53" y2="52" stroke="#6366f1" strokeWidth="1" />
-    <line x1="37" y1="55" x2="48" y2="55" stroke="#6366f1" strokeWidth="1" />
+    <line x1="37" y1="52" x2="53" y2="52" stroke="var(--color-primary)" strokeWidth="1" />
+    <line x1="37" y1="55" x2="48" y2="55" stroke="var(--color-primary)" strokeWidth="1" />
     {/* Magic sparkles */}
-    <circle cx="20" cy="30" r="2" fill="#fbbf24" />
-    <circle cx="95" cy="25" r="1.5" fill="#fbbf24" />
-    <circle cx="15" cy="60" r="1" fill="#fbbf24" />
+    <circle cx="20" cy="30" r="2" fill="var(--color-primary)" />
+    <circle cx="95" cy="25" r="1.5" fill="var(--color-primary)" />
+    <circle cx="15" cy="60" r="1" fill="var(--color-primary)" />
   </svg>
 );
 
@@ -246,7 +246,7 @@ export default function VerifyEmail() {
             <ArrowLeft size={20} />
           </button>
           <button
-            className="text-sm text-cyan-600 hover:text-cyan-800 font-medium"
+            className="text-sm text-brand-primary hover:opacity-90 font-medium"
             onClick={() => navigate("/help")}
           >
             Need Help?
@@ -257,11 +257,10 @@ export default function VerifyEmail() {
         <div className="flex-1 flex flex-col px-6 pb-6">
           {/* Logo */}
           <div className="text-center mt-4 mb-6">
-            <img
+              <img
               src="/favicon/woocombine-logo.png"
               alt="Woo-Combine Logo"
-              className="w-16 h-16 mx-auto mb-4"
-              style={{ objectFit: 'contain' }}
+                className="w-16 h-16 mx-auto mb-4 object-contain"
             />
           </div>
 
@@ -295,14 +294,14 @@ export default function VerifyEmail() {
             {isVerified ? (
               <button
                 onClick={() => navigate("/select-role")}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               >
                 Continue to App
               </button>
             ) : (
               <button
                 onClick={handleOpenEmailApp}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               >
                 Open Email App
               </button>
@@ -345,14 +344,14 @@ export default function VerifyEmail() {
           <button
             onClick={handleResend}
             disabled={resending}
-            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
+            className="w-full text-brand-primary hover:opacity-90 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
           >
             {resending ? "Sending..." : "Resend Email"}
           </button>
           
           <button
             onClick={() => navigate("/help")}
-            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200"
+            className="w-full text-brand-primary hover:opacity-90 font-medium py-2 transition-colors duration-200"
           >
             Contact Support
           </button>

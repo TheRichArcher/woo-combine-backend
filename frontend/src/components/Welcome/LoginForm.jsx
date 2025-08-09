@@ -55,7 +55,7 @@ export default function LoginForm() {
       {/* Header Row: Back + Help */}
       <div className="w-full flex flex-row justify-between items-center mb-6 px-2">
         <button
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow text-cyan-700 hover:text-cyan-900 focus:outline-none"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-brand-primary/10 hover:bg-brand-primary/20 border border-brand-primary/20 shadow text-brand-primary hover:opacity-90 focus:outline-none"
           type="button"
           aria-label="Back to welcome"
           onClick={() => navigate("/welcome")}
@@ -64,32 +64,32 @@ export default function LoginForm() {
         </button>
         <Link
           to="/help"
-          className="text-xs text-cyan-700 hover:underline font-semibold"
+          className="text-xs text-brand-primary hover:underline font-semibold"
         >
           Need Help?
         </Link>
       </div>
 
-      <h2 className="text-3xl font-extrabold mb-6 text-center text-cyan-700 drop-shadow">Welcome Back</h2>
-      <div className="w-full bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <h2 className="text-3xl font-extrabold mb-6 text-center text-brand-primary drop-shadow">Welcome Back</h2>
+      <div className="w-full bg-brand-primary/10 border border-brand-primary/20 rounded-lg p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Mail className="w-5 h-5 text-blue-600" />
-          <p className="text-blue-800 font-medium text-sm">Email Sign-In</p>
+          <Mail className="w-5 h-5 text-brand-primary" />
+          <p className="text-brand-primary font-medium text-sm">Email Sign-In</p>
         </div>
-        <p className="text-blue-700 text-sm">
+        <p className="text-gray-700 text-sm">
           Enter your email and password to access your account.
         </p>
       </div>
       
       <form onSubmit={handleSubmit} className="w-full flex flex-col items-center">
         <div className="relative w-full mb-4">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-cyan-700" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-primary" />
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+            className="w-full pl-12 pr-4 py-3 border border-brand-primary/20 rounded-full focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition"
             autoComplete="email"
             required
           />
@@ -100,7 +100,7 @@ export default function LoginForm() {
           placeholder="Password"
           value={password}
           onChange={e => setPassword(e.target.value)}
-          className="w-full mb-4 px-4 py-3 border border-cyan-200 rounded-full focus:ring-2 focus:ring-cyan-700 focus:border-cyan-700 transition"
+          className="w-full mb-4 px-4 py-3 border border-brand-primary/20 rounded-full focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary transition"
           autoComplete="current-password"
           required
         />
@@ -109,7 +109,7 @@ export default function LoginForm() {
         
         <button
           type="submit"
-          className="w-full bg-cyan-700 hover:bg-cyan-800 text-white font-bold px-6 py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
+          className="w-full bg-brand-primary hover:opacity-90 text-white font-bold px-6 py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
           disabled={submitting}
         >
           {submitting ? "Signing In..." : "Sign In"}
@@ -119,13 +119,13 @@ export default function LoginForm() {
         <div className="w-full flex flex-col gap-2 mt-2 text-center">
           <Link 
             to="/forgot-password" 
-            className="text-sm text-cyan-700 hover:underline"
+            className="text-sm text-brand-primary hover:underline"
           >
             Forgot your password?
           </Link>
           <span className="text-sm text-gray-600">
             Don't have an account?{' '}
-            <Link to="/signup" className="text-cyan-700 font-semibold hover:underline">Let's Get Started</Link>
+            <Link to="/signup" className="text-brand-primary font-semibold hover:underline">Let's Get Started</Link>
           </span>
         </div>
       </form>

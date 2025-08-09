@@ -1,6 +1,21 @@
+@import url('./styles/tokens.css');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  color-scheme: light dark;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background-color: var(--color-surface-subtle);
+}
 
 /* Custom slider styles for mobile weight controls */
 .slider-thumb {
@@ -14,15 +29,15 @@
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #14b8a6;
-  border: 2px solid #ffffff;
+  background: var(--color-success);
+  border: 2px solid var(--color-accent);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .slider-thumb::-webkit-slider-thumb:hover {
-  background: #0d9488;
+  background: color-mix(in srgb, var(--color-success) 80%, black);
   transform: scale(1.1);
 }
 
@@ -30,8 +45,8 @@
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #14b8a6;
-  border: 2px solid #ffffff;
+  background: var(--color-success);
+  border: 2px solid var(--color-accent);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -39,7 +54,7 @@
 }
 
 .slider-thumb::-moz-range-thumb:hover {
-  background: #0d9488;
+  background: color-mix(in srgb, var(--color-success) 80%, black);
   transform: scale(1.1);
 }
 
@@ -67,7 +82,7 @@ input[type="range"].custom-slider::-webkit-slider-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #14b8a6;
+  background: var(--color-success);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: 2px solid white;
@@ -80,7 +95,7 @@ input[type="range"].custom-slider::-moz-range-thumb {
   height: 24px;
   width: 24px;
   border-radius: 50%;
-  background: #14b8a6;
+  background: var(--color-success);
   cursor: pointer;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   border: 2px solid white;
@@ -119,7 +134,7 @@ input[type="range"].custom-slider:focus::-moz-range-thumb {
   appearance: none;
   width: 16px;
   height: 16px;
-  background: #b91c1c;
+  background: var(--color-error);
   border-radius: 50%;
   cursor: grab;
   margin-top: -4px;
@@ -129,7 +144,7 @@ input[type="range"].custom-slider:focus::-moz-range-thumb {
 .test-slider::-moz-range-thumb {
   width: 16px;
   height: 16px;
-  background: #b91c1c;
+  background: var(--color-error);
   border: none;
   border-radius: 50%;
   cursor: grab;
@@ -138,7 +153,7 @@ input[type="range"].custom-slider:focus::-moz-range-thumb {
 .test-slider::-ms-thumb {
   width: 16px;
   height: 16px;
-  background: #b91c1c;
+  background: var(--color-error);
   border: none;
   border-radius: 50%;
   cursor: grab;

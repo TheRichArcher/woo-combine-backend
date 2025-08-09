@@ -1,4 +1,5 @@
 import React from "react";
+import "./styles/tokens.css";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { AuthProvider } from "./context/AuthContext";
@@ -213,8 +214,7 @@ function App() {
                       <img
                         src="/favicon/woocombine-logo.png"
                         alt="Woo-Combine Logo"
-                        className="w-16 h-16 mx-auto mb-6"
-                        style={{ objectFit: 'contain' }}
+                         className="w-16 h-16 mx-auto mb-6 object-contain"
                       />
                       <h2 className="text-2xl font-bold mb-4">Account Claim</h2>
                       <p className="text-gray-600 mb-6">Need to claim an existing account or recover access?</p>
@@ -230,7 +230,7 @@ function App() {
                       
                       <div className="text-sm text-gray-500 space-y-2">
                         <p>Need additional help?</p>
-                        <Link to="/help" className="text-cyan-600 hover:text-cyan-700 underline font-semibold">Contact Support</Link>
+                        <Link to="/help" className="text-brand-primary hover:opacity-90 underline font-semibold">Contact Support</Link>
                       </div>
                       
                       <div className="mt-6 pt-4 border-t border-gray-200">
@@ -264,8 +264,7 @@ function App() {
                       <img
                         src="/favicon/woocombine-logo.png"
                         alt="Woo-Combine Logo"
-                        className="w-16 h-16 mx-auto mb-6"
-                        style={{ objectFit: 'contain' }}
+                         className="w-16 h-16 mx-auto mb-6 object-contain"
                       />
                       <h2 className="text-2xl font-bold mb-4">Need Help?</h2>
                       <p className="text-gray-600 mb-6">We're here to support you with any questions about WooCombine.</p>
@@ -273,7 +272,7 @@ function App() {
                       <div className="space-y-3 mb-6">
                         <a 
                           href="mailto:support@woo-combine.com" 
-                          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl transition block"
+                          className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-3 rounded-xl transition block"
                         >
                           📧 Email Support
                         </a>
@@ -304,8 +303,7 @@ function App() {
                       <img
                         src="/favicon/woocombine-logo.png"
                         alt="Woo-Combine Logo"
-                        className="w-16 h-16 mx-auto mb-6"
-                        style={{ objectFit: 'contain' }}
+                         className="w-16 h-16 mx-auto mb-6 object-contain"
                       />
                       <h2 className="text-2xl font-bold mb-6 text-center">Terms of Service</h2>
                       

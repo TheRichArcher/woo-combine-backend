@@ -147,24 +147,24 @@ export const SUCCESS_MESSAGES = {
 // CSS Classes for consistent styling
 export const CSS_CLASSES = {
   BUTTONS: {
-    PRIMARY: 'bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
+    PRIMARY: 'bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
     SECONDARY: 'bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
     DANGER: 'bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
     SUCCESS: 'bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
-    OUTLINE_PRIMARY: 'border-2 border-cmf-primary text-cmf-primary hover:bg-cmf-primary hover:text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
+    OUTLINE_PRIMARY: 'border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
     OUTLINE_SECONDARY: 'border-2 border-gray-300 text-gray-700 hover:bg-gray-100 font-semibold py-3 px-6 rounded-xl transition min-h-[44px] touch-manipulation',
-    SMALL: 'bg-cmf-primary hover:bg-cmf-secondary text-white font-medium py-2 px-4 rounded-lg transition min-h-[36px] touch-manipulation text-sm',
-    ICON_ONLY: 'bg-cmf-primary hover:bg-cmf-secondary text-white p-3 rounded-xl transition min-h-[44px] min-w-[44px] touch-manipulation flex items-center justify-center'
+    SMALL: 'bg-brand-primary hover:bg-brand-secondary text-white font-medium py-2 px-4 rounded-lg transition min-h-[36px] touch-manipulation text-sm',
+    ICON_ONLY: 'bg-brand-primary hover:bg-brand-secondary text-white p-3 rounded-xl transition min-h-[44px] min-w-[44px] touch-manipulation flex items-center justify-center'
   },
   INPUTS: {
-    DEFAULT: 'w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition min-h-[44px]',
+    DEFAULT: 'w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition min-h-[44px]',
     ERROR: 'w-full border border-red-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition min-h-[44px]',
-    PHONE: 'w-full border border-cmf-primary/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition min-h-[44px]'
+    PHONE: 'w-full border border-brand-primary/30 rounded-xl px-4 py-3 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition min-h-[44px]'
   },
   CARDS: {
     DEFAULT: 'bg-white rounded-xl shadow-sm border border-gray-200',
     ELEVATED: 'bg-white rounded-2xl shadow-lg border border-gray-200',
-    FEATURE: 'bg-white rounded-2xl shadow-lg border-2 border-cmf-primary/30'
+    FEATURE: 'bg-white rounded-2xl shadow-lg border-2 border-brand-primary/30'
   },
   ALERTS: {
     SUCCESS: 'bg-green-50 border border-green-200 text-green-800 rounded-xl p-4',

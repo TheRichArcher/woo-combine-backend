@@ -60,7 +60,7 @@ export function CreateLeagueForm({ onCreated }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="text"
-          className="w-full px-4 py-3 border border-cmf-primary/30 rounded-xl focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition"
+          className="w-full px-4 py-3 border border-brand-primary/30 rounded-xl focus:ring-2 focus:ring-brand-primary focus:border-brand-primary transition"
           placeholder="League Name"
           value={leagueName}
           onChange={e => setLeagueName(e.target.value)}
@@ -68,7 +68,7 @@ export function CreateLeagueForm({ onCreated }) {
         />
         <button
           type="submit"
-          className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+          className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
           disabled={loading}
         >
           {loading ? 'Creating...' : 'Create League & Continue'}

@@ -8,8 +8,12 @@ on:
 jobs:
   lhci:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
       - name: Install Node
         uses: actions/setup-node@v4
         with:
@@ -29,9 +33,49 @@ jobs:
       - name: Run Lighthouse (mobile)
         run: |
           lhci autorun --collect.url="$TARGET_URL" --collect.settings.preset=mobile --assert.assertions.performance=error:85 --assert.assertions.accessibility=error:90 --assert.assertions."best-practices"=error:90 || true
+      - name: Generate Lighthouse summary markdown
+        run: |
+          mkdir -p docs/qa
+          JSON=$(ls -1 .lighthouseci/*-lhr.json 2>/dev/null | head -n1 || true)
+          if [ -n "$JSON" ]; then
+            P=$(jq -r '.categories.performance.score * 100' "$JSON")
+            A=$(jq -r '.categories.accessibility.score * 100' "$JSON")
+            B=$(jq -r '.categories["best-practices"].score * 100' "$JSON")
+            S=$(jq -r '.categories.seo.score * 100' "$JSON")
+            TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            cat > docs/qa/lighthouse-summary.md <<EOF
+### Lighthouse CI (mobile)
+
+Target: ${TARGET_URL}
+
+Scores (latest):
+- Performance: ${P}
+- Accessibility: ${A}
+- Best Practices: ${B}
+- SEO: ${S}
+
+Timestamp: ${TS}
+
+Artifacts: see docs/qa/lighthouse-report.html and workflow artifacts.
+EOF
+          else
+            echo "No Lighthouse JSON found; skipping summary update";
+          fi
       - name: Upload Lighthouse artifacts
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-results
           path: .lighthouseci
+      - name: Commit Lighthouse HTML to repo (manual runs only)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # Copy best index.html to docs/qa/lighthouse-report.html if present
+          mkdir -p docs/qa
+          REPORT_HTML=$(ls -1 .lighthouseci/*report.html 2>/dev/null | head -n1 || true)
+          if [ -n "$REPORT_HTML" ]; then cp "$REPORT_HTML" docs/qa/lighthouse-report.html; fi
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/qa/lighthouse-report.html docs/qa/lighthouse-summary.md
+          git commit -m "ci(lighthouse): update lighthouse HTML report [skip ci]" || echo "No changes to commit"
+          git push
 

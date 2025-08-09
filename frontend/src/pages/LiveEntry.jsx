@@ -237,7 +237,7 @@ export default function LiveEntry() {
           <div className="space-y-3">
             <Link 
               to="/admin" 
-              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 rounded-xl transition block"
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl transition block"
             >
               Go to Admin Tools
             </Link>

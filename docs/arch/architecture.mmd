@@ -1,0 +1,25 @@
+graph TD
+  A[Client Browser]
+  B[Frontend on Render]
+  C[FastAPI Backend]
+  D[Firestore]
+  E[Firebase Auth]
+  F[GCS]
+
+  A --> B
+  B -->|/api| C
+  B --> E
+  C --> E
+  C --> D
+  C --> F
+
+  subgraph Security
+    C --> C
+  end
+
+  subgraph Observability
+    C --> C
+    B --> B
+  end
+
+

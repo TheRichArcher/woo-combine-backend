@@ -54,11 +54,11 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
-            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-cmf-primary" />
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-brand-primary/30">
+            <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-brand-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
+            <h2 className="text-2xl font-bold text-brand-secondary mb-4">
               Welcome to WooCombine!
             </h2>
             <p className="text-gray-600 mb-6">
@@ -66,7 +66,7 @@ export default function Home() {
             </p>
             <button
               onClick={() => navigate('/select-league')}
-              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+              className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
             >
               Select League
             </button>
@@ -81,11 +81,11 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-cmf-primary/30">
-            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Calendar className="w-8 h-8 text-cmf-primary" />
+          <div className="bg-white rounded-2xl shadow-lg p-8 border-2 border-brand-primary/30">
+            <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="w-8 h-8 text-brand-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
+            <h2 className="text-2xl font-bold text-brand-secondary mb-4">
               Select or Create an Event
             </h2>
             <p className="text-gray-600 mb-6">
@@ -100,7 +100,7 @@ export default function Home() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <button
                 onClick={() => navigate('/select-league')}
-                className="text-sm text-gray-600 hover:text-cmf-primary underline"
+                className="text-sm text-gray-600 hover:text-brand-primary underline"
               >
                 ← Switch League
               </button>
@@ -118,8 +118,8 @@ export default function Home() {
 
 
         {/* Welcome Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
-          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">
+          <h1 className="text-2xl font-bold text-brand-secondary mb-2">
             Welcome to WooCombine!
           </h1>
           <div className="flex items-center gap-2 text-gray-600 mb-4">
@@ -141,7 +141,7 @@ export default function Home() {
               <>
                 <button
                   onClick={() => handleNavigation('/players')}
-                  className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
+                  className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
                 >
                   <Users className="w-6 h-6" />
                   Manage Players & Start Event
@@ -169,7 +169,7 @@ export default function Home() {
             {userRole === 'coach' && (
               <button
                 onClick={() => handleNavigation('/players')}
-                className="bg-cmf-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-secondary transition flex items-center justify-center gap-3 text-lg"
+                className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
               >
                 <Users className="w-6 h-6" />
                 View Players & Rankings
@@ -187,7 +187,7 @@ export default function Home() {
             {userRole === 'player' && selectedEvent && (
               <button
                 onClick={() => handleNavigation('/drill-input')}
-                className="bg-cmf-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-cmf-primary transition flex items-center justify-center gap-3 text-lg"
+                className="bg-brand-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-3 text-lg"
               >
                 📝 Submit Drill Results
               </button>
@@ -199,7 +199,7 @@ export default function Home() {
         {selectedEvent && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-5 h-5 text-cmf-primary" />
+              <Calendar className="w-5 h-5 text-brand-primary" />
               <h2 className="text-lg font-semibold text-gray-900">Event Details</h2>
             </div>
             <div className="space-y-2 text-sm text-gray-600">
@@ -227,7 +227,7 @@ export default function Home() {
                   <p className="text-sm text-gray-600 mb-3">Ready to add players and start your event?</p>
                   <button
                     onClick={() => handleNavigation('/players')}
-                    className="bg-cmf-primary text-white px-6 py-3 rounded-lg hover:bg-cmf-secondary transition font-medium"
+                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
                   >
                     🚀 Manage Players & Start Event
                   </button>
@@ -238,7 +238,7 @@ export default function Home() {
                   <p className="text-sm text-gray-600 mb-3">View player performance and rankings</p>
                   <button
                     onClick={() => handleNavigation('/players')}
-                    className="bg-cmf-primary text-white px-6 py-3 rounded-lg hover:bg-cmf-secondary transition font-medium"
+                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
                   >
                     📊 View Players
                   </button>

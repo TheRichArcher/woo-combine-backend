@@ -61,7 +61,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div className="bg-cmf-primary text-white p-6 rounded-t-xl flex justify-between items-center">
+        <div className="bg-brand-primary text-white p-6 rounded-t-xl flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
             <h2 className="text-xl font-bold">Edit Player</h2>
@@ -85,7 +85,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
               placeholder="Enter player name"
             />
           </div>
@@ -98,7 +98,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
               type="number"
               value={formData.number}
               onChange={(e) => handleInputChange('number', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
               placeholder="Enter player number"
               min="1"
               max="999"
@@ -114,7 +114,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
               list="age-group-suggestions"
               value={formData.age_group}
               onChange={(e) => handleInputChange('age_group', e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
               placeholder="e.g., 6U, U8, 7-8, 9-10 years old"
             />
             <datalist id="age-group-suggestions">
@@ -141,7 +141,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-cmf-primary hover:bg-cmf-secondary text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
+              className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>

@@ -61,21 +61,21 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
 
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-sm relative">
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-gray-400 hover:text-cmf-primary text-2xl font-bold"
+          className="absolute top-2 right-2 text-gray-400 hover:text-brand-primary text-2xl font-bold"
         >
           ×
         </button>
-        <h2 className="text-xl font-bold mb-4 text-cmf-primary">Edit Event</h2>
+        <h2 className="text-xl font-bold mb-4 text-brand-primary">Edit Event</h2>
         <form onSubmit={handleUpdate}>
           <label className="block mb-2 font-semibold">Event Name</label>
           <input
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
           <label className="block mb-2 font-semibold">Event Date</label>
@@ -83,7 +83,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
             type="date"
             value={date}
             onChange={e => setDate(e.target.value)}
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
           <label className="block mb-2 font-semibold">Location</label>
@@ -92,7 +92,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
             value={location}
             onChange={e => setLocation(e.target.value)}
             placeholder="e.g., Central Park Football Field"
-            className="w-full border-cmf-secondary rounded px-3 py-2 mb-4 focus:ring-cmf-primary focus:border-cmf-primary"
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
           <small className="text-gray-500 text-xs mb-4 block">
             Leave location blank if not determined yet
@@ -101,7 +101,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
           <div className="flex gap-2">
             <button
               type="submit"
-              className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50"
+              className="bg-brand-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:opacity-90 transition disabled:opacity-50"
               disabled={loading}
             >
               {loading ? "Updating..." : "Update Event"}

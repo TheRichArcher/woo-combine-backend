@@ -5,6 +5,7 @@ Goal: Show end-to-end flow: create/view demo league, events, players, live ranki
 Prereqs (already set up on dev/staging):
 - Backend running with `ENABLE_DEMO_SEED=true` and `DEMO_SEED_TOKEN` configured
 - Frontend pointed at the same backend API
+ - Demo video (one take): `docs/demo/demo-video.mp4` or hosted link below
 
 One-time seed (under 1 minute):
 1) Run:
@@ -38,5 +39,8 @@ Key proof points:
 
 Reset/Repeat:
 - Re-run the seed script anytime; it de-duplicates by league/event name and appends new player/evaluation data as needed.
+
+Demo Video Link:
+- <link-to-hosted-video>
 
 

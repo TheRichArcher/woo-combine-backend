@@ -76,13 +76,13 @@ const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess 
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl shadow-lg w-full max-w-md mx-auto mb-6">
-      <h2 className="text-xl font-bold mb-4 text-cmf-primary">Submit Drill Result</h2>
+      <h2 className="text-xl font-bold mb-4 text-brand-primary">Submit Drill Result</h2>
       <div className="mb-4">
         <label className="block mb-1 font-semibold">Drill Type</label>
         <select
           value={type}
           onChange={e => setType(e.target.value)}
-          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+          className="w-full border-brand-secondary rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
           required
         >
           <option value="">Select a drill</option>
@@ -98,14 +98,14 @@ const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess 
           step="any"
           value={value}
           onChange={e => setValue(e.target.value)}
-          className="w-full border-cmf-secondary rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
+          className="w-full border-brand-secondary rounded px-3 py-2 focus:ring-brand-primary focus:border-brand-primary"
           required
         />
       </div>
       <ErrorDisplay error={error} className="mb-2" />
       <button
         type="submit"
-        className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-2 rounded-lg shadow transition"
+        className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 rounded-lg shadow transition"
         disabled={loading}
       >
         {loading ? "Submitting..." : "Submit Result"}

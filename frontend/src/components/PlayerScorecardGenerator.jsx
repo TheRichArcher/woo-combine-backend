@@ -137,31 +137,31 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
         <head>
           <title>${player.name} - Player Scorecard</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-            .header { text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; color: #2563eb; }
+            body { font-family: Arial, sans-serif; margin: 20px; color: var(--color-text); }
+            .header { text-align: center; border-bottom: 2px solid var(--color-primary); padding-bottom: 20px; margin-bottom: 30px; }
+            .logo { font-size: 24px; font-weight: bold; color: var(--color-primary); }
             .player-info { display: flex; justify-content: space-between; margin-bottom: 30px; }
             .section { margin-bottom: 30px; }
-            .section-title { font-size: 18px; font-weight: bold; color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; margin-bottom: 15px; }
+            .section-title { font-size: 18px; font-weight: bold; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; margin-bottom: 15px; }
             .drill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-            .drill-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; }
+            .drill-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 15px; }
             .drill-title { font-weight: bold; margin-bottom: 10px; }
-            .score-large { font-size: 24px; font-weight: bold; color: #2563eb; }
-            .rank-info { font-size: 14px; color: #6b7280; margin-top: 5px; }
-            .recommendation { font-size: 12px; color: #374151; margin-top: 10px; font-style: italic; }
+            .score-large { font-size: 24px; font-weight: bold; color: var(--color-primary); }
+            .rank-info { font-size: 14px; color: var(--color-text-muted); margin-top: 5px; }
+            .recommendation { font-size: 12px; color: var(--color-text); margin-top: 10px; font-style: italic; }
             .summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; margin-bottom: 20px; }
-            .stat-box { border: 1px solid #e5e7eb; border-radius: 8px; padding: 15px; }
-            .stat-number { font-size: 28px; font-weight: bold; color: #2563eb; }
-            .stat-label { font-size: 12px; color: #6b7280; margin-top: 5px; }
-            .notes-section { background-color: #f9fafb; border-radius: 8px; padding: 15px; }
-            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #6b7280; }
+            .stat-box { border: 1px solid var(--color-border); border-radius: 8px; padding: 15px; }
+            .stat-number { font-size: 28px; font-weight: bold; color: var(--color-primary); }
+            .stat-label { font-size: 12px; color: var(--color-text-muted); margin-top: 5px; }
+            .notes-section { background-color: var(--color-surface-subtle); border-radius: 8px; padding: 15px; }
+            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--color-text-muted); }
             @media print { body { margin: 10px; } }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="logo">🏆 WooCombine Player Scorecard</div>
-            <div style="margin-top: 10px; font-size: 14px; color: #6b7280;">
+              <div style="margin-top: 10px; font-size: 14px; color: var(--color-text-muted);">
               ${selectedEvent?.name || 'Evaluation Event'} - ${new Date().toLocaleDateString()}
             </div>
           </div>
@@ -169,13 +169,13 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           <div class="player-info">
             <div>
               <h1 style="margin: 0; font-size: 28px;">${player.name}</h1>
-              <div style="color: #6b7280; margin-top: 5px;">
+              <div style="color: var(--color-text-muted); margin-top: 5px;">
                 Player #${player.number || 'N/A'} - Age Group: ${player.age_group || 'N/A'}
               </div>
             </div>
             <div style="text-align: right;">
               <div class="score-large">${playerStats.compositeScore.toFixed(1)}</div>
-              <div style="font-size: 14px; color: #6b7280;">Composite Score</div>
+              <div style="font-size: 14px; color: var(--color-text-muted);">Composite Score</div>
             </div>
           </div>
           
@@ -228,7 +228,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           
           <div class="section">
             <div class="section-title">🎯 ${template?.name || 'Evaluation'} Summary</div>
-            <div style="background-color: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px;">
+            <div style="background-color: color-mix(in srgb, var(--color-primary) 10%, white); border: 1px solid var(--color-primary); border-radius: 8px; padding: 15px;">
               <p><strong>Overall Assessment:</strong> ${player.name} scored ${playerStats.compositeScore.toFixed(1)} 
               overall, ranking ${playerStats.rank} out of ${playerStats.totalInAgeGroup} players in the ${player.age_group} age group 
               (${playerStats.percentile}th percentile).</p>

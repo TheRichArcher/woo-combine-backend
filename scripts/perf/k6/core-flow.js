@@ -28,6 +28,7 @@ export const options = {
 const headers = {
   Authorization: `Bearer ${TOKEN}`,
   'Content-Type': 'application/json',
+  'User-Agent': 'testing-k6'
 }
 
 const eventIdTrend = new Trend('event_create_time')

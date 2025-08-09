@@ -340,7 +340,7 @@ export default function OnboardingEvent() {
       <WelcomeLayout>
         <div className="w-full max-w-md text-center">
           <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h1 className="text-2xl font-bold text-cmf-secondary mb-4">
+            <h1 className="text-2xl font-bold text-brand-secondary mb-4">
               🏆 Create Your Event
             </h1>
             <p className="text-gray-600 mb-6">
@@ -376,7 +376,7 @@ export default function OnboardingEvent() {
       <WelcomeLayout>
         <div className="w-full max-w-md text-center">
           <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
+            <h1 className="text-2xl font-bold text-brand-secondary mb-2">
               📋 Add Players
             </h1>
             <p className="text-gray-600 mb-1">
@@ -554,7 +554,7 @@ export default function OnboardingEvent() {
             <div className="space-y-3">
               <button
                 onClick={() => handleStepNavigation(3)}
-                className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 px-6 rounded-lg shadow transition flex items-center justify-center gap-2"
+                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 px-6 rounded-lg shadow transition flex items-center justify-center gap-2"
               >
                 Continue
                 <ArrowRight className="w-5 h-5" />
@@ -619,7 +619,7 @@ export default function OnboardingEvent() {
                   onClick={() => {
                     navigate('/players');
                   }}
-                  className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
+                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
                 >
                   🚀 Start Tracking Performance
                   <ArrowRight className="w-5 h-5" />
@@ -687,7 +687,7 @@ export default function OnboardingEvent() {
                 
                 <button
                   onClick={handleContinueToPlayers}
-                  className="w-full bg-cmf-secondary hover:bg-cmf-primary text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
+                  className="w-full bg-brand-secondary hover:bg-brand-primary text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
                 >
                   View Players & Rankings
                 </button>
@@ -697,7 +697,7 @@ export default function OnboardingEvent() {
 
           {/* QR CODE SECTION - Moved outside main card */}
           <div className="bg-white rounded-2xl shadow-2xl p-6">
-            <h2 className="text-lg font-bold text-cmf-secondary mb-4">
+            <h2 className="text-lg font-bold text-brand-secondary mb-4">
               📱 Share with Staff
             </h2>
             

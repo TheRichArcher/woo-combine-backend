@@ -21,6 +21,16 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
+      // Enforce design tokens usage: discourage inline styles for presentational props
+      'react/jsx-no-style': ['warn'],
+      // Ban raw hex/rgb colors in strings
+      'no-restricted-syntax': [
+        'warn',
+        {
+          selector: "Literal[value=/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/]",
+          message: 'Use design tokens (Tailwind token classes or CSS variables) instead of raw hex colors.'
+        }
+      ],
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],

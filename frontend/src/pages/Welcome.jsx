@@ -39,16 +39,15 @@ export default function Welcome() {
           <img
             src="/favicon/woocombine-logo.png"
             alt="Woo-Combine Logo"
-            className="w-16 h-16 mx-auto mb-4"
-            style={{ objectFit: 'contain' }}
+            className="w-16 h-16 mx-auto mb-4 object-contain"
           />
         </div>
 
         {/* Main Content */}
         <div className="text-center mb-8">
           {/* Hook - Immediate Value Proposition */}
-          <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg px-4 py-2 mb-4">
-            <span className="text-cyan-700 font-medium text-sm">{content.hook}</span>
+          <div className="bg-gradient-to-r from-brand-primary/10 to-brand-primary/10 border border-brand-primary/20 rounded-lg px-4 py-2 mb-4">
+            <span className="text-brand-primary font-medium text-sm">{content.hook}</span>
           </div>
           
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
@@ -61,7 +60,7 @@ export default function Welcome() {
           {/* Primary CTA Buttons */}
           <div className="space-y-3 mb-6">
             <button
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               onClick={() => navigate("/signup")}
             >
               {content.buttonText}
@@ -70,7 +69,7 @@ export default function Welcome() {
             {/* Unified Demo Button */}
             <div className="flex justify-center">
               <button
-                className="bg-white hover:bg-gray-50 text-cyan-600 font-semibold py-4 px-8 rounded-xl border-2 border-cyan-600 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="bg-white hover:bg-gray-50 text-brand-primary font-semibold py-4 px-8 rounded-xl border-2 border-brand-primary transition-all duration-200 transform hover:scale-105 shadow-lg"
                 onClick={() => navigate("/workflow-demo")}
               >
                 🚀 Watch Complete Demo
@@ -85,7 +84,7 @@ export default function Welcome() {
           <div className="flex flex-col gap-2">
             <Link 
               to="/login" 
-              className="text-cyan-600 hover:text-cyan-800 font-medium transition-colors duration-200"
+              className="text-brand-primary hover:opacity-90 font-medium transition-colors duration-200"
             >
               Already have an account? <span className="font-semibold">Sign In</span>
             </Link>
