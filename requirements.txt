@@ -23,7 +23,7 @@ starlette==0.46.2
 typing_extensions==4.13.2
 urllib3==2.3.0
 uvicorn==0.34.2
-firebase-admin==6.5.0
+firebase-admin==7.1.0
 google-cloud-firestore==2.21.0
 slowapi==0.1.9
 limits>=5.5.0
