@@ -3,7 +3,8 @@ export default {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.js'],
   moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
-    '^@/(.*)$': '<rootDir>/src/$1'
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^.+/lib/api$': '<rootDir>/src/lib/api.jest.js'
   },
   transform: {
     '^.+\\.jsx?$': ['babel-jest', {
@@ -13,14 +14,10 @@ export default {
       ]
     }]
   },
-  transformIgnorePatterns: [
-    '/node_modules/'
-  ],
+  transformIgnorePatterns: ['/node_modules/'],
   globals: {
     'import.meta': {
-      env: {
-        VITE_API_BASE: 'http://localhost:3000/api'
-      }
+      env: { VITE_API_BASE: 'http://localhost:3000/api' }
     }
   },
   collectCoverageFrom: [
@@ -40,12 +37,5 @@ export default {
     '/build/',
     '/dist/',
     'src/utils/__tests__/optimizationTests.js'
-  ],
-  globals: {
-    'import.meta': {
-      env: {
-        VITE_API_BASE: 'http://localhost:3000/api'
-      }
-    }
-  }
+  ]
 };

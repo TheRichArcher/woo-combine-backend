@@ -1,5 +1,7 @@
 ### Licenses & IP Audit
 
+All licenses compatible with resale: YES
+
 Code dependencies:
 - Python packages: see `requirements.txt` (MIT/Apache/BSD mix)
 - Frontend NPM packages: see `frontend/package.json` (MIT/Apache/BSD mix)

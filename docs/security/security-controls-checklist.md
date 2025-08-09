@@ -8,6 +8,14 @@
 - `ENABLE_ROLE_SIMPLE=false` in prod; enabled only in non-prod for incident workarounds: [ ] yes
 - Debug endpoints disabled in prod (`ENABLE_DEBUG_ENDPOINTS=false`): [ ] yes
 
+Evidence (masked screenshots):
+- Backend Render env (dev/staging/prod): `docs/reports/render-backend-env-[dev|staging|prod].png`
+- Frontend Render env (dev/staging/prod): `docs/reports/render-frontend-env-[dev|staging|prod].png`
+- Confirmations:
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON` present (masked): [ ] dev [ ] staging [ ] prod
+  - `ALLOWED_ORIGINS` correct per env: [ ] dev [ ] staging [ ] prod
+  - `ENABLE_ROLE_SIMPLE=false` in production: [ ] yes
+
 Owner sign-off: ____  Date: ____
 
 
