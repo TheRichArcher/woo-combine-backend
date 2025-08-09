@@ -28,3 +28,4 @@ google-cloud-firestore==2.21.0
 slowapi==0.1.9
 limits>=5.5.0
 pytest==8.3.3
+sentry-sdk==2.19.2

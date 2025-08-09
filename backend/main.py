@@ -14,6 +14,7 @@ from .middleware.security import (
     add_security_headers_middleware,
     add_request_validation_middleware,
 )
+from .middleware.observability import ObservabilityMiddleware, init_sentry_if_configured
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -41,6 +42,12 @@ def _get_log_level_from_env() -> int:
 logging.basicConfig(level=_get_log_level_from_env())
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
+
+# Initialize Sentry if configured
+init_sentry_if_configured()
+
+# Observability middleware (request id, structured logs, timings)
+app.add_middleware(ObservabilityMiddleware)
 
 # Middleware order: security headers → CORS → abuse protection → rate limiting → request validation → routing
 # 1) Security headers
@@ -256,6 +263,11 @@ def test_500_debug():
     except Exception as e:
         logging.error(f"[TEST] Error in test endpoint: {e}")
         raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
+# Test endpoint to generate a Sentry error and alert
+@app.get("/api/test-alert")
+def test_alert():
+    raise RuntimeError("Staging test alert - verify on-call receives notification")
 
 @app.post("/api/test-auth")
 def test_auth_debug(current_user=Depends(get_current_user)):

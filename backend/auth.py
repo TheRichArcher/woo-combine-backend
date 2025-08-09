@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import asyncio
 from functools import wraps
+from .middleware.observability import set_user_id_for_request
 
 # Initialize Firebase Admin SDK if not already initialized
 if not firebase_admin._apps:
@@ -81,6 +82,11 @@ def get_current_user(
         email_verified = decoded_token.get("email_verified", False)
         
         uid = decoded_token["uid"]
+        # Add user hash to observability context
+        try:
+            set_user_id_for_request(uid)
+        except Exception:
+            pass
         email = decoded_token.get("email", "")
         
         # Simple direct Firestore lookup (ThreadPoolExecutor was causing delays)
