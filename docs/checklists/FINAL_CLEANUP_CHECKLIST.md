@@ -64,6 +64,18 @@ cd backend && python -m pip check
 - [ ] Abuse protection: challenge triggers on abnormal auth/login/signup bursts; `X-Abuse-Nonce`/`X-Abuse-Answer` accepted; within rate limits scripts fail to bypass
 - [ ] Secrets: service account rotation scheduled annually; incident rotation procedure documented
 
+## Release Gate (Must be true before handoff)
+
+- [ ] CI green on main (lint, tests, build, pip-audit)
+- [ ] Sentry DSNs configured for frontend/backend in staging and production
+- [ ] CORS `ALLOWED_ORIGINS`/`ALLOWED_ORIGIN_REGEX` set for production domain(s)
+- [ ] Rate limit envs tuned if needed (`RATE_LIMITS_*`)
+- [ ] All debug endpoints disabled (`ENABLE_DEBUG_ENDPOINTS=false`, `ENABLE_ROLE_SIMPLE=false`)
+- [ ] Firestore indexes applied (`firestore.indexes.json`)
+- [ ] API docs exported for buyer packet
+- [ ] Architecture diagram and data model updated
+- [ ] Runbooks verified (Incident, Rate Limit Tuning, Credential Outage)
+
 ## Production Readiness Score: 95/100
 
 **Current Status**: ✅ READY FOR PRODUCTION

@@ -15,8 +15,13 @@ import os
 def _normalize_rate_string(rate_value: str, default_value: str) -> str:
     """Normalize human-friendly rate strings like '5/min' to slowapi format '5/minute'."""
     value = (rate_value or default_value).strip()
-    # Allow common shorthands
-    value = value.replace("/min", "/minute").replace("/sec", "/second").replace("/hr", "/hour")
+    # Replace only when shorthand is used exactly at the end
+    if value.endswith("/min"):
+        value = value[: -len("/min")] + "/minute"
+    elif value.endswith("/sec"):
+        value = value[: -len("/sec")] + "/second"
+    elif value.endswith("/hr"):
+        value = value[: -len("/hr")] + "/hour"
     return value
 
 # Defaults if env not provided

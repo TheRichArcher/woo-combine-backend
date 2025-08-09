@@ -1,0 +1,31 @@
+name: Staging Smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Prepare environment
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          STAGING_BEARER_TOKEN: ${{ secrets[vars.STAGING_BEARER_TOKEN_KEY] }}
+        run: |
+          echo "STAGING_BASE_URL=$STAGING_BASE_URL" >> $GITHUB_ENV
+          echo "STAGING_BEARER_TOKEN=$STAGING_BEARER_TOKEN" >> $GITHUB_ENV
+      - name: Run smoke script
+        run: |
+          chmod +x scripts/qa/smoke.sh
+          ./scripts/qa/smoke.sh
+      - name: Upload smoke report
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-report
+          path: docs/qa/smoke-run-latest.md
+

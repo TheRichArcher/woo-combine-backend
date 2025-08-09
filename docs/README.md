@@ -14,3 +14,10 @@ Additional resources:
 - Guides: `docs/guides/`
 - Reports: `docs/reports/`
 - Checklists: `docs/checklists/`
+
+Buyer readiness highlights:
+- Security headers, CORS, and rate limiting enforced by default
+- Error monitoring ready (Sentry) in both backend and frontend via environment variables
+- CI pipeline runs linting, tests, build, and dependency audit
+- Backend tests cover contract endpoints, security headers, and basic role gating
+

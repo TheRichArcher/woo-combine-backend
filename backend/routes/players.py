@@ -546,7 +546,9 @@ def get_rankings(
 # Admin functionality is handled by the frontend /admin route.
 
 @router.get('/leagues/{league_id}/players')
+@read_rate_limit()
 def list_players(
+    request: Request,
     league_id: str,
     page: Optional[int] = Query(None, ge=1),
     limit: Optional[int] = Query(None, ge=1, le=500),
@@ -596,6 +598,7 @@ def add_player(request: Request, league_id: str, req: dict, current_user=Depends
         raise HTTPException(status_code=500, detail="Failed to add player")
 
 @router.get('/leagues/{league_id}/players/{player_id}/drill_results')
+@read_rate_limit()
 def list_drill_results(request: Request, league_id: str, player_id: str, current_user=Depends(get_current_user)):
     try:
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")

@@ -44,4 +44,12 @@ Operational notes:
 - Set `GOOGLE_APPLICATION_CREDENTIALS_JSON` with a valid service account for the backend.
 - Observability: user id is attached to request context for tracing when available.
 
+---
+
+## Test coverage
+
+Automated tests validate core security behavior:
+- `backend/tests/test_security.py`: security headers present, CORS preflight, rate limit headers on health.
+- `backend/tests/test_auth_roles.py`: protected route access requires auth; role-gated writes require proper roles (using fakes for token and Firestore).
+
 

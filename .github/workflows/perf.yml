@@ -1,0 +1,34 @@
+name: Performance (k6)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare environment
+        env:
+          STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+          STAGING_BEARER_TOKEN: ${{ secrets[vars.STAGING_BEARER_TOKEN_KEY] }}
+        run: |
+          echo "STAGING_BASE_URL=$STAGING_BASE_URL" >> $GITHUB_ENV
+          echo "STAGING_BEARER_TOKEN=$STAGING_BEARER_TOKEN" >> $GITHUB_ENV
+          echo "K6_DURATION=2m" >> $GITHUB_ENV
+          echo "K6_VUS=20" >> $GITHUB_ENV
+      - name: Run k6 core flow (staging)
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: scripts/perf/k6/core-flow.js
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-results
+          path: |
+            docs/perf/k6-report.md
+            docs/perf/k6-report.html
+            docs/perf/k6-summary.json
+
