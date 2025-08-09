@@ -4,7 +4,7 @@ Implements security headers and policies to protect against common attacks
 """
 
 from fastapi import Request, Response
-from starlette.responses import Response as StarletteResponse
+from starlette.responses import Response as StarletteResponse, RedirectResponse
 import os
 import re
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -52,6 +52,20 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Short-circuit preflight with proper CORS headers
         if request.method == "OPTIONS":
             return StarletteResponse(status_code=204, headers=cors_headers)
+
+        # Enforce HTTPS in production-like environments (skip localhost and health checks)
+        try:
+            force_https_env = os.getenv("FORCE_HTTPS", "true").lower() in ("1", "true", "yes")
+            forwarded_proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+            hostname = (request.url.hostname or request.headers.get("host", "").split(":")[0]).lower()
+            is_localhost = hostname in ("localhost", "127.0.0.1")
+            is_health = request.url.path in ("/health", "/api/health")
+            if force_https_env and not is_localhost and not is_health and forwarded_proto == "http" and request.url.scheme == "http":
+                https_url = str(request.url).replace("http://", "https://", 1)
+                return RedirectResponse(url=https_url, status_code=308)
+        except Exception:
+            # Never block requests if redirect computation fails
+            pass
 
         # PERFORMANCE OPTIMIZATION: Skip heavy header processing for auth endpoints
         # that are called frequently during onboarding

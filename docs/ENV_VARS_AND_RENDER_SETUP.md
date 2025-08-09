@@ -121,6 +121,11 @@ This document lists all environment variables required across backend and fronte
   - Staging: `https://staging-woo-combine-backend.onrender.com/api` (staging backend)
   - Prod: `https://woo-combine-backend.onrender.com/api` (or custom domain path)
 
+- **HTTPS enforcement**
+  - Frontend `_redirects` contains `http://* https://:splat 301!` to force HTTPS
+  - `index.html` includes a small script to redirect `http`→`https` for non-localhost
+  - HSTS header added via `render.yaml` static headers config
+
 - **VITE_FIREBASE_API_KEY**
   - Storage: Render → frontend → Environment
   - Description: Firebase web apiKey
@@ -163,6 +168,8 @@ Add screenshots under `docs/reports/` or paste in your issue/ticket showing:
 ### Notes
 
 - Rate limit envs support shorthand like `5/min`; backend normalizes to `5/minute`.
+- Backend health check path is `/health` and also `/api/health`.
+- Autoscaling defaults are documented in `render.yaml` (`minInstances: 1`, `maxInstances: 4`, CPU 60%, Memory 70%).
 - Backend CORS also accepts `ALLOWED_ORIGIN_REGEX` if needed, but primary control is via `ALLOWED_ORIGINS`.
 - Ensure the Firebase service account has roles: Editor + Firestore User.
 

@@ -19,9 +19,14 @@ A comprehensive full-stack platform for managing youth sports combines and playe
 ## 🚀 **Deployment**
 
 ### **Production (Render)**
-- **Auto-deploy**: Configured from GitHub main branch
-- **Build Process**: Frontend builds first, then backend serves both
-- **Health Check**: `/health` endpoint for monitoring
+- **Dev (auto-deploy)**: From `main` branch
+- **Staging (protected)**: From `staging` branch, approval required
+- **Prod (tags)**: Tagged releases `vX.Y.Z` with changelog entry
+- **Frontend**: Static site build to `frontend/dist`; HTTPS enforced; HSTS via headers
+- **Backend**: FastAPI web service in Docker, non-root; health check at `/health`
+- **Health Check**: `/health` endpoint for monitoring (Render)
+- **Autoscaling guidance**: min 1, max 4 instances; CPU 60%, Mem 70% (tune as needed)
+- **Stateless**: Sticky sessions not required
 
 ### **Required Environment Variables**
 Set these in your Render dashboard (and local `.env` files):
@@ -61,6 +66,8 @@ npm install
 # copy .env.example to .env and set VITE_API_BASE=http://localhost:10000/api
 npm run dev
 ```
+
+See `docs/RELEASE_FLOW.md` and `docs/ENV_VARS_AND_RENDER_SETUP.md` for details.
 
 ## 🧪 **Testing & Quality**
 

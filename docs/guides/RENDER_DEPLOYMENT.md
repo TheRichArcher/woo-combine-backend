@@ -51,6 +51,12 @@ To complete the deployment, you need to set these **environment variables** in y
 3. **Verify Deployment**:
    - Check the health endpoint: `https://your-service.onrender.com/health`
    - Should return JSON with `"status": "ok"`
+   - Frontend is built to `frontend/dist` and published by Render Static service
+
+4. **Autoscaling & Health**:
+   - Health checks configured to `GET /health` every 10s, timeout 5s
+   - Autoscaling: min 1, max 4 instances, target CPU 60%, Memory 70%
+   - Stateless API (no sticky sessions required)
 
 ## 🔍 Troubleshooting
 
@@ -100,7 +106,7 @@ After setting up environment variables and redeploying:
 
 - ✅ Server starts without shutting down
 - ✅ Health check passes: `/health` returns `{"status": "ok"}`
-- ✅ Frontend loads at your Render URL
+- ✅ Frontend loads at your Render URL (HTTPS enforced; HSTS active)
 - ✅ API endpoints work correctly
 - ✅ Firestore connection established
 
