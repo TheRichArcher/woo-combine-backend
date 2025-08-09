@@ -10,29 +10,44 @@ from slowapi.middleware import SlowAPIMiddleware
 from fastapi import Request, Response
 import hashlib
 import logging
+import os
 
-# Initialize rate limiter with remote address as key function
-limiter = Limiter(key_func=get_remote_address)
+def _normalize_rate_string(rate_value: str, default_value: str) -> str:
+    """Normalize human-friendly rate strings like '5/min' to slowapi format '5/minute'."""
+    value = (rate_value or default_value).strip()
+    # Allow common shorthands
+    value = value.replace("/min", "/minute").replace("/sec", "/second").replace("/hr", "/hour")
+    return value
 
-# Rate limiting configurations for different endpoint types
-RATE_LIMITS = {
-    # Authentication endpoints - more restrictive
+# Defaults if env not provided
+_DEFAULTS = {
     "auth": "10/minute",
-    
-    # User management - moderate limits
-    "users": "60/minute", 
-    
-    # Data retrieval - generous limits for normal usage
+    "users": "60/minute",
     "read": "100/minute",
-    
-    # Data creation/updates - moderate limits
     "write": "30/minute",
-    
-    # Bulk operations - more restrictive
     "bulk": "5/minute",
+    "health": "300/minute",
+}
+
+# Rate limiting configurations for different endpoint types (env-overridable)
+RATE_LIMITS = {
+    # Authentication endpoints
+    "auth": _normalize_rate_string(os.getenv("RATE_LIMITS_AUTH", ""), _DEFAULTS["auth"]),
     
-    # Health checks - very generous
-    "health": "300/minute"
+    # User management (optional override; fallback to default if not set)
+    "users": _normalize_rate_string(os.getenv("RATE_LIMITS_USERS", ""), _DEFAULTS["users"]),
+    
+    # Data retrieval
+    "read": _normalize_rate_string(os.getenv("RATE_LIMITS_READ", ""), _DEFAULTS["read"]),
+    
+    # Data creation/updates
+    "write": _normalize_rate_string(os.getenv("RATE_LIMITS_WRITE", ""), _DEFAULTS["write"]),
+    
+    # Bulk operations
+    "bulk": _normalize_rate_string(os.getenv("RATE_LIMITS_BULK", ""), _DEFAULTS["bulk"]),
+    
+    # Health checks
+    "health": _normalize_rate_string(os.getenv("RATE_LIMITS_HEALTH", ""), _DEFAULTS["health"]),
 }
 
 def get_client_identifier(request: Request) -> str:

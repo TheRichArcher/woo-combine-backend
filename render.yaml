@@ -11,6 +11,19 @@ services:
     envVars:
       - key: VITE_API_BASE
         value: https://woo-combine-backend.onrender.com/api
+      - key: VITE_LOG_LEVEL
+        value: INFO
+      # Firebase Web SDK config (set per-environment in Render dashboard)
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
 
   # Backend API Service  
   - type: web
@@ -22,6 +35,21 @@ services:
     envVars:
       - key: ALLOWED_ORIGINS
         value: https://woo-combine.com,https://www.woo-combine.com
+      - key: LOG_LEVEL
+        value: INFO
+      - key: ENABLE_ROLE_SIMPLE
+        value: false
+      # Rate limits (override per environment as needed)
+      - key: RATE_LIMITS_AUTH
+        value: 5/min
+      - key: RATE_LIMITS_READ
+        value: 300/min
+      - key: RATE_LIMITS_WRITE
+        value: 120/min
+      - key: RATE_LIMITS_BULK
+        value: 30/min
+      - key: RATE_LIMITS_HEALTH
+        value: 600/min
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: POETRY_VERSION

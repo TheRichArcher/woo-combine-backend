@@ -21,7 +21,20 @@ from datetime import datetime
 import asyncio
 from .utils.error_handling import StandardError, handle_standard_error
 
-logging.basicConfig(level=logging.INFO)
+def _get_log_level_from_env() -> int:
+    level_str = os.getenv("LOG_LEVEL", "INFO").upper().strip()
+    mapping = {
+        "CRITICAL": logging.CRITICAL,
+        "ERROR": logging.ERROR,
+        "WARNING": logging.WARNING,
+        "WARN": logging.WARNING,
+        "INFO": logging.INFO,
+        "DEBUG": logging.DEBUG,
+        "NOTSET": logging.NOTSET,
+    }
+    return mapping.get(level_str, logging.INFO)
+
+logging.basicConfig(level=_get_log_level_from_env())
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
 
