@@ -21,4 +21,17 @@ Export: provide JSON exports per league/event upon verified request.
 SLA: respond within 7 days; complete within 30 days.
 
 
+Sample Deletion Drill (executed):
+```
+# Example (staging): delete user by UID
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "$STAGING_BASE_URL/api/admin/users/$UID"
+
+# Delete league (cascades events/players)
+curl -X DELETE -H "Authorization: Bearer $TOKEN" \
+  "$STAGING_BASE_URL/api/leagues/$LEAGUE_ID"
+```
+Log/output captured to: `docs/reports/dsr-delete-drill.md`
+
+
 

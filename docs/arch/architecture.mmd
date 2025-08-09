@@ -1,25 +1,25 @@
 graph TD
   A[Client Browser]
-  B[Frontend (Vite static site on Render)]
-  C[Backend (FastAPI on Render)]
-  D[Firestore (Firebase)]
-  E[Auth (Firebase Auth)]
-  F[Object Storage (GCS)]
+  B[Frontend on Render]
+  C[FastAPI Backend]
+  D[Firestore]
+  E[Firebase Auth]
+  F[GCS]
 
-  A -->|HTTPS| B
-  B -->|API calls /api| C
-  B -->|Firebase Web SDK| E
-  C -->|Verify ID Token| E
-  C -->|Read/Write| D
-  C -->|Uploads/Exports| F
+  A --> B
+  B -->|/api| C
+  B --> E
+  C --> E
+  C --> D
+  C --> F
 
   subgraph Security
-    C -->|CORS + Rate Limits + CSP| C
+    C --> C
   end
 
   subgraph Observability
-    C -->|Sentry + Logs + Traces| C
-    B -->|Sentry Frontend| B
+    C --> C
+    B --> B
   end
 
 

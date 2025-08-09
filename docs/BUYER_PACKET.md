@@ -15,10 +15,22 @@ Sign-off checklist: `docs/checklists/FINAL_CLEANUP_CHECKLIST.md`
 
 ### CI/QA Proof Links
 
-- CI (unit + backend tests): [latest passing run](<link-to-ci>)
+- CI (unit + backend tests): [latest runs](https://github.com/TheRichArcher/woo-combine-backend/actions)
 - k6 performance: [HTML report](docs/perf/k6-report.html), [JSON summary](docs/perf/k6-summary.json)
-- Lighthouse: [summary](docs/qa/lighthouse-summary.md), [HTML report](<link-to-lighthouse-html>)
+- Lighthouse: [summary](docs/qa/lighthouse-summary.md), [HTML report](docs/qa/lighthouse-report.html)
 - Smoke test: [latest run log](docs/qa/smoke-run-latest.md)
+
+### Attached Artifacts (Release)
+
+- OpenAPI JSON: `docs/openapi.json`
+- Lighthouse: `docs/qa/lighthouse-report.html`
+- k6: `docs/perf/k6-report.html`, `docs/perf/k6-summary.json`
+- Smoke: `docs/qa/smoke-run-latest.md`
+- Uptime screenshot: `docs/reports/uptime-90d.png`
+- Architecture: `docs/arch/architecture.svg`
+
+Buyer Build Tag:
+- `v1.0-buyer-ready` — https://github.com/TheRichArcher/woo-combine-backend/releases/tag/v1.0-buyer-ready
 
 ### Known Limitations & Next 90 Days
 
