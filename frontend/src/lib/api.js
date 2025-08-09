@@ -175,7 +175,8 @@ api.interceptors.response.use(
     } else if (error.code === 'ECONNABORTED') {
       console.log('[API] Request timeout - server may be starting up');
       // Add user-friendly timeout message
-      if (config._retryCount === 0) {
+      const reqConfig = error.config || {};
+      if (reqConfig._retryCount === 0) {
         console.log('[API] First timeout - will retry automatically');
       }
     } else if (error.message.includes('Network Error')) {
