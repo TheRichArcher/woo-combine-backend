@@ -349,6 +349,15 @@ export default function Navigation() {
             </button>
           </div>
 
+          {/* Brand Logo */}
+          <Link to="/dashboard" className="flex items-center" aria-label="WooCombine Home">
+            <img
+              src="/favicon/woocombine-logo.png"
+              alt="WooCombine Logo"
+              className="w-7 h-7 md:w-8 md:h-8"
+            />
+          </Link>
+
           {/* Center-Left: Event Name with Dropdown */}
           <div className="flex-1 flex justify-start min-w-0 mr-2">
             <button
