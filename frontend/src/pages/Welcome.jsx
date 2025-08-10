@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
+import Button from "../components/ui/Button";
 import { Link as RouterLink } from "react-router-dom";
 
 // Simplified welcome content - no more confusing A/B testing
@@ -34,7 +35,7 @@ export default function Welcome() {
         </div>
       )}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
+      <div className="w-full max-w-md wc-card p-6 sm:p-10 flex flex-col items-center">
         {/* Logo */}
         <div className="text-center mb-6">
           <img
@@ -51,31 +52,24 @@ export default function Welcome() {
             <span className="text-brand-primary font-medium text-sm">{content.hook}</span>
           </div>
           
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
+          <h1 className="wc-h1 mb-4">
             {content.title}
           </h1>
-          <p className="text-gray-600 text-base leading-relaxed mb-6">
+          <p className="wc-subtle text-base leading-relaxed mb-6">
             {content.subtitle}
           </p>
           
           {/* Primary CTA Buttons */}
           <div className="space-y-3 mb-6">
-            <button
-              className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              onClick={() => navigate("/signup")}
-            >
+            <Button size="lg" className="w-full" onClick={() => navigate("/signup")}>
               {content.buttonText}
-            </button>
-            
+            </Button>
             {/* Unified Demo Button */}
             <div className="flex justify-center">
-              <button
-                className="bg-white hover:bg-gray-50 text-brand-primary font-semibold py-4 px-8 rounded-xl border-2 border-brand-primary transition-all duration-200 transform hover:scale-105 shadow-lg"
-                onClick={() => navigate("/workflow-demo")}
-              >
+              <Button variant="outline" className="py-4 px-8" onClick={() => navigate("/workflow-demo")}>
                 🚀 Watch Complete Demo
                 <div className="text-xs text-gray-600 mt-1">Workflow + Features in Action</div>
-              </button>
+              </Button>
             </div>
           </div>
         </div>

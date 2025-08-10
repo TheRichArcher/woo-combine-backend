@@ -59,16 +59,16 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
   if (!player) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
-        <div className="bg-brand-primary text-white p-6 rounded-t-xl flex justify-between items-center">
+    <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="wc-card max-w-md w-full">
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Edit className="w-5 h-5" />
             <h2 className="text-xl font-bold">Edit Player</h2>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition"
+            className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition"
           >
             <X className="w-5 h-5" />
           </button>
@@ -141,7 +141,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
+              className="flex-1 bg-brand-primary hover:opacity-90 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </button>

@@ -17,6 +17,34 @@ body {
   background-color: var(--color-surface-subtle);
 }
 
+/* Design tokens: shared radii and shadows */
+:root {
+  --radius-card: var(--radius-lg);
+  --shadow-card: 0 20px 50px rgba(17, 24, 39, 0.12);
+}
+
+/* Component layer utilities for uniform UI */
+@layer components {
+  .wc-card {
+    background-color: var(--color-surface);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    border: 1px solid var(--color-border);
+  }
+  .wc-overlay {
+    @apply bg-white/70 backdrop-blur-sm;
+  }
+  .wc-h1 {
+    @apply text-2xl sm:text-3xl font-bold text-gray-900;
+  }
+  .wc-h2 {
+    @apply text-xl font-semibold text-gray-900;
+  }
+  .wc-subtle {
+    @apply text-gray-600;
+  }
+}
+
 /* Custom slider styles for mobile weight controls */
 .slider-thumb {
   -webkit-appearance: none;

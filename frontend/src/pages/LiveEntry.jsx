@@ -235,11 +235,8 @@ export default function LiveEntry() {
           <p className="text-gray-600 mb-6">You need to select an event before using Live Entry mode.</p>
           
           <div className="space-y-3">
-            <Link 
-              to="/admin" 
-              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl transition block"
-            >
-              Go to Admin Tools
+            <Link to="/admin" className="block w-full">
+              <div className="bg-brand-primary hover:opacity-90 text-white font-medium py-3 rounded-xl transition text-center">Go to Admin Tools</div>
             </Link>
             <Link 
               to="/dashboard" 
@@ -540,8 +537,8 @@ export default function LiveEntry() {
       
       {/* Duplicate Score Dialog */}
       {showDuplicateDialog && duplicateData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-orange-500" />
               <h3 className="text-lg font-bold text-gray-900">Existing Score Found</h3>

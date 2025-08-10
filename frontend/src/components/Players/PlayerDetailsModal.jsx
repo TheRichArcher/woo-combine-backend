@@ -204,21 +204,21 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
-        <div className="bg-white rounded-xl shadow-2xl max-w-4xl lg:max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="bg-brand-primary text-white px-6 py-3 rounded-t-xl flex justify-between items-center flex-shrink-0">
+    <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
+        <div className="wc-card max-w-4xl lg:max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="px-6 py-3 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
           <div>
             <h2 className="text-xl font-bold">{player.name}</h2>
             <p className="text-brand-light text-sm">Player #{player.number} - Age Group: {player.age_group}</p>
           </div>
           <div className="text-right mr-4">
             <div className="text-sm opacity-75">Overall Score</div>
-            <div className="text-2xl font-bold text-white">{totalWeightedScore.toFixed(2)} pts</div>
+            <div className="text-2xl font-bold text-gray-900">{totalWeightedScore.toFixed(2)} pts</div>
             <div className="text-xs opacity-75">Rank #{currentRank} of {ageGroupPlayers.length}</div>
           </div>
           <button 
             onClick={onClose}
-            className="w-8 h-8 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center transition"
+            className="w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition"
           >
             <X className="w-5 h-5" />
           </button>

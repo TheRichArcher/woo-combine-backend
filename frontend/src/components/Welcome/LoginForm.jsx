@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
+import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
 
 export default function LoginForm() {
@@ -107,13 +108,9 @@ export default function LoginForm() {
         
         {formError && <div className="text-red-500 mb-4 text-sm w-full text-center">{formError}</div>}
         
-        <button
-          type="submit"
-          className="w-full bg-brand-primary hover:opacity-90 text-white font-bold px-6 py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-          disabled={submitting}
-        >
+        <Button type="submit" size="lg" className="w-full mb-4" disabled={submitting}>
           {submitting ? "Signing In..." : "Sign In"}
-        </button>
+        </Button>
 
         {/* Footer Links */}
         <div className="w-full flex flex-col gap-2 mt-2 text-center">

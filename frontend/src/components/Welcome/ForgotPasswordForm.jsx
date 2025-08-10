@@ -3,6 +3,7 @@ import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../firebase";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import Button from "../ui/Button";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -67,13 +68,9 @@ export default function ForgotPasswordForm() {
             required
           />
           {formError && <div className="text-red-500 mb-4 text-sm w-full text-center">{formError}</div>}
-          <button
-            type="submit"
-        className="w-full bg-brand-primary hover:opacity-90 text-white font-bold px-6 py-3 rounded-full shadow transition mb-4"
-            disabled={submitting}
-          >
+          <Button type="submit" size="lg" className="w-full mb-4" disabled={submitting}>
             {submitting ? "Sending..." : "Send Reset Email"}
-          </button>
+          </Button>
         </form>
       )}
       {/* Footer Links */}

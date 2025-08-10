@@ -5,6 +5,7 @@ import api from '../lib/api';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import { useToast } from '../context/ToastContext';
 import ErrorDisplay from './ErrorDisplay';
+import Button from './ui/Button';
 import { customValidators } from '../utils/validation';
 import { cacheInvalidation } from '../utils/dataCache';
 
@@ -103,13 +104,9 @@ const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess 
         />
       </div>
       <ErrorDisplay error={error} className="mb-2" />
-      <button
-        type="submit"
-        className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 rounded-lg shadow transition"
-        disabled={loading}
-      >
+      <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Submitting..." : "Submit Result"}
-      </button>
+      </Button>
     </form>
   );
 });

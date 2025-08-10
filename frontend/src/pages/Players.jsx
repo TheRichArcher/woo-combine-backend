@@ -11,6 +11,7 @@ import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import Button from '../components/ui/Button';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, WEIGHT_PRESETS, TABS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
@@ -351,7 +352,7 @@ export default function Players() {
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-brand-primary/20">
+        <div className="wc-card p-8 text-center">
           <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-brand-primary" />
           </div>
@@ -361,12 +362,7 @@ export default function Players() {
               ? "Select or create an event to manage players and drills."
               : "Ask your league operator to assign you to an event."}
           </p>
-          <button
-            onClick={() => navigate('/select-league')}
-            className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:opacity-90 transition"
-          >
-            Select Event
-          </button>
+          <Button onClick={() => navigate('/select-league')} className="px-6 py-3">Select Event</Button>
         </div>
       </div>
     </div>
@@ -414,23 +410,17 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-brand-primary/20">
+        <div className="wc-card p-8 text-center">
           <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
             <TrendingUp className="w-8 h-8 text-brand-primary" />
           </div>
           <h2 className="text-2xl font-bold text-brand-secondary mb-4">No Players Found Yet</h2>
           <p className="text-gray-600 mb-6">You can upload a CSV or add them manually to get started.</p>
           <div className="flex gap-3 justify-center">
-            <Link to="/onboarding/event" className="bg-brand-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:opacity-90 transition">
-              Upload CSV Players
-            </Link>
-            <button 
-              onClick={() => setShowAddPlayerModal(true)}
-              className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-2"
-            >
-              <UserPlus className="w-4 h-4" />
-              Add Player
-            </button>
+            <Button as={Link} to="/onboarding/event">Upload CSV Players</Button>
+            <Button variant="success" onClick={() => setShowAddPlayerModal(true)} className="flex items-center gap-2">
+              <UserPlus className="w-4 h-4" /> Add Player
+            </Button>
           </div>
         </div>
       </div>
@@ -441,7 +431,7 @@ export default function Players() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/20">
+          <div className="wc-card p-6 mb-6">
           <h1 className="text-2xl font-bold text-brand-secondary mb-2">
             WooCombine: Players & Rankings
           </h1>
@@ -456,13 +446,9 @@ export default function Players() {
           {/* Primary Action - Most users want this next */}
           {(userRole === 'organizer' || userRole === 'coach') && (
             <div className="mb-4">
-              <Link
-                to="/live-entry"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
-              >
-                🚀 Start Recording Drill Results
-                <ArrowRight className="w-5 h-5" />
-              </Link>
+              <Button as={Link} to="/live-entry" variant="success" size="lg" className="w-full flex items-center justify-center gap-3">
+                🚀 Start Recording Drill Results <ArrowRight className="w-5 h-5" />
+              </Button>
               <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
             </div>
           )}
@@ -471,20 +457,12 @@ export default function Players() {
           {userRole === 'organizer' && (
             <div className="border-t border-gray-200 pt-4">
               <div className="flex gap-3">
-                <button
-                  onClick={() => setShowAddPlayerModal(true)}
-                  className="flex-1 bg-brand-primary hover:opacity-90 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Player
-                </button>
-                <button
-                  onClick={() => navigate('/admin#player-upload')}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Import CSV
-                </button>
+                <Button onClick={() => setShowAddPlayerModal(true)} className="flex-1 flex items-center justify-center gap-2 text-sm">
+                  <UserPlus className="w-4 h-4" /> Add Player
+                </Button>
+                <Button variant="success" onClick={() => navigate('/admin#player-upload')} className="flex-1 flex items-center justify-center gap-2 text-sm">
+                  <Download className="w-4 h-4" /> Import CSV
+                </Button>
               </div>
               <p className="text-xs text-gray-500 text-center mt-2">
                 Add individual players or import from spreadsheet

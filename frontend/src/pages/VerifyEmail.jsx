@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
+import Button from "../components/ui/Button";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -234,7 +235,7 @@ export default function VerifyEmail() {
 
   return (
     <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false} backgroundColor="bg-surface-subtle">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl mx-4 flex flex-col relative min-h-[600px]">
+      <div className="w-full max-w-md wc-card mx-4 flex flex-col relative min-h-[600px]">
         {/* Header Row: Back + Help */}
         <div className="w-full flex flex-row justify-between items-center p-6 pb-2">
           <button
@@ -265,7 +266,7 @@ export default function VerifyEmail() {
           </div>
 
           {/* Main Title - Bold like MOJO */}
-          <h1 className="text-2xl font-black text-gray-900 text-center mb-6 tracking-tight">
+          <h1 className="wc-h1 text-center mb-6 tracking-tight">
             CHECK YOUR EMAIL
           </h1>
 
@@ -292,30 +293,20 @@ export default function VerifyEmail() {
           {/* Primary Action Button - Like MOJO's "Open Email App" */}
           <div className="mt-8 space-y-4">
             {isVerified ? (
-              <button
-                onClick={() => navigate("/select-role")}
-                className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              >
+              <Button size="lg" className="w-full" onClick={() => navigate("/select-role")}>
                 Continue to App
-              </button>
+              </Button>
             ) : (
-              <button
-                onClick={handleOpenEmailApp}
-                className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              >
+              <Button size="lg" className="w-full" onClick={handleOpenEmailApp}>
                 Open Email App
-              </button>
+              </Button>
             )}
 
             {/* Check Again Button (secondary action) */}
             {!isVerified && (
-              <button
-                onClick={handleCheckAgain}
-                disabled={checking}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200 disabled:opacity-50"
-              >
+              <Button variant="subtle" onClick={handleCheckAgain} disabled={checking} className="w-full">
                 {checking ? "Checking..." : "I've verified my email"}
-              </button>
+              </Button>
             )}
 
             {/* Status Messages */}

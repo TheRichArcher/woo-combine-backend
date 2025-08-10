@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
+import Button from "../components/ui/Button";
 
 export default function SelectLeague() {
   const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
@@ -51,9 +52,9 @@ export default function SelectLeague() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mojo Sports Style Modal Overlay */}
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
+      {/* Consistent Light Overlay */}
+      <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="wc-card max-w-md w-full max-h-[90vh] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h1 className="text-xl font-bold text-gray-900">Select League</h1>
@@ -131,22 +132,14 @@ export default function SelectLeague() {
             )}
           </div>
 
-          {/* Bottom Actions - Mojo Style */}
+          {/* Bottom Actions - Unified Buttons */}
           <div className="p-4 space-y-3 border-t border-gray-200">
-            <button
-              onClick={() => navigate('/create-league', { replace: true })}
-              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
-            >
-              <Plus className="w-5 h-5" />
-              Create a League
-            </button>
-            <button
-              onClick={() => navigate('/join')}
-              className="w-full border-2 border-brand-primary text-brand-primary hover:bg-brand-primary hover:text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
-            >
-              <UserPlus className="w-5 h-5" />
-              Join a League
-            </button>
+            <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => navigate('/create-league', { replace: true })}>
+              <Plus className="w-5 h-5" /> Create a League
+            </Button>
+            <Button variant="outline" size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => navigate('/join')}>
+              <UserPlus className="w-5 h-5" /> Join a League
+            </Button>
           </div>
 
           {/* User Info */}

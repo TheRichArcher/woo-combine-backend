@@ -67,7 +67,7 @@ export default function WelcomeLayout({
         )}
       </footer>
       {showOverlay !== false && (
-        <div className="absolute inset-0 bg-black/40 pointer-events-none z-5" />
+        <div className="absolute inset-0 bg-white/50 backdrop-blur-sm pointer-events-none z-5" />
       )}
     </div>
   );

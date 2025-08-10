@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
 import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from 'lucide-react';
+import Button from './ui/Button';
 import { getAllTemplates } from '../constants/drillTemplates';
 
 const getSportIcon = (sport) => {
@@ -347,8 +348,8 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
 
       {/* Create Event Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+        <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="wc-card w-full max-w-md p-6 sm:p-8">
             <h3 className="text-lg font-bold mb-2">
               {events.length === 0 ? "Create Your First Event" : "Create New Event"}
             </h3>
@@ -407,20 +408,12 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
               </div>
               {createError && <div className="text-red-500 text-sm mb-4">{createError}</div>}
               <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={createLoading}
-                  className="bg-brand-primary text-white px-4 py-2 rounded hover:bg-brand-secondary transition disabled:opacity-50"
-                >
+                <Button type="submit" disabled={createLoading} className="flex-1">
                   {createLoading ? "Creating..." : "Create"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
-                >
+                </Button>
+                <Button type="button" variant="subtle" onClick={() => setShowModal(false)} className="flex-1">
                   Cancel
-                </button>
+                </Button>
               </div>
             </form>
           </div>

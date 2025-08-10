@@ -64,15 +64,15 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-surface rounded-xl shadow-lg p-6 w-full max-w-sm relative">
+    <div className="fixed inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-50">
+      <div className="wc-card p-6 w-full max-w-sm relative">
         <button
           onClick={onClose}
           className="absolute top-2 right-2 text-gray-400 hover:text-brand-primary text-2xl font-bold"
         >
           ×
         </button>
-        <h2 className="text-xl font-bold mb-4 text-brand-primary">Create New Event</h2>
+        <h2 className="text-xl font-bold mb-4 text-gray-900">Create New Event</h2>
         <form onSubmit={handleCreate}>
           <label className="block mb-2 font-semibold">Event Name</label>
           <input
@@ -116,7 +116,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
           {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
           <button
             type="submit"
-            className="bg-brand-primary text-white font-bold px-4 py-2 rounded-lg shadow w-full hover:opacity-90 transition"
+            className="bg-brand-primary text-white font-medium px-4 py-2 rounded-lg shadow w-full hover:opacity-90 transition disabled:opacity-50"
             disabled={loading}
           >
             {loading ? "Creating..." : "Create Event"}

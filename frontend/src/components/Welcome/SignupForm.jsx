@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
+import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
 
 export default function SignupForm() {
@@ -228,13 +229,9 @@ export default function SignupForm() {
         {formError && <div className="text-red-500 mb-4 text-sm">{formError}</div>}
         {error && <div className="text-red-500 mb-4 text-sm">{error.message}</div>}
         
-        <button
-          type="submit"
-          className="w-full bg-brand-primary hover:opacity-90 text-white font-bold py-3 rounded-full shadow transition mb-4 disabled:opacity-50"
-          disabled={submitting || !firstName.trim() || !lastName.trim() || !email || !password || !confirmPassword}
-        >
+        <Button type="submit" size="lg" className="w-full mb-4" disabled={submitting || !firstName.trim() || !lastName.trim() || !email || !password || !confirmPassword}>
           {submitting ? "Creating Account..." : "Create Account"}
-        </button>
+        </Button>
         
         {/* Legal text */}
         <div className="text-xs text-gray-500 text-center mb-4">
