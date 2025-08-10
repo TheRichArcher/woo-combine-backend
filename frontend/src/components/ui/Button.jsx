@@ -21,15 +21,33 @@ export default function Button({
   size = 'md',
   className = '',
   disabled = false,
-  ...props
+  as: AsComponent,
+  to,
+  href,
+  type = 'button',
+  ...rest
 }) {
   const base = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
-  const classes = [base, variantToClasses[variant], sizeToClasses[size], className]
+  let classes = [base, variantToClasses[variant], sizeToClasses[size], className]
     .filter(Boolean)
     .join(' ');
 
+  // If rendering as a Link/anchor, emulate disabled state with styles/attributes
+  if (disabled && AsComponent && AsComponent !== 'button') {
+    classes += ' pointer-events-none opacity-50';
+  }
+
+  if (AsComponent && AsComponent !== 'button') {
+    const Component = AsComponent;
+    return (
+      <Component to={to} href={href} className={classes} aria-disabled={disabled} {...rest}>
+        {children}
+      </Component>
+    );
+  }
+
   return (
-    <button className={classes} disabled={disabled} {...props}>
+    <button type={type} className={classes} disabled={disabled} {...rest}>
       {children}
     </button>
   );
