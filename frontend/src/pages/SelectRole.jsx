@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
+import OnboardingCard from '../components/OnboardingCard';
+import Button from '../components/ui/Button';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -162,24 +164,12 @@ export default function SelectRole() {
       hideHeader={true}
       showOverlay={false}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
-        {/* Logo */}
-        <div className="text-center mb-6">
-          <img
-            src="/favicon/woocombine-logo.png"
-            alt="Woo-Combine Logo"
-            className="w-16 h-16 mx-auto mb-4 object-contain"
-          />
-        </div>
-
-        {/* Header */}
-        <h1 className="text-2xl font-bold mb-2 text-gray-900">Almost Done!</h1>
-        <p className="mb-6 text-gray-600 text-sm">
-          {intendedRole ? 
-            `You've been invited as a ${intendedRole === 'coach' ? 'Coach' : 'Viewer'} - just confirm to continue.` :
-            "Quick setup: What's your role?"
-          }
-        </p>
+      <OnboardingCard
+        title="Almost Done!"
+        subtitle={intendedRole ? 
+          `You've been invited as a ${intendedRole === 'coach' ? 'Coach' : 'Viewer'} - just confirm to continue.` :
+          "Quick setup: What's your role?"}
+      >
 
         {/* Debug Info (Development Only) */}
         {import.meta.env.DEV && (
@@ -229,28 +219,19 @@ export default function SelectRole() {
 
         {/* Action Buttons */}
         <div className="w-full flex flex-col gap-3">
-          <button
-            onClick={handleContinue}
-            className="w-full bg-brand-primary hover:opacity-90 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
-            disabled={!selectedRole || loading}
-          >
+          <Button onClick={handleContinue} size="lg" disabled={!selectedRole || loading}>
             {loading ? 'Saving...' : intendedRole ? `Continue as ${intendedRole === 'coach' ? 'Coach' : 'Viewer'}` : 'Continue'}
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
-            disabled={loading}
-          >
+          </Button>
+          <Button variant="subtle" onClick={handleLogout} disabled={loading}>
             Sign Out
-          </button>
+          </Button>
         </div>
 
         {/* Help Text */}
         <div className="mt-4 text-xs text-gray-400">
           <p>Can be changed later</p>
         </div>
-      </div>
+      </OnboardingCard>
     </WelcomeLayout>
   );
 } 

@@ -6,6 +6,10 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
+import OnboardingCard from "../components/OnboardingCard";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -341,13 +345,7 @@ export default function OnboardingEvent() {
     return (
       <WelcomeLayout>
         <div className="w-full max-w-md text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h1 className="text-2xl font-bold text-brand-secondary mb-4">
-              🏆 Create Your Event
-            </h1>
-            <p className="text-gray-600 mb-6">
-              Set up your combine event and start timing athletes
-            </p>
+          <OnboardingCard title="🏆 Create Your Event" subtitle="Set up your combine event and start timing athletes">
 
             {/* Step Indicator */}
             <div className="flex justify-center mb-6">
@@ -362,11 +360,11 @@ export default function OnboardingEvent() {
 
             {/* Event Creation */}
             <EventSelector onEventSelected={handleEventCreated} />
-             {/* If no league is selected yet but user is organizer, background auto-setup will create one */}
+            {/* If no league is selected yet but user is organizer, background auto-setup will create one */}
             {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
               <div className="text-xs text-gray-500 mt-4">Preparing your league... this will update automatically in a moment.</div>
             )}
-          </div>
+          </OnboardingCard>
         </div>
       </WelcomeLayout>
     );
@@ -377,16 +375,15 @@ export default function OnboardingEvent() {
     return (
       <WelcomeLayout>
         <div className="w-full max-w-md text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h1 className="text-2xl font-bold text-brand-secondary mb-2">
-              📋 Add Players
-            </h1>
-            <p className="text-gray-600 mb-1">
-              Event: <strong>{createdEvent?.name}</strong>
-            </p>
-            <p className="text-sm text-gray-500 mb-6">
-              Import your roster to get started
-            </p>
+          <OnboardingCard
+            title="📋 Add Players"
+            subtitle={
+              <>
+                <span className="block">Event: <strong>{createdEvent?.name}</strong></span>
+                <span className="text-sm text-gray-500">Import your roster to get started</span>
+              </>
+            }
+          >
 
             {/* Step Indicator */}
             <div className="flex justify-center mb-6">
@@ -420,12 +417,9 @@ export default function OnboardingEvent() {
                   className="hidden"
                 />
                 
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition mb-3"
-                >
+                <Button onClick={() => fileInputRef.current?.click()} className="w-full mb-3">
                   Choose CSV File
-                </button>
+                </Button>
                 
                 {csvFileName && (
                   <div className="text-left">
@@ -434,13 +428,9 @@ export default function OnboardingEvent() {
                     </p>
                     
                     {hasValidPlayers && (
-                      <button
-                        onClick={handleUpload}
-                        disabled={uploadStatus === "uploading"}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-50"
-                      >
+                      <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
                         {uploadStatus === "uploading" ? "Uploading..." : "Confirm Upload"}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 )}
@@ -485,50 +475,19 @@ export default function OnboardingEvent() {
                   Add players one by one if you have a small group
                 </p>
                 
-                <button
-                  onClick={() => setShowManualForm(!showManualForm)}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition"
-                >
+                <Button variant="subtle" onClick={() => setShowManualForm(!showManualForm)} className="w-full">
                   {showManualForm ? "Hide Form" : "Show Manual Entry"}
-                </button>
+                </Button>
                 
                 {showManualForm && (
                   <div className="mt-3 space-y-3">
-                    <input
-                      type="text"
-                      placeholder="First Name *"
-                      value={manualPlayer.first_name}
-                      onChange={(e) => setManualPlayer(prev => ({...prev, first_name: e.target.value}))}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Last Name *"
-                      value={manualPlayer.last_name}
-                      onChange={(e) => setManualPlayer(prev => ({...prev, last_name: e.target.value}))}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Player Number (optional)"
-                      value={manualPlayer.number}
-                      onChange={(e) => setManualPlayer(prev => ({...prev, number: e.target.value}))}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Age Group (e.g., A, B, C, U12, 9-10)"
-                      value={manualPlayer.age_group}
-                      onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
-                    />
-                    <button
-                      onClick={handleAddPlayer}
-                      disabled={manualStatus === 'adding'}
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition disabled:opacity-50"
-                    >
+                    <Input type="text" placeholder="First Name *" value={manualPlayer.first_name} onChange={(e) => setManualPlayer(prev => ({...prev, first_name: e.target.value}))} />
+                    <Input type="text" placeholder="Last Name *" value={manualPlayer.last_name} onChange={(e) => setManualPlayer(prev => ({...prev, last_name: e.target.value}))} />
+                    <Input type="text" placeholder="Player Number (optional)" value={manualPlayer.number} onChange={(e) => setManualPlayer(prev => ({...prev, number: e.target.value}))} />
+                    <Input type="text" placeholder="Age Group (e.g., A, B, C, U12, 9-10)" value={manualPlayer.age_group} onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))} />
+                    <Button onClick={handleAddPlayer} disabled={manualStatus === 'adding'} className="w-full">
                       {manualStatus === 'adding' ? 'Adding...' : 'Add Player'}
-                    </button>
+                    </Button>
                     
                     {manualMsg && (
                       <div className={`text-sm ${manualStatus === 'error' ? 'text-red-600' : manualStatus === 'success' ? 'text-green-600' : 'text-blue-600'}`}>
@@ -554,23 +513,16 @@ export default function OnboardingEvent() {
 
             {/* Navigation */}
             <div className="space-y-3">
-              <button
-                onClick={() => handleStepNavigation(3)}
-                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 px-6 rounded-lg shadow transition flex items-center justify-center gap-2"
-              >
+              <Button onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
                 Continue
                 <ArrowRight className="w-5 h-5" />
-              </button>
-              
-              <button
-                onClick={() => handleStepNavigation(1)}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2"
-              >
+              </Button>
+              <Button variant="subtle" onClick={() => handleStepNavigation(1)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Back to Event Creation
-              </button>
+              </Button>
             </div>
-          </div>
+          </OnboardingCard>
         </div>
       </WelcomeLayout>
     );
@@ -581,13 +533,7 @@ export default function OnboardingEvent() {
     return (
       <WelcomeLayout>
         <div className="w-full max-w-md text-center">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">
-            <h1 className="text-2xl font-bold text-green-800 mb-4">
-              🎉 You're All Set!
-            </h1>
-            <p className="text-gray-600 mb-6">
-              {createdEvent?.name} is ready with {playerCount} players
-            </p>
+          <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
 
             {/* Step Indicator */}
             <div className="flex justify-center mb-6">
@@ -617,15 +563,10 @@ export default function OnboardingEvent() {
               
               {/* PRIMARY ACTION - Get Started */}
               <div className="mb-4">
-                <button
-                  onClick={() => {
-                    navigate('/players');
-                  }}
-                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-2"
-                >
+                <Button onClick={() => { navigate('/players'); }} className="w-full flex items-center justify-center gap-2" size="lg">
                   🚀 Start Tracking Performance
                   <ArrowRight className="w-5 h-5" />
-                </button>
+                </Button>
               </div>
 
               {/* SECONDARY ACTIONS */}
@@ -636,40 +577,23 @@ export default function OnboardingEvent() {
                   {/* Secondary Action 1 - Live Entry */}
                   <div className="flex items-center justify-between">
                     <span className="text-blue-800">Familiarize with Live Entry</span>
-                    <button
-                      onClick={() => {
-                        navigate('/live-entry');
-                      }}
-                      className="bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700 transition text-xs font-medium"
-                    >
+                    <Button size="sm" onClick={() => { navigate('/live-entry'); }}>
                       ⚡ Explore
-                    </button>
+                    </Button>
                   </div>
                   
                   {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
                     <span className="text-blue-800">Share QR codes with staff</span>
-                    <button
-                      onClick={() => {
-                        handleStepNavigation(3);
-                      }}
-                      className="bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition text-xs font-medium"
-                    >
-                      📱 Share
-                    </button>
+                    <Button size="sm">📱 Share</Button>
                   </div>
                   
                   {/* Secondary Action 3 - Export */}
                   <div className="flex items-center justify-between">
                     <span className="text-blue-800">Export results after event</span>
-                    <button
-                      onClick={() => {
-                        navigate('/players?tab=exports');
-                      }}
-                      className="bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition text-xs font-medium"
-                    >
+                    <Button size="sm" onClick={() => { navigate('/players?tab=exports'); }}>
                       📊 Export
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -679,23 +603,17 @@ export default function OnboardingEvent() {
             <div className="space-y-2">
               {/* Secondary Actions */}
               <div className="space-y-2">
-                <button
-                  onClick={() => handleStepNavigation(2)}
-                  className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
-                >
+                <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
                   <ArrowLeft className="w-4 h-4" />
                   Add More Players
-                </button>
+                </Button>
                 
-                <button
-                  onClick={handleContinueToPlayers}
-                  className="w-full bg-brand-secondary hover:bg-brand-primary text-white font-medium py-3 px-4 rounded-xl transition flex items-center justify-center gap-2"
-                >
+                <Button onClick={handleContinueToPlayers} className="w-full flex items-center justify-center gap-2">
                   View Players & Rankings
-                </button>
+                </Button>
               </div>
             </div>
-          </div>
+          </OnboardingCard>
 
           {/* QR CODE SECTION - Moved outside main card */}
           <div className="bg-white rounded-2xl shadow-2xl p-6">
