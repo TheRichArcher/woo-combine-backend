@@ -82,8 +82,8 @@ export function parseCsv(text) {
   } else {
     // Positional-based parsing (new feature)
     // Expected orders (flexible):
-    // - 4 columns: A=first_name, B=last_name, C=jersey_number, D=age_group
     // - 3 columns: A=first_name, B=last_name, C=age_group (no jersey number)
+    // - 4 columns: A=first_name, B=last_name, C=age_group, D=jersey_number
     mappingType = 'positional-based';
     // Include first line as data since it's not headers
     const allDataLines = [lines[0], ...dataLines];
@@ -103,14 +103,14 @@ export function parseCsv(text) {
         };
       });
     } else {
-      headers = ['first_name', 'last_name', 'jersey_number', 'age_group'];
+      headers = ['first_name', 'last_name', 'age_group', 'jersey_number'];
       rows = allDataLines.map(line => {
         const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
         return {
           first_name: values[0] || '',
           last_name: values[1] || '',
-          jersey_number: values[2] || '',
-          age_group: values[3] || ''
+          age_group: values[2] || '',
+          jersey_number: values[3] || ''
         };
       });
     }
@@ -178,7 +178,7 @@ export function getMappingDescription(mappingType) {
     case 'header-based':
       return 'Using header names (flexible: First Name, Last Name, Jersey Number, Age Group)';
     case 'positional-based':
-      return 'Using positions: 4-col A=First, B=Last, C=Number, D=Age Group; or 3-col A=First, B=Last, C=Age Group';
+      return 'Using positions: 3-col A=First, B=Last, C=Age Group; or 4-col A=First, B=Last, C=Age Group, D=Player Number';
     default:
       return 'Unknown mapping type';
   }
