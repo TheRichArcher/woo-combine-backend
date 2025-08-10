@@ -1,6 +1,8 @@
 // CSV parsing and validation utilities
 
 // Required by data contract: first_name, last_name, jersey_number, age_group
+// Note: Files may omit jersey_number; we auto-assign later. We keep the full list
+// for canonical output, but header detection is flexible.
 export const REQUIRED_HEADERS = ["first_name", "last_name", "jersey_number", "age_group"];
 // Optional columns supported by backend
 export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
@@ -12,12 +14,37 @@ export const SAMPLE_ROWS = [
   ["Michael", "Davis", "", "14U"]
 ];
 
-// Check if headers indicate header-based format
+// Flexible header recognition
+const HEADER_SYNONYMS = {
+  first_name: [/^first[_\s]*name$/i, /^player[_\s]*first[_\s]*name$/i, /^fname$/i, /^first$/i],
+  last_name: [/^last[_\s]*name$/i, /^player[_\s]*last[_\s]*name$/i, /^lname$/i, /^last$/i],
+  jersey_number: [/^jersey[_\s]*number$/i, /^player[_\s]*number$/i, /^number$/i, /^#$/],
+  age_group: [/^age[_\s]*group$/i, /^group$/i, /^division$/i, /^age$/i]
+};
+
+function findCanonicalForHeader(header) {
+  const norm = String(header || '').trim();
+  for (const [key, patterns] of Object.entries(HEADER_SYNONYMS)) {
+    if (patterns.some((re) => re.test(norm))) return key;
+  }
+  return null;
+}
+
+function mapHeadersToCanonical(headers) {
+  const indexToKey = {};
+  headers.forEach((h, idx) => {
+    const canonical = findCanonicalForHeader(h);
+    if (canonical) indexToKey[idx] = canonical;
+  });
+  const canonicalHeaders = Array.from(new Set(Object.values(indexToKey)));
+  return { canonicalHeaders, indexToKey };
+}
+
+// Check if headers indicate header-based format (flexible)
 function hasValidHeaders(headers) {
-  const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
-  return REQUIRED_HEADERS.every(required => 
-    normalizedHeaders.some(header => header === required.toLowerCase())
-  );
+  const { canonicalHeaders } = mapHeadersToCanonical(headers);
+  // Consider header-based if at least first and last name are present
+  return canonicalHeaders.includes('first_name') && canonicalHeaders.includes('last_name');
 }
 
 // Parse CSV text into headers and rows with smart format detection
@@ -35,13 +62,15 @@ export function parseCsv(text) {
   
   if (isHeaderBased) {
     // Header-based parsing (current behavior)
-    headers = firstLineValues;
     mappingType = 'header-based';
+    const { canonicalHeaders, indexToKey } = mapHeadersToCanonical(firstLineValues);
+    headers = canonicalHeaders;
     rows = dataLines.map(line => {
       const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
       const row = {};
-      headers.forEach((header, i) => {
-        row[header] = values[i] || '';
+      Object.entries(indexToKey).forEach(([idxStr, key]) => {
+        const idx = parseInt(idxStr, 10);
+        row[key] = values[idx] || '';
       });
       // Backward compatibility: support 'number' -> 'jersey_number'
       if (row.number && !row.jersey_number) {
@@ -52,22 +81,39 @@ export function parseCsv(text) {
     });
   } else {
     // Positional-based parsing (new feature)
-    // Expected order (legacy compatible):
-    // A = first_name, B = last_name, C = jersey_number, D = age_group
+    // Expected orders (flexible):
+    // - 4 columns: A=first_name, B=last_name, C=jersey_number, D=age_group
+    // - 3 columns: A=first_name, B=last_name, C=age_group (no jersey number)
     mappingType = 'positional-based';
-    headers = ['first_name', 'last_name', 'jersey_number', 'age_group'];
-    
     // Include first line as data since it's not headers
     const allDataLines = [lines[0], ...dataLines];
-    rows = allDataLines.map(line => {
-      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      return {
-        first_name: values[0] || '',
-        last_name: values[1] || '',
-        jersey_number: values[2] || '',
-        age_group: values[3] || ''
-      };
-    });
+    // Peek first data row to decide mapping
+    const sampleValues = allDataLines[0].split(',').map(v => v.trim().replace(/"/g, ''));
+    const hasFour = sampleValues.length >= 4;
+    const hasThree = sampleValues.length === 3;
+    if (hasThree) {
+      headers = ['first_name', 'last_name', 'age_group'];
+      rows = allDataLines.map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        return {
+          first_name: values[0] || '',
+          last_name: values[1] || '',
+          age_group: values[2] || '',
+          jersey_number: ''
+        };
+      });
+    } else {
+      headers = ['first_name', 'last_name', 'jersey_number', 'age_group'];
+      rows = allDataLines.map(line => {
+        const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        return {
+          first_name: values[0] || '',
+          last_name: values[1] || '',
+          jersey_number: values[2] || '',
+          age_group: values[3] || ''
+        };
+      });
+    }
   }
   
   return { headers, rows, mappingType };
@@ -132,9 +178,9 @@ export function validateHeaders(headers, mappingType = 'header-based') {
 export function getMappingDescription(mappingType) {
   switch (mappingType) {
     case 'header-based':
-      return 'Using header names to map columns (first_name, last_name, age_group)';
+      return 'Using header names (flexible: First Name, Last Name, Jersey Number, Age Group)';
     case 'positional-based':
-      return 'Using column positions: A=First Name, B=Last Name, C=Player Number, D=Age Group';
+      return 'Using positions: 4-col A=First, B=Last, C=Number, D=Age Group; or 3-col A=First, B=Last, C=Age Group';
     default:
       return 'Unknown mapping type';
   }
