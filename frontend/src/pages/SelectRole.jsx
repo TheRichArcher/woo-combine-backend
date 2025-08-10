@@ -163,6 +163,7 @@ export default function SelectRole() {
       contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
+      backgroundColor="bg-surface-subtle"
     >
       <OnboardingCard
         title="Almost Done!"

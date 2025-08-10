@@ -343,14 +343,14 @@ export default function OnboardingEvent() {
   // STEP 1: Event Creation
   if (currentStep === 1) {
     return (
-      <WelcomeLayout>
+      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
           <OnboardingCard title="🏆 Create Your Event" subtitle="Set up your combine event and start timing athletes">
 
             {/* Step Indicator */}
             <div className="flex justify-center mb-6">
               <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
                 <div className="w-8 h-1 bg-gray-200 rounded"></div>
                 <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">2</div>
                 <div className="w-8 h-1 bg-gray-200 rounded"></div>
@@ -373,7 +373,7 @@ export default function OnboardingEvent() {
   // STEP 2: Player Import
   if (currentStep === 2) {
     return (
-      <WelcomeLayout>
+      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
           <OnboardingCard
             title="📋 Add Players"
@@ -391,8 +391,8 @@ export default function OnboardingEvent() {
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
                   <CheckCircle className="w-5 h-5" />
                 </div>
-                <div className="w-8 h-1 bg-blue-600 rounded"></div>
-                <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                <div className="w-8 h-1 bg-brand-primary rounded"></div>
+                <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
                 <div className="w-8 h-1 bg-gray-200 rounded"></div>
                 <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
               </div>
@@ -402,7 +402,7 @@ export default function OnboardingEvent() {
             <div className="space-y-4 mb-6">
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-blue-600" />
+                  <Upload className="w-5 h-5 text-brand-primary" />
                   Upload CSV File (Recommended)
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -436,7 +436,7 @@ export default function OnboardingEvent() {
                 )}
                 
                 {uploadMsg && (
-                  <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-blue-600"}`}>
+                  <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-brand-primary"}`}>
                     {uploadMsg}
                   </div>
                 )}
@@ -490,7 +490,7 @@ export default function OnboardingEvent() {
                     </Button>
                     
                     {manualMsg && (
-                      <div className={`text-sm ${manualStatus === 'error' ? 'text-red-600' : manualStatus === 'success' ? 'text-green-600' : 'text-blue-600'}`}>
+                      <div className={`text-sm ${manualStatus === 'error' ? 'text-red-600' : manualStatus === 'success' ? 'text-green-600' : 'text-brand-primary'}`}>
                         {manualMsg}
                       </div>
                     )}
@@ -531,7 +531,7 @@ export default function OnboardingEvent() {
   // STEP 3: Completion
   if (currentStep === 3) {
     return (
-      <WelcomeLayout>
+      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
           <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
 
@@ -541,11 +541,11 @@ export default function OnboardingEvent() {
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
                   <CheckCircle className="w-5 h-5" />
                 </div>
-                <div className="w-8 h-1 bg-green-600 rounded"></div>
+                <div className="w-8 h-1 bg-brand-primary rounded"></div>
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
                   <CheckCircle className="w-5 h-5" />
                 </div>
-                <div className="w-8 h-1 bg-green-600 rounded"></div>
+                <div className="w-8 h-1 bg-brand-primary rounded"></div>
                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
                   <CheckCircle className="w-5 h-5" />
                 </div>
@@ -570,13 +570,13 @@ export default function OnboardingEvent() {
               </div>
 
               {/* SECONDARY ACTIONS */}
-              <div className="border-t border-blue-200 pt-3">
-                <h4 className="text-blue-800 font-medium text-sm mb-2 text-center">⭐ When You're Ready:</h4>
+              <div className="border-t border-brand-primary/30 pt-3">
+                <h4 className="text-brand-secondary font-medium text-sm mb-2 text-center">⭐ When You're Ready:</h4>
                 
                 <div className="space-y-2 text-sm">
                   {/* Secondary Action 1 - Live Entry */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-800">Familiarize with Live Entry</span>
+                    <span className="text-brand-secondary">Familiarize with Live Entry</span>
                     <Button size="sm" onClick={() => { navigate('/live-entry'); }}>
                       ⚡ Explore
                     </Button>
@@ -584,13 +584,13 @@ export default function OnboardingEvent() {
                   
                   {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-800">Share QR codes with staff</span>
+                    <span className="text-brand-secondary">Share QR codes with staff</span>
                     <Button size="sm">📱 Share</Button>
                   </div>
                   
                   {/* Secondary Action 3 - Export */}
                   <div className="flex items-center justify-between">
-                    <span className="text-blue-800">Export results after event</span>
+                    <span className="text-brand-secondary">Export results after event</span>
                     <Button size="sm" onClick={() => { navigate('/players?tab=exports'); }}>
                       📊 Export
                     </Button>

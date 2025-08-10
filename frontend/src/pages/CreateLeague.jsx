@@ -68,8 +68,8 @@ export function CreateLeagueForm({ onCreated }) {
 
 export default function CreateLeague() {
   return (
-    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false} backgroundColor="bg-surface-subtle">
       <CreateLeagueForm />
     </WelcomeLayout>
   );
-} 
+}
