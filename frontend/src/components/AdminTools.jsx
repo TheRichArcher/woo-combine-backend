@@ -223,6 +223,7 @@ export default function AdminTools() {
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
         setUploadStatus("error");
+        setBackendErrors(Array.isArray(data.errors) ? data.errors : []);
         setUploadMsg("Some rows failed to upload. See errors below.");
         showError(`❌ Upload partially failed: ${data.errors.length} errors`);
       } else {
@@ -243,7 +244,13 @@ export default function AdminTools() {
       }
     } catch (err) {
       setUploadStatus("error");
-      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      const apiErrors = err?.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        setBackendErrors(apiErrors);
+        setUploadMsg(`❌ Upload failed with ${apiErrors.length} row error${apiErrors.length === 1 ? '' : 's'}. See errors below.`);
+      } else {
+        setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      }
       notifyError(err);
     }
   };

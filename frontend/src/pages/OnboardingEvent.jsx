@@ -250,11 +250,11 @@ export default function OnboardingEvent() {
         players: players 
       });
       
-      if (data?.errors && data.errors.length > 0) {
-        setUploadStatus("error");
-        setBackendErrors(data.errors);
-        setUploadMsg(`Some rows failed to upload. ${data.added || 0} added, ${data.errors.length} errors.`);
-      } else {
+        if (data?.errors && data.errors.length > 0) {
+          setUploadStatus("error");
+          setBackendErrors(Array.isArray(data.errors) ? data.errors : []);
+          setUploadMsg(`Some rows failed to upload. ${data.added || 0} added, ${data.errors.length} error${data.errors.length === 1 ? '' : 's'}. See errors below.`);
+        } else {
         setUploadStatus("success");
         setUploadMsg(`✅ Successfully uploaded ${data.added} players!`);
         notifyPlayersUploaded(data.added);
@@ -271,10 +271,12 @@ export default function OnboardingEvent() {
     } catch (error) {
       setUploadStatus("error");
       const backendDetail = error.response?.data;
-      if (backendDetail?.errors) {
+      if (Array.isArray(backendDetail?.errors)) {
         setBackendErrors(backendDetail.errors);
+        setUploadMsg(`Failed to upload players. ${backendDetail.errors.length} error${backendDetail.errors.length === 1 ? '' : 's'}. See errors below.`);
+      } else {
+        setUploadMsg(error.response?.data?.detail || "Failed to upload players. Please try again.");
       }
-      setUploadMsg(error.response?.data?.detail || "Failed to upload players. Please try again.");
       notifyError(error.response?.data?.detail || "Upload failed");
     }
   };
