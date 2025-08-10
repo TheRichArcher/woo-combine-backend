@@ -6,8 +6,22 @@ import LoadingScreen from '../components/LoadingScreen';
 export default function RequireAuth({ children }) {
   const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
-  
-  if (initializing || !authChecked || !roleChecked) {
+
+  const isSelectRole = location.pathname === '/select-role';
+
+  // Allow the role selection page to render as soon as auth is checked,
+  // without waiting on roleChecked (which would be false for new users).
+  if (!isSelectRole && (initializing || !authChecked || !roleChecked)) {
+    return (
+      <LoadingScreen 
+        title="Setting up your account..."
+        subtitle="Almost there..."
+        size="large"
+        showProgress={true}
+      />
+    );
+  }
+  if (isSelectRole && (initializing || !authChecked)) {
     return (
       <LoadingScreen 
         title="Setting up your account..."

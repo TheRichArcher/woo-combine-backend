@@ -583,7 +583,10 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
-      {initializing && <LoadingScreen size="large" />}
+      {/* Avoid overlaying a second LoadingScreen when RequireAuth is handling it */}
+      {!window.location.pathname.startsWith('/select-role') && initializing && (
+        <LoadingScreen size="large" />
+      )}
     </AuthContext.Provider>
   );
 }
