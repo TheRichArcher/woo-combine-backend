@@ -63,15 +63,20 @@ async def standard_error_handler(request: Request, exc: StandardError):
     return JSONResponse(status_code=he.status_code, content={"detail": he.detail})
 
 # CORS configuration
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else []
-allowed_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX")
+# Robust parsing that treats empty env vars as not provided
+_allowed_origins_raw = os.getenv("ALLOWED_ORIGINS", "")
+_allowed_origin_regex_raw = os.getenv("ALLOWED_ORIGIN_REGEX", "")
+
+allowed_origins = [o.strip() for o in _allowed_origins_raw.split(",") if o.strip()] if _allowed_origins_raw else []
+allowed_origin_regex = _allowed_origin_regex_raw.strip() or None
+
 if not allowed_origins:
     # Safe defaults for local/dev
     allowed_origins = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ]
-    # Also allow production domain by default via regex if env not provided
+    # Also allow production domain by default via regex if env not provided or empty
     if not allowed_origin_regex:
         allowed_origin_regex = r"^https://(www\.)?woo-combine\.com$"
 
