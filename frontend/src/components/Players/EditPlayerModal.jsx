@@ -115,7 +115,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
               value={formData.age_group}
               onChange={(e) => handleInputChange('age_group', e.target.value)}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-              placeholder="e.g., 6U, U8, 7-8, 9-10 years old"
+              placeholder="e.g., A, B, C, 6U, U8, 7-8, 9-10 years old"
             />
             <datalist id="age-group-suggestions">
               {existingAgeGroups.map(ageGroup => (
@@ -126,7 +126,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
               ))}
             </datalist>
             <p className="text-xs text-gray-500 mt-1">
-              Type any format your league uses (6U, U8, 7-8 years old, etc.)
+              Type any format your league uses (A, B, C, 6U, U8, 7-8 years old, etc.)
             </p>
           </div>
 

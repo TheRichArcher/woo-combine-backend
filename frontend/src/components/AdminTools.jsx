@@ -616,7 +616,7 @@ export default function AdminTools() {
                       value={manualPlayer.age_group}
                       onChange={handleManualChange}
                       className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                      placeholder="e.g., 6U, 7-8, U10"
+                      placeholder="e.g., A, B, C, 6U, 7-8, U10"
                     />
                   </div>
                 </div>

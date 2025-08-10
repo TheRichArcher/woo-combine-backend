@@ -515,7 +515,7 @@ export default function OnboardingEvent() {
                     />
                     <input
                       type="text"
-                      placeholder="Age Group (e.g., U12, 9-10)"
+                      placeholder="Age Group (e.g., A, B, C, U12, 9-10)"
                       value={manualPlayer.age_group}
                       onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))}
                       className="w-full border border-gray-300 rounded px-3 py-2 text-sm"

@@ -184,7 +184,7 @@ const AddPlayerModal = React.memo(function AddPlayerModal({ allPlayers, onClose,
                 type="text"
                 value={formData.age_group}
                 onChange={(e) => handleInputChange('age_group', e.target.value)}
-                placeholder="e.g., 6U, 7-8, U10"
+                placeholder="e.g., A, B, C, 6U, 7-8, U10"
                 disabled={saving}
               />
               <datalist id="age-groups">

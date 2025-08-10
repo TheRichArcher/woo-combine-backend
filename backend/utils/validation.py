@@ -123,15 +123,23 @@ def validate_user_role(role: str) -> str:
     return role
 
 def validate_age_group(age_group: str) -> str:
-    """Validate age group format"""
+    """Validate age group format.
+    Historically we restricted to numeric ranges and U-formats. We now accept any
+    non-empty string (including letters like A, B, C) to support arbitrary groupings.
+    We attempt to canonicalize known numeric forms, but otherwise return the raw value.
+    """
     if not age_group or not isinstance(age_group, str):
         raise ValidationError("Age group is required")
     
     age_group = age_group.strip()
-    # Keep legacy regex for general validation, then enforce allowed list canonicalization
-    if not PATTERNS['age_group'].match(age_group):
-        raise ValidationError("Invalid age group format. Examples: 7-8, 9-10, U12, 12U")
-    return canonicalize_age_group(age_group)
+    if age_group == "":
+        raise ValidationError("Age group is required")
+    
+    # Try canonicalizing known patterns; fall back to raw
+    try:
+        return canonicalize_age_group(age_group)
+    except ValidationError:
+        return age_group
 
 def validate_drill_score(score: float, drill_type: str) -> float:
     """Validate drill score is within valid range for the drill type"""
