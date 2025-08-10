@@ -158,17 +158,15 @@ export function validateHeaders(headers, mappingType = 'header-based') {
   const errors = [];
   
   if (mappingType === 'header-based') {
-    // Traditional header validation
-    const missingHeaders = REQUIRED_HEADERS.filter(required => 
-      !headers.some(header => header.toLowerCase().trim() === required.toLowerCase())
-    );
-    
-    if (missingHeaders.length > 0) {
-      errors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
+    // Relaxed validation: require only first and last name; jersey_number and age_group optional
+    const normalized = headers.map(h => h.toLowerCase().trim());
+    const mustHave = ['first_name', 'last_name'];
+    const missing = mustHave.filter(req => !normalized.includes(req));
+    if (missing.length > 0) {
+      errors.push(`Missing required headers: ${missing.join(', ')}. Headers must include at least: first_name, last_name (optional: jersey_number, age_group)`);
     }
   } else if (mappingType === 'positional-based') {
-    // Positional validation - no header errors since we're using position mapping
-    // This is intentionally empty since positional mapping doesn't require specific headers
+    // Positional validation - no header errors
   }
   
   return errors;
