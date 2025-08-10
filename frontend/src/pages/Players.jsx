@@ -445,11 +445,16 @@ export default function Players() {
           
           {/* Primary Action - Most users want this next */}
           {(userRole === 'organizer' || userRole === 'coach') && (
-            <div className="mb-4">
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Button as={Link} to="/live-entry" variant="success" size="lg" className="w-full flex items-center justify-center gap-3">
-                🚀 Start Recording Drill Results <ArrowRight className="w-5 h-5" />
+                🚀 Live Entry
               </Button>
-              <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
+              <Button as={Link} to="/team-formation" size="lg" className="w-full flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white">
+                🧩 Create Teams
+              </Button>
+              <Button as={Link} to="/scorecards" size="lg" className="w-full flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-700 text-white">
+                📝 Player Scorecards
+              </Button>
             </div>
           )}
           

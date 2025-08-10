@@ -13,7 +13,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode } from 'lucide-react';
+import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench } from 'lucide-react';
 
 // Notification settings helper
 const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
@@ -304,6 +304,7 @@ export default function Navigation() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [eventDropdownOpen, setEventDropdownOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
   const logout = useLogout();
   const navigate = useNavigate();
 
@@ -405,6 +406,22 @@ export default function Navigation() {
               Schedule
             </Link>
 
+            {/* Make advanced tools first-class: Scorecards for all, Teams for staff */}
+            <Link 
+              to="/scorecards" 
+              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+            >
+              Scorecards
+            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/team-formation" 
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                Teams
+              </Link>
+            )}
+
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
@@ -413,6 +430,38 @@ export default function Navigation() {
                 Admin
               </Link>
             )}
+
+            {/* Tools dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setToolsOpen(prev => !prev)}
+                className="flex items-center gap-1 text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm px-2 py-1 rounded-lg hover:bg-gray-50"
+                aria-haspopup="menu"
+                aria-expanded={toolsOpen}
+              >
+                <Wrench className="w-4 h-4" />
+                Tools
+                <ChevronDown className="w-4 h-4" />
+              </button>
+              {toolsOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50" role="menu">
+                  <Link to="/live-standings" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                    Live Standings
+                  </Link>
+                  <Link to="/sport-templates" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                    Sport Templates
+                  </Link>
+                  <Link to="/evaluators" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                    Team Evaluations
+                  </Link>
+                  {userRole === 'organizer' && (
+                    <Link to="/event-sharing" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                      Event Sharing
+                    </Link>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right: Settings & Mobile Menu */}
@@ -497,6 +546,22 @@ export default function Navigation() {
             >
               Schedule
             </Link>
+            <Link 
+              to="/scorecards" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Scorecards
+            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/team-formation" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={closeMobile}
+              >
+                Teams
+              </Link>
+            )}
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
@@ -513,6 +578,38 @@ export default function Navigation() {
             >
               Switch Event
             </Link>
+            {/* Tools group on mobile */}
+            <div className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase">Tools</div>
+            <Link 
+              to="/live-standings" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Live Standings
+            </Link>
+            <Link 
+              to="/sport-templates" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Sport Templates
+            </Link>
+            <Link 
+              to="/evaluators" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Team Evaluations
+            </Link>
+            {userRole === 'organizer' && (
+              <Link 
+                to="/event-sharing" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={closeMobile}
+              >
+                Event Sharing
+              </Link>
+            )}
             <button
               onClick={() => {
                 closeMobile();

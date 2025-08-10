@@ -135,7 +135,7 @@ export default function Home() {
             </div>
           )}
           
-          {/* Quick Actions - Mojo Style Large Buttons */}
+          {/* Quick Actions - clearer access to advanced tools */}
           <div className="grid grid-cols-1 gap-3">
             {userRole === 'organizer' && (
               <>
@@ -164,16 +164,47 @@ export default function Home() {
                     Import Players
                   </button>
                 </div>
+                {/* Promote Teams and Scorecards */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleNavigation('/team-formation')}
+                    className="bg-purple-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                  >
+                    Create Teams
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/scorecards')}
+                    className="bg-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-orange-700 transition flex items-center justify-center gap-2"
+                  >
+                    Player Scorecards
+                  </button>
+                </div>
               </>
             )}
             {userRole === 'coach' && (
-              <button
-                onClick={() => handleNavigation('/players')}
-                className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
-              >
-                <Users className="w-6 h-6" />
-                View Players & Rankings
-              </button>
+              <>
+                <button
+                  onClick={() => handleNavigation('/players')}
+                  className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
+                >
+                  <Users className="w-6 h-6" />
+                  View Players & Rankings
+                </button>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleNavigation('/team-formation')}
+                    className="bg-purple-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                  >
+                    Create Teams
+                  </button>
+                  <button
+                    onClick={() => handleNavigation('/scorecards')}
+                    className="bg-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-orange-700 transition flex items-center justify-center gap-2"
+                  >
+                    Player Scorecards
+                  </button>
+                </div>
+              </>
             )}
             {userRole === 'viewer' && (
               <button
