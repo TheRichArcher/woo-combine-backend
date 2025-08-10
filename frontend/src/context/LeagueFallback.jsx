@@ -69,6 +69,7 @@ export default function LeagueFallback() {
       contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
+      backgroundColor="bg-surface-subtle"
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-4">
         {/* Logo */}

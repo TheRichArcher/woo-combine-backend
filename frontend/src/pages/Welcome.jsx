@@ -23,6 +23,7 @@ export default function Welcome() {
       contentClassName="min-h-[70vh]"
       hideHeader={true}
       showOverlay={false}
+      backgroundColor="bg-surface-subtle"
       footerLinks={(
         <div className="flex flex-col sm:flex-row gap-2 text-white/80 text-sm">
           <RouterLink to="/terms" className="hover:underline">Terms</RouterLink>

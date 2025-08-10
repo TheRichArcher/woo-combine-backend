@@ -21,12 +21,13 @@ export default function WelcomeLayout({
   backgroundColor, 
   contentClassName, 
   hideHeader, 
-  showOverlay = true, 
+  showOverlay = false, 
   useBackgroundVideo = false,
   backgroundVideoUrl 
 }) {
-  // Default background styling
-  const defaultBackground = backgroundColor || "bg-gradient-to-br from-brand-primary/80 via-brand-primary/60 to-brand-primary/50";
+  // Default background styling: use light surface background everywhere for consistency
+  const defaultBackground = backgroundColor || "bg-surface-subtle";
+  const isLightBackground = defaultBackground.includes('surface') || defaultBackground.includes('white') || defaultBackground.includes('gray') || !showOverlay;
   
   return (
     <div className={`min-h-screen flex flex-col ${useBackgroundVideo ? "bg-black" : defaultBackground} relative overflow-hidden`}>
@@ -47,7 +48,7 @@ export default function WelcomeLayout({
       
       {!hideHeader && (
         <header className="absolute top-0 left-0 p-6 z-10">
-          <Logo className="text-white drop-shadow-lg" />
+          <Logo className={isLightBackground ? "text-brand-primary" : "text-white drop-shadow-lg"} />
         </header>
       )}
       <main className={`flex flex-1 flex-col justify-center items-center px-4 relative z-10 ${contentClassName || ""}`}>

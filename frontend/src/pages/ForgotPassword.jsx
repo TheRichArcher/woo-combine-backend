@@ -17,6 +17,7 @@ export default function ForgotPassword() {
       contentClassName="min-h-[70vh]"
       hideHeader={true}
       showOverlay={false}
+      backgroundColor="bg-surface-subtle"
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 sm:p-10 flex flex-col items-center">
         <ForgotPasswordForm />

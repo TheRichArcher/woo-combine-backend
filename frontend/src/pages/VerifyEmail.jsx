@@ -233,7 +233,7 @@ export default function VerifyEmail() {
   };
 
   return (
-    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false} backgroundColor="bg-surface-subtle">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl mx-4 flex flex-col relative min-h-[600px]">
         {/* Header Row: Back + Help */}
         <div className="w-full flex flex-row justify-between items-center p-6 pb-2">

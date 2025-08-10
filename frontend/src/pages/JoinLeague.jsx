@@ -86,6 +86,7 @@ export default function JoinLeague() {
       contentClassName="min-h-[70vh]"
       hideHeader={true}
       showOverlay={false}
+      backgroundColor="bg-surface-subtle"
     >
       {/* Floating QR Scan Button */}
       <button
