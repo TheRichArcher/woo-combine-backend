@@ -84,9 +84,10 @@ export function AuthProvider({ children }) {
       // Parallel warmup requests for maximum efficiency
       const warmupPromises = [apiWarmup().catch(() => null), apiHealth().catch(() => null)];
       
+      // Allow more time for cold starts on the backend (Render cold boot, Firestore init)
       await Promise.race([
         Promise.allSettled(warmupPromises),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 2000)) // Reduced to 2s
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 6000))
       ]);
       
       const warmupTime = performance.now() - warmupStart;
@@ -119,7 +120,8 @@ export function AuthProvider({ children }) {
     try {
       const token = await firebaseUser.getIdToken(false);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
+      // Increase to 10s to avoid canceling legitimate responses on cold starts
+      const timeout = setTimeout(() => controller.abort(), 10000);
       const response = await api.get(`/leagues/me`, { signal: controller.signal }).catch((e) => { throw e; });
       clearTimeout(timeout);
 
