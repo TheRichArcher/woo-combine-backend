@@ -1,31 +1,34 @@
 import logging
 from fastapi import HTTPException
+import concurrent.futures
 
-def execute_with_timeout(func, timeout=10, operation_name="database operation", *args, **kwargs):
+def execute_with_timeout(func, timeout=5, operation_name="database operation", *args, **kwargs):
     """
-    Execute a database function with error handling.
-    
-    Note: ThreadPoolExecutor removed as it was causing delays in cold starts.
-    For Firestore operations, direct execution is much faster.
-    
+    Execute a potentially-blocking function with a hard timeout. Designed to
+    protect cold-start sequences from hanging on first Firestore calls.
+
     Args:
-        func: Function to execute
-        timeout: Timeout in seconds (unused now, kept for API compatibility)
-        operation_name: Description for error logging
-        *args, **kwargs: Arguments to pass to func
-        
+        func: Callable to execute
+        timeout: Max seconds to wait
+        operation_name: For logs and error messages
+        *args, **kwargs: Forwarded to func
+
     Returns:
-        Result of func execution
-        
+        The function's return value
+
     Raises:
-        HTTPException: On execution failure
+        HTTPException 504 on timeout, 500 on other failures
     """
     try:
-        # Direct execution - much faster than ThreadPoolExecutor for Firestore ops
-        return func(*args, **kwargs)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(func, *args, **kwargs)
+            try:
+                return future.result(timeout=timeout)
+            except concurrent.futures.TimeoutError:
+                logging.warning(f"{operation_name} timed out after {timeout}s")
+                raise HTTPException(status_code=504, detail=f"{operation_name} timed out")
+    except HTTPException:
+        raise
     except Exception as e:
-        logging.error(f"{operation_name} failed: {func.__name__} - {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"{operation_name} failed: {str(e)}"
-        ) 
+        logging.error(f"{operation_name} failed: {getattr(func, '__name__', 'callable')} - {str(e)}")
+        raise HTTPException(status_code=500, detail=f"{operation_name} failed: {str(e)}")

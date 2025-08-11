@@ -132,12 +132,28 @@ def health_check(request: Request):
     try:
         # Test Firestore connection
         firestore_client = get_firestore_lazy()
+        firestore_status = "unavailable"
         if firestore_client:
-            # Test a simple read operation
-            test_doc = firestore_client.collection("_health").document("test").get()
-            firestore_status = "connected"
-        else:
-            firestore_status = "unavailable"
+            try:
+                from .utils.database import execute_with_timeout
+                test_doc = execute_with_timeout(
+                    lambda: firestore_client.collection("_health").document("test").get(),
+                    timeout=3,
+                    operation_name="health firestore check"
+                )
+                firestore_status = "connected"
+            except HTTPException as he:
+                if he.status_code == 504:
+                    # Warming up: return fast with Retry-After so clients back off quickly
+                    resp = JSONResponse({
+                        "status": "warming",
+                        "firestore": "initializing",
+                        "timestamp": datetime.now().isoformat(),
+                        "version": "1.0.2"
+                    }, status_code=503)
+                    resp.headers["Retry-After"] = "5"
+                    return resp
+                raise
     except Exception as e:
         firestore_status = f"error: {str(e)}"
     

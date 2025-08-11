@@ -24,8 +24,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
         logging.info(f"🚀 Checking user_memberships for user {user_id}")
         
         user_memberships_ref = db.collection('user_memberships').document(user_id)
-        # PERFORMANCE: Direct Firestore call without timeout wrapper overhead
-        user_doc = user_memberships_ref.get()
+        user_doc = execute_with_timeout(user_memberships_ref.get, timeout=5, operation_name="user_memberships lookup")
         
         if user_doc.exists and user_doc.to_dict().get('leagues'):
             # NEW SYSTEM: Fast lookup path
@@ -40,7 +39,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
                 # Use batch get for maximum efficiency
                 league_refs = [db.collection('leagues').document(league_id) for league_id in league_ids]
                 # PERFORMANCE: Direct batch get without timeout wrapper overhead
-                league_docs = db.get_all(league_refs)
+                league_docs = execute_with_timeout(lambda: db.get_all(league_refs), timeout=8, operation_name="batch league get")
                 
                 user_leagues = []
                 for league_doc in league_docs:
@@ -66,9 +65,8 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
         logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
         
         # Reduced limit for faster cold start response
-        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(5)  # Reduced from 10 to 5
-        # PERFORMANCE: Direct query without timeout wrapper overhead
-        all_leagues = list(leagues_query.stream())
+        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(5)
+        all_leagues = execute_with_timeout(lambda: list(leagues_query.stream()), timeout=8, operation_name="leagues stream")
         
         # Check membership in each league (old way) with longer timeouts
         user_leagues = []
@@ -79,8 +77,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
             
             try:
                 member_ref = db.collection('leagues').document(league_id).collection('members').document(user_id)
-                # PERFORMANCE: Direct member lookup without timeout wrapper overhead
-                member_doc = member_ref.get()
+                member_doc = execute_with_timeout(member_ref.get, timeout=5, operation_name="member lookup")
                 
                 if member_doc.exists:
                     # Found membership - prepare for migration
@@ -114,10 +111,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
         if migration_data:
             try:
                 migration_doc = {"leagues": migration_data}
-                execute_with_timeout(
-                    lambda: user_memberships_ref.set(migration_doc),
-                    timeout=5  # Reasonable timeout for migration
-                )
+                execute_with_timeout(lambda: user_memberships_ref.set(migration_doc), timeout=6, operation_name="user_memberships migrate")
                 logging.info(f"✅ Migrated {len(migration_data)} leagues to new system for user {user_id}")
             except Exception as e:
                 logging.error(f"⚠️ Migration failed (non-critical): {str(e)}")
