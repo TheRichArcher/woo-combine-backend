@@ -4,11 +4,11 @@ This document defines the canonical data contracts enforced across the system (b
 
 ### 1) Player CSV Import
 
-- **Required columns**: `first_name`, `last_name`, `jersey_number`
+- **Required columns**: `first_name`, `last_name`, `jersey_number`, `age_group`
 - **Optional columns**: `external_id`, `team_name`, `position`, `notes`
 
 Import rules:
-- **Age group** (optional). When provided, allowed values (case-insensitive on import, stored canonicalized):
+- **Age group allowed values** (exact string, case-insensitive accepted on import, stored canonicalized):
   - Range forms: `5-6`, `7-8`, `9-10`, `11-12`, `13-14`, `15-16`, `17-18`
   - U-forms: `6U`, `8U`, `10U`, `12U`, `14U`, `16U`, `18U`
 - **Jersey number**: integer 1–9999

@@ -256,8 +256,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
         event_id = req.event_id
         players = req.players
-        # CSV contract: require first_name, last_name, jersey_number; age_group is optional
-        required_fields = ["first_name", "last_name", "jersey_number"]
+        # New CSV contract: require first_name, last_name, jersey_number, age_group; optional fields are allowed
+        required_fields = ["first_name", "last_name", "jersey_number", "age_group"]
         drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
         errors = []
         added = 0
@@ -314,12 +314,11 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append("jersey_number must be between 1 and 9999")
             except Exception:
                 row_errors.append("Invalid jersey_number (must be numeric)")
-            # Age group: optional; accept any non-empty string (letters like A, B, C, etc.)
-            # No validation errors should be raised for arbitrary values.
-            # We still trim whitespace but otherwise allow-through.
-            age_group_val = player.get("age_group")
-            if age_group_val not in (None, ""):
-                age_group_val = str(age_group_val).strip()
+            # Age group: enforce allowed list
+            try:
+                _ = validate_age_group(str(player.get("age_group") or ""))
+            except Exception as ve:
+                row_errors.append(str(ve))
             # More flexible drill validation - only validate non-empty values
             for drill in drill_fields:
                 val = player.get(drill, "")
@@ -382,15 +381,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             player_doc = db.collection("events").document(event_id).collection("players").document()
             
             # Prepare player data with drill scores and canonical fields
-            # For age_group, try to canonicalize known formats, but fall back to raw string for arbitrary inputs
-            canonical_age = None
-            if player.get("age_group"):
-                raw_age = str(player.get("age_group") or "").strip()
-                try:
-                    canonical_age = canonicalize_age_group(raw_age)
-                except Exception:
-                    # Allow any value (e.g., "A", "B", custom labels); store as provided
-                    canonical_age = raw_age
+            canonical_age = canonicalize_age_group(str(player.get("age_group") or "")) if player.get("age_group") else None
             first_name = (player.get("first_name") or "").strip()
             last_name = (player.get("last_name") or "").strip()
             full_name = f"{first_name} {last_name}".strip()
@@ -553,9 +544,7 @@ def get_rankings(
 # Admin functionality is handled by the frontend /admin route.
 
 @router.get('/leagues/{league_id}/players')
-@read_rate_limit()
 def list_players(
-    request: Request,
     league_id: str,
     page: Optional[int] = Query(None, ge=1),
     limit: Optional[int] = Query(None, ge=1, le=500),
@@ -605,7 +594,6 @@ def add_player(request: Request, league_id: str, req: dict, current_user=Depends
         raise HTTPException(status_code=500, detail="Failed to add player")
 
 @router.get('/leagues/{league_id}/players/{player_id}/drill_results')
-@read_rate_limit()
 def list_drill_results(request: Request, league_id: str, player_id: str, current_user=Depends(get_current_user)):
     try:
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")

@@ -4,7 +4,6 @@ import os
 import json
 import logging
 import time
-from .middleware.observability import record_firestore_call
 
 # Singleton Firestore client to prevent multiple connections
 _firestore_client = None
@@ -70,52 +69,4 @@ class _FirestoreDB:
         client = get_firestore_client()
         return getattr(client, name)
 
-    # Wrap common operations to measure latency for APM metrics
-    def collection(self, *args, **kwargs):
-        client = get_firestore_client()
-        return _InstrumentedCollectionReference(getattr(client, "collection")(*args, **kwargs))
-
 db = _FirestoreDB() 
-
-
-class _InstrumentedCollectionReference:
-    def __init__(self, inner):
-        self._inner = inner
-
-    def __getattr__(self, name):
-        return getattr(self._inner, name)
-
-    def document(self, *args, **kwargs):
-        return _InstrumentedDocumentReference(self._inner.document(*args, **kwargs))
-
-
-class _InstrumentedDocumentReference:
-    def __init__(self, inner):
-        self._inner = inner
-
-    def __getattr__(self, name):
-        return getattr(self._inner, name)
-
-    def get(self, *args, **kwargs):
-        start = time.perf_counter()
-        try:
-            return self._inner.get(*args, **kwargs)
-        finally:
-            duration_ms = (time.perf_counter() - start) * 1000.0
-            record_firestore_call(duration_ms)
-
-    def set(self, *args, **kwargs):
-        start = time.perf_counter()
-        try:
-            return self._inner.set(*args, **kwargs)
-        finally:
-            duration_ms = (time.perf_counter() - start) * 1000.0
-            record_firestore_call(duration_ms)
-
-    def update(self, *args, **kwargs):
-        start = time.perf_counter()
-        try:
-            return self._inner.update(*args, **kwargs)
-        finally:
-            duration_ms = (time.perf_counter() - start) * 1000.0
-            record_firestore_call(duration_ms)

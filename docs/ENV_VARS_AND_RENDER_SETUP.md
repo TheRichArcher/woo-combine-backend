@@ -105,14 +105,6 @@ This document lists all environment variables required across backend and fronte
   - Staging: `INFO`
   - Prod: `INFO`
 
-- **Sentry (Observability)**
-  - **BACKEND_SENTRY_DSN**: Sentry DSN for backend (set per environment)
-  - **SENTRY_ENVIRONMENT**: environment label (e.g., `staging`, `production`)
-  - **SENTRY_TRACES_SAMPLE_RATE**: tracing sample rate (e.g., `0.2`)
-  - **SENTRY_PROFILES_SAMPLE_RATE**: profiling sample rate (e.g., `0.0`)
-  - **RELEASE**: release identifier (e.g., `backend@1.0.0`)
-  - **GIT_COMMIT**: commit SHA for release tagging
-
 - Optional Firebase identifiers (for logging/debug in startup):
   - **GOOGLE_CLOUD_PROJECT**: project id (dev/staging/prod)
   - **FIREBASE_PROJECT_ID**: project id (dev/staging/prod)
@@ -161,15 +153,6 @@ This document lists all environment variables required across backend and fronte
 
 - Optional
   - **VITE_LOG_LEVEL** (used by `logger.js`): Dev `DEBUG`, Staging/Prod `INFO`
-  
-- **Sentry (Observability)**
-  - **VITE_SENTRY_DSN**: Sentry DSN for frontend (set per environment)
-  - **VITE_SENTRY_ENVIRONMENT**: environment label
-  - **VITE_SENTRY_TRACES_SAMPLE_RATE**: tracing sample rate
-  - **VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE**: replay session sample rate
-  - **VITE_SENTRY_REPLAY_ERROR_SAMPLE_RATE**: replay on error sample rate
-  - **VITE_RELEASE**: release identifier (e.g., `frontend@1.0.0`)
-  - **VITE_GIT_COMMIT**: commit SHA for release tagging
 
 ---
 

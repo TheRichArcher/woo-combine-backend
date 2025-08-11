@@ -18,9 +18,6 @@ Version: 1.0.2
 - GET `/api/health` → Firestore check. Category: health.
 - GET `/api/warmup` → primes Firestore/Auth/routes. Category: health.
 
-Auth header requirement:
-- `Authorization: Bearer <Firebase ID token>` is required for all `/api/**` routes except the explicit health and warmup endpoints above. Debug endpoints are disabled by default unless an enabling env var is set.
-
 ### Users
 - GET `/api/users/me`
   - Auth: bearer required

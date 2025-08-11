@@ -10,8 +10,6 @@ from ..auth import get_current_user
 from ..middleware.rate_limiting import auth_rate_limit, user_rate_limit
 from ..firestore_client import get_firestore_client
 import os
-from ..middleware.observability import set_user_id_for_request
-from ..utils.data_cache import cache_with_metrics
 
 router = APIRouter(prefix="/users")
 
@@ -19,7 +17,7 @@ class SetRoleRequest(BaseModel):
     role: str
 
 # PERFORMANCE OPTIMIZATION: Cache user profiles for 5 minutes to reduce database calls
-@cache_with_metrics(maxsize=1000)
+@lru_cache(maxsize=1000)
 def _get_cached_user_profile(uid: str, cache_time: int):
     """Cache user profiles using 5-minute time buckets for automatic invalidation"""
     try:
@@ -39,8 +37,6 @@ def _get_cached_user_profile(uid: str, cache_time: int):
 async def get_current_user_profile(request: Request, current_user: dict = Depends(get_current_user)):
     """Get the current user's profile information with caching"""
     try:
-        # Add user hash context for structured logging
-        set_user_id_for_request(current_user.get("uid"))
         uid = current_user["uid"]
         email = current_user.get("email", "")
         role = current_user.get("role")
