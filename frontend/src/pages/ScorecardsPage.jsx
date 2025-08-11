@@ -10,13 +10,13 @@ import {
   getDefaultWeightsFromTemplate,
   getDrillsFromTemplate 
 } from '../constants/drillTemplates';
-import { FileText, Users, Search, Award, AlertTriangle } from 'lucide-react';
+import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
-  const { user, selectedLeagueId } = useAuth();
+  const { user, selectedLeagueId, userRole } = useAuth();
   const { showError } = useToast();
   
   const [players, setPlayers] = useState([]);
@@ -153,6 +153,40 @@ const ScorecardsPage = () => {
                 {playersWithScores.length} players available for scorecard generation
               </p>
             </div>
+          </div>
+
+          {/* Quick Navigation */}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link to="/players" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Users className="w-3.5 h-3.5" /> Players
+            </Link>
+            <Link to="/live-entry" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Zap className="w-3.5 h-3.5" /> Live Entry
+            </Link>
+            <Link to="/live-standings" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <BarChart3 className="w-3.5 h-3.5" /> Live Standings
+            </Link>
+            <Link to="/evaluators" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Wrench className="w-3.5 h-3.5" /> Team Evaluations
+            </Link>
+            <Link to="/sport-templates" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Grid2x2 className="w-3.5 h-3.5" /> Sport Templates
+            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link to="/team-formation" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                <Users className="w-3.5 h-3.5" /> Teams
+              </Link>
+            )}
+            {userRole === 'organizer' && (
+              <>
+                <Link to="/event-sharing" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                  <QrCode className="w-3.5 h-3.5" /> Event Sharing
+                </Link>
+                <Link to="/admin" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                  <Wrench className="w-3.5 h-3.5" /> Admin
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
