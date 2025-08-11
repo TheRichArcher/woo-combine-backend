@@ -207,30 +207,27 @@ export default function LiveStandings() {
             ))}
           </div>
 
-          {/* Weight Sliders */}
-          <div className="space-y-3">
-            {DRILLS.map((drill) => (
-              <div key={drill.key} className="flex items-center justify-between">
-                <div className="flex-1">
-                  <label className="text-sm font-medium text-gray-700">{drill.label}</label>
-                  <div className="text-xs text-gray-500">{drill.unit}</div>
-                </div>
-                <div className="flex items-center gap-3">
+          {/* Compact Sliders (match Players page style) */}
+          <div className="bg-gray-50 rounded p-2">
+            <div className="grid grid-cols-5 gap-2 text-xs">
+              {DRILLS.map((drill) => (
+                <div key={drill.key} className="text-center">
+                  <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    step={1}
+                    step={5}
                     value={weights[drill.key] || 0}
                     onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
-                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-1 rounded cursor-pointer accent-blue-600"
                   />
-                  <span className="text-sm font-mono text-blue-600 bg-blue-100 px-2 py-1 rounded min-w-[40px] text-center">
-                    {weights[drill.key] || 0}%
-                  </span>
+                  <div className="font-mono font-bold text-xs mt-1">
+                    {(weights[drill.key] || 0).toFixed(0)}%
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
