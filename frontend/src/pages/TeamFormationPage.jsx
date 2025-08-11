@@ -171,41 +171,59 @@ const TeamFormationPage = () => {
   const currentDrills = getDrillsFromTemplate(drillTemplate);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Users className="w-8 h-8 text-blue-600" />
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Team Formation</h1>
-                <p className="text-gray-600">
-                  Create balanced teams for <span className="font-medium">{selectedEvent.name}</span>
-                </p>
-                <p className="text-sm text-gray-500">
-                  Using {template?.name || 'Football'} template • {playersWithScores.length} players with scores
-                </p>
-              </div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Uniform header to match Live Standings */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">Team Formation</h1>
+              <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
-            
+          </div>
+          <div className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">Teams</div>
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="font-semibold text-gray-900">Quick Actions</h2>
+              <p className="text-xs text-gray-500">Using {template?.name || 'Football'} template • {playersWithScores.length} players with scores</p>
+            </div>
             <button
               onClick={() => setShowWeightControls(!showWeightControls)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                showWeightControls 
-                  ? 'bg-blue-50 border-blue-200 text-blue-700' 
-                  : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs transition-colors ${
+                showWeightControls ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
               }`}
             >
               <Settings className="w-4 h-4" />
               Weight Settings
             </button>
           </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              to="/live-entry"
+              className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition"
+            >
+              <Target className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-900">Continue Recording</span>
+            </Link>
+            <Link
+              to="/players"
+              className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
+            >
+              <Users className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Full Player View</span>
+            </Link>
+          </div>
         </div>
 
         {/* Weight Controls */}
         {showWeightControls && (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Drill Weight Configuration</h3>
             <p className="text-sm text-gray-600 mb-4">
               Adjust the importance of each drill in team formation calculations
