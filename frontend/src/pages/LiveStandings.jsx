@@ -9,6 +9,7 @@ import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
+import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -17,15 +18,13 @@ export default function LiveStandings() {
   
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [weights, setWeights] = useState(() => {
-    // Default balanced weights
-    const defaultWeights = {};
-    DRILLS.forEach(drill => {
-      defaultWeights[drill.key] = 20; // Equal 20% weighting
-    });
-    return defaultWeights;
-  });
-  const [activePreset, setActivePreset] = useState('balanced');
+  // Use the same optimized weight management as Players page
+  const {
+    sliderWeights,
+    handleWeightChange,
+    applyPreset,
+    activePreset
+  } = useOptimizedWeights(players);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
 
@@ -73,29 +72,12 @@ export default function LiveStandings() {
 
   const liveRankings = useMemo(() => {
     if (!filteredPlayers.length) return [];
+    const weights = sliderWeights;
     const source = normalizeAcrossAll && selectedAgeGroup === 'ALL'
       ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights)
       : calculateOptimizedRankings(filteredPlayers, weights);
     return source.filter(player => player.compositeScore > 0);
-  }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
-
-  // Handle weight changes
-  const handleWeightChange = (drillKey, value) => {
-    setWeights(prev => ({ ...prev, [drillKey]: value }));
-    setActivePreset(''); // Clear preset when manually adjusting
-  };
-
-  // Apply preset weights
-  const applyPreset = (presetKey) => {
-    if (WEIGHT_PRESETS[presetKey]) {
-      const newWeights = {};
-      Object.entries(WEIGHT_PRESETS[presetKey].weights).forEach(([key, value]) => {
-        newWeights[key] = value * 100; // Convert to percentage
-      });
-      setWeights(newWeights);
-      setActivePreset(presetKey);
-    }
-  };
+  }, [filteredPlayers, sliderWeights, normalizeAcrossAll, selectedAgeGroup]);
 
   if (!selectedEvent) {
     return (
@@ -217,12 +199,12 @@ export default function LiveStandings() {
                     min={0}
                     max={100}
                     step={5}
-                    value={weights[drill.key] || 0}
+                  value={sliderWeights[drill.key] || 0}
                     onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
                     className="w-full h-1 rounded cursor-pointer accent-white"
                   />
                   <div className="font-mono font-bold text-xs mt-1">
-                    {(weights[drill.key] || 0).toFixed(0)}%
+                    {(sliderWeights[drill.key] || 0).toFixed(0)}%
                   </div>
                 </div>
               ))}
