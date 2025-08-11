@@ -270,7 +270,7 @@ const SportTemplatesPage = React.memo(() => {
               </>
             )}
             {!showDetails && (
-              <div className="text-xs text-gray-500 text-center">More info is hidden. Tap "Show Details" above to expand.</div>
+              <div className="text-xs text-gray-500 text-center">More info is hidden. Tap Show Details above to expand.</div>
             )}
           </div>
         </div>

@@ -37,13 +37,19 @@ body {
     backdrop-filter: blur(4px);
   }
   .wc-h1 {
-    @apply text-2xl font-bold text-gray-900;
+    font-size: 1.5rem; /* 24px */
+    line-height: 2rem; /* 32px */
+    font-weight: 700;
+    color: #111827; /* gray-900 */
   }
   .wc-h2 {
-    @apply text-xl font-semibold text-gray-900;
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.75rem; /* 28px */
+    font-weight: 600;
+    color: #111827; /* gray-900 */
   }
   .wc-subtle {
-    @apply text-gray-600;
+    color: #4B5563; /* gray-600 */
   }
 }
 
