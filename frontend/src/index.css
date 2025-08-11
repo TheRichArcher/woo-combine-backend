@@ -32,10 +32,12 @@ body {
     border: 1px solid var(--color-border);
   }
   .wc-overlay {
-    @apply bg-white bg-opacity-70 backdrop-blur-sm;
+    background-color: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
   }
   .wc-h1 {
-    @apply text-2xl sm:text-3xl font-bold text-gray-900;
+    @apply text-2xl font-bold text-gray-900;
   }
   .wc-h2 {
     @apply text-xl font-semibold text-gray-900;
