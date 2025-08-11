@@ -137,91 +137,70 @@ const ScorecardsPage = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-7xl mx-auto">
-        
-        {/* Header */}
-        <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-6">
-          <div className="flex items-center gap-4">
-            <Award className="w-8 h-8 text-orange-600" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Uniform header to match Live Standings */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Player Scorecards</h1>
-              <p className="text-gray-600">
-                Generate professional performance reports for <span className="font-medium">{selectedEvent.name}</span>
-              </p>
-              <p className="text-sm text-gray-500">
-                {playersWithScores.length} players available for scorecard generation
-              </p>
+              <h1 className="text-lg font-bold text-gray-900">Player Scorecards</h1>
+              <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
           </div>
+          <div className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">Reports</div>
+        </div>
+      </div>
 
-          {/* Quick Navigation */}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Link to="/players" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-              <Users className="w-3.5 h-3.5" /> Players
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+        {/* Quick Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-gray-900">Quick Actions</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Link to="/live-entry" className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition">
+              <Zap className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
-            <Link to="/live-entry" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-              <Zap className="w-3.5 h-3.5" /> Live Entry
+            <Link to="/players" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
+              <Users className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">Full Player View</span>
             </Link>
-            <Link to="/live-standings" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-              <BarChart3 className="w-3.5 h-3.5" /> Live Standings
-            </Link>
-            <Link to="/evaluators" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-              <Wrench className="w-3.5 h-3.5" /> Team Evaluations
-            </Link>
-            <Link to="/sport-templates" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-              <Grid2x2 className="w-3.5 h-3.5" /> Sport Templates
-            </Link>
+          </div>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link to="/live-standings" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Live Standings</Link>
+            <Link to="/sport-templates" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Sport Templates</Link>
             {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link to="/team-formation" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-                <Users className="w-3.5 h-3.5" /> Teams
-              </Link>
-            )}
-            {userRole === 'organizer' && (
-              <>
-                <Link to="/event-sharing" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-                  <QrCode className="w-3.5 h-3.5" /> Event Sharing
-                </Link>
-                <Link to="/admin" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
-                  <Wrench className="w-3.5 h-3.5" /> Admin
-                </Link>
-              </>
+              <Link to="/team-formation" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Create Teams</Link>
             )}
           </div>
         </div>
 
+        {/* Body */}
         {playersWithScores.length === 0 ? (
-          /* No Players Warning */
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
             <div className="flex items-start gap-3">
               <AlertTriangle className="w-6 h-6 text-yellow-600 mt-0.5" />
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">No Players with Evaluation Scores</h3>
-                <p className="text-yellow-800 mb-3">
-                  Players need to have drill scores recorded before scorecards can be generated.
-                  Head to the Players page to record drill scores first.
-                </p>
-                <Link 
-                  to="/players" 
-                  className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                >
-                  <Users className="w-4 h-4" />
-                  Go to Players Page
+                <p className="text-yellow-800 mb-3">Players need to have drill scores recorded before scorecards can be generated.</p>
+                <Link to="/players" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                  <Users className="w-4 h-4" /> Go to Players Page
                 </Link>
               </div>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* Player Selection Panel */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Users className="w-5 h-5 text-blue-600" />
-                <h2 className="font-semibold text-gray-900">Select Player</h2>
+          <>
+            {/* Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <h2 className="font-semibold text-gray-900">Select Player</h2>
+                </div>
+                <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{playersWithScores.length} available</div>
               </div>
-              
-              {/* Search */}
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
@@ -233,84 +212,40 @@ const ScorecardsPage = () => {
                   aria-label="Search players by name, number, or age group"
                 />
               </div>
-              
-              {/* Player List (compact) */}
               <div className="space-y-1 max-h-[28rem] overflow-y-auto">
                 {playersWithScores.map((player) => (
                   <button
                     key={player.id}
                     onClick={() => setSelectedPlayer(player)}
-                    className={`w-full text-left p-2 rounded-md border transition-colors text-sm ${
-                      selectedPlayer?.id === player.id
-                        ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500'
-                        : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left p-2 rounded-md border transition-colors text-sm ${selectedPlayer?.id === player.id ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}
                     aria-pressed={selectedPlayer?.id === player.id}
-                    aria-label={`Select ${player.name} for scorecard generation`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900 text-sm">{player.name}</div>
-                        <div className="text-xs text-gray-600">
-                          #{player.number} • {player.age_group}
-                        </div>
+                        <div className="text-xs text-gray-600">#{player.number} • {player.age_group}</div>
                       </div>
                       <FileText className="w-3 h-3 text-gray-400 hidden md:block" />
                     </div>
                   </button>
                 ))}
               </div>
-              
               {filteredPlayers.length !== playersWithScores.length && (
                 <div className="mt-3 p-2 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-600">
-                    Showing {playersWithScores.length} of {filteredPlayers.length} players with evaluation scores
-                  </p>
+                  <p className="text-xs text-gray-600">Showing {playersWithScores.length} of {filteredPlayers.length} players with evaluation scores</p>
                 </div>
               )}
             </div>
-            
-            {/* Scorecard Generator */}
-            <div className="lg:col-span-2">
-              <PlayerScorecardGenerator
-                player={selectedPlayer}
-                allPlayers={players}
-                weights={weights}
-                selectedDrillTemplate={drillTemplate}
-              />
-            </div>
-          </div>
-        )}
 
-        {/* Benefits Section */}
-        <div className="mt-8 bg-gradient-to-r from-blue-50 to-green-50 rounded-xl border border-gray-200 p-6">
-          <div className="flex items-start gap-4">
-            <Award className="w-6 h-6 text-blue-600 mt-1" />
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Professional Player Communication</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">For Players & Parents:</h4>
-                  <ul className="text-gray-700 space-y-1">
-                    <li>• Detailed performance breakdown by drill</li>
-                    <li>• Age group rankings and percentiles</li>
-                    <li>• Specific improvement recommendations</li>
-                    <li>• Professional PDF reports to keep</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-medium text-gray-900 mb-2">For Coaches:</h4>
-                  <ul className="text-gray-700 space-y-1">
-                    <li>• Build trust through transparency</li>
-                    <li>• Professional program presentation</li>
-                    <li>• Easy sharing via email</li>
-                    <li>• Custom coach notes and feedback</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+            {/* Generator */}
+            <PlayerScorecardGenerator
+              player={selectedPlayer}
+              allPlayers={players}
+              weights={weights}
+              selectedDrillTemplate={drillTemplate}
+            />
+          </>
+        )}
       </div>
     </div>
   );
