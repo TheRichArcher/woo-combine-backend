@@ -42,11 +42,11 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
       percentageWeights[key] = value * 100; // Convert 0.2 to 20
     });
     
-    const compositeScore = calculateNormalizedCompositeScore(player, allPlayers, percentageWeights);
+    const compositeScore = calculateNormalizedCompositeScore(player, allPlayers, percentageWeights, drills);
     
     // Calculate rank among age group
     const ageGroupPlayers = allPlayers.filter(p => p.age_group === player.age_group);
-    const rankedPlayers = calculateNormalizedCompositeScores(ageGroupPlayers, percentageWeights)
+    const rankedPlayers = calculateNormalizedCompositeScores(ageGroupPlayers, percentageWeights, drills)
       .sort((a, b) => b.compositeScore - a.compositeScore);
     
     const rank = rankedPlayers.findIndex(p => p.id === player.id) + 1;
@@ -121,9 +121,19 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     const reportHtml = generateReportHTML();
     
     const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.open();
     printWindow.document.write(reportHtml);
     printWindow.document.close();
-    printWindow.print();
+    // Ensure styles are applied before printing
+    const handleLoad = () => {
+      try { printWindow.focus(); printWindow.print(); } catch {}
+    };
+    if (printWindow.document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      printWindow.onload = handleLoad;
+    }
     
     showSuccess('Scorecard generated! Use your browser\'s print function to save as PDF.');
   };
@@ -137,6 +147,8 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
         <head>
           <title>${player.name} - Player Scorecard</title>
           <style>
+            :root { --color-primary: #19c3e6; --color-border: #e5e7eb; --color-text: #111827; --color-text-muted: #6b7280; --color-surface-subtle: #f5f6fa; }
+            @media (prefers-color-scheme: dark) { :root { --color-text: #e5e7eb; --color-text-muted: #9ca3af; --color-border: #1f2937; --color-surface-subtle: #111318; } }
             body { font-family: Arial, sans-serif; margin: 20px; color: var(--color-text); }
             .header { text-align: center; border-bottom: 2px solid var(--color-primary); padding-bottom: 20px; margin-bottom: 30px; }
             .logo { font-size: 24px; font-weight: bold; color: var(--color-primary); }

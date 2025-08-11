@@ -11,19 +11,19 @@ import { DRILLS } from '../constants/players';
  * Calculate normalized composite score for a single player
  * This matches the method used in Players.jsx for consistency
  */
-export function calculateNormalizedCompositeScore(player, allPlayers, weights) {
+export function calculateNormalizedCompositeScore(player, allPlayers, weights, drillList = DRILLS) {
   if (!player || !allPlayers || allPlayers.length === 0) return 0;
   
   // Filter players with at least one drill score for normalization
   const playersWithScores = allPlayers.filter(player => 
-    DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    (drillList || DRILLS).some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
   );
   
   if (playersWithScores.length === 0) return 0;
   
   // Calculate min/max for each drill for normalization
   const drillRanges = {};
-  DRILLS.forEach(drill => {
+  (drillList || DRILLS).forEach(drill => {
     const values = playersWithScores
       .map(p => p[drill.key])
       .filter(val => val != null && typeof val === 'number');
@@ -39,7 +39,7 @@ export function calculateNormalizedCompositeScore(player, allPlayers, weights) {
   // Calculate normalized weighted score for this player
   let totalWeightedScore = 0;
   
-  DRILLS.forEach(drill => {
+  (drillList || DRILLS).forEach(drill => {
     const rawScore = player[drill.key];
     const weight = weights[drill.key] || 0;
     const range = drillRanges[drill.key];
@@ -70,19 +70,19 @@ export function calculateNormalizedCompositeScore(player, allPlayers, weights) {
  * Calculate normalized composite scores for multiple players
  * Returns array of players with compositeScore added
  */
-export function calculateNormalizedCompositeScores(players, weights) {
+export function calculateNormalizedCompositeScores(players, weights, drillList = DRILLS) {
   if (!players || players.length === 0) return [];
   
   // Filter players with at least one drill score
   const playersWithScores = players.filter(player => 
-    DRILLS.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    (drillList || DRILLS).some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
   );
   
   if (playersWithScores.length === 0) return [];
   
   // Calculate min/max for each drill for normalization
   const drillRanges = {};
-  DRILLS.forEach(drill => {
+  (drillList || DRILLS).forEach(drill => {
     const values = playersWithScores
       .map(p => p[drill.key])
       .filter(val => val != null && typeof val === 'number');
@@ -99,7 +99,7 @@ export function calculateNormalizedCompositeScores(players, weights) {
   return playersWithScores.map(player => {
     let totalWeightedScore = 0;
     
-    DRILLS.forEach(drill => {
+    (drillList || DRILLS).forEach(drill => {
       const rawScore = player[drill.key];
       const weight = weights[drill.key] || 0;
       const range = drillRanges[drill.key];
