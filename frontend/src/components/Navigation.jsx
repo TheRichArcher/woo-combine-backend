@@ -199,60 +199,8 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
             </button>
           </div>
 
-          {/* Advanced Tools Section */}
-          <div className="px-4 py-2">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Advanced Tools</span>
-            </div>
-          </div>
-
-          {/* Multi-Evaluator Management */}
-          <button
-            onClick={() => handleNavigation('/evaluators')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Users className="w-5 h-5 text-blue-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Team Evaluations</span>
-              <div className="text-xs text-gray-500">Multi-evaluator scoring & analysis</div>
-            </div>
-          </button>
-
-          {/* Team Formation Tools */}
-          <button
-            onClick={() => handleNavigation('/team-formation')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Users className="w-5 h-5 text-green-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Create Teams</span>
-              <div className="text-xs text-gray-500">AI-powered balanced teams</div>
-            </div>
-          </button>
-
-          {/* Sport Templates */}
-          <button
-            onClick={() => handleNavigation('/sport-templates')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Settings className="w-5 h-5 text-purple-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Sport Settings</span>
-              <div className="text-xs text-gray-500">Templates for different sports</div>
-            </div>
-          </button>
-
-          {/* Player Scorecards */}
-          <button
-            onClick={() => handleNavigation('/scorecards')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Edit className="w-5 h-5 text-orange-600" />
-            <div className="flex-1">
-              <span className="font-medium text-gray-900">Player Reports</span>
-              <div className="text-xs text-gray-500">Professional scorecards</div>
-            </div>
-          </button>
+        {/* Advanced tools removed from Profile modal to reduce duplication.
+            Access via header nav and Tools dropdown. */}
 
           {/* Divider */}
           <div className="border-t border-gray-200 my-2"></div>
