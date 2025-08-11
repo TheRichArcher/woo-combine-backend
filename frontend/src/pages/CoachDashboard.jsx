@@ -284,7 +284,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {/* Player Count */}
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                         <div className="flex items-center gap-2 mb-1">
                           <Users className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium text-blue-900">Players</span>
@@ -294,7 +294,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                       </div>
 
                       {/* Completion Rate */}
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                         <div className="flex items-center gap-2 mb-1">
                           <Target className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium text-blue-900">Completion</span>
@@ -306,7 +306,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
                     {/* Performance Overview */}
                     {completedPlayers.length > 0 && (
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                         <div className="flex items-center gap-2 mb-2">
                           <BarChart3 className="w-4 h-4 text-blue-600" />
                           <span className="text-sm font-medium text-blue-900">Performance Overview</span>

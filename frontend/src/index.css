@@ -32,7 +32,7 @@ body {
     border: 1px solid var(--color-border);
   }
   .wc-overlay {
-    @apply bg-white/70 backdrop-blur-sm;
+    @apply bg-white bg-opacity-70 backdrop-blur-sm;
   }
   .wc-h1 {
     @apply text-2xl sm:text-3xl font-bold text-gray-900;

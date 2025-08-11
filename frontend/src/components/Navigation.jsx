@@ -78,7 +78,7 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
       <div className="wc-card max-w-md w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="bg-white rounded-t-2xl p-4 border-b border-gray-200 flex justify-between items-center">

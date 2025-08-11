@@ -332,7 +332,7 @@ export default function LiveEntry() {
                   </div>
                 </div>
 
-                <div className="bg-white/70 rounded-lg p-3 border border-blue-200 mb-3">
+                <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200 mb-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Info className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-blue-900">Scoring</span>
@@ -537,7 +537,7 @@ export default function LiveEntry() {
       
       {/* Duplicate Score Dialog */}
       {showDuplicateDialog && duplicateData && (
-        <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-orange-500" />

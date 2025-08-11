@@ -59,7 +59,7 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
   if (!player) return null;
 
   return (
-    <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+  <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
       <div className="wc-card max-w-md w-full">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <div className="flex items-center gap-2">

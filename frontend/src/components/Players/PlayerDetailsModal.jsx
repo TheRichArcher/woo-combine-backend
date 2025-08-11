@@ -204,7 +204,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
+  <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4" style={{zIndex: 9999}} onClick={onClose}>
         <div className="wc-card max-w-4xl lg:max-w-6xl w-full max-h-[95vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="px-6 py-3 border-b border-gray-100 flex justify-between items-center flex-shrink-0">
           <div>

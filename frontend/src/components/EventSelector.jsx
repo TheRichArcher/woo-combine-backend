@@ -291,7 +291,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
               {/* Event Details Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 {/* Date */}
-                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+              <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                   <div className="flex items-center gap-2 mb-1">
                     <Calendar className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-blue-900">Date</span>
@@ -310,7 +310,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                 </div>
 
                 {/* Player Count */}
-                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+              <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                   <div className="flex items-center gap-2 mb-1">
                     <Users className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-medium text-blue-900">Players</span>
@@ -322,7 +322,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
 
               {/* Location & Template */}
               {(selectedEvent.location || selectedEvent.drillTemplate) && (
-                <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+              <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
                   <div className="space-y-2">
                     {selectedEvent.location && (
                       <div className="flex items-center gap-2">
@@ -348,7 +348,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
 
       {/* Create Event Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+    <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50">
           <div className="wc-card w-full max-w-md p-6 sm:p-8">
             <h3 className="text-lg font-bold mb-2">
               {events.length === 0 ? "Create Your First Event" : "Create New Event"}

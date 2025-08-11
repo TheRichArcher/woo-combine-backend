@@ -150,7 +150,7 @@ const DrillTemplateSelector = ({ selectedTemplateId, onTemplateSelect, disabled 
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+            <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
               <div className="flex items-center gap-2 mb-1">
                 <Target className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">Drills</span>
@@ -158,7 +158,7 @@ const DrillTemplateSelector = ({ selectedTemplateId, onTemplateSelect, disabled 
               <div className="text-lg font-bold text-blue-800">{selectedTemplate.drills.length}</div>
               <div className="text-xs text-blue-600">evaluation metrics</div>
             </div>
-            <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+            <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-blue-200">
               <div className="flex items-center gap-2 mb-1">
                 <Zap className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-900">Presets</span>

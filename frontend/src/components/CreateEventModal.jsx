@@ -64,7 +64,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-50">
+  <div className="fixed inset-0 flex items-center justify-center wc-overlay z-50">
       <div className="wc-card p-6 w-full max-w-sm relative">
         <button
           onClick={onClose}

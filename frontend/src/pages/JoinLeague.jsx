@@ -100,7 +100,7 @@ export default function JoinLeague() {
       
       {/* QR Scanner Modal */}
       {showQrScanner && (
-        <div className="fixed inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center max-w-xs w-full">
             <h2 className="text-lg font-bold mb-2">Scan League QR Code</h2>
             <div className="w-full h-64 mb-2 flex items-center justify-center">
