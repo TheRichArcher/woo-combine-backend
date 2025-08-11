@@ -12,7 +12,7 @@ import {
   getDefaultWeightsFromTemplate,
   getTemplateById 
 } from '../constants/drillTemplates';
-import { Settings, Users, Target, AlertTriangle } from 'lucide-react';
+import { Settings, Users, Target, AlertTriangle, BarChart3, Grid2x2, QrCode, Wrench, FileText } from 'lucide-react';
 import api from '../lib/api';
 
 const TeamFormationPage = () => {
@@ -218,6 +218,37 @@ const TeamFormationPage = () => {
               <Users className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">Full Player View</span>
             </Link>
+          </div>
+
+          {/* Easy Navigation */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link to="/live-standings" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <BarChart3 className="w-3.5 h-3.5" /> Live Standings
+            </Link>
+            <Link to="/scorecards" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <FileText className="w-3.5 h-3.5" /> Scorecards
+            </Link>
+            <Link to="/sport-templates" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Grid2x2 className="w-3.5 h-3.5" /> Sport Templates
+            </Link>
+            <Link to="/evaluators" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+              <Wrench className="w-3.5 h-3.5" /> Team Evaluations
+            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link to="/team-formation" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                <Users className="w-3.5 h-3.5" /> Teams
+              </Link>
+            )}
+            {userRole === 'organizer' && (
+              <>
+                <Link to="/event-sharing" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                  <QrCode className="w-3.5 h-3.5" /> Event Sharing
+                </Link>
+                <Link to="/admin" className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs border border-gray-200 hover:bg-gray-50">
+                  <Wrench className="w-3.5 h-3.5" /> Admin
+                </Link>
+              </>
+            )}
           </div>
         </div>
 
