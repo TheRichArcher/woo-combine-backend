@@ -3,7 +3,7 @@ import Skeleton from '../components/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Users, Target, Settings, Plus, BarChart3, TrendingUp } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
@@ -158,26 +158,29 @@ export default function LiveStandings() {
           </div>
         </div>
 
-        {/* Filters & Weight Controls */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between gap-2 mb-3">
+        {/* Filters & Weight Controls (match Players page gradient style) */}
+        <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-xl shadow-sm p-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-gray-600" />
-              <h2 className="font-semibold text-gray-900">Ranking Controls</h2>
+              <TrendingUp className="w-4 h-4" />
+              <span className="font-semibold text-sm">Explore Rankings</span>
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <label className="flex items-center gap-1 cursor-pointer">
+            <div className="flex items-center gap-2">
+              <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+              </span>
+              <label className="flex items-center gap-1 text-xs bg-white/10 px-2 py-1 rounded cursor-pointer">
                 <input
                   type="checkbox"
                   checked={normalizeAcrossAll}
                   onChange={(e) => setNormalizeAcrossAll(e.target.checked)}
                 />
-                Normalize across all players
+                Normalize across all
               </label>
               <select
                 value={selectedAgeGroup}
                 onChange={(e) => setSelectedAgeGroup(e.target.value)}
-                className="border border-gray-300 rounded px-2 py-1"
+                className="text-xs bg-white/20 text-white rounded px-2 py-1"
               >
                 {ageGroups.map(g => (
                   <option key={g} value={g}>{g}</option>
@@ -185,30 +188,26 @@ export default function LiveStandings() {
               </select>
             </div>
           </div>
-          <p className="text-sm text-gray-600 mb-4">
-            Adjust drill importance for live ranking calculations
-          </p>
-          
+
           {/* Preset Buttons */}
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="flex gap-1 mb-3">
             {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-              <button 
+              <button
                 key={key}
-                onClick={() => applyPreset(key)} 
-                className={`p-3 text-left rounded-lg border-2 transition-all ${
+                onClick={() => applyPreset(key)}
+                className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
                   activePreset === key 
-                    ? 'border-blue-500 bg-blue-50 text-blue-900' 
-                    : 'border-gray-200 hover:border-blue-300 bg-white text-gray-700'
+                    ? 'border-white bg-white/20 text-white font-medium' 
+                    : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
                 }`}
               >
-                <div className="font-medium text-sm">{preset.name}</div>
-                <div className="text-xs opacity-75">{preset.description}</div>
+                {preset.name}
               </button>
             ))}
           </div>
 
-          {/* Compact Sliders (match Players page style) */}
-          <div className="bg-gray-50 rounded p-2">
+          {/* Compact Sliders */}
+          <div className="bg-white/10 rounded p-2">
             <div className="grid grid-cols-5 gap-2 text-xs">
               {DRILLS.map((drill) => (
                 <div key={drill.key} className="text-center">
@@ -220,7 +219,7 @@ export default function LiveStandings() {
                     step={5}
                     value={weights[drill.key] || 0}
                     onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
-                    className="w-full h-1 rounded cursor-pointer accent-blue-600"
+                    className="w-full h-1 rounded cursor-pointer accent-white"
                   />
                   <div className="font-mono font-bold text-xs mt-1">
                     {(weights[drill.key] || 0).toFixed(0)}%
@@ -228,6 +227,10 @@ export default function LiveStandings() {
                 </div>
               ))}
             </div>
+          </div>
+
+          <div className="text-xs text-white/80 mt-2 text-center">
+            Adjust weights to see how rankings change with different priorities
           </div>
         </div>
 
