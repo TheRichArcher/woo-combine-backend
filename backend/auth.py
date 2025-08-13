@@ -40,7 +40,6 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 from .firestore_client import get_firestore_client
-from .utils.database import execute_with_timeout
 
 security = HTTPBearer(auto_error=False)
 
@@ -90,12 +89,8 @@ def get_current_user(
             db = get_firestore_client()
             logging.info(f"[AUTH] Firestore client obtained successfully")
             
-            # Fast but bounded read during cold start
-            user_doc = execute_with_timeout(
-                lambda: db.collection("users").document(uid).get(),
-                timeout=5,
-                operation_name="user lookup"
-            )
+            # Direct Firestore call - much faster than ThreadPoolExecutor
+            user_doc = db.collection("users").document(uid).get()
             logging.info(f"[AUTH] Firestore lookup completed successfully. User exists: {user_doc.exists}")
             
         except HTTPException:
@@ -120,11 +115,7 @@ def get_current_user(
                 }
                 
                 # Create the user document directly (ThreadPoolExecutor was causing delays)
-                execute_with_timeout(
-                    lambda: db.collection("users").document(uid).set(user_data),
-                    timeout=5,
-                    operation_name="user create"
-                )
+                db.collection("users").document(uid).set(user_data)
                 logging.info(f"[AUTH] Successfully created user document for UID {uid}")
                 
                 # Return with no role so user goes to SelectRole

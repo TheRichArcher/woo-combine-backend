@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
+from google.cloud.firestore import Query as FsQuery
 from typing import Optional
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
@@ -25,8 +26,8 @@ def list_events(
     try:
         events_ref = db.collection("leagues").document(league_id).collection("events")
         # Add timeout to events retrieval and cap to reduce large payloads
-        # Firestore stream returns all docs; optionally constrain with ordering and limit for faster responses
-        events_query = events_ref.order_by("created_at", direction=Query.DESCENDING).limit(200) if 'Query' in globals() else events_ref
+        # Order newest first; use Firestore's Query constants explicitly to avoid FastAPI's Query name clash
+        events_query = events_ref.order_by("created_at", direction=FsQuery.DESCENDING).limit(200)
         events_stream = execute_with_timeout(
             lambda: list(events_query.stream()),
             timeout=10,
