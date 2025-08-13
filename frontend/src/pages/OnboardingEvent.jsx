@@ -147,6 +147,15 @@ export default function OnboardingEvent() {
     }
   }, [createdEvent, fetchPlayerCount]);
 
+  // If the user already has a selected event in context (e.g., navigated back),
+  // restore it and move to step 2 so they're not stuck on step 1.
+  useEffect(() => {
+    if (currentStep === 1 && selectedEvent && !createdEvent) {
+      setCreatedEvent(selectedEvent);
+      setCurrentStep(2);
+    }
+  }, [currentStep, selectedEvent, createdEvent]);
+
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
     setCurrentStep(2); // Move to player import step
@@ -363,6 +372,15 @@ export default function OnboardingEvent() {
             {/* If no league is selected yet but user is organizer, background auto-setup will create one */}
             {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
               <div className="text-xs text-gray-500 mt-4">Preparing your league... this will update automatically in a moment.</div>
+            )}
+            {/* If an event is already selected (e.g., user hit browser back), allow continuing */}
+            {selectedEvent && (
+              <div className="mt-4">
+                <Button onClick={() => { setCreatedEvent(selectedEvent); setCurrentStep(2); }} className="w-full flex items-center justify-center gap-2">
+                  Continue
+                  <ArrowRight className="w-5 h-5" />
+                </Button>
+              </div>
             )}
           </OnboardingCard>
         </div>
