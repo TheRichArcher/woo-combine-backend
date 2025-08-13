@@ -271,33 +271,37 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         seen_ids = set()
         seen_name_number = set()
 
-        # Load existing players to check duplicates against DB for this event
-        existing_players_stream = execute_with_timeout(
-            lambda: list(db.collection("events").document(event_id).collection("players").stream()),
-            timeout=10
-        )
+        # Load existing players to check duplicates against DB for this event (best-effort)
         existing_name_number = set()
         existing_ids = set()
         existing_external_ids = set()
         existing_first_last_age = set()
-        for ep in existing_players_stream:
-            epd = ep.to_dict()
-            first = str(epd.get("first") or "").strip().lower()
-            last = str(epd.get("last") or "").strip().lower()
-            number_key = epd.get("number")
-            if number_key not in (None, ""):
-                try:
-                    number_key = int(str(number_key).strip())
-                except Exception:
-                    number_key = None
-            existing_name_number.add((first, last, number_key))
-            existing_ids.add(("id", ep.id))
-            ext_id = str(epd.get("external_id") or "").strip()
-            if ext_id:
-                existing_external_ids.add(ext_id)
-            age_val = str(epd.get("age_group") or "").strip().lower()
-            if first or last:
-                existing_first_last_age.add((first, last, age_val))
+        try:
+            existing_players_stream = execute_with_timeout(
+                lambda: list(db.collection("events").document(event_id).collection("players").stream()),
+                timeout=10,
+                operation_name="existing players preload"
+            )
+            for ep in existing_players_stream:
+                epd = ep.to_dict()
+                first = str(epd.get("first") or "").strip().lower()
+                last = str(epd.get("last") or "").strip().lower()
+                number_key = epd.get("number")
+                if number_key not in (None, ""):
+                    try:
+                        number_key = int(str(number_key).strip())
+                    except Exception:
+                        number_key = None
+                existing_name_number.add((first, last, number_key))
+                existing_ids.add(("id", ep.id))
+                ext_id = str(epd.get("external_id") or "").strip()
+                if ext_id:
+                    existing_external_ids.add(ext_id)
+                age_val = str(epd.get("age_group") or "").strip().lower()
+                if first or last:
+                    existing_first_last_age.add((first, last, age_val))
+        except Exception as preload_err:
+            logging.warning(f"[UPLOAD] Skipping existing players preload due to error: {preload_err}")
 
         for idx, player in enumerate(players):
             row_errors = []
@@ -377,56 +381,59 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
                 
-            # CRITICAL FIX: Store players in event subcollection where they're retrieved from
-            player_doc = db.collection("events").document(event_id).collection("players").document()
-            
-            # Prepare player data with drill scores and canonical fields
-            canonical_age = canonicalize_age_group(str(player.get("age_group") or "")) if player.get("age_group") else None
-            first_name = (player.get("first_name") or "").strip()
-            last_name = (player.get("last_name") or "").strip()
-            full_name = f"{first_name} {last_name}".strip()
-            # Precompute jersey number safely for typing
-            jersey_raw = player.get("jersey_number")
-            number_value = None
-            if jersey_raw not in (None, ""):
-                try:
-                    number_value = int(str(jersey_raw).strip())
-                except Exception:
-                    number_value = None
+            try:
+                # CRITICAL FIX: Store players in event subcollection where they're retrieved from
+                player_doc = db.collection("events").document(event_id).collection("players").document()
 
-            player_data = {
-                "name": full_name,
-                "first": first_name,
-                "last": last_name,
-                "number": number_value,
-                "age_group": canonical_age,
-                "external_id": (player.get("external_id") or None),
-                "team_name": (player.get("team_name") or None),
-                "position": (player.get("position") or None),
-                "notes": (player.get("notes") or None),
-                "photo_url": None,
-                "event_id": event_id,
-                "created_at": datetime.utcnow().isoformat(),
-            }
-            
-            # Add drill scores if provided
-            for drill in drill_fields:
-                value = player.get(drill, "")
-                if value and value.strip() != "":
+                # Prepare player data with drill scores and canonical fields
+                canonical_age = canonicalize_age_group(str(player.get("age_group") or "")) if player.get("age_group") else None
+                first_name = (player.get("first_name") or "").strip()
+                last_name = (player.get("last_name") or "").strip()
+                full_name = f"{first_name} {last_name}".strip()
+                # Precompute jersey number safely for typing
+                jersey_raw = player.get("jersey_number")
+                number_value = None
+                if jersey_raw not in (None, ""):
                     try:
-                        player_data[drill] = float(value)
-                    except ValueError:
-                        # This shouldn't happen due to validation, but just in case
+                        number_value = int(str(jersey_raw).strip())
+                    except Exception:
+                        number_value = None
+
+                player_data = {
+                    "name": full_name,
+                    "first": first_name,
+                    "last": last_name,
+                    "number": number_value,
+                    "age_group": canonical_age,
+                    "external_id": (player.get("external_id") or None),
+                    "team_name": (player.get("team_name") or None),
+                    "position": (player.get("position") or None),
+                    "notes": (player.get("notes") or None),
+                    "photo_url": None,
+                    "event_id": event_id,
+                    "created_at": datetime.utcnow().isoformat(),
+                }
+
+                # Add drill scores if provided
+                for drill in drill_fields:
+                    value = player.get(drill, "")
+                    if value and str(value).strip() != "":
+                        try:
+                            player_data[drill] = float(value)
+                        except ValueError:
+                            player_data[drill] = None
+                    else:
                         player_data[drill] = None
-                else:
-                    player_data[drill] = None
-            
-            # Add timeout to player creation
-            execute_with_timeout(
-                lambda: player_doc.set(player_data),
-                timeout=10
-            )
-            added += 1
+
+                # Add timeout to player creation
+                execute_with_timeout(
+                    lambda: player_doc.set(player_data),
+                    timeout=8,
+                    operation_name="player create"
+                )
+                added += 1
+            except Exception as row_exc:
+                errors.append({"row": idx + 1, "message": f"Failed to create player: {str(row_exc)}"})
             
         logging.info(f"Player upload completed: {added} added, {len(errors)} errors")
         if errors:
@@ -437,7 +444,11 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         raise
     except Exception as e:
         logging.error(f"Error uploading players: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload players")
+        # Prefer partial success payload over 500 when possible
+        try:
+            return {"added": 0, "errors": [{"row": 0, "message": str(e)}]}
+        except Exception:
+            raise HTTPException(status_code=500, detail="Failed to upload players")
 
 @router.delete("/players/reset")
 def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
