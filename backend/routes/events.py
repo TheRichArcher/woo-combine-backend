@@ -24,9 +24,11 @@ def list_events(
 ):
     try:
         events_ref = db.collection("leagues").document(league_id).collection("events")
-        # Add timeout to events retrieval
+        # Add timeout to events retrieval and cap to reduce large payloads
+        # Firestore stream returns all docs; optionally constrain with ordering and limit for faster responses
+        events_query = events_ref.order_by("created_at", direction=Query.DESCENDING).limit(200) if 'Query' in globals() else events_ref
         events_stream = execute_with_timeout(
-            lambda: list(events_ref.stream()),
+            lambda: list(events_query.stream()),
             timeout=10,
             operation_name="events retrieval"
         )

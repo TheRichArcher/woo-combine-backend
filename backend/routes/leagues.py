@@ -274,7 +274,12 @@ def list_teams(
 ):
     try:
         teams_ref = db.collection("leagues").document(league_id).collection("teams")
-        teams_stream = list(teams_ref.stream())
+        # Bound list stream to avoid long-hanging requests
+        teams_stream = execute_with_timeout(
+            lambda: list(teams_ref.stream()),
+            timeout=8,
+            operation_name="teams stream"
+        )
         items = [dict(t.to_dict(), id=t.id) for t in teams_stream]
         if page and limit:
             start = (max(page, 1) - 1) * max(limit, 1)
@@ -298,7 +303,11 @@ def list_invitations(
 ):
     try:
         invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
-        invitations_stream = list(invitations_ref.stream())
+        invitations_stream = execute_with_timeout(
+            lambda: list(invitations_ref.stream()),
+            timeout=8,
+            operation_name="invitations stream"
+        )
         items = [dict(i.to_dict(), id=i.id) for i in invitations_stream]
         if page and limit:
             start = (max(page, 1) - 1) * max(limit, 1)

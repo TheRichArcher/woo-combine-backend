@@ -190,18 +190,28 @@ def warmup_endpoint(request: Request):
         try:
             from .firestore_client import get_firestore_client
             db = get_firestore_client()
-            
-            # Pre-warm critical collections in parallel
-            warmup_tasks = [
-                db.collection("users").limit(1).get(),
-                db.collection("leagues").limit(1).get(),
-                db.collection("user_memberships").limit(1).get(),
-            ]
-            
-            # Execute collection warmups in parallel
+
+            # Execute collection warmups truly in parallel with bounded waits
+            def fetch_one(col_name: str):
+                try:
+                    return db.collection(col_name).limit(1).get()
+                except Exception as exc:
+                    logging.warning(f"[WARMUP] Warmup fetch failed for {col_name}: {exc}")
+                    return None
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-                list(executor.map(lambda task: task, warmup_tasks))
-            
+                futures = [
+                    executor.submit(fetch_one, "users"),
+                    executor.submit(fetch_one, "leagues"),
+                    executor.submit(fetch_one, "user_memberships"),
+                ]
+                for f in futures:
+                    try:
+                        # Bound each warmup subtask to avoid stalling the endpoint
+                        f.result(timeout=4)
+                    except Exception as sub_exc:
+                        logging.warning(f"[WARMUP] Subtask timed out or failed: {sub_exc}")
+
             return "warmed"
         except Exception as e:
             logging.error(f"[WARMUP] Firestore warmup failed: {e}")

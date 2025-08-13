@@ -26,7 +26,8 @@ const resolveBaseUrl = () => {
 const api = axios.create({
   baseURL: resolveBaseUrl(),
   withCredentials: false,
-  timeout: 30000  // Increased to 30s to handle cold starts better
+  // Reduce default timeout to curb long-hanging connections; allow endpoint-specific overrides
+  timeout: 15000
 });
 
 // Enhanced retry logic for cold start recovery
@@ -42,11 +43,14 @@ api.interceptors.response.use(
       config._retryCount = 0;
     }
     
-    // COLD START FIX: Enable retries for timeout errors to handle cold starts
-    const maxRetries = error.config?.url?.includes('/warmup') ? 0 : // No retries for warmup
-                      error.code === 'ECONNABORTED' || error.message.includes('timeout') ? 2 : // 2 retries for timeouts
-                      error.response?.status >= 500 ? 1 : // 1 retry for server errors
-                      0; // No retries for other errors
+    // Avoid retries for auth-critical endpoints to prevent cascades
+    const url = String(error.config?.url || '');
+    const isAuthCritical = url.includes('/users/me') || url.includes('/leagues/me');
+    // COLD START handling: limited retry for generic timeouts, none for auth-critical endpoints
+    const maxRetries = url.includes('/warmup') ? 0
+                      : isAuthCritical ? 0
+                      : (error.code === 'ECONNABORTED' || error.message.includes('timeout')) ? 1
+                      : (error.response?.status >= 500 ? 1 : 0);
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
@@ -61,16 +65,16 @@ api.interceptors.response.use(
     
     config._retryCount += 1;
     
-    // More reasonable progressive delays: 2s, 4s, 8s
-    let delay = Math.pow(2, config._retryCount) * 2000;
+    // More conservative progressive delays: 2s max for our single retry
+    let delay = Math.min(Math.pow(2, config._retryCount) * 1000, 2000);
     
     // Optimized delays for different error types
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      delay = Math.min(delay * 1.5, 8000); // Up to 8s for cold starts
+      delay = Math.min(delay * 1.2, 2000);
     } else if (!error.response) {
-      delay = Math.min(delay * 1.2, 6000); // Network failures
+      delay = Math.min(delay * 1.1, 2000);
     } else if (error.response?.status >= 500) {
-      delay = Math.min(delay, 5000); // Server errors
+      delay = Math.min(delay, 1500);
     }
     
     await new Promise(resolve => setTimeout(resolve, delay));

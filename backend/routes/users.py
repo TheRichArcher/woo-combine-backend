@@ -9,6 +9,7 @@ from firebase_admin import auth
 from ..auth import get_current_user
 from ..middleware.rate_limiting import auth_rate_limit, user_rate_limit
 from ..firestore_client import get_firestore_client
+from ..utils.database import execute_with_timeout
 import os
 
 router = APIRouter(prefix="/users")
@@ -22,7 +23,12 @@ def _get_cached_user_profile(uid: str, cache_time: int):
     """Cache user profiles using 5-minute time buckets for automatic invalidation"""
     try:
         db = get_firestore_client()
-        user_doc = db.collection("users").document(uid).get()
+        # Bound Firestore get to prevent request hangs under backend load
+        user_doc = execute_with_timeout(
+            lambda: db.collection("users").document(uid).get(),
+            timeout=6,
+            operation_name="cached user profile lookup"
+        )
         
         if not user_doc.exists:
             return None
