@@ -139,7 +139,8 @@ export default function AdminTools() {
       if (headerErrors.length > 0) {
         showError(`❌ CSV Error: ${headerErrors[0]}`);
       } else if (criticalErrors.length > 0) {
-        showError(`❌ ${criticalErrors.length} players missing required names. Review and fix before uploading.`);
+        // Non-blocking warning: missing names are allowed; those rows will be skipped
+        showInfo(`⚠️ ${criticalErrors.length} players are missing first or last names. You can continue — those rows will be skipped.`);
       } else if (rowsWithErrors.length > 0) {
         showInfo(`⚠️ ${validPlayers.length} players ready, ${rowsWithErrors.length} have warnings. Review table below.`);
       } else {
