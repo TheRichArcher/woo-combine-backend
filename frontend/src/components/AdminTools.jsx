@@ -223,7 +223,6 @@ export default function AdminTools() {
       const { data } = res;
       if (data.errors && data.errors.length > 0) {
         setUploadStatus("error");
-        setBackendErrors(Array.isArray(data.errors) ? data.errors : []);
         setUploadMsg("Some rows failed to upload. See errors below.");
         showError(`❌ Upload partially failed: ${data.errors.length} errors`);
       } else {
@@ -244,13 +243,7 @@ export default function AdminTools() {
       }
     } catch (err) {
       setUploadStatus("error");
-      const apiErrors = err?.response?.data?.errors;
-      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
-        setBackendErrors(apiErrors);
-        setUploadMsg(`❌ Upload failed with ${apiErrors.length} row error${apiErrors.length === 1 ? '' : 's'}. See errors below.`);
-      } else {
-        setUploadMsg(`❌ ${err.message || "Upload failed."}`);
-      }
+      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
       notifyError(err);
     }
   };
@@ -350,7 +343,7 @@ export default function AdminTools() {
 
   // Onboarding callout for admin
   const AdminOnboardingCallout = () => (
-    <div className="bg-brand-primary/10 border-l-4 border-brand-primary text-brand-primary px-4 py-3 mb-6 rounded">
+    <div className="bg-cmf-primary/10 border-l-4 border-cmf-primary text-cmf-primary px-4 py-3 mb-6 rounded">
       <strong>Welcome, Admin.</strong> Manage your combine tools below.
     </div>
   );
@@ -391,7 +384,7 @@ export default function AdminTools() {
             <div className="space-y-3">
               <Link
                 to="/players"
-                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl transition block"
+                className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 rounded-xl transition block"
               >
                 View Players & Rankings
               </Link>
@@ -419,15 +412,15 @@ export default function AdminTools() {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-brand-primary/30">
-            <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-brand-primary" />
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
+            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-cmf-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-brand-primary mb-4">No Event Selected</h2>
+            <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
             <p className="text-gray-600 mb-6">Click on "Select Event" in the header above to choose an event before managing players.</p>
             <button
               onClick={() => window.location.href = '/select-league'}
-              className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
+              className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
             >
               Select Event
             </button>
@@ -441,8 +434,8 @@ export default function AdminTools() {
     <div className="max-w-lg mx-auto py-4">
         
         {/* Welcome Header - matching dashboard style */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">
-          <h1 className="text-2xl font-bold text-brand-secondary mb-2">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-cmf-primary/30">
+          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
             Admin Tools
           </h1>
           <p className="text-gray-600 mb-4">
@@ -451,10 +444,10 @@ export default function AdminTools() {
           
           {/* Player Summary */}
           {selectedEvent && (
-            <div className="bg-brand-primary/10 rounded-lg p-4 border border-brand-primary/20">
+            <div className="bg-cmf-primary/10 rounded-lg p-4 border border-cmf-primary/20">
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-brand-primary" />
-                <span className="text-brand-primary font-semibold">
+                <Users className="w-5 h-5 text-cmf-primary" />
+                <span className="text-cmf-primary font-semibold">
                   {playerCountLoading ? (
                     <span className="animate-pulse">Loading players...</span>
                   ) : (
@@ -469,7 +462,7 @@ export default function AdminTools() {
         {/* Step 1: Event Details */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
             <h2 className="text-lg font-semibold text-gray-900">Event Details</h2>
           </div>
           
@@ -483,7 +476,7 @@ export default function AdminTools() {
           
           <button
             onClick={() => setShowEditEventModal(true)}
-            className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+            className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
           >
             <Edit className="w-4 h-4" />
             Edit Event Details
@@ -493,7 +486,7 @@ export default function AdminTools() {
         {/* Step 2: Add Players Section */}
         <div id="player-upload-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
             <h2 className="text-lg font-semibold text-gray-900">Add Players to Your Event</h2>
           </div>
           
@@ -550,7 +543,7 @@ export default function AdminTools() {
                   }, 100);
                 }
               }}
-              className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
               Add Manual
@@ -568,7 +561,7 @@ export default function AdminTools() {
           {showManualForm && (
             <div ref={manualFormRef} className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-brand-primary" />
+                <UserPlus className="w-5 h-5 text-cmf-primary" />
                 Add Player Manually
               </h3>
               
@@ -581,7 +574,7 @@ export default function AdminTools() {
                       name="first_name"
                       value={manualPlayer.first_name}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                       placeholder="Enter first name"
                       required
                     />
@@ -593,7 +586,7 @@ export default function AdminTools() {
                       name="last_name"
                       value={manualPlayer.last_name}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                       placeholder="Enter last name"
                       required
                     />
@@ -611,7 +604,7 @@ export default function AdminTools() {
                       name="number"
                       value={manualPlayer.number}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                       placeholder="Leave empty for auto-generated"
                     />
                   </div>
@@ -622,8 +615,8 @@ export default function AdminTools() {
                       name="age_group"
                       value={manualPlayer.age_group}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                      placeholder="e.g., A, B, C, 6U, 7-8, U10"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      placeholder="e.g., 6U, 7-8, U10"
                     />
                   </div>
                 </div>
@@ -639,7 +632,7 @@ export default function AdminTools() {
                   <button
                     type="submit"
                     disabled={manualStatus === 'loading'}
-                    className="flex-1 bg-brand-primary hover:bg-brand-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
+                    className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
                   >
                     {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
                   </button>
@@ -752,7 +745,7 @@ export default function AdminTools() {
                 <button
                   disabled={!hasValidPlayers || uploadStatus === "loading"}
                   onClick={handleUpload}
-                  className="bg-brand-primary hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
+                  className="bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
                 >
                   {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
                 </button>
@@ -821,7 +814,7 @@ export default function AdminTools() {
         {/* Step 3: Invite Coaches & Share */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
             <h2 className="text-lg font-semibold text-gray-900">Invite People to Event</h2>
           </div>
           
@@ -961,7 +954,7 @@ export default function AdminTools() {
         {/* Step 4: Live Drill Entry */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
             <h2 className="text-lg font-semibold text-gray-900">Live Drill Entry</h2>
           </div>
           

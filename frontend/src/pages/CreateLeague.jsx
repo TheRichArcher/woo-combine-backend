@@ -3,9 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
-import OnboardingCard from '../components/OnboardingCard';
-import Button from '../components/ui/Button';
-import Input from '../components/ui/Input';
 
 export function CreateLeagueForm({ onCreated }) {
   const { user, addLeague, setSelectedLeagueId } = useAuth();
@@ -47,29 +44,51 @@ export function CreateLeagueForm({ onCreated }) {
   };
 
   return (
-    <OnboardingCard title="Create a New League" subtitle="Create your league and start evaluating players.">
-      <form onSubmit={handleSubmit} className="space-y-4 text-left">
-        <Input
+    <div className="w-full max-w-md text-center">
+      {/* Logo */}
+      <div className="text-center mb-6">
+        <img
+          src="/favicon/woocombine-logo.png"
+          alt="Woo-Combine Logo"
+          className="w-16 h-16 mx-auto mb-4"
+          style={{ objectFit: 'contain' }}
+        />
+      </div>
+
+      <h1 className="text-2xl font-bold mb-4 text-gray-900">Create a New League</h1>
+      <p className="text-gray-600 mb-6">Create your league and start evaluating players.</p>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
           type="text"
+          className="w-full px-4 py-3 border border-cmf-primary/30 rounded-xl focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary transition"
           placeholder="League Name"
           value={leagueName}
           onChange={e => setLeagueName(e.target.value)}
           required
-          className="py-3"
         />
-        <Button type="submit" size="lg" disabled={loading} className="w-full">
+        <button
+          type="submit"
+          className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+          disabled={loading}
+        >
           {loading ? 'Creating...' : 'Create League & Continue'}
-        </Button>
+        </button>
         {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
       </form>
-    </OnboardingCard>
+    </div>
   );
 }
 
 export default function CreateLeague() {
   return (
-    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false} backgroundColor="bg-surface-subtle">
-      <CreateLeagueForm />
+    <WelcomeLayout
+      contentClassName="min-h-screen"
+      hideHeader={true}
+      showOverlay={false}
+    >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+        <CreateLeagueForm />
+      </div>
     </WelcomeLayout>
   );
-}
+} 

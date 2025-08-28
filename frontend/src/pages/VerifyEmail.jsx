@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
-import Button from "../components/ui/Button";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { sendEmailVerification } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
@@ -25,8 +24,8 @@ const MailboxIcon = () => (
       width="60"
       height="35"
       rx="8"
-      fill="var(--color-surface-subtle)"
-      stroke="var(--color-border)"
+      fill="#e5e7eb"
+      stroke="#9ca3af"
       strokeWidth="2"
     />
     {/* Mailbox flag */}
@@ -36,7 +35,7 @@ const MailboxIcon = () => (
       width="15"
       height="8"
       rx="2"
-      fill="var(--color-primary)"
+      fill="#ec4899"
     />
     {/* Mailbox post */}
     <rect
@@ -44,12 +43,12 @@ const MailboxIcon = () => (
       y="75"
       width="6"
       height="25"
-      fill="var(--color-border)"
+      fill="#9ca3af"
     />
     {/* Ground grass */}
-    <ellipse cx="35" cy="100" rx="8" ry="3" fill="var(--color-success)" />
-    <ellipse cx="55" cy="102" rx="6" ry="2" fill="var(--color-success)" />
-    <ellipse cx="75" cy="100" rx="7" ry="3" fill="var(--color-success)" />
+    <ellipse cx="35" cy="100" rx="8" ry="3" fill="#10b981" />
+    <ellipse cx="55" cy="102" rx="6" ry="2" fill="#10b981" />
+    <ellipse cx="75" cy="100" rx="7" ry="3" fill="#10b981" />
     {/* Envelope in mailbox */}
     <rect
       x="35"
@@ -58,16 +57,16 @@ const MailboxIcon = () => (
       height="12"
       rx="2"
       fill="white"
-      stroke="var(--color-primary)"
+      stroke="#6366f1"
       strokeWidth="2"
     />
     {/* Envelope lines */}
-    <line x1="37" y1="52" x2="53" y2="52" stroke="var(--color-primary)" strokeWidth="1" />
-    <line x1="37" y1="55" x2="48" y2="55" stroke="var(--color-primary)" strokeWidth="1" />
+    <line x1="37" y1="52" x2="53" y2="52" stroke="#6366f1" strokeWidth="1" />
+    <line x1="37" y1="55" x2="48" y2="55" stroke="#6366f1" strokeWidth="1" />
     {/* Magic sparkles */}
-    <circle cx="20" cy="30" r="2" fill="var(--color-primary)" />
-    <circle cx="95" cy="25" r="1.5" fill="var(--color-primary)" />
-    <circle cx="15" cy="60" r="1" fill="var(--color-primary)" />
+    <circle cx="20" cy="30" r="2" fill="#fbbf24" />
+    <circle cx="95" cy="25" r="1.5" fill="#fbbf24" />
+    <circle cx="15" cy="60" r="1" fill="#fbbf24" />
   </svg>
 );
 
@@ -198,8 +197,12 @@ export default function VerifyEmail() {
       if (auth.currentUser) {
         await auth.currentUser.reload();
         
-        // Send email verification using Firebase's default flow
-        await sendEmailVerification(auth.currentUser);
+        // Send email verification with continue URL so Firebase shows a "Continue" button
+        const actionCodeSettings = {
+          url: window.location.origin + "/verify-email",
+          handleCodeInApp: false,
+        };
+        await sendEmailVerification(auth.currentUser, actionCodeSettings);
         setResendStatus("Verification email sent!");
       } else {
         setResendStatus("User not found. Please log in again.");
@@ -234,8 +237,8 @@ export default function VerifyEmail() {
   };
 
   return (
-    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false} backgroundColor="bg-surface-subtle">
-      <div className="w-full max-w-md wc-card mx-4 flex flex-col relative min-h-[600px]">
+    <WelcomeLayout contentClassName="min-h-screen" hideHeader={true} showOverlay={false}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl mx-4 flex flex-col relative min-h-[600px]">
         {/* Header Row: Back + Help */}
         <div className="w-full flex flex-row justify-between items-center p-6 pb-2">
           <button
@@ -247,7 +250,7 @@ export default function VerifyEmail() {
             <ArrowLeft size={20} />
           </button>
           <button
-            className="text-sm text-brand-primary hover:opacity-90 font-medium"
+            className="text-sm text-cyan-600 hover:text-cyan-800 font-medium"
             onClick={() => navigate("/help")}
           >
             Need Help?
@@ -258,15 +261,16 @@ export default function VerifyEmail() {
         <div className="flex-1 flex flex-col px-6 pb-6">
           {/* Logo */}
           <div className="text-center mt-4 mb-6">
-              <img
+            <img
               src="/favicon/woocombine-logo.png"
               alt="Woo-Combine Logo"
-                className="w-16 h-16 mx-auto mb-4 object-contain"
+              className="w-16 h-16 mx-auto mb-4"
+              style={{ objectFit: 'contain' }}
             />
           </div>
 
           {/* Main Title - Bold like MOJO */}
-          <h1 className="wc-h1 text-center mb-6 tracking-tight">
+          <h1 className="text-2xl font-black text-gray-900 text-center mb-6 tracking-tight">
             CHECK YOUR EMAIL
           </h1>
 
@@ -283,6 +287,9 @@ export default function VerifyEmail() {
               It might take a few minutes. If you don't see our email in your inbox, please check your spam or 
               promo folders. If you see multiple emails, make sure you're selecting the most recent verification email.
             </p>
+            <p className="text-gray-600 text-sm leading-relaxed mt-3">
+              After you click the link, a new tab may open. Use the <span className="font-medium">Continue</span> button there or simply return to this tab — we’ll detect the verification and continue automatically.
+            </p>
           </div>
 
           {/* Mailbox Illustration */}
@@ -293,20 +300,30 @@ export default function VerifyEmail() {
           {/* Primary Action Button - Like MOJO's "Open Email App" */}
           <div className="mt-8 space-y-4">
             {isVerified ? (
-              <Button size="lg" className="w-full" onClick={() => navigate("/select-role")}>
+              <button
+                onClick={() => navigate("/select-role")}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              >
                 Continue to App
-              </Button>
+              </button>
             ) : (
-              <Button size="lg" className="w-full" onClick={handleOpenEmailApp}>
+              <button
+                onClick={handleOpenEmailApp}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+              >
                 Open Email App
-              </Button>
+              </button>
             )}
 
             {/* Check Again Button (secondary action) */}
             {!isVerified && (
-              <Button variant="subtle" onClick={handleCheckAgain} disabled={checking} className="w-full">
+              <button
+                onClick={handleCheckAgain}
+                disabled={checking}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200 disabled:opacity-50"
+              >
                 {checking ? "Checking..." : "I've verified my email"}
-              </Button>
+              </button>
             )}
 
             {/* Status Messages */}
@@ -335,14 +352,14 @@ export default function VerifyEmail() {
           <button
             onClick={handleResend}
             disabled={resending}
-            className="w-full text-brand-primary hover:opacity-90 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
+            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
           >
             {resending ? "Sending..." : "Resend Email"}
           </button>
           
           <button
             onClick={() => navigate("/help")}
-            className="w-full text-brand-primary hover:opacity-90 font-medium py-2 transition-colors duration-200"
+            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200"
           >
             Contact Support
           </button>

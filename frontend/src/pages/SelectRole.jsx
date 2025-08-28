@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
-import OnboardingCard from '../components/OnboardingCard';
-import Button from '../components/ui/Button';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -163,14 +161,26 @@ export default function SelectRole() {
       contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
-      backgroundColor="bg-surface-subtle"
     >
-      <OnboardingCard
-        title="Almost Done!"
-        subtitle={intendedRole ? 
-          `You've been invited as a ${intendedRole === 'coach' ? 'Coach' : 'Viewer'} - just confirm to continue.` :
-          "Quick setup: What's your role?"}
-      >
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <img
+            src="/favicon/woocombine-logo.png"
+            alt="Woo-Combine Logo"
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ objectFit: 'contain' }}
+          />
+        </div>
+
+        {/* Header */}
+        <h1 className="text-2xl font-bold mb-2 text-gray-900">Almost Done!</h1>
+        <p className="mb-6 text-gray-600 text-sm">
+          {intendedRole ? 
+            `You've been invited as a ${intendedRole === 'coach' ? 'Coach' : 'Viewer'} - just confirm to continue.` :
+            "Quick setup: What's your role?"
+          }
+        </p>
 
         {/* Debug Info (Development Only) */}
         {import.meta.env.DEV && (
@@ -192,7 +202,7 @@ export default function SelectRole() {
               disabled={loading}
               className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 selectedRole === role.key
-                  ? 'border-brand-primary bg-brand-primary/10'
+                  ? 'border-cyan-500 bg-cyan-50'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -204,7 +214,7 @@ export default function SelectRole() {
                   <p className="text-xs text-gray-500">{role.benefits}</p>
                 </div>
                 {selectedRole === role.key && (
-                  <CheckCircle className="w-5 h-5 text-brand-primary mt-1" />
+                  <CheckCircle className="w-5 h-5 text-cyan-600 mt-1" />
                 )}
               </div>
             </button>
@@ -220,19 +230,28 @@ export default function SelectRole() {
 
         {/* Action Buttons */}
         <div className="w-full flex flex-col gap-3">
-          <Button onClick={handleContinue} size="lg" disabled={!selectedRole || loading}>
+          <button
+            onClick={handleContinue}
+            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
+            disabled={!selectedRole || loading}
+          >
             {loading ? 'Saving...' : intendedRole ? `Continue as ${intendedRole === 'coach' ? 'Coach' : 'Viewer'}` : 'Continue'}
-          </Button>
-          <Button variant="subtle" onClick={handleLogout} disabled={loading}>
+          </button>
+
+          <button
+            onClick={handleLogout}
+            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
+            disabled={loading}
+          >
             Sign Out
-          </Button>
+          </button>
         </div>
 
         {/* Help Text */}
         <div className="mt-4 text-xs text-gray-400">
           <p>Can be changed later</p>
         </div>
-      </OnboardingCard>
+      </div>
     </WelcomeLayout>
   );
 } 

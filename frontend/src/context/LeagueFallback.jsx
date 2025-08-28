@@ -69,7 +69,6 @@ export default function LeagueFallback() {
       contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
-      backgroundColor="bg-surface-subtle"
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-4">
         {/* Logo */}
@@ -77,10 +76,11 @@ export default function LeagueFallback() {
           <img
             src="/favicon/woocombine-logo.png"
             alt="Woo-Combine Logo"
-            className="w-16 h-16 mx-auto mb-4 object-contain"
+            className="w-16 h-16 mx-auto mb-4"
+            style={{ objectFit: 'contain' }}
           />
-          <div className="w-12 h-12 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-6 h-6 text-brand-primary" />
+          <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-6 h-6 text-cyan-600" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             No League Selected
@@ -128,22 +128,22 @@ export default function LeagueFallback() {
 
           {/* For Coaches: Join League First */}
           {userRole !== 'organizer' && (
-            <div className="border-2 border-brand-primary/30 bg-brand-primary/10 rounded-xl p-3 hover:border-brand-primary/50 transition">
+            <div className="border-2 border-cyan-300 bg-cyan-50 rounded-xl p-3 hover:border-cyan-400 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-brand-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <QrCode className="w-4 h-4 text-brand-primary" />
+                <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-4 h-4 text-cyan-600" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-gray-900">Join with Invite Code</h3>
-                  <span className="bg-brand-primary/20 text-brand-primary text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
+                    <span className="bg-cyan-200 text-cyan-800 text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
                     Ask your organizer for an invite code
                   </p>
                   <button
                     onClick={handleJoinLeague}
-                    className="bg-brand-primary hover:opacity-90 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <QrCode className="w-3 h-3" />
                     Join League
@@ -177,10 +177,10 @@ export default function LeagueFallback() {
 
           {/* Secondary Options */}
           {userRole === 'organizer' ? (
-            <div className="border border-gray-200 rounded-xl p-3 hover:border-brand-primary/50 transition">
+            <div className="border border-gray-200 rounded-xl p-3 hover:border-cyan-300 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-brand-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                  <QrCode className="w-4 h-4 text-brand-primary" />
+                <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-4 h-4 text-cyan-600" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">Join Existing League</h3>
@@ -189,7 +189,7 @@ export default function LeagueFallback() {
                   </p>
                   <button
                     onClick={handleJoinLeague}
-                    className="bg-brand-primary hover:opacity-90 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <QrCode className="w-3 h-3" />
                     Join League

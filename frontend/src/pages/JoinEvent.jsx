@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
-import Button from "../components/ui/Button";
 import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import api from '../lib/api';
@@ -188,17 +187,16 @@ export default function JoinEvent() {
       contentClassName="min-h-screen"
       hideHeader={true}
       showOverlay={false}
-      backgroundColor="bg-surface-subtle"
     >
-      <div className="w-full max-w-md wc-card p-8 text-center">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <div className="mb-6">
-          <QrCode className="w-16 h-16 mx-auto mb-4 text-brand-primary" />
+          <QrCode className="w-16 h-16 mx-auto mb-4 text-cyan-600" />
           <h1 className="text-2xl font-bold mb-2">Join Event</h1>
         </div>
 
         {status === "found" && event && league && (
           <div className="space-y-4">
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
               <h2 className="text-lg font-semibold text-green-800 mb-2">
                 Successfully Joined!
@@ -229,12 +227,19 @@ export default function JoinEvent() {
             </div>
             
             <div className="space-y-3">
-              <Button onClick={() => navigate("/join")} size="lg" className="w-full">
+              <button
+                onClick={() => navigate("/join")}
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
+              >
                 Join League with Code
-              </Button>
-              <Button variant="subtle" onClick={() => navigate("/dashboard")} className="w-full">
+              </button>
+              
+              <button
+                onClick={() => navigate("/dashboard")}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
+              >
                 Go to Dashboard
-              </Button>
+              </button>
             </div>
             
 

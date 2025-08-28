@@ -52,9 +52,15 @@ export default function SignupForm() {
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Send email verification using Firebase's default flow (no custom settings)
+      // Send email verification with a continue URL so users can get back to the app easily
       try {
-        await sendEmailVerification(userCredential.user);
+        const actionCodeSettings = {
+          // After clicking the verification link, Firebase will show a page with a
+          // "Continue" button that returns users to this URL (same tab or new tab)
+          url: window.location.origin + "/verify-email",
+          handleCodeInApp: false,
+        };
+        await sendEmailVerification(userCredential.user, actionCodeSettings);
         authLogger.debug("Email verification sent successfully");
       } catch (verificationError) {
         authLogger.error("Failed to send verification email", verificationError);

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
-import Button from "../components/ui/Button";
 
 export default function SelectLeague() {
   const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
@@ -40,7 +39,7 @@ export default function SelectLeague() {
   // Get gradient class based on index
   const getGradientClass = (index) => {
     const gradients = [
-      'bg-gradient-to-br from-brand-primary to-brand-secondary',
+      'bg-gradient-to-br from-cmf-primary to-cmf-secondary',
       'bg-gradient-to-br from-purple-500 to-purple-700',
       'bg-gradient-to-br from-blue-500 to-blue-700',
       'bg-gradient-to-br from-green-500 to-green-700',
@@ -52,9 +51,9 @@ export default function SelectLeague() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Consistent Light Overlay */}
-      <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
-        <div className="wc-card max-w-md w-full max-h-[90vh] overflow-hidden">
+      {/* Mojo Sports Style Modal Overlay */}
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h1 className="text-xl font-bold text-gray-900">Select League</h1>
@@ -70,7 +69,7 @@ export default function SelectLeague() {
           <div className="flex-1 overflow-y-auto p-4">
             {loading ? (
               <div className="text-center py-12">
-                <div className="animate-spin inline-block w-8 h-8 border-3 border-gray-300 border-t-brand-primary rounded-full mb-4"></div>
+                <div className="animate-spin inline-block w-8 h-8 border-3 border-gray-300 border-t-cmf-primary rounded-full mb-4"></div>
                 <div className="text-gray-500 text-lg">Loading leagues...</div>
                 <div className="text-xs text-gray-400 mt-1">This may take a moment during server startup</div>
               </div>
@@ -132,14 +131,22 @@ export default function SelectLeague() {
             )}
           </div>
 
-          {/* Bottom Actions - Unified Buttons */}
+          {/* Bottom Actions - Mojo Style */}
           <div className="p-4 space-y-3 border-t border-gray-200">
-            <Button size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => navigate('/create-league', { replace: true })}>
-              <Plus className="w-5 h-5" /> Create a League
-            </Button>
-            <Button variant="outline" size="lg" className="w-full flex items-center justify-center gap-2" onClick={() => navigate('/join')}>
-              <UserPlus className="w-5 h-5" /> Join a League
-            </Button>
+            <button
+              onClick={() => navigate('/create-league', { replace: true })}
+              className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
+            >
+              <Plus className="w-5 h-5" />
+              Create a League
+            </button>
+            <button
+              onClick={() => navigate('/join')}
+              className="w-full border-2 border-cmf-primary text-cmf-primary hover:bg-cmf-primary hover:text-white font-bold py-4 px-6 rounded-2xl transition flex items-center justify-center gap-2 text-lg"
+            >
+              <UserPlus className="w-5 h-5" />
+              Join a League
+            </button>
           </div>
 
           {/* User Info */}

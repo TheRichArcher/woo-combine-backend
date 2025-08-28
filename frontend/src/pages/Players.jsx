@@ -11,7 +11,6 @@ import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus, ArrowRight } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import Button from '../components/ui/Button';
 import { parseISO, isValid, format } from 'date-fns';
 import { DRILLS, WEIGHT_PRESETS, TABS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
@@ -174,15 +173,15 @@ export default function Players() {
 
 
   const OnboardingCallout = () => (
-    <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-lg p-4 mb-6">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <div className="flex items-start gap-3">
-        <div className="text-brand-primary text-lg">💡</div>
+        <div className="text-blue-500 text-lg">💡</div>
         <div>
-          <h3 className="font-semibold text-brand-secondary mb-1">Getting Started with Player Management</h3>
-          <p className="text-brand-secondary/90 text-sm mb-2">
+          <h3 className="font-semibold text-blue-900 mb-1">Getting Started with Player Management</h3>
+          <p className="text-blue-700 text-sm mb-2">
             You can add players by clicking "Add Player" or uploading a CSV file. Once players are added, you can:
           </p>
-          <ul className="text-brand-secondary/90 text-sm space-y-1 list-disc list-inside">
+          <ul className="text-blue-700 text-sm space-y-1 list-disc list-inside">
             <li>Record drill results for each player</li>
             <li>View detailed statistics and rankings</li>
             <li>Export rankings data for analysis</li>
@@ -257,12 +256,12 @@ export default function Players() {
     if (!showSliders) return null;
     
     return (
-      <div className="bg-brand-primary/10 rounded-xl border-2 border-brand-primary/20 p-4 mb-6">
+      <div className="bg-blue-50 rounded-xl border-2 border-blue-200 p-4 mb-6">
         <div className="flex items-center gap-2 mb-2">
-          <Settings className="w-5 h-5 text-brand-primary" />
-          <h2 className="text-lg font-semibold text-brand-secondary">Ranking Weight Controls</h2>
+          <Settings className="w-5 h-5 text-cmf-primary" />
+          <h2 className="text-lg font-semibold text-cmf-secondary">Ranking Weight Controls</h2>
         </div>
-        <p className="text-brand-primary text-sm mb-3">
+        <p className="text-cmf-primary text-sm mb-3">
           Set drill priorities for ranking calculations. Higher values = more important to you.
           <span className="block text-xs mt-1 opacity-75">
             Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong> 
@@ -279,8 +278,8 @@ export default function Players() {
               onClick={() => applyPreset(key)} 
               className={`p-4 text-left rounded-lg border-2 transition-all touch-manipulation min-h-[70px] ${
                 activePreset === key 
-                  ? 'border-brand-primary bg-brand-primary text-white shadow-lg' 
-                  : 'border-gray-200 hover:border-brand-primary bg-white text-gray-700 hover:shadow-md'
+                  ? 'border-cmf-primary bg-cmf-primary text-white shadow-lg' 
+                  : 'border-gray-200 hover:border-cmf-primary bg-white text-gray-700 hover:shadow-md'
               }`}
             >
               <div className="font-medium text-sm">{preset.name}</div>
@@ -298,7 +297,7 @@ export default function Players() {
             onClick={() => setShowCustomControls(!showCustomControls)}
             className={`px-4 py-2 rounded-full text-sm font-medium transition-colors min-w-[80px] touch-manipulation ${
               showCustomControls ? 
-                'bg-brand-primary text-white' 
+                'bg-cmf-primary text-white' 
                 : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
             }`}
           >
@@ -315,7 +314,7 @@ export default function Players() {
                     <label className="text-sm font-medium text-gray-700">{drill.label}</label>
                     <div className="text-xs text-gray-500">Higher = more important</div>
                   </div>
-                  <span className="text-lg font-mono text-brand-primary bg-brand-primary/10 px-3 py-1 rounded-full min-w-[50px] text-center">
+                  <span className="text-lg font-mono text-blue-600 bg-blue-100 px-3 py-1 rounded-full min-w-[50px] text-center">
                     {(sliderWeights[drill.key] ?? 0).toFixed(0)}%
                   </span>
                 </div>
@@ -352,17 +351,22 @@ export default function Players() {
   if (!selectedEvent || !selectedEvent.id) return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-        <div className="wc-card p-8 text-center">
-          <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="w-8 h-8 text-brand-primary" />
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-cmf-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-brand-secondary mb-4">No Event Selected</h2>
+          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
           <p className="text-gray-600 mb-6">
             {userRole === "organizer"
               ? "Select or create an event to manage players and drills."
               : "Ask your league operator to assign you to an event."}
           </p>
-          <Button onClick={() => navigate('/select-league')} className="px-6 py-3">Select Event</Button>
+          <button
+            onClick={() => navigate('/select-league')}
+            className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
+          >
+            Select Event
+          </button>
         </div>
       </div>
     </div>
@@ -384,10 +388,10 @@ export default function Players() {
       return (
         <div className="min-h-screen bg-gray-50">
           <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-            <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-brand-primary/20">
-              <h2 className="text-2xl font-bold text-brand-primary mb-4">No Players Found</h2>
+            <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+              <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found</h2>
               <p className="text-gray-600 mb-6">Use the Admin tab to upload or import players to get started.</p>
-              <Link to="/admin" className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition">
+              <Link to="/admin" className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition">
                 Go to Admin
               </Link>
             </div>
@@ -410,17 +414,23 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
-        <div className="wc-card p-8 text-center">
-          <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <TrendingUp className="w-8 h-8 text-brand-primary" />
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <TrendingUp className="w-8 h-8 text-cmf-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-brand-secondary mb-4">No Players Found Yet</h2>
+          <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Players Found Yet</h2>
           <p className="text-gray-600 mb-6">You can upload a CSV or add them manually to get started.</p>
           <div className="flex gap-3 justify-center">
-            <Button as={Link} to="/onboarding/event">Upload CSV Players</Button>
-            <Button variant="success" onClick={() => setShowAddPlayerModal(true)} className="flex items-center gap-2">
-              <UserPlus className="w-4 h-4" /> Add Player
-            </Button>
+            <Link to="/onboarding/event" className="bg-cmf-primary text-white font-bold px-4 py-2 rounded-lg shadow hover:bg-cmf-secondary transition">
+              Upload CSV Players
+            </Link>
+            <button 
+              onClick={() => setShowAddPlayerModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-lg shadow transition flex items-center gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              Add Player
+            </button>
           </div>
         </div>
       </div>
@@ -431,8 +441,8 @@ export default function Players() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
-          <div className="wc-card p-6 mb-6">
-          <h1 className="text-2xl font-bold text-brand-secondary mb-2">
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-blue-200">
+          <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
             WooCombine: Players & Rankings
           </h1>
           <p className="text-gray-600 mb-4">
@@ -445,16 +455,15 @@ export default function Players() {
           
           {/* Primary Action - Most users want this next */}
           {(userRole === 'organizer' || userRole === 'coach') && (
-            <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <Button as={Link} to="/live-entry" variant="success" size="lg" className="w-full flex items-center justify-center gap-3">
-                🚀 Live Entry
-              </Button>
-              <Button as={Link} to="/team-formation" size="lg" className="w-full flex items-center justify-center gap-3 bg-purple-600 hover:bg-purple-700 text-white">
-                🧩 Create Teams
-              </Button>
-              <Button as={Link} to="/scorecards" size="lg" className="w-full flex items-center justify-center gap-3 bg-orange-600 hover:bg-orange-700 text-white">
-                📝 Player Scorecards
-              </Button>
+            <div className="mb-4">
+              <Link
+                to="/live-entry"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+              >
+                🚀 Start Recording Drill Results
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+              <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
             </div>
           )}
           
@@ -462,12 +471,20 @@ export default function Players() {
           {userRole === 'organizer' && (
             <div className="border-t border-gray-200 pt-4">
               <div className="flex gap-3">
-                <Button onClick={() => setShowAddPlayerModal(true)} className="flex-1 flex items-center justify-center gap-2 text-sm">
-                  <UserPlus className="w-4 h-4" /> Add Player
-                </Button>
-                <Button variant="success" onClick={() => navigate('/admin#player-upload')} className="flex-1 flex items-center justify-center gap-2 text-sm">
-                  <Download className="w-4 h-4" /> Import CSV
-                </Button>
+                <button
+                  onClick={() => setShowAddPlayerModal(true)}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Add Player
+                </button>
+                <button
+                  onClick={() => navigate('/admin#player-upload')}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  Import CSV
+                </button>
               </div>
               <p className="text-xs text-gray-500 text-center mt-2">
                 Add individual players or import from spreadsheet
@@ -490,8 +507,8 @@ export default function Players() {
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium transition-colors ${
                       activeTab === tab.id
-                        ? 'bg-brand-primary text-white border-b-2 border-brand-primary'
-                        : 'text-gray-600 hover:text-brand-primary hover:bg-gray-50'
+                        ? 'bg-cmf-primary text-white border-b-2 border-cmf-primary'
+                        : 'text-gray-600 hover:text-cmf-primary hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -511,10 +528,10 @@ export default function Players() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 p-4">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Users className="w-5 h-5 text-brand-primary" />
+                <Users className="w-5 h-5 text-cmf-primary" />
                 Event Participants
               </h2>
-              <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full">
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                 👁️ View Only
               </span>
             </div>
@@ -531,22 +548,22 @@ export default function Players() {
             {players.length > 0 && Object.keys(grouped).length > 0 ? (
               <>
                 {/* Age Group Selector */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-brand-primary" />
+                      <TrendingUp className="w-5 h-5 text-blue-600" />
                       Event Rankings & Analysis
                     </h2>
-                <span className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full">
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                       👁️ Viewer Mode
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                <Filter className="w-5 h-5 text-brand-primary flex-shrink-0" />
+                    <Filter className="w-5 h-5 text-blue-600 flex-shrink-0" />
                     <select
                       value={selectedAgeGroup}
                       onChange={e => setSelectedAgeGroup(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                      className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="all">All Players ({players.length} total)</option>
                       {Object.keys(grouped).map(group => (
@@ -559,7 +576,7 @@ export default function Players() {
                 {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Compact Weight Controls for Viewers */}
-                    <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-3">
+                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" />
@@ -621,7 +638,7 @@ export default function Players() {
                                 }}
                                 className="w-full h-1 rounded cursor-pointer accent-white"
                               />
-                          <div className="font-mono font-bold text-xs mt-1">
+                              <div className="font-mono font-bold text-xs mt-1">
                                 {(sliderWeights[drill.key] || 0).toFixed(0)}%
                               </div>
                             </div>
@@ -629,7 +646,7 @@ export default function Players() {
                         </div>
                       </div>
                       
-                    {/* Helpful text for viewers */}
+                      {/* Helpful text for viewers */}
                       <div className="text-xs text-white/80 mt-2 text-center">
                         Adjust weights to see how rankings change with different priorities
                       </div>
@@ -668,12 +685,12 @@ export default function Players() {
                                 {selectedAgeGroup === 'all' && ` - ${player.age_group}`}
                               </div>
                             </div>
-                               <div className="text-right">
-                                  <div className="font-bold text-brand-primary text-sm">
-                                     {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
-                                  </div>
-                                  <div className="text-xs text-gray-500">points</div>
-                               </div>
+                            <div className="text-right">
+                              <div className="font-bold text-blue-600 text-sm">
+                                 {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
+                              </div>
+                              <div className="text-xs text-gray-500">points</div>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -693,14 +710,14 @@ export default function Players() {
                 )}
 
                 {/* Info box for viewers */}
-                <div className="bg-brand-primary/10 border border-brand-primary/20 rounded-lg p-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-brand-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-brand-primary text-sm">🎯</span>
+                    <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-blue-600 text-sm">🎯</span>
                     </div>
                     <div>
-                      <p className="text-brand-secondary font-medium text-sm mb-1">Explore Different Ranking Perspectives</p>
-                      <p className="text-brand-secondary/90 text-sm">
+                      <p className="text-blue-800 font-medium text-sm mb-1">Explore Different Ranking Perspectives</p>
+                      <p className="text-blue-700 text-sm">
                         Use the weight controls above to see how player rankings change based on different priorities. 
                         Try "Speed Focused" vs "Skills Focused" to see different perspectives on player performance!
                       </p>
@@ -737,7 +754,7 @@ export default function Players() {
                     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-brand-primary" />
+                          <TrendingUp className="w-5 h-5 text-cmf-primary" />
                           Player Rankings
                         </h2>
                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
@@ -745,11 +762,11 @@ export default function Players() {
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <Filter className="w-5 h-5 text-brand-primary flex-shrink-0" />
+                        <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
                         <select
                           value={selectedAgeGroup}
                           onChange={e => setSelectedAgeGroup(e.target.value)}
-                          className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                          className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
                         >
                           <option value="all">All Players ({players.length} total)</option>
                           {Object.keys(grouped).map(group => (
@@ -762,7 +779,7 @@ export default function Players() {
                     {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                         {/* Compact Weight Controls */}
-                        <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-3">
+                        <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <TrendingUp className="w-4 h-4" />
@@ -820,7 +837,7 @@ export default function Players() {
                                     }}
                                     className="w-full h-1 rounded cursor-pointer accent-white"
                                   />
-                                   <div className="font-mono font-bold text-xs mt-1">
+                                  <div className="font-mono font-bold text-xs mt-1">
                                     {(sliderWeights[drill.key] || 0).toFixed(0)}%
                                   </div>
                                 </div>
@@ -856,7 +873,7 @@ export default function Players() {
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="font-bold text-brand-primary text-sm">
+                                  <div className="font-bold text-cmf-primary text-sm">
                                     {(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}
                                   </div>
                                   <button
@@ -865,7 +882,7 @@ export default function Players() {
                                       e.stopPropagation();
                                       setSelectedPlayer(player);
                                     }}
-                                     className="text-xs text-brand-primary hover:text-brand-secondary"
+                                    className="text-xs text-blue-600 hover:text-blue-800"
                                   >
                                     View Details
                                   </button>
@@ -890,7 +907,7 @@ export default function Players() {
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                           👥 Manage Players ({selectedAgeGroup === 'all' ? 'All Players' : selectedAgeGroup})
-                          <span className="text-sm bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full">
+                          <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                             {selectedAgeGroup === 'all' ? players.length : (grouped[selectedAgeGroup]?.length || 0)} players
                           </span>
                         </h3>
@@ -916,7 +933,7 @@ export default function Players() {
                                   e.stopPropagation();
                                   setSelectedPlayer(player);
                                 }}
-                                className="bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary px-3 py-1 rounded-md text-sm font-medium transition"
+                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                               >
                                 View Stats & Weights
                               </button>
@@ -935,7 +952,7 @@ export default function Players() {
                             </div>
                             
                             {expandedPlayerIds[player.id] && (
-                              <div className="bg-brand-primary/10 rounded-lg p-4 border-2 border-brand-primary/20 mt-3">
+                              <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mt-3">
                                 <DrillInputForm playerId={player.id} onSuccess={() => { 
                                   toggleForm(player.id); 
                                   // Invalidate cache on data update
@@ -1019,16 +1036,16 @@ export default function Players() {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <Download className="w-5 h-5 text-brand-primary" />
+                    <Download className="w-5 h-5 text-cmf-primary" />
                     Download Rankings
                   </h2>
-                   <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-xs">
                     {(() => {
                       const total = players.length;
                       const scored = players.filter(p => p.composite_score != null).length;
                       const pct = total > 0 ? Math.round((scored / total) * 100) : 0;
                       return (
-                         <span className="bg-brand-primary/10 text-brand-primary border border-brand-primary/20 rounded-full px-2 py-1">
+                        <span className="bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-2 py-1">
                           Overall: {scored}/{total} with scores ({pct}%)
                         </span>
                       );
@@ -1065,7 +1082,7 @@ export default function Players() {
                     return allPlayers.length > 0 ? (
                       <button
                         onClick={handleExportAllCsv}
-                        className="bg-brand-primary hover:opacity-90 text-white px-6 py-4 rounded-lg font-medium transition text-left flex justify-between items-center mb-2 border-2 border-brand-primary/20"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 rounded-lg font-medium transition text-left flex justify-between items-center mb-2 border-2 border-blue-200"
                       >
                         <div>
                           <div className="font-semibold">Export All Players</div>
@@ -1128,7 +1145,7 @@ export default function Players() {
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-brand-primary" />
+                <BarChart3 className="w-5 h-5 text-cmf-primary" />
                 Event Analytics
               </h2>
               

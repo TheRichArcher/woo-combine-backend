@@ -84,10 +84,9 @@ export function AuthProvider({ children }) {
       // Parallel warmup requests for maximum efficiency
       const warmupPromises = [apiWarmup().catch(() => null), apiHealth().catch(() => null)];
       
-      // Allow more time for cold starts on the backend (Render cold boot, Firestore init)
       await Promise.race([
         Promise.allSettled(warmupPromises),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 6000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 2000)) // Reduced to 2s
       ]);
       
       const warmupTime = performance.now() - warmupStart;
@@ -120,8 +119,7 @@ export function AuthProvider({ children }) {
     try {
       const token = await firebaseUser.getIdToken(false);
       const controller = new AbortController();
-      // Increase to 10s to avoid canceling legitimate responses on cold starts
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 5000);
       const response = await api.get(`/leagues/me`, { signal: controller.signal }).catch((e) => { throw e; });
       clearTimeout(timeout);
 
@@ -583,10 +581,7 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
-      {/* Avoid overlaying a second LoadingScreen when RequireAuth is handling it */}
-      {!window.location.pathname.startsWith('/select-role') && initializing && (
-        <LoadingScreen size="large" />
-      )}
+      {initializing && <LoadingScreen size="large" />}
     </AuthContext.Provider>
   );
 }

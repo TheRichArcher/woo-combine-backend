@@ -3,13 +3,12 @@ import Skeleton from '../components/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Users, Target, Settings, Plus, BarChart3, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
 import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
-import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -18,13 +17,15 @@ export default function LiveStandings() {
   
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  // Use the same optimized weight management as Players page
-  const {
-    sliderWeights,
-    handleWeightChange,
-    applyPreset,
-    activePreset
-  } = useOptimizedWeights(players);
+  const [weights, setWeights] = useState(() => {
+    // Default balanced weights
+    const defaultWeights = {};
+    DRILLS.forEach(drill => {
+      defaultWeights[drill.key] = 20; // Equal 20% weighting
+    });
+    return defaultWeights;
+  });
+  const [activePreset, setActivePreset] = useState('balanced');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
 
@@ -72,12 +73,29 @@ export default function LiveStandings() {
 
   const liveRankings = useMemo(() => {
     if (!filteredPlayers.length) return [];
-    const weights = sliderWeights;
     const source = normalizeAcrossAll && selectedAgeGroup === 'ALL'
       ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights)
       : calculateOptimizedRankings(filteredPlayers, weights);
     return source.filter(player => player.compositeScore > 0);
-  }, [filteredPlayers, sliderWeights, normalizeAcrossAll, selectedAgeGroup]);
+  }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
+
+  // Handle weight changes
+  const handleWeightChange = (drillKey, value) => {
+    setWeights(prev => ({ ...prev, [drillKey]: value }));
+    setActivePreset(''); // Clear preset when manually adjusting
+  };
+
+  // Apply preset weights
+  const applyPreset = (presetKey) => {
+    if (WEIGHT_PRESETS[presetKey]) {
+      const newWeights = {};
+      Object.entries(WEIGHT_PRESETS[presetKey].weights).forEach(([key, value]) => {
+        newWeights[key] = value * 100; // Convert to percentage
+      });
+      setWeights(newWeights);
+      setActivePreset(presetKey);
+    }
+  };
 
   if (!selectedEvent) {
     return (
@@ -140,29 +158,26 @@ export default function LiveStandings() {
           </div>
         </div>
 
-        {/* Filters & Weight Controls (match Players page gradient style) */}
-        <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-xl shadow-sm p-3">
-          <div className="flex items-center justify-between mb-2">
+        {/* Filters & Weight Controls */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between gap-2 mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp className="w-4 h-4" />
-              <span className="font-semibold text-sm">Explore Rankings</span>
+              <Settings className="w-5 h-5 text-gray-600" />
+              <h2 className="font-semibold text-gray-900">Ranking Controls</h2>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
-                {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
-              </span>
-              <label className="flex items-center gap-1 text-xs bg-white/10 px-2 py-1 rounded cursor-pointer">
+            <div className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-1 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={normalizeAcrossAll}
                   onChange={(e) => setNormalizeAcrossAll(e.target.checked)}
                 />
-                Normalize across all
+                Normalize across all players
               </label>
               <select
                 value={selectedAgeGroup}
                 onChange={(e) => setSelectedAgeGroup(e.target.value)}
-                className="text-xs bg-white/20 text-white rounded px-2 py-1"
+                className="border border-gray-300 rounded px-2 py-1"
               >
                 {ageGroups.map(g => (
                   <option key={g} value={g}>{g}</option>
@@ -170,49 +185,52 @@ export default function LiveStandings() {
               </select>
             </div>
           </div>
-
+          <p className="text-sm text-gray-600 mb-4">
+            Adjust drill importance for live ranking calculations
+          </p>
+          
           {/* Preset Buttons */}
-          <div className="flex gap-1 mb-3">
+          <div className="grid grid-cols-2 gap-2 mb-4">
             {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-              <button
+              <button 
                 key={key}
-                onClick={() => applyPreset(key)}
-                className={`px-2 py-1 text-xs rounded border transition-all flex-1 ${
+                onClick={() => applyPreset(key)} 
+                className={`p-3 text-left rounded-lg border-2 transition-all ${
                   activePreset === key 
-                    ? 'border-white bg-white/20 text-white font-medium' 
-                    : 'border-white/30 hover:border-white/60 text-white/80 hover:text-white'
+                    ? 'border-blue-500 bg-blue-50 text-blue-900' 
+                    : 'border-gray-200 hover:border-blue-300 bg-white text-gray-700'
                 }`}
               >
-                {preset.name}
+                <div className="font-medium text-sm">{preset.name}</div>
+                <div className="text-xs opacity-75">{preset.description}</div>
               </button>
             ))}
           </div>
 
-          {/* Compact Sliders */}
-          <div className="bg-white/10 rounded p-2">
-            <div className="grid grid-cols-5 gap-2 text-xs">
-              {DRILLS.map((drill) => (
-                <div key={drill.key} className="text-center">
-                  <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
+          {/* Weight Sliders */}
+          <div className="space-y-3">
+            {DRILLS.map((drill) => (
+              <div key={drill.key} className="flex items-center justify-between">
+                <div className="flex-1">
+                  <label className="text-sm font-medium text-gray-700">{drill.label}</label>
+                  <div className="text-xs text-gray-500">{drill.unit}</div>
+                </div>
+                <div className="flex items-center gap-3">
                   <input
                     type="range"
                     min={0}
                     max={100}
-                    step={5}
-                  value={sliderWeights[drill.key] || 0}
+                    step={1}
+                    value={weights[drill.key] || 0}
                     onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
-                    className="w-full h-1 rounded cursor-pointer accent-white"
+                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
-                  <div className="font-mono font-bold text-xs mt-1">
-                    {(sliderWeights[drill.key] || 0).toFixed(0)}%
-                  </div>
+                  <span className="text-sm font-mono text-blue-600 bg-blue-100 px-2 py-1 rounded min-w-[40px] text-center">
+                    {weights[drill.key] || 0}%
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="text-xs text-white/80 mt-2 text-center">
-            Adjust weights to see how rankings change with different priorities
+              </div>
+            ))}
           </div>
         </div>
 

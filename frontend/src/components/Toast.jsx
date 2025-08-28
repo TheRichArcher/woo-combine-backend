@@ -21,10 +21,10 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
   }, [duration, handleClose]);
 
   const typeStyles = {
-    info: 'bg-brand-primary/10 border-brand-primary/30 text-brand-primary',
-    warning: 'bg-semantic-warning/10 border-semantic-warning/30 text-semantic-warning',
-    error: 'bg-semantic-error/10 border-semantic-error/30 text-semantic-error',
-    success: 'bg-semantic-success/10 border-semantic-success/30 text-semantic-success'
+    info: 'bg-blue-50 border-blue-200 text-blue-800',
+    warning: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+    error: 'bg-red-50 border-red-200 text-red-800',
+    success: 'bg-green-50 border-green-200 text-green-800'
   };
 
   const iconMap = {
