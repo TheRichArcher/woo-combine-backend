@@ -11,6 +11,7 @@ import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyEmail from "./pages/VerifyEmail";
+import EmailAction from "./pages/EmailAction";
 import LiveEntry from "./pages/LiveEntry";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
@@ -200,6 +201,8 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<SignUp />} />
                 <Route path="/verify-email" element={<VerifyEmail />} />
+                {/* In-app handler for Firebase action links (verifyEmail, etc.) */}
+                <Route path="/email-action" element={<EmailAction />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/claim" element={
                   <WelcomeLayout

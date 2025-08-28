@@ -55,10 +55,9 @@ export default function SignupForm() {
       // Send email verification with a continue URL so users can get back to the app easily
       try {
         const actionCodeSettings = {
-          // After clicking the verification link, Firebase will show a page with a
-          // "Continue" button that returns users to this URL (same tab or new tab)
-          url: window.location.origin + "/verify-email",
-          handleCodeInApp: false,
+          // Open verification link inside the app to auto-complete via /email-action
+          url: window.location.origin + "/email-action",
+          handleCodeInApp: true,
         };
         await sendEmailVerification(userCredential.user, actionCodeSettings);
         authLogger.debug("Email verification sent successfully");
