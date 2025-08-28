@@ -442,14 +442,18 @@ export default function OnboardingEvent() {
                 
                 {csvFileName && (
                   <div className="text-left">
-                    <p className="text-sm text-green-600 mb-2">
+                    <p className="text-sm text-green-600">
                       📄 {csvFileName} loaded ({csvRows.length} players)
                     </p>
+                    <p className="text-xs text-gray-600 mb-2">File is loaded but not uploaded yet. Click <span className="font-semibold">Confirm Upload</span> to import players.</p>
                     
                     {hasValidPlayers && (
-                      <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
-                        {uploadStatus === "uploading" ? "Uploading..." : "Confirm Upload"}
-                      </Button>
+                      <>
+                        <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
+                          {uploadStatus === "uploading" ? "Uploading..." : "Confirm Upload"}
+                        </Button>
+                        <p className="text-[11px] text-gray-500 mt-2">This will import {csvRows.filter(r => r.name && r.name.trim() !== "").length} players now. Rows without names will be skipped.</p>
+                      </>
                     )}
                   </div>
                 )}

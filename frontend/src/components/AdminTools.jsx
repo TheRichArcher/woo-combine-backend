@@ -677,7 +677,8 @@ export default function AdminTools() {
             
             {csvFileName && (
               <div className="text-sm text-gray-600 mb-2">
-                📄 {csvFileName}
+                📄 {csvFileName} loaded ({csvRows.length} players)
+                <div className="text-xs text-gray-500">File is loaded but not uploaded yet. Click <span className="font-semibold">Confirm Upload</span> to import players.</div>
               </div>
             )}
 
