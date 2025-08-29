@@ -450,7 +450,7 @@ export default function OnboardingEvent() {
                     {hasValidPlayers && (
                       <>
                         <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
-                          {uploadStatus === "uploading" ? "Uploading..." : "Confirm Upload"}
+                          {uploadStatus === "uploading" ? "Importing..." : "Import Players"}
                         </Button>
                         <p className="text-[11px] text-gray-500 mt-2">This will import {csvRows.filter(r => r.name && r.name.trim() !== "").length} players now. Rows without names will be skipped.</p>
                       </>

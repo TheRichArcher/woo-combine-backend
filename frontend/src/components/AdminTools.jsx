@@ -749,7 +749,7 @@ export default function AdminTools() {
                   onClick={handleUpload}
                   className="bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
                 >
-                  {uploadStatus === "loading" ? "Uploading..." : "Confirm Upload"}
+                  {uploadStatus === "loading" ? "Importing..." : "Import Players"}
                 </button>
               </div>
             )}
