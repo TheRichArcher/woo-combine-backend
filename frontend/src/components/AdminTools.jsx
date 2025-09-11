@@ -11,7 +11,7 @@ import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
-import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS } from '../utils/csvUtils';
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS } from '../utils/csvUtils';
 
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
@@ -35,6 +35,9 @@ export default function AdminTools() {
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [csvErrors, setCsvErrors] = useState([]);
   const [csvFileName, setCsvFileName] = useState("");
+  const [originalCsvRows, setOriginalCsvRows] = useState([]);
+  const [showMapping, setShowMapping] = useState(false);
+  const [fieldMapping, setFieldMapping] = useState({});
 
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle | loading | success | error
   const [uploadMsg, setUploadMsg] = useState("");
@@ -150,10 +153,42 @@ export default function AdminTools() {
       }
       
       setCsvHeaders(headers);
+      setOriginalCsvRows(rows);
       setCsvRows(validatedRows);
       setCsvErrors(headerErrors);
+      try {
+        const initialMapping = generateDefaultMapping(headers);
+        setFieldMapping(initialMapping);
+        setShowMapping(headerErrors.length > 0);
+      } catch {}
     };
     reader.readAsText(file);
+  };
+
+  const canonicalHeaderLabels = {
+    first_name: 'First Name',
+    last_name: 'Last Name',
+    jersey_number: 'Jersey #',
+    age_group: 'Age Group',
+    external_id: 'External ID',
+    team_name: 'Team Name',
+    position: 'Position',
+    notes: 'Notes'
+  };
+
+  const handleApplyMapping = () => {
+    const mapped = applyMapping(originalCsvRows, fieldMapping);
+    const validated = mapped.map(row => validateRow(row));
+    const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
+      const source = fieldMapping[key];
+      return source && source !== '__ignore__';
+    });
+    const headersForPreview = selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS;
+    setCsvHeaders(headersForPreview);
+    setCsvRows(validated);
+    setCsvErrors([]);
+    setShowMapping(false);
+    showSuccess(`✅ Mapping applied. ${validated.length} rows ready to import.`);
   };
 
   // Allow upload if we have valid players with first and last names
@@ -674,6 +709,23 @@ export default function AdminTools() {
                 Choose CSV File
               </label>
             </div>
+
+            {csvFileName && (
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <button
+                  onClick={() => setShowMapping(true)}
+                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
+                >
+                  Map Fields
+                </button>
+                <button
+                  onClick={handleReupload}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
+                >
+                  Choose Different File
+                </button>
+              </div>
+            )}
             
             {csvFileName && (
               <div className="text-sm text-gray-600 mb-2">
@@ -682,10 +734,52 @@ export default function AdminTools() {
               </div>
             )}
 
-            {csvErrors.length > 0 && (
+            {csvErrors.length > 0 && !showMapping && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p className="text-red-700 text-sm font-medium">❌ Upload Error</p>
                 <p className="text-red-600 text-sm">{csvErrors.join('; ')}</p>
+              </div>
+            )}
+
+            {showMapping && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 text-left">
+                <h3 className="font-medium text-gray-900 mb-2">Match Column Headers</h3>
+                <p className="text-sm text-gray-600 mb-3">Match our fields to the columns in your CSV. Only First and Last Name are required. Others are optional. Select “Ignore” to skip a field.</p>
+                <div className="grid grid-cols-1 gap-3">
+                  {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
+                    <div key={fieldKey} className="flex items-center gap-3">
+                      <div className="w-40 text-sm text-gray-700 font-medium">
+                        {canonicalHeaderLabels[fieldKey] || fieldKey}
+                        {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                      </div>
+                      <select
+                        value={fieldMapping[fieldKey] || ''}
+                        onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      >
+                        <option value="">Auto</option>
+                        <option value="__ignore__">Ignore</option>
+                        {csvHeaders.map(h => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={handleApplyMapping}
+                    className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition"
+                  >
+                    Apply Mapping
+                  </button>
+                  <button
+                    onClick={() => setShowMapping(false)}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 

@@ -137,3 +137,77 @@ export function getMappingDescription(mappingType) {
       return 'Unknown mapping type';
   }
 } 
+
+// ---- Mapping helpers: guess and apply user-selected mappings ----
+
+// Synonyms for common headers to improve auto-mapping
+const HEADER_SYNONYMS = {
+  first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first'],
+  last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last'],
+  age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
+  jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
+  external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
+  team_name: ['team_name', 'team', 'squad', 'club'],
+  position: ['position', 'pos'],
+  notes: ['notes', 'note', 'comments', 'comment', 'remarks']
+};
+
+function normalizeHeader(header) {
+  return String(header || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ') // collapse punctuation/underscores
+    .replace(/\s+/g, ' ') // single spaces
+    .trim();
+}
+
+function matchHeader(headers, synonyms) {
+  const normalized = headers.map(h => ({ raw: h, norm: normalizeHeader(h) }));
+  for (const syn of synonyms) {
+    const target = normalizeHeader(syn);
+    const found = normalized.find(h => h.norm === target);
+    if (found) return found.raw;
+  }
+  // fuzzy contains match (e.g., "player first name")
+  for (const syn of synonyms) {
+    const target = normalizeHeader(syn);
+    const found = normalized.find(h => h.norm.includes(target));
+    if (found) return found.raw;
+  }
+  return '';
+}
+
+// Create a suggested mapping from arbitrary CSV headers to our canonical fields
+export function generateDefaultMapping(headers = []) {
+  const mapping = {};
+  const allKeys = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
+  allKeys.forEach(key => {
+    mapping[key] = matchHeader(headers, HEADER_SYNONYMS[key] || [key]);
+  });
+  return mapping;
+}
+
+// Apply a mapping from arbitrary headers to canonical fields
+export function applyMapping(rows = [], mapping = {}) {
+  const output = [];
+  const canonicalKeys = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
+  for (const originalRow of rows) {
+    const row = {};
+    canonicalKeys.forEach(key => {
+      const source = mapping[key];
+      if (source && source !== '__ignore__') {
+        row[key] = originalRow[source] ?? '';
+      } else if (originalRow[key] != null) {
+        // Already canonical from positional-based parsing
+        row[key] = originalRow[key];
+      } else {
+        row[key] = '';
+      }
+    });
+    // Backward compatibility: support legacy 'number' header -> jersey_number
+    if (!row.jersey_number && originalRow.number) {
+      row.jersey_number = originalRow.number;
+    }
+    output.push(row);
+  }
+  return output;
+}
