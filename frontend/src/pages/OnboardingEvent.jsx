@@ -60,6 +60,7 @@ export default function OnboardingEvent() {
   const [originalCsvRows, setOriginalCsvRows] = useState([]);
   const [showMapping, setShowMapping] = useState(false);
   const [fieldMapping, setFieldMapping] = useState({});
+  const [mappingApplied, setMappingApplied] = useState(false);
   
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -209,6 +210,7 @@ export default function OnboardingEvent() {
       setCsvErrors(headerErrors);
       setCsvHeaders(headers);
       setOriginalCsvRows(rows);
+      setMappingApplied(false);
       try {
         const initialMapping = generateDefaultMapping(headers);
         setFieldMapping(initialMapping);
@@ -458,17 +460,23 @@ export default function OnboardingEvent() {
                     </p>
                     <p className="text-xs text-gray-600 mb-2">File is loaded but not uploaded yet. Click <span className="font-semibold">Confirm Upload</span> to import players.</p>
                     
-                    <div className="flex gap-3">
-                      <Button onClick={() => setShowMapping(true)} className="w-full" variant="subtle">
-                        Map Fields
-                      </Button>
-                      {hasValidPlayers && (
-                        <Button onClick={handleUpload} disabled={uploadStatus === "uploading" || showMapping} className="w-full">
-                          {uploadStatus === "uploading" ? "Importing..." : "Import Players"}
+                    {!mappingApplied ? (
+                      <>
+                        <Button onClick={() => setShowMapping(true)} className="w-full">
+                          Map Fields
                         </Button>
-                      )}
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-2">Map your columns if needed, then import. Rows without names will be skipped.</p>
+                        <p className="text-[11px] text-gray-500 mt-2">Step 1 of 2: Match your CSV columns to our fields.</p>
+                      </>
+                    ) : (
+                      <>
+                        {hasValidPlayers && (
+                          <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
+                            {uploadStatus === "uploading" ? "Importing..." : "Import Players"}
+                          </Button>
+                        )}
+                        <p className="text-[11px] text-gray-500 mt-2">Step 2 of 2: Import {csvRows.filter(r => r.name && r.name.trim() !== "").length} players. Rows without names will be skipped.</p>
+                      </>
+                    )}
                   </div>
                 )}
                 
@@ -515,6 +523,7 @@ export default function OnboardingEvent() {
                           setCsvRows(validated);
                           setCsvErrors([]);
                           setShowMapping(false);
+                          setMappingApplied(true);
                         }}
                       >
                         Apply Mapping
