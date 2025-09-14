@@ -8,6 +8,7 @@ import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
 
 export default function SignupForm() {
+  const signupsOpen = import.meta.env.VITE_SIGNUPS_OPEN === "true";
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -89,6 +90,16 @@ export default function SignupForm() {
       setSubmitting(false);
     }
   };
+
+  if (!signupsOpen) {
+    return (
+      <div className="w-full max-w-md mx-auto py-12 text-center">
+        <h2 className="text-3xl font-extrabold mb-4 text-brand-primary">Invite‑Only</h2>
+        <p className="text-gray-700 mb-6">Signups are currently closed. If you received an invite, please use your unique link.</p>
+        <Link to="/login" className="text-brand-primary underline">Return to Sign In</Link>
+      </div>
+    );
+  }
 
   if (loading) return <div>Loading...</div>;
 

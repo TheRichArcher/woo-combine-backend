@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth } from "../firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
 import api, { apiHealth, apiWarmup } from '../lib/api';
 import { useNavigate } from "react-router-dom";
 
@@ -177,6 +177,21 @@ export function AuthProvider({ children }) {
         setInitializing(false);
         navigate('/verify-email');
         return;
+      }
+
+      // MFA GUARD for admins: require enrolled factor when admin claim is present
+      try {
+        const idt = await getIdTokenResult(firebaseUser, true);
+        const isAdmin = !!idt.claims?.admin;
+        const enrolled = (firebaseUser?.multiFactor?.enrolledFactors || []).length > 0;
+        if (isAdmin && !enrolled) {
+          navigate('/mfa-enroll');
+          setInitializing(false);
+          return;
+        }
+      } catch (mfaErr) {
+        // Non-fatal
+        authLogger.warn('MFA guard check failed', mfaErr?.message);
       }
       
       // Complete initialization inline to prevent dependency loops

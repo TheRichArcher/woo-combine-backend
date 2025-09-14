@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response, JSONResponse
+from fastapi.responses import PlainTextResponse
 from google.cloud import firestore
 from datetime import datetime
 import asyncio
@@ -77,7 +78,15 @@ app.add_middleware(
     allow_origin_regex=allowed_origin_regex,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    # Avoid wildcard headers; enumerate common headers used by the app
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "X-Requested-With",
+        "X-Abuse-Nonce",
+        "X-Abuse-Answer",
+    ],
 )
 
 # 3) Abuse protection for auth flows
@@ -123,6 +132,21 @@ def meta():
         "allowed_origins": os.getenv("ALLOWED_ORIGINS", ""),
         "role_simple_enabled": os.getenv("ENABLE_ROLE_SIMPLE", "false").lower() in ("1", "true", "yes")
     }
+
+# Security contact endpoints
+@app.get("/security.txt", include_in_schema=False)
+@app.get("/.well-known/security.txt", include_in_schema=False)
+def security_txt():
+    contact = os.getenv("SECURITY_CONTACT_EMAIL", "security@woo-combine.com")
+    policy_url = os.getenv("SECURITY_POLICY_URL", "https://www.woo-combine.com/security")
+    acknowledgments = os.getenv("SECURITY_ACK_URL", "https://www.woo-combine.com/hall-of-fame")
+    content = f"""Contact: mailto:{contact}
+Policy: {policy_url}
+Acknowledgments: {acknowledgments}
+Preferred-Languages: en
+Canonical: https://www.woo-combine.com/.well-known/security.txt
+"""
+    return PlainTextResponse(content, media_type="text/plain; charset=utf-8")
 
 # Health check endpoint for debugging
 @app.get("/api/health")

@@ -12,6 +12,7 @@ import SignUp from "./pages/SignUp";
 import ForgotPassword from "./pages/ForgotPassword";
 import VerifyEmail from "./pages/VerifyEmail";
 import EmailAction from "./pages/EmailAction";
+import MfaEnroll from "./pages/MfaEnroll";
 import LiveEntry from "./pages/LiveEntry";
 import RequireAuth from "./context/RequireAuth";
 import CreateLeague from "./pages/CreateLeague";
@@ -238,6 +239,14 @@ function App() {
                         <Link to="/welcome" className="text-gray-500 hover:text-gray-700 text-sm transition">← Back to Welcome</Link>
                       </div>
                     </div>
+                  </WelcomeLayout>
+                } />
+                <Route path="/mfa-enroll" element={
+                  <WelcomeLayout
+                    backLink="/dashboard"
+                    backText="Back"
+                  >
+                    <MfaEnroll />
                   </WelcomeLayout>
                 } />
                 <Route path="/create-league" element={<RequireAuth><CreateLeague /></RequireAuth>} />

@@ -131,6 +131,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             f"script-src {' '.join(script_src_values)}",
             f"style-src {' '.join(style_src_values)}",
             f"img-src {' '.join(img_src_values)}",
+            "object-src 'none'",
+            "base-uri 'none'",
             f"connect-src {' '.join(dict.fromkeys(connect_src_values))}",  # dedupe while preserving order
             "frame-ancestors 'none'",
         ]

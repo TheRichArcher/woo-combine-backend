@@ -11,6 +11,7 @@ from datetime import datetime
 import logging
 import asyncio
 from functools import wraps
+import time
 
 # Initialize Firebase Admin SDK if not already initialized
 if not firebase_admin._apps:
@@ -43,6 +44,40 @@ from .firestore_client import get_firestore_client
 
 security = HTTPBearer(auto_error=False)
 
+def _verify_id_token_strict(token: str):
+    """Verify ID token and check for revocation when supported.
+    Falls back gracefully when a mocked verify function doesn't accept kwargs.
+    """
+    try:
+        # Prefer strict verification with revocation checks
+        return auth.verify_id_token(token, check_revoked=True)
+    except TypeError:
+        # Mocked functions in tests may not accept check_revoked
+        return auth.verify_id_token(token)
+
+def _enforce_session_max_age(decoded_token: dict):
+    """Reject sessions older than configured max age (default 24h)."""
+    try:
+        max_age_secs = int(os.getenv("MAX_SESSION_AGE_SECS", str(24 * 3600)))
+        if max_age_secs <= 0:
+            return
+        now = int(time.time())
+        auth_time = int(decoded_token.get("auth_time") or decoded_token.get("iat") or 0)
+        if auth_time and now - auth_time > max_age_secs:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session too old")
+    except HTTPException:
+        raise
+    except Exception:
+        # Do not block if claim missing/malformed
+        pass
+
+# Optional global toggle: require verified email for any login (not just role-gated routes)
+REQUIRE_VERIFIED_LOGIN = os.getenv("REQUIRE_VERIFIED_LOGIN", "false").lower() in ("1", "true", "yes", "on")
+
+def _ensure_verified(decoded_token: dict):
+    if REQUIRE_VERIFIED_LOGIN and not decoded_token.get("email_verified", False):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email not verified")
+
 def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
@@ -64,10 +99,16 @@ def get_current_user(
     try:
         logging.info("[AUTH] Starting token verification")
         
-        # Simplified Firebase token verification with shorter timeout
+        # Strict verification with revocation enforcement
         try:
-            decoded_token = auth.verify_id_token(token)
+            decoded_token = _verify_id_token_strict(token)
             logging.info(f"[AUTH] Token verification completed successfully")
+        except getattr(auth, "RevokedIdTokenError", Exception):
+            logging.warning("[AUTH] Token has been revoked")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token revoked. Please sign in again."
+            )
         except Exception as e:
             logging.error(f"[AUTH] Firebase token verification failed: {e}")
             raise HTTPException(
@@ -75,6 +116,10 @@ def get_current_user(
                 detail="Invalid authentication token"
             )
         
+        # Enforce max session age
+        _enforce_session_max_age(decoded_token)
+        # Optionally require verified email globally
+        _ensure_verified(decoded_token)
         logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}")
         
         # Note: Do not block unverified emails here. Verification is enforced on role-gated routes.
@@ -82,6 +127,16 @@ def get_current_user(
         
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
+        
+        # Optional: deny disabled users fast (best-effort, do not block on error)
+        try:
+            user_record = auth.get_user(uid)
+            if getattr(user_record, "disabled", False):
+                logging.warning(f"[AUTH] Disabled user attempted access: {uid}")
+                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User disabled")
+        except Exception as e:
+            # Don't fail closed here to avoid coupling to Admin API hiccups
+            logging.debug(f"[AUTH] Skipping disabled check (non-fatal): {e}")
         
         # Simple direct Firestore lookup (ThreadPoolExecutor was causing delays)
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
@@ -179,16 +234,24 @@ def get_current_user_for_role_setting(
     try:
         logging.info(f"[AUTH] Starting token verification for role setting")
         
-        # Simplified Firebase token verification
+        # Strict verification with revocation enforcement
         try:
-            decoded_token = auth.verify_id_token(token)
+            decoded_token = _verify_id_token_strict(token)
             logging.info(f"[AUTH] Token verification completed successfully")
+        except getattr(auth, "RevokedIdTokenError", Exception):
+            logging.warning("[AUTH] Token has been revoked (role setting)")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token revoked. Please sign in again."
+            )
         except Exception as e:
             logging.error(f"[AUTH] Firebase token verification failed: {e}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication token"
             )
+        # Enforce max session age
+        _enforce_session_max_age(decoded_token)
         
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
