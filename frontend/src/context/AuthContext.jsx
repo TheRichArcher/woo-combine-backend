@@ -179,12 +179,13 @@ export function AuthProvider({ children }) {
         return;
       }
 
-      // MFA GUARD for admins: require enrolled factor when admin claim is present
+      // MFA GUARD for admins (env-gated): require enrolled factor when admin claim is present
       try {
         const idt = await getIdTokenResult(firebaseUser, true);
         const isAdmin = !!idt.claims?.admin;
         const enrolled = (firebaseUser?.multiFactor?.enrolledFactors || []).length > 0;
-        if (isAdmin && !enrolled) {
+        const REQUIRE_ADMIN_MFA = import.meta.env.VITE_REQUIRE_ADMIN_MFA === 'true';
+        if (REQUIRE_ADMIN_MFA && isAdmin && !enrolled) {
           navigate('/mfa-enroll');
           setInitializing(false);
           return;

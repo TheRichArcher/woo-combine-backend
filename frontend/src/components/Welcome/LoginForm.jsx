@@ -31,15 +31,18 @@ export default function LoginForm() {
       // Let global auth flow handle smart redirects (dashboard, verify-email, or join-event)
     } catch (err) {
       authLogger.error("Email sign-in error", err);
-      // Use generic messages to avoid account enumeration
-      if (err.code === "auth/invalid-email") {
+      if (err.code === "auth/user-not-found") {
+        setFormError("No account found with that email address.");
+      } else if (err.code === "auth/wrong-password") {
+        setFormError("Incorrect password. Please try again.");
+      } else if (err.code === "auth/invalid-email") {
         setFormError("Please enter a valid email address.");
-      } else if (err.code === "auth/too-many-requests") {
-        setFormError("Too many attempts. Please try again later.");
       } else if (err.code === "auth/user-disabled") {
-        setFormError("Sign in failed. Please contact support.");
+        setFormError("This account has been disabled.");
+      } else if (err.code === "auth/too-many-requests") {
+        setFormError("Too many failed attempts. Please try again later.");
       } else {
-        setFormError("Sign in failed. Please check your email and password.");
+        setFormError("Failed to sign in. Please check your credentials and try again.");
       }
     } finally {
       setSubmitting(false);
