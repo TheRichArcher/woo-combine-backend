@@ -30,8 +30,35 @@ export default function EmailAction() {
     }
 
     const handle = async () => {
+      const redirectToNext = () => {
+        const pendingEventJoin = localStorage.getItem("pendingEventJoin");
+        if (pendingEventJoin) {
+          const safePath = pendingEventJoin
+            .split("/")
+            .map((part) => encodeURIComponent(part))
+            .join("/");
+          navigate(`/join-event/${safePath}`, { replace: true });
+        } else {
+          navigate("/select-role", { replace: true });
+        }
+      };
+
       try {
         if (mode === "verifyEmail") {
+          // Fast-path: If the user is already verified (e.g., link used in another tab),
+          // treat this as success and redirect instead of showing an error.
+          if (auth.currentUser) {
+            await auth.currentUser.reload();
+            if (auth.currentUser.emailVerified) {
+              await auth.currentUser.getIdToken(true);
+              setUser(auth.currentUser);
+              setStatus("success");
+              setMessage("Your email is already verified. Redirecting...");
+              setTimeout(redirectToNext, 800);
+              return;
+            }
+          }
+
           await applyActionCode(auth, oobCode);
           // Refresh current user to pick up verified flag
           if (auth.currentUser) {
@@ -41,23 +68,8 @@ export default function EmailAction() {
           }
           setStatus("success");
           setMessage("Email verified. Redirecting...");
-
-          // Respect any pending invite
-          const pendingEventJoin = localStorage.getItem("pendingEventJoin");
-          const go = () => {
-            if (pendingEventJoin) {
-              const safePath = pendingEventJoin
-                .split("/")
-                .map((part) => encodeURIComponent(part))
-                .join("/");
-              navigate(`/join-event/${safePath}`, { replace: true });
-            } else {
-              navigate("/select-role", { replace: true });
-            }
-          };
-
           // Short delay for UX; then go
-          setTimeout(go, 800);
+          setTimeout(redirectToNext, 800);
           return;
         }
 
@@ -65,6 +77,23 @@ export default function EmailAction() {
         setStatus("error");
         setMessage("Unsupported action.");
       } catch (err) {
+        // If verification code is invalid/expired but the user is already verified,
+        // handle gracefully and redirect.
+        if (mode === "verifyEmail" && auth.currentUser) {
+          try {
+            await auth.currentUser.reload();
+            if (auth.currentUser.emailVerified) {
+              await auth.currentUser.getIdToken(true);
+              setUser(auth.currentUser);
+              setStatus("success");
+              setMessage("Your email is already verified. Redirecting...");
+              setTimeout(redirectToNext, 800);
+              return;
+            }
+          } catch {
+            // fall through to error below
+          }
+        }
         setStatus("error");
         setMessage("Verification failed or link expired. Try resending the email.");
       }
