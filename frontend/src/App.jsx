@@ -204,6 +204,9 @@ function App() {
                 <Route path="/verify-email" element={<VerifyEmail />} />
                 {/* In-app handler for Firebase action links (verifyEmail, etc.) */}
                 <Route path="/email-action" element={<EmailAction />} />
+                {/* Support Firebase hosted action handler paths */}
+                <Route path="/__/auth/action" element={<EmailAction />} />
+                <Route path="/__auth/action" element={<EmailAction />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/claim" element={
                   <WelcomeLayout
