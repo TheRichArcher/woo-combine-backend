@@ -130,7 +130,26 @@ export default function EmailAction() {
         {status === "success" && (
           <>
             <h2 className="text-2xl font-bold text-green-600 mb-3">Success!</h2>
-            <p className="text-gray-700">{message}</p>
+            <p className="text-gray-700 mb-4">{message}</p>
+            <button
+              onClick={() => {
+                try { window.close(); } catch {}
+              }}
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl transition mb-3"
+            >
+              Return to original tab
+            </button>
+            <p className="text-gray-500 text-sm">
+              You can now return to the original tab to finish setting up your account. This tab was opened just to verify your email. You can close it.
+            </p>
+            <div className="mt-4">
+              <button
+                onClick={() => navigate('/welcome')}
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 rounded-xl transition"
+              >
+                Go to Welcome (fallback)
+              </button>
+            </div>
           </>
         )}
         {status === "error" && (
