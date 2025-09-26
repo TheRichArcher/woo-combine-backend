@@ -56,8 +56,8 @@ export default function SignupForm() {
       // Send email verification with a continue URL so users can get back to the app easily
       try {
         const actionCodeSettings = {
-          // Open verification link inside the app to auto-complete via /email-action
-          url: window.location.origin + "/email-action",
+          // Handle action in-app, then Google's "Continue" takes user back to /verify-email
+          url: window.location.origin + "/verify-email",
           handleCodeInApp: true,
         };
         await sendEmailVerification(userCredential.user, actionCodeSettings);

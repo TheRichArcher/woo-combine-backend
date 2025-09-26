@@ -23,9 +23,23 @@ export default function EmailAction() {
     const mode = query.get("mode");
     const oobCode = query.get("oobCode");
 
+    // If no mode/code in URL, try graceful handling: if already verified, send to next step; else redirect to verify-email.
     if (!mode || !oobCode) {
-      setStatus("error");
-      setMessage("Invalid verification link.");
+      (async () => {
+        try {
+          if (auth.currentUser) {
+            await auth.currentUser.reload();
+            if (auth.currentUser.emailVerified) {
+              await auth.currentUser.getIdToken(true);
+              setUser(auth.currentUser);
+              navigate('/verify-email', { replace: true });
+              return;
+            }
+          }
+        } catch {}
+        setStatus('error');
+        setMessage('Invalid verification link.');
+      })();
       return;
     }
 

@@ -199,7 +199,7 @@ export default function VerifyEmail() {
         
         // Send email verification with continue URL so Firebase shows a "Continue" button
         const actionCodeSettings = {
-          url: window.location.origin + "/email-action",
+          url: window.location.origin + "/verify-email",
           handleCodeInApp: true,
         };
         await sendEmailVerification(auth.currentUser, actionCodeSettings);
