@@ -229,18 +229,19 @@ export default function OnboardingEvent() {
   };
 
   // Upload CSV players to backend
-  const handleUpload = async () => {
+  const handleUpload = async (rowsOverride) => {
     if (!createdEvent?.id) {
       showError("No event selected. Please create an event first.");
       return;
     }
 
-    if (!csvRows || csvRows.length === 0) {
+    const sourceRows = Array.isArray(rowsOverride) ? rowsOverride : csvRows;
+    if (!sourceRows || sourceRows.length === 0) {
       showError("No players to upload. Please select a CSV file first.");
       return;
     }
 
-    const validRows = csvRows.filter(row => row.name && row.name.trim() !== "");
+    const validRows = sourceRows.filter(row => row.name && row.name.trim() !== "");
     if (validRows.length === 0) {
       showError("No valid players found. Please check your CSV file.");
       return;
@@ -525,9 +526,11 @@ export default function OnboardingEvent() {
                           setCsvErrors([]);
                           setShowMapping(false);
                           setMappingApplied(true);
+                          // Immediately begin import after mapping for smoother UX
+                          handleUpload(validated);
                         }}
                       >
-                        Apply Mapping
+                        Apply Mapping & Import
                       </Button>
                       <Button variant="subtle" onClick={() => setShowMapping(false)}>Cancel</Button>
                     </div>

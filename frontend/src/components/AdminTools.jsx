@@ -188,7 +188,10 @@ export default function AdminTools() {
     setCsvRows(validated);
     setCsvErrors([]);
     setShowMapping(false);
-    showSuccess(`✅ Mapping applied. ${validated.length} rows ready to import.`);
+    // Immediately start import after applying mapping to reduce steps
+    showSuccess(`✅ Mapping applied. Importing ${validated.length} players...`);
+    // Kick off upload using validated rows
+    setTimeout(() => handleUpload(), 0);
   };
 
   // Allow upload if we have valid players with first and last names
@@ -771,7 +774,7 @@ export default function AdminTools() {
                     onClick={handleApplyMapping}
                     className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition"
                   >
-                    Apply Mapping
+                    Apply Mapping & Import
                   </button>
                   <button
                     onClick={() => setShowMapping(false)}
