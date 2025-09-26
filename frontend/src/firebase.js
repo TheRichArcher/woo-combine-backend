@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, setPersistence, inMemoryPersistence } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { logger } from "./utils/logger";
 
 // Your web app's Firebase configuration using Vite env variables
@@ -18,8 +18,8 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
-// Ensure tokens are not persisted in browser storage
-setPersistence(auth, inMemoryPersistence).catch(() => {
+// Persist auth in localStorage so sessions are shared across tabs (needed for email verification links)
+setPersistence(auth, browserLocalPersistence).catch(() => {
   // Non-fatal in environments where persistence override is not supported
 });
 
