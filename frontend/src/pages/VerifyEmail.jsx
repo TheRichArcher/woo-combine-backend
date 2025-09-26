@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { useAuth, useLogout } from "../context/AuthContext";
-import { sendEmailVerification } from "firebase/auth";
+import { sendEmailVerification, onAuthStateChanged } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { auth } from "../firebase";
@@ -88,6 +88,36 @@ export default function VerifyEmail() {
   useEffect(() => {
     let isActive = true; // Flag to prevent state updates after unmount
     
+    // Also listen for auth state changes (in case Firebase triggers a refresh after verification)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (!isActive) return;
+      if (firebaseUser) {
+        try {
+          await firebaseUser.reload();
+          if (firebaseUser.emailVerified) {
+            clearInterval(interval);
+            await firebaseUser.getIdToken(true);
+            if (!isActive) return;
+            setIsVerified(true);
+            setUser(firebaseUser);
+            if (fromFirebase && window.opener == null) {
+              setTimeout(() => { window.close(); }, 800);
+            } else {
+              const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+              if (pendingEventJoin) {
+                const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+                navigate(`/join-event/${safePath}`, { replace: true });
+              } else {
+                navigate("/select-role");
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+    });
+
     const checkVerified = async () => {
       // Only run if component is still active and we're on the verify-email page
       if (!isActive || window.location.pathname !== '/verify-email') {
@@ -146,6 +176,7 @@ export default function VerifyEmail() {
     return () => {
       isActive = false;
       clearInterval(interval);
+      unsubscribe();
     };
   }, [navigate, setUser]);
 
