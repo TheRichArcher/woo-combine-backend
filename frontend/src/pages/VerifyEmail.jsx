@@ -78,6 +78,7 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const [isVerified, setIsVerified] = useState(false);
   const logout = useLogout();
+  const [fromFirebase, setFromFirebase] = useState(() => new URLSearchParams(window.location.search).get('fromFirebase') === '1');
 
   // Since we're using Firebase's default verification flow,
   // users will need to manually check verification status
@@ -111,13 +112,20 @@ export default function VerifyEmail() {
             // Only update state if component is still active
             if (isActive) {
               setUser(auth.currentUser);
-              // If we have a pending invite, return to join flow first
-              const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-              if (pendingEventJoin) {
-                const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-                navigate(`/join-event/${safePath}`, { replace: true });
+              if (fromFirebase && window.opener == null) {
+                // If we were opened as a separate tab from Firebase's page, attempt to auto-close
+                setTimeout(() => {
+                  window.close();
+                }, 800);
               } else {
-                navigate("/select-role");
+                // If we have a pending invite, return to join flow first
+                const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+                if (pendingEventJoin) {
+                  const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+                  navigate(`/join-event/${safePath}`, { replace: true });
+                } else {
+                  navigate("/select-role");
+                }
               }
             }
           }
@@ -199,7 +207,7 @@ export default function VerifyEmail() {
         
         // Send email verification with continue URL so Firebase shows a "Continue" button
         const actionCodeSettings = {
-          url: window.location.origin + "/verify-email",
+          url: window.location.origin + "/verify-email?fromFirebase=1",
           handleCodeInApp: true,
         };
         await sendEmailVerification(auth.currentUser, actionCodeSettings);
