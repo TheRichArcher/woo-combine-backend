@@ -67,9 +67,7 @@ export default function EmailAction() {
               await auth.currentUser.getIdToken(true);
               setUser(auth.currentUser);
               setStatus("success");
-              setMessage("Your email is already verified. Redirecting...");
-              // Give users time to see the success UI and the return button
-              setTimeout(redirectToNext, 3000);
+              setMessage("Your email is already verified. You can return to the original tab.");
               return;
             }
           }
@@ -82,9 +80,7 @@ export default function EmailAction() {
             setUser(auth.currentUser);
           }
           setStatus("success");
-          setMessage("Email verified. Redirecting...");
-          // Give users time to see the success UI and the return button
-          setTimeout(redirectToNext, 3000);
+          setMessage("Email verified. You can return to the original tab.");
           return;
         }
 
@@ -101,9 +97,7 @@ export default function EmailAction() {
               await auth.currentUser.getIdToken(true);
               setUser(auth.currentUser);
               setStatus("success");
-              setMessage("Your email is already verified. Redirecting...");
-              // Give users time to see the success UI and the return button
-              setTimeout(redirectToNext, 3000);
+              setMessage("Your email is already verified. You can return to the original tab.");
               return;
             }
           } catch {
