@@ -68,7 +68,8 @@ export default function EmailAction() {
               setUser(auth.currentUser);
               setStatus("success");
               setMessage("Your email is already verified. Redirecting...");
-              setTimeout(redirectToNext, 800);
+              // Give users time to see the success UI and the return button
+              setTimeout(redirectToNext, 3000);
               return;
             }
           }
@@ -82,8 +83,8 @@ export default function EmailAction() {
           }
           setStatus("success");
           setMessage("Email verified. Redirecting...");
-          // Short delay for UX; then go
-          setTimeout(redirectToNext, 800);
+          // Give users time to see the success UI and the return button
+          setTimeout(redirectToNext, 3000);
           return;
         }
 
@@ -101,7 +102,8 @@ export default function EmailAction() {
               setUser(auth.currentUser);
               setStatus("success");
               setMessage("Your email is already verified. Redirecting...");
-              setTimeout(redirectToNext, 800);
+              // Give users time to see the success UI and the return button
+              setTimeout(redirectToNext, 3000);
               return;
             }
           } catch {
