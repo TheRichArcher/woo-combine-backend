@@ -730,7 +730,7 @@ export default function AdminTools() {
             {csvFileName && (
               <div className="text-sm text-gray-600 mb-2">
                 📄 {csvFileName} loaded ({csvRows.length} players)
-                <div className="text-xs text-gray-500">File is loaded but not uploaded yet. Use <span className="font-semibold">Map Fields</span> if your headers differ, then import.</div>
+                <div className="text-xs text-gray-500">🎉 CSV file loaded. Next, click <span className="font-semibold">Map Fields</span> to match your columns to our fields.</div>
               </div>
             )}
 

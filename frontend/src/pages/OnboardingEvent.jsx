@@ -458,7 +458,7 @@ export default function OnboardingEvent() {
                     <p className="text-sm text-green-600">
                       📄 {csvFileName} loaded ({csvRows.length} players)
                     </p>
-                    <p className="text-xs text-gray-600 mb-2">File is loaded but not uploaded yet. Click <span className="font-semibold">Confirm Upload</span> to import players.</p>
+                    <p className="text-xs text-gray-600 mb-2">🎉 CSV file loaded ({csvRows.length} players). Next, click <span className="font-semibold">Map Fields</span> to match your columns to our fields.</p>
                     
                     {!mappingApplied ? (
                       <>
@@ -469,6 +469,7 @@ export default function OnboardingEvent() {
                       </>
                     ) : (
                       <>
+                        <p className="text-xs text-gray-600 mb-2">✅ Fields matched. Click <span className="font-semibold">Import Players</span> to complete the upload.</p>
                         {hasValidPlayers && (
                           <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
                             {uploadStatus === "uploading" ? "Importing..." : "Import Players"}
