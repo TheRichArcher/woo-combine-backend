@@ -182,7 +182,7 @@ export default function VerifyEmail() {
 
   // Auto-redirect to /welcome if session expired
   useEffect(() => {
-    if (!auth.currentUser) {
+    if (!auth.currentUser && !fromFirebase) {
       const timeout = setTimeout(() => {
         localStorage.clear();
         sessionStorage.clear();
@@ -190,7 +190,7 @@ export default function VerifyEmail() {
       }, 2500);
       return () => clearTimeout(timeout);
     }
-  }, [navigate]);
+  }, [navigate, fromFirebase]);
 
   // Manual check
   const handleCheckAgain = async () => {
