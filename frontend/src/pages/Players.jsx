@@ -7,6 +7,7 @@ import AddPlayerModal from "../components/Players/AddPlayerModal";
 
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import EventSelector from "../components/EventSelector";
 import api from '../lib/api';
 import { X, TrendingUp, Award, Edit, Settings, Users, BarChart3, Download, Filter, ChevronDown, Trophy, Target, FileText, Zap, CheckCircle, UserPlus, ArrowRight } from 'lucide-react';
@@ -99,6 +100,7 @@ export default function Players() {
   const [showCompactSliders, setShowCompactSliders] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
   const showEmbeddedControls = false; // Use sticky sub-header controls instead
+  const { showInfo, removeToast } = useToast();
 
   // PERFORMANCE OPTIMIZATION: Use grouped rankings from optimized hook
   const grouped = useMemo(() => {
@@ -175,6 +177,30 @@ export default function Players() {
     const params = new URLSearchParams(location.search);
     return params.get('showChecklist') === '1';
   }, [location.search]);
+
+  const showChecklist = useMemo(() => {
+    return (players.length === 0 || overallCompletionPct < 30) || checklistOverride;
+  }, [players.length, overallCompletionPct, checklistOverride]);
+
+  // First-time toast: points to sticky controls and checklist; accessible via ARIA-live from provider
+  useEffect(() => {
+    if (!showChecklist) return;
+    const key = 'playersStickyChecklistToastShown';
+    const already = sessionStorage.getItem(key);
+    if (already && !checklistOverride) return;
+
+    const id = showInfo('Need help getting started? Use the checklist above. Key controls stay sticky while you scroll.', 6000);
+    sessionStorage.setItem(key, '1');
+
+    const onScroll = () => {
+      removeToast(id);
+      window.removeEventListener('scroll', onScroll, { passive: true } as any);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    return () => {
+      window.removeEventListener('scroll', onScroll as any, { passive: true } as any);
+    };
+  }, [showChecklist, checklistOverride, showInfo, removeToast]);
 
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
