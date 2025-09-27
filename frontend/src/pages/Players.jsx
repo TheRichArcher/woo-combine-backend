@@ -86,6 +86,8 @@ export default function Players() {
   } = useOptimizedWeights(players);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
+  const [showCompactSliders, setShowCompactSliders] = useState(false);
+  const [showAddMenu, setShowAddMenu] = useState(false);
 
   // PERFORMANCE OPTIMIZATION: Use grouped rankings from optimized hook
   const grouped = useMemo(() => {
@@ -142,6 +144,20 @@ export default function Players() {
     if (total === 0) return 0;
     return Math.round((selectedGroupScoredCount / total) * 100);
   }, [selectedGroupScoredCount, selectedGroupPlayers]);
+
+  // Overall completion across all players for primary CTA and guidance banners
+  const overallScoredCount = useMemo(() => {
+    if (!players || players.length === 0) return 0;
+    return players.filter(p =>
+      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+    ).length;
+  }, [players]);
+
+  const overallCompletionPct = useMemo(() => {
+    const total = players.length || 0;
+    if (total === 0) return 0;
+    return Math.round((overallScoredCount / total) * 100);
+  }, [overallScoredCount, players.length]);
 
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
@@ -452,46 +468,126 @@ export default function Players() {
                 : 'Date TBD'
             }
           </p>
-          
-          {/* Primary Action - Most users want this next */}
+
+          {/* Primary Action - simplified by role and data state */}
           {(userRole === 'organizer' || userRole === 'coach') && (
-            <div className="mb-4">
-              <Link
-                to="/live-entry"
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
-              >
-                🚀 Start Recording Drill Results
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
+            <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex-1 min-w-[220px]">
+                {userRole === 'organizer' && players.length === 0 ? (
+                  <div className="relative inline-block">
+                    <button
+                      onClick={() => setShowAddMenu((v) => !v)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-lg"
+                    >
+                      Add players
+                      <ChevronDown className="w-5 h-5" />
+                    </button>
+                    {showAddMenu && (
+                      <div className="absolute z-10 mt-2 w-60 bg-white border border-gray-200 rounded-lg shadow-lg">
+                        <button
+                          onClick={() => { setShowAddMenu(false); setShowAddPlayerModal(true); }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+                        >
+                          Add a single player
+                        </button>
+                        <button
+                          onClick={() => { setShowAddMenu(false); navigate('/admin#player-upload-section'); }}
+                          className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+                        >
+                          Import from CSV
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : overallCompletionPct < 50 ? (
+                  <Link
+                    to="/live-entry"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+                  >
+                    🚀 Start Recording Drill Results
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => setActiveTab('players')}
+                    className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+                  >
+                    📊 Analyze Rankings
+                    <TrendingUp className="w-5 h-5" />
+                  </button>
+                )}
+                {overallCompletionPct < 50 && players.length > 0 && (
+                  <p className="text-sm text-gray-600 text-center mt-2">Record 40-yard dash, vertical jump, and other drill performances</p>
+                )}
+              </div>
+              {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && (
+                <button
+                  onClick={() => setActiveTab('exports')}
+                  className="text-sm text-cmf-primary hover:text-cmf-secondary underline-offset-2 hover:underline"
+                >
+                  Export data →
+                </button>
+              )}
             </div>
           )}
           
-          {/* Player Management Options */}
+          {/* Player Management Options - organizer split button */}
           {userRole === 'organizer' && (
             <div className="border-t border-gray-200 pt-4">
-              <div className="flex gap-3">
+              <div className="relative inline-flex">
                 <button
                   onClick={() => setShowAddPlayerModal(true)}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-l-lg transition flex items-center justify-center gap-2 text-sm"
                 >
                   <UserPlus className="w-4 h-4" />
-                  Add Player
+                  Add player
                 </button>
                 <button
-                  onClick={() => navigate('/admin#player-upload-section')}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                  onClick={() => setShowAddMenu((v) => !v)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 rounded-r-lg border-l border-white/30 text-sm"
+                  aria-haspopup="menu"
+                  aria-expanded={showAddMenu ? 'true' : 'false'}
                 >
-                  <Download className="w-4 h-4" />
-                  Import CSV
+                  <ChevronDown className="w-4 h-4" />
                 </button>
+                {showAddMenu && (
+                  <div className="absolute right-0 top-[110%] z-10 w-64 bg-white border border-gray-200 rounded-lg shadow-lg">
+                    <button
+                      onClick={() => { setShowAddMenu(false); setShowAddPlayerModal(true); }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+                    >
+                      Add a single player
+                    </button>
+                    <button
+                      onClick={() => { setShowAddMenu(false); navigate('/admin#player-upload-section'); }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 text-gray-700"
+                    >
+                      Import from CSV
+                    </button>
+                  </div>
+                )}
               </div>
-              <p className="text-xs text-gray-500 text-center mt-2">
-                Add individual players or import from spreadsheet
+              <p className="text-xs text-gray-500 mt-2">
+                Add individuals or import a spreadsheet
               </p>
             </div>
           )}
         </div>
+
+        {/* Start-here banner for low data completion */}
+        {(players.length > 0 && overallCompletionPct < 30) && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 mb-6">
+            <div className="flex items-start gap-3">
+              <span className="text-xl">🟡</span>
+              <div>
+                <div className="font-semibold mb-1">Start here</div>
+                <div className="text-sm">
+                  Only {overallCompletionPct}% of players have scores yet. Head to <button onClick={() => navigate('/live-entry')} className="underline font-medium">Live Entry</button> to start recording results and unlock rankings.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
 
 
@@ -589,6 +685,12 @@ export default function Players() {
                           <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
                             {selectedGroupScoredCount}/{selectedGroupPlayers.length} with scores ({selectedGroupCompletionPct}%)
                           </span>
+                          <button
+                            onClick={() => setShowCompactSliders((v) => !v)}
+                            className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
+                          >
+                            {showCompactSliders ? 'Hide sliders' : 'Adjust weights'}
+                          </button>
                           <Link
                             to="/live-entry"
                             className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
@@ -615,36 +717,33 @@ export default function Players() {
                         ))}
                       </div>
 
-                      {/* Compact Sliders */}
-                      <div className="bg-white/10 rounded p-2">
-                        <div className="grid grid-cols-5 gap-2 text-xs">
-                          {DRILLS.map((drill) => (
-                            <div key={drill.key} className="text-center">
-                              <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
-                              <input
-                                type="range"
-                                value={sliderWeights[drill.key] ?? 50}
-                                min={0}
-                                max={100}
-                                step={5}
-                                onInput={(e) => {
-                                  // Visual feedback is now handled by the optimized hook
-                                  // No need for immediate updates
-                                }}
-                                onChange={(e) => {
-                                  // Use optimized weight change handler
-                                  const newWeight = parseFloat(e.target.value);
-                                  handleWeightChange(drill.key, newWeight);
-                                }}
-                                className="w-full h-1 rounded cursor-pointer accent-white"
-                              />
-                              <div className="font-mono font-bold text-xs mt-1">
-                                {(sliderWeights[drill.key] || 0).toFixed(0)}%
+                      {/* Compact Sliders (collapsed by default) */}
+                      {showCompactSliders && (
+                        <div className="bg-white/10 rounded p-2">
+                          <div className="grid grid-cols-5 gap-2 text-xs">
+                            {DRILLS.map((drill) => (
+                              <div key={drill.key} className="text-center">
+                                <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
+                                <input
+                                  type="range"
+                                  value={sliderWeights[drill.key] ?? 50}
+                                  min={0}
+                                  max={100}
+                                  step={5}
+                                  onChange={(e) => {
+                                    const newWeight = parseFloat(e.target.value);
+                                    handleWeightChange(drill.key, newWeight);
+                                  }}
+                                  className="w-full h-1 rounded cursor-pointer accent-white"
+                                />
+                                <div className="font-mono font-bold text-xs mt-1">
+                                  {(sliderWeights[drill.key] || 0).toFixed(0)}%
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      </div>
+                      )}
                       
                       {/* Helpful text for viewers */}
                       <div className="text-xs text-white/80 mt-2 text-center">
@@ -792,6 +891,12 @@ export default function Players() {
                               <span className="bg-white/10 px-2 py-1 rounded-full text-xs">
                                 {selectedGroupScoredCount}/{selectedGroupPlayers.length} with scores ({selectedGroupCompletionPct}%)
                               </span>
+                              <button
+                                onClick={() => setShowCompactSliders((v) => !v)}
+                                className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
+                              >
+                                {showCompactSliders ? 'Hide sliders' : 'Adjust weights'}
+                              </button>
                               <Link
                                 to="/live-entry"
                                 className="bg-white/20 hover:bg-white/30 text-white px-2 py-1 rounded text-xs font-medium"
@@ -818,32 +923,33 @@ export default function Players() {
                             ))}
                           </div>
 
-                          {/* Compact Sliders */}
-                          <div className="bg-white/10 rounded p-2">
-                            <div className="grid grid-cols-5 gap-2 text-xs">
-                              {DRILLS.map((drill) => (
-                                <div key={drill.key} className="text-center">
-                                  <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
-                                  <input
-                                    type="range"
-                                    value={sliderWeights[drill.key] ?? 50}
-                                    min={0}
-                                    max={100}
-                                    step={5}
-                                    onChange={(e) => {
-                                      // Use optimized weight change handler
-                                      const newWeight = parseFloat(e.target.value);
-                                      handleWeightChange(drill.key, newWeight);
-                                    }}
-                                    className="w-full h-1 rounded cursor-pointer accent-white"
-                                  />
-                                  <div className="font-mono font-bold text-xs mt-1">
-                                    {(sliderWeights[drill.key] || 0).toFixed(0)}%
+                          {/* Compact Sliders (collapsed by default) */}
+                          {showCompactSliders && (
+                            <div className="bg-white/10 rounded p-2">
+                              <div className="grid grid-cols-5 gap-2 text-xs">
+                                {DRILLS.map((drill) => (
+                                  <div key={drill.key} className="text-center">
+                                    <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
+                                    <input
+                                      type="range"
+                                      value={sliderWeights[drill.key] ?? 50}
+                                      min={0}
+                                      max={100}
+                                      step={5}
+                                      onChange={(e) => {
+                                        const newWeight = parseFloat(e.target.value);
+                                        handleWeightChange(drill.key, newWeight);
+                                      }}
+                                      className="w-full h-1 rounded cursor-pointer accent-white"
+                                    />
+                                    <div className="font-mono font-bold text-xs mt-1">
+                                      {(sliderWeights[drill.key] || 0).toFixed(0)}%
+                                    </div>
                                   </div>
-                                </div>
-                              ))}
+                                ))}
+                              </div>
                             </div>
-                          </div>
+                          )}
                         </div>
 
                         {/* Live Rankings */}
