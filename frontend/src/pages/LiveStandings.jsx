@@ -276,6 +276,14 @@ export default function LiveStandings() {
                     <div>
                       <div className="font-medium text-gray-900">{player.name}</div>
                       <div className="text-sm text-gray-600">#{player.number}</div>
+                      <div className="text-xs mt-1">
+                        <Link
+                          to={`/live-entry?player=${encodeURIComponent(player.number || '')}`}
+                          className="text-blue-600 hover:text-blue-700 underline"
+                        >
+                          Record this player
+                        </Link>
+                      </div>
                     </div>
                   </div>
                   <div className="text-right">

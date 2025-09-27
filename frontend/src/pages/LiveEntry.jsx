@@ -3,7 +3,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 
 const DRILLS = [
@@ -17,6 +17,7 @@ const DRILLS = [
 export default function LiveEntry() {
   const { selectedEvent } = useEvent();
   const { userRole } = useAuth();
+  const location = useLocation();
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
@@ -36,6 +37,9 @@ export default function LiveEntry() {
   const [duplicateData, setDuplicateData] = useState(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [checklistDismissed, setChecklistDismissed] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editValues, setEditValues] = useState({}); // {entryId: value}
+  const [savingEditId, setSavingEditId] = useState(null);
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -76,7 +80,11 @@ export default function LiveEntry() {
       if (savedEntries) {
         const parsed = JSON.parse(savedEntries);
         if (Array.isArray(parsed)) {
-          setRecentEntries(parsed);
+          const normalized = parsed.map(e => ({
+            ...e,
+            timestamp: e.timestamp ? new Date(e.timestamp) : new Date()
+          }));
+          setRecentEntries(normalized);
         }
       }
     } catch {}
@@ -87,6 +95,36 @@ export default function LiveEntry() {
       }
     } catch {}
   }, [storageKeys]);
+
+  // Deep-link handling (?player=123&drill=40m_dash)
+  useEffect(() => {
+    if (!selectedEvent) return;
+    const params = new URLSearchParams(location.search);
+    const drillParam = params.get('drill');
+    const playerParam = params.get('player');
+    let applied = false;
+    if (drillParam && DRILLS.some(d => d.key === drillParam)) {
+      setSelectedDrill(drillParam);
+      setDrillConfirmed(true);
+      applied = true;
+    }
+    if (playerParam) {
+      setPlayerNumber(playerParam.toString());
+      applied = true;
+    }
+    if (applied) {
+      setTimeout(() => {
+        if (playerParam) {
+          // focus score after auto-complete resolves
+          scoreRef.current?.focus();
+        } else {
+          playerNumberRef.current?.focus();
+        }
+      }, 200);
+    }
+    // run once per navigation
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedEvent, location.search, players.length]);
 
   // Persist selected drill
   useEffect(() => {
@@ -192,6 +230,7 @@ export default function LiveEntry() {
       // Add to recent entries
       const entry = {
         id: Date.now(),
+        playerId,
         playerNumber,
         playerName,
         drill: DRILLS.find(d => d.key === selectedDrill),
@@ -621,6 +660,17 @@ export default function LiveEntry() {
                     <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">
                       {recentEntries.length} recent
                     </span>
+                <button
+                  onClick={() => {
+                    setShowEditModal(true);
+                    const initial = {};
+                    recentEntries.forEach(e => { initial[e.id] = String(e.score ?? ''); });
+                    setEditValues(initial);
+                  }}
+                  className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Edit Recent
+                </button>
                     <Link
                       to="/players/rankings"
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
@@ -691,6 +741,66 @@ export default function LiveEntry() {
               >
                 Replace Score
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Recent Scores Modal (replace-only) */}
+      {showEditModal && (
+        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-gray-900">Edit Recent Scores</h3>
+              <button onClick={() => setShowEditModal(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <div className="max-h-96 overflow-y-auto space-y-3">
+              {recentEntries.slice(0, 10).map(entry => (
+                <div key={entry.id} className="p-3 border rounded-lg flex items-center gap-3">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-900">#{entry.playerNumber} {entry.playerName}</div>
+                    <div className="text-sm text-gray-600">{entry.drill.label}</div>
+                  </div>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={editValues[entry.id] ?? ''}
+                    onChange={(e) => setEditValues(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                    className="w-24 p-2 border rounded text-center"
+                  />
+                  <div className="text-sm text-gray-500 w-10 text-center">{entry.drill.unit}</div>
+                  <button
+                    disabled={savingEditId === entry.id}
+                    onClick={async () => {
+                      const newVal = parseFloat(editValues[entry.id]);
+                      if (isNaN(newVal)) return;
+                      try {
+                        setSavingEditId(entry.id);
+                        await api.post('/drill-results/', {
+                          player_id: entry.playerId,
+                          type: entry.drill.key,
+                          value: newVal,
+                          event_id: selectedEvent.id
+                        });
+                        // Update local recentEntries
+                        setRecentEntries(prev => prev.map(e => e.id === entry.id ? { ...e, score: newVal, overridden: true } : e));
+                        cacheInvalidation.playersUpdated(selectedEvent.id);
+                        await fetchPlayers();
+                      } catch {
+                        alert('Error updating score. Please try again.');
+                      } finally {
+                        setSavingEditId(null);
+                      }
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded"
+                  >
+                    {savingEditId === entry.id ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 text-right">
+              <button onClick={() => setShowEditModal(false)} className="text-sm text-gray-700 hover:text-gray-900 underline">Done</button>
             </div>
           </div>
         </div>
