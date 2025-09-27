@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
-import { logger } from '../utils/logger';
+import { useToast } from '../context/ToastContext';
 import { ChevronDown, Shield, Users, Eye, CheckCircle, Settings, BarChart3, Upload } from 'lucide-react';
 
 // Simplified role options for faster onboarding
@@ -45,8 +45,12 @@ export default function SelectRole() {
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [autoProceedTimer, setAutoProceedTimer] = useState(null);
+  const [pendingAutoProceedRole, setPendingAutoProceedRole] = useState(null);
+  const [ariaStatus, setAriaStatus] = useState("");
   const navigate = useNavigate();
   const logout = useLogout();
+  const { showInfo } = useToast();
   
   // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
@@ -95,6 +99,46 @@ export default function SelectRole() {
     );
   }
 
+  // Clear any pending auto-advance on unmount
+  useEffect(() => {
+    return () => {
+      if (autoProceedTimer) {
+        clearTimeout(autoProceedTimer);
+      }
+    };
+  }, [autoProceedTimer]);
+
+  const handleSelectRole = (roleKey) => {
+    if (loading) return;
+
+    // If the same role is tapped again within the cancel window, cancel auto-advance
+    if (autoProceedTimer && pendingAutoProceedRole === roleKey) {
+      clearTimeout(autoProceedTimer);
+      setAutoProceedTimer(null);
+      setPendingAutoProceedRole(null);
+      setAriaStatus('Selection cancelled.');
+      return;
+    }
+
+    // If a different role is selected while timer is active, restart the timer
+    if (autoProceedTimer && pendingAutoProceedRole !== roleKey) {
+      clearTimeout(autoProceedTimer);
+      setAutoProceedTimer(null);
+    }
+
+    setSelectedRole(roleKey);
+    setPendingAutoProceedRole(roleKey);
+    setAriaStatus('Proceeding. Activate again to cancel.');
+
+    const timerId = setTimeout(() => {
+      setAutoProceedTimer(null);
+      setPendingAutoProceedRole(null);
+      handleContinue();
+    }, 350); // brief delay to allow cancel by second tap/press
+
+    setAutoProceedTimer(timerId);
+  };
+
   const handleContinue = async () => {
     setError("");
     
@@ -124,6 +168,9 @@ export default function SelectRole() {
       localStorage.setItem('userRole', selectedRole);
       localStorage.setItem('userEmail', user.email);
       
+      // Informational hint on next screen
+      showInfo('Not the right role? You can change it later in Settings.', 6000);
+
       // Handle post-role-selection navigation
       if (isInvitedUser && pendingEventJoin) {
         // User was invited to an event - redirect back to join flow
@@ -198,7 +245,7 @@ export default function SelectRole() {
           {roleOptions.map((role) => (
             <button
               key={role.key}
-              onClick={() => setSelectedRole(role.key)}
+              onClick={() => handleSelectRole(role.key)}
               disabled={loading}
               className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 selectedRole === role.key
@@ -212,6 +259,9 @@ export default function SelectRole() {
                   <h4 className="font-semibold text-gray-900">{role.label}</h4>
                   <p className="text-sm text-gray-600 mb-1">{role.desc}</p>
                   <p className="text-xs text-gray-500">{role.benefits}</p>
+                  {pendingAutoProceedRole === role.key && (
+                    <p className="text-xs text-cyan-700 mt-1">Continuing... tap again to cancel</p>
+                  )}
                 </div>
                 {selectedRole === role.key && (
                   <CheckCircle className="w-5 h-5 text-cyan-600 mt-1" />
@@ -247,10 +297,11 @@ export default function SelectRole() {
           </button>
         </div>
 
-        {/* Help Text */}
+        {/* Help Text and a11y live region */}
         <div className="mt-4 text-xs text-gray-400">
           <p>Can be changed later</p>
         </div>
+        <div className="sr-only" aria-live="polite">{ariaStatus}</div>
       </div>
     </WelcomeLayout>
   );
