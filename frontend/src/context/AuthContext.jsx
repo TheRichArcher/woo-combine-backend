@@ -118,10 +118,8 @@ export function AuthProvider({ children }) {
     
     try {
       const token = await firebaseUser.getIdToken(false);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      const response = await api.get(`/leagues/me`, { signal: controller.signal }).catch((e) => { throw e; });
-      clearTimeout(timeout);
+      // Allow api default timeout (45s) to handle cold start rather than a 5s abort
+      const response = await api.get(`/leagues/me`).catch((e) => { throw e; });
 
       if (response?.data) {
         const leagueData = response.data;
@@ -254,7 +252,7 @@ export function AuthProvider({ children }) {
             
             const apiUrl = `/users/me`;
             authLogger.debug('Making API call to', apiUrl);
-            const roleResponse = await api.get(apiUrl, { headers: { Authorization: `Bearer ${token}` }, timeout: 5000 });
+            const roleResponse = await api.get(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
             authLogger.debug('API Response status', roleResponse.status);
             if (roleResponse?.data) {
               const userData = roleResponse.data;
@@ -363,10 +361,7 @@ export function AuthProvider({ children }) {
           setLeagueFetchInProgress(true);
           
           try {
-            const leagueResponse = await api.get(`/leagues/me`, { 
-              timeout: 10000, // Reduced to 10s for faster loading
-              retry: 0
-            });
+            const leagueResponse = await api.get(`/leagues/me`);
             
             // Normalize possible shapes: array or { leagues: [...] }
             const userLeagues = Array.isArray(leagueResponse.data)

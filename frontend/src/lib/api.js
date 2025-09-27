@@ -26,8 +26,8 @@ const resolveBaseUrl = () => {
 const api = axios.create({
   baseURL: resolveBaseUrl(),
   withCredentials: false,
-  // Reduce default timeout to curb long-hanging connections; allow endpoint-specific overrides
-  timeout: 15000
+  // Extended default timeout to handle backend cold starts more gracefully
+  timeout: 45000
 });
 
 // Enhanced retry logic for cold start recovery
