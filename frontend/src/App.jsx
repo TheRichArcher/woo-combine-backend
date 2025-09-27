@@ -6,6 +6,9 @@ import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Players from "./pages/Players";
+import PlayersRedirect from "./pages/PlayersRedirect";
+import PlayersRoster from "./pages/PlayersRoster";
+import PlayersRankings from "./pages/PlayersRankings";
 import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -160,8 +163,30 @@ function App() {
                   element={
                     <RequireAuth>
                       <AuthenticatedLayout>
+                        <PlayersRedirect />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/players/roster"
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
                         <div className="container mx-auto px-4 py-8">
-                          <Players />
+                          <PlayersRoster />
+                        </div>
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/players/rankings"
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <div className="container mx-auto px-4 py-8">
+                          <PlayersRankings />
                         </div>
                       </AuthenticatedLayout>
                     </RequireAuth>

@@ -90,7 +90,9 @@ export const APP_CONFIG = {
 // Route paths
 export const ROUTES = {
   HOME: '/dashboard',
-  PLAYERS: '/players', 
+  PLAYERS: '/players',
+  PLAYERS_ROSTER: '/players/roster',
+  PLAYERS_RANKINGS: '/players/rankings',
   ADMIN: '/admin',
   LIVE_ENTRY: '/live-entry',
   LOGIN: '/login',
