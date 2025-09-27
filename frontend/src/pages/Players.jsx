@@ -185,12 +185,36 @@ export default function Players() {
   // First-time toast: points to sticky controls and checklist; accessible via ARIA-live from provider
   useEffect(() => {
     if (!showChecklist) return;
-    const key = 'playersStickyChecklistToastShown';
-    const already = sessionStorage.getItem(key);
-    if (already && !checklistOverride) return;
+    const sessionKey = 'playersStickyChecklistToastShown';
+    const countKey = 'playersStickyChecklistToastCount';
+    const dismissedKey = 'playersStickyChecklistToastDismissed';
+    const dismissedForever = localStorage.getItem(dismissedKey) === '1';
+    if (dismissedForever && !checklistOverride) return;
 
-    const id = showInfo('Need help getting started? Use the checklist above. Key controls stay sticky while you scroll.', 6000);
-    sessionStorage.setItem(key, '1');
+    const shownCount = parseInt(sessionStorage.getItem(countKey) || '0', 10);
+    const hasShownThisSession = sessionStorage.getItem(sessionKey) === '1';
+    const isBrandNew = players.length === 0 && overallScoredCount === 0;
+    const duration = isBrandNew ? 12000 : 6000; // longer for true first-time
+    const showDontShowAgain = shownCount >= 1; // show toggle on 2nd show
+
+    const id = showInfo(
+      'Need help getting started? Use the checklist above. Key controls stay sticky while you scroll.',
+      duration,
+      showDontShowAgain
+        ? {
+            secondaryActionLabel: "Don't show again",
+            onSecondaryAction: () => {
+              localStorage.setItem(dismissedKey, '1');
+            }
+          }
+        : {}
+    );
+
+    // Track session flags
+    if (!hasShownThisSession) {
+      sessionStorage.setItem(sessionKey, '1');
+    }
+    sessionStorage.setItem(countKey, String(shownCount + 1));
 
     const onScroll = () => {
       removeToast(id);
@@ -200,7 +224,7 @@ export default function Players() {
     return () => {
       window.removeEventListener('scroll', onScroll as any, { passive: true } as any);
     };
-  }, [showChecklist, checklistOverride, showInfo, removeToast]);
+  }, [showChecklist, checklistOverride, showInfo, removeToast, players.length, overallScoredCount]);
 
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {

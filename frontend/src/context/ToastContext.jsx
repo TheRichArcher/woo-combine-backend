@@ -8,9 +8,9 @@ export function ToastProvider({ children }) {
   const [activeColdStartId, setActiveColdStartId] = useState(null);
   const [coldStartActive, setColdStartActive] = useState(false);
 
-  const addToast = useCallback((message, type = 'info', duration = 5000) => {
+  const addToast = useCallback((message, type = 'info', duration = 5000, options = {}) => {
     const id = Date.now() + Math.random();
-    const newToast = { id, message, type, duration };
+    const newToast = { id, message, type, duration, ...options };
     
     setToasts(prev => [...prev, newToast]);
     
@@ -28,20 +28,20 @@ export function ToastProvider({ children }) {
   }, [activeColdStartId]);
 
   // Convenience methods for different types of notifications
-  const showSuccess = useCallback((message, duration = 4000) => {
-    return addToast(message, 'success', duration);
+  const showSuccess = useCallback((message, duration = 4000, options = {}) => {
+    return addToast(message, 'success', duration, options);
   }, [addToast]);
 
-  const showError = useCallback((message, duration = 6000) => {
-    return addToast(message, 'error', duration);
+  const showError = useCallback((message, duration = 6000, options = {}) => {
+    return addToast(message, 'error', duration, options);
   }, [addToast]);
 
-  const showInfo = useCallback((message, duration = 5000) => {
-    return addToast(message, 'info', duration);
+  const showInfo = useCallback((message, duration = 5000, options = {}) => {
+    return addToast(message, 'info', duration, options);
   }, [addToast]);
 
-  const showWarning = useCallback((message, duration = 5000) => {
-    return addToast(message, 'warning', duration);
+  const showWarning = useCallback((message, duration = 5000, options = {}) => {
+    return addToast(message, 'warning', duration, options);
   }, [addToast]);
 
   const showColdStartNotification = useCallback(() => {
@@ -129,6 +129,10 @@ export function ToastProvider({ children }) {
             message={toast.message}
             type={toast.type}
             duration={toast.duration}
+            actionLabel={toast.actionLabel}
+            onAction={toast.onAction}
+            secondaryActionLabel={toast.secondaryActionLabel}
+            onSecondaryAction={toast.onSecondaryAction}
             onClose={() => removeToast(toast.id)}
           />
         ))}

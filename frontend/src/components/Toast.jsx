@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, AlertCircle, Clock, CheckCircle, XCircle } from 'lucide-react';
 
-const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
+const Toast = ({ message, type = 'info', duration = 5000, onClose, actionLabel, onAction, secondaryActionLabel, onSecondaryAction }) => {
   const [isVisible, setIsVisible] = useState(true);
 
   const handleClose = useCallback(() => {
@@ -42,6 +42,26 @@ const Toast = ({ message, type = 'info', duration = 5000, onClose }) => {
         {iconMap[type]}
         <div className="flex-1">
           <p className="text-sm font-medium">{message}</p>
+          {(actionLabel || secondaryActionLabel) && (
+            <div className="mt-2 flex gap-3 text-sm">
+              {actionLabel && (
+                <button
+                  onClick={() => { if (onAction) onAction(); handleClose(); }}
+                  className="underline font-medium hover:opacity-80"
+                >
+                  {actionLabel}
+                </button>
+              )}
+              {secondaryActionLabel && (
+                <button
+                  onClick={() => { if (onSecondaryAction) onSecondaryAction(); handleClose(); }}
+                  className="underline text-gray-700 hover:opacity-80"
+                >
+                  {secondaryActionLabel}
+                </button>
+              )}
+            </div>
+          )}
         </div>
         <button
           onClick={handleClose}
