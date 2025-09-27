@@ -502,7 +502,7 @@ export default function LiveEntry() {
                       {recentEntries.length} recent
                     </span>
                     <Link
-                      to="/players"
+                      to="/players/rankings"
                       className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                     >
                       View All →

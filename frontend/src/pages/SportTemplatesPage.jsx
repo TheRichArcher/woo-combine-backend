@@ -171,7 +171,7 @@ export default function SportTemplatesPage() {
               <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Link to="/players" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition group">
+                  <Link to="/players/rankings" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition group">
                     <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">+</div>
                     <div className="flex-1">
                       <h4 className="font-medium text-blue-900 group-hover:text-blue-800 text-sm">Manage Players</h4>

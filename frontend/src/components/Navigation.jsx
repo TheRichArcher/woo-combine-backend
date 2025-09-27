@@ -336,16 +336,18 @@ export default function Navigation() {
               Home
             </Link>
             <Link 
-              to="/players" 
+              to="/players/roster" 
+              title="Manage your event’s player list and scores"
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              Players
+              🏈 Roster
             </Link>
             <Link 
-              to="/roster" 
+              to="/players/rankings" 
+              title="View and analyze rankings by age group"
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              Roster
+              📊 Rankings
             </Link>
             <Link 
               to="/schedule" 
@@ -474,18 +476,20 @@ export default function Navigation() {
               Home
             </Link>
             <Link 
-              to="/players" 
+              to="/players/roster" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
               onClick={closeMobile}
+              title="Manage your event’s player list and scores"
             >
-              Players
+              🏈 Roster
             </Link>
             <Link 
-              to="/roster" 
+              to="/players/rankings" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
               onClick={closeMobile}
+              title="View and analyze rankings by age group"
             >
-              Roster
+              📊 Rankings
             </Link>
             <Link 
               to="/schedule" 

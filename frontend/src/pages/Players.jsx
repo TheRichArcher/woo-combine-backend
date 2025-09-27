@@ -930,6 +930,10 @@ export default function Players() {
                 </p>
               </div>
             )}
+            {/* Quick feedback link */}
+            <div className="text-center text-xs text-gray-500">
+              Was this page easy to use? <a href="mailto:support@woo-combine.com?subject=Feedback%20on%20Rankings%20page" className="underline">Give feedback</a>
+            </div>
           </div>
         ) : (
           /* Organizer/Coach interface with tabs */

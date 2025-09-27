@@ -149,7 +149,7 @@ export default function LiveStandings() {
               <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
             <Link
-              to="/players"
+              to="/players/rankings"
               className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
             >
               <Users className="w-4 h-4 text-blue-600" />
@@ -288,7 +288,7 @@ export default function LiveStandings() {
               {liveRankings.length > 10 && (
                 <div className="text-center pt-2">
                   <Link 
-                    to="/players"
+                    to="/players/rankings"
                     className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                   >
                     View all {liveRankings.length} players →
@@ -319,7 +319,7 @@ export default function LiveStandings() {
                     Create Teams
                   </Link>
                   <Link
-                    to="/players"
+                    to="/players/rankings"
                     className="text-xs bg-white text-purple-800 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition font-medium"
                   >
                     Full Analytics

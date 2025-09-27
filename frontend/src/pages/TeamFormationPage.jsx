@@ -212,7 +212,7 @@ const TeamFormationPage = () => {
               <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
             <Link
-              to="/players"
+              to="/players/rankings"
               className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
             >
               <Users className="w-4 h-4 text-blue-600" />
@@ -324,7 +324,7 @@ const TeamFormationPage = () => {
                 <h4 className="font-medium text-yellow-900 mb-1">No Players with Scores</h4>
                 <p className="text-sm text-yellow-800">
                   Players need to have drill scores recorded before they can be formed into teams.
-                  Head to the <Link to="/players" className="underline">Players page</Link> to record drill scores first.
+                  Head to the <Link to="/players/rankings" className="underline">Rankings page</Link> to record drill scores first.
                 </p>
               </div>
             </div>
@@ -349,7 +349,7 @@ const TeamFormationPage = () => {
               </p>
               <div className="grid grid-cols-1 gap-2">
                 <Link
-                  to="/players"
+                  to="/players/roster"
                   className="flex items-center gap-2 p-3 bg-white rounded-lg border border-green-200 hover:bg-green-50 transition"
                 >
                   <Users className="w-5 h-5 text-green-600" />

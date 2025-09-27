@@ -422,10 +422,10 @@ export default function AdminTools() {
             
             <div className="space-y-3">
               <Link
-                to="/players"
+                to="/players/rankings"
                 className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-3 rounded-xl transition block"
               >
-                View Players & Rankings
+                View Rankings
               </Link>
               <Link
                 to="/dashboard"
@@ -868,10 +868,10 @@ export default function AdminTools() {
                     📂 Upload More Players
                   </button>
                   <Link
-                    to="/players"
+                    to="/players/roster"
                     className="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition text-center"
                   >
-                    🏆 View Players & Rankings
+                    🏈 View Roster
                   </Link>
                 </div>
               </div>
@@ -1123,7 +1123,7 @@ export default function AdminTools() {
               </h3>
               <div className="space-y-2">
                 <Link
-                  to="/players"
+                  to="/players/rankings"
                   className="block w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition text-center"
                   onClick={() => showInfo('📊 Viewing comprehensive player rankings with export options')}
                 >

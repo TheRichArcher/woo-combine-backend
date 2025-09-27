@@ -162,7 +162,7 @@ const ScorecardsPage = () => {
               <Zap className="w-4 h-4 text-green-600" />
               <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
-            <Link to="/players" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
+            <Link to="/players/rankings" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
               <Users className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">Full Player View</span>
             </Link>
@@ -184,7 +184,7 @@ const ScorecardsPage = () => {
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">No Players with Evaluation Scores</h3>
                 <p className="text-yellow-800 mb-3">Players need to have drill scores recorded before scorecards can be generated.</p>
-                <Link to="/players" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                <Link to="/players/roster" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
                   <Users className="w-4 h-4" /> Go to Players Page
                 </Link>
               </div>
