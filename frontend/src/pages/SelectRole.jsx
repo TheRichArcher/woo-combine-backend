@@ -126,6 +126,9 @@ export default function SelectRole() {
       setAutoProceedTimer(null);
     }
 
+    // Clear any previous validation error immediately on selection
+    setError("");
+
     setSelectedRole(roleKey);
     setPendingAutoProceedRole(roleKey);
     setAriaStatus('Proceeding. Activate again to cancel.');
@@ -133,16 +136,18 @@ export default function SelectRole() {
     const timerId = setTimeout(() => {
       setAutoProceedTimer(null);
       setPendingAutoProceedRole(null);
-      handleContinue();
+      handleContinue(roleKey);
     }, 350); // brief delay to allow cancel by second tap/press
 
     setAutoProceedTimer(timerId);
   };
 
-  const handleContinue = async () => {
+  const handleContinue = async (roleOverride) => {
     setError("");
     
-    if (!selectedRole) {
+    const roleToSave = roleOverride || selectedRole;
+
+    if (!roleToSave) {
       setError("Please select a role.");
       return;
     }
@@ -153,7 +158,7 @@ export default function SelectRole() {
       // Save user role via backend API with fallback for Firebase issues
       try {
         await api.post('/users/role', {
-          role: selectedRole
+          role: roleToSave
         });
         console.log('[ROLE-SETTING] Successfully set role via primary endpoint');
       } catch (primaryError) {
@@ -164,8 +169,8 @@ export default function SelectRole() {
       
       // PERFORMANCE: Skip redundant role refresh - AuthContext will handle this automatically
       // Just update local state for immediate navigation and persist to localStorage
-      setUserRole(selectedRole);
-      localStorage.setItem('userRole', selectedRole);
+      setUserRole(roleToSave);
+      localStorage.setItem('userRole', roleToSave);
       localStorage.setItem('userEmail', user.email);
       
       // Informational hint on next screen
@@ -178,7 +183,7 @@ export default function SelectRole() {
         navigate(`/join-event/${safePath}`, { replace: true });
       } else {
         // STREAMLINED ONBOARDING: For new organizers, go directly to create-league
-        if (selectedRole === 'organizer') {
+        if (roleToSave === 'organizer') {
           // New organizers go straight to league creation for streamlined setup
           navigate("/create-league", { replace: true });
         } else {
