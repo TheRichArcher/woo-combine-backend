@@ -7,11 +7,6 @@ import logging
 from ..firestore_client import db
 from datetime import datetime
 from ..models import PlayerSchema
-from ..utils.validation import (
-    validate_player_data,
-    validate_age_group,
-    canonicalize_age_group,
-)
 from ..utils.database import execute_with_timeout
 
 router = APIRouter()
@@ -256,8 +251,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
         event_id = req.event_id
         players = req.players
-        # New CSV contract: require first_name, last_name, jersey_number, age_group; optional fields are allowed
-        required_fields = ["first_name", "last_name", "jersey_number", "age_group"]
+        # Updated CSV contract: age_group is optional and free-form
+        required_fields = ["first_name", "last_name", "jersey_number"]
         drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
         errors = []
         added = 0
@@ -318,11 +313,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append("jersey_number must be between 1 and 9999")
             except Exception:
                 row_errors.append("Invalid jersey_number (must be numeric)")
-            # Age group: enforce allowed list
-            try:
-                _ = validate_age_group(str(player.get("age_group") or ""))
-            except Exception as ve:
-                row_errors.append(str(ve))
+            # Age group: no strict validation; accept any string or blank
             # More flexible drill validation - only validate non-empty values
             for drill in drill_fields:
                 val = player.get(drill, "")
@@ -369,11 +360,9 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append("Duplicate external_id already exists in event")
             # When jersey_number is missing/invalid, fallback duplicate check on (first,last,age_group)
             if number_key is None and (first or last):
-                try:
-                    age_val_canon = canonicalize_age_group(str(player.get("age_group") or ""))
-                except Exception:
-                    age_val_canon = str(player.get("age_group") or "").strip()
-                age_l = str(age_val_canon or "").strip().lower()
+                # Use raw age_group value (trimmed/lowercased) for duplicate keying
+                age_raw = str(player.get("age_group") or "").strip()
+                age_l = age_raw.lower()
                 if (first, last, age_l) in existing_first_last_age:
                     row_errors.append("Duplicate (first,last,age_group) already exists in event")
 
@@ -385,8 +374,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 # CRITICAL FIX: Store players in event subcollection where they're retrieved from
                 player_doc = db.collection("events").document(event_id).collection("players").document()
 
-                # Prepare player data with drill scores and canonical fields
-                canonical_age = canonicalize_age_group(str(player.get("age_group") or "")) if player.get("age_group") else None
+                # Prepare player data; store age_group as provided (trimmed), or None if blank
                 first_name = (player.get("first_name") or "").strip()
                 last_name = (player.get("last_name") or "").strip()
                 full_name = f"{first_name} {last_name}".strip()
@@ -404,7 +392,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     "first": first_name,
                     "last": last_name,
                     "number": number_value,
-                    "age_group": canonical_age,
+                    "age_group": (str(player.get("age_group")).strip() if str(player.get("age_group") or "").strip() != "" else None),
                     "external_id": (player.get("external_id") or None),
                     "team_name": (player.get("team_name") or None),
                     "position": (player.get("position") or None),

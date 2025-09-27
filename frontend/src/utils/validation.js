@@ -78,19 +78,10 @@ export function validatePassword(password) {
  * @throws {Error} - If age group is invalid
  */
 export function validateAgeGroup(ageGroup) {
-  if (!ageGroup || typeof ageGroup !== 'string') {
-    throw new Error('Age group is required');
-  }
-  
-  const trimmedAgeGroup = ageGroup.trim();
-  
-  // Allow formats like: 7-8, 9-10, U12, 12U, etc.
-  const ageGroupRegex = /^((\d{1,2}-\d{1,2})|(U\d{1,2})|(\d{1,2}U))$/;
-  if (!ageGroupRegex.test(trimmedAgeGroup)) {
-    throw new Error('Invalid age group format. Examples: 7-8, U12, 12U');
-  }
-  
-  return trimmedAgeGroup;
+  if (ageGroup == null) return '';
+  if (typeof ageGroup !== 'string') return String(ageGroup);
+  // Accept any string (including blank) to support arbitrary league labels
+  return ageGroup.trim();
 }
 
 /**

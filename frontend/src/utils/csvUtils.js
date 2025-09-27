@@ -1,15 +1,15 @@
 // CSV parsing and validation utilities
 
-// Required by data contract: first_name, last_name, jersey_number, age_group
-export const REQUIRED_HEADERS = ["first_name", "last_name", "jersey_number", "age_group"];
+// Required: first_name, last_name. jersey_number and age_group are optional
+export const REQUIRED_HEADERS = ["first_name", "last_name"];
 // Optional columns supported by backend
 export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 export const SAMPLE_ROWS = [
-  ["John", "Smith", "12", "12U"],
-  ["Emma", "Johnson", "25", "12U"], 
-  ["Michael", "Davis", "", "14U"]
+  ["John", "Smith", "12U", "12"],
+  ["Emma", "Johnson", "Mighty Mites", "25"], 
+  ["Michael", "Davis", "", ""]
 ];
 
 // Check if headers indicate header-based format

@@ -259,8 +259,10 @@ def validate_player_data(data: Dict[str, Any]) -> Dict[str, Any]:
     if 'number' in data and data['number'] is not None:
         validated['number'] = Validator.number_range(int(data['number']), 'number', 1, 9999)
     
-    if 'age_group' in data and data['age_group']:
-        validated['age_group'] = Validator.pattern_match(data['age_group'], 'age_group', 'age_group')
+    if 'age_group' in data and data['age_group'] is not None:
+        # Accept any string (including custom labels); trim empty to None
+        ag = str(data['age_group']).strip()
+        validated['age_group'] = ag if ag != '' else None
     
     # Drill scores (optional)
     for drill_type in DRILL_SCORE_RANGES.keys():
