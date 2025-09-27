@@ -218,11 +218,11 @@ export default function Players() {
 
     const onScroll = () => {
       removeToast(id);
-      window.removeEventListener('scroll', onScroll, { passive: true } as any);
+      window.removeEventListener('scroll', onScroll, { passive: true });
     };
-    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => {
-      window.removeEventListener('scroll', onScroll as any, { passive: true } as any);
+      window.removeEventListener('scroll', onScroll, { passive: true });
     };
   }, [showChecklist, checklistOverride, showInfo, removeToast, players.length, overallScoredCount]);
 
