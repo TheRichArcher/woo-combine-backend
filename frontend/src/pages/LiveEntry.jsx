@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
@@ -35,6 +35,7 @@ export default function LiveEntry() {
   const [recentEntries, setRecentEntries] = useState([]);
   const [duplicateData, setDuplicateData] = useState(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [checklistDismissed, setChecklistDismissed] = useState(false);
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -49,6 +50,63 @@ export default function LiveEntry() {
         // Player fetch failed
     }
   }, [selectedEvent]);
+
+  // Local storage keys (per event)
+  const storageKeys = useMemo(() => {
+    if (!selectedEvent) return null;
+    return {
+      drill: `liveEntry:${selectedEvent.id}:selectedDrill`,
+      entries: `liveEntry:${selectedEvent.id}:recentEntries`,
+      checklist: `liveEntry:${selectedEvent.id}:checklistDismissed`
+    };
+  }, [selectedEvent]);
+
+  // Load persisted state
+  useEffect(() => {
+    if (!storageKeys) return;
+    try {
+      const savedDrill = localStorage.getItem(storageKeys.drill);
+      if (savedDrill) {
+        setSelectedDrill(savedDrill);
+        setDrillConfirmed(!!savedDrill);
+      }
+    } catch {}
+    try {
+      const savedEntries = localStorage.getItem(storageKeys.entries);
+      if (savedEntries) {
+        const parsed = JSON.parse(savedEntries);
+        if (Array.isArray(parsed)) {
+          setRecentEntries(parsed);
+        }
+      }
+    } catch {}
+    try {
+      const savedChecklist = localStorage.getItem(storageKeys.checklist);
+      if (savedChecklist === '1') {
+        setChecklistDismissed(true);
+      }
+    } catch {}
+  }, [storageKeys]);
+
+  // Persist selected drill
+  useEffect(() => {
+    if (!storageKeys) return;
+    try {
+      if (selectedDrill) {
+        localStorage.setItem(storageKeys.drill, selectedDrill);
+      } else {
+        localStorage.removeItem(storageKeys.drill);
+      }
+    } catch {}
+  }, [storageKeys, selectedDrill]);
+
+  // Persist recent entries (last 10)
+  useEffect(() => {
+    if (!storageKeys) return;
+    try {
+      localStorage.setItem(storageKeys.entries, JSON.stringify(recentEntries.slice(0, 10)));
+    } catch {}
+  }, [storageKeys, recentEntries]);
 
   // Load players on mount
   useEffect(() => {
@@ -257,11 +315,16 @@ export default function LiveEntry() {
   }
   
   const currentDrill = DRILLS.find(d => d.key === selectedDrill);
+  const totalPlayers = players.length;
+  const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
+  const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
+  const currentIndex = DRILLS.findIndex(d => d.key === selectedDrill);
+  const nextDrill = currentIndex >= 0 ? DRILLS[(currentIndex + 1) % DRILLS.length] : null;
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+      {/* Header (sticky) */}
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
@@ -273,6 +336,19 @@ export default function LiveEntry() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {/* Sticky drill selector */}
+            <div className="hidden sm:block">
+              <select
+                value={selectedDrill || ''}
+                onChange={(e) => { setSelectedDrill(e.target.value); setDrillConfirmed(!!e.target.value); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                className="p-2 border rounded-lg text-sm bg-white"
+              >
+                <option value="">Select drill…</option>
+                {DRILLS.map((d) => (
+                  <option key={d.key} value={d.key}>{d.label}</option>
+                ))}
+              </select>
+            </div>
             <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span className="font-semibold">{recentEntries.length} entries</span>
@@ -283,6 +359,29 @@ export default function LiveEntry() {
           </div>
         </div>
       </div>
+
+      {/* Slim checklist banner */}
+      {!checklistDismissed && (
+        <div className="px-4">
+          <div className="max-w-lg mx-auto mt-3 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-3 text-sm flex items-center justify-between">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-semibold">Steps:</span>
+              <span>1) Select a drill</span>
+              <span>→ 2) Enter scores</span>
+              <span>→ 3) View Rankings</span>
+              {(!selectedDrill || !drillConfirmed) && (
+                <span className="ml-2 text-yellow-800">Start here: Choose a drill</span>
+              )}
+            </div>
+            <button
+              onClick={() => { setChecklistDismissed(true); try { if (storageKeys) localStorage.setItem(storageKeys.checklist, '1'); } catch {} }}
+              className="text-yellow-800 hover:text-yellow-900 text-xs px-2 py-1"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
       
       <div className="max-w-lg mx-auto p-4 space-y-6">
         {/* Drill Selection */}
@@ -300,6 +399,11 @@ export default function LiveEntry() {
             <p className="text-sm text-gray-600 mb-6 text-center">
               Choose the drill you want to enter scores for during this live evaluation session.
             </p>
+
+            {/* Start here callout */}
+            <div className="mb-4 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-3 text-sm">
+              <span className="font-medium">Start here:</span> Choose a drill to begin. You'll then enter scores by player number.
+            </div>
 
             {/* Dropdown Selector */}
             <div className="relative mb-6">
@@ -368,6 +472,13 @@ export default function LiveEntry() {
             <div className="bg-blue-500 text-white rounded-xl p-4 text-center">
               <h2 className="text-xl font-bold">{currentDrill.label}</h2>
               <p className="text-blue-100">Entry Mode Active</p>
+              {/* Progress summary */}
+              <div className="mt-2 text-sm">
+                You've entered <span className="font-semibold">{completedForDrill}</span> / {totalPlayers} players ({completionPct}%).
+              </div>
+              <div className="mt-2 h-2 bg-blue-400/50 rounded-full overflow-hidden">
+                <div className="h-full bg-white/80" style={{ width: `${Math.min(100, completionPct)}%` }} />
+              </div>
               <button
                 onClick={() => {
                   setSelectedDrill("");
@@ -461,7 +572,7 @@ export default function LiveEntry() {
             </div>
             
             {/* Action Buttons - Forward-looking flow */}
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap">
               <Link
                 to="/live-standings"
                 className="flex-1 bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
@@ -469,6 +580,15 @@ export default function LiveEntry() {
                 <Target className="w-5 h-5" />
                 View Live Standings
               </Link>
+              {/* Next Drill CTA at >=80% completion */}
+              {selectedDrill && completionPct >= 80 && nextDrill && (
+                <button
+                  onClick={() => { setSelectedDrill(nextDrill.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow"
+                >
+                  Next Drill → {nextDrill.label}
+                </button>
+              )}
               {recentEntries.length >= 3 && (userRole === 'organizer' || userRole === 'coach') && (
                 <Link
                   to="/team-formation"
