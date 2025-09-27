@@ -40,17 +40,17 @@ export {
 export const WEIGHT_PRESETS = defaultTemplate.presets;
 
 export const TABS = [
-  { 
-    id: 'players', 
-    label: 'Analyze & Rank', 
+  {
+    id: 'manage',
+    label: 'Manage Roster',
     icon: 'Users',
-    description: 'Manage players and adjust ranking weights'
+    description: 'Add/edit players and record results'
   },
-  { 
-    id: 'exports', 
-    label: 'Download Results', 
+  {
+    id: 'analyze',
+    label: 'Analyze Rankings',
     icon: 'Download',
-    description: 'Export rankings as spreadsheets'
+    description: 'Adjust weights, view rankings, and export data'
   }
 ];
 

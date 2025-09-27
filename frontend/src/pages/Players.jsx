@@ -59,15 +59,25 @@ export default function Players() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [activeTab, setActiveTab] = useState('players');
+  const [activeTab, setActiveTab] = useState('manage');
   
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
-    if (tabParam && ['players', 'rankings', 'exports'].includes(tabParam)) {
+    if (tabParam && ['manage', 'analyze'].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [location.search]);
+
+  // Default tab by role when no explicit tab requested
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const tabParam = urlParams.get('tab');
+    if (!tabParam) {
+      if (userRole === 'organizer' && activeTab !== 'manage') setActiveTab('manage');
+      if ((userRole === 'coach' || userRole === 'viewer') && activeTab !== 'analyze') setActiveTab('analyze');
+    }
+  }, [userRole]);
   
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 
@@ -88,6 +98,7 @@ export default function Players() {
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const showEmbeddedControls = false; // Use sticky sub-header controls instead
 
   // PERFORMANCE OPTIMIZATION: Use grouped rankings from optimized hook
   const grouped = useMemo(() => {
@@ -158,6 +169,12 @@ export default function Players() {
     if (total === 0) return 0;
     return Math.round((overallScoredCount / total) * 100);
   }, [overallScoredCount, players.length]);
+
+  // Optional: allow re-enabling checklist via query param
+  const checklistOverride = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('showChecklist') === '1';
+  }, [location.search]);
 
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
@@ -574,16 +591,32 @@ export default function Players() {
           )}
         </div>
 
-        {/* Start-here banner for low data completion */}
-        {(players.length > 0 && overallCompletionPct < 30) && (
+        {/* First-time Checklist Card */}
+        {((players.length === 0 || overallCompletionPct < 30) || checklistOverride) && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <span className="text-xl">🟡</span>
               <div>
-                <div className="font-semibold mb-1">Start here</div>
-                <div className="text-sm">
-                  Only {overallCompletionPct}% of players have scores yet. Head to <button onClick={() => navigate('/live-entry')} className="underline font-medium">Live Entry</button> to start recording results and unlock rankings.
-                </div>
+                <div className="font-semibold mb-1">Getting started</div>
+                <ul className="text-sm space-y-1">
+                  <li>
+                    <span className="mr-2">✅</span>
+                    <button onClick={() => setShowAddPlayerModal(true)} className="underline font-medium">Add a player</button>
+                    <span className="mx-1">or</span>
+                    <button onClick={() => navigate('/admin#player-upload-section')} className="underline font-medium">Import from CSV</button>
+                  </li>
+                  <li>
+                    <span className="mr-2">🏃</span>
+                    <button onClick={() => navigate('/live-entry')} className="underline font-medium">Record results</button>
+                    <span className="ml-1 text-yellow-700">(live entry)</span>
+                  </li>
+                  <li>
+                    <span className="mr-2">📊</span>
+                    <button onClick={() => { setActiveTab('analyze'); setShowCompactSliders(true); }} className="underline font-medium">Analyze rankings</button>
+                    <span className="ml-1 text-yellow-700">(adjust weights)</span>
+                  </li>
+                </ul>
+                <div className="text-xs mt-2 opacity-80">This card will auto-hide once at least 50% of players have scores.</div>
               </div>
             </div>
           </div>
@@ -591,7 +624,7 @@ export default function Players() {
 
 
 
-        {/* Role-based interface - Tabs only for organizers/coaches */}
+        {/* Role-based interface - Tabs for organizers/coaches; viewers see analyze view */}
         {(userRole === 'organizer' || userRole === 'coach') ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
             <div className="flex border-b border-gray-200">
@@ -638,20 +671,20 @@ export default function Players() {
         )}
 
         {/* Content area - Role-based views */}
-        {userRole === 'viewer' ? (
+        {userRole === 'viewer' || activeTab === 'analyze' ? (
           /* Viewer interface with weight controls and rankings */
           <div className="space-y-4">
             {players.length > 0 && Object.keys(grouped).length > 0 ? (
               <>
                 {/* Age Group Selector */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sticky top-14 z-10">
                   <div className="flex items-center justify-between mb-3">
                     <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-blue-600" />
-                      Event Rankings & Analysis
+                      Analyze Rankings
                     </h2>
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                      👁️ Viewer Mode
+                      {userRole === 'viewer' ? '👁️ Viewer Mode' : 'Coach/Organizer'}
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
@@ -666,6 +699,12 @@ export default function Players() {
                         <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                       ))}
                     </select>
+                    <button
+                      onClick={() => setShowCompactSliders((v) => !v)}
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      {showCompactSliders ? 'Hide weights' : 'Adjust weights'}
+                    </button>
                   </div>
                 </div>
 
@@ -845,20 +884,18 @@ export default function Players() {
         ) : (
           /* Organizer/Coach interface with tabs */
           <>
-            {activeTab === 'players' && (
+            {activeTab === 'manage' && (
               <>
                 {(userRole === 'organizer' || userRole === 'coach') && players.length > 0 && Object.keys(grouped).length > 0 ? (
                   <div className="space-y-4">
                     {/* Age Group Selector */}
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sticky top-14 z-10">
                       <div className="flex items-center justify-between mb-3">
                         <h2 className="font-semibold text-gray-900 flex items-center gap-2">
                           <TrendingUp className="w-5 h-5 text-cmf-primary" />
-                          Player Rankings
+                          Manage Roster
                         </h2>
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
-                          ⚡ Real-Time
-                        </span>
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">Roster</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Filter className="w-5 h-5 text-cmf-primary flex-shrink-0" />
@@ -872,6 +909,12 @@ export default function Players() {
                             <option key={group} value={group}>{group} ({grouped[group].length} players)</option>
                           ))}
                         </select>
+                        <button
+                          onClick={() => setActiveTab('analyze')}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                        >
+                          Analyze Rankings →
+                        </button>
                       </div>
                     </div>
 
