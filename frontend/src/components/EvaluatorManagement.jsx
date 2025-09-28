@@ -49,6 +49,7 @@ const EvaluatorManagement = () => {
       } catch (error) {
         // Stop attempting to load evaluators if session expired
         if (error.response?.status === 401) {
+          // eslint-disable-next-line no-console
           console.warn('Session expired while loading evaluators - stopping attempts');
           return;
         }

@@ -13,6 +13,7 @@ import {
 import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
+import { logger } from '../utils/logger';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
@@ -88,7 +89,7 @@ const ScorecardsPage = () => {
                isFinite(value);
       });
     } catch (err) {
-      console.warn('Error filtering player scores:', err);
+      logger.warn('SCORECARDS', 'Error filtering player scores', err);
       return false;
     }
   });

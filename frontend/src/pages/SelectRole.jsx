@@ -160,9 +160,7 @@ export default function SelectRole() {
         await api.post('/users/role', {
           role: roleToSave
         });
-        console.log('[ROLE-SETTING] Successfully set role via primary endpoint');
       } catch (primaryError) {
-        console.warn('[ROLE-SETTING] Primary endpoint failed');
         // Fallback endpoint is disabled by default in production for security
         throw primaryError;
       }

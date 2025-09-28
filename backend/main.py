@@ -283,7 +283,7 @@ def warmup_endpoint(request: Request):
         "auth": auth_status,
         "routes": routes_status,
         "timestamp": end_time.isoformat(),
-        "version": "1.0.4"
+        "version": "1.0.2"
     }
 
 @app.get("/api")

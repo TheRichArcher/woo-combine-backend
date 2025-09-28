@@ -253,6 +253,7 @@ export async function prefetchData(requests) {
         dataCache.set(cacheKey, result);
         return result;
       } catch (error) {
+        // eslint-disable-next-line no-console
         console.warn('Prefetch failed:', error);
         return null;
       }

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { auth } from '../firebase';
+import { apiLogger } from '../utils/logger';
 
 /*
  * Centralized axios instance with proper cold start handling
@@ -103,7 +104,7 @@ api.interceptors.request.use(async (config) => {
         
         // Only refresh if token expires in less than 5 minutes
         if (timeUntilExpiry < 5 * 60 * 1000) {
-          console.log('[API] Token expires soon, refreshing proactively');
+          apiLogger.debug('Token expires soon, refreshing proactively');
           token = await user.getIdToken(true);
         }
         
@@ -112,12 +113,12 @@ api.interceptors.request.use(async (config) => {
         const lastRefresh = localStorage.getItem('lastTokenRefresh');
         const now = Date.now();
         if (!lastRefresh || (now - parseInt(lastRefresh)) > 50 * 60 * 1000) {
-          console.log('[API] Cached token failed, refreshing');
+          apiLogger.debug('Cached token failed, refreshing');
           token = await user.getIdToken(true);
           localStorage.setItem('lastTokenRefresh', now.toString());
         } else {
           // Token should still be valid, continue without refresh
-          console.warn('[API] Cached token failed but recently refreshed, continuing without token');
+          apiLogger.warn('Cached token failed but recently refreshed, continuing without token');
           return config;
         }
       }
@@ -125,7 +126,7 @@ api.interceptors.request.use(async (config) => {
       config.headers = config.headers || {};
       config.headers['Authorization'] = `Bearer ${token}`;
     } catch (authError) {
-      console.warn('[API] Failed to get auth token:', authError);
+      apiLogger.warn('Failed to get auth token', authError);
       // Continue without token for non-auth endpoints
     }
   }
@@ -143,12 +144,12 @@ api.interceptors.response.use(
       if (error.response?.status === 429) {
         const retryAfter = error.response.headers?.['retry-after'] || error.response.headers?.['x-ratelimit-reset'];
         const waitMsg = retryAfter ? `Please wait ${retryAfter} seconds and try again.` : 'Please slow down and try again.';
-        console.warn('[API] Rate limit exceeded. ' + waitMsg);
+        apiLogger.warn('Rate limit exceeded. ' + waitMsg);
       }
     } catch {}
     // CRITICAL FIX: Handle 401 errors globally to prevent cascading
     if (error.response?.status === 401) {
-      console.warn('[API] Session expired - user needs to log in again');
+      apiLogger.warn('Session expired - user needs to log in again');
       // Don't show multiple error messages - let auth context handle it
       // Just mark the error as handled to prevent UI cascades
       error._handled = true;
@@ -175,13 +176,13 @@ api.interceptors.response.use(
     
     // Log detailed error info for debugging (excluding expected 404s and handled 401s)
     if (error.response?.data?.detail) {
-      console.error('[API] Server Error:', error.response.data.detail);
+      apiLogger.error('Server Error', error.response.data.detail);
     } else if (error.code === 'ECONNABORTED') {
-      console.log('[API] Request timeout - server may be starting up');
+      apiLogger.info('Request timeout - server may be starting up');
     } else if (error.message.includes('Network Error')) {
-      console.error('[API] Network connectivity issue');
+      apiLogger.error('Network connectivity issue');
     } else {
-      console.error('[API] Request failed:', error.message);
+      apiLogger.error('Request failed', error.message);
     }
     
     return Promise.reject(error);

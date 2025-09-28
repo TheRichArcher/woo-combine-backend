@@ -336,7 +336,7 @@ export function AuthProvider({ children }) {
         // STEP 2: INTELLIGENT LEAGUE LOADING - Skip only for new organizers
         const currentPath = window.location.pathname;
         authLogger.debug('Current path (with role)', currentPath);
-        const isNewOrganizerFlow = currentPath === '/select-role' && userRole === 'organizer';
+        const isNewOrganizerFlow = userRole === 'organizer' && (currentPath === '/select-role' || currentPath === '/create-league');
         
         if (isNewOrganizerFlow) {
           // ULTRA-FAST PATH: New organizers get immediate state setup and navigation

@@ -8,6 +8,7 @@ import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
+import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 export default function LiveStandings() {
@@ -48,7 +49,7 @@ export default function LiveStandings() {
       const playersData = await cachedFetchPlayersLive(selectedEvent.id);
       setPlayers(playersData);
     } catch (error) {
-      console.error('Failed to fetch players:', error);
+      logger.error('LIVE_STANDINGS', 'Failed to fetch players', error);
       setPlayers([]);
     } finally {
       setLoading(false);

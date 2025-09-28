@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, AlertCircle } from 'lucide-react';
+import { logger } from '../utils/logger';
 import EventSelector from '../components/EventSelector';
 
 export default function Schedule() {
@@ -31,7 +32,7 @@ export default function Schedule() {
         description: `${event.name || 'Event'} - Player evaluation combine`
       };
     } catch (err) {
-      console.warn('Error processing event:', event, err);
+      logger.warn('SCHEDULE', 'Error processing event', { event, error: err });
       return {
         id: event.id || `error-${Date.now()}`,
         type: 'COMBINE',
