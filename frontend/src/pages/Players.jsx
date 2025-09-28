@@ -1267,7 +1267,7 @@ export default function Players() {
                       allPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
-                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unknown'}",${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
+                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unknown'}",${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] ?? 'Missing'},${player.vertical_jump ?? 'Missing'},${player.catching ?? 'Missing'},${player.throwing ?? 'Missing'},${player.agility ?? 'Missing'}\n`;
                         });
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
                       const filename = `rankings_all_players_${eventDate}_${allPlayers.length}-of-${flatAll.length}.csv`;
@@ -1306,7 +1306,7 @@ export default function Players() {
                       ageGroupPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
-                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] || 'N/A'},${player.vertical_jump || 'N/A'},${player.catching || 'N/A'},${player.throwing || 'N/A'},${player.agility || 'N/A'}\n`;
+                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] ?? 'Missing'},${player.vertical_jump ?? 'Missing'},${player.catching ?? 'Missing'},${player.throwing ?? 'Missing'},${player.agility ?? 'Missing'}\n`;
                         });
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
                       const filename = `rankings_${ageGroup}_${eventDate}_${ageGroupPlayers.length}-of-${ageGroupAll.length}.csv`;

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info, Lock, LockOpen, StickyNote } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 
@@ -40,6 +40,15 @@ export default function LiveEntry() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editValues, setEditValues] = useState({}); // {entryId: value}
   const [savingEditId, setSavingEditId] = useState(null);
+  const [editNotes, setEditNotes] = useState({}); // {entryId: note}
+  
+  // Optional note per score
+  const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState("");
+  
+  // Per-drill lock state and review dismissals (client-side only)
+  const [lockedDrills, setLockedDrills] = useState({}); // { drillKey: true }
+  const [reviewDismissed, setReviewDismissed] = useState({}); // { drillKey: true }
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -61,7 +70,10 @@ export default function LiveEntry() {
     return {
       drill: `liveEntry:${selectedEvent.id}:selectedDrill`,
       entries: `liveEntry:${selectedEvent.id}:recentEntries`,
-      checklist: `liveEntry:${selectedEvent.id}:checklistDismissed`
+      checklist: `liveEntry:${selectedEvent.id}:checklistDismissed`,
+      focus: `liveEntry:${selectedEvent.id}:lastPlayerNumber`,
+      locks: `liveEntry:${selectedEvent.id}:locks`,
+      reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`
     };
   }, [selectedEvent]);
 
@@ -92,6 +104,26 @@ export default function LiveEntry() {
       const savedChecklist = localStorage.getItem(storageKeys.checklist);
       if (savedChecklist === '1') {
         setChecklistDismissed(true);
+      }
+    } catch {}
+    try {
+      const savedFocus = localStorage.getItem(storageKeys.focus);
+      if (savedFocus) {
+        setPlayerNumber(savedFocus);
+      }
+    } catch {}
+    try {
+      const savedLocks = localStorage.getItem(storageKeys.locks);
+      if (savedLocks) {
+        const parsed = JSON.parse(savedLocks);
+        if (parsed && typeof parsed === 'object') setLockedDrills(parsed);
+      }
+    } catch {}
+    try {
+      const savedReviews = localStorage.getItem(storageKeys.reviews);
+      if (savedReviews) {
+        const parsed = JSON.parse(savedReviews);
+        if (parsed && typeof parsed === 'object') setReviewDismissed(parsed);
       }
     } catch {}
   }, [storageKeys]);
@@ -146,6 +178,28 @@ export default function LiveEntry() {
     } catch {}
   }, [storageKeys, recentEntries]);
 
+  // Persist last focused player number
+  useEffect(() => {
+    if (!storageKeys) return;
+    try {
+      if (playerNumber) {
+        localStorage.setItem(storageKeys.focus, playerNumber);
+      } else {
+        localStorage.removeItem(storageKeys.focus);
+      }
+    } catch {}
+  }, [storageKeys, playerNumber]);
+
+  // Persist locks and review dismissals
+  useEffect(() => {
+    if (!storageKeys) return;
+    try { localStorage.setItem(storageKeys.locks, JSON.stringify(lockedDrills)); } catch {}
+  }, [storageKeys, lockedDrills]);
+  useEffect(() => {
+    if (!storageKeys) return;
+    try { localStorage.setItem(storageKeys.reviews, JSON.stringify(reviewDismissed)); } catch {}
+  }, [storageKeys, reviewDismissed]);
+
   // Load players on mount
   useEffect(() => {
     fetchPlayers();
@@ -198,22 +252,21 @@ export default function LiveEntry() {
   }, [players]);
   
   // Handle score submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!selectedDrill || !playerId || !score) {
-      return;
-    }
-    
-    // Check for duplicate
+  const attemptSubmit = async () => {
+    if (!selectedDrill || !playerId || !score) return;
+    if (lockedDrills[selectedDrill]) return; // locked: no submit
     const duplicate = checkForDuplicate(playerId, selectedDrill);
     if (duplicate) {
       setDuplicateData({ ...duplicate, newScore: parseFloat(score) });
       setShowDuplicateDialog(true);
       return;
     }
-    
     await submitScore();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await attemptSubmit();
   };
   
   const submitScore = async (overrideDuplicate = false) => {
@@ -236,7 +289,8 @@ export default function LiveEntry() {
         drill: DRILLS.find(d => d.key === selectedDrill),
         score: parseFloat(score),
         timestamp: new Date(),
-        overridden: overrideDuplicate
+        overridden: overrideDuplicate,
+        note: note || ""
       };
       
       setRecentEntries(prev => [entry, ...prev.slice(0, 9)]); // Keep last 10
@@ -244,6 +298,8 @@ export default function LiveEntry() {
       // Reset form
       setPlayerNumber("");
       setScore("");
+      setNote("");
+      setShowNote(false);
       setShowDuplicateDialog(false);
       setDuplicateData(null);
       
@@ -285,6 +341,12 @@ export default function LiveEntry() {
     setTimeout(() => {
       scoreRef.current?.focus();
     }, 100);
+  };
+
+  const isCurrentDrillLocked = selectedDrill ? !!lockedDrills[selectedDrill] : false;
+  const toggleCurrentDrillLock = () => {
+    if (!selectedDrill) return;
+    setLockedDrills(prev => ({ ...prev, [selectedDrill]: !prev[selectedDrill] }));
   };
 
   // Smart scroll through actual player numbers only
@@ -359,11 +421,15 @@ export default function LiveEntry() {
   const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
   const currentIndex = DRILLS.findIndex(d => d.key === selectedDrill);
   const nextDrill = currentIndex >= 0 ? DRILLS[(currentIndex + 1) % DRILLS.length] : null;
+  const missingPlayers = useMemo(() => {
+    if (!selectedDrill) return [];
+    return players.filter(p => p && (p[selectedDrill] == null || p[selectedDrill] === undefined));
+  }, [players, selectedDrill]);
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Header (sticky) */}
-      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
+            <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
@@ -392,9 +458,15 @@ export default function LiveEntry() {
               <Users className="w-4 h-4" />
               <span className="font-semibold">{recentEntries.length} entries</span>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-lg">
-              Recording Active
-            </div>
+                  {selectedDrill && (
+                    <button
+                      onClick={toggleCurrentDrillLock}
+                      className={`text-xs px-3 py-1 rounded-lg flex items-center gap-1 border ${isCurrentDrillLocked ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+                    >
+                      {isCurrentDrillLocked ? <Lock className="w-3 h-3" /> : <LockOpen className="w-3 h-3" />}
+                      {isCurrentDrillLocked ? 'Locked' : 'Recording Active'}
+                    </button>
+                  )}
           </div>
         </div>
       </div>
@@ -528,6 +600,20 @@ export default function LiveEntry() {
                 Change Drill
               </button>
             </div>
+
+            {/* Review banner when complete */}
+            {selectedDrill && completionPct === 100 && !reviewDismissed[selectedDrill] && (
+              <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 flex items-center justify-between">
+                <div className="text-sm font-medium">Drill Complete — Review?</div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setShowEditModal(true)} className="text-sm bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded">Open Review</button>
+                  <button
+                    onClick={() => setReviewDismissed(prev => ({ ...prev, [selectedDrill]: true }))}
+                    className="text-sm text-green-700 hover:text-green-900 underline"
+                  >Dismiss</button>
+                </div>
+              </div>
+            )}
             
             {/* Entry Form */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -544,8 +630,21 @@ export default function LiveEntry() {
                     value={playerNumber}
                     onChange={(e) => setPlayerNumber(e.target.value)}
                     onWheel={handlePlayerNumberScroll}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        // Repurpose wheel handler logic
+                        handlePlayerNumberScroll({ preventDefault: () => {}, deltaY: e.key === 'ArrowUp' ? -1 : 1 });
+                      } else if (e.key === 'Enter') {
+                        if (playerId) {
+                          // Move to score field
+                          e.preventDefault();
+                          setTimeout(() => scoreRef.current?.focus(), 0);
+                        }
+                      }
+                    }}
                     placeholder="Enter player #"
                     className="w-full text-2xl p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-center"
+                    disabled={isCurrentDrillLocked}
                     autoFocus
                     required
                   />
@@ -592,17 +691,45 @@ export default function LiveEntry() {
                     inputMode="decimal"
                     value={score}
                     onChange={(e) => setScore(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        await attemptSubmit();
+                      }
+                    }}
                     onWheel={(e) => e.preventDefault()}
                     placeholder={`Enter ${currentDrill.unit}`}
                     className="w-full text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 text-center"
+                    disabled={isCurrentDrillLocked}
                     required
                   />
+                </div>
+
+                {/* Optional note */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowNote((v) => !v)}
+                    className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
+                  >
+                    <StickyNote className="w-4 h-4" /> {showNote ? 'Hide note' : 'Add note (optional)'}
+                  </button>
+                  {(showNote || note) && (
+                    <textarea
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="e.g., tripped, fast start, minor injury"
+                      className="mt-2 w-full p-3 border rounded-lg text-sm"
+                      rows={2}
+                      disabled={isCurrentDrillLocked}
+                    />
+                  )}
                 </div>
                 
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading || !playerId || !score}
+                  disabled={loading || !playerId || !score || isCurrentDrillLocked}
                   className="w-full bg-green-500 hover:bg-green-600 disabled:bg-gray-300 text-white font-bold text-xl py-4 rounded-lg transition"
                 >
                   {loading ? "Saving..." : "Submit & Next"}
@@ -664,8 +791,13 @@ export default function LiveEntry() {
                   onClick={() => {
                     setShowEditModal(true);
                     const initial = {};
-                    recentEntries.forEach(e => { initial[e.id] = String(e.score ?? ''); });
+                    const initialNotes = {};
+                    recentEntries.forEach(e => { 
+                      initial[e.id] = String(e.score ?? '');
+                      initialNotes[e.id] = e.note ?? '';
+                    });
                     setEditValues(initial);
+                    setEditNotes(initialNotes);
                   }}
                   className="text-blue-600 hover:text-blue-700 text-sm font-medium"
                 >
@@ -691,6 +823,9 @@ export default function LiveEntry() {
                           </span>
                           {entry.overridden && <span className="text-orange-600 font-medium">(Updated)</span>}
                         </div>
+                        {entry.note && (
+                          <div className="text-xs text-gray-600 mt-1">Note: {entry.note}</div>
+                        )}
                       </div>
                       <div className="text-xs text-gray-500 text-right">
                         <div>{entry.timestamp.toLocaleTimeString()}</div>
@@ -698,6 +833,30 @@ export default function LiveEntry() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Players remaining for this drill */}
+            {selectedDrill && missingPlayers.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" /> Players Remaining
+                  </h3>
+                  <span className="text-xs bg-orange-50 text-orange-700 border border-orange-200 rounded-full px-2 py-1">{missingPlayers.length} missing</span>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-1">
+                  {missingPlayers.slice(0, 20).map(p => (
+                    <div key={p.id} className="text-sm text-gray-500 flex items-center gap-2 opacity-80">
+                      <span className="w-16">#{p.number || '—'}</span>
+                      <span className="flex-1 truncate">{p.name}</span>
+                      <span className="text-xs text-orange-600">Missing</span>
+                    </div>
+                  ))}
+                  {missingPlayers.length > 20 && (
+                    <div className="text-xs text-gray-400">+{missingPlayers.length - 20} more…</div>
+                  )}
                 </div>
               </div>
             )}
@@ -756,46 +915,58 @@ export default function LiveEntry() {
             </div>
             <div className="max-h-96 overflow-y-auto space-y-3">
               {recentEntries.slice(0, 10).map(entry => (
-                <div key={entry.id} className="p-3 border rounded-lg flex items-center gap-3">
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900">#{entry.playerNumber} {entry.playerName}</div>
-                    <div className="text-sm text-gray-600">{entry.drill.label}</div>
+                <div key={entry.id} className="p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">#{entry.playerNumber} {entry.playerName}</div>
+                      <div className="text-sm text-gray-600">{entry.drill.label}</div>
+                    </div>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={editValues[entry.id] ?? ''}
+                      onChange={(e) => setEditValues(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                      className="w-24 p-2 border rounded text-center"
+                    />
+                    <div className="text-sm text-gray-500 w-10 text-center">{entry.drill.unit}</div>
+                    <button
+                      disabled={savingEditId === entry.id}
+                      onClick={async () => {
+                        const newVal = parseFloat(editValues[entry.id]);
+                        if (isNaN(newVal)) return;
+                        try {
+                          setSavingEditId(entry.id);
+                          await api.post('/drill-results/', {
+                            player_id: entry.playerId,
+                            type: entry.drill.key,
+                            value: newVal,
+                            event_id: selectedEvent.id
+                          });
+                          // Update local recentEntries (including note if changed)
+                          setRecentEntries(prev => prev.map(e => e.id === entry.id ? { ...e, score: newVal, overridden: true, note: editNotes[entry.id] ?? e.note } : e));
+                          cacheInvalidation.playersUpdated(selectedEvent.id);
+                          await fetchPlayers();
+                        } catch {
+                          alert('Error updating score. Please try again.');
+                        } finally {
+                          setSavingEditId(null);
+                        }
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded"
+                    >
+                      {savingEditId === entry.id ? 'Saving…' : 'Save'}
+                    </button>
                   </div>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={editValues[entry.id] ?? ''}
-                    onChange={(e) => setEditValues(prev => ({ ...prev, [entry.id]: e.target.value }))}
-                    className="w-24 p-2 border rounded text-center"
-                  />
-                  <div className="text-sm text-gray-500 w-10 text-center">{entry.drill.unit}</div>
-                  <button
-                    disabled={savingEditId === entry.id}
-                    onClick={async () => {
-                      const newVal = parseFloat(editValues[entry.id]);
-                      if (isNaN(newVal)) return;
-                      try {
-                        setSavingEditId(entry.id);
-                        await api.post('/drill-results/', {
-                          player_id: entry.playerId,
-                          type: entry.drill.key,
-                          value: newVal,
-                          event_id: selectedEvent.id
-                        });
-                        // Update local recentEntries
-                        setRecentEntries(prev => prev.map(e => e.id === entry.id ? { ...e, score: newVal, overridden: true } : e));
-                        cacheInvalidation.playersUpdated(selectedEvent.id);
-                        await fetchPlayers();
-                      } catch {
-                        alert('Error updating score. Please try again.');
-                      } finally {
-                        setSavingEditId(null);
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-2 rounded"
-                  >
-                    {savingEditId === entry.id ? 'Saving…' : 'Save'}
-                  </button>
+                  <div className="mt-2">
+                    <label className="block text-xs text-gray-500 mb-1">Note (optional)</label>
+                    <input
+                      type="text"
+                      value={editNotes[entry.id] ?? entry.note ?? ''}
+                      onChange={(e) => setEditNotes(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                      className="w-full p-2 border rounded text-sm"
+                      placeholder="e.g., tripped, fast start, injured"
+                    />
+                  </div>
                 </div>
               ))}
             </div>
