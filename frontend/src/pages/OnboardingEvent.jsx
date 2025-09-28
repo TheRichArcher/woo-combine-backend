@@ -49,6 +49,7 @@ export default function OnboardingEvent() {
   const [createdEvent, setCreatedEvent] = useState(null);
   const [playerCount, setPlayerCount] = useState(0);
   const [qrExpanded, setQrExpanded] = useState(true);
+  const [qrPulse, setQrPulse] = useState(false);
   
   // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
@@ -683,7 +684,7 @@ export default function OnboardingEvent() {
                   {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Share QR codes with staff</span>
-                    <Button size="sm" onClick={() => { try { setQrExpanded(true); qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }}>
+                    <Button size="sm" onClick={() => { try { setQrExpanded(true); qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setQrPulse(true); setTimeout(() => setQrPulse(false), 1200); } catch (_) {} }}>
                       📱 Share
                     </Button>
                   </div>
@@ -716,7 +717,7 @@ export default function OnboardingEvent() {
           </OnboardingCard>
 
           {/* QR CODE SECTION - Moved outside main card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6" ref={qrSectionRef} data-qr-section>
+          <div className={`bg-white rounded-2xl shadow-2xl p-6 ${qrPulse ? 'ring-2 ring-brand-primary' : ''}`} ref={qrSectionRef} data-qr-section>
             <button
               type="button"
               className="w-full flex items-center justify-between text-left text-lg font-bold text-brand-secondary mb-4"
@@ -726,8 +727,8 @@ export default function OnboardingEvent() {
               <span>📱 Share with Staff</span>
               <span className={`transform transition-transform ${qrExpanded ? '' : 'rotate-180'}`}>▾</span>
             </button>
-            {qrExpanded && (
-              <EventJoinCode event={createdEvent} />
+            {qrExpanded && selectedLeague && createdEvent && (
+              <EventJoinCode event={createdEvent} league={selectedLeague} />
             )}
           </div>
         </div>
