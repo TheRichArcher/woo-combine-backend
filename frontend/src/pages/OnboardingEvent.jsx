@@ -48,6 +48,7 @@ export default function OnboardingEvent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [playerCount, setPlayerCount] = useState(0);
+  const [qrExpanded, setQrExpanded] = useState(true);
   
   // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
@@ -682,7 +683,7 @@ export default function OnboardingEvent() {
                   {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Share QR codes with staff</span>
-                    <Button size="sm" onClick={() => { try { qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }}>
+                    <Button size="sm" onClick={() => { try { setQrExpanded(true); qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }}>
                       📱 Share
                     </Button>
                   </div>
@@ -716,11 +717,18 @@ export default function OnboardingEvent() {
 
           {/* QR CODE SECTION - Moved outside main card */}
           <div className="bg-white rounded-2xl shadow-2xl p-6" ref={qrSectionRef} data-qr-section>
-            <h2 className="text-lg font-bold text-brand-secondary mb-4">
-              📱 Share with Staff
-            </h2>
-            
-            <EventJoinCode event={createdEvent} />
+            <button
+              type="button"
+              className="w-full flex items-center justify-between text-left text-lg font-bold text-brand-secondary mb-4"
+              onClick={() => setQrExpanded(prev => !prev)}
+              aria-expanded={qrExpanded}
+            >
+              <span>📱 Share with Staff</span>
+              <span className={`transform transition-transform ${qrExpanded ? '' : 'rotate-180'}`}>▾</span>
+            </button>
+            {qrExpanded && (
+              <EventJoinCode event={createdEvent} />
+            )}
           </div>
         </div>
       </WelcomeLayout>
