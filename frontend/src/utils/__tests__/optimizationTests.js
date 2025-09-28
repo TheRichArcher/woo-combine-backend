@@ -53,7 +53,6 @@ const mockWeights = {
  * Test optimized scoring calculations
  */
 export function testOptimizedScoring() {
-  console.log('Testing optimized scoring...');
   
   try {
     // Clear cache to start fresh
@@ -89,7 +88,6 @@ export function testOptimizedScoring() {
       throw new Error('Rankings should be sorted by composite score');
     }
     
-    console.log('✅ Optimized scoring tests passed');
     return true;
     
   } catch (error) {
@@ -102,7 +100,6 @@ export function testOptimizedScoring() {
  * Test data cache functionality
  */
 export function testDataCache() {
-  console.log('Testing data cache...');
   
   try {
     const testKey = 'test-key';
@@ -127,7 +124,6 @@ export function testDataCache() {
       throw new Error('Cache should not contain invalidated data');
     }
     
-    console.log('✅ Data cache tests passed');
     return true;
     
   } catch (error) {
@@ -140,7 +136,6 @@ export function testDataCache() {
  * Test debounce functionality
  */
 export function testDebounce() {
-  console.log('Testing debounce...');
   
   return new Promise((resolve) => {
     try {
@@ -167,7 +162,6 @@ export function testDebounce() {
           console.error('❌ Debounce test failed: Expected 1 call, got', callCount);
           resolve(false);
         } else {
-          console.log('✅ Debounce tests passed');
           resolve(true);
         }
       }, 150);
@@ -183,7 +177,6 @@ export function testDebounce() {
  * Run all optimization tests
  */
 export async function runOptimizationTests() {
-  console.log('🧪 Running performance optimization tests...');
   
   const results = {
     optimizedScoring: testOptimizedScoring(),
@@ -193,10 +186,8 @@ export async function runOptimizationTests() {
   
   const allPassed = Object.values(results).every(result => result === true);
   
-  if (allPassed) {
-    console.log('🎉 All optimization tests passed!');
-  } else {
-    console.log('⚠️ Some optimization tests failed:', results);
+  if (!allPassed) {
+    console.error('⚠️ Some optimization tests failed:', results);
   }
   
   return results;

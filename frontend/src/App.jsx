@@ -6,9 +6,6 @@ import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import Home from "./pages/Home";
 import Players from "./pages/Players";
-import PlayersRedirect from "./pages/PlayersRedirect";
-import PlayersRoster from "./pages/PlayersRoster";
-import PlayersRankings from "./pages/PlayersRankings";
 import AdminTools from "./components/AdminTools";
 import Login from "./pages/Login";
 import SignUp from "./pages/SignUp";
@@ -31,7 +28,6 @@ import WelcomeLayout from "./components/layouts/WelcomeLayout";
 import JoinEvent from "./pages/JoinEvent";
 import CoachDashboard from "./pages/CoachDashboard";
 import Schedule from "./pages/Schedule";
-import Roster from "./pages/Roster";
 
 // New Advanced Feature Pages
 import EvaluatorManagementPage from "./pages/EvaluatorManagement";
@@ -70,16 +66,6 @@ function App() {
                     <RequireAuth>
                       <AuthenticatedLayout>
                         <CoachDashboard />
-                      </AuthenticatedLayout>
-                    </RequireAuth>
-                  } 
-                />
-                <Route 
-                  path="/roster" 
-                  element={
-                    <RequireAuth>
-                      <AuthenticatedLayout>
-                        <Roster />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   } 
@@ -163,31 +149,7 @@ function App() {
                   element={
                     <RequireAuth>
                       <AuthenticatedLayout>
-                        <PlayersRedirect />
-                      </AuthenticatedLayout>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/players/roster"
-                  element={
-                    <RequireAuth>
-                      <AuthenticatedLayout>
-                        <div className="container mx-auto px-4 py-8">
-                          <PlayersRoster />
-                        </div>
-                      </AuthenticatedLayout>
-                    </RequireAuth>
-                  }
-                />
-                <Route
-                  path="/players/rankings"
-                  element={
-                    <RequireAuth>
-                      <AuthenticatedLayout>
-                        <div className="container mx-auto px-4 py-8">
-                          <PlayersRankings />
-                        </div>
+                        <Players />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   }

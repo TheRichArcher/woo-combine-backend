@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLeagueFetchInProgress(false);
     }
-  }, [leagueFetchInProgress]);
+  }, []);
 
 
 
@@ -285,13 +285,10 @@ export function AuthProvider({ children }) {
               userRole = fallbackCachedRole;
             } else {
               if (error.message.includes('Role check timeout')) {
-                authLogger.warn('Role check timed out after 30s - no cached role available');
                 authLogger.warn('Role check timed out after 30s - no cached role available (backend may be cold starting)');
               } else if (error.message.includes('Firebase auth token unavailable')) {
                 authLogger.error('Firebase token issue - no cached role available');
-                authLogger.error('Firebase token issue - no cached role available');
               } else {
-                authLogger.error('Other role check error - no cached role available', error.message);
                 authLogger.debug('Role check error - no cached role available', error.message);
               }
               userRole = null;
