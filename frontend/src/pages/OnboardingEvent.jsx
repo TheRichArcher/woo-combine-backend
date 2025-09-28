@@ -74,6 +74,7 @@ export default function OnboardingEvent() {
   const [manualMsg, setManualMsg] = useState('');
   
   const fileInputRef = useRef();
+  const qrSectionRef = useRef(null);
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
 
   // Auto-setup: ensure an organizer has a league context
@@ -681,7 +682,9 @@ export default function OnboardingEvent() {
                   {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Share QR codes with staff</span>
-                    <Button size="sm">📱 Share</Button>
+                    <Button size="sm" onClick={() => { try { qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {} }}>
+                      📱 Share
+                    </Button>
                   </div>
                   
                   {/* Secondary Action 3 - Export */}
@@ -712,7 +715,7 @@ export default function OnboardingEvent() {
           </OnboardingCard>
 
           {/* QR CODE SECTION - Moved outside main card */}
-          <div className="bg-white rounded-2xl shadow-2xl p-6">
+          <div className="bg-white rounded-2xl shadow-2xl p-6" ref={qrSectionRef} data-qr-section>
             <h2 className="text-lg font-bold text-brand-secondary mb-4">
               📱 Share with Staff
             </h2>
