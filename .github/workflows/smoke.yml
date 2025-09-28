@@ -23,7 +23,34 @@ jobs:
         run: |
           echo "STAGING_BASE_URL=$STAGING_BASE_URL" >> $GITHUB_ENV
           echo "STAGING_BEARER_TOKEN=$STAGING_BEARER_TOKEN" >> $GITHUB_ENV
+      - name: Check configuration
+        env:
+          STAGING_BASE_URL: ${{ env.STAGING_BASE_URL }}
+          STAGING_BEARER_TOKEN: ${{ env.STAGING_BEARER_TOKEN }}
+        run: |
+          if [ -z "$STAGING_BASE_URL" ] || [ -z "$STAGING_BEARER_TOKEN" ]; then
+            echo "::notice::Skipping smoke test - missing STAGING_BASE_URL or STAGING_BEARER_TOKEN (configure repo vars/secrets).";
+            echo "SKIP_SMOKE=true" >> $GITHUB_ENV
+          else
+            echo "SKIP_SMOKE=false" >> $GITHUB_ENV
+          fi
+      - name: Warm up staging (retry)
+        if: env.SKIP_SMOKE != 'true'
+        env:
+          STAGING_BASE_URL: ${{ env.STAGING_BASE_URL }}
+        run: |
+          set -e
+          echo "Warming up $STAGING_BASE_URL"
+          for i in 1 2 3 4 5; do
+            if curl -sSf "$STAGING_BASE_URL/api/health" >/dev/null; then
+              echo "Health OK"; break; fi
+            curl -sS "$STAGING_BASE_URL/api/warmup" || true
+            sleep $((i * 3))
+          done
+          # Final health check (non-fatal)
+          curl -sS "$STAGING_BASE_URL/health" || true
       - name: Run smoke script
+        if: env.SKIP_SMOKE != 'true'
         run: |
           chmod +x scripts/qa/smoke.sh
           ./scripts/qa/smoke.sh

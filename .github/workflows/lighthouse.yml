@@ -1,6 +1,8 @@
 name: Lighthouse CI
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
   schedule:
     - cron: '0 6 * * *'
@@ -27,7 +29,12 @@ jobs:
           LHCI_SERVER_BASE_URL: ${{ vars.LHCI_SERVER_BASE_URL }}
           LHCI_TOKEN: ${{ secrets[vars.LHCI_TOKEN_KEY] }}
         run: |
-          echo "TARGET_URL=$STAGING_FRONTEND_URL" >> $GITHUB_ENV
+          if [ -z "$STAGING_FRONTEND_URL" ]; then
+            # Default to production if staging URL is not configured
+            echo "TARGET_URL=https://woo-combine.com" >> $GITHUB_ENV
+          else
+            echo "TARGET_URL=$STAGING_FRONTEND_URL" >> $GITHUB_ENV
+          fi
           echo "LHCI_SERVER_BASE_URL=$LHCI_SERVER_BASE_URL" >> $GITHUB_ENV
           echo "LHCI_TOKEN=$LHCI_TOKEN" >> $GITHUB_ENV
       - name: Run Lighthouse (mobile)

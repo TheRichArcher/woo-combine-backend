@@ -31,3 +31,16 @@ Notes:
 - If GitHub Actions runners must be allowlisted at your WAF/firewall, include GitHub Actions IP ranges for the region executing the workflows.
 
 
+## CI/CD Secrets for Smoke & Lighthouse Workflows
+
+To enable full CI checks, the following repo-level variables and secrets must be configured:
+
+- **STAGING_BASE_URL**: Your staging backend root URL (e.g. `https://woo-combine-api-staging.onrender.com`)
+- **STAGING_BEARER_TOKEN_KEY**: Set to `STAGING_BEARER_TOKEN`
+- **STAGING_BEARER_TOKEN**: A secret containing a valid Firebase bearer token for a staging user
+
+These are used by the `Staging Smoke` (`.github/workflows/smoke.yml`) and `Lighthouse` (`.github/workflows/lighthouse.yml`) workflows to validate deploy quality on push to `main` and daily. Staging will be auto-warmed before smoke checks are run.
+
+Make sure `/api/health` and `/api/warmup` respond correctly on your staging deployment before enabling these.
+
+
