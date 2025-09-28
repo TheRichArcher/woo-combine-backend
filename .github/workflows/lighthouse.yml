@@ -12,6 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      # Optional: App token for GitHub annotations/comments
+      LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - name: Install jq
@@ -27,16 +30,33 @@ jobs:
         env:
           STAGING_FRONTEND_URL: ${{ vars.STAGING_FRONTEND_URL }}
           LHCI_SERVER_BASE_URL: ${{ vars.LHCI_SERVER_BASE_URL }}
-          LHCI_TOKEN: ${{ secrets[vars.LHCI_TOKEN_KEY] }}
+          # Prefer direct secret if present; indirection via vars.LHCI_TOKEN_KEY is optional
+          DIRECT_LHCI_TOKEN: ${{ secrets.LHCI_TOKEN }}
+          INDIRECT_LHCI_TOKEN: ${{ secrets[vars.LHCI_TOKEN_KEY] }}
         run: |
-          if [ -z "$STAGING_FRONTEND_URL" ]; then
+          if [ -z "$STAGING_FRONTEND_URL" ] || [ "$STAGING_FRONTEND_URL" = "null" ] || [ "$STAGING_FRONTEND_URL" = "undefined" ]; then
             # Default to production if staging URL is not configured
             echo "TARGET_URL=https://woo-combine.com" >> $GITHUB_ENV
           else
             echo "TARGET_URL=$STAGING_FRONTEND_URL" >> $GITHUB_ENV
           fi
           echo "LHCI_SERVER_BASE_URL=$LHCI_SERVER_BASE_URL" >> $GITHUB_ENV
-          echo "LHCI_TOKEN=$LHCI_TOKEN" >> $GITHUB_ENV
+          # Resolve LHCI_TOKEN with priority: direct secret > indirect via key > empty
+          if [ -n "$DIRECT_LHCI_TOKEN" ]; then
+            echo "LHCI_TOKEN=$DIRECT_LHCI_TOKEN" >> $GITHUB_ENV
+          elif [ -n "$INDIRECT_LHCI_TOKEN" ]; then
+            echo "LHCI_TOKEN=$INDIRECT_LHCI_TOKEN" >> $GITHUB_ENV
+          else
+            echo "LHCI_TOKEN=" >> $GITHUB_ENV
+          fi
+      - name: Debug configuration
+        run: |
+          echo "Event: ${{ github.event_name }}"
+          echo "Ref: ${{ github.ref }}"
+          echo "TARGET_URL=$TARGET_URL"
+          if [ -n "$LHCI_SERVER_BASE_URL" ]; then echo "LHCI_SERVER_BASE_URL set"; else echo "LHCI_SERVER_BASE_URL not set"; fi
+          if [ -n "$LHCI_TOKEN" ]; then echo "LHCI_TOKEN set"; else echo "LHCI_TOKEN not set (ok if not persisting to server)"; fi
+          if [ -n "$LHCI_GITHUB_APP_TOKEN" ]; then echo "LHCI_GITHUB_APP_TOKEN set"; else echo "LHCI_GITHUB_APP_TOKEN not set (ok if not annotating PRs)"; fi
       - name: Run Lighthouse (mobile)
         run: |
           lhci autorun --collect.url="$TARGET_URL" --collect.settings.preset=mobile --assert.assertions.performance=error:85 --assert.assertions.accessibility=error:90 --assert.assertions."best-practices"=error:90 || true
