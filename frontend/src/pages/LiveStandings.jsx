@@ -29,6 +29,7 @@ export default function LiveStandings() {
   const [activePreset, setActivePreset] = useState('balanced');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
+  const [displayCount, setDisplayCount] = useState(3); // number of players to show in list (default 3; -1 means All)
 
   // PERFORMANCE OPTIMIZATION: Cached fetch for LiveStandings
   const cachedFetchPlayersLive = withCache(
@@ -79,6 +80,8 @@ export default function LiveStandings() {
       : calculateOptimizedRankings(filteredPlayers, weights);
     return source.filter(player => player.compositeScore > 0);
   }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
+
+  const displayLimit = useMemo(() => (displayCount === -1 ? liveRankings.length : displayCount), [displayCount, liveRankings.length]);
 
   // Handle weight changes
   const handleWeightChange = (drillKey, value) => {
@@ -239,8 +242,20 @@ export default function LiveStandings() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-semibold text-gray-900">Current Rankings</h2>
-            <div className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-              {liveRankings.length} players
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-600">Show</span>
+              <select
+                value={displayCount === -1 ? 'all' : String(displayCount)}
+                onChange={(e) => setDisplayCount(e.target.value === 'all' ? -1 : parseInt(e.target.value, 10))}
+                className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full border border-blue-200"
+              >
+                <option value="3">3</option>
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="all">All</option>
+              </select>
+              <span className="text-xs text-gray-400">of {liveRankings.length}</span>
             </div>
           </div>
 
@@ -257,7 +272,7 @@ export default function LiveStandings() {
             </div>
           ) : (
             <div className="space-y-2">
-              {liveRankings.slice(0, 10).map((player, index) => (
+              {liveRankings.slice(0, displayLimit).map((player, index) => (
                 <div 
                   key={player.id} 
                   className={`flex items-center justify-between p-3 rounded-lg border ${
@@ -294,7 +309,7 @@ export default function LiveStandings() {
                 </div>
               ))}
               
-              {liveRankings.length > 10 && (
+              {liveRankings.length > displayLimit && (
                 <div className="text-center pt-2">
                   <Link 
                     to="/players/rankings"
