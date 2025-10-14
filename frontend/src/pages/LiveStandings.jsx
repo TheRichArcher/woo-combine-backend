@@ -277,15 +277,15 @@ export default function LiveStandings() {
                 <div 
                   key={player.id} 
                   className={`flex items-center justify-between p-3 rounded-lg border ${
-                    index === 0 ? 'bg-yellow-50 border-yellow-200' :
-                    index < 3 ? 'bg-green-50 border-green-200' :
+                    index === 0 ? 'bg-green-50 border-green-200' :
+                    index < 3 ? 'bg-yellow-50 border-yellow-200' :
                     'bg-gray-50 border-gray-200'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      index === 0 ? 'bg-yellow-500 text-white' :
-                      index < 3 ? 'bg-green-500 text-white' :
+                      index === 0 ? 'bg-green-600 text-white' :
+                      index < 3 ? 'bg-yellow-500 text-white' :
                       'bg-gray-500 text-white'
                     }`}>
                       {index + 1}
