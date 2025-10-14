@@ -250,16 +250,17 @@ export default function LiveEntry() {
       const filtered = players.filter(p => 
         p.number && p.number.toString().startsWith(playerNumber)
       );
-      setFilteredPlayers(filtered);
       
-      // Auto-select if exact match
+      // Auto-select if exact match and hide suggestions
       const exactMatch = players.find(p => p.number && p.number.toString() === playerNumber);
       if (exactMatch) {
         setPlayerName(exactMatch.name);
         setPlayerId(exactMatch.id);
+        setFilteredPlayers([]);
       } else {
         setPlayerName("");
         setPlayerId("");
+        setFilteredPlayers(filtered);
       }
     } else {
       setFilteredPlayers([]);
@@ -667,7 +668,7 @@ export default function LiveEntry() {
                   />
                   
                   {/* Player Auto-complete */}
-                  {filteredPlayers.length > 0 && (
+                  {filteredPlayers.length > 0 && !playerId && (
                     <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
                       {filteredPlayers.slice(0, 5).map(player => (
                         <button
