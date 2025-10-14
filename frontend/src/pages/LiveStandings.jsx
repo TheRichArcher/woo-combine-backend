@@ -78,7 +78,8 @@ export default function LiveStandings() {
     const source = normalizeAcrossAll && selectedAgeGroup === 'ALL'
       ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights)
       : calculateOptimizedRankings(filteredPlayers, weights);
-    return source.filter(player => player.compositeScore > 0);
+    // Include players even if composite score is 0 so the dropdown represents a max, not a minimum
+    return source;
   }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
 
   const displayLimit = useMemo(() => (displayCount === -1 ? liveRankings.length : displayCount), [displayCount, liveRankings.length]);
