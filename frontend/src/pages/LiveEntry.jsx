@@ -593,13 +593,13 @@ export default function LiveEntry() {
             </div>
 
             {/* Quick Drill Switcher */}
-            <div className="mt-3 px-2 overflow-x-auto">
-              <div className="flex gap-2 min-w-max pr-2">
+            <div className="mt-3 px-2">
+              <div className="flex flex-wrap gap-2 justify-center">
                 {DRILLS.map((d) => (
                   <button
                     key={d.key}
                     onClick={() => { setSelectedDrill(d.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
-                    className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full text-sm border ${d.key === selectedDrill ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm border ${d.key === selectedDrill ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
                     aria-pressed={d.key === selectedDrill}
                   >
                     {d.label}
