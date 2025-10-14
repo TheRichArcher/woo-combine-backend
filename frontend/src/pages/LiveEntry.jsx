@@ -349,39 +349,8 @@ export default function LiveEntry() {
     setLockedDrills(prev => ({ ...prev, [selectedDrill]: !prev[selectedDrill] }));
   };
 
-  // Smart scroll through actual player numbers only
-  const handlePlayerNumberScroll = (e) => {
-    e.preventDefault(); // Prevent page scroll
-    
-    if (players.length === 0) return;
-    
-    // Get all existing player numbers, sorted
-    const playerNumbers = players
-      .map(p => p.number)
-      .filter(num => num !== null && num !== undefined)
-      .map(num => parseInt(num))
-      .filter(num => !isNaN(num))
-      .sort((a, b) => a - b);
-    
-    if (playerNumbers.length === 0) return;
-    
-    const currentNum = parseInt(playerNumber) || 0;
-    const currentIndex = playerNumbers.indexOf(currentNum);
-    
-    let newIndex;
-    if (e.deltaY < 0) {
-      // Scroll up - go to previous player
-      newIndex = currentIndex <= 0 ? playerNumbers.length - 1 : currentIndex - 1;
-    } else {
-      // Scroll down - go to next player  
-      newIndex = currentIndex >= playerNumbers.length - 1 ? 0 : currentIndex + 1;
-    }
-    
-    const newPlayerNumber = playerNumbers[newIndex];
-    setPlayerNumber(newPlayerNumber.toString());
-    
-    // Auto-complete will handle setting the player name and ID
-  };
+  // Prevent scroll from changing numeric inputs
+  const preventWheel = (e) => e.preventDefault();
   
   if (!selectedEvent) {
     return (
@@ -629,12 +598,9 @@ export default function LiveEntry() {
                     inputMode="numeric"
                     value={playerNumber}
                     onChange={(e) => setPlayerNumber(e.target.value)}
-                    onWheel={handlePlayerNumberScroll}
+                    onWheel={preventWheel}
                     onKeyDown={(e) => {
-                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                        // Repurpose wheel handler logic
-                        handlePlayerNumberScroll({ preventDefault: () => {}, deltaY: e.key === 'ArrowUp' ? -1 : 1 });
-                      } else if (e.key === 'Enter') {
+                      if (e.key === 'Enter') {
                         if (playerId) {
                           // Move to score field
                           e.preventDefault();
