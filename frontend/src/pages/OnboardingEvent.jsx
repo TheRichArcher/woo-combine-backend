@@ -662,7 +662,7 @@ export default function OnboardingEvent() {
               
               {/* PRIMARY ACTION - Get Started */}
               <div className="mb-4">
-                <Button onClick={() => { navigate('/players/rankings'); }} className="w-full flex items-center justify-center gap-2" size="lg">
+                <Button onClick={() => { navigate('/live-entry'); }} className="w-full flex items-center justify-center gap-2" size="lg">
                   🚀 Start Tracking Performance
                   <ArrowRight className="w-5 h-5" />
                 </Button>
