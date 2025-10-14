@@ -49,6 +49,7 @@ export default function LiveEntry() {
   // Per-drill lock state and review dismissals (client-side only)
   const [lockedDrills, setLockedDrills] = useState({}); // { drillKey: true }
   const [reviewDismissed, setReviewDismissed] = useState({}); // { drillKey: true }
+  const [showDrillHint, setShowDrillHint] = useState(false);
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -73,7 +74,8 @@ export default function LiveEntry() {
       checklist: `liveEntry:${selectedEvent.id}:checklistDismissed`,
       focus: `liveEntry:${selectedEvent.id}:lastPlayerNumber`,
       locks: `liveEntry:${selectedEvent.id}:locks`,
-      reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`
+      reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`,
+      drillHint: `liveEntry:${selectedEvent.id}:drillHintShown`
     };
   }, [selectedEvent]);
 
@@ -124,6 +126,12 @@ export default function LiveEntry() {
       if (savedReviews) {
         const parsed = JSON.parse(savedReviews);
         if (parsed && typeof parsed === 'object') setReviewDismissed(parsed);
+      }
+    } catch {}
+    try {
+      const hintFlag = localStorage.getItem(storageKeys.drillHint);
+      if (hintFlag !== '1') {
+        setShowDrillHint(true);
       }
     } catch {}
   }, [storageKeys]);
@@ -213,6 +221,28 @@ export default function LiveEntry() {
       }, 100);
     }
   }, [selectedDrill, drillConfirmed]);
+
+  // Keyboard shortcuts to switch drills when not typing
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!drillConfirmed || !selectedDrill) return;
+      const target = e.target;
+      const tag = target?.tagName?.toLowerCase();
+      const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' || target?.isContentEditable;
+      if (isTyping) return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+        e.preventDefault();
+        const idx = DRILLS.findIndex(d => d.key === selectedDrill);
+        if (idx === -1) return;
+        const nextIdx = e.key === 'ArrowRight' ? (idx + 1) % DRILLS.length : (idx - 1 + DRILLS.length) % DRILLS.length;
+        setSelectedDrill(DRILLS[nextIdx].key);
+        setDrillConfirmed(true);
+        setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [drillConfirmed, selectedDrill]);
   
   // Auto-complete logic
   useEffect(() => {
@@ -410,8 +440,8 @@ export default function LiveEntry() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            {/* Sticky drill selector */}
-            <div className="hidden sm:block">
+            {/* Drill selector - now visible on all screen sizes */}
+            <div className="block">
               <select
                 value={selectedDrill || ''}
                 onChange={(e) => { setSelectedDrill(e.target.value); setDrillConfirmed(!!e.target.value); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
@@ -569,6 +599,35 @@ export default function LiveEntry() {
                 Change Drill
               </button>
             </div>
+
+            {/* Quick Drill Switcher */}
+            <div className="mt-3 -mx-1 px-1 overflow-x-auto">
+              <div className="flex gap-2">
+                {DRILLS.map((d) => (
+                  <button
+                    key={d.key}
+                    onClick={() => { setSelectedDrill(d.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm border ${d.key === selectedDrill ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                    aria-pressed={d.key === selectedDrill}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* One-time hint */}
+            {showDrillHint && (
+              <div className="mt-2 bg-blue-50 border border-blue-200 text-blue-900 rounded-lg p-2 text-xs flex items-center justify-between">
+                <span>Tip: Use the drill buttons above or ←/→ keys to switch drills.</span>
+                <button
+                  className="text-blue-700 hover:text-blue-900 underline ml-2"
+                  onClick={() => { setShowDrillHint(false); try { if (storageKeys) localStorage.setItem(storageKeys.drillHint, '1'); } catch {} }}
+                >
+                  Got it
+                </button>
+              </div>
+            )}
 
             {/* Review banner when complete */}
             {selectedDrill && completionPct === 100 && !reviewDismissed[selectedDrill] && (
