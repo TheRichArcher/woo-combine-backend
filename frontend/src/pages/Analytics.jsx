@@ -13,6 +13,14 @@ export default function Analytics() {
   const drills = useMemo(() => getDrillsForEvent(selectedEvent || {}), [selectedEvent]);
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
+  // Reasonable value ranges per drill to avoid skew/outliers
+  const DRILL_BOUNDS = {
+    '40m_dash': { min: 3, max: 20 },
+    'vertical_jump': { min: 0, max: 60 },
+    'catching': { min: 0, max: 100 },
+    'throwing': { min: 0, max: 100 },
+    'agility': { min: 0, max: 100 }
+  };
 
   useEffect(() => {
     const run = async () => {
@@ -73,7 +81,12 @@ export default function Analytics() {
       })
       .filter(Boolean);
     if (entries.length === 0) return { count: 0 };
-    const values = entries.map(e => e.value);
+    // Filter out-of-range values using sensible bounds to prevent skewed charts
+    const bounds = DRILL_BOUNDS[selectedDrill.key] || { min: -Infinity, max: Infinity };
+    const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
+    const outlierCount = entries.length - inRange.length;
+    if (inRange.length === 0) return { count: 0, outliers: outlierCount };
+    const values = inRange.map(e => e.value);
     const sorted = [...values].sort((a, b) => a - b);
     const quantile = (arr, q) => {
       if (arr.length === 0) return 0;
@@ -88,17 +101,17 @@ export default function Analytics() {
     const p50 = quantile(sorted, 0.5);
     const p75 = quantile(sorted, 0.75);
     const p90 = quantile(sorted, 0.9);
-    // Histogram (8 bins)
-    const binCount = 8;
+    // Histogram bins: dynamic based on n (sqrt rule), min 3, max 8
+    const binCount = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(values.length))));
     const range = max - min || 1;
     const bins = new Array(binCount).fill(0);
     values.forEach(v => {
       const idx = Math.min(binCount - 1, Math.floor(((v - min) / range) * binCount));
       bins[idx] += 1;
     });
-    const topSorted = [...entries].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
+    const topSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
     const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
-    return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, top5 };
+    return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, top5, outliers: outlierCount };
   }, [filteredPlayers, selectedDrill]);
 
   return (
@@ -183,15 +196,19 @@ export default function Analytics() {
                         const maxBin = Math.max(...drillStats.bins);
                         const ratio = maxBin ? (b / maxBin) : 0;
                         const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0; // ensure visible min height
-                        const start = (drillStats.minValue + (i * (drillStats.maxValue - drillStats.minValue)) / drillStats.bins.length).toFixed(1);
+                        const startVal = drillStats.minValue + (i * (drillStats.maxValue - drillStats.minValue)) / drillStats.bins.length;
+                        const start = startVal.toFixed(1);
                         return (
                           <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
-                            <div className="w-full bg-blue-500 rounded-t" style={{ height: `${height}%` }} />
+                            <div className="w-full bg-blue-500 rounded-t flex items-end justify-center" style={{ height: `${height}%` }}>
+                              {b > 0 && <span className="text-[10px] text-white pb-1">{b}</span>}
+                            </div>
                             <div className="text-[10px] text-gray-500 mt-1">{start}</div>
                           </div>
                         );
                       })}
                     </div>
+                    <div className="text-xs text-gray-500 mt-1">{drillStats.count} values{drillStats.outliers ? ` • ${drillStats.outliers} outliers ignored` : ''}</div>
                   </div>
 
                   {/* Stats + Top performers */}
