@@ -123,6 +123,16 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/players/rankings" 
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <ScorecardsPage />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  } 
+                />
+                <Route 
                   path="/event-sharing" 
                   element={
                     <RequireAuth>
