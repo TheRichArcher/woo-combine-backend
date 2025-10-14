@@ -64,10 +64,16 @@ export default function Analytics() {
   // Drill stats
   const drillStats = useMemo(() => {
     if (!selectedDrill) return null;
-    const values = filteredPlayers
-      .map(p => Number(p[selectedDrill.key]))
-      .filter(v => typeof v === 'number' && !Number.isNaN(v));
-    if (values.length === 0) return { count: 0 };
+    // Build stable [player,value] pairs to avoid mismatches and duplicates
+    const entries = filteredPlayers
+      .map(p => {
+        const raw = p[selectedDrill.key];
+        const value = raw === '' || raw == null ? NaN : Number(raw);
+        return Number.isFinite(value) ? { player: p, value } : null;
+      })
+      .filter(Boolean);
+    if (entries.length === 0) return { count: 0 };
+    const values = entries.map(e => e.value);
     const sorted = [...values].sort((a, b) => a - b);
     const quantile = (arr, q) => {
       if (arr.length === 0) return 0;
@@ -90,11 +96,8 @@ export default function Analytics() {
       const idx = Math.min(binCount - 1, Math.floor(((v - min) / range) * binCount));
       bins[idx] += 1;
     });
-    const topSorted = [...values].sort((a, b) => (selectedDrill.lowerIsBetter ? a - b : b - a));
-    const top5 = topSorted.slice(0, 5).map(v => {
-      const player = filteredPlayers.find(p => Number(p[selectedDrill.key]) === v);
-      return { name: player?.name || '—', number: player?.number, value: v };
-    });
+    const topSorted = [...entries].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
+    const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
     return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, top5 };
   }, [filteredPlayers, selectedDrill]);
 
