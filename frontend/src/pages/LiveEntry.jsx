@@ -589,15 +589,7 @@ export default function LiveEntry() {
               <div className="mt-2 h-2 bg-blue-400/50 rounded-full overflow-hidden">
                 <div className="h-full bg-white/80" style={{ width: `${Math.min(100, completionPct)}%` }} />
               </div>
-              <button
-                onClick={() => {
-                  setSelectedDrill("");
-                  setDrillConfirmed(false);
-                }}
-                className="mt-2 text-blue-200 hover:text-white text-sm underline"
-              >
-                Change Drill
-              </button>
+              {/* Removed redundant "Change Drill" link; use drill pills/selector above */}
             </div>
 
             {/* Quick Drill Switcher */}
