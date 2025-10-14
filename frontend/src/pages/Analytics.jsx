@@ -181,10 +181,11 @@ export default function Analytics() {
                     <div className="h-40 flex items-end gap-1 border border-gray-200 rounded p-2 bg-gray-50">
                       {drillStats.bins.map((b, i) => {
                         const maxBin = Math.max(...drillStats.bins);
-                        const height = maxBin ? Math.round((b / maxBin) * 100) : 0;
+                        const ratio = maxBin ? (b / maxBin) : 0;
+                        const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0; // ensure visible min height
                         const start = (drillStats.minValue + (i * (drillStats.maxValue - drillStats.minValue)) / drillStats.bins.length).toFixed(1);
                         return (
-                          <div key={i} className="flex-1 flex flex-col items-center">
+                          <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
                             <div className="w-full bg-blue-500 rounded-t" style={{ height: `${height}%` }} />
                             <div className="text-[10px] text-gray-500 mt-1">{start}</div>
                           </div>
