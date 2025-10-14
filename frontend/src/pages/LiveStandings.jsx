@@ -344,10 +344,10 @@ export default function LiveStandings() {
                     Create Teams
                   </Link>
                   <Link
-                    to="/players/rankings"
+                    to="/analytics"
                     className="text-xs bg-white text-purple-800 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition font-medium"
                   >
-                    Full Player View
+                    Full Analytics
                   </Link>
                 </div>
               </div>
