@@ -169,6 +169,18 @@ export function AuthProvider({ children }) {
       
       // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
       warmupBackend();
+
+      // FAST EXIT: If we're on the login page, immediately send the user back
+      try {
+        const path = window.location?.pathname || '';
+        if (path === '/login') {
+          const target = localStorage.getItem('postLoginRedirect') || '/dashboard';
+          localStorage.removeItem('postLoginRedirect');
+          navigate(target, { replace: true });
+          setInitializing(false);
+          return;
+        }
+      } catch {}
       
       if (!firebaseUser.emailVerified) {
         // User needs to verify email - redirect immediately to avoid being stuck on login
