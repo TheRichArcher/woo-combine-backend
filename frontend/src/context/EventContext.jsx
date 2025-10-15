@@ -94,6 +94,13 @@ export function EventProvider({ children }) {
   useEffect(() => {
     // Only load events after auth is complete
     if (!authChecked || !roleChecked) return;
+    try {
+      const path = window.location?.pathname || '';
+      // Skip event fetching on onboarding routes to avoid 401 spam on login
+      if (['/login', '/signup', '/verify-email'].includes(path)) {
+        return;
+      }
+    } catch {}
     
     if (selectedLeagueId) {
       // Capture previously selectedEvent id, if any
