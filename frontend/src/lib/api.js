@@ -166,8 +166,15 @@ api.interceptors.response.use(
           });
       }
       apiLogger.warn('Session expired - user needs to log in again');
-      // Don't show multiple error messages - let auth context handle it
-      // Just mark the error as handled to prevent UI cascades
+      // Proactive redirect to login to avoid infinite 401 loops
+      try {
+        const current = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '/';
+        localStorage.setItem('postLoginRedirect', current);
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login?reason=session_expired';
+        }
+      } catch {}
+      // Mark handled and reject
       error._handled = true;
       return Promise.reject(error);
     }
