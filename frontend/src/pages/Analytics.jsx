@@ -13,6 +13,7 @@ export default function Analytics() {
   const drills = useMemo(() => getDrillsForEvent(selectedEvent || {}), [selectedEvent]);
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
+  const [viewMode, setViewMode] = useState('simple'); // 'simple' | 'histogram'
   // Reasonable value ranges per drill to avoid skew/outliers
   const DRILL_BOUNDS = {
     '40m_dash': { min: 3, max: 20 },
@@ -99,6 +100,7 @@ export default function Analytics() {
     const min = sorted[0];
     const max = sorted[sorted.length - 1];
     const p50 = quantile(sorted, 0.5);
+    const p25 = quantile(sorted, 0.25);
     const p75 = quantile(sorted, 0.75);
     const p90 = quantile(sorted, 0.9);
     // Histogram bins: dynamic based on n (sqrt rule), min 3, max 8
@@ -112,8 +114,23 @@ export default function Analytics() {
     const step = range / binCount;
     const edges = Array.from({ length: binCount }, (_, i) => ({ start: min + i * step, end: i === binCount - 1 ? max : min + (i + 1) * step, count: bins[i] }));
     const topSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
+    const worstSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? b.value - a.value : a.value - b.value));
+    const bestEntry = topSorted[0];
+    const worstEntry = worstSorted[0];
+
+    // Simple buckets: Best / Typical / Needs work
+    let bestCount, typicalCount, needsWorkCount;
+    if (selectedDrill.lowerIsBetter) {
+      bestCount = values.filter(v => v <= p25).length;
+      needsWorkCount = values.filter(v => v >= p75).length;
+    } else {
+      bestCount = values.filter(v => v >= p75).length;
+      needsWorkCount = values.filter(v => v <= p25).length;
+    }
+    typicalCount = Math.max(0, values.length - bestCount - needsWorkCount);
+
     const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
-    return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount };
+    return { count: values.length, avg, min, max, p25, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount, bestEntry, worstEntry, bestCount, typicalCount, needsWorkCount };
   }, [filteredPlayers, selectedDrill]);
 
   return (
@@ -167,6 +184,10 @@ export default function Analytics() {
               <div className="flex items-center justify-between mb-3 gap-2">
                 <h2 className="font-semibold text-gray-900">Drill Explorer</h2>
                 <div className="flex items-center gap-2">
+                  <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden">
+                    <button className={`px-2 py-1 ${viewMode==='simple'?'bg-white':''}`} onClick={() => setViewMode('simple')}>Simple</button>
+                    <button className={`px-2 py-1 ${viewMode==='histogram'?'bg-white':''}`} onClick={() => setViewMode('histogram')}>Histogram</button>
+                  </div>
                   <select
                     value={selectedAgeGroup}
                     onChange={(e) => setSelectedAgeGroup(e.target.value)}
@@ -191,6 +212,7 @@ export default function Analytics() {
               {selectedDrill && drillStats?.count > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Histogram */}
+                  {viewMode === 'histogram' ? (
                   <div>
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} distribution ({selectedDrill.unit}) · {selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <div className="h-40 flex items-end gap-1 border border-gray-200 rounded p-2 bg-gray-50">
@@ -219,6 +241,36 @@ export default function Analytics() {
                       ))}
                     </div>
                   </div>
+                  ) : (
+                  <div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} at a glance</div>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="bg-gray-50 rounded border p-3 text-sm">
+                        <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> (#{drillStats.bestEntry?.player?.number} {drillStats.bestEntry?.player?.name})</div>
+                        <div>Typical range: <span className="font-semibold">{drillStats.p25?.toFixed(2)}–{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</span></div>
+                        <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> (#{drillStats.worstEntry?.player?.number} {drillStats.worstEntry?.player?.name})</div>
+                      </div>
+                      {/* Bucket bars */}
+                      <div className="space-y-2">
+                        {[
+                          { label: 'Best', count: drillStats.bestCount, color: 'bg-green-500' },
+                          { label: 'Typical', count: drillStats.typicalCount, color: 'bg-yellow-500' },
+                          { label: 'Needs work', count: drillStats.needsWorkCount, color: 'bg-gray-400' },
+                        ].map((bkt, i) => {
+                          const pct = Math.round((bkt.count / drillStats.count) * 100);
+                          return (
+                            <div key={i} className="text-xs">
+                              <div className="flex justify-between mb-1"><span>{bkt.label}</span><span>{bkt.count} of {drillStats.count} ({pct}%)</span></div>
+                              <div className="w-full h-3 bg-gray-200 rounded">
+                                <div className={`${bkt.color} h-3 rounded`} style={{ width: `${pct}%` }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  )}
 
                   {/* Stats + Top performers */}
                   <div>
