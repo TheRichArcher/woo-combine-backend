@@ -432,6 +432,16 @@ export function AuthProvider({ children }) {
         });
         
         if (onboardingRoutes.includes(currentPath)) {
+          // If we were redirected here due to session expiry, send user back
+          try {
+            const target = localStorage.getItem('postLoginRedirect');
+            if (target && target !== '/login') {
+              localStorage.removeItem('postLoginRedirect');
+              authLogger.debug('Navigating back to post-login redirect', target);
+              navigate(target, { replace: true });
+              return;
+            }
+          } catch {}
           // If we have a pending invited join, honor it first
           const pendingEventJoin = localStorage.getItem('pendingEventJoin');
           if (pendingEventJoin) {
