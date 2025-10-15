@@ -109,9 +109,11 @@ export default function Analytics() {
       const idx = Math.min(binCount - 1, Math.floor(((v - min) / range) * binCount));
       bins[idx] += 1;
     });
+    const step = range / binCount;
+    const edges = Array.from({ length: binCount }, (_, i) => ({ start: min + i * step, end: i === binCount - 1 ? max : min + (i + 1) * step, count: bins[i] }));
     const topSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
     const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
-    return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, top5, outliers: outlierCount };
+    return { count: values.length, avg, min, max, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount };
   }, [filteredPlayers, selectedDrill]);
 
   return (
@@ -190,7 +192,7 @@ export default function Analytics() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Histogram */}
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">Distribution ({selectedDrill.unit})</div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} distribution ({selectedDrill.unit}) · {selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <div className="h-40 flex items-end gap-1 border border-gray-200 rounded p-2 bg-gray-50">
                       {drillStats.bins.map((b, i) => {
                         const maxBin = Math.max(...drillStats.bins);
@@ -208,7 +210,14 @@ export default function Analytics() {
                         );
                       })}
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">{drillStats.count} values{drillStats.outliers ? ` • ${drillStats.outliers} outliers ignored` : ''}</div>
+                    <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
+                      <span>{drillStats.count} values{drillStats.outliers ? ` • ${drillStats.outliers} outliers ignored` : ''}</span>
+                      {drillStats.edges?.filter(e => e.count > 0).map((e, idx) => (
+                        <span key={idx} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded">
+                          {e.start.toFixed(1)}–{e.end.toFixed(1)} {selectedDrill.unit}: {e.count}
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Stats + Top performers */}
@@ -216,18 +225,18 @@ export default function Analytics() {
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <div className="bg-gray-50 rounded border p-2 text-center">
                         <div className="text-xs text-gray-500">P50</div>
-                        <div className="font-semibold text-gray-900">{selectedDrill.lowerIsBetter ? drillStats.p50?.toFixed(2) : drillStats.p50?.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
                       </div>
                       <div className="bg-gray-50 rounded border p-2 text-center">
                         <div className="text-xs text-gray-500">P75</div>
-                        <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</div>
                       </div>
                       <div className="bg-gray-50 rounded border p-2 text-center">
                         <div className="text-xs text-gray-500">P90</div>
-                        <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)}</div>
+                        <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)} {selectedDrill.unit}</div>
                       </div>
                     </div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Top Performers</div>
+                    <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {drillStats.top5.map((t, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm bg-white rounded border p-2">
@@ -235,7 +244,7 @@ export default function Analytics() {
                             <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-green-600':idx<3?'bg-yellow-500':'bg-gray-500'}`}>{idx+1}</div>
                             <div className="text-gray-900">#{t.number} {t.name}</div>
                           </div>
-                          <div className="font-mono text-blue-600">{t.value}</div>
+                          <div className="font-mono text-blue-600">{t.value} {selectedDrill.unit}</div>
                         </div>
                       ))}
                     </div>
