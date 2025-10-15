@@ -70,71 +70,40 @@ export default function Analytics() {
     return selectedAgeGroup === 'ALL' ? players : players.filter(p => p.age_group === selectedAgeGroup);
   }, [players, selectedAgeGroup]);
 
-  // Drill stats
-  const drillStats = useMemo(() => {
-    if (!selectedDrill) return null;
-    // Build stable [player,value] pairs to avoid mismatches and duplicates
-    const entries = filteredPlayers
-      .map(p => {
-        const raw = p[selectedDrill.key];
-        const value = raw === '' || raw == null ? NaN : Number(raw);
-        return Number.isFinite(value) ? { player: p, value } : null;
-      })
-      .filter(Boolean);
-    if (entries.length === 0) return { count: 0 };
-    // Filter out-of-range values using sensible bounds to prevent skewed charts
-    const bounds = DRILL_BOUNDS[selectedDrill.key] || { min: -Infinity, max: Infinity };
-    const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
-    const outlierCount = entries.length - inRange.length;
-    if (inRange.length === 0) return { count: 0, outliers: outlierCount };
-    const values = inRange.map(e => e.value);
-    const sorted = [...values].sort((a, b) => a - b);
-    const quantile = (arr, q) => {
-      if (arr.length === 0) return 0;
-      const pos = (arr.length - 1) * q;
-      const base = Math.floor(pos);
-      const rest = pos - base;
-      return arr[base] + (arr[base + 1] - arr[base]) * rest || arr[base];
+  // Reusable stats computer for any drill
+  const computeStatsFor = useMemo(() => {
+    return (drill) => {
+      if (!drill) return null;
+      const entries = filteredPlayers
+        .map(p => {
+          const raw = p[drill.key];
+          const value = raw === '' || raw == null ? NaN : Number(raw);
+          return Number.isFinite(value) ? { player: p, value } : null;
+        })
+        .filter(Boolean);
+      if (entries.length === 0) return { count: 0 };
+      const bounds = DRILL_BOUNDS[drill.key] || { min: -Infinity, max: Infinity };
+      const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
+      if (inRange.length === 0) return { count: 0 };
+      const values = inRange.map(e => e.value).sort((a, b) => a - b);
+      const quantile = (arr, q) => {
+        if (arr.length === 0) return 0;
+        const pos = (arr.length - 1) * q;
+        const base = Math.floor(pos);
+        const rest = pos - base;
+        return arr[base] + (arr[base + 1] - arr[base]) * rest || arr[base];
+      };
+      const min = values[0];
+      const max = values[values.length - 1];
+      const orderedForBars = drill.lowerIsBetter
+        ? [...inRange].sort((a, b) => a.value - b.value)
+        : [...inRange].sort((a, b) => b.value - a.value);
+      return { count: values.length, min, max, p25: quantile(values, 0.25), p50: quantile(values, 0.5), p75: quantile(values, 0.75), orderedForBars };
     };
-    const avg = values.reduce((a, b) => a + b, 0) / values.length;
-    const min = sorted[0];
-    const max = sorted[sorted.length - 1];
-    const p50 = quantile(sorted, 0.5);
-    const p25 = quantile(sorted, 0.25);
-    const p75 = quantile(sorted, 0.75);
-    const p90 = quantile(sorted, 0.9);
-    // Histogram bins: dynamic based on n (sqrt rule), min 3, max 8
-    const binCount = Math.min(8, Math.max(3, Math.ceil(Math.sqrt(values.length))));
-    const range = max - min || 1;
-    const bins = new Array(binCount).fill(0);
-    values.forEach(v => {
-      const idx = Math.min(binCount - 1, Math.floor(((v - min) / range) * binCount));
-      bins[idx] += 1;
-    });
-    const step = range / binCount;
-    const edges = Array.from({ length: binCount }, (_, i) => ({ start: min + i * step, end: i === binCount - 1 ? max : min + (i + 1) * step, count: bins[i] }));
-    const topSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? a.value - b.value : b.value - a.value));
-    const worstSorted = [...inRange].sort((a, b) => (selectedDrill.lowerIsBetter ? b.value - a.value : a.value - b.value));
-    const bestEntry = topSorted[0];
-    const worstEntry = worstSorted[0];
+  }, [filteredPlayers]);
 
-    // Simple buckets: Best / Typical / Needs work
-    let bestCount, typicalCount, needsWorkCount;
-    if (selectedDrill.lowerIsBetter) {
-      bestCount = values.filter(v => v <= p25).length;
-      needsWorkCount = values.filter(v => v >= p75).length;
-    } else {
-      bestCount = values.filter(v => v >= p75).length;
-      needsWorkCount = values.filter(v => v <= p25).length;
-    }
-    typicalCount = Math.max(0, values.length - bestCount - needsWorkCount);
-
-    const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
-    const orderedForBars = selectedDrill.lowerIsBetter
-      ? [...inRange].sort((a, b) => a.value - b.value)
-      : [...inRange].sort((a, b) => b.value - a.value);
-    return { count: values.length, avg, min, max, p25, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount, bestEntry, worstEntry, bestCount, typicalCount, needsWorkCount, orderedForBars };
-  }, [filteredPlayers, selectedDrill]);
+  // Drill stats for currently selected drill (computed via reusable function)
+  const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
 
   return (
     <div className="min-h-screen bg-gray-50">
