@@ -208,9 +208,15 @@ export function AuthProvider({ children }) {
           setRoleChecked(true);
           setInitializing(false); // Don't wait for API verification
           
-          // Start league fetch immediately if we have a role
-          if (cachedRole !== null) {
-            fetchLeaguesConcurrently(firebaseUser, cachedRole);
+          // Start league fetch immediately if we have a role and we're not on onboarding routes
+          try {
+            const path = window.location?.pathname || '';
+            const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+            if (cachedRole !== null && !onboarding.includes(path)) {
+              fetchLeaguesConcurrently(firebaseUser, cachedRole);
+            }
+          } catch {
+            if (cachedRole !== null) fetchLeaguesConcurrently(firebaseUser, cachedRole);
           }
           
           // Still verify role in background, but don't block UI
@@ -358,6 +364,16 @@ export function AuthProvider({ children }) {
           setLeagueFetchInProgress(true);
           
           try {
+            // Avoid fetching leagues on onboarding routes to prevent 401 spam when session is refreshing
+            try {
+              const path = window.location?.pathname || '';
+              const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+              if (onboarding.includes(path)) {
+                authLogger.debug('Skipping leagues fetch on onboarding route', path);
+                setLeagueFetchInProgress(false);
+                return;
+              }
+            } catch {}
             const leagueResponse = await api.get(`/leagues/me`);
             
             // Normalize possible shapes: array or { leagues: [...] }
