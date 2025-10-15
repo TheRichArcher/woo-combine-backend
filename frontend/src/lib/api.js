@@ -149,6 +149,22 @@ api.interceptors.response.use(
     } catch {}
     // CRITICAL FIX: Handle 401 errors globally to prevent cascading
     if (error.response?.status === 401) {
+      // Try a one-time token refresh and retry the original request
+      const original = error.config || {};
+      if (!original._did401Refresh && auth.currentUser) {
+        original._did401Refresh = true;
+        return auth.currentUser.getIdToken(true)
+          .then((token) => {
+            original.headers = original.headers || {};
+            original.headers['Authorization'] = `Bearer ${token}`;
+            return api(original);
+          })
+          .catch(() => {
+            // fall through to rejection if refresh fails
+            apiLogger.warn('Token refresh after 401 failed');
+            return Promise.reject(error);
+          });
+      }
       apiLogger.warn('Session expired - user needs to log in again');
       // Don't show multiple error messages - let auth context handle it
       // Just mark the error as handled to prevent UI cascades
