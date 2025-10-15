@@ -13,7 +13,7 @@ export default function Analytics() {
   const drills = useMemo(() => getDrillsForEvent(selectedEvent || {}), [selectedEvent]);
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
-  const [viewMode, setViewMode] = useState('simple'); // 'simple' | 'histogram'
+  const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
   // Reasonable value ranges per drill to avoid skew/outliers
   const DRILL_BOUNDS = {
     '40m_dash': { min: 3, max: 20 },
@@ -130,7 +130,10 @@ export default function Analytics() {
     typicalCount = Math.max(0, values.length - bestCount - needsWorkCount);
 
     const top5 = topSorted.slice(0, 5).map(e => ({ name: e.player?.name || '—', number: e.player?.number, value: e.value }));
-    return { count: values.length, avg, min, max, p25, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount, bestEntry, worstEntry, bestCount, typicalCount, needsWorkCount };
+    const orderedForBars = selectedDrill.lowerIsBetter
+      ? [...inRange].sort((a, b) => a.value - b.value)
+      : [...inRange].sort((a, b) => b.value - a.value);
+    return { count: values.length, avg, min, max, p25, p50, p75, p90, bins, minValue: min, maxValue: max, step, edges, top5, outliers: outlierCount, bestEntry, worstEntry, bestCount, typicalCount, needsWorkCount, orderedForBars };
   }, [filteredPlayers, selectedDrill]);
 
   return (
@@ -185,6 +188,7 @@ export default function Analytics() {
                 <h2 className="font-semibold text-gray-900">Drill Explorer</h2>
                 <div className="flex items-center gap-2">
                   <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden">
+                    <button className={`px-2 py-1 ${viewMode==='bar'?'bg-white':''}`} onClick={() => setViewMode('bar')}>Bars</button>
                     <button className={`px-2 py-1 ${viewMode==='simple'?'bg-white':''}`} onClick={() => setViewMode('simple')}>Simple</button>
                     <button className={`px-2 py-1 ${viewMode==='histogram'?'bg-white':''}`} onClick={() => setViewMode('histogram')}>Histogram</button>
                   </div>
@@ -211,8 +215,37 @@ export default function Analytics() {
 
               {selectedDrill && drillStats?.count > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Histogram */}
-                  {viewMode === 'histogram' ? (
+                  {/* Visualization */}
+                  {viewMode === 'bar' ? (
+                  <div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">Top players · {selectedDrill.label} ({selectedDrill.unit})</div>
+                    <div className="space-y-2">
+                      {drillStats.orderedForBars.slice(0, 10).map((e, idx, arr) => {
+                        const bestVal = selectedDrill.lowerIsBetter ? drillStats.min : drillStats.max;
+                        const worstVal = selectedDrill.lowerIsBetter ? drillStats.max : drillStats.min;
+                        const span = Math.max(0.0001, worstVal - bestVal);
+                        // Scale so best gets 100%
+                        const widthPct = selectedDrill.lowerIsBetter
+                          ? Math.max(0.05, ((worstVal - e.value) / span)) * 100
+                          : Math.max(0.05, ((e.value - bestVal) / span)) * 100;
+                        return (
+                          <div key={idx} className="flex items-center gap-3">
+                            <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-green-600':idx<3?'bg-yellow-500':'bg-gray-500'}`}>{idx+1}</div>
+                            <div className="flex-1">
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="text-gray-800">#{e.player?.number} {e.player?.name}</span>
+                                <span className="font-mono text-blue-700">{e.value.toFixed(2)} {selectedDrill.unit}</span>
+                              </div>
+                              <div className="w-full h-3 bg-gray-200 rounded">
+                                <div className="h-3 bg-blue-500 rounded" style={{ width: `${widthPct}%` }} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  ) : viewMode === 'histogram' ? (
                   <div>
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} distribution ({selectedDrill.unit}) · {selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <div className="h-40 flex items-end gap-1 border border-gray-200 rounded p-2 bg-gray-50">
