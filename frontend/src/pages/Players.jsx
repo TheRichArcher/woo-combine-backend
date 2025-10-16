@@ -183,50 +183,6 @@ export default function Players() {
     return (players.length === 0 || overallCompletionPct < 30) || checklistOverride;
   }, [players.length, overallCompletionPct, checklistOverride]);
 
-  // First-time toast: points to sticky controls and checklist; accessible via ARIA-live from provider
-  useEffect(() => {
-    if (!showChecklist) return;
-    const sessionKey = 'playersStickyChecklistToastShown';
-    const countKey = 'playersStickyChecklistToastCount';
-    const dismissedKey = 'playersStickyChecklistToastDismissed';
-    const dismissedForever = localStorage.getItem(dismissedKey) === '1';
-    if (dismissedForever && !checklistOverride) return;
-
-    const shownCount = parseInt(sessionStorage.getItem(countKey) || '0', 10);
-    const hasShownThisSession = sessionStorage.getItem(sessionKey) === '1';
-    const isBrandNew = players.length === 0 && overallScoredCount === 0;
-    const duration = isBrandNew ? 12000 : 6000; // longer for true first-time
-    const showDontShowAgain = shownCount >= 1; // show toggle on 2nd show
-
-    const id = showInfo(
-      'Need help getting started? Use the checklist above. Key controls stay sticky while you scroll.',
-      duration,
-      showDontShowAgain
-        ? {
-            secondaryActionLabel: "Don't show again",
-            onSecondaryAction: () => {
-              localStorage.setItem(dismissedKey, '1');
-            }
-          }
-        : {}
-    );
-
-    // Track session flags
-    if (!hasShownThisSession) {
-      sessionStorage.setItem(sessionKey, '1');
-    }
-    sessionStorage.setItem(countKey, String(shownCount + 1));
-
-    const onScroll = () => {
-      removeToast(id);
-      window.removeEventListener('scroll', onScroll, { passive: true });
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll, { passive: true });
-    };
-  }, [showChecklist, checklistOverride, showInfo, removeToast, players.length, overallScoredCount]);
-
   // PERFORMANCE OPTIMIZATION: Simplified ranking function using optimized calculations
   const calculateRankingsForGroup = useCallback((playersGroup, weights) => {
     // Use the optimized rankings if this is for the current weights
@@ -558,7 +514,8 @@ export default function Players() {
         </div>
 
         {/* First-time Checklist Card */}
-        {((players.length === 0 || overallCompletionPct < 30) || checklistOverride) && (
+        {/* Remove yellow onboarding checklist card */}
+        {/* {((players.length === 0 || overallCompletionPct < 30) || checklistOverride) && (
           <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl p-4 mb-6">
             <div className="flex items-start gap-3">
               <span className="text-xl">🟡</span>
@@ -586,7 +543,7 @@ export default function Players() {
               </div>
             </div>
           </div>
-        )}
+        )} */}
 
 
 
