@@ -119,22 +119,34 @@ export default function Analytics() {
         value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
       }));
 
-      // Histogram bins for 'histogram' view
-      const numBins = 12;
-      const minValue = min;
-      const maxValue = max;
+      // Histogram bins for 'histogram' view with nice, drill-specific bucket sizes
+      const getBinSize = (d) => {
+        switch (d.key) {
+          case '40m_dash':
+            return 0.5; // 0.5 sec buckets for sprint times
+          case 'vertical_jump':
+            return 2;   // 2 inch buckets
+          default:
+            return 10;  // 10-unit buckets for percentage-style drills
+        }
+      };
+      const binSize = getBinSize(drill);
+      const startBase = Math.floor(min / binSize) * binSize;
+      const endBase = Math.ceil(max / binSize) * binSize;
+      const numBins = Math.max(1, Math.round((endBase - startBase) / binSize));
       const bins = new Array(numBins).fill(0);
       const edges = [];
-      const span = Math.max(0.0001, maxValue - minValue);
       inRange.forEach(e => {
-        const idx = Math.min(numBins - 1, Math.floor(((e.value - minValue) / span) * numBins));
+        const idx = Math.min(numBins - 1, Math.floor((e.value - startBase) / binSize));
         bins[idx] += 1;
       });
       for (let i = 0; i < numBins; i += 1) {
-        const start = minValue + (i * span) / numBins;
-        const end = minValue + ((i + 1) * span) / numBins;
+        const start = startBase + i * binSize;
+        const end = start + binSize;
         edges.push({ start, end, count: bins[i] });
       }
+      const minValue = startBase;
+      const maxValue = endBase;
 
       const p25 = quantile(values, 0.25);
       const p50 = quantile(values, 0.5);
@@ -300,7 +312,7 @@ export default function Analytics() {
                         const maxBin = Math.max(...drillStats.bins);
                         const ratio = maxBin ? (e.count / maxBin) : 0;
                         const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0;
-                        const label = `${e.start.toFixed(1)} - ${e.end.toFixed(1)}`;
+                        const label = `${e.start.toFixed( e.start % 1 === 0 ? 0 : 1)} - ${e.end.toFixed( e.end % 1 === 0 ? 0 : 1)}`;
                         return (
                           <div key={i} className="flex-1 h-full flex flex-col justify-end items-center group relative">
                             <div className="w-full bg-blue-500 rounded-t flex items-end justify-center" style={{ height: `${height}%` }}>
