@@ -73,7 +73,8 @@ export default function Analytics() {
   // Reusable stats computer for any drill
   const computeStatsFor = useMemo(() => {
     return (drill) => {
-      if (!drill) return null;
+      if (!drill) return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
+
       const entries = filteredPlayers
         .map(p => {
           const raw = p[drill.key];
@@ -81,24 +82,92 @@ export default function Analytics() {
           return Number.isFinite(value) ? { player: p, value } : null;
         })
         .filter(Boolean);
-      if (entries.length === 0) return { count: 0 };
+
+      if (entries.length === 0) {
+        return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
+      }
+
       const bounds = DRILL_BOUNDS[drill.key] || { min: -Infinity, max: Infinity };
       const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
-      if (inRange.length === 0) return { count: 0 };
+
+      if (inRange.length === 0) {
+        return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], outliers: entries.length };
+      }
+
       const values = inRange.map(e => e.value).sort((a, b) => a - b);
+
       const quantile = (arr, q) => {
         if (arr.length === 0) return 0;
         const pos = (arr.length - 1) * q;
         const base = Math.floor(pos);
         const rest = pos - base;
-        return arr[base] + (arr[base + 1] - arr[base]) * rest || arr[base];
+        return (arr[base] + ((arr[base + 1] ?? arr[base]) - arr[base]) * rest) || arr[base] || 0;
       };
+
       const min = values[0];
       const max = values[values.length - 1];
+
       const orderedForBars = drill.lowerIsBetter
         ? [...inRange].sort((a, b) => a.value - b.value)
         : [...inRange].sort((a, b) => b.value - a.value);
-      return { count: values.length, min, max, p25: quantile(values, 0.25), p50: quantile(values, 0.5), p75: quantile(values, 0.75), orderedForBars };
+
+      // Compute simple top5 list used by the sidebar
+      const top5 = orderedForBars.slice(0, 5).map(e => ({
+        name: e.player?.name,
+        number: e.player?.number,
+        value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
+      }));
+
+      // Histogram bins for 'histogram' view
+      const numBins = 12;
+      const minValue = min;
+      const maxValue = max;
+      const bins = new Array(numBins).fill(0);
+      const edges = [];
+      const span = Math.max(0.0001, maxValue - minValue);
+      inRange.forEach(e => {
+        const idx = Math.min(numBins - 1, Math.floor(((e.value - minValue) / span) * numBins));
+        bins[idx] += 1;
+      });
+      for (let i = 0; i < numBins; i += 1) {
+        const start = minValue + (i * span) / numBins;
+        const end = minValue + ((i + 1) * span) / numBins;
+        edges.push({ start, end, count: bins[i] });
+      }
+
+      const p25 = quantile(values, 0.25);
+      const p50 = quantile(values, 0.5);
+      const p75 = quantile(values, 0.75);
+      const p90 = quantile(values, 0.9);
+
+      const bestEntry = orderedForBars[0] || null;
+      const worstEntry = orderedForBars[orderedForBars.length - 1] || null;
+
+      // Simple bucketization for 'simple' view
+      const bestCount = orderedForBars.slice(0, Math.max(1, Math.floor(inRange.length * 0.2))).length;
+      const typicalCount = Math.max(0, inRange.length - bestCount - Math.max(1, Math.floor(inRange.length * 0.2)));
+      const needsWorkCount = inRange.length - bestCount - typicalCount;
+
+      return {
+        count: values.length,
+        min,
+        max,
+        p25,
+        p50,
+        p75,
+        p90,
+        orderedForBars,
+        top5,
+        bestEntry,
+        worstEntry,
+        bestCount,
+        typicalCount,
+        needsWorkCount,
+        bins,
+        edges,
+        minValue,
+        maxValue,
+      };
     };
   }, [filteredPlayers]);
 
@@ -166,7 +235,7 @@ export default function Analytics() {
                     onChange={(e) => setSelectedAgeGroup(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
-                    {ageGroups.map(g => (
+                    {(ageGroups || []).map(g => (
                       <option key={g} value={g}>{g}</option>
                     ))}
                   </select>
@@ -175,7 +244,7 @@ export default function Analytics() {
                     onChange={(e) => setSelectedDrillKey(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
-                    {drills.map(d => (
+                    {(drills || []).map(d => (
                       <option key={d.key} value={d.key}>{d.label}</option>
                     ))}
                   </select>
