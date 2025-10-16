@@ -176,6 +176,13 @@ export function AuthProvider({ children }) {
         if (path === '/login') {
           const target = localStorage.getItem('postLoginRedirect') || '/dashboard';
           localStorage.removeItem('postLoginRedirect');
+          // Ensure minimal ready state before redirect so guards don't stall
+          const cachedRoleQuick = sanitizeRole(localStorage.getItem('userRole'));
+          if (cachedRoleQuick) {
+            setUserRole(cachedRoleQuick);
+            setRole(cachedRoleQuick);
+          }
+          setRoleChecked(true);
           navigate(target, { replace: true });
           setInitializing(false);
           return;
