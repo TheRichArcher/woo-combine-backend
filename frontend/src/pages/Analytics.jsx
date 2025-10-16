@@ -226,7 +226,8 @@ export default function Analytics() {
                 <h2 className="font-semibold text-gray-900">Drill Explorer</h2>
                 <div className="flex items-center gap-2">
                   <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden">
-                    <button className={`px-2 py-1 ${viewMode==='bar'?'bg-white':''}`} onClick={() => setViewMode('bar')}>Bars</button>
+                    <button className={`px-2 py-1 ${viewMode==='bar'?'bg-white':''}`} onClick={() => setViewMode('bar')}>Vertical Bar</button>
+                    <button className={`px-2 py-1 ${viewMode==='lollipop'?'bg-white':''}`} onClick={() => setViewMode('lollipop')}>Lollipop</button>
                     <button className={`px-2 py-1 ${viewMode==='simple'?'bg-white':''}`} onClick={() => setViewMode('simple')}>Simple</button>
                     <button className={`px-2 py-1 ${viewMode==='histogram'?'bg-white':''}`} onClick={() => setViewMode('histogram')}>Histogram</button>
                   </div>
@@ -257,27 +258,46 @@ export default function Analytics() {
                   {viewMode === 'bar' ? (
                   <div>
                     <div className="text-sm text-gray-700 font-medium mb-2">Top players · {selectedDrill.label} ({selectedDrill.unit})</div>
-                    <div className="space-y-2">
-                      {drillStats.orderedForBars.slice(0, 10).map((e, idx, arr) => {
-                        const bestVal = selectedDrill.lowerIsBetter ? drillStats.min : drillStats.max;
-                        const worstVal = selectedDrill.lowerIsBetter ? drillStats.max : drillStats.min;
-                        const span = Math.max(0.0001, worstVal - bestVal);
-                        // Scale so best gets 100%
-                        const widthPct = selectedDrill.lowerIsBetter
-                          ? Math.max(0.05, ((worstVal - e.value) / span)) * 100
-                          : Math.max(0.05, ((e.value - bestVal) / span)) * 100;
+                    <div className="flex items-end h-48 gap-1 overflow-x-auto px-2">
+                      {drillStats.orderedForBars.slice(0, 10).map((e, idx) => {
+                        const minVal = drillStats.min;
+                        const maxVal = drillStats.max;
+                        const span = Math.max(0.0001, maxVal - minVal);
+                        const heightPct = selectedDrill.lowerIsBetter
+                          ? ((maxVal - e.value) / span) * 100
+                          : ((e.value - minVal) / span) * 100;
+                        const colors = ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'];
+                        const barColor = colors[idx % colors.length];
                         return (
-                          <div key={idx} className="flex items-center gap-3">
-                            <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-green-600':idx<3?'bg-yellow-500':'bg-gray-500'}`}>{idx+1}</div>
-                            <div className="flex-1">
-                              <div className="flex justify-between text-sm mb-1">
-                                <span className="text-gray-800">#{e.player?.number} {e.player?.name}</span>
-                                <span className="font-mono text-blue-700">{e.value.toFixed(2)} {selectedDrill.unit}</span>
-                              </div>
-                              <div className="w-full h-3 bg-gray-200 rounded">
-                                <div className="h-3 bg-blue-500 rounded" style={{ width: `${widthPct}%` }} />
-                              </div>
+                          <div key={idx} className="flex flex-col items-center" style={{width: '10%'}}>
+                            <span className="text-xs font-mono text-gray-700 mb-1">{e.value.toFixed(1)}</span>
+                            <div className="w-6 rounded-t" style={{height: `${Math.max(5, heightPct)}%`, backgroundColor: barColor}} />
+                            <span className="text-xs text-gray-700 mt-1 truncate max-w-full">{e.player.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  ) : viewMode === 'lollipop' ? (
+                  <div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">Top players · {selectedDrill.label} ({selectedDrill.unit})</div>
+                    <div className="flex items-end h-48 gap-1 overflow-x-auto px-2">
+                      {drillStats.orderedForBars.slice(0, 10).map((e, idx) => {
+                        const minVal = drillStats.min;
+                        const maxVal = drillStats.max;
+                        const span = Math.max(0.0001, maxVal - minVal);
+                        const heightPct = selectedDrill.lowerIsBetter
+                          ? ((maxVal - e.value) / span) * 100
+                          : ((e.value - minVal) / span) * 100;
+                        const colors = ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'];
+                        const dotColor = colors[idx % colors.length];
+                        return (
+                          <div key={idx} className="flex flex-col items-center" style={{width: '10%'}}>
+                            <div className="relative w-1 bg-gray-300 rounded" style={{height: `${Math.max(5, heightPct)}%`}}>
+                              <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full text-xs font-mono text-gray-700 pb-1">{e.value.toFixed(1)}</span>
+                              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style={{backgroundColor: dotColor}} />
                             </div>
+                            <span className="text-xs text-gray-700 mt-1 truncate max-w-full">{e.player.name}</span>
                           </div>
                         );
                       })}
