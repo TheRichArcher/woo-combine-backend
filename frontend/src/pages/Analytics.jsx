@@ -258,28 +258,33 @@ export default function Analytics() {
                   {/* Visualization */}
                   {viewMode === 'bar' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">Vertical Jump Scores</div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} Scores</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map(e => ({ name: e.player.name, score: e.value }))}>
-                        <XAxis dataKey="name" />
-                        <YAxis />
+                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: e.value, fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))}>
+                        <XAxis dataKey="name" label={{ value: 'Player', position: 'bottom' }} />
+                        <YAxis label={{ value: 'Score (inches)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip />
-                        <Legend />
-                        <Bar dataKey="score" fill="#8884d8" />
+                        <Bar dataKey="score" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   ) : viewMode === 'lollipop' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">Vertical Jump Scores (Lollipop Chart)</div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} Scores (Lollipop Chart)</div>
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" name="Player" />
-                        <YAxis dataKey="score" name="Score" />
+                        <XAxis dataKey="name" name="Player" label={{ value: 'Player', position: 'bottom' }} />
+                        <YAxis dataKey="score" name="Score" domain={[0, 'dataMax + 5']} label={{ value: 'Score (inches)', angle: -90, position: 'insideLeft' }} />
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                        <Legend />
-                        <Scatter name="Scores" data={drillStats.orderedForBars.slice(0, 10).map(e => ({ name: e.player.name, score: e.value }))} fill="#8884d8" line shape="circle" />
+                        <Scatter 
+                          name="Scores" 
+                          data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: e.value, fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))} 
+                          line={{ stroke: '#8884d8', strokeWidth: 2 }} 
+                          lineType="joint" 
+                          shape="circle" 
+                          shapeProps={{ r: 6 }} 
+                        />
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
@@ -287,29 +292,23 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} distribution ({selectedDrill.unit}) · {selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <div className="h-40 flex items-end gap-1 border border-gray-200 rounded p-2 bg-gray-50">
-                      {drillStats.bins.map((b, i) => {
+                      {drillStats.edges.map((e, i) => {
                         const maxBin = Math.max(...drillStats.bins);
-                        const ratio = maxBin ? (b / maxBin) : 0;
-                        const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0; // ensure visible min height
-                        const startVal = drillStats.minValue + (i * (drillStats.maxValue - drillStats.minValue)) / drillStats.bins.length;
-                        const start = startVal.toFixed(1);
+                        const ratio = maxBin ? (e.count / maxBin) : 0;
+                        const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0;
+                        const label = `${e.start.toFixed(1)} - ${e.end.toFixed(1)}`;
                         return (
-                          <div key={i} className="flex-1 h-full flex flex-col justify-end items-center">
+                          <div key={i} className="flex-1 h-full flex flex-col justify-end items-center group relative">
                             <div className="w-full bg-blue-500 rounded-t flex items-end justify-center" style={{ height: `${height}%` }}>
-                              {b > 0 && <span className="text-[10px] text-white pb-1">{b}</span>}
+                              {e.count > 0 && <span className="text-[10px] text-white pb-1">{e.count}</span>}
                             </div>
-                            <div className="text-[10px] text-gray-500 mt-1">{start}</div>
+                            <div className="text-[10px] text-gray-500 mt-1 rotate-45 origin-bottom truncate">{label}</div>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {label}: {e.count}
+                            </div>
                           </div>
                         );
                       })}
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
-                      <span>{drillStats.count} values{drillStats.outliers ? ` • ${drillStats.outliers} outliers ignored` : ''}</span>
-                      {drillStats.edges?.filter(e => e.count > 0).map((e, idx) => (
-                        <span key={idx} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded">
-                          {e.start.toFixed(1)}–{e.end.toFixed(1)} {selectedDrill.unit}: {e.count}
-                        </span>
-                      ))}
                     </div>
                   </div>
                   ) : (
