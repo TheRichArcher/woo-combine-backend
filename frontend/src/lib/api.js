@@ -28,7 +28,7 @@ const api = axios.create({
   baseURL: resolveBaseUrl(),
   withCredentials: false,
   // Extended default timeout to handle backend cold starts more gracefully
-  timeout: 45000
+  timeout: 90000
 });
 
 // Enhanced retry logic for cold start recovery

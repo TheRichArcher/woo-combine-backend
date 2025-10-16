@@ -86,7 +86,7 @@ export function AuthProvider({ children }) {
       
       await Promise.race([
         Promise.allSettled(warmupPromises),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 2000)) // Reduced to 2s
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 6000)) // allow a bit longer for cold starts
       ]);
       
       const warmupTime = performance.now() - warmupStart;
