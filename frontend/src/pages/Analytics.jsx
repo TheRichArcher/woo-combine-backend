@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 import { getDrillsForEvent } from '../constants/players';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 export default function Analytics() {
   const { selectedEvent } = useEvent();
@@ -257,51 +258,30 @@ export default function Analytics() {
                   {/* Visualization */}
                   {viewMode === 'bar' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">Top players · {selectedDrill.label} ({selectedDrill.unit})</div>
-                    <div className="flex items-end h-48 gap-1 overflow-x-auto px-2">
-                      {drillStats.orderedForBars.slice(0, 10).map((e, idx) => {
-                        const minVal = drillStats.min;
-                        const maxVal = drillStats.max;
-                        const span = Math.max(0.0001, maxVal - minVal);
-                        const heightPct = selectedDrill.lowerIsBetter
-                          ? ((maxVal - e.value) / span) * 100
-                          : ((e.value - minVal) / span) * 100;
-                        const colors = ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'];
-                        const barColor = colors[idx % colors.length];
-                        return (
-                          <div key={idx} className="flex flex-col items-center" style={{width: '10%'}}>
-                            <span className="text-xs font-mono text-gray-700 mb-1">{e.value.toFixed(1)}</span>
-                            <div className="w-6 rounded-t" style={{height: `${Math.max(5, heightPct)}%`, backgroundColor: barColor}} />
-                            <span className="text-xs text-gray-700 mt-1 truncate max-w-full">{e.player.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">Vertical Jump Scores</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map(e => ({ name: e.player.name, score: e.value }))}>
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="score" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                   ) : viewMode === 'lollipop' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">Top players · {selectedDrill.label} ({selectedDrill.unit})</div>
-                    <div className="flex items-end h-48 gap-1 overflow-x-auto px-2">
-                      {drillStats.orderedForBars.slice(0, 10).map((e, idx) => {
-                        const minVal = drillStats.min;
-                        const maxVal = drillStats.max;
-                        const span = Math.max(0.0001, maxVal - minVal);
-                        const heightPct = selectedDrill.lowerIsBetter
-                          ? ((maxVal - e.value) / span) * 100
-                          : ((e.value - minVal) / span) * 100;
-                        const colors = ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'];
-                        const dotColor = colors[idx % colors.length];
-                        return (
-                          <div key={idx} className="flex flex-col items-center" style={{width: '10%'}}>
-                            <div className="relative w-1 bg-gray-300 rounded" style={{height: `${Math.max(5, heightPct)}%`}}>
-                              <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-full text-xs font-mono text-gray-700 pb-1">{e.value.toFixed(1)}</span>
-                              <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full" style={{backgroundColor: dotColor}} />
-                            </div>
-                            <span className="text-xs text-gray-700 mt-1 truncate max-w-full">{e.player.name}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <div className="text-sm text-gray-700 font-medium mb-2">Vertical Jump Scores (Lollipop Chart)</div>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <ScatterChart>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" name="Player" />
+                        <YAxis dataKey="score" name="Score" />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Legend />
+                        <Scatter name="Scores" data={drillStats.orderedForBars.slice(0, 10).map(e => ({ name: e.player.name, score: e.value }))} fill="#8884d8" line shape="circle" />
+                      </ScatterChart>
+                    </ResponsiveContainer>
                   </div>
                   ) : viewMode === 'histogram' ? (
                   <div>
