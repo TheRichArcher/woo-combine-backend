@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 import { getDrillsForEvent } from '../constants/players';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
 
 export default function Analytics() {
   const { selectedEvent } = useEvent();
@@ -258,24 +258,28 @@ export default function Analytics() {
                   {/* Visualization */}
                   {viewMode === 'bar' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} Scores</div>
+                    <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
+                    <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: e.value, fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))}>
+                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: Number(e.value.toFixed(2)), fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))}>
                         <XAxis dataKey="name" label={{ value: 'Player', position: 'bottom' }} />
-                        <YAxis label={{ value: 'Score (inches)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip />
-                        <Bar dataKey="score" />
+                        <Bar dataKey="score">
+                          <LabelList dataKey="score" position="top" formatter={(v) => `${v} ${selectedDrill.unit}`} />
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
                   ) : viewMode === 'lollipop' ? (
                   <div>
-                    <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} Scores (Lollipop Chart)</div>
+                    <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores (Lollipop Chart)</div>
+                    <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="name" name="Player" label={{ value: 'Player', position: 'bottom' }} />
-                        <YAxis dataKey="score" name="Score" domain={[0, 'dataMax + 5']} label={{ value: 'Score (inches)', angle: -90, position: 'insideLeft' }} />
+                        <YAxis dataKey="score" name="Score" domain={[0, 'dataMax + 5']} label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                         <Scatter 
                           name="Scores" 
