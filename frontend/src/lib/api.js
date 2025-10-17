@@ -147,10 +147,15 @@ api.interceptors.response.use(
         apiLogger.warn('Rate limit exceeded. ' + waitMsg);
       }
     } catch {}
-    // CRITICAL FIX: Handle 401 errors globally to prevent cascading
+    // CRITICAL FIX: Handle 401 errors globally without redirect loops
     if (error.response?.status === 401) {
       // Try a one-time token refresh and retry the original request
       const original = error.config || {};
+      const reqUrl = String(original.url || error.config?.url || '');
+      const isAuthCriticalPath = reqUrl.includes('/users/me') || reqUrl.includes('/leagues/me');
+      const currentPath = (typeof window !== 'undefined' && window.location) ? window.location.pathname : '';
+      const isOnboardingPath = ['/login','/signup','/verify-email','/welcome','/'].includes(currentPath);
+
       if (!original._did401Refresh && auth.currentUser) {
         original._did401Refresh = true;
         return auth.currentUser.getIdToken(true)
@@ -160,13 +165,25 @@ api.interceptors.response.use(
             return api(original);
           })
           .catch(() => {
-            // fall through to rejection if refresh fails
             apiLogger.warn('Token refresh after 401 failed');
             return Promise.reject(error);
           });
       }
-      apiLogger.warn('Session expired - user needs to log in again');
-      // Proactive redirect to login to avoid infinite 401 loops
+
+      // Avoid redirect loops: if user is logged in and this was not an auth-critical endpoint,
+      // surface the error to the caller but do not force navigation.
+      if (auth.currentUser && !isAuthCriticalPath) {
+        apiLogger.info('401 on non-auth-critical endpoint; suppressing redirect');
+        return Promise.reject(error);
+      }
+
+      // Also avoid redirecting if we are already on an onboarding route
+      if (isOnboardingPath) {
+        apiLogger.info('401 on onboarding route; not redirecting again');
+        return Promise.reject(error);
+      }
+
+      apiLogger.warn('Session expired - redirecting to login');
       try {
         const current = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '/';
         localStorage.setItem('postLoginRedirect', current);
@@ -174,7 +191,6 @@ api.interceptors.response.use(
           window.location.href = '/login?reason=session_expired';
         }
       } catch {}
-      // Mark handled and reject
       error._handled = true;
       return Promise.reject(error);
     }
