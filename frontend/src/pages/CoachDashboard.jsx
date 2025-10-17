@@ -225,7 +225,17 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
         <EventSelector />
-        
+        {/* Quick link to Analytics */}
+        <div className="flex justify-end mb-3">
+          <button
+            onClick={() => navigate('/analytics')}
+            className="inline-flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
+            aria-label="Open Analytics"
+          >
+            <BarChart3 className="w-4 h-4 text-cmf-primary" />
+            Analytics
+          </button>
+        </div>
 
 
         {/* Header & Title Block */}
