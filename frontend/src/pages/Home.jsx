@@ -164,6 +164,16 @@ export default function Home() {
                     Import Players
                   </button>
                 </div>
+                {/* Analytics quick access */}
+                <div>
+                  <button
+                    onClick={() => handleNavigation('/analytics')}
+                    className="mt-3 w-full bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl border-2 border-gray-200 shadow hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                  >
+                    <BarChart3 className="w-5 h-5 text-brand-primary" />
+                    Open Analytics
+                  </button>
+                </div>
                 {/* Promote Teams and Scorecards */}
                 <div className="grid grid-cols-2 gap-3">
                   <button
