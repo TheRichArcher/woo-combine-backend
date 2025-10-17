@@ -119,34 +119,23 @@ export default function Analytics() {
         value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
       }));
 
-      // Histogram bins for 'histogram' view with nice, drill-specific bucket sizes
-      const getBinSize = (d) => {
-        switch (d.key) {
-          case '40m_dash':
-            return 0.5; // 0.5 sec buckets for sprint times
-          case 'vertical_jump':
-            return 2;   // 2 inch buckets
-          default:
-            return 10;  // 10-unit buckets for percentage-style drills
-        }
-      };
-      const binSize = getBinSize(drill);
-      const startBase = Math.floor(min / binSize) * binSize;
-      const endBase = Math.ceil(max / binSize) * binSize;
-      const numBins = Math.max(1, Math.round((endBase - startBase) / binSize));
+      // Histogram bins for 'histogram' view with adaptive bucket count (4–10 bins)
+      const spanValue = Math.max(0.0001, max - min);
+      const targetBins = Math.min(10, Math.max(4, Math.round(Math.sqrt(inRange.length) * 2)));
+      const numBins = targetBins;
       const bins = new Array(numBins).fill(0);
       const edges = [];
       inRange.forEach(e => {
-        const idx = Math.min(numBins - 1, Math.floor((e.value - startBase) / binSize));
+        const idx = Math.min(numBins - 1, Math.floor(((e.value - min) / spanValue) * numBins));
         bins[idx] += 1;
       });
       for (let i = 0; i < numBins; i += 1) {
-        const start = startBase + i * binSize;
-        const end = start + binSize;
+        const start = min + (i * spanValue) / numBins;
+        const end = min + ((i + 1) * spanValue) / numBins;
         edges.push({ start, end, count: bins[i] });
       }
-      const minValue = startBase;
-      const maxValue = endBase;
+      const minValue = min;
+      const maxValue = max;
 
       const p25 = quantile(values, 0.25);
       const p50 = quantile(values, 0.5);
