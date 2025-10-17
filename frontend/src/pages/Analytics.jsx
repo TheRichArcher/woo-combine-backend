@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 import { getDrillsForEvent } from '../constants/players';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
   const { selectedEvent } = useEvent();
@@ -15,6 +15,8 @@ export default function Analytics() {
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
+  // High-contrast palette (no bright yellows)
+  const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
   // Reasonable value ranges per drill to avoid skew/outliers
   const DRILL_BOUNDS = {
     '40m_dash': { min: 3, max: 20 },
@@ -262,12 +264,15 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: Number(e.value.toFixed(2)), fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))}>
+                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ name: e.player.name, score: Number(e.value.toFixed(2)) }))}>
                         <XAxis dataKey="name" label={{ value: 'Player', position: 'bottom' }} />
                         <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip />
                         <Bar dataKey="score">
-                          <LabelList dataKey="score" position="top" formatter={(v) => `${v} ${selectedDrill.unit}`} />
+                          {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
+                            <Cell key={`bar-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                          ))}
+                          <LabelList dataKey="score" position="top" formatter={(v) => `${v} ${selectedDrill.unit}`} fill="#111827" />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -284,12 +289,16 @@ export default function Analytics() {
                         <Tooltip cursor={{ strokeDasharray: '3 3' }} />
                         <Scatter 
                           name="Scores" 
-                          data={drillStats.orderedForBars.slice(0, 10).map((e, idx) => ({ name: e.player.name, score: e.value, fill: ['#add8e6', '#ff0000', '#90ee90', '#ffff00', '#a52a2a', '#ffa500', '#800080', '#00ff00', '#0000ff', '#ffc0cb'][idx % 10] }))} 
-                          line={{ stroke: '#8884d8', strokeWidth: 2 }} 
+                          data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ name: e.player.name, score: e.value }))} 
+                          line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
                           lineType="joint" 
                           shape="circle" 
                           shapeProps={{ r: 6 }} 
-                        />
+                        >
+                          {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
+                            <Cell key={`pt-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} stroke="#111827" />
+                          ))}
+                        </Scatter>
                       </ScatterChart>
                     </ResponsiveContainer>
                   </div>
