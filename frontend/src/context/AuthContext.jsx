@@ -235,7 +235,7 @@ export function AuthProvider({ children }) {
               fetchLeaguesConcurrently(firebaseUser, cachedRole);
             }
           } catch {
-            if (cachedRole !== null) fetchLeaguesConcurrently(firebaseUser, cachedRole);
+            // Do not fetch while on onboarding routes
           }
           
           // Still verify role in background, but don't block UI

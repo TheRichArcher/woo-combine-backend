@@ -97,7 +97,7 @@ export function EventProvider({ children }) {
     try {
       const path = window.location?.pathname || '';
       // Skip event fetching on onboarding routes to avoid 401 spam on login
-      if (['/login', '/signup', '/verify-email'].includes(path)) {
+      if (['/login', '/signup', '/verify-email', '/welcome', '/'].includes(path)) {
         return;
       }
     } catch {}
