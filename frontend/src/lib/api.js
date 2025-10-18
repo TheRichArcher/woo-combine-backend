@@ -232,4 +232,4 @@ export default api;
 
 // Convenience helpers for health and warmup
 export const apiHealth = () => api.get('/health');
-export const apiWarmup = () => api.get('/warmup');
+export const apiWarmup = () => api.get('warmup');

@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import lru_cache
 import time
 from firebase_admin import auth
-from ..auth import get_current_user
+from ..auth import get_current_user, get_current_user_for_role_setting
 from ..middleware.rate_limiting import auth_rate_limit, user_rate_limit
 from ..firestore_client import get_firestore_client
 from ..utils.database import execute_with_timeout
@@ -76,39 +76,12 @@ async def get_current_user_profile(request: Request, current_user: dict = Depend
 async def set_user_role(
     role_data: SetRoleRequest,
     request: Request,
-    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())
+    current_user: dict = Depends(get_current_user_for_role_setting)
 ):
-    """Set the role for the current user with simplified auth for onboarding"""
+    """Set the role for the current user with centralized auth for onboarding"""
     try:
-        # SIMPLIFIED AUTH: Direct Firebase token verification for role setting
-        token = credentials.credentials
-        
-        try:
-            decoded_token = auth.verify_id_token(token)
-            uid = decoded_token["uid"]
-            email = decoded_token.get("email", "")
-            
-            # For role setting, be more lenient with email verification
-            # (user might have just verified but token hasn't refreshed)
-            email_verified = decoded_token.get("email_verified", False)
-            if not email_verified:
-                # Check token age - allow role setting for recent tokens
-                import time
-                token_issued_at = decoded_token.get("iat", 0)
-                current_time = time.time()
-                
-                if current_time - token_issued_at > 300:  # 5 minutes
-                    raise HTTPException(
-                        status_code=403, 
-                        detail="Email verification required. Please check your email and verify your account."
-                    )
-                # Otherwise, allow it (likely verification delay)
-                
-        except HTTPException:
-            raise
-        except Exception as e:
-            logging.error(f"Firebase token verification failed for role setting: {e}")
-            raise HTTPException(status_code=401, detail="Invalid authentication token")
+        uid = current_user["uid"]
+        email = current_user.get("email", "")
         
         role = role_data.role
         
