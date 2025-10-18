@@ -109,22 +109,30 @@ api.interceptors.request.use(async (config) => {
         }
         
       } catch (cachedTokenError) {
+        // Try to avoid unauthenticated requests: attempt to reuse non-forced token
+        try {
+          if (!token) {
+            token = await user.getIdToken(false);
+          }
+        } catch {}
         // Fallback: Only refresh if it's been > 50 minutes since last refresh
         const lastRefresh = localStorage.getItem('lastTokenRefresh');
         const now = Date.now();
         if (!lastRefresh || (now - parseInt(lastRefresh)) > 50 * 60 * 1000) {
           apiLogger.debug('Cached token failed, refreshing');
-          token = await user.getIdToken(true);
-          localStorage.setItem('lastTokenRefresh', now.toString());
-        } else {
-          // Token should still be valid, continue without refresh
-          apiLogger.warn('Cached token failed but recently refreshed, continuing without token');
-          return config;
+          try {
+            token = await user.getIdToken(true);
+            localStorage.setItem('lastTokenRefresh', now.toString());
+          } catch (refreshErr) {
+            // If refresh fails but we still have a token, continue with it
+          }
         }
       }
       
-      config.headers = config.headers || {};
-      config.headers['Authorization'] = `Bearer ${token}`;
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
     } catch (authError) {
       apiLogger.warn('Failed to get auth token', authError);
       // Continue without token for non-auth endpoints

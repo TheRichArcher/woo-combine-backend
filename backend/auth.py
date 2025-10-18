@@ -10,7 +10,7 @@ from google.cloud import firestore
 from datetime import datetime
 import logging
 import asyncio
-from functools import wraps
+from functools import wraps, lru_cache
 import time
 
 # Initialize Firebase Admin SDK if not already initialized
@@ -78,6 +78,17 @@ def _ensure_verified(decoded_token: dict):
     if REQUIRE_VERIFIED_LOGIN and not decoded_token.get("email_verified", False):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email not verified")
 
+# Cache disabled-user check briefly to avoid Admin API calls on every request
+@lru_cache(maxsize=2048)
+def _is_user_disabled_cached(uid: str, bucket: int) -> bool:
+    try:
+        user_record = auth.get_user(uid)
+        return bool(getattr(user_record, "disabled", False))
+    except Exception as e:
+        # Treat failures as not disabled; downstream logic is best-effort only
+        logging.debug(f"[AUTH] Disabled check skipped (cached) for {uid}: {e}")
+        return False
+
 def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
@@ -128,15 +139,14 @@ def get_current_user(
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
         
-        # Optional: deny disabled users fast (best-effort, do not block on error)
+        # Optional: deny disabled users using short-lived cached check (5-minute buckets)
         try:
-            user_record = auth.get_user(uid)
-            if getattr(user_record, "disabled", False):
+            bucket = int(time.time() // 300)
+            if _is_user_disabled_cached(uid, bucket):
                 logging.warning(f"[AUTH] Disabled user attempted access: {uid}")
                 raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User disabled")
         except Exception as e:
-            # Don't fail closed here to avoid coupling to Admin API hiccups
-            logging.debug(f"[AUTH] Skipping disabled check (non-fatal): {e}")
+            logging.debug(f"[AUTH] Disabled check (cached) non-fatal error: {e}")
         
         # Simple direct Firestore lookup (ThreadPoolExecutor was causing delays)
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")

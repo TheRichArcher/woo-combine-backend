@@ -6,7 +6,6 @@ Implements security headers and policies to protect against common attacks
 from fastapi import Request, Response
 from starlette.responses import Response as StarletteResponse, RedirectResponse
 import os
-import re
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
 
@@ -20,38 +19,8 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         self.config = config or {}
         
     async def dispatch(self, request: Request, call_next):
-        # Basic CORS handling at the edge to guarantee headers for all responses
-        origin = request.headers.get("origin", "")
-        # Build allowed origins from env (same as main.py) with safe defaults
-        allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-        allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()] or [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-        ]
-        allowed_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX") or r"^https://(www\.)?woo-combine\.com$"
-
-        def is_origin_allowed(o: str) -> bool:
-            try:
-                if o in allowed_origins:
-                    return True
-                return re.match(allowed_origin_regex, o) is not None
-            except Exception:
-                return False
-
-        cors_headers = {}
-        if origin and is_origin_allowed(origin):
-            cors_headers["Access-Control-Allow-Origin"] = origin
-            cors_headers["Vary"] = "Origin"
-            cors_headers["Access-Control-Allow-Credentials"] = "false"
-            cors_headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-            # Be permissive on headers to avoid preflight failures
-            cors_headers["Access-Control-Allow-Headers"] = request.headers.get(
-                "access-control-request-headers", "Authorization,Content-Type"
-            )
-
-        # Short-circuit preflight with proper CORS headers
-        if request.method == "OPTIONS":
-            return StarletteResponse(status_code=204, headers=cors_headers)
+        # Let CORSMiddleware own all CORS behavior (avoid duplicate/conflicting headers)
+        # Still handle OPTIONS by passing through; CORSMiddleware will reply appropriately
 
         # Enforce HTTPS in production-like environments (skip localhost and health checks)
         try:
@@ -75,13 +44,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         )
         
         response = await call_next(request)
-
-        # Ensure CORS headers are present on all responses when allowed
-        try:
-            for k, v in cors_headers.items():
-                response.headers[k] = v
-        except Exception:
-            pass
         
         if is_auth_endpoint:
             # Minimal headers for auth endpoints (faster processing)
