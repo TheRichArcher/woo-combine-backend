@@ -28,8 +28,17 @@ export function EventProvider({ children }) {
   const cachedFetchEvents = useCallback(
     withCache(
       async (leagueId) => {
-        const response = await api.get(`/leagues/${leagueId}/events`);
-        return response.data?.events || [];
+        // Quick retries for cold starts
+        const attempt = async () => (await api.get(`/leagues/${leagueId}/events`)).data?.events || [];
+        try {
+          return await attempt();
+        } catch (e1) {
+          await new Promise(r => setTimeout(r, 800));
+          try { return await attempt(); } catch (e2) {
+            await new Promise(r => setTimeout(r, 1500));
+            return await attempt();
+          }
+        }
       },
       'events',
       120 * 1000

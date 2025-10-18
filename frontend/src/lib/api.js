@@ -27,8 +27,8 @@ const resolveBaseUrl = () => {
 const api = axios.create({
   baseURL: resolveBaseUrl(),
   withCredentials: false,
-  // Extended default timeout to handle backend cold starts more gracefully
-  timeout: 90000
+  // Balanced default timeout to avoid long stalls on cold start
+  timeout: 45000
 });
 
 // Enhanced retry logic for cold start recovery
@@ -50,8 +50,8 @@ api.interceptors.response.use(
     // COLD START handling: limited retry for generic timeouts, none for auth-critical endpoints
     const maxRetries = url.includes('/warmup') ? 0
                       : isAuthCritical ? 0
-                      : (error.code === 'ECONNABORTED' || error.message.includes('timeout')) ? 1
-                      : (error.response?.status >= 500 ? 1 : 0);
+                      : (error.code === 'ECONNABORTED' || error.message.includes('timeout')) ? 2
+                      : (error.response?.status >= 500 ? 2 : 0);
     const shouldRetry = config._retryCount < maxRetries && (
       error.code === 'ECONNABORTED' ||           // Timeout
       error.message.includes('timeout') ||        // Timeout variations
@@ -66,8 +66,8 @@ api.interceptors.response.use(
     
     config._retryCount += 1;
     
-    // More conservative progressive delays: 2s max for our single retry
-    let delay = Math.min(Math.pow(2, config._retryCount) * 1000, 2000);
+    // Progressive backoff (up to ~3s)
+    let delay = Math.min(Math.pow(2, config._retryCount) * 1000, 3000);
     
     // Optimized delays for different error types
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
