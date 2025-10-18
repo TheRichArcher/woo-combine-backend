@@ -316,7 +316,7 @@ export default function Analytics() {
                             <div className="w-full bg-blue-500 rounded-t flex items-end justify-center" style={{ height: `${height}%` }}>
                               {e.count > 0 && <span className="text-[10px] text-white pb-1">{e.count}</span>}
                             </div>
-                            <div className="text-[10px] text-gray-500 mt-1 rotate-45 origin-bottom truncate">{label}</div>
+                            <div className="text-[11px] text-gray-700 mt-1 truncate" title={`${label} ${selectedDrill.unit}`}>{label}</div>
                             <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
                               {label}: {e.count}
                             </div>
@@ -324,6 +324,7 @@ export default function Analytics() {
                         );
                       })}
                     </div>
+                    <div className="text-center text-xs text-gray-500 mt-1">Score ({selectedDrill.unit})</div>
                   </div>
                   ) : (
                   <div>
