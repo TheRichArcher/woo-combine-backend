@@ -17,6 +17,15 @@ export default function Analytics() {
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
   // High-contrast palette (no bright yellows)
   const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
+
+  // Helper to color-code histogram bins from green (best) → orange → red (worst)
+  const getBinColor = (index, total, lowerIsBetter) => {
+    const tBase = total > 1 ? index / (total - 1) : 1; // 0 at leftmost, 1 at rightmost
+    const t = lowerIsBetter ? tBase : (1 - tBase);     // map so t=0 is best
+    if (t < 0.34) return '#16a34a'; // green
+    if (t < 0.67) return '#f59e0b'; // orange
+    return '#ef4444';               // red
+  };
   // Reasonable value ranges per drill to avoid skew/outliers
   const DRILL_BOUNDS = {
     '40m_dash': { min: 3, max: 20 },
@@ -311,9 +320,10 @@ export default function Analytics() {
                         const ratio = maxBin ? (e.count / maxBin) : 0;
                         const height = ratio > 0 ? Math.max(6, Math.round(ratio * 100)) : 0;
                         const label = `${e.start.toFixed( e.start % 1 === 0 ? 0 : 1)} - ${e.end.toFixed( e.end % 1 === 0 ? 0 : 1)}`;
+                        const color = getBinColor(i, drillStats.edges.length, selectedDrill.lowerIsBetter);
                         return (
                           <div key={i} className="flex-1 h-full flex flex-col justify-end items-center group relative">
-                            <div className="w-full bg-blue-500 rounded-t flex items-end justify-center" style={{ height: `${height}%` }}>
+                            <div className="w-full rounded-t flex items-end justify-center" style={{ height: `${height}%`, backgroundColor: color }}>
                               {e.count > 0 && <span className="text-[10px] text-white pb-1">{e.count}</span>}
                             </div>
                             <div className="text-[11px] text-gray-700 mt-1 truncate" title={`${label} ${selectedDrill.unit}`}>{label}</div>
