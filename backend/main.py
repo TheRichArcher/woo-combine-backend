@@ -43,11 +43,9 @@ logging.basicConfig(level=_get_log_level_from_env())
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
 
-# Middleware order: security headers → CORS → abuse protection → rate limiting → request validation → routing
+# Middleware order (outermost last-added): security headers → abuse protection → rate limiting → request validation → CORS → routing
 # 1) Security headers
 add_security_headers_middleware(app)
-
-# 2) CORS is added below via app.add_middleware(CORSMiddleware,...)
 
 # Global handler for application-standard errors
 @app.exception_handler(StandardError)
@@ -56,7 +54,9 @@ async def standard_error_handler(request: Request, exc: StandardError):
     return JSONResponse(status_code=he.status_code, content={"detail": he.detail})
 
 # CORS configuration
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",") if os.getenv("ALLOWED_ORIGINS") else []
+# Parse and normalize ALLOWED_ORIGINS from env, trimming whitespace and dropping empties
+_allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = [o.strip() for o in _allowed_origins_env.split(",") if o.strip()] if _allowed_origins_env else []
 allowed_origin_regex = os.getenv("ALLOWED_ORIGIN_REGEX")
 if not allowed_origins:
     # Safe defaults for local/dev
@@ -72,6 +72,16 @@ logging.info(f"[CORS] allowed_origins={allowed_origins}")
 if allowed_origin_regex:
     logging.info(f"[CORS] allowed_origin_regex={allowed_origin_regex}")
 
+# 3) Abuse protection for auth flows
+add_abuse_protection_middleware(app)
+
+# 4) Rate limiting (must come before request validation so 413s do not bypass limits)
+add_rate_limiting(app)
+
+# 5) Request validation (after rate limiting)
+add_request_validation_middleware(app, config={"max_request_size": 5 * 1024 * 1024})
+
+# 6) CORS (must be outermost so it can short-circuit OPTIONS and attach headers)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
@@ -88,15 +98,6 @@ app.add_middleware(
         "X-Abuse-Answer",
     ],
 )
-
-# 3) Abuse protection for auth flows
-add_abuse_protection_middleware(app)
-
-# 4) Rate limiting (must come before request validation so 413s do not bypass limits)
-add_rate_limiting(app)
-
-# 5) Request validation (after rate limiting)
-add_request_validation_middleware(app, config={"max_request_size": 5 * 1024 * 1024})
 
 # Lazy Firestore initialization to speed up startup
 _firestore_client = None
