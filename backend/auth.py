@@ -13,44 +13,62 @@ import asyncio
 from functools import wraps, lru_cache
 import time
 
-# Initialize Firebase Admin SDK if not already initialized
-if not firebase_admin._apps:
-    # Debug: Log available environment variables
-    creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-    creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    
-    logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS_JSON exists: {bool(creds_json)}")
-    logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS exists: {bool(creds_path)}")
-    if creds_path:
-        logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS value starts with: {creds_path[:50]}...")
-    
-    # Try JSON content first (from environment variable)
-    if creds_json:
+# Initialize Firebase Admin SDK robustly for test/dev environments
+try:
+    if not firebase_admin._apps:
+        # Debug: Log available environment variables
+        creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+        creds_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+        
+        logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS_JSON exists: {bool(creds_json)}")
+        logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS exists: {bool(creds_path)}")
+        if creds_path:
+            logging.info(f"[AUTH] GOOGLE_APPLICATION_CREDENTIALS value starts with: {creds_path[:50]}...")
+
+        cred = None
+        # Try JSON content first (from environment variable)
+        if creds_json:
+            try:
+                cred_dict = json.loads(creds_json)
+                cred = credentials.Certificate(cred_dict)
+                logging.info("[AUTH] Using JSON credentials from environment")
+            except Exception as e:
+                logging.warning(f"[AUTH] Failed to parse JSON credentials: {e}")
+                cred = None
+        if cred is None:
+            try:
+                logging.info("[AUTH] Attempting Application Default Credentials")
+                cred = credentials.ApplicationDefault()
+            except Exception as e:
+                logging.warning(f"[AUTH] ADC not available: {e}")
+                cred = None
+
         try:
-            cred_dict = json.loads(creds_json)
-            cred = credentials.Certificate(cred_dict)
-            logging.info("[AUTH] Firebase initialized with JSON credentials from environment")
+            if cred is not None:
+                firebase_admin.initialize_app(cred)
+            else:
+                # Initialize without explicit credentials; suitable for tests where calls are mocked
+                firebase_admin.initialize_app()
+            logging.info("[AUTH] Firebase Admin initialized")
         except Exception as e:
-            logging.error(f"[AUTH] Failed to parse JSON credentials: {e}")
-            cred = credentials.ApplicationDefault()
-    else:
-        # NO fallback to file path - if JSON is not provided, use Application Default
-        logging.info("[AUTH] No GOOGLE_APPLICATION_CREDENTIALS_JSON found, using Application Default")
-        cred = credentials.ApplicationDefault()
-    
-    firebase_admin.initialize_app(cred)
+            logging.warning(f"[AUTH] Firebase initialize_app failed, continuing in degraded mode: {e}")
+except Exception as e:
+    logging.warning(f"[AUTH] Firebase admin init block failed: {e}")
 
 from .firestore_client import get_firestore_client
 
 security = HTTPBearer(auto_error=False)
 
-def _verify_id_token_strict(token: str):
-    """Verify ID token and check for revocation when supported.
-    Falls back gracefully when a mocked verify function doesn't accept kwargs.
+# Configurable verification behavior (to mitigate transient infra issues)
+AUTH_CHECK_REVOKED = os.getenv("AUTH_CHECK_REVOKED", "true").lower() in ("1", "true", "yes", "on")
+AUTH_FALLBACK_NO_REVOKE = os.getenv("AUTH_FALLBACK_NO_REVOKE", "true").lower() in ("1", "true", "yes", "on")
+
+def _verify_id_token(token: str, check_revoked: bool = True):
+    """Verify an ID token with optional revocation checking.
+    Gracefully handle environments where the verify function signature differs (tests).
     """
     try:
-        # Prefer strict verification with revocation checks
-        return auth.verify_id_token(token, check_revoked=True)
+        return auth.verify_id_token(token, check_revoked=check_revoked)
     except TypeError:
         # Mocked functions in tests may not accept check_revoked
         return auth.verify_id_token(token)
@@ -110,22 +128,37 @@ def get_current_user(
     try:
         logging.info("[AUTH] Starting token verification")
         
-        # Strict verification with revocation enforcement
+        # Verification with configurable revocation enforcement and optional fallback
         try:
-            decoded_token = _verify_id_token_strict(token)
-            logging.info(f"[AUTH] Token verification completed successfully")
-        except getattr(auth, "RevokedIdTokenError", Exception):
-            logging.warning("[AUTH] Token has been revoked")
+            decoded_token = _verify_id_token(token, check_revoked=AUTH_CHECK_REVOKED)
+            logging.info("[AUTH] Token verification completed successfully")
+        except getattr(auth, "RevokedIdTokenError", Exception) as revoked_err:
+            logging.warning(f"[AUTH] Token has been revoked: {type(revoked_err).__name__}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token revoked. Please sign in again."
             )
         except Exception as e:
-            logging.error(f"[AUTH] Firebase token verification failed: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication token"
-            )
+            # If strict verification fails and fallback is enabled, try without revocation check
+            err_type = type(e).__name__
+            logging.error(f"[AUTH] Firebase token verification failed ({err_type}): {e}")
+            if AUTH_CHECK_REVOKED and AUTH_FALLBACK_NO_REVOKE:
+                try:
+                    logging.warning("[AUTH] Retrying token verification without revocation check due to error above")
+                    decoded_token = _verify_id_token(token, check_revoked=False)
+                    logging.info("[AUTH] Token verification succeeded without revocation check")
+                except Exception as e2:
+                    err_type2 = type(e2).__name__
+                    logging.error(f"[AUTH] Fallback token verification failed ({err_type2}): {e2}")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid authentication token"
+                    )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid authentication token"
+                )
         
         # Enforce max session age
         _enforce_session_max_age(decoded_token)
