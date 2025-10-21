@@ -86,13 +86,14 @@ export function AuthProvider({ children }) {
       
       await Promise.race([
         Promise.allSettled(warmupPromises),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 6000)) // allow a bit longer for cold starts
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Warmup timeout')), 10000)) // allow longer on cold starts
       ]);
       
       const warmupTime = performance.now() - warmupStart;
       authLogger.debug(`Enhanced backend warmup completed in ${warmupTime.toFixed(0)}ms`);
     } catch (error) {
-      authLogger.warn('Backend warmup failed (non-critical)', error.message);
+      // Warmup is best-effort; avoid noisy warnings in production
+      authLogger.debug('Backend warmup non-critical failure', error.message);
     }
   }, []);
 
