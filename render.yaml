@@ -52,6 +52,8 @@ services:
         value: https://woo-combine.com,https://www.woo-combine.com
       - key: LOG_LEVEL
         value: INFO
+      - key: ENABLE_DEBUG_ENDPOINTS
+        value: false
       - key: ENABLE_ROLE_SIMPLE
         value: false
       # Rate limits (override per environment as needed)

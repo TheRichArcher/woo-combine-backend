@@ -25,6 +25,9 @@ from google.cloud import firestore
 from datetime import datetime
 import asyncio
 from .utils.error_handling import StandardError, handle_standard_error
+ 
+# Enable or disable debug/test endpoints via environment
+_ENABLE_DEBUG_ENDPOINTS = os.getenv("ENABLE_DEBUG_ENDPOINTS", "false").lower() in ("1", "true", "yes")
 
 def _get_log_level_from_env() -> int:
     level_str = os.getenv("LOG_LEVEL", "INFO").upper().strip()
@@ -297,26 +300,27 @@ def root():
         "docs": "/docs"
     }
 
-# Simple test endpoint to debug 500 errors
-@app.post("/api/test-500")
-def test_500_debug():
-    """Test endpoint to see if 500 errors are systemic"""
-    try:
-        logging.info("[TEST] Test endpoint called successfully")
-        return {"status": "success", "message": "POST endpoint working"}
-    except Exception as e:
-        logging.error(f"[TEST] Error in test endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+# Simple test endpoints (gated in production)
+if _ENABLE_DEBUG_ENDPOINTS:
+    @app.post("/api/test-500")
+    def test_500_debug():
+        """Test endpoint to see if 500 errors are systemic"""
+        try:
+            logging.info("[TEST] Test endpoint called successfully")
+            return {"status": "success", "message": "POST endpoint working"}
+        except Exception as e:
+            logging.error(f"[TEST] Error in test endpoint: {e}")
+            raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
 
-@app.post("/api/test-auth")
-def test_auth_debug(current_user=Depends(get_current_user)):
-    """Test endpoint to see if auth is causing 500 errors"""
-    try:
-        logging.info(f"[TEST-AUTH] Auth test called by user: {current_user.get('uid', 'unknown')}")
-        return {"status": "success", "user": current_user.get('uid', 'unknown'), "message": "Auth working"}
-    except Exception as e:
-        logging.error(f"[TEST-AUTH] Error in auth test: {e}")
-        raise HTTPException(status_code=500, detail=f"Auth test failed: {str(e)}")
+    @app.post("/api/test-auth")
+    def test_auth_debug(current_user=Depends(get_current_user)):
+        """Test endpoint to see if auth is causing 500 errors"""
+        try:
+            logging.info(f"[TEST-AUTH] Auth test called by user: {current_user.get('uid', 'unknown')}")
+            return {"status": "success", "user": current_user.get('uid', 'unknown'), "message": "Auth working"}
+        except Exception as e:
+            logging.error(f"[TEST-AUTH] Error in auth test: {e}")
+            raise HTTPException(status_code=500, detail=f"Auth test failed: {str(e)}")
 
 # Startup event - minimal operations for fast startup
 @app.on_event("startup")

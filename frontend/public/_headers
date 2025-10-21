@@ -14,4 +14,12 @@
 
   # Caching policies (HTML not cached; assets can be cached via hashed filenames)
   Cache-Control: no-cache
+
+  # Content-Security-Policy (Report-Only for staging; enforce in prod)
+  # Uncomment one of the following blocks as appropriate:
+  # Report-Only (staging):
+  #Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'
+  #Content-Security-Policy-Report-Only: report-uri https://csp.report.woo-combine.com/report
+  # Enforced (production):
+  #Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'
 */
