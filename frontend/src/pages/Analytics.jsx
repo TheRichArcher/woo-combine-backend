@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
-import { BarChart3, ArrowLeft } from 'lucide-react';
+import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
 import api from '../lib/api';
 import { getDrillsForEvent } from '../constants/players';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
@@ -370,19 +370,26 @@ export default function Analytics() {
 
                   {/* Stats + Top performers */}
                   <div>
-                    <div className="grid grid-cols-3 gap-2 mb-3">
+                  <div className="grid grid-cols-3 gap-2 mb-2">
                       <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500">P50</div>
+                        <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
                         <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
+                        <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
                       </div>
                       <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500">P75</div>
+                        <div className="text-xs text-gray-500" title="P75: 75% of scores are at or below this number" aria-label="P75, 75% at or below">P75</div>
                         <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</div>
+                        <div className="text-[11px] text-gray-500 mt-0.5">75% at or below</div>
                       </div>
                       <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500">P90</div>
+                        <div className="text-xs text-gray-500" title="P90: 90% of scores are at or below this number" aria-label="P90, 90% at or below">P90</div>
                         <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)} {selectedDrill.unit}</div>
+                        <div className="text-[11px] text-gray-500 mt-0.5">90% at or below</div>
                       </div>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                      <HelpCircle className="w-3 h-3" />
+                      <span>Percentiles help: P50 is the middle score; P75 means 75% of scores are at or below; P90 means 90% are at or below.</span>
                     </div>
                     <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
