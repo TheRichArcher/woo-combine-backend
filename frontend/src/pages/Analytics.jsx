@@ -149,6 +149,7 @@ export default function Analytics() {
       const minValue = min;
       const maxValue = max;
 
+      const p10 = quantile(values, 0.10);
       const p25 = quantile(values, 0.25);
       const p50 = quantile(values, 0.5);
       const p75 = quantile(values, 0.75);
@@ -166,6 +167,7 @@ export default function Analytics() {
         count: values.length,
         min,
         max,
+        p10,
         p25,
         p50,
         p75,
@@ -370,26 +372,48 @@ export default function Analytics() {
 
                   {/* Stats + Top performers */}
                   <div>
-                  <div className="grid grid-cols-3 gap-2 mb-2">
-                      <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
-                        <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
-                        <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
-                      </div>
-                      <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500" title="P75: 75% of scores are at or below this number" aria-label="P75, 75% at or below">P75</div>
-                        <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</div>
-                        <div className="text-[11px] text-gray-500 mt-0.5">75% at or below</div>
-                      </div>
-                      <div className="bg-gray-50 rounded border p-2 text-center">
-                        <div className="text-xs text-gray-500" title="P90: 90% of scores are at or below this number" aria-label="P90, 90% at or below">P90</div>
-                        <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)} {selectedDrill.unit}</div>
-                        <div className="text-[11px] text-gray-500 mt-0.5">90% at or below</div>
-                      </div>
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      {selectedDrill.lowerIsBetter ? (
+                        <>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
+                          </div>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P25: top 25% cutoff (lower is better)" aria-label="P25, top 25% cutoff">P25</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p25?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Top 25% cutoff</div>
+                          </div>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P10: top 10% cutoff (lower is better)" aria-label="P10, top 10% cutoff">P10</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p10?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Top 10% cutoff</div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
+                          </div>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P75: top 25% cutoff (higher is better)" aria-label="P75, top 25% cutoff">P75</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Top 25% cutoff</div>
+                          </div>
+                          <div className="bg-gray-50 rounded border p-2 text-center">
+                            <div className="text-xs text-gray-500" title="P90: top 10% cutoff (higher is better)" aria-label="P90, top 10% cutoff">P90</div>
+                            <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)} {selectedDrill.unit}</div>
+                            <div className="text-[11px] text-gray-500 mt-0.5">Top 10% cutoff</div>
+                          </div>
+                        </>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500 mb-2 flex items-center gap-1">
                       <HelpCircle className="w-3 h-3" />
-                      <span>Percentiles help: P50 is the middle score; P75 means 75% of scores are at or below; P90 means 90% are at or below.</span>
+                      <span>{selectedDrill.lowerIsBetter ? 'We show P50 (middle), plus P25 and P10 to mark the top 25% and top 10% performers (lower is better).' : 'We show P50 (middle), plus P75 and P90 to mark the top 25% and top 10% performers (higher is better).'}</span>
                     </div>
                     <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
