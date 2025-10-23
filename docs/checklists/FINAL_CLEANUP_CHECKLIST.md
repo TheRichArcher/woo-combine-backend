@@ -64,6 +64,13 @@ cd backend && python -m pip check
 - [x] Abuse protection: challenge triggers on abnormal auth/login/signup bursts; `X-Abuse-Nonce`/`X-Abuse-Answer` accepted; within rate limits scripts fail to bypass
 - [x] Secrets: service account rotation scheduled annually; incident rotation procedure documented
 
+### Header Verification Notes (2025-10-23)
+
+- Frontend (prod `https://woo-combine.com`): `X-Content-Type-Options: nosniff` observed via CDN; HSTS not visible at edge. `_headers` file contains HSTS and CSP templates; verify CDN propagation post-deploy.
+- Backend (prod): `X-Content-Type-Options` and `X-API-Version` observed on some endpoints. CSP headers not visible on probed routes; middleware `SecurityHeadersMiddleware` sets CSP with `CSP_REPORT_ONLY`/`ENVIRONMENT`. Validate with authenticated/non-auth routes behind app (may be masked by 400s). 
+
+Action: After your CORS/health/domains check, hit an API route that returns 200 (non-auth) and confirm presence of `Content-Security-Policy(-Report-Only)`. Then check staging with Report-Only enabled.
+
 ## Production Readiness Score: 95/100
 
 **Current Status**: ✅ READY FOR PRODUCTION
