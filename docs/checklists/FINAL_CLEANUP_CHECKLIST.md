@@ -73,3 +73,12 @@ cd backend && python -m pip check
 - Authentication and data flows working correctly
 
 **Minor issues remaining are optional improvements that don't affect functionality.** 
+
+## Evidence Screenshots (Render)
+
+- [x] docs/reports/render-backend-env-dev.png
+- [x] docs/reports/render-backend-env-staging.png
+- [x] docs/reports/render-backend-env-prod.png
+- [x] docs/reports/render-frontend-env-dev.png
+- [x] docs/reports/render-frontend-env-staging.png
+- [x] docs/reports/render-frontend-env-prod.png
