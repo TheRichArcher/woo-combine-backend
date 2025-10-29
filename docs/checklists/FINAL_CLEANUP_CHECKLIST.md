@@ -71,6 +71,24 @@ cd backend && python -m pip check
 
 Action: After your CORS/health/domains check, hit an API route that returns 200 (non-auth) and confirm presence of `Content-Security-Policy(-Report-Only)`. Then check staging with Report-Only enabled.
 
+### Header Verification Notes (2025-10-25 22:04 EDT)
+
+- Prod backend (`https://woo-combine-backend.onrender.com/health`): HTTP/2 400 from origin (`uvicorn`). No CSP/HSTS observed due to 400. Likely cause: deployed `RequestValidationMiddleware` flags `curl` user agent as suspicious on `/health` (local fix adds `/health` to the bypass list). Expected: 200 OK with full security headers on `/health`.
+- Staging backend (`https://staging-woo-combine-backend.onrender.com/health`): HTTP/2 404 with `x-render-routing: no-server` (request not routed to a live service). Likely cause: hostname mismatch with actual Render staging service. Action: confirm the exact staging backend hostname in Render and retry.
+- CSP/HSTS status: Not verifiable from these responses. Once `/health` returns 200 over HTTPS:
+  - Staging should present `Content-Security-Policy-Report-Only: ...` (if `ENVIRONMENT=staging` or `CSP_REPORT_ONLY=true`).
+  - Prod should present `Content-Security-Policy: ...` (enforced) unless explicitly running in report-only.
+  - HSTS `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` should be present on HTTPS responses.
+
+Next steps before sign-off:
+1) Confirm staging backend hostname in Render (docs example: `https://staging-woo-combine-backend.onrender.com`).
+2) Re-run header checks on backend hostnames (use HEAD):
+   - `curl -sSI https://<prod-backend>/health`
+   - `curl -sSI https://<staging-backend>/health`
+   - If 400 persists on prod prior to deploy, temporarily set UA: `curl -sSI -H "User-Agent: Mozilla/5.0" https://<prod-backend>/health`.
+3) On 200 responses, verify presence of CSP/HSTS/XFO/nosniff/Referrer-Policy and update the CSP checkbox below accordingly.
+4) Hold on changing `CSP_REPORT_ONLY` or tagging a release until sign-offs.
+
 ## Production Readiness Score: 95/100
 
 **Current Status**: ✅ READY FOR PRODUCTION

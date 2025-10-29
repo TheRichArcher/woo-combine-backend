@@ -12,9 +12,9 @@ Evidence (masked screenshots):
 - Backend Render env (dev/staging/prod): `docs/reports/render-backend-env-[dev|staging|prod].png`
 - Frontend Render env (dev/staging/prod): `docs/reports/render-frontend-env-[dev|staging|prod].png`
 - Confirmations:
-  - `GOOGLE_APPLICATION_CREDENTIALS_JSON` present (masked): [ ] dev [ ] staging [x] prod
-  - `ALLOWED_ORIGINS` correct per env: [ ] dev [ ] staging [x] prod
-  - `ENABLE_ROLE_SIMPLE=false` in production: [x] yes
+  - `GOOGLE_APPLICATION_CREDENTIALS_JSON` present (masked): [ ] dev [ ] staging [ ] prod
+  - `ALLOWED_ORIGINS` correct per env: [ ] dev [ ] staging [ ] prod
+  - `ENABLE_ROLE_SIMPLE=false` in production: [ ] yes
 
 Owner sign-off: ____  Date: ____
 

@@ -119,8 +119,13 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Referrer-Policy - Control referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         
-        # Strict-Transport-Security - Enforce HTTPS (only for HTTPS requests)
-        if request.url.scheme == "https":
+        # Strict-Transport-Security - Enforce HTTPS (consider proxy headers)
+        forwarded_proto = None
+        try:
+            forwarded_proto = request.headers.get("x-forwarded-proto", None)
+        except Exception:
+            forwarded_proto = None
+        if request.url.scheme == "https" or (forwarded_proto and forwarded_proto.lower() == "https"):
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
         
         # Permissions-Policy - Control browser features
@@ -157,7 +162,7 @@ class RequestValidationMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # PERFORMANCE OPTIMIZATION: Skip validation for auth endpoints to reduce latency
         is_auth_endpoint = (
-            request.url.path in ['/api/users/me', '/api/warmup', '/api/health'] or
+            request.url.path in ['/api/users/me', '/api/warmup', '/api/health', '/health'] or
             request.url.path.startswith('/api/leagues/me')
         )
         
