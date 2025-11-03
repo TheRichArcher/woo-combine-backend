@@ -18,10 +18,13 @@ export default function SessionExpiredGate() {
 
   const handleLoginAgain = useCallback(() => {
     try {
-      localStorage.setItem('postLoginRedirect', location.pathname + location.search);
+      const currentPath = location.pathname || '/';
+      const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+      const target = onboarding.includes(currentPath) ? '/dashboard' : (currentPath + (location.search || ''));
+      localStorage.setItem('postLoginRedirect', target);
     } catch {}
     setOpen(false);
-    navigate('/login?reason=session_expired');
+    navigate('/login?reason=session_expired', { replace: true });
   }, [location.pathname, location.search, navigate]);
 
   if (!open) return null;
