@@ -37,6 +37,7 @@ import ScorecardsPage from "./pages/ScorecardsPage";
 import LiveStandings from "./pages/LiveStandings";
 import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
+import SessionExpiredGate from "./components/SessionExpiredGate";
 
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
@@ -55,6 +56,7 @@ function App() {
         <AuthProvider>
           <EventProvider>
             <div className="min-h-screen bg-gray-50">
+              <SessionExpiredGate />
               <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
                 <Route path="/welcome" element={<Welcome />} />

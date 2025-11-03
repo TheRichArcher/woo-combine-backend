@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 import { apiLogger } from '../utils/logger';
 
 /*
@@ -174,32 +175,32 @@ api.interceptors.response.use(
           })
           .catch(() => {
             apiLogger.warn('Token refresh after 401 failed');
+            // On refresh failure: sign out and trigger global session-expired modal
+            try { signOut(auth).catch(() => {}); } catch {}
+            try {
+              if (typeof window !== 'undefined') {
+                if (!window.__wcSessionExpiredShown) {
+                  window.__wcSessionExpiredShown = true;
+                }
+                const ev = new CustomEvent('wc-session-expired');
+                window.dispatchEvent(ev);
+              }
+            } catch {}
             return Promise.reject(error);
           });
       }
 
-      // Avoid redirect loops: if user is logged in and this was not an auth-critical endpoint,
-      // surface the error to the caller but do not force navigation.
-      if (auth.currentUser && !isAuthCriticalPath) {
-        apiLogger.info('401 on non-auth-critical endpoint; suppressing redirect');
-        return Promise.reject(error);
-      }
-
-      // Also avoid redirecting if we are already on an onboarding route
-      if (isOnboardingPath) {
-        apiLogger.info('401 on onboarding route; not redirecting again');
-        return Promise.reject(error);
-      }
-
-      apiLogger.warn('Session expired - redirecting to login');
+      // For all other 401 paths (including onboarding), sign out and show modal instead of redirecting
+      try { signOut(auth).catch(() => {}); } catch {}
       try {
-        const current = typeof window !== 'undefined' ? (window.location.pathname + window.location.search) : '/';
-        localStorage.setItem('postLoginRedirect', current);
         if (typeof window !== 'undefined') {
-          window.location.href = '/login?reason=session_expired';
+          if (!window.__wcSessionExpiredShown) {
+            window.__wcSessionExpiredShown = true;
+          }
+          const ev = new CustomEvent('wc-session-expired');
+          window.dispatchEvent(ev);
         }
       } catch {}
-      error._handled = true;
       return Promise.reject(error);
     }
     
