@@ -33,8 +33,8 @@ export default function LoginForm() {
       authLogger.error("Email sign-in error", err);
       if (err.code === "auth/user-not-found") {
         setFormError("No account found with that email address.");
-      } else if (err.code === "auth/wrong-password") {
-        setFormError("Incorrect password. Please try again.");
+      } else if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setFormError("Incorrect email or password. Please try again.");
       } else if (err.code === "auth/invalid-email") {
         setFormError("Please enter a valid email address.");
       } else if (err.code === "auth/user-disabled") {
