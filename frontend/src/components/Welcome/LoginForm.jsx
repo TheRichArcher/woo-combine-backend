@@ -28,7 +28,15 @@ export default function LoginForm() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Let global auth flow handle smart redirects (dashboard, verify-email, or join-event)
+      // Immediate redirect to ensure we don't stay on /login
+      try {
+        const stored = localStorage.getItem('postLoginRedirect');
+        const target = (stored && stored !== '/login') ? stored : '/dashboard';
+        localStorage.removeItem('postLoginRedirect');
+        navigate(target, { replace: true });
+      } catch {
+        navigate('/dashboard', { replace: true });
+      }
     } catch (err) {
       authLogger.error("Email sign-in error", err);
       if (err.code === "auth/user-not-found") {
