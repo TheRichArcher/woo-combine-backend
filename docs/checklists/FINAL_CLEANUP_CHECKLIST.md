@@ -89,6 +89,15 @@ Next steps before sign-off:
 3) On 200 responses, verify presence of CSP/HSTS/XFO/nosniff/Referrer-Policy and update the CSP checkbox below accordingly.
 4) Hold on changing `CSP_REPORT_ONLY` or tagging a release until sign-offs.
 
+### Header Verification Notes (2025-10-29)
+
+- Prod backend (`https://woo-combine-backend.onrender.com/health`): HTTP/2 200. Headers observed: `Content-Security-Policy` (enforced), `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, custom `X-API-Version`.
+- Prod `/api`: HEAD returned 400 (route expects GET). Use `/health` for header checks.
+- Prod `/api/health`: HEAD returned 405 (Allow: GET). Use GET if needed; for headers prefer `/health`.
+- Staging backend (`https://staging-woo-combine-backend.onrender.com/health`): HTTP/2 404 with `x-render-routing: no-server` (hostname/routing mismatch). Action: confirm actual staging backend hostname in Render.
+
+Status: Prod CSP/HSTS present; staging pending correct hostname. Holding on changing `CSP_REPORT_ONLY` and release tagging until sign-offs.
+
 ## Production Readiness Score: 95/100
 
 **Current Status**: ✅ READY FOR PRODUCTION
