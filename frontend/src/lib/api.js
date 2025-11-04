@@ -88,6 +88,8 @@ api.interceptors.response.use(
 api.interceptors.request.use(async (config) => {
   // Add Authorization header if authenticated
   const user = auth.currentUser;
+  const reqPath = String(config?.url || '');
+  const isAuthCriticalPath = reqPath.includes('/users/me') || reqPath.includes('/users/role') || reqPath.includes('/leagues/me');
   
   if (user) {
     try {
@@ -130,6 +132,13 @@ api.interceptors.request.use(async (config) => {
         }
       }
       
+      // Ensure token for auth-critical endpoints: force refresh if missing
+      if (!token && isAuthCriticalPath) {
+        try {
+          token = await user.getIdToken(true);
+        } catch {}
+      }
+
       if (token) {
         config.headers = config.headers || {};
         config.headers['Authorization'] = `Bearer ${token}`;
@@ -160,8 +169,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Try a one-time token refresh and retry the original request
       const original = error.config || {};
-      const reqUrl = String(original.url || error.config?.url || '');
-      const isAuthCriticalPath = reqUrl.includes('/users/me') || reqUrl.includes('/leagues/me');
+    const reqUrl = String(original.url || error.config?.url || '');
+    const isAuthCriticalPath = reqUrl.includes('/users/me') || reqUrl.includes('/users/role') || reqUrl.includes('/leagues/me');
       const currentPath = (typeof window !== 'undefined' && window.location) ? window.location.pathname : '';
       const isOnboardingPath = ['/login','/signup','/verify-email','/welcome','/'].includes(currentPath);
 
