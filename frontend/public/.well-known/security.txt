@@ -1,0 +1,5 @@
+Contact: mailto:security@woo-combine.com
+Policy: https://woo-combine.com/security
+Preferred-Languages: en
+
+

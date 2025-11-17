@@ -1,6 +1,10 @@
 /_redirects
   Content-Type: text/plain; charset=utf-8
 
+# Ensure plain text for security.txt
+/.well-known/security.txt
+  Content-Type: text/plain; charset=utf-8
+
 # Ensure proper content type for Render SPA routing
 
 /*

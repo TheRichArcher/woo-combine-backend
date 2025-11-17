@@ -258,6 +258,19 @@ def warmup_endpoint(request: Request):
         "version": "1.0.2"
     }
 
+from fastapi import Body
+
+@app.post("/api/csp-report", include_in_schema=False)
+def csp_report(report: dict = Body(default=None)):
+    """
+    Minimal CSP report collector. Accepts application/csp-report or JSON.
+    Logs payload and returns 204. Rate-limit at edge/WAF.
+    """
+    try:
+        logging.warning(f"[CSP] Violation report: {report}")
+    except Exception:
+        logging.warning("[CSP] Violation report received (unparseable)")
+    return Response(status_code=204)
 @app.get("/api")
 def root():
     """Root endpoint for basic API info"""
