@@ -56,6 +56,9 @@ services:
         value: false
       - key: ENABLE_ROLE_SIMPLE
         value: false
+      # Enforce HTTPS redirects at the app level (edge already redirects for static)
+      - key: FORCE_HTTPS
+        value: true
       # Rate limits (override per environment as needed)
       - key: RATE_LIMITS_AUTH
         value: 5/min
