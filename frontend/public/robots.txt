@@ -1,0 +1,9 @@
+User-agent: *
+Disallow: /
+
+# TODO: When ready to index, replace with:
+# User-agent: *
+# Allow: /
+# Sitemap: https://www.woo-combine.com/sitemap.xml
+
+

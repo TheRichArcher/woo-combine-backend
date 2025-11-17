@@ -4,22 +4,21 @@
 # Ensure proper content type for Render SPA routing
 
 /*
-  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
-
-  # Basic security headers for static assets
+  # Apply security headers across all routes
+*/
+/*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   X-XSS-Protection: 1; mode=block
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 
   # Caching policies (HTML not cached; assets can be cached via hashed filenames)
   Cache-Control: no-cache
 
-  # Content-Security-Policy (Report-Only for staging; enforce in prod)
-  # Uncomment one of the following blocks as appropriate:
-  # Report-Only (staging):
-  #Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'
+  # CSP in Report-Only during observation; enforce later
+  Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'
+  # Optional: enable when report collector is ready
   #Content-Security-Policy-Report-Only: report-uri https://csp.report.woo-combine.com/report
-  # Enforced (production):
-  #Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://woo-combine-backend.onrender.com https://*.googleapis.com https://*.firebaseio.com wss://*.firebaseio.com; frame-ancestors 'none'
 */
