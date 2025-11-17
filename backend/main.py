@@ -156,40 +156,10 @@ Canonical: https://www.woo-combine.com/.well-known/security.txt
 @app.get("/api/health")
 @health_rate_limit()
 def health_check(request: Request):
-    """Simple health check that tests key system components"""
-    try:
-        # Test Firestore connection
-        firestore_client = get_firestore_lazy()
-        firestore_status = "unavailable"
-        if firestore_client:
-            try:
-                from .utils.database import execute_with_timeout
-                test_doc = execute_with_timeout(
-                    lambda: firestore_client.collection("_health").document("test").get(),
-                    timeout=3,
-                    operation_name="health firestore check"
-                )
-                firestore_status = "connected"
-            except HTTPException as he:
-                if he.status_code == 504:
-                    # Warming up: return fast with Retry-After so clients back off quickly
-                    resp = JSONResponse({
-                        "status": "warming",
-                        "firestore": "initializing",
-                        "timestamp": datetime.now().isoformat(),
-                        "version": "1.0.2"
-                    }, status_code=503)
-                    resp.headers["Retry-After"] = "5"
-                    return resp
-                raise
-    except Exception as e:
-        firestore_status = f"error: {str(e)}"
-    
+    """Public minimal health check (no sensitive details)."""
     return {
-        "status": "running",
-        "firestore": firestore_status,
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.2"
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/health")
@@ -198,10 +168,8 @@ def health_check(request: Request):
 def simple_health(request: Request):
     """Minimal health check endpoint for deployment monitoring"""
     return {
-        "status": "ok", 
-        "timestamp": datetime.utcnow().isoformat(),
-        "version": "1.0.2",
-        "cors_debug": "woo-combine.com should be allowed"
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat()
     }
 
 @app.get("/api/warmup")

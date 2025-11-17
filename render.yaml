@@ -54,6 +54,11 @@ services:
         value: WARNING
       - key: ENABLE_DEBUG_ENDPOINTS
         value: false
+      # Security contact for security.txt
+      - key: SECURITY_CONTACT_EMAIL
+        value: security@woo-combine.com
+      - key: SECURITY_POLICY_URL
+        value: https://woo-combine.com/security
       - key: ENABLE_ROLE_SIMPLE
         value: false
       # Enforce HTTPS redirects at the app level (edge already redirects for static)
