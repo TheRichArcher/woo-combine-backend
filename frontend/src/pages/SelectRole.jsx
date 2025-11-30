@@ -143,9 +143,14 @@ export default function SelectRole() {
   };
 
   const handleContinue = async (roleOverride) => {
+    // Normalize inputs: button clicks pass a SyntheticEvent, auto-advance passes role string
+    if (roleOverride && typeof roleOverride === 'object' && typeof roleOverride.preventDefault === 'function') {
+      roleOverride.preventDefault();
+    }
+    
     setError("");
     
-    const roleToSave = roleOverride || selectedRole;
+    const roleToSave = (typeof roleOverride === 'string' ? roleOverride : selectedRole);
 
     if (!roleToSave) {
       setError("Please select a role.");
