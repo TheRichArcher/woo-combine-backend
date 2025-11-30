@@ -33,7 +33,7 @@ export default function EmailAction() {
           await applyActionCode(auth, oobCode);
           
           setStatus("success");
-          setMessage("Your email has been successfully verified!");
+          setMessage("Your email has been verified. Please close this window and use the other one.");
           
           // Attempt to notify the original tab
           try {
@@ -68,8 +68,7 @@ export default function EmailAction() {
         {status === "success" && (
           <>
             <h2 className="text-2xl font-bold text-green-600 mb-3">Success! Email Verified.</h2>
-            <p className="text-gray-700 mb-4">{message}</p>
-            <p className="text-gray-600 mb-6 font-semibold">Please close this tab and return to the original window to continue setting up your account.</p>
+            <p className="text-gray-700 mb-6 font-semibold">{message}</p>
             
             <button
               onClick={() => window.close()}

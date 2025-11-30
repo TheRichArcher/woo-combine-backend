@@ -22,7 +22,7 @@ import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
-  const { user, userRole, leagues, selectedLeagueId, setSelectedLeagueId, setLeagues } = useAuth();
+  const { user, userRole, leagues, selectedLeagueId } = useAuth();
   const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Enhanced auth check with loading state
@@ -42,6 +42,18 @@ export default function OnboardingEvent() {
   }, [userRole, navigate]);
   if (userRole !== 'organizer') {
     return <LoadingScreen title="Redirecting..." subtitle="Taking you to your dashboard" size="medium" />;
+  }
+
+  const organizerMissingLeague = userRole === 'organizer' && (!selectedLeagueId || selectedLeagueId.trim() === '');
+  if (organizerMissingLeague) {
+    const hasExistingLeagues = Array.isArray(leagues) && leagues.length > 0;
+    return (
+      <LoadingScreen
+        title={hasExistingLeagues ? "Choose a league to continue" : "Create your league to continue"}
+        subtitle={hasExistingLeagues ? "Redirecting you to your league list" : "Redirecting you to the Create League step"}
+        size="large"
+      />
+    );
   }
   
   // Multi-step wizard state
@@ -79,63 +91,19 @@ export default function OnboardingEvent() {
   const qrSectionRef = useRef(null);
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
 
-  // Auto-setup: ensure an organizer has a league context
+  // Enforce league context: organizers must intentionally create/select a league first
   useEffect(() => {
-    let cancelled = false;
-    const ensureLeagueContext = async () => {
-      if (userRole !== 'organizer') return;
-      const hasSelectedLeague = !!(selectedLeagueId && selectedLeagueId.trim() !== '');
-      if (hasSelectedLeague) return;
-      // 1) If leagues already loaded, pick the first
-      if (Array.isArray(leagues) && leagues.length > 0) {
-        setSelectedLeagueId(leagues[0].id);
-        return;
-      }
-      // 2) Check localStorage (guards against race conditions)
-      try {
-        const stored = localStorage.getItem('selectedLeagueId');
-        if (stored && stored !== 'null' && stored.trim() !== '') {
-          setSelectedLeagueId(stored);
-          return;
-        }
-      } catch {}
-      // 3) Try fetching leagues from API (in case AuthContext fetch lagged)
-      try {
-        const res = await api.get('/leagues/me');
-        if (cancelled) return;
-        const leagueArray = Array.isArray(res.data) ? res.data : (Array.isArray(res.data?.leagues) ? res.data.leagues : []);
-        if (leagueArray.length > 0) {
-          const first = leagueArray[0];
-          setSelectedLeagueId(first.id);
-          setLeagues(prev => {
-            const prevArr = Array.isArray(prev) ? prev : [];
-            const exists = prevArr.some(l => l.id === first.id);
-            return exists ? prevArr : [first, ...prevArr];
-          });
-          return;
-        }
-      } catch {}
-      // Otherwise create a default league seamlessly
-      try {
-        const defaultName = 'My First League';
-        const res = await api.post('/leagues', { name: defaultName });
-        if (cancelled) return;
-        const newLeagueId = res?.data?.league_id;
-        if (newLeagueId) {
-          setSelectedLeagueId(newLeagueId);
-          setLeagues(prev => {
-            const exists = Array.isArray(prev) && prev.some(l => l.id === newLeagueId);
-            if (exists) return prev;
-            return [...(prev || []), { id: newLeagueId, name: defaultName, role: 'organizer' }];
-          });
-        }
-      } catch {
-        // Silent fail; UI already shows guidance and manual Create League button
-      }
-    };
-    ensureLeagueContext();
-    return () => { cancelled = true; };
-  }, [userRole, selectedLeagueId, leagues, setSelectedLeagueId, setLeagues]);
+    if (!userRole || userRole !== 'organizer') return;
+    const hasSelectedLeague = !!(selectedLeagueId && selectedLeagueId.trim() !== '');
+    if (hasSelectedLeague) return;
+
+    // If organizer already has leagues, send them to select page; otherwise force league creation
+    if (Array.isArray(leagues) && leagues.length > 0) {
+      navigate('/select-league', { replace: true, state: { from: 'onboarding-event' } });
+    } else {
+      navigate('/create-league', { replace: true, state: { from: 'onboarding-event' } });
+    }
+  }, [userRole, selectedLeagueId, leagues, navigate]);
 
   // Fetch player count
   const fetchPlayerCount = useCallback(async () => {
@@ -387,10 +355,6 @@ export default function OnboardingEvent() {
 
             {/* Event Creation */}
             <EventSelector onEventSelected={handleEventCreated} />
-            {/* If no league is selected yet but user is organizer, background auto-setup will create one */}
-            {(!selectedLeagueId || selectedLeagueId.trim() === '') && (
-              <div className="text-xs text-gray-500 mt-4">Preparing your league... this will update automatically in a moment.</div>
-            )}
             {/* If an event is already selected (e.g., user hit browser back), allow continuing */}
             {selectedEvent && (
               <div className="mt-4">
