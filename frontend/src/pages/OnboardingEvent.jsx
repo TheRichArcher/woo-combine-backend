@@ -60,8 +60,6 @@ export default function OnboardingEvent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [playerCount, setPlayerCount] = useState(0);
-  const [qrExpanded, setQrExpanded] = useState(true);
-  const [qrPulse, setQrPulse] = useState(false);
   
   // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
@@ -88,8 +86,36 @@ export default function OnboardingEvent() {
   const [manualMsg, setManualMsg] = useState('');
   
   const fileInputRef = useRef();
-  const qrSectionRef = useRef(null);
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
+
+  const StepIndicator = ({ activeStep }) => {
+    const steps = [1, 2, 3, 4];
+    return (
+      <div className="flex justify-center mb-6">
+        <div className="flex items-center space-x-2">
+          {steps.map((step, idx) => {
+            const status = activeStep === step ? "active" : activeStep > step ? "complete" : "upcoming";
+            const circleClasses =
+              status === "complete"
+                ? "bg-green-600 text-white"
+                : status === "active"
+                  ? "bg-brand-primary text-white"
+                  : "bg-gray-200 text-gray-500";
+            return (
+              <React.Fragment key={step}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${circleClasses}`}>
+                  {status === "complete" ? <CheckCircle className="w-5 h-5" /> : step}
+                </div>
+                {idx !== steps.length - 1 && (
+                  <div className={`w-8 h-1 rounded ${activeStep > step ? "bg-brand-primary" : "bg-gray-200"}`}></div>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   // Enforce league context: organizers must intentionally create/select a league first
   useEffect(() => {
@@ -342,16 +368,7 @@ export default function OnboardingEvent() {
         <div className="w-full max-w-md text-center">
           <OnboardingCard title="🏆 Create Your Event" subtitle="Set up your combine event and start timing athletes">
 
-            {/* Step Indicator */}
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
-                <div className="w-8 h-1 bg-gray-200 rounded"></div>
-                <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                <div className="w-8 h-1 bg-gray-200 rounded"></div>
-                <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              </div>
-            </div>
+            <StepIndicator activeStep={1} />
 
             {/* Event Creation */}
             <EventSelector onEventSelected={handleEventCreated} />
@@ -385,18 +402,7 @@ export default function OnboardingEvent() {
             }
           >
 
-            {/* Step Indicator */}
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div className="w-8 h-1 bg-brand-primary rounded"></div>
-                <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
-                <div className="w-8 h-1 bg-gray-200 rounded"></div>
-                <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-bold">3</div>
-              </div>
-            </div>
+            <StepIndicator activeStep={2} />
 
             {/* CSV Upload Section */}
             <div className="space-y-4 mb-6">
@@ -604,40 +610,59 @@ export default function OnboardingEvent() {
     );
   }
 
-  // STEP 3: Completion
+  // STEP 3: Share event with staff
   if (currentStep === 3) {
+    return (
+      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+        <div className="w-full max-w-lg text-center space-y-4">
+          <StepIndicator activeStep={3} />
+          {createdEvent && selectedLeague ? (
+            <div className="bg-white rounded-2xl shadow-2xl p-4">
+              <EventJoinCode event={createdEvent} league={selectedLeague} />
+            </div>
+          ) : (
+            <OnboardingCard
+              title="Share codes after selecting an event"
+              subtitle="We couldn't find your event details. Head back one step and make sure an event is selected."
+            >
+              <Button onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Return to Add Players
+              </Button>
+            </OnboardingCard>
+          )}
+
+          <div className="space-y-3">
+            <Button onClick={() => handleStepNavigation(4)} className="w-full flex items-center justify-center gap-2">
+              Skip & Start Tracking
+              <ArrowRight className="w-5 h-5" />
+            </Button>
+            <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Add More Players
+            </Button>
+          </div>
+        </div>
+      </WelcomeLayout>
+    );
+  }
+
+  // STEP 4: Completion and next steps
+  if (currentStep === 4) {
     return (
       <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
           <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
+            <StepIndicator activeStep={4} />
 
-            {/* Step Indicator */}
-            <div className="flex justify-center mb-6">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div className="w-8 h-1 bg-brand-primary rounded"></div>
-                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-                <div className="w-8 h-1 bg-brand-primary rounded"></div>
-                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm">
-                  <CheckCircle className="w-5 h-5" />
-                </div>
-              </div>
-            </div>
-
-            {/* WHAT'S NEXT SECTION */}
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <div className="text-center mb-3">
-                <h3 className="text-green-800 font-semibold text-lg">🎉 You're All Set!</h3>
+                <h3 className="text-green-800 font-semibold text-lg">🎉 Time to Track Performance</h3>
                 <p className="text-green-700 text-sm">
-                  Your event is ready. Now start tracking player performance and see live results.
+                  Launch Live Entry to record drill results and watch rankings update in real-time.
                 </p>
               </div>
-              
-              {/* PRIMARY ACTION - Get Started */}
+
               <div className="mb-4">
                 <Button onClick={() => { navigate('/live-entry'); }} className="w-full flex items-center justify-center gap-2" size="lg">
                   🚀 Start Tracking Performance
@@ -645,28 +670,22 @@ export default function OnboardingEvent() {
                 </Button>
               </div>
 
-              {/* SECONDARY ACTIONS */}
               <div className="border-t border-brand-primary/30 pt-3">
                 <h4 className="text-brand-secondary font-medium text-sm mb-2 text-center">⭐ When You're Ready:</h4>
                 
                 <div className="space-y-2 text-sm">
-                  {/* Secondary Action 1 - Live Entry */}
                   <div className="flex items-center justify-between">
-                    <span className="text-brand-secondary">Familiarize with Live Entry</span>
+                    <span className="text-brand-secondary">Review Live Entry tips</span>
                     <Button size="sm" onClick={() => { navigate('/live-entry'); }}>
                       ⚡ Explore
                     </Button>
                   </div>
-                  
-                  {/* Secondary Action 2 - QR Codes */}
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Share QR codes with staff</span>
-                    <Button size="sm" onClick={() => { try { setQrExpanded(true); qrSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setQrPulse(true); setTimeout(() => setQrPulse(false), 1200); } catch (_) {} }}>
+                    <Button size="sm" onClick={() => handleStepNavigation(3)}>
                       📱 Share
                     </Button>
                   </div>
-                  
-                  {/* Secondary Action 3 - Export */}
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Export results after event</span>
                     <Button size="sm" onClick={() => { navigate('/players?tab=exports'); }}>
@@ -676,38 +695,22 @@ export default function OnboardingEvent() {
                 </div>
               </div>
             </div>
-            
-            {/* NAVIGATION OPTIONS */}
+
             <div className="space-y-2">
-              {/* Secondary Actions */}
-              <div className="space-y-2">
-                <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  Add More Players
-                </Button>
-                
-                <Button onClick={handleContinueToPlayers} className="w-full flex items-center justify-center gap-2">
-                  View Players & Rankings
-                </Button>
-              </div>
+              <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Add More Players
+              </Button>
+              
+              <Button variant="subtle" onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
+                📱 Share Invitations Again
+              </Button>
+              
+              <Button onClick={handleContinueToPlayers} className="w-full flex items-center justify-center gap-2">
+                View Players & Rankings
+              </Button>
             </div>
           </OnboardingCard>
-
-          {/* QR CODE SECTION - Moved outside main card */}
-          <div className={`bg-white rounded-2xl shadow-2xl p-6 ${qrPulse ? 'ring-2 ring-brand-primary' : ''}`} ref={qrSectionRef} data-qr-section>
-            <button
-              type="button"
-              className="w-full flex items-center justify-between text-left text-lg font-bold text-brand-secondary mb-4"
-              onClick={() => setQrExpanded(prev => !prev)}
-              aria-expanded={qrExpanded}
-            >
-              <span>📱 Share with Staff</span>
-              <span className={`transform transition-transform ${qrExpanded ? '' : 'rotate-180'}`}>▾</span>
-            </button>
-            {qrExpanded && selectedLeague && createdEvent && (
-              <EventJoinCode event={createdEvent} league={selectedLeague} />
-            )}
-          </div>
         </div>
       </WelcomeLayout>
     );
