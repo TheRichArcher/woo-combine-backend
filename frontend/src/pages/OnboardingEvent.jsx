@@ -495,36 +495,49 @@ export default function OnboardingEvent() {
                     <h4 className="font-semibold text-gray-900 mb-2">Match Column Headers</h4>
                     <p className="text-sm text-gray-600 mb-3">Match our fields to the headers in your CSV. Only First and Last Name are required. Others are optional. Choose “Ignore” to skip a field.</p>
                     <div className="grid grid-cols-1 gap-3">
-                      {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
-                        <div key={fieldKey} className="flex items-center gap-3">
-                          <div className="w-40 text-sm text-gray-700 font-medium">
-                            {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                      {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => {
+                        const selectedHeader = fieldMapping[fieldKey] || '';
+                        const sampleValue = selectedHeader && selectedHeader !== '__ignore__'
+                          ? (originalCsvRows.find(row => (row?.[selectedHeader] || '').trim() !== '')?.[selectedHeader] || '')
+                          : '';
+                        return (
+                          <div key={fieldKey} className="flex flex-col gap-1">
+                            <div className="flex items-center gap-3">
+                              <div className="w-40 text-sm text-gray-700 font-medium">
+                                {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                              </div>
+                              <select
+                                value={selectedHeader}
+                                onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                              >
+                                <option value="">Auto</option>
+                                <option value="__ignore__">Ignore</option>
+                                {csvHeaders.map(h => (
+                                  <option key={h} value={h}>{h}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="pl-40 text-xs text-gray-500">
+                              {selectedHeader === '__ignore__' && 'Ignored for this import'}
+                              {!selectedHeader && 'Auto-detecting based on header name'}
+                              {selectedHeader && selectedHeader !== '__ignore__' && (
+                                <>
+                                  Mapped to “{selectedHeader}”
+                                  {sampleValue && ` (e.g., ${sampleValue})`}
+                                </>
+                              )}
+                            </div>
                           </div>
-                          <select
-                            value={fieldMapping[fieldKey] || ''}
-                            onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                          >
-                            <option value="">Auto</option>
-                            <option value="__ignore__">Ignore</option>
-                            {csvHeaders.map(h => (
-                              <option key={h} value={h}>{h}</option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                     <div className="flex gap-3 mt-4">
                       <Button
                         onClick={() => {
                           const mapped = applyMapping(originalCsvRows, fieldMapping);
                           const validated = mapped.map(row => validateRow(row));
-                          const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
-                            const source = fieldMapping[key];
-                            return source && source !== '__ignore__';
-                          });
-                          setCsvHeaders(selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS);
                           setCsvRows(validated);
                           setCsvErrors([]);
                           setShowMapping(false);
