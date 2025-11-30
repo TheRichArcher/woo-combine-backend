@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import { useAuth, useLogout } from "../context/AuthContext";
 import { sendEmailVerification, onAuthStateChanged } from "firebase/auth";
@@ -78,7 +78,20 @@ export default function VerifyEmail() {
   const navigate = useNavigate();
   const [isVerified, setIsVerified] = useState(false);
   const logout = useLogout();
-  const [fromFirebase, setFromFirebase] = useState(() => new URLSearchParams(window.location.search).get('fromFirebase') === '1');
+  const fromFirebase = useMemo(
+    () => new URLSearchParams(window.location.search).get('fromFirebase') === '1',
+    []
+  );
+
+  const routeAfterVerification = useCallback(() => {
+    const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+    if (pendingEventJoin) {
+      const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+      navigate(`/join-event/${safePath}`, { replace: true });
+    } else {
+      navigate("/select-role");
+    }
+  }, [navigate]);
 
   // Since we're using Firebase's default verification flow,
   // users will need to manually check verification status
@@ -100,16 +113,8 @@ export default function VerifyEmail() {
             if (!isActive) return;
             setIsVerified(true);
             setUser(firebaseUser);
-            if (fromFirebase && window.opener == null) {
-              setTimeout(() => { window.close(); }, 800);
-            } else {
-              const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-              if (pendingEventJoin) {
-                const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-                navigate(`/join-event/${safePath}`, { replace: true });
-              } else {
-                navigate("/select-role");
-              }
+            if (!fromFirebase) {
+              routeAfterVerification();
             }
           }
         } catch {
@@ -142,20 +147,8 @@ export default function VerifyEmail() {
             // Only update state if component is still active
             if (isActive) {
               setUser(auth.currentUser);
-              if (fromFirebase && window.opener == null) {
-                // If we were opened as a separate tab from Firebase's page, attempt to auto-close
-                setTimeout(() => {
-                  window.close();
-                }, 800);
-              } else {
-                // If we have a pending invite, return to join flow first
-                const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-                if (pendingEventJoin) {
-                  const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-                  navigate(`/join-event/${safePath}`, { replace: true });
-                } else {
-                  navigate("/select-role");
-                }
+              if (!fromFirebase) {
+                routeAfterVerification();
               }
             }
           }
@@ -178,7 +171,7 @@ export default function VerifyEmail() {
       clearInterval(interval);
       unsubscribe();
     };
-  }, [navigate, setUser]);
+  }, [fromFirebase, navigate, routeAfterVerification, setUser]);
 
   // Auto-redirect to /welcome if session expired
   useEffect(() => {
@@ -208,12 +201,8 @@ export default function VerifyEmail() {
           // CRITICAL: Force token refresh so backend gets updated email_verified status
           await auth.currentUser.getIdToken(true);
           setUser(auth.currentUser);
-            const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-            if (pendingEventJoin) {
-              const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-              navigate(`/join-event/${safePath}`, { replace: true });
-            } else {
-              navigate("/select-role");
+            if (!fromFirebase) {
+              routeAfterVerification();
             }
         } else {
           setResendStatus("Still not verified. Please check your email.");
@@ -329,6 +318,14 @@ export default function VerifyEmail() {
             <p className="text-gray-600 text-sm leading-relaxed mt-3">
               After you click the link, a new tab may open. Use the <span className="font-medium">Continue</span> button there or simply return to this tab — we’ll detect the verification and continue automatically.
             </p>
+            {isVerified && fromFirebase && (
+              <div className="mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-left text-green-800">
+                <p className="font-semibold text-base mb-1">Your account is verified!</p>
+                <p className="text-sm leading-relaxed">
+                  You can close this tab and return to the WooCombine setup window you started from. That tab will refresh and take you to the right place automatically.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Mailbox Illustration */}
@@ -339,12 +336,21 @@ export default function VerifyEmail() {
           {/* Primary Action Button - Like MOJO's "Open Email App" */}
           <div className="mt-8 space-y-4">
             {isVerified ? (
-              <button
-                onClick={() => navigate("/select-role")}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
-              >
-                Continue to App
-              </button>
+              fromFirebase ? (
+                <button
+                  onClick={() => window.close()}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                >
+                  Close This Tab
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate("/select-role")}
+                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                >
+                  Continue to App
+                </button>
+              )
             ) : (
               <button
                 onClick={handleOpenEmailApp}
