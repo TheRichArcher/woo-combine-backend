@@ -12,12 +12,33 @@ export const SAMPLE_ROWS = [
   ["Michael", "Davis", "", ""]
 ];
 
+// Synonyms for common headers to improve auto-mapping & detection
+const HEADER_SYNONYMS = {
+  first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name'],
+  last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name'],
+  age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
+  jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
+  external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
+  team_name: ['team_name', 'team', 'squad', 'club'],
+  position: ['position', 'pos'],
+  notes: ['notes', 'note', 'comments', 'comment', 'remarks']
+};
+
+function normalizeHeader(header) {
+  return String(header || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Check if headers indicate header-based format
 function hasValidHeaders(headers) {
-  const normalizedHeaders = headers.map(h => h.toLowerCase().trim());
-  return REQUIRED_HEADERS.every(required => 
-    normalizedHeaders.some(header => header === required.toLowerCase())
-  );
+  const normalizedHeaders = headers.map((h) => normalizeHeader(h));
+  return REQUIRED_HEADERS.every((required) => {
+    const candidates = HEADER_SYNONYMS[required] || [required];
+    return candidates.some((syn) => normalizedHeaders.some((header) => header === normalizeHeader(syn) || header.includes(normalizeHeader(syn))));
+  });
 }
 
 // Parse CSV text into headers and rows with smart format detection
@@ -139,26 +160,6 @@ export function getMappingDescription(mappingType) {
 } 
 
 // ---- Mapping helpers: guess and apply user-selected mappings ----
-
-// Synonyms for common headers to improve auto-mapping
-const HEADER_SYNONYMS = {
-  first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first'],
-  last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last'],
-  age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
-  jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
-  external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
-  team_name: ['team_name', 'team', 'squad', 'club'],
-  position: ['position', 'pos'],
-  notes: ['notes', 'note', 'comments', 'comment', 'remarks']
-};
-
-function normalizeHeader(header) {
-  return String(header || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ' ') // collapse punctuation/underscores
-    .replace(/\s+/g, ' ') // single spaces
-    .trim();
-}
 
 function matchHeader(headers, synonyms) {
   const normalized = headers.map(h => ({ raw: h, norm: normalizeHeader(h) }));
