@@ -76,7 +76,15 @@ export default function JoinLeague() {
       setSuccess(true);
       if (addLeague) addLeague({ id: joinCode, name: data.league_name, role: 'coach' });
     } catch (err) {
-      setError(err.message || 'Error joining league');
+      if (err?.response?.status === 404) {
+        setError('We could not find a league with that code. If this was an event invite, we will try loading it now.');
+        // Legacy invites sometimes provide the event ID instead of league ID
+        setTimeout(() => {
+          navigate(`/join-event/${joinCode}`);
+        }, 400);
+      } else {
+        setError(err.message || 'Error joining league');
+      }
     } finally {
       setLoading(false);
     }
