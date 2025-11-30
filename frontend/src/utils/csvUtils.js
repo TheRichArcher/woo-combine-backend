@@ -132,9 +132,13 @@ export function validateHeaders(headers, mappingType = 'header-based') {
   
   if (mappingType === 'header-based') {
     // Traditional header validation
-    const missingHeaders = REQUIRED_HEADERS.filter(required => 
-      !headers.some(header => header.toLowerCase().trim() === required.toLowerCase())
-    );
+    const normalizedHeaders = headers.map((header) => normalizeHeader(header));
+    const missingHeaders = REQUIRED_HEADERS.filter((required) => {
+      const candidates = HEADER_SYNONYMS[required] || [required];
+      return !candidates.some((candidate) =>
+        normalizedHeaders.includes(normalizeHeader(candidate))
+      );
+    });
     
     if (missingHeaders.length > 0) {
       errors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
