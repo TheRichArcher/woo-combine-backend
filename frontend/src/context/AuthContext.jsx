@@ -148,6 +148,16 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       authLogger.debug('Auth state change', firebaseUser ? 'User logged in' : 'User logged out');
       
+      let initialPath = '/';
+      let initialSearch = '';
+      try {
+        initialPath = window.location?.pathname || '/';
+        initialSearch = window.location?.search || '';
+      } catch {}
+      const verificationBridgeRoutes = ['/email-action', '/__/auth/action', '/__auth/action'];
+      const isFirebaseVerifyTab = initialPath === '/verify-email' && initialSearch.includes('fromFirebase=1');
+      const isVerificationBridgeRoute = isFirebaseVerifyTab || verificationBridgeRoutes.some(route => initialPath.startsWith(route));
+      
       if (!firebaseUser) {
         // User logged out
         setUser(null);
@@ -173,8 +183,7 @@ export function AuthProvider({ children }) {
 
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
-        const path = window.location?.pathname || '';
-        if (path === '/login') {
+        if (initialPath === '/login') {
           const target = localStorage.getItem('postLoginRedirect') || '/dashboard';
           localStorage.removeItem('postLoginRedirect');
           // Ensure minimal ready state before redirect so guards don't stall
@@ -193,7 +202,9 @@ export function AuthProvider({ children }) {
       if (!firebaseUser.emailVerified) {
         // User needs to verify email - redirect immediately to avoid being stuck on login
         setInitializing(false);
-        navigate('/verify-email');
+        if (!isVerificationBridgeRoute) {
+          navigate('/verify-email');
+        }
         return;
       }
 
@@ -204,7 +215,9 @@ export function AuthProvider({ children }) {
         const enrolled = (firebaseUser?.multiFactor?.enrolledFactors || []).length > 0;
         const REQUIRE_ADMIN_MFA = import.meta.env.VITE_REQUIRE_ADMIN_MFA === 'true';
         if (REQUIRE_ADMIN_MFA && isAdmin && !enrolled) {
-          navigate('/mfa-enroll');
+          if (!isVerificationBridgeRoute) {
+            navigate('/mfa-enroll');
+          }
           setInitializing(false);
           return;
         }
@@ -293,7 +306,9 @@ export function AuthProvider({ children }) {
               if (errorData.detail?.includes('Email verification required')) {
                 authLogger.warn('Email verification required during role check');
                 setInitializing(false);
-                navigate('/verify-email');
+                if (!isVerificationBridgeRoute) {
+                  navigate('/verify-email');
+                }
                 return;
               }
               throw new Error(`Role check failed: ${roleResponse?.status}`);
@@ -341,7 +356,9 @@ export function AuthProvider({ children }) {
           }
           
           authLogger.debug('Navigating to /select-role');
-          navigate("/select-role");
+          if (!isVerificationBridgeRoute) {
+            navigate("/select-role");
+          }
           setInitializing(false);
           return;
         }
@@ -505,7 +522,9 @@ export function AuthProvider({ children }) {
             const joinPath = currentPath.replace('/join-event/', '');
             localStorage.setItem('pendingEventJoin', joinPath);
           }
-          navigate("/select-role");
+          if (!isVerificationBridgeRoute) {
+            navigate("/select-role");
+          }
         }
       } finally {
         setInitializing(false);
