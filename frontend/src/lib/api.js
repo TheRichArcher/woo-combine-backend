@@ -144,8 +144,14 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config;
     
+    // Some network failures (CORS, browser cancellations) produce errors without config.
+    // In those cases we can't retry, so fail fast to avoid undefined config access crashes.
+    if (!config) {
+      return Promise.reject(error);
+    }
+    
     // Initialize retry count and enable retries for ALL requests
-    if (!config._retryCount) {
+    if (typeof config._retryCount !== 'number') {
       config._retryCount = 0;
     }
     

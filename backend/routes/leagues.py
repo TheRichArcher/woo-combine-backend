@@ -208,25 +208,54 @@ def join_league(
     role = req.get("role", "coach") if req else "coach"
     
     try:
-        # PERFORMANCE: Get league document and check membership in parallel
-        league_ref = db.collection("leagues").document(code)
-        member_ref = league_ref.collection("members").document(user_id)
+        resolved_league_id = code
+        joined_via_event_code = False
         
-        # Parallel reads for faster response
+        # PERFORMANCE: Attempt direct league lookup first
+        league_ref = db.collection("leagues").document(resolved_league_id)
         league_doc = league_ref.get()
-        existing_member = member_ref.get()
         
         if not league_doc.exists:
-            logging.warning(f"League document does not exist for ID: {code}")
-            raise HTTPException(status_code=404, detail="League not found")
+            logging.warning(f"League document does not exist for ID: {code}. Attempting event fallback.")
+            event_ref = db.collection("events").document(code)
+            event_doc = event_ref.get()
+            
+            if not event_doc.exists:
+                logging.warning(f"No league or event found for code: {code}")
+                raise HTTPException(status_code=404, detail="League not found")
+            
+            event_data = event_doc.to_dict() or {}
+            fallback_league_id = event_data.get("league_id")
+            if not fallback_league_id:
+                logging.error(f"Event {code} is missing league_id reference")
+                raise HTTPException(status_code=404, detail="League not found for this event code")
+            
+            logging.info(f"Treated join code {code} as event ID. Resolved league {fallback_league_id}")
+            resolved_league_id = fallback_league_id
+            joined_via_event_code = True
+            
+            league_ref = db.collection("leagues").document(resolved_league_id)
+            league_doc = league_ref.get()
+            
+            if not league_doc.exists:
+                logging.error(f"Event {code} referenced missing league {resolved_league_id}")
+                raise HTTPException(status_code=404, detail="League not found for this event code")
+        
+        member_ref = league_ref.collection("members").document(user_id)
+        existing_member = member_ref.get()
         
         league_data = league_doc.to_dict()
         league_name = league_data.get("name", "Unknown League")
         
         if existing_member.exists:
-            logging.warning(f"User {user_id} already in league {code}")
+            logging.warning(f"User {user_id} already in league {resolved_league_id}")
             # Return success with league name even if already a member
-            return {"joined": True, "league_id": code, "league_name": league_name}
+            return {
+                "joined": True, 
+                "league_id": resolved_league_id, 
+                "league_name": league_name,
+                "joined_via_event_code": joined_via_event_code
+            }
         
         # PERFORMANCE OPTIMIZATION: Use batch write for atomic join operation
         join_time = datetime.utcnow().isoformat()
@@ -244,7 +273,7 @@ def join_league(
         # 2. Update user_memberships for fast lookup
         user_memberships_ref = db.collection('user_memberships').document(user_id)
         membership_update = {
-            f"leagues.{code}": {
+            f"leagues.{resolved_league_id}": {
                 "role": role,
                 "joined_at": join_time,
                 "league_name": league_name
@@ -253,11 +282,18 @@ def join_league(
         batch.set(user_memberships_ref, membership_update, merge=True)
         
         # Execute both operations atomically
-        logging.info(f"[BATCH] Executing atomic join operation for user {user_id} in league {code}")
+        logging.info(f"[BATCH] Executing atomic join operation for user {user_id} in league {resolved_league_id}")
         batch.commit()
         
-        logging.info(f"User {user_id} joined league {code} as {role} using batch operation")
-        return {"joined": True, "league_id": code, "league_name": league_name}
+        logging.info(f"User {user_id} joined league {resolved_league_id} as {role} using batch operation")
+        response_payload = {
+            "joined": True,
+            "league_id": resolved_league_id,
+            "league_name": league_name
+        }
+        if joined_via_event_code:
+            response_payload["joined_via_event_code"] = True
+        return response_payload
         
     except HTTPException:
         raise
