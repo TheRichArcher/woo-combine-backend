@@ -112,12 +112,30 @@ export function EventProvider({ children }) {
     } catch {}
     
     if (selectedLeagueId) {
-      // Capture previously selectedEvent id, if any
+      // Guard against stale selections from another league
+      setSelectedEvent(current => {
+        if (current && current.league_id && current.league_id !== selectedLeagueId) {
+          localStorage.removeItem('selectedEvent');
+          return null;
+        }
+        return current;
+      });
+
+      // Capture previously selectedEvent id only if it belongs to this league
       let previouslySelectedId = null;
       try {
         const stored = localStorage.getItem('selectedEvent');
-        if (stored) previouslySelectedId = JSON.parse(stored)?.id || null;
-      } catch {}
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.league_id && parsed.league_id === selectedLeagueId) {
+            previouslySelectedId = parsed?.id || null;
+          } else if (parsed?.league_id && parsed.league_id !== selectedLeagueId) {
+            localStorage.removeItem('selectedEvent');
+          }
+        }
+      } catch {
+        localStorage.removeItem('selectedEvent');
+      }
 
       (async () => {
         await loadEvents(selectedLeagueId);
