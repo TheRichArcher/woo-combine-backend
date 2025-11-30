@@ -168,7 +168,14 @@ export default function JoinEvent() {
         }
 
       } catch (err) {
-        setError(err.message || "Failed to join event");
+        if (err?.response?.status === 409) {
+          setStatus("found");
+          setError("This invite points to a different league than expected. Please try scanning the latest QR code or ask the organizer for a fresh link.");
+        } else if (err?.response?.status === 404) {
+          setError("We couldn't find that league or event. Double-check the link or ask the organizer for a new invitation.");
+        } else {
+          setError(err.message || "Failed to join event");
+        }
         setStatus("not_found");
       } finally {
         setLoading(false);
