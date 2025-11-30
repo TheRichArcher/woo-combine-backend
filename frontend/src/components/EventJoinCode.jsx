@@ -9,6 +9,7 @@ export default function EventJoinCode({ event, league }) {
 
   const joinCode = event.id;
   const baseJoinUrl = `https://woo-combine.com/join-event/${league.id}/${event.id}`;
+  const legacyJoinUrl = `https://woo-combine.com/join?code=${encodeURIComponent(joinCode)}`;
   const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
 
   const copyToClipboard = (text) => {
@@ -88,7 +89,7 @@ export default function EventJoinCode({ event, league }) {
             Copy {selectedRole === 'coach' ? 'Coach' : 'Viewer'} Link
           </button>
           <button
-            onClick={() => copyToClipboard(baseJoinUrl)}
+            onClick={() => copyToClipboard(legacyJoinUrl)}
             className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2 text-sm"
           >
             <QrCode className="w-4 h-4" />
@@ -103,7 +104,11 @@ export default function EventJoinCode({ event, league }) {
           </div>
         </div>
 
-        <div className="text-green-700 font-semibold text-sm">
+        <div className="text-xs text-gray-500 mt-2 break-all">
+          Legacy Link: {legacyJoinUrl}
+        </div>
+
+        <div className="text-green-700 font-semibold text-sm mt-4">
           🏆 Share the appropriate QR code based on the access level needed!
         </div>
       </div>
