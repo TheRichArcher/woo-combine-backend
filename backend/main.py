@@ -14,6 +14,10 @@ from .middleware.security import (
     add_security_headers_middleware,
     add_request_validation_middleware,
 )
+from .middleware.observability import (
+    ObservabilityMiddleware,
+    init_sentry_if_configured,
+)
 import logging
 from pathlib import Path
 from fastapi.staticfiles import StaticFiles
@@ -45,6 +49,8 @@ def _get_log_level_from_env() -> int:
 logging.basicConfig(level=_get_log_level_from_env())
 
 app = FastAPI(title="WooCombine API", version="1.0.2")
+init_sentry_if_configured()
+app.add_middleware(ObservabilityMiddleware)
 
 # Middleware order (outermost last-added): security headers → abuse protection → rate limiting → request validation → CORS → routing
 # 1) Security headers
@@ -157,8 +163,15 @@ Canonical: https://www.woo-combine.com/.well-known/security.txt
 @health_rate_limit()
 def health_check(request: Request):
     """Public minimal health check (no sensitive details)."""
+    firestore_status = "uninitialized"
+    try:
+        client = get_firestore_lazy()
+        firestore_status = "connected" if client else "unavailable"
+    except Exception:
+        firestore_status = "error"
     return {
         "status": "ok",
+        "firestore": firestore_status,
         "timestamp": datetime.utcnow().isoformat()
     }
 
@@ -167,8 +180,15 @@ def health_check(request: Request):
 @health_rate_limit()
 def simple_health(request: Request):
     """Minimal health check endpoint for deployment monitoring"""
+    firestore_status = "uninitialized"
+    try:
+        client = get_firestore_lazy()
+        firestore_status = "connected" if client else "unavailable"
+    except Exception:
+        firestore_status = "error"
     return {
         "status": "ok",
+        "firestore": firestore_status,
         "timestamp": datetime.utcnow().isoformat()
     }
 

@@ -25,6 +25,110 @@ const resolveBaseUrl = () => {
   return 'http://localhost:3000/api';
 };
 
+const decodeJwtPayload = (token) => {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  const padded = parts[1].padEnd(parts[1].length + ((4 - (parts[1].length % 4)) % 4), '=');
+
+  try {
+    if (typeof atob === 'function') {
+      return JSON.parse(atob(padded));
+    }
+  } catch (err) {
+    // Fallback to Node-style decoding below
+  }
+
+  try {
+    if (typeof window !== 'undefined' && typeof window.atob === 'function') {
+      return JSON.parse(window.atob(padded));
+    }
+  } catch {
+    // continue to Buffer fallback
+  }
+
+  if (typeof Buffer !== 'undefined') {
+    try {
+      const decoded = Buffer.from(padded, 'base64').toString('utf-8');
+      return JSON.parse(decoded);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const LOGOUT_BROADCAST_KEY = 'wc-logout';
+const SESSION_STALE_KEY = 'wc-session-stale';
+const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+let refreshPromise = null;
+let crossTabListenersInitialized = false;
+
+const broadcastLogout = () => {
+  try {
+    localStorage.setItem(LOGOUT_BROADCAST_KEY, Date.now().toString());
+  } catch {
+    /* ignore */
+  }
+};
+
+const markSessionStale = () => {
+  try {
+    localStorage.setItem(SESSION_STALE_KEY, Date.now().toString());
+  } catch {
+    /* ignore */
+  }
+};
+
+const initCrossTabListeners = () => {
+  if (crossTabListenersInitialized || typeof window === 'undefined') return;
+  window.addEventListener('storage', (event) => {
+    if (event.key === LOGOUT_BROADCAST_KEY) {
+      signOut(auth).catch(() => {});
+      window.dispatchEvent(new CustomEvent('wc-session-expired'));
+    }
+    if (event.key === SESSION_STALE_KEY) {
+      window.dispatchEvent(new CustomEvent('wc-session-expired'));
+    }
+  });
+  crossTabListenersInitialized = true;
+};
+
+initCrossTabListeners();
+
+const ensureFreshToken = async (forceRefresh = false) => {
+  const user = auth.currentUser;
+  if (!user) {
+    return null;
+  }
+
+  if (forceRefresh) {
+    return user.getIdToken(true);
+  }
+
+  if (refreshPromise) {
+    return refreshPromise;
+  }
+
+  let token = await user.getIdToken(false);
+  const payload = decodeJwtPayload(token);
+  if (payload?.exp) {
+    const expiresAt = payload.exp * 1000;
+    const remaining = expiresAt - Date.now();
+    if (remaining < TOKEN_REFRESH_BUFFER_MS) {
+      refreshPromise = user.getIdToken(true);
+      try {
+        token = await refreshPromise;
+        localStorage.setItem('lastTokenRefresh', Date.now().toString());
+      } finally {
+        refreshPromise = null;
+      }
+    }
+  }
+  return token;
+};
+
 const api = axios.create({
   baseURL: resolveBaseUrl(),
   withCredentials: false,
@@ -93,60 +197,16 @@ api.interceptors.request.use(async (config) => {
   
   if (user) {
     try {
-      // ULTRA-PERFORMANCE OPTIMIZATION: Smart token caching with expiry checking
-      let token;
-      try {
-        // Get cached token first
-        token = await user.getIdToken(false);
-        
-        // ADVANCED: Check token expiry to avoid unnecessary refreshes
-        const tokenPayload = JSON.parse(atob(token.split('.')[1]));
-        const expiresAt = tokenPayload.exp * 1000; // Convert to milliseconds
-        const now = Date.now();
-        const timeUntilExpiry = expiresAt - now;
-        
-        // Only refresh if token expires in less than 5 minutes
-        if (timeUntilExpiry < 5 * 60 * 1000) {
-          apiLogger.debug('Token expires soon, refreshing proactively');
-          token = await user.getIdToken(true);
-        }
-        
-      } catch (cachedTokenError) {
-        // Try to avoid unauthenticated requests: attempt to reuse non-forced token
-        try {
-          if (!token) {
-            token = await user.getIdToken(false);
-          }
-        } catch {}
-        // Fallback: Only refresh if it's been > 50 minutes since last refresh
-        const lastRefresh = localStorage.getItem('lastTokenRefresh');
-        const now = Date.now();
-        if (!lastRefresh || (now - parseInt(lastRefresh)) > 50 * 60 * 1000) {
-          apiLogger.debug('Cached token failed, refreshing');
-          try {
-            token = await user.getIdToken(true);
-            localStorage.setItem('lastTokenRefresh', now.toString());
-          } catch (refreshErr) {
-            // If refresh fails but we still have a token, continue with it
-          }
-        }
-      }
-      
-      // Ensure token for auth-critical endpoints: force refresh if missing
-      if (!token && isAuthCriticalPath) {
-        try {
-          token = await user.getIdToken(true);
-        } catch {}
-      }
-
+      const token = await ensureFreshToken(isAuthCriticalPath);
       if (token) {
         config.headers = config.headers || {};
         config.headers['Authorization'] = `Bearer ${token}`;
       }
     } catch (authError) {
       apiLogger.warn('Failed to get auth token', authError);
-      // Continue without token for non-auth endpoints
     }
+  } else {
+    markSessionStale();
   }
   
   // Return the config for the current request
@@ -176,8 +236,11 @@ api.interceptors.response.use(
 
       if (!original._did401Refresh && auth.currentUser) {
         original._did401Refresh = true;
-        return auth.currentUser.getIdToken(true)
+        return ensureFreshToken(true)
           .then((token) => {
+            if (!token) {
+              throw new Error('Token refresh unavailable');
+            }
             original.headers = original.headers || {};
             original.headers['Authorization'] = `Bearer ${token}`;
             return api(original);
@@ -185,12 +248,13 @@ api.interceptors.response.use(
           .catch(() => {
             apiLogger.warn('Token refresh after 401 failed');
             // On refresh failure: sign out and trigger global session-expired modal
-            try { signOut(auth).catch(() => {}); } catch {}
+            try { signOut(auth).catch(() => {}); broadcastLogout(); } catch {}
             try {
               if (typeof window !== 'undefined') {
                 if (!window.__wcSessionExpiredShown) {
                   window.__wcSessionExpiredShown = true;
                 }
+                markSessionStale();
                 const ev = new CustomEvent('wc-session-expired');
                 window.dispatchEvent(ev);
               }
@@ -201,6 +265,8 @@ api.interceptors.response.use(
 
       // For all other 401 paths (including onboarding), sign out and show modal instead of redirecting
       try { signOut(auth).catch(() => {}); } catch {}
+      broadcastLogout();
+      markSessionStale();
       try {
         if (typeof window !== 'undefined') {
           if (!window.__wcSessionExpiredShown) {

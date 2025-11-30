@@ -52,6 +52,8 @@ def test_role_enforced_on_write(monkeypatch):
         return data
 
     monkeypatch.setattr(auth_mod.auth, "verify_id_token", lambda t: fake_verify(t))
+    monkeypatch.setattr(auth_mod, "_verify_id_token_strict", lambda token: fake_verify(token))
+    monkeypatch.setattr(auth_mod, "_enforce_session_max_age", lambda decoded: None)
 
     # Mock Firestore client to avoid real calls
     class FakeDoc:
@@ -107,6 +109,7 @@ def test_role_enforced_on_write(monkeypatch):
         return FakeDoc()
 
     monkeypatch.setattr(fsc, "get_firestore_client", fake_get_client)
+    monkeypatch.setattr(auth_mod, "get_firestore_client", fake_get_client)
 
     from starlette.testclient import TestClient
 

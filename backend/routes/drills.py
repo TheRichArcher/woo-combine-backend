@@ -9,6 +9,8 @@ import logging
 from datetime import datetime
 from ..utils.database import execute_with_timeout
 from ..utils.validation import validate_drill_score, get_unit_for_drill
+from ..utils.data_integrity import enforce_event_league_relationship
+from ..security.access_matrix import require_permission
 
 router = APIRouter()
 
@@ -25,6 +27,12 @@ class DrillResultCreate(BaseModel):
 
 @router.post("/drill-results/", response_model=dict)
 @write_rate_limit()
+@require_permission(
+    "drills",
+    "create_result",
+    target="event",
+    target_getter=lambda kwargs: getattr(kwargs.get("result"), "event_id", None),
+)
 def create_drill_result(
     request: Request,
     result: DrillResultCreate,
@@ -32,16 +40,9 @@ def create_drill_result(
 ):
     """Create a new drill result for a player"""
     try:
-        # Validate that the event exists with timeout protection
+        enforce_event_league_relationship(event_id=result.event_id)
+
         event_ref = db.collection("events").document(result.event_id)
-        event_doc = execute_with_timeout(
-            event_ref.get,
-            timeout=5,
-            operation_name="event validation"
-        )
-        
-        if not event_doc.exists:
-            raise HTTPException(status_code=404, detail="Event not found")
         
         # Validate that the player exists in the event with timeout protection
         player_ref = event_ref.collection("players").document(result.player_id)

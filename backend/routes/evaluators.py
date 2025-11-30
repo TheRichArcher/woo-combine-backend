@@ -9,6 +9,8 @@ from datetime import datetime
 from ..models import EvaluatorSchema, DrillResultSchema, MultiEvaluatorDrillResult
 from ..utils.database import execute_with_timeout
 from ..utils.validation import validate_drill_score, get_unit_for_drill
+from ..utils.data_integrity import enforce_event_league_relationship
+from ..security.access_matrix import require_permission
 import statistics
 
 router = APIRouter()
@@ -27,6 +29,7 @@ class DrillEvaluationRequest(BaseModel):
 
 @router.get('/events/{event_id}/evaluators', response_model=List[EvaluatorSchema])
 @read_rate_limit()
+@require_permission("evaluators", "list", target="event", target_param="event_id")
 def get_event_evaluators(
     request: Request,
     event_id: str,
@@ -34,6 +37,7 @@ def get_event_evaluators(
 ):
     """Get all evaluators for an event"""
     try:
+        enforce_event_league_relationship(event_id=event_id)
         evaluators_ref = db.collection("events").document(event_id).collection("evaluators")
         evaluators = execute_with_timeout(
             lambda: list(evaluators_ref.where("active", "==", True).stream()),
@@ -56,6 +60,7 @@ def get_event_evaluators(
 
 @router.post('/events/{event_id}/evaluators')
 @write_rate_limit()
+@require_permission("evaluators", "add", target="event", target_param="event_id")
 def add_evaluator(
     request: Request,
     event_id: str,
@@ -66,7 +71,8 @@ def add_evaluator(
     try:
         # Proper role checking is now enforced by the require_role decorator
         # Only organizers and coaches can add evaluators
-        
+        enforce_event_league_relationship(event_id=event_id)
+
         evaluator_data = {
             "name": payload.name,
             "email": payload.email, 
@@ -96,6 +102,7 @@ def add_evaluator(
 
 @router.post('/events/{event_id}/evaluations')
 @write_rate_limit()
+@require_permission("evaluators", "submit_evaluation", target="event", target_param="event_id")
 def submit_drill_evaluation(
     request: Request,
     event_id: str,
@@ -107,6 +114,8 @@ def submit_drill_evaluation(
         # Enforce verified email on write
         if not current_user.get("email_verified", False):
             raise HTTPException(status_code=403, detail="Email verification required")
+
+        enforce_event_league_relationship(event_id=event_id)
 
         # Create individual drill result with evaluator info and enforce constraints
         validated_value = validate_drill_score(float(evaluation.value), evaluation.drill_type)
@@ -147,6 +156,7 @@ def submit_drill_evaluation(
 
 @router.get('/events/{event_id}/players/{player_id}/evaluations')
 @read_rate_limit()
+@require_permission("evaluators", "player_evaluations", target="event", target_param="event_id")
 def get_player_evaluations(
     request: Request,
     event_id: str,
@@ -155,6 +165,7 @@ def get_player_evaluations(
 ):
     """Get all evaluations for a specific player"""
     try:
+        enforce_event_league_relationship(event_id=event_id)
         evaluations_ref = db.collection("events").document(event_id).collection("drill_evaluations")
         evaluations = execute_with_timeout(
             lambda: list(evaluations_ref.where("player_id", "==", player_id).stream()),
@@ -188,6 +199,7 @@ def get_player_evaluations(
 
 @router.get('/events/{event_id}/aggregated-results')
 @read_rate_limit()
+@require_permission("evaluators", "aggregated_results", target="event", target_param="event_id")
 def get_aggregated_results(
     request: Request,
     event_id: str,
@@ -195,6 +207,7 @@ def get_aggregated_results(
 ):
     """Get aggregated drill results for all players in an event"""
     try:
+        enforce_event_league_relationship(event_id=event_id)
         aggregated_ref = db.collection("events").document(event_id).collection("aggregated_drill_results")
         results = execute_with_timeout(
             lambda: list(aggregated_ref.stream()),

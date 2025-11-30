@@ -1,6 +1,9 @@
 import logging
-from fastapi import HTTPException
 import concurrent.futures
+import time
+from fastapi import HTTPException
+
+from ..middleware.observability import record_firestore_call
 
 def execute_with_timeout(func, timeout=5, operation_name="database operation", *args, **kwargs):
     """
@@ -23,7 +26,11 @@ def execute_with_timeout(func, timeout=5, operation_name="database operation", *
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(func, *args, **kwargs)
             try:
-                return future.result(timeout=timeout)
+                start = time.perf_counter()
+                result = future.result(timeout=timeout)
+                duration_ms = (time.perf_counter() - start) * 1000.0
+                record_firestore_call(duration_ms)
+                return result
             except concurrent.futures.TimeoutError:
                 logging.warning(f"{operation_name} timed out after {timeout}s")
                 raise HTTPException(status_code=504, detail=f"{operation_name} timed out")

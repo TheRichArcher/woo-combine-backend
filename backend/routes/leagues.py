@@ -6,6 +6,8 @@ from datetime import datetime
 import logging
 from google.cloud.firestore import Query
 from ..utils.database import execute_with_timeout
+from ..security.access_matrix import require_permission
+from ..utils.authorization import ensure_league_access
 
 # Fixed: Removed FieldPath import to resolve deployment issues
 
@@ -265,6 +267,7 @@ def join_league(
 
 @router.get('/leagues/{league_id}/teams')
 @read_rate_limit()
+@require_permission("teams", "list", target="league", target_param="league_id")
 def list_teams(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -294,6 +297,7 @@ def list_teams(
 
 @router.get('/leagues/{league_id}/invitations')
 @read_rate_limit()
+@require_permission("invitations", "list", target="league", target_param="league_id")
 def list_invitations(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),

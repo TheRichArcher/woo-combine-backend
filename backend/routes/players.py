@@ -8,6 +8,11 @@ from ..firestore_client import db
 from datetime import datetime
 from ..models import PlayerSchema
 from ..utils.database import execute_with_timeout
+from ..utils.data_integrity import (
+    enforce_event_league_relationship,
+    ensure_league_document,
+)
+from ..security.access_matrix import require_permission
 
 router = APIRouter()
 
@@ -63,6 +68,7 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
 
 @router.get("/players", response_model=List[PlayerSchema])
 @read_rate_limit()
+@require_permission("players", "read", target="event", target_param="event_id")
 def get_players(
     request: Request,
     event_id: str = Query(...),
@@ -74,13 +80,7 @@ def get_players(
         if 'user_id' in request.query_params:
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
         
-        # Add timeout to event lookup
-        event = execute_with_timeout(
-            db.collection("events").document(str(event_id)).get,
-            timeout=5
-        )
-        if not event.exists:
-            raise HTTPException(status_code=404, detail="Event not found")
+        enforce_event_league_relationship(event_id=event_id)
             
         # Add timeout to players retrieval
         def get_players_stream():
@@ -111,7 +111,6 @@ def get_players(
         logging.error(f"Error in /players: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve players")
 
-from pydantic import BaseModel
 class PlayerCreate(BaseModel):
     name: str
     number: Optional[int] = None
@@ -120,6 +119,7 @@ class PlayerCreate(BaseModel):
 
 @router.post("/players")
 @write_rate_limit()
+@require_permission("players", "create", target="event", target_param="event_id")
 def create_player(
     request: Request,
     player: PlayerCreate,
@@ -131,17 +131,7 @@ def create_player(
         logging.info(f"[CREATE_PLAYER] Current user: {current_user.get('uid', 'unknown')}")
         logging.info(f"[CREATE_PLAYER] Player data: {player.model_dump()}")
         
-        # Validate that the event exists
-        logging.info(f"[CREATE_PLAYER] Validating event exists: {event_id}")
-        event = execute_with_timeout(
-            db.collection("events").document(str(event_id)).get,
-            timeout=3
-        )
-        logging.info(f"[CREATE_PLAYER] Event validation completed. Exists: {event.exists}")
-        
-        if not event.exists:
-            logging.warning(f"[CREATE_PLAYER] Event not found: {event_id}")
-            raise HTTPException(status_code=404, detail="Event not found")
+        enforce_event_league_relationship(event_id=event_id)
         
         # Create player in the event subcollection
         logging.info(f"[CREATE_PLAYER] Creating player document in Firestore")
@@ -185,6 +175,7 @@ def create_player(
 
 @router.put("/players/{player_id}")
 @write_rate_limit()
+@require_permission("players", "update", target="event", target_param="event_id")
 def update_player(
     request: Request,
     player_id: str,
@@ -193,13 +184,7 @@ def update_player(
     current_user=Depends(require_role("organizer", "coach"))
 ):
     try:
-        # Validate that the event exists (use longer timeout for writes)
-        event = execute_with_timeout(
-            db.collection("events").document(str(event_id)).get,
-            timeout=3
-        )
-        if not event.exists:
-            raise HTTPException(status_code=404, detail="Event not found")
+        enforce_event_league_relationship(event_id=event_id)
         
         # Get the player document
         player_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
@@ -239,15 +224,15 @@ class UploadRequest(BaseModel):
 
 @router.post("/players/upload")
 @bulk_rate_limit()
+@require_permission(
+    "players",
+    "upload",
+    target="event",
+    target_getter=lambda kwargs: getattr(kwargs.get("req"), "event_id", None),
+)
 def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_role("organizer"))):
     try:
-        # Add timeout to event lookup
-        event = execute_with_timeout(
-            db.collection("events").document(str(req.event_id)).get,
-            timeout=5
-        )
-        if not event.exists:
-            raise HTTPException(status_code=404, detail="Event not found")
+        enforce_event_league_relationship(event_id=req.event_id)
             
         event_id = req.event_id
         players = req.players
@@ -439,8 +424,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             raise HTTPException(status_code=500, detail="Failed to upload players")
 
 @router.delete("/players/reset")
+@require_permission("players", "reset", target="event", target_param="event_id")
 def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
     try:
+        enforce_event_league_relationship(event_id=event_id)
         # First, get all players in the event
         players_ref = db.collection("events").document(str(event_id)).collection("players")
         players_stream = execute_with_timeout(
@@ -468,6 +455,7 @@ def reset_players(event_id: str = Query(...), current_user=Depends(require_role(
         raise HTTPException(status_code=500, detail="Failed to reset players")
 
 @router.get("/rankings")
+@require_permission("players", "rankings", target="event", target_param="event_id")
 def get_rankings(
     age_group: str = Query(...),
     event_id: str = Query(...),
@@ -476,15 +464,10 @@ def get_rankings(
     weight_catching: float = Query(None, alias="weight_catching"),
     weight_throwing: float = Query(None, alias="weight_throwing"),
     weight_agility: float = Query(None, alias="weight_agility"),
+    current_user=Depends(get_current_user)
 ):
     try:
-        # Validate that the event exists
-        event = execute_with_timeout(
-            db.collection("events").document(str(event_id)).get,
-            timeout=5
-        )
-        if not event.exists:
-            raise HTTPException(status_code=404, detail="Event not found")
+        enforce_event_league_relationship(event_id=event_id)
             
         # Parse weights if all are provided
         custom_weights = None
@@ -543,6 +526,7 @@ def get_rankings(
 # Admin functionality is handled by the frontend /admin route.
 
 @router.get('/leagues/{league_id}/players')
+@require_permission("league_players", "read", target="league", target_param="league_id")
 def list_players(
     league_id: str,
     page: Optional[int] = Query(None, ge=1),
@@ -550,6 +534,7 @@ def list_players(
     current_user=Depends(get_current_user)
 ):
     try:
+        ensure_league_document(league_id)
         players_ref = db.collection("leagues").document(league_id).collection("players")
         # Add timeout to players retrieval
         players_stream = execute_with_timeout(
@@ -572,8 +557,10 @@ def list_players(
 
 @router.post('/leagues/{league_id}/players')
 @write_rate_limit()
+@require_permission("league_players", "create", target="league", target_param="league_id")
 def add_player(request: Request, league_id: str, req: dict, current_user=Depends(require_role("organizer", "coach"))):
     try:
+        ensure_league_document(league_id)
         players_ref = db.collection("leagues").document(league_id).collection("players")
         player_doc = players_ref.document()
         
@@ -593,8 +580,10 @@ def add_player(request: Request, league_id: str, req: dict, current_user=Depends
         raise HTTPException(status_code=500, detail="Failed to add player")
 
 @router.get('/leagues/{league_id}/players/{player_id}/drill_results')
+@require_permission("league_players", "drill_results", target="league", target_param="league_id")
 def list_drill_results(request: Request, league_id: str, player_id: str, current_user=Depends(get_current_user)):
     try:
+        ensure_league_document(league_id)
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")
         # Add timeout to drill results retrieval
         results_stream = execute_with_timeout(

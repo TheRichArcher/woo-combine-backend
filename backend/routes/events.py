@@ -7,6 +7,11 @@ from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
 from ..utils.database import execute_with_timeout
+from ..utils.data_integrity import (
+    ensure_league_document,
+    enforce_event_league_relationship,
+)
+from ..security.access_matrix import require_permission
 from pydantic import BaseModel
 from typing import Dict
 
@@ -16,6 +21,7 @@ router = APIRouter()
 
 @router.get('/leagues/{league_id}/events')
 @read_rate_limit()
+@require_permission("events", "list", target="league", target_param="league_id")
 def list_events(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -56,6 +62,7 @@ class EventCreateRequest(BaseModel):
 
 @router.post('/leagues/{league_id}/events')
 @write_rate_limit()
+@require_permission("events", "create", target="league", target_param="league_id")
 def create_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
@@ -69,7 +76,8 @@ def create_event(
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
-        
+
+        ensure_league_document(league_id)
         # Create event in league subcollection (for league-specific queries)
         events_ref = db.collection("leagues").document(league_id).collection("events")
         event_ref = events_ref.document()
@@ -108,6 +116,7 @@ def create_event(
 
 @router.get('/leagues/{league_id}/events/{event_id}')
 @read_rate_limit()
+@require_permission("events", "read", target="league", target_param="league_id")
 def get_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -115,6 +124,10 @@ def get_event(
     current_user=Depends(get_current_user)
 ):
     try:
+        enforce_event_league_relationship(
+            event_id=event_id,
+            expected_league_id=league_id,
+        )
         # Try to get event from league subcollection first
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
         event_doc = execute_with_timeout(
@@ -162,6 +175,7 @@ class EventUpdateRequest(BaseModel):
 
 @router.put('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
+@require_permission("events", "update", target="league", target_param="league_id")
 def update_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
@@ -176,7 +190,11 @@ def update_event(
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
-        
+
+        enforce_event_league_relationship(
+            event_id=event_id,
+            expected_league_id=league_id,
+        )
         # Prepare update data with validation
         update_data = {
             "name": name,
@@ -219,6 +237,7 @@ def update_event(
 
 @router.delete('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
+@require_permission("events", "delete", target="league", target_param="league_id")
 def delete_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
@@ -227,6 +246,10 @@ def delete_event(
 ):
     """Delete an event and all associated data (requires organizer role)"""
     try:
+        enforce_event_league_relationship(
+            event_id=event_id,
+            expected_league_id=league_id,
+        )
         # Verify event exists and belongs to league
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
         event_doc = execute_with_timeout(

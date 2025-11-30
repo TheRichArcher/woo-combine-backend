@@ -3,7 +3,7 @@ from firebase_admin import auth, credentials
 from fastapi import Depends, HTTPException, status, Request
 from firebase_admin import exceptions as firebase_exceptions
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional
+from typing import Optional, Dict
 import os
 import json
 from google.cloud import firestore
@@ -12,6 +12,9 @@ import logging
 import asyncio
 from functools import wraps, lru_cache
 import time
+from collections import defaultdict
+
+from .middleware.observability import set_user_id_for_request
 
 # Initialize Firebase Admin SDK robustly for test/dev environments
 try:
@@ -63,6 +66,21 @@ security = HTTPBearer(auto_error=False)
 AUTH_CHECK_REVOKED = os.getenv("AUTH_CHECK_REVOKED", "true").lower() in ("1", "true", "yes", "on")
 AUTH_FALLBACK_NO_REVOKE = os.getenv("AUTH_FALLBACK_NO_REVOKE", "true").lower() in ("1", "true", "yes", "on")
 
+_auth_failure_tracker: defaultdict[str, Dict[str, float]] = defaultdict(lambda: {"count": 0, "first": 0.0})
+
+
+def _track_auth_failure(reason: str) -> None:
+    now = time.time()
+    info = _auth_failure_tracker[reason]
+    if now - info["first"] > 300:
+        info["count"] = 0
+        info["first"] = now
+    info["count"] += 1
+    if info["first"] == 0:
+        info["first"] = now
+    if info["count"] in (5, 10, 20):
+        logging.warning("[AUTH] Repeated auth failures for %s (%s in last 5m)", reason, info["count"])
+
 def _verify_id_token(token: str, check_revoked: bool = True):
     """Verify an ID token with optional revocation checking.
     Gracefully handle environments where the verify function signature differs (tests).
@@ -72,6 +90,11 @@ def _verify_id_token(token: str, check_revoked: bool = True):
     except TypeError:
         # Mocked functions in tests may not accept check_revoked
         return auth.verify_id_token(token)
+
+
+def _verify_id_token_strict(token: str):
+    """Dedicated helper for dependencies that always require revocation checks."""
+    return _verify_id_token(token, check_revoked=True)
 
 def _enforce_session_max_age(decoded_token: dict):
     """Reject sessions older than configured max age (default 24h)."""
@@ -142,6 +165,7 @@ def get_current_user(
             # If strict verification fails and fallback is enabled, try without revocation check
             err_type = type(e).__name__
             logging.error(f"[AUTH] Firebase token verification failed ({err_type}): {e}")
+            _track_auth_failure("token_verification")
             if AUTH_CHECK_REVOKED and AUTH_FALLBACK_NO_REVOKE:
                 try:
                     logging.warning("[AUTH] Retrying token verification without revocation check due to error above")
@@ -170,6 +194,7 @@ def get_current_user(
         email_verified = decoded_token.get("email_verified", False)
         
         uid = decoded_token["uid"]
+        set_user_id_for_request(uid)
         email = decoded_token.get("email", "")
         
         # Optional: deny disabled users using short-lived cached check (5-minute buckets)
@@ -247,6 +272,7 @@ def get_current_user(
         raise
     except Exception as e:
         logging.error(f"[AUTH] Unexpected error in get_current_user: {e}")
+        _track_auth_failure("unexpected")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Unexpected error in get_current_user: {e}",

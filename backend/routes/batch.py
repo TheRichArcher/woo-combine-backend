@@ -5,13 +5,16 @@ Provides optimized batch endpoints to reduce API call overhead
 and improve performance for frontend operations.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from typing import List, Dict, Any
 from pydantic import BaseModel
 from ..auth import get_current_user
 from ..middleware.rate_limiting import bulk_rate_limit
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
+from ..utils.authorization import ensure_event_access, ensure_league_access
+from ..utils.data_integrity import ensure_league_document
+from ..security.access_matrix import require_permission
 import logging
 
 router = APIRouter()
@@ -28,10 +31,17 @@ class BatchEventsByIdsRequest(BaseModel):
 
 @router.post("/batch/players")
 @bulk_rate_limit()
+@require_permission(
+    "batch",
+    "players",
+    target="event",
+    target_getter=lambda kwargs: (kwargs.get("payload").event_ids or [None])[0],
+)
 def get_batch_players(
     request: Request,
     payload: BatchPlayerRequest,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    dry_run: bool = Query(False, description="Preview payload without fetching players"),
 ):
     """
     Get players for multiple events in a single request
@@ -46,46 +56,53 @@ def get_batch_players(
             )
         
         batch_results = {}
+        summary = {"requested": payload.event_ids[:MAX_ITEMS_PER_BATCH], "validated": [], "missing": []}
         
-        for event_id in payload.event_ids:
+        for event_id in summary["requested"]:
             try:
-                # Validate event exists
-                event = execute_with_timeout(
-                    db.collection("events").document(str(event_id)).get,
-                    timeout=3,
-                    operation_name=f"event validation for {event_id}"
+                ensure_event_access(
+                    current_user["uid"],
+                    str(event_id),
+                    operation_name=f"batch players for {event_id}",
+                )
+                summary["validated"].append(event_id)
+
+                if dry_run:
+                    batch_results[event_id] = {"success": True, "players": [], "count": 0}
+                    continue
+
+                # Get players for this event
+                def get_players_stream():
+                    return list(db.collection("events").document(str(event_id)).collection("players").stream())
+                
+                players_stream = execute_with_timeout(
+                    get_players_stream,
+                    timeout=10,
+                    operation_name=f"players fetch for {event_id}"
                 )
                 
-                if event.exists:
-                    # Get players for this event
-                    def get_players_stream():
-                        return list(db.collection("events").document(str(event_id)).collection("players").stream())
+                players = []
+                for player in players_stream:
+                    player_dict = player.to_dict()
+                    player_dict["id"] = player.id
+                    players.append(player_dict)
+                
+                batch_results[event_id] = {
+                    "success": True,
+                    "players": players,
+                    "count": len(players)
+                }
                     
-                    players_stream = execute_with_timeout(
-                        get_players_stream,
-                        timeout=10,
-                        operation_name=f"players fetch for {event_id}"
-                    )
-                    
-                    players = []
-                    for player in players_stream:
-                        player_dict = player.to_dict()
-                        player_dict["id"] = player.id
-                        players.append(player_dict)
-                    
-                    batch_results[event_id] = {
-                        "success": True,
-                        "players": players,
-                        "count": len(players)
-                    }
-                else:
-                    batch_results[event_id] = {
-                        "success": False,
-                        "error": "Event not found",
-                        "players": [],
-                        "count": 0
-                    }
-                    
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    summary["missing"].append(event_id)
+                logging.error(f"Error fetching players for event {event_id}: {exc}")
+                batch_results[event_id] = {
+                    "success": False,
+                    "error": exc.detail if hasattr(exc, "detail") else str(exc),
+                    "players": [],
+                    "count": 0
+                }
             except Exception as e:
                 logging.error(f"Error fetching players for event {event_id}: {e}")
                 batch_results[event_id] = {
@@ -99,7 +116,9 @@ def get_batch_players(
             "success": True,
             "results": batch_results,
             "total_events": len(payload.event_ids),
-            "successful_events": sum(1 for r in batch_results.values() if r["success"])
+            "successful_events": sum(1 for r in batch_results.values() if r["success"]),
+            "dry_run": dry_run,
+            "summary": summary,
         }
         
     except HTTPException:
@@ -110,10 +129,17 @@ def get_batch_players(
 
 @router.post("/batch/events")
 @bulk_rate_limit()
+@require_permission(
+    "batch",
+    "events",
+    target="league",
+    target_getter=lambda kwargs: (kwargs.get("payload").league_ids or [None])[0],
+)
 def get_batch_events(
     request: Request,
     payload: BatchEventRequest,
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
+    dry_run: bool = Query(False, description="Preview payload without fetching events"),
 ):
     """
     Get events for multiple leagues in a single request
@@ -128,9 +154,21 @@ def get_batch_events(
             )
         
         batch_results = {}
+        summary = {"requested": payload.league_ids[:MAX_ITEMS_PER_BATCH], "validated": [], "missing": []}
         
-        for league_id in payload.league_ids:
+        for league_id in summary["requested"]:
             try:
+                ensure_league_access(
+                    current_user["uid"],
+                    str(league_id),
+                    operation_name=f"batch events for {league_id}",
+                )
+                ensure_league_document(str(league_id))
+                summary["validated"].append(league_id)
+
+                if dry_run:
+                    batch_results[league_id] = {"success": True, "events": [], "count": 0}
+                    continue
                 # Get events for this league
                 events_ref = db.collection("leagues").document(str(league_id)).collection("events")
                 events_stream = execute_with_timeout(
@@ -151,6 +189,16 @@ def get_batch_events(
                     "count": len(events)
                 }
                 
+            except HTTPException as exc:
+                if exc.status_code == 404:
+                    summary["missing"].append(league_id)
+                logging.error(f"Error fetching events for league {league_id}: {exc}")
+                batch_results[league_id] = {
+                    "success": False,
+                    "error": exc.detail if hasattr(exc, "detail") else str(exc),
+                    "events": [],
+                    "count": 0
+                }
             except Exception as e:
                 logging.error(f"Error fetching events for league {league_id}: {e}")
                 batch_results[league_id] = {
@@ -164,7 +212,9 @@ def get_batch_events(
             "success": True,
             "results": batch_results,
             "total_leagues": len(payload.league_ids),
-            "successful_leagues": sum(1 for r in batch_results.values() if r["success"])
+            "successful_leagues": sum(1 for r in batch_results.values() if r["success"]),
+            "dry_run": dry_run,
+            "summary": summary,
         }
         
     except HTTPException:
@@ -175,6 +225,12 @@ def get_batch_events(
 
 @router.post("/batch/events-by-ids")
 @bulk_rate_limit()
+@require_permission(
+    "batch",
+    "events_by_ids",
+    target="event",
+    target_getter=lambda kwargs: (kwargs.get("payload").event_ids or [None])[0],
+)
 def get_batch_events_by_ids(
     request: Request,
     payload: BatchEventsByIdsRequest,
@@ -192,15 +248,24 @@ def get_batch_events_by_ids(
             )
 
         results: Dict[str, Any] = {}
+        refs = [db.collection("events").document(eid) for eid in payload.event_ids]
+        docs = execute_with_timeout(
+            lambda: db.get_all(refs),
+            timeout=8,
+            operation_name="batch events-by-ids fetch",
+        )
+
+        doc_map = {doc.id: doc for doc in docs if doc.exists}
+
         for event_id in payload.event_ids:
             try:
-                ref = db.collection("events").document(event_id)
-                doc = execute_with_timeout(
-                    ref.get,
-                    timeout=5,
-                    operation_name=f"event fetch {event_id}"
+                ensure_event_access(
+                    current_user["uid"],
+                    event_id,
+                    operation_name=f"batch events-by-ids {event_id}",
                 )
-                if doc.exists:
+                doc = doc_map.get(event_id)
+                if doc:
                     data = doc.to_dict()
                     data["id"] = doc.id
                     results[event_id] = {"success": True, "event": data}
@@ -219,6 +284,7 @@ def get_batch_events_by_ids(
 
 @router.get("/batch/dashboard-data/{league_id}")
 @bulk_rate_limit()
+@require_permission("batch", "dashboard", target="league", target_param="league_id")
 def get_dashboard_data(
     request: Request,
     league_id: str,
@@ -229,6 +295,12 @@ def get_dashboard_data(
     Includes league info, events, and player counts
     """
     try:
+        ensure_league_access(
+            current_user["uid"],
+            league_id,
+            operation_name="dashboard data",
+        )
+        ensure_league_document(league_id)
         dashboard_data = {
             "league": None,
             "events": [],
