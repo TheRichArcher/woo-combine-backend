@@ -52,6 +52,7 @@ export default function EventSharing() {
   const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
   const joinCode = selectedEvent.join_code || selectedEvent.id?.slice(-6).toUpperCase() || 'ERROR';
   const legacyJoinUrl = `https://woo-combine.com/join?code=${encodeURIComponent(joinCode)}`;
+  const legacyButtonLabel = legacyJoinUrl ? 'Copy Legacy Link (woo-combine.com/join)' : 'Copy General Link (No Role)';
 
   // Copy to clipboard functionality
   const copyToClipboard = (text) => {
@@ -156,9 +157,11 @@ export default function EventSharing() {
             <button
               onClick={() => copyToClipboard(legacyJoinUrl)}
               className="w-full bg-gray-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2"
+              title={legacyJoinUrl}
+              aria-label={`Copy legacy join link ${legacyJoinUrl}`}
             >
               <UserPlus className="w-4 h-4" />
-              Copy General Link (No Role)
+              {legacyButtonLabel}
             </button>
           </div>
 
@@ -168,8 +171,8 @@ export default function EventSharing() {
             <div className="text-sm font-mono text-gray-700 break-all">
               {roleJoinUrl}
             </div>
-            <div className="text-xs font-mono text-gray-500 break-all mt-2">
-              Legacy Link: {legacyJoinUrl}
+            <div className="text-xs font-mono text-gray-600 break-all mt-2">
+              Legacy Link (woo-combine.com/join): {legacyJoinUrl}
             </div>
           </div>
 

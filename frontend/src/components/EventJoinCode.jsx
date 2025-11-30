@@ -11,6 +11,7 @@ export default function EventJoinCode({ event, league }) {
   const baseJoinUrl = `https://woo-combine.com/join-event/${league.id}/${event.id}`;
   const legacyJoinUrl = `https://woo-combine.com/join?code=${encodeURIComponent(joinCode)}`;
   const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
+  const legacyButtonLabel = legacyJoinUrl ? 'Copy Legacy Link (woo-combine.com/join)' : 'Copy General Link (Legacy)';
 
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
@@ -91,9 +92,11 @@ export default function EventJoinCode({ event, league }) {
           <button
             onClick={() => copyToClipboard(legacyJoinUrl)}
             className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2 text-sm"
+            title={legacyJoinUrl}
+            aria-label={`Copy legacy join link ${legacyJoinUrl}`}
           >
             <QrCode className="w-4 h-4" />
-            Copy General Link (Legacy)
+            {legacyButtonLabel}
           </button>
         </div>
 
@@ -104,8 +107,8 @@ export default function EventJoinCode({ event, league }) {
           </div>
         </div>
 
-        <div className="text-xs text-gray-500 mt-2 break-all">
-          Legacy Link: {legacyJoinUrl}
+        <div className="text-xs text-gray-600 mt-2 break-all">
+          Legacy Link (woo-combine.com/join): {legacyJoinUrl}
         </div>
 
         <div className="text-green-700 font-semibold text-sm mt-4">
