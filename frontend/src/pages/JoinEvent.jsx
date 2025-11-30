@@ -123,10 +123,10 @@ export default function JoinEvent() {
             throw eventError;
           }
         } 
-        // STRATEGY 2: Only eventId provided (old format) - search user's leagues
+        // STRATEGY 2: Only eventId provided (old format)
         else {
 
-          
+          // If user already has leagues, search them first
           for (const userLeague of leagues || []) {
             try {
               const response = await api.get(`/leagues/${userLeague.id}/events/${actualEventId}`);
@@ -139,6 +139,31 @@ export default function JoinEvent() {
               }
               // Continue to next league
             }
+          }
+
+          // If not found and user has no leagues, attempt to resolve via event code directly
+          if (!targetEvent) {
+            const joinResponse = await api.post(`/leagues/join/${actualEventId}`, {
+              user_id: user.uid,
+              email: user.email,
+              role: intendedRole || userRole || 'coach'
+            });
+
+            const resolvedLeagueId = joinResponse?.data?.league_id;
+            if (!resolvedLeagueId) {
+              throw new Error('Unable to resolve league for this event');
+            }
+
+            targetLeague = {
+              id: resolvedLeagueId,
+              name: joinResponse.data?.league_name || 'League',
+              role: intendedRole || userRole || 'coach'
+            };
+
+            if (addLeague) addLeague(targetLeague);
+
+            const legacyEventResponse = await api.get(`/leagues/${resolvedLeagueId}/events/${actualEventId}`);
+            targetEvent = legacyEventResponse.data;
           }
 
           if (!targetEvent) {
