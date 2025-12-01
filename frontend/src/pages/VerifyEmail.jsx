@@ -322,7 +322,7 @@ export default function VerifyEmail() {
               <div className="mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-left text-green-800">
                 <p className="font-semibold text-base mb-1">Your account is verified!</p>
                 <p className="text-sm leading-relaxed">
-                  You can close this tab and return to the WooCombine setup window you started from. That tab will refresh and take you to the right place automatically.
+                  You can close this tab and return to the window you started from. You do not need to log in again.
                 </p>
               </div>
             )}
