@@ -278,7 +278,7 @@ export default function VerifyEmail() {
             <ArrowLeft size={20} />
           </button>
           <button
-            className="text-sm text-cyan-600 hover:text-cyan-800 font-medium"
+            className="text-sm text-brand-primary hover:text-brand-secondary font-medium"
             onClick={() => navigate("/help")}
           >
             Need Help?
@@ -319,7 +319,7 @@ export default function VerifyEmail() {
               After you click the link, a new tab may open. Use the <span className="font-medium">Continue</span> button there or simply return to this tab — we’ll detect the verification and continue automatically.
             </p>
             {isVerified && fromFirebase && (
-              <div className="mt-4 bg-green-50 border border-green-100 rounded-xl px-4 py-3 text-left text-green-800">
+              <div className="mt-4 bg-semantic-success/10 border border-semantic-success/20 rounded-xl px-4 py-3 text-left text-semantic-success">
                 <p className="font-semibold text-base mb-1">Your account is verified!</p>
                 <p className="text-sm leading-relaxed">
                   You can close this tab and return to the window you started from. You do not need to log in again.
@@ -339,14 +339,14 @@ export default function VerifyEmail() {
               fromFirebase ? (
                 <button
                   onClick={() => window.close()}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
                 >
                   Close This Tab
                 </button>
               ) : (
                 <button
                   onClick={() => navigate("/select-role")}
-                  className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                  className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
                 >
                   Continue to App
                 </button>
@@ -354,7 +354,7 @@ export default function VerifyEmail() {
             ) : (
               <button
                 onClick={handleOpenEmailApp}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
               >
                 Open Email App
               </button>
@@ -373,19 +373,19 @@ export default function VerifyEmail() {
 
             {/* Status Messages */}
             {!isVerified && (
-              <div className="text-red-600 text-sm text-center">
+              <div className="text-semantic-error text-sm text-center">
                 We haven't detected your email verification yet. Please check your inbox and try again.
               </div>
             )}
             
             {resendStatus && (
-              <div className={`text-sm text-center ${resendStatus.includes('sent') ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`text-sm text-center ${resendStatus.includes('sent') ? 'text-semantic-success' : 'text-semantic-error'}`}>
                 {resendStatus}
               </div>
             )}
 
             {!auth.currentUser && (
-              <div className="text-red-600 text-sm text-center">
+              <div className="text-semantic-error text-sm text-center">
                 User session expired. Please log in again.
               </div>
             )}
@@ -397,14 +397,14 @@ export default function VerifyEmail() {
           <button
             onClick={handleResend}
             disabled={resending}
-            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200 disabled:opacity-50"
+            className="w-full text-brand-primary hover:text-brand-secondary font-medium py-2 transition-colors duration-200 disabled:opacity-50"
           >
             {resending ? "Sending..." : "Resend Email"}
           </button>
           
           <button
             onClick={() => navigate("/help")}
-            className="w-full text-cyan-600 hover:text-cyan-800 font-medium py-2 transition-colors duration-200"
+            className="w-full text-brand-primary hover:text-brand-secondary font-medium py-2 transition-colors duration-200"
           >
             Contact Support
           </button>

@@ -947,14 +947,14 @@ export default function AdminTools() {
             <h2 className="text-lg font-semibold text-gray-900">Invite People to Event</h2>
           </div>
           
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <div className="bg-semantic-warning/10 border border-semantic-warning/30 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-amber-600 text-sm">🔒</span>
+              <div className="w-6 h-6 bg-semantic-warning/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-semantic-warning text-sm">🔒</span>
               </div>
               <div>
-                <p className="text-amber-800 font-medium text-sm mb-1">Secure Role-Based Invitations</p>
-                <p className="text-amber-700 text-sm">
+                <p className="text-semantic-warning font-medium text-sm mb-1">Secure Role-Based Invitations</p>
+                <p className="text-semantic-warning/80 text-sm">
                   Share the appropriate QR code based on the access level you want to grant. This prevents unauthorized role escalation.
                 </p>
               </div>
@@ -963,20 +963,20 @@ export default function AdminTools() {
 
           <div className="space-y-6">
             {/* Coach Invitations */}
-            <div className="bg-blue-50 border-l-4 border-blue-400 rounded-lg p-4">
+            <div className="bg-brand-light/20 border-l-4 border-brand-primary rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-blue-600 text-lg">👨‍🏫</span>
-                <h3 className="text-lg font-semibold text-blue-900">Coach Invitations</h3>
-                <span className="bg-blue-200 text-blue-800 text-xs px-2 py-1 rounded-full font-medium">Read/Write Access</span>
+                <span className="text-brand-primary text-lg">👨‍🏫</span>
+                <h3 className="text-lg font-semibold text-brand-secondary">Coach Invitations</h3>
+                <span className="bg-brand-primary/20 text-brand-primary text-xs px-2 py-1 rounded-full font-medium">Read/Write Access</span>
               </div>
-              <p className="text-blue-800 text-sm mb-3">
+              <p className="text-brand-primary/80 text-sm mb-3">
                 For refs, coaches, and staff who need to view and modify drill scores
               </p>
               
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-1">Coach Invitation Link</label>
-                  <div className="bg-white border border-blue-200 rounded-lg p-3 text-sm text-center break-all">
+                  <label className="block text-sm font-medium text-brand-primary mb-1">Coach Invitation Link</label>
+                  <div className="bg-white border border-brand-primary/20 rounded-lg p-3 text-sm text-center break-all">
                     {inviteLink ? `${inviteLink}/coach` : 'Loading...'}
                   </div>
                 </div>
@@ -984,7 +984,7 @@ export default function AdminTools() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleCopyInviteLink('coach')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                     disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
@@ -995,7 +995,7 @@ export default function AdminTools() {
                       setShowQr(showQr === 'coach' ? false : 'coach');
                       if (showQr !== 'coach') showInfo('📱 Coach QR code displayed');
                     }}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-brand-primary/90 hover:bg-brand-primary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                   >
                     <QrCode className="w-4 h-4" />
                     Coach QR
@@ -1003,9 +1003,9 @@ export default function AdminTools() {
                 </div>
                 
                 {showQr === 'coach' && (
-                  <div className="bg-white rounded-lg p-4 text-center border border-blue-200">
+                  <div className="bg-white rounded-lg p-4 text-center border border-brand-primary/20">
                     <QRCode key={`${inviteLink}/coach`} value={`${inviteLink}/coach`} size={150} className="mx-auto mb-2" />
-                    <p className="text-xs text-blue-600 font-medium">🔵 COACH ACCESS QR CODE</p>
+                    <p className="text-xs text-brand-primary font-medium">🔵 COACH ACCESS QR CODE</p>
                     <p className="text-xs text-gray-500">Grants read/write permissions</p>
                   </div>
                 )}
@@ -1013,20 +1013,20 @@ export default function AdminTools() {
             </div>
 
             {/* Viewer Invitations */}
-            <div className="bg-green-50 border-l-4 border-green-400 rounded-lg p-4">
+            <div className="bg-semantic-success/10 border-l-4 border-semantic-success rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-green-600 text-lg">👥</span>
-                <h3 className="text-lg font-semibold text-green-900">Viewer Invitations</h3>
-                <span className="bg-green-200 text-green-800 text-xs px-2 py-1 rounded-full font-medium">Read-Only Access</span>
+                <span className="text-semantic-success text-lg">👥</span>
+                <h3 className="text-lg font-semibold text-semantic-success">Viewer Invitations</h3>
+                <span className="bg-semantic-success/20 text-semantic-success text-xs px-2 py-1 rounded-full font-medium">Read-Only Access</span>
               </div>
-              <p className="text-green-800 text-sm mb-3">
+              <p className="text-semantic-success/80 text-sm mb-3">
                 For parents, siblings, and spectators who should only view results
               </p>
               
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm font-medium text-green-700 mb-1">Viewer Invitation Link</label>
-                  <div className="bg-white border border-green-200 rounded-lg p-3 text-sm text-center break-all">
+                  <label className="block text-sm font-medium text-semantic-success mb-1">Viewer Invitation Link</label>
+                  <div className="bg-white border border-semantic-success/30 rounded-lg p-3 text-sm text-center break-all">
                     {inviteLink ? `${inviteLink}/viewer` : 'Loading...'}
                   </div>
                 </div>
@@ -1034,7 +1034,7 @@ export default function AdminTools() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     onClick={() => handleCopyInviteLink('viewer')}
-                    className="bg-green-600 hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-semantic-success hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                     disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
@@ -1045,7 +1045,7 @@ export default function AdminTools() {
                       setShowQr(showQr === 'viewer' ? false : 'viewer');
                       if (showQr !== 'viewer') showInfo('📱 Viewer QR code displayed');
                     }}
-                    className="bg-green-500 hover:bg-green-600 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-semantic-success/90 hover:bg-semantic-success text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                   >
                     <QrCode className="w-4 h-4" />
                     Viewer QR
@@ -1053,9 +1053,9 @@ export default function AdminTools() {
                 </div>
                 
                 {showQr === 'viewer' && (
-                  <div className="bg-white rounded-lg p-4 text-center border border-green-200">
+                  <div className="bg-white rounded-lg p-4 text-center border border-semantic-success/30">
                     <QRCode key={`${inviteLink}/viewer`} value={`${inviteLink}/viewer`} size={150} className="mx-auto mb-2" />
-                    <p className="text-xs text-green-600 font-medium">🟢 VIEWER ACCESS QR CODE</p>
+                    <p className="text-xs text-semantic-success font-medium">🟢 VIEWER ACCESS QR CODE</p>
                     <p className="text-xs text-gray-500">Grants read-only permissions</p>
                   </div>
                 )}
@@ -1097,14 +1097,14 @@ export default function AdminTools() {
             <h2 className="text-lg font-semibold text-gray-900">Live Drill Entry</h2>
           </div>
           
-          <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="bg-gradient-to-r from-semantic-success/10 to-semantic-success/20 border border-semantic-success/30 rounded-lg p-4 mb-4">
             <div className="flex items-start gap-3">
-              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-green-600 text-sm">🚀</span>
+              <div className="w-6 h-6 bg-semantic-success/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-semantic-success text-sm">🚀</span>
               </div>
               <div>
-                <p className="text-green-800 font-medium text-sm mb-1">High-Speed Data Entry Mode</p>
-                <p className="text-green-700 text-sm">
+                <p className="text-semantic-success font-medium text-sm mb-1">High-Speed Data Entry Mode</p>
+                <p className="text-semantic-success/80 text-sm">
                   Optimized for live events - rapid player lookup, auto-focus, duplicate detection, and mobile-friendly interface for outdoor use.
                 </p>
               </div>
@@ -1123,23 +1123,23 @@ export default function AdminTools() {
             
             <Link
               to="/live-entry"
-              className="block w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold px-6 py-4 rounded-xl transition text-center shadow-lg"
+              className="block w-full bg-gradient-to-r from-semantic-success to-semantic-success/90 hover:from-semantic-success/90 hover:to-semantic-success text-white font-bold px-6 py-4 rounded-xl transition text-center shadow-lg"
               onClick={() => showInfo('🚀 Entering Live Entry mode - perfect for recording drill results during your event')}
             >
               🚀 Start Live Entry Mode
             </Link>
             
             {playerCount > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p className="text-blue-800 text-sm">
+              <div className="bg-brand-light/20 border border-brand-primary/20 rounded-lg p-3">
+                <p className="text-brand-primary text-sm">
                   <strong>Ready to go!</strong> {playerCount} players uploaded. You can now begin entering drill results during your combine event.
                 </p>
               </div>
             )}
             
             {playerCount === 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-yellow-800 text-sm">
+              <div className="bg-semantic-warning/10 border border-semantic-warning/30 rounded-lg p-3">
+                <p className="text-semantic-warning text-sm">
                   <strong>Upload players first:</strong> Add players in Step 2 before starting live drill entry.
                 </p>
               </div>
@@ -1176,12 +1176,12 @@ export default function AdminTools() {
             </div>
 
             {/* Reset Section */}
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="font-medium text-red-800 mb-2 flex items-center gap-2">
-                <RefreshCcw className="w-4 h-4 text-red-600" />
+            <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-4">
+              <h3 className="font-medium text-semantic-error mb-2 flex items-center gap-2">
+                <RefreshCcw className="w-4 h-4 text-semantic-error" />
                 Reset Event Data
               </h3>
-              <p className="text-red-700 text-sm mb-3">
+              <p className="text-semantic-error/90 text-sm mb-3">
                 ⚠️ This will permanently delete all player data for this event. Use only for testing or starting over.
               </p>
               
@@ -1191,13 +1191,13 @@ export default function AdminTools() {
                   value={confirmInput}
                   onChange={(e) => setConfirmInput(e.target.value)}
                   placeholder="Type 'RESET' to confirm"
-                  className="w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                  className="w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-semantic-error focus:border-semantic-error"
                 />
                 
                 <button
                   onClick={handleReset}
                   disabled={confirmInput !== "RESET" || status === "loading"}
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition"
+                  className="w-full bg-semantic-error hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition"
                 >
                   {status === "loading" ? "Resetting..." : "Reset All Event Data"}
                 </button>

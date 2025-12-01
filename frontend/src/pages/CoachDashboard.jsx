@@ -272,7 +272,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
           {/* Age Group Preview Card */}
           {selectedAgeGroup && (
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-xl p-4">
+            <div className="bg-gradient-to-br from-brand-light/50 to-brand-primary/5 border-2 border-brand-primary/20 rounded-xl p-4">
               {(() => {
                 const groupPlayers = players.filter(p => p.age_group === selectedAgeGroup);
                 const completedPlayers = groupPlayers.filter(p => p.composite_score > 0);
@@ -283,49 +283,49 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                   <>
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-4">
-                      <Users className="w-6 h-6 text-blue-600" />
+                      <Users className="w-6 h-6 text-brand-primary" />
                       <div className="flex-1">
-                        <h4 className="text-lg font-bold text-blue-900">{selectedAgeGroup}</h4>
-                        <p className="text-sm text-blue-700">Age Group Analysis</p>
+                        <h4 className="text-lg font-bold text-brand-secondary">{selectedAgeGroup}</h4>
+                        <p className="text-sm text-brand-primary">Age Group Analysis</p>
                       </div>
-                      <CheckCircle className="w-5 h-5 text-blue-600" />
+                      <CheckCircle className="w-5 h-5 text-brand-primary" />
                     </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {/* Player Count */}
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white/70 rounded-lg p-3 border border-brand-primary/20">
                         <div className="flex items-center gap-2 mb-1">
-                          <Users className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">Players</span>
+                          <Users className="w-4 h-4 text-brand-primary" />
+                          <span className="text-sm font-medium text-brand-secondary">Players</span>
                         </div>
-                        <div className="text-lg font-bold text-blue-800">{groupPlayers.length}</div>
-                        <div className="text-xs text-blue-600">registered</div>
+                        <div className="text-lg font-bold text-brand-primary">{groupPlayers.length}</div>
+                        <div className="text-xs text-brand-primary/80">registered</div>
                       </div>
 
                       {/* Completion Rate */}
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white/70 rounded-lg p-3 border border-brand-primary/20">
                         <div className="flex items-center gap-2 mb-1">
-                          <Target className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">Completion</span>
+                          <Target className="w-4 h-4 text-brand-primary" />
+                          <span className="text-sm font-medium text-brand-secondary">Completion</span>
                         </div>
-                        <div className="text-lg font-bold text-blue-800">{Math.round(completionRate)}%</div>
-                        <div className="text-xs text-blue-600">{completedPlayers.length} of {groupPlayers.length}</div>
+                        <div className="text-lg font-bold text-brand-primary">{Math.round(completionRate)}%</div>
+                        <div className="text-xs text-brand-primary/80">{completedPlayers.length} of {groupPlayers.length}</div>
                       </div>
                     </div>
 
                     {/* Performance Overview */}
                     {completedPlayers.length > 0 && (
-                      <div className="bg-white/70 rounded-lg p-3 border border-blue-200">
+                      <div className="bg-white/70 rounded-lg p-3 border border-brand-primary/20">
                         <div className="flex items-center gap-2 mb-2">
-                          <BarChart3 className="w-4 h-4 text-blue-600" />
-                          <span className="text-sm font-medium text-blue-900">Performance Overview</span>
+                          <BarChart3 className="w-4 h-4 text-brand-primary" />
+                          <span className="text-sm font-medium text-brand-secondary">Performance Overview</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <div className="text-xs text-blue-700">
+                          <div className="text-xs text-brand-primary">
                             Avg Score: <span className="font-medium">{avgScore.toFixed(1)}</span>
                           </div>
-                          <div className="text-xs text-blue-700">
+                          <div className="text-xs text-brand-primary">
                             Range: <span className="font-medium">
                               {Math.min(...completedPlayers.map(p => p.composite_score)).toFixed(1)} - {Math.max(...completedPlayers.map(p => p.composite_score)).toFixed(1)}
                             </span>

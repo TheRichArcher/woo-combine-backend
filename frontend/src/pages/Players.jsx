@@ -703,7 +703,7 @@ export default function Players() {
                 {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Compact Weight Controls for Viewers */}
-                    <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3">
+                    <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-3">
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-4 h-4" />
@@ -1090,7 +1090,7 @@ export default function Players() {
                               </button>
                               <button
                                 onClick={() => toggleForm(player.id)}
-                                className="bg-cyan-100 hover:bg-cyan-200 text-cyan-700 px-3 py-1 rounded-md text-sm font-medium transition"
+                                className="bg-brand-light/20 hover:bg-brand-light/30 text-brand-primary px-3 py-1 rounded-md text-sm font-medium transition"
                               >
                                 Add Result
                               </button>
@@ -1344,28 +1344,28 @@ export default function Players() {
               </h2>
               
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{players.length}</div>
-                  <div className="text-sm text-blue-700">Total Players</div>
+                <div className="bg-brand-light/20 rounded-lg p-4 text-center border border-brand-light/30">
+                  <div className="text-2xl font-bold text-brand-primary">{players.length}</div>
+                  <div className="text-sm text-brand-secondary">Total Players</div>
                 </div>
                 
-                <div className="bg-green-50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{Object.keys(grouped).length}</div>
-                  <div className="text-sm text-green-700">Age Groups</div>
+                <div className="bg-brand-light/20 rounded-lg p-4 text-center border border-brand-light/30">
+                  <div className="text-2xl font-bold text-brand-secondary">{Object.keys(grouped).length}</div>
+                  <div className="text-sm text-brand-secondary">Age Groups</div>
                 </div>
                 
-                <div className="bg-purple-50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-600">
+                <div className="bg-brand-primary/5 rounded-lg p-4 text-center border border-brand-primary/20">
+                  <div className="text-2xl font-bold text-brand-primary">
                     {players.filter(p => p.composite_score != null).length}
                   </div>
-                  <div className="text-sm text-purple-700">With Scores</div>
+                  <div className="text-sm text-brand-secondary">With Scores</div>
                 </div>
                 
-                <div className="bg-orange-50 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-orange-600">
+                <div className="bg-brand-accent/5 rounded-lg p-4 text-center border border-brand-accent/20">
+                  <div className="text-2xl font-bold text-brand-accent">
                     {Math.round((players.filter(p => p.composite_score != null).length / players.length) * 100)}%
                   </div>
-                  <div className="text-sm text-orange-700">Completion</div>
+                  <div className="text-sm text-brand-secondary">Completion</div>
                 </div>
               </div>
             </div>

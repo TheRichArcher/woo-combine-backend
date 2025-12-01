@@ -68,12 +68,12 @@ export default function EmailAction() {
           <>
             <h2 className="text-2xl font-bold mb-3">Verifying your email…</h2>
             <p className="text-gray-600">Please wait a moment.</p>
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600 mx-auto mt-6" />
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto mt-6" />
           </>
         )}
         {status === "success" && (
           <>
-            <h2 className="text-2xl font-bold text-green-600 mb-3">Success! Email Verified.</h2>
+            <h2 className="text-2xl font-bold text-semantic-success mb-3">Success! Email Verified.</h2>
             <p className="text-gray-700 mb-6 font-semibold">{message}</p>
             
             <button onClick={() => navigate('/login')} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition">
@@ -87,9 +87,9 @@ export default function EmailAction() {
         )}
         {status === "error" && (
           <>
-            <h2 className="text-2xl font-bold text-red-600 mb-3">Verification Issue</h2>
+            <h2 className="text-2xl font-bold text-semantic-error mb-3">Verification Issue</h2>
             <p className="text-gray-700 mb-6">{message}</p>
-            <button onClick={() => navigate('/login')} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl">
+            <button onClick={() => navigate('/login')} className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl">
               Back to Login
             </button>
           </>
