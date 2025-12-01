@@ -5,7 +5,7 @@ from ..models import DrillResultSchema
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from ..firestore_client import db
-from google.cloud.firestore import Query as FsQuery, FieldValue
+from google.cloud import firestore
 import logging
 from datetime import datetime
 from ..utils.database import execute_with_timeout
@@ -148,7 +148,7 @@ def delete_drill_result(
         results_query = (
             player_ref.collection("drill_results")
             .where("type", "==", drill_type)
-            .order_by("created_at", direction=FsQuery.DESCENDING)
+            .order_by("created_at", direction=firestore.Query.DESCENDING)
             .limit(1)
         )
         
@@ -165,7 +165,7 @@ def delete_drill_result(
         else:
             # No previous scores, remove the field
             execute_with_timeout(
-                lambda: player_ref.update({drill_type: FieldValue.delete()}),
+                lambda: player_ref.update({drill_type: firestore.FieldValue.delete()}),
                 timeout=5
             )
             logging.info(f"Removed {drill_type} for player {player_id} (no previous scores)")
