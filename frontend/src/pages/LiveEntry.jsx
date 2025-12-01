@@ -124,11 +124,23 @@ export default function LiveEntry() {
   // Load persisted state
   useEffect(() => {
     if (!storageKeys) return;
+    
+    // Reset transient state whenever event/keys change
+    setScore("");
+    setPlayerName("");
+    setPlayerId("");
+    setDuplicateData(null);
+    setShowDuplicateDialog(false);
+
     try {
       const savedDrill = localStorage.getItem(storageKeys.drill);
       if (savedDrill) {
         setSelectedDrill(savedDrill);
         setDrillConfirmed(!!savedDrill);
+      } else {
+        // Important: Reset if no saved drill for this specific event
+        setSelectedDrill("");
+        setDrillConfirmed(false);
       }
     } catch {}
     try {
@@ -142,18 +154,24 @@ export default function LiveEntry() {
           }));
           setRecentEntries(normalized);
         }
+      } else {
+        setRecentEntries([]);
       }
     } catch {}
     try {
       const savedChecklist = localStorage.getItem(storageKeys.checklist);
       if (savedChecklist === '1') {
         setChecklistDismissed(true);
+      } else {
+        setChecklistDismissed(false);
       }
     } catch {}
     try {
       const savedFocus = localStorage.getItem(storageKeys.focus);
       if (savedFocus) {
         setPlayerNumber(savedFocus);
+      } else {
+        setPlayerNumber("");
       }
     } catch {}
     try {
@@ -161,6 +179,8 @@ export default function LiveEntry() {
       if (savedLocks) {
         const parsed = JSON.parse(savedLocks);
         if (parsed && typeof parsed === 'object') setLockedDrills(parsed);
+      } else {
+        setLockedDrills({});
       }
     } catch {}
     try {
@@ -168,12 +188,16 @@ export default function LiveEntry() {
       if (savedReviews) {
         const parsed = JSON.parse(savedReviews);
         if (parsed && typeof parsed === 'object') setReviewDismissed(parsed);
+      } else {
+        setReviewDismissed({});
       }
     } catch {}
     try {
       const hintFlag = localStorage.getItem(storageKeys.drillHint);
       if (hintFlag !== '1') {
         setShowDrillHint(true);
+      } else {
+        setShowDrillHint(false);
       }
     } catch {}
   }, [storageKeys]);
@@ -219,6 +243,11 @@ export default function LiveEntry() {
       }
     } catch {}
   }, [storageKeys, selectedDrill]);
+
+  // Clear score when drill changes
+  useEffect(() => {
+    setScore("");
+  }, [selectedDrill]);
 
   // Persist recent entries (last 10)
   useEffect(() => {
@@ -362,7 +391,7 @@ export default function LiveEntry() {
     setLoading(true);
     
     try {
-      await api.post('/drill-results/', {
+      const response = await api.post('/drill-results/', {
         player_id: playerId,
         type: selectedDrill,
         value: parseFloat(score),
@@ -372,6 +401,7 @@ export default function LiveEntry() {
       // Add to recent entries
       const entry = {
         id: Date.now(),
+        drillResultId: response.data.id, // Capture backend ID for undo
         playerId,
         playerNumber,
         playerName,
@@ -416,9 +446,23 @@ export default function LiveEntry() {
     
     const lastEntry = recentEntries[0];
     if (confirm(`Undo entry for ${lastEntry.playerName}?`)) {
-      // Note: In a real implementation, you'd want a delete endpoint
-      // For now, we'll just remove from the UI
+      // Perform true backend undo if we have the ID
+      if (lastEntry.drillResultId) {
+        try {
+          await api.delete(`/drill-results/${lastEntry.drillResultId}?event_id=${selectedEvent.id}&player_id=${lastEntry.playerId}`);
+          
+          // Refresh data
+          cacheInvalidation.playersUpdated(selectedEvent.id);
+          fetchPlayers();
+        } catch (error) {
+          console.error("Undo failed:", error);
+          showError("Failed to remove score from backend. Please try again.");
+          return;
+        }
+      }
+      
       setRecentEntries(prev => prev.slice(1));
+      showSuccess('Entry undone');
     }
   };
   
@@ -426,6 +470,7 @@ export default function LiveEntry() {
     setPlayerNumber(player.number.toString());
     setPlayerName(player.name);
     setPlayerId(player.id);
+    setScore(""); // Clear score on explicit player selection to prevent phantom scores
     setFilteredPlayers([]);
     setTimeout(() => {
       scoreRef.current?.focus();

@@ -259,7 +259,14 @@ export default function Players() {
     
     // Fallback to original calculation for different weights
     const rankedPlayers = calculateNormalizedCompositeScores(playersGroup, weights, allDrills);
-    rankedPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
+    rankedPlayers.sort((a, b) => {
+      // Primary: Composite Score (descending)
+      const diff = b.compositeScore - a.compositeScore;
+      if (Math.abs(diff) > 0.001) return diff;
+      
+      // Secondary: Name (ascending) for stability
+      return (a.name || '').localeCompare(b.name || '');
+    });
     
     return rankedPlayers.map((player, index) => ({
       ...player,
@@ -1204,20 +1211,31 @@ export default function Players() {
                       if (allPlayers.length === 0) return;
                       
                       const headers = ['Rank', 'Name', 'Player Number', 'Age Group', 'Composite Score', ...allDrills.map(d => d.label)];
-                      let csv = headers.join(',') + '\n';
+                      
+                      // Helper to escape CSV cells properly
+                      const escapeCsvCell = (cell) => {
+                        if (cell === null || cell === undefined) return '';
+                        const str = String(cell);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                          return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                      };
+
+                      let csv = headers.map(escapeCsvCell).join(',') + '\n';
                       
                       allPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
                           const row = [
                             index + 1,
-                            `"${player.name}"`,
+                            player.name,
                             player.number || 'N/A',
-                            `"${player.age_group || 'Unknown'}"`,
+                            player.age_group || 'Unknown',
                             (player.composite_score || 0).toFixed(2),
-                            ...allDrills.map(d => player[d.key] ?? 'Missing')
+                            ...allDrills.map(d => player[d.key] ?? '')
                           ];
-                          csv += row.join(',') + '\n';
+                          csv += row.map(escapeCsvCell).join(',') + '\n';
                         });
                       
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
@@ -1255,19 +1273,30 @@ export default function Players() {
                       if (ageGroupPlayers.length === 0) return;
                       
                       const headers = ['Rank', 'Name', 'Player Number', 'Composite Score', ...allDrills.map(d => d.label)];
-                      let csv = headers.join(',') + '\n';
+                      
+                      // Helper to escape CSV cells properly
+                      const escapeCsvCell = (cell) => {
+                        if (cell === null || cell === undefined) return '';
+                        const str = String(cell);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                          return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                      };
+
+                      let csv = headers.map(escapeCsvCell).join(',') + '\n';
                       
                       ageGroupPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
                           const row = [
                             index + 1,
-                            `"${player.name}"`,
+                            player.name,
                             player.number || 'N/A',
                             (player.composite_score || 0).toFixed(2),
-                            ...allDrills.map(d => player[d.key] ?? 'Missing')
+                            ...allDrills.map(d => player[d.key] ?? '')
                           ];
-                          csv += row.join(',') + '\n';
+                          csv += row.map(escapeCsvCell).join(',') + '\n';
                         });
                         
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';

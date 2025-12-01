@@ -534,6 +534,34 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, []); // CRITICAL: Empty dependency array to prevent infinite loops
 
+  // Sync league selection across tabs
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === 'selectedLeagueId') {
+        const newValue = e.newValue;
+        // If local state doesn't match new storage value, update it
+        if (newValue !== selectedLeagueId) {
+          const sanitized = (newValue === undefined || newValue === null || newValue === 'null') ? '' : String(newValue).trim();
+          
+          setSelectedLeagueIdState(sanitized);
+          
+          // Also update role if we have leagues loaded
+          if (sanitized && leagues.length > 0) {
+            const selectedLeague = leagues.find(l => l.id === sanitized);
+            setRole(selectedLeague?.role || null);
+          } else if (!sanitized) {
+            setRole(null);
+          }
+          
+          authLogger.debug('Synced selectedLeagueId from another tab', sanitized);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [leagues, selectedLeagueId]);
+
   // Add league function for join operations
   const addLeague = useCallback((newLeague) => {
     setLeagues(prevLeagues => {
