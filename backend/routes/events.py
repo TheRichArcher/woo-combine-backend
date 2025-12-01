@@ -64,6 +64,7 @@ class EventCreateRequest(BaseModel):
     name: str
     date: str | None = None
     location: str | None = None
+    drillTemplate: str | None = "football"
 
 @router.post('/leagues/{league_id}/events')
 @write_rate_limit()
@@ -78,9 +79,18 @@ def create_event(
         name = req.name if req else None
         date = req.date if req else None
         location = req.location if req else None
+        drill_template = req.drillTemplate if req and req.drillTemplate else "football"
         
+        logging.info(f"Event creation request - Name: {name}, Template: {drill_template}")
+
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
+
+        # Validate drill template exists
+        valid_templates = ["football", "soccer", "basketball", "baseball", "track", "volleyball"]
+        if drill_template not in valid_templates:
+            logging.warning(f"Invalid drill template '{drill_template}' requested. Defaulting to 'football'.")
+            drill_template = "football"
 
         ensure_league_document(league_id)
         # Create event in league subcollection (for league-specific queries)
@@ -92,7 +102,7 @@ def create_event(
             "date": date,
             "location": location or "",
             "league_id": league_id,  # Add league_id reference
-            "drillTemplate": "football",  # Default to football template
+            "drillTemplate": drill_template,
             "created_at": datetime.utcnow().isoformat(),
             "live_entry_active": False,
         }
