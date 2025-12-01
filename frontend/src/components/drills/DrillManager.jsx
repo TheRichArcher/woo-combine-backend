@@ -104,7 +104,10 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
                                 Category: {drill.category} • Unit: {drill.unit} • {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
                             </div>
                         </div>
-                        <div className="text-xs text-gray-400 italic">Read-only</div>
+                        <div className="text-right">
+                            <div className="text-xs font-medium text-gray-500">Standard Drill</div>
+                            <div className="text-[10px] text-gray-400">(Included in the {templateInfo?.sport || 'Standard'} Combine template — not editable)</div>
+                        </div>
                     </li>
                 ))}
             </ul>
