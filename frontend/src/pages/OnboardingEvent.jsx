@@ -661,7 +661,7 @@ export default function OnboardingEvent() {
             </div>
 
               {/* Manual Add Section */}
-              <div className="border border-gray-200 rounded-lg p-4">
+              <div className="border border-gray-200 rounded-lg p-4 mb-6">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-semantic-success" />
                   Add Players Manually
@@ -692,7 +692,6 @@ export default function OnboardingEvent() {
                   </div>
                 )}
               </div>
-            </div>
 
             {/* Current Player Count */}
             {playerCount > 0 && (
