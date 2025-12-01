@@ -17,6 +17,9 @@ router = APIRouter(prefix="/users")
 class SetRoleRequest(BaseModel):
     role: str
 
+class PendingInviteRequest(BaseModel):
+    invite: str
+
 # PERFORMANCE OPTIMIZATION: Cache user profiles for 5 minutes to reduce database calls
 @lru_cache(maxsize=1000)
 def _get_cached_user_profile(uid: str, cache_time: int):
@@ -57,14 +60,16 @@ async def get_current_user_profile(request: Request, current_user: dict = Depend
                 "id": uid,
                 "email": email,
                 "role": role,
-                "created_at": None
+                "created_at": None,
+                "pending_invite": None
             }
         
         return {
             "id": uid,
             "email": email,
             "role": role,
-            "created_at": user_data.get("created_at")
+            "created_at": user_data.get("created_at"),
+            "pending_invite": user_data.get("pending_invite")
         }
         
     except Exception as e:
@@ -177,6 +182,49 @@ async def set_user_role(
     except Exception as e:
         logging.error(f"Error setting user role: {e}")
         raise HTTPException(status_code=500, detail="Failed to set user role")
+
+@router.post("/pending-invite", summary="Store pending invite for user")
+@auth_rate_limit()
+async def store_pending_invite(
+    invite_data: PendingInviteRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user_for_role_setting)
+):
+    """Store a pending invite for a user so it persists across authentication/verification flows"""
+    try:
+        uid = current_user["uid"]
+        email = current_user.get("email", "")
+        invite = invite_data.invite
+        
+        logging.info(f"Storing pending invite for user {uid}: {invite}")
+        
+        db = get_firestore_client()
+        user_doc_ref = db.collection("users").document(uid)
+        
+        # Create or update user doc with pending_invite
+        # Use merge=True to avoid overwriting existing data
+        user_data = {
+            "id": uid,
+            "email": email,
+            "pending_invite": invite,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+        
+        # If doc doesn't exist, we should set created_at too
+        doc_snap = user_doc_ref.get()
+        if not doc_snap.exists:
+            user_data["created_at"] = datetime.utcnow().isoformat()
+        
+        user_doc_ref.set(user_data, merge=True)
+        
+        # Clear cache so subsequent GET /me calls see the invite
+        _get_cached_user_profile.cache_clear()
+        
+        return {"status": "success", "message": "Pending invite stored"}
+        
+    except Exception as e:
+        logging.error(f"Error storing pending invite: {e}")
+        raise HTTPException(status_code=500, detail="Failed to store invite")
 
 # Debug endpoints should be disabled in production
 @router.post("/debug-role", summary="Debug role setting with simplified auth")

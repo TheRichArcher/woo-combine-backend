@@ -271,6 +271,13 @@ export function AuthProvider({ children }) {
               if (response?.data) {
                 const userData = response.data;
                 const serverRole = sanitizeRole(userData.role);
+                
+                // CRITICAL FIX: Restore pending invite from background check too
+                if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
+                   authLogger.info('Restoring pending invite from server profile (background)', userData.pending_invite);
+                   localStorage.setItem('pendingEventJoin', userData.pending_invite);
+                }
+
                 if (serverRole && serverRole !== cachedRole) {
                   authLogger.debug('Role changed on server, updating cache');
                   setUserRole(serverRole);
@@ -308,6 +315,13 @@ export function AuthProvider({ children }) {
               const userData = roleResponse.data;
               authLogger.debug('User data received', userData);
               userRole = sanitizeRole(userData.role);
+              
+              // CRITICAL FIX: Restore pending invite from server if missing locally
+              // This handles the cross-device / incognito verification flow
+              if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
+                authLogger.info('Restoring pending invite from server profile', userData.pending_invite);
+                localStorage.setItem('pendingEventJoin', userData.pending_invite);
+              }
             } else if (roleResponse?.status === 404) {
               authLogger.debug('User not found (404) - treating as new user');
               userRole = null;
@@ -636,6 +650,13 @@ export function AuthProvider({ children }) {
         const userData = response.data;
         const newRole = userData.role;
         authLogger.debug('Refreshed user role', newRole);
+        
+        // CRITICAL FIX: Restore pending invite during manual refresh
+        if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
+            authLogger.info('Restoring pending invite from server profile (refresh)', userData.pending_invite);
+            localStorage.setItem('pendingEventJoin', userData.pending_invite);
+        }
+        
         setUserRole(newRole);
         // Persist role to localStorage for browser refresh resilience
         localStorage.setItem('userRole', newRole);

@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
+import api from "../../lib/api";
 
 export default function SignupForm() {
   const signupsOpen = import.meta.env.VITE_SIGNUPS_OPEN === "true";
@@ -52,6 +53,26 @@ export default function SignupForm() {
       }
       
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // CRITICAL FIX: Store pending invite on server so it survives email verification
+      // This ensures that even if localStorage is lost (cross-device/incognito), the invite persists
+      const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+      if (pendingEventJoin) {
+        try {
+          authLogger.debug("Storing pending invite on server:", pendingEventJoin);
+          // We need the token to authenticate the request
+          const token = await userCredential.user.getIdToken();
+          await api.post('/users/pending-invite', {
+            invite: pendingEventJoin
+          }, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          authLogger.debug("Pending invite stored successfully on server");
+        } catch (inviteError) {
+          authLogger.error("Failed to store pending invite on server:", inviteError);
+          // Continue anyway - we still have the localStorage fallback and query param fallback
+        }
+      }
       
       // Send email verification with a continue URL so users can get back to the app easily
       try {

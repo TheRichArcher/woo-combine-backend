@@ -89,6 +89,30 @@ export default function SelectRole() {
     }
   }, [intendedRole, selectedRole]);
 
+  // CRITICAL FIX: Check server for pending invites if missing locally (e.g. cross-device/incognito)
+  useEffect(() => {
+    const checkServerForInvite = async () => {
+      // Only check if we don't have a local invite and haven't selected a role yet
+      if (!pendingEventJoin && !selectedRole && user) {
+        try {
+          await refreshUserRole();
+          // Check if invite was restored
+          const restoredInvite = localStorage.getItem('pendingEventJoin');
+          if (restoredInvite) {
+            console.log("Restored pending invite from server:", restoredInvite);
+            const parts = restoredInvite.split('/');
+            // Re-run the navigation logic
+            const safePath = restoredInvite.split('/').map(part => encodeURIComponent(part)).join('/');
+            navigate(`/join-event/${safePath}`, { replace: true });
+          }
+        } catch (e) {
+          console.error("Failed to check server for invite:", e);
+        }
+      }
+    };
+    checkServerForInvite();
+  }, [user, pendingEventJoin, selectedRole, refreshUserRole, navigate]);
+
   if (!user) {
     return (
       <LoadingScreen 
@@ -257,7 +281,7 @@ export default function SelectRole() {
               disabled={loading}
               className={`w-full p-4 rounded-xl border-2 transition-all duration-200 text-left ${
                 selectedRole === role.key
-                  ? 'border-cyan-500 bg-cyan-50'
+                  ? 'border-brand-primary bg-brand-primary/5'
                   : 'border-gray-200 hover:border-gray-300 bg-white'
               }`}
             >
@@ -268,11 +292,11 @@ export default function SelectRole() {
                   <p className="text-sm text-gray-600 mb-1">{role.desc}</p>
                   <p className="text-xs text-gray-500">{role.benefits}</p>
                   {pendingAutoProceedRole === role.key && (
-                    <p className="text-xs text-cyan-700 mt-1">Continuing... tap again to cancel</p>
+                    <p className="text-xs text-brand-primary mt-1">Continuing... tap again to cancel</p>
                   )}
                 </div>
                 {selectedRole === role.key && (
-                  <CheckCircle className="w-5 h-5 text-cyan-600 mt-1" />
+                  <CheckCircle className="w-5 h-5 text-brand-primary mt-1" />
                 )}
               </div>
             </button>
@@ -281,7 +305,7 @@ export default function SelectRole() {
 
         {/* Error Message */}
         {error && (
-          <div className="w-full bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded mb-4 text-sm">
+          <div className="w-full bg-semantic-error/10 border border-semantic-error/20 text-semantic-error px-3 py-2 rounded mb-4 text-sm">
             {error}
           </div>
         )}
@@ -290,7 +314,7 @@ export default function SelectRole() {
         <div className="w-full flex flex-col gap-3">
           <button
             onClick={handleContinue}
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
+            className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:transform-none"
             disabled={!selectedRole || loading}
           >
             {loading ? 'Saving...' : intendedRole ? `Continue as ${intendedRole === 'coach' ? 'Coach' : 'Viewer'}` : 'Continue'}
