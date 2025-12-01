@@ -18,14 +18,14 @@ ADMIN_ROLES: RoleSet = {"organizer"}
 
 ACCESS_MATRIX: Dict[ResourceKey, RoleSet] = {
     ("events", "list"): VIEW_ROLES,
-    ("events", "create"): MANAGE_ROLES,
+    ("events", "create"): ADMIN_ROLES,
     ("events", "read"): VIEW_ROLES,
-    ("events", "update"): MANAGE_ROLES,
+    ("events", "update"): ADMIN_ROLES,
     ("events", "delete"): ADMIN_ROLES,
     ("players", "read"): VIEW_ROLES,
     ("players", "create"): MANAGE_ROLES,
     ("players", "update"): MANAGE_ROLES,
-    ("players", "upload"): MANAGE_ROLES,
+    ("players", "upload"): ADMIN_ROLES,
     ("players", "reset"): ADMIN_ROLES,
     ("players", "rankings"): VIEW_ROLES,
     ("league_players", "read"): VIEW_ROLES,
