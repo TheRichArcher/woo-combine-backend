@@ -30,10 +30,16 @@ export default function EmailAction() {
         }
 
         if (mode === 'verifyEmail') {
+          // CRITICAL FIX: Restore pending join state if passed in URL
+          const pendingEventJoin = query.get('pendingEventJoin');
+          if (pendingEventJoin) {
+             localStorage.setItem('pendingEventJoin', pendingEventJoin);
+          }
+
           await applyActionCode(auth, oobCode);
           
           setStatus("success");
-          setMessage("Your email has been verified. Please close this window and use the other one.");
+          setMessage("Your email has been verified. You can close this tab or continue to login.");
           
           // Attempt to notify the original tab
           try {
@@ -70,15 +76,12 @@ export default function EmailAction() {
             <h2 className="text-2xl font-bold text-green-600 mb-3">Success! Email Verified.</h2>
             <p className="text-gray-700 mb-6 font-semibold">{message}</p>
             
-            <button
-              onClick={() => window.close()}
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl transition mb-3"
-            >
-              Close this Tab
+            <button onClick={() => navigate('/login')} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition">
+              Continue to Login
             </button>
             
-            <p className="text-gray-500 text-sm">
-              This tab was opened only to verify your email.
+            <p className="text-gray-500 text-sm mt-4">
+              Or close this tab if you're already logged in elsewhere.
             </p>
           </>
         )}

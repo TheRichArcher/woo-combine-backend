@@ -299,8 +299,13 @@ def join_league(
         batch.set(user_memberships_ref, membership_update, merge=True)
         
         # Execute both operations atomically
+        logging.info(f"[BATCH] Preparing to write membership to paths:")
+        logging.info(f"  1. {member_ref.path}")
+        logging.info(f"  2. {user_memberships_ref.path} (update)")
+        
         logging.info(f"[BATCH] Executing atomic join operation for user {user_id} in league {resolved_league_id}")
         batch.commit()
+        logging.info(f"[BATCH] Successfully committed membership writes for user {user_id}")
         
         logging.info(f"User {user_id} joined league {resolved_league_id} as {role} using batch operation")
         response_payload = {

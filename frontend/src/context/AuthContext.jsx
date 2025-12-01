@@ -184,6 +184,17 @@ export function AuthProvider({ children }) {
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
         if (initialPath === '/login') {
+          // CRITICAL FIX: Check for pending join FIRST, before default redirect
+          // This ensures users returning from email verification loop back to the join flow
+          const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+          if (pendingEventJoin) {
+            const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+            authLogger.debug('Redirecting to pending invited event join from FAST EXIT');
+            navigate(`/join-event/${safePath}`, { replace: true });
+            setInitializing(false);
+            return;
+          }
+
           const target = localStorage.getItem('postLoginRedirect') || '/dashboard';
           localStorage.removeItem('postLoginRedirect');
           // Ensure minimal ready state before redirect so guards don't stall

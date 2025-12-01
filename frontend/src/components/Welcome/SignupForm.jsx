@@ -55,9 +55,16 @@ export default function SignupForm() {
       
       // Send email verification with a continue URL so users can get back to the app easily
       try {
+        // CRITICAL FIX: Pass pending join info in verification URL for cross-browser support
+        let continueUrl = window.location.origin + "/email-action?fromFirebase=1";
+        const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+        if (pendingEventJoin) {
+          continueUrl += `&pendingEventJoin=${encodeURIComponent(pendingEventJoin)}`;
+        }
+
         const actionCodeSettings = {
           // Handle action in-app; after Firebase "Continue", show dedicated popup instructions
-          url: window.location.origin + "/email-action?fromFirebase=1",
+          url: continueUrl,
           handleCodeInApp: true,
         };
         await sendEmailVerification(userCredential.user, actionCodeSettings);
