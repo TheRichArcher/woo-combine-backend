@@ -251,65 +251,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Next Steps - Simplified */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Next Steps</h2>
-          <div className="space-y-3">
-            {/* Event Status */}
-            <div className="flex items-center gap-3 mb-4">
-              <span className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-bold">✓</span>
-              <span className="text-sm text-gray-600">Event selected: <strong>{selectedEvent.name}</strong></span>
-            </div>
-            
-            {/* Primary Action */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              {userRole === 'organizer' && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">Ready to add players and start your event?</p>
-                  <button
-                    onClick={() => handleNavigation('/players')}
-                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
-                  >
-                    🚀 Manage Players & Start Event
-                  </button>
-                </div>
-              )}
-              {userRole === 'coach' && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">View player performance and rankings</p>
-                  <button
-                    onClick={() => handleNavigation('/players')}
-                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
-                  >
-                    📊 View Players
-                  </button>
-                </div>
-              )}
-              {userRole === 'viewer' && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">Check out the latest results and rankings</p>
-                  <button
-                    onClick={() => handleNavigation('/players')}
-                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
-                  >
-                    👁️ View Results
-                  </button>
-                </div>
-              )}
-              {userRole === 'player' && (
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">Submit your combine performance results</p>
-                  <button
-                    onClick={() => handleNavigation('/drill-input')}
-                    className="bg-semantic-success text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
-                  >
-                    📝 Submit Results
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
