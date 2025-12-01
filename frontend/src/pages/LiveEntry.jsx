@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info, Lock, LockOpen, StickyNote } from 'lucide-react';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
@@ -11,6 +12,7 @@ import { cacheInvalidation } from '../utils/dataCache';
 export default function LiveEntry() {
   const { selectedEvent, setSelectedEvent } = useEvent();
   const { userRole } = useAuth();
+  const { showError, showSuccess } = useToast();
   const location = useLocation();
 
   // Refresh event data on mount to ensure drill template is up to date
@@ -330,14 +332,14 @@ export default function LiveEntry() {
     // Validate score input before sending to backend
     const numericScore = parseFloat(score);
     if (isNaN(numericScore)) {
-      alert("Please enter a valid number for the score.");
+      showError("Please enter a valid number for the score.");
       scoreRef.current?.focus();
       return;
     }
     
     // Optional: Reject obvious typo cases like "4..5" or "abc" that might slip through some parsers
     if (!/^-?\d*\.?\d+$/.test(score.trim())) {
-      alert("Please enter a valid numeric format.");
+      showError("Please enter a valid numeric format.");
       scoreRef.current?.focus();
       return;
     }
@@ -403,7 +405,7 @@ export default function LiveEntry() {
       
           } catch {
         // Score submission failed
-      alert('Error submitting score. Please try again.');
+      showError('Error submitting score. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -1021,7 +1023,7 @@ export default function LiveEntry() {
                           cacheInvalidation.playersUpdated(selectedEvent.id);
                           await fetchPlayers();
                         } catch {
-                          alert('Error updating score. Please try again.');
+                          showError('Error updating score. Please try again.');
                         } finally {
                           setSavingEditId(null);
                         }

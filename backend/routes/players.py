@@ -13,6 +13,7 @@ from ..utils.data_integrity import (
     ensure_league_document,
 )
 from ..security.access_matrix import require_permission
+import hashlib
 
 router = APIRouter()
 
@@ -57,14 +58,18 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
     
     return round(score, 2)
 
-# def get_db():
-#     db = SessionLocal()
-#     try:
-#         yield db
-#     finally:
-#         db.close()
-
-
+def generate_player_id(event_id: str, first: str, last: str, number: Optional[int]) -> str:
+    """Generate a deterministic, unique ID for a player based on their identity"""
+    # Normalize inputs
+    f = (first or "").strip().lower()
+    l = (last or "").strip().lower()
+    n = str(number).strip() if number is not None else "nonum"
+    
+    # Create raw string for hashing
+    raw = f"{event_id}:{f}:{l}:{n}"
+    
+    # Return SHA-256 hash hex digest (truncated to 20 chars for ID-like length)
+    return hashlib.sha256(raw.encode('utf-8')).hexdigest()[:20]
 
 @router.get("/players", response_model=List[PlayerSchema])
 @read_rate_limit()
@@ -83,22 +88,20 @@ def get_players(
         enforce_event_league_relationship(event_id=event_id)
             
         # Add timeout to players retrieval
-        def get_players_stream():
-            return list(db.collection("events").document(str(event_id)).collection("players").stream())
+        def get_players_query():
+            query = db.collection("events").document(str(event_id)).collection("players")
+            
+            # Apply backend pagination if requested
+            if page is not None and limit is not None:
+                offset_val = (page - 1) * limit
+                query = query.offset(offset_val).limit(limit)
+            
+            return list(query.stream())
         
-        players_stream = execute_with_timeout(get_players_stream, timeout=15)
-
-        players_list = list(players_stream)
-        # Optional in-memory pagination
-        if page is not None and limit is not None:
-            start = (page - 1) * limit
-            end = start + limit
-            paged = players_list[start:end]
-        else:
-            paged = players_list
+        players_stream = execute_with_timeout(get_players_query, timeout=15)
 
         result = []
-        for player in paged:
+        for player in players_stream:
             player_dict = player.to_dict()
             player_dict["id"] = player.id
             # Calculate and add composite score
@@ -128,49 +131,48 @@ def create_player(
 ):
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
-        logging.info(f"[CREATE_PLAYER] Current user: {current_user.get('uid', 'unknown')}")
-        logging.info(f"[CREATE_PLAYER] Player data: {player.model_dump()}")
         
         enforce_event_league_relationship(event_id=event_id)
         
-        # Create player in the event subcollection
-        logging.info(f"[CREATE_PLAYER] Creating player document in Firestore")
-        player_doc = db.collection("events").document(str(event_id)).collection("players").document()
+        # Parse names for ID generation
+        parts = player.name.strip().split()
+        first = parts[0] if parts else ""
+        last = " ".join(parts[1:]) if len(parts) > 1 else ""
+        
+        # Generate deterministic ID for deduplication
+        player_id = generate_player_id(event_id, first, last, player.number)
+        
+        # Create/Update player in the event subcollection
+        logging.info(f"[CREATE_PLAYER] Creating player document with deterministic ID: {player_id}")
+        player_doc = db.collection("events").document(str(event_id)).collection("players").document(player_id)
         
         player_data = {
             "name": player.name,
+            "first": first,
+            "last": last,
             "number": player.number,
             "age_group": player.age_group,
             "photo_url": player.photo_url,
             "event_id": event_id,
             "created_at": datetime.utcnow().isoformat(),
         }
-        logging.info(f"[CREATE_PLAYER] Player data to save: {player_data}")
         
-        # Add timeout to player creation
+        # Add timeout to player creation (merge=True allows idempotent retries)
         execute_with_timeout(
-            lambda: player_doc.set(player_data),
+            lambda: player_doc.set(player_data, merge=True),
             timeout=5
         )
         
-        logging.info(f"[CREATE_PLAYER] Player created successfully with ID: {player_doc.id}")
+        logging.info(f"[CREATE_PLAYER] Player created successfully")
         
-        # Return the created player data with the generated ID
         return {
-            "id": player_doc.id,
-            "name": player.name,
-            "number": player.number,
-            "age_group": player.age_group,
-            "photo_url": player.photo_url,
-            "event_id": event_id,
-            "created_at": player_data["created_at"]
+            "id": player_id,
+            **player_data
         }
     except HTTPException:
-        logging.error(f"[CREATE_PLAYER] HTTPException occurred")
         raise
     except Exception as e:
-        logging.error(f"[CREATE_PLAYER] Unexpected error creating player: {type(e).__name__}: {str(e)}")
-        logging.exception(f"[CREATE_PLAYER] Full exception trace:")
+        logging.error(f"[CREATE_PLAYER] Error: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create player: {str(e)}")
 
 @router.put("/players/{player_id}")
@@ -186,7 +188,6 @@ def update_player(
     try:
         enforce_event_league_relationship(event_id=event_id)
         
-        # Get the player document
         player_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
         player_doc = execute_with_timeout(
             player_ref.get,
@@ -196,16 +197,22 @@ def update_player(
         if not player_doc.exists:
             raise HTTPException(status_code=404, detail="Player not found")
         
+        # Parse names
+        parts = player.name.strip().split()
+        first = parts[0] if parts else ""
+        last = " ".join(parts[1:]) if len(parts) > 1 else ""
+        
         # Update player data
         update_data = {
             "name": player.name,
+            "first": first,
+            "last": last,
             "number": player.number,
             "age_group": player.age_group,
             "photo_url": player.photo_url,
             "updated_at": datetime.utcnow().isoformat(),
         }
         
-        # Add timeout to player update (longer for write operations)
         execute_with_timeout(
             lambda: player_ref.update(update_data),
             timeout=5
@@ -236,60 +243,27 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
         event_id = req.event_id
         players = req.players
-        # Updated CSV contract: age_group is optional and free-form
         required_fields = ["first_name", "last_name", "jersey_number"]
         drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
         errors = []
         added = 0
         
-        # Hard limits
         MAX_ROWS = 5000
         if len(players) > MAX_ROWS:
             raise HTTPException(status_code=400, detail=f"Too many rows: max {MAX_ROWS}")
 
-        # Duplicate detection within the same event
-        seen_ids = set()
-        seen_name_number = set()
+        # Local duplicate detection within upload batch
+        seen_keys = set()
 
-        # Load existing players to check duplicates against DB for this event (best-effort)
-        existing_name_number = set()
-        existing_ids = set()
-        existing_external_ids = set()
-        existing_first_last_age = set()
-        try:
-            existing_players_stream = execute_with_timeout(
-                lambda: list(db.collection("events").document(event_id).collection("players").stream()),
-                timeout=10,
-                operation_name="existing players preload"
-            )
-            for ep in existing_players_stream:
-                epd = ep.to_dict()
-                first = str(epd.get("first") or "").strip().lower()
-                last = str(epd.get("last") or "").strip().lower()
-                number_key = epd.get("number")
-                if number_key not in (None, ""):
-                    try:
-                        number_key = int(str(number_key).strip())
-                    except Exception:
-                        number_key = None
-                existing_name_number.add((first, last, number_key))
-                existing_ids.add(("id", ep.id))
-                ext_id = str(epd.get("external_id") or "").strip()
-                if ext_id:
-                    existing_external_ids.add(ext_id)
-                age_val = str(epd.get("age_group") or "").strip().lower()
-                if first or last:
-                    existing_first_last_age.add((first, last, age_val))
-        except Exception as preload_err:
-            logging.warning(f"[UPLOAD] Skipping existing players preload due to error: {preload_err}")
-
+        batch = db.batch()
+        batch_count = 0
+        
         for idx, player in enumerate(players):
             row_errors = []
-            # Required fields per contract
             for field in required_fields:
                 if player.get(field) in (None, ""):
                     row_errors.append(f"Missing {field}")
-            # jersey_number must be numeric 1-9999
+            
             try:
                 num = int(str(player.get("jersey_number")).strip()) if player.get("jersey_number") not in (None, "") else None
                 if num is None:
@@ -297,166 +271,103 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 elif num < 1 or num > 9999:
                     row_errors.append("jersey_number must be between 1 and 9999")
             except Exception:
-                row_errors.append("Invalid jersey_number (must be numeric)")
-            # Age group: no strict validation; accept any string or blank
-            # More flexible drill validation - only validate non-empty values
-            for drill in drill_fields:
-                val = player.get(drill, "")
-                if val not in ("", None) and str(val).strip() != "":
-                    try:
-                        float(val)
-                    except (ValueError, TypeError):
-                        row_errors.append(f"Invalid {drill}: '{val}' (must be a number)")
-            # Duplicate checks
-            player_id = str(player.get("id") or "").strip()
-            first = str(player.get("first_name") or "").strip().lower()
-            last = str(player.get("last_name") or "").strip().lower()
-            number_key = None
-            if player.get("jersey_number") not in (None, ""):
-                try:
-                    number_key = int(str(player.get("jersey_number")).strip())
-                except Exception:
-                    pass
-
-            if player_id:
-                key = ("id", player_id)
-                if key in seen_ids:
-                    row_errors.append("Duplicate playerId within upload")
-                else:
-                    seen_ids.add(key)
-                # Check against existing DB ids
-                if key in existing_ids:
-                    row_errors.append("Duplicate playerId already exists in event")
-
-            name_number_key = (first, last, number_key)
-            if any([first, last, number_key is not None]):
-                if name_number_key in seen_name_number:
-                    row_errors.append("Duplicate (first,last,number) within upload")
-                else:
-                    seen_name_number.add(name_number_key)
-                # Check against existing DB
-                if name_number_key in existing_name_number:
-                    row_errors.append("Duplicate (first,last,number) already exists in event")
-
-            # External ID duplicate detection
-            ext_id = str(player.get("external_id") or "").strip()
-            if ext_id:
-                if ext_id in existing_external_ids:
-                    row_errors.append("Duplicate external_id already exists in event")
-            # When jersey_number is missing/invalid, fallback duplicate check on (first,last,age_group)
-            if number_key is None and (first or last):
-                # Use raw age_group value (trimmed/lowercased) for duplicate keying
-                age_raw = str(player.get("age_group") or "").strip()
-                age_l = age_raw.lower()
-                if (first, last, age_l) in existing_first_last_age:
-                    row_errors.append("Duplicate (first,last,age_group) already exists in event")
-
+                row_errors.append("Invalid jersey_number")
+                
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
-                
-            try:
-                # CRITICAL FIX: Store players in event subcollection where they're retrieved from
-                player_doc = db.collection("events").document(event_id).collection("players").document()
 
-                # Prepare player data; store age_group as provided (trimmed), or None if blank
-                first_name = (player.get("first_name") or "").strip()
-                last_name = (player.get("last_name") or "").strip()
-                full_name = f"{first_name} {last_name}".strip()
-                # Precompute jersey number safely for typing
-                jersey_raw = player.get("jersey_number")
-                number_value = None
-                if jersey_raw not in (None, ""):
-                    try:
-                        number_value = int(str(jersey_raw).strip())
-                    except Exception:
-                        number_value = None
-
-                player_data = {
-                    "name": full_name,
-                    "first": first_name,
-                    "last": last_name,
-                    "number": number_value,
-                    "age_group": (str(player.get("age_group")).strip() if str(player.get("age_group") or "").strip() != "" else None),
-                    "external_id": (player.get("external_id") or None),
-                    "team_name": (player.get("team_name") or None),
-                    "position": (player.get("position") or None),
-                    "notes": (player.get("notes") or None),
-                    "photo_url": None,
-                    "event_id": event_id,
-                    "created_at": datetime.utcnow().isoformat(),
-                }
-
-                # Add drill scores if provided
-                for drill in drill_fields:
-                    value = player.get(drill, "")
-                    if value and str(value).strip() != "":
-                        try:
-                            player_data[drill] = float(value)
-                        except ValueError:
-                            player_data[drill] = None
-                    else:
-                        player_data[drill] = None
-
-                # Add timeout to player creation
-                execute_with_timeout(
-                    lambda: player_doc.set(player_data),
-                    timeout=8,
-                    operation_name="player create"
-                )
-                added += 1
-            except Exception as row_exc:
-                errors.append({"row": idx + 1, "message": f"Failed to create player: {str(row_exc)}"})
+            # Generate ID for deduplication
+            first_name = (player.get("first_name") or "").strip()
+            last_name = (player.get("last_name") or "").strip()
             
-        logging.info(f"Player upload completed: {added} added, {len(errors)} errors")
-        if errors:
-            logging.warning(f"Upload errors: {errors}")
-        
+            # Check local batch duplicates
+            key = (first_name.lower(), last_name.lower(), num)
+            if key in seen_keys:
+                errors.append({"row": idx + 1, "message": "Duplicate player in file"})
+                continue
+            seen_keys.add(key)
+
+            player_id = generate_player_id(event_id, first_name, last_name, num)
+            
+            full_name = f"{first_name} {last_name}".strip()
+            player_data = {
+                "name": full_name,
+                "first": first_name,
+                "last": last_name,
+                "number": num,
+                "age_group": (str(player.get("age_group")).strip() if str(player.get("age_group") or "").strip() != "" else None),
+                "external_id": (player.get("external_id") or None),
+                "team_name": (player.get("team_name") or None),
+                "position": (player.get("position") or None),
+                "notes": (player.get("notes") or None),
+                "photo_url": None,
+                "event_id": event_id,
+                "created_at": datetime.utcnow().isoformat(),
+            }
+
+            for drill in drill_fields:
+                value = player.get(drill, "")
+                if value and str(value).strip() != "":
+                    try:
+                        player_data[drill] = float(value)
+                    except ValueError:
+                        player_data[drill] = None
+                else:
+                    player_data[drill] = None
+
+            player_ref = db.collection("events").document(event_id).collection("players").document(player_id)
+            batch.set(player_ref, player_data, merge=True)
+            batch_count += 1
+            added += 1
+
+            # Commit batch every 400 operations
+            if batch_count >= 400:
+                execute_with_timeout(lambda: batch.commit(), timeout=10)
+                batch = db.batch()
+                batch_count = 0
+
+        # Commit remaining
+        if batch_count > 0:
+            execute_with_timeout(lambda: batch.commit(), timeout=10)
+            
+        logging.info(f"Player upload completed: {added} processed, {len(errors)} errors")
         return {"added": added, "errors": errors}
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error uploading players: {e}")
-        # Prefer partial success payload over 500 when possible
-        try:
-            return {"added": 0, "errors": [{"row": 0, "message": str(e)}]}
-        except Exception:
-            raise HTTPException(status_code=500, detail="Failed to upload players")
+        raise HTTPException(status_code=500, detail="Failed to upload players")
 
 @router.delete("/players/reset")
 @require_permission("players", "reset", target="event", target_param="event_id")
 def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
     try:
         enforce_event_league_relationship(event_id=event_id)
-        # First, get all players in the event
         players_ref = db.collection("events").document(str(event_id)).collection("players")
-        players_stream = execute_with_timeout(
-            lambda: list(players_ref.stream()),
-            timeout=15
-        )
+        players_stream = execute_with_timeout(lambda: list(players_ref.stream()), timeout=15)
         
         # Delete drill results for each player
         for player in players_stream:
             drill_results_ref = player.reference.collection("drill_results")
-            drill_results_stream = execute_with_timeout(
-                lambda: list(drill_results_ref.stream()),
-                timeout=10
-            )
+            drill_results_stream = execute_with_timeout(lambda: list(drill_results_ref.stream()), timeout=10)
             for drill_result in drill_results_stream:
                 drill_result.reference.delete()
         
-        # Then delete all players
+        # Delete all players
         for player in players_stream:
             player.reference.delete()
             
-        # Reset Live Entry status (unlock drills)
+        # Reset Live Entry status
         event_ref = db.collection("events").document(str(event_id))
-        execute_with_timeout(
-            lambda: event_ref.update({"live_entry_active": False}),
-            timeout=5,
-            operation_name="reset live entry status"
-        )
+        execute_with_timeout(lambda: event_ref.update({"live_entry_active": False}), timeout=5)
         
+        # Also clear aggregated results (per user request for consistency)
+        agg_ref = db.collection("events").document(str(event_id)).collection("aggregated_drill_results")
+        agg_stream = execute_with_timeout(lambda: list(agg_ref.stream()), timeout=10)
+        for doc in agg_stream:
+            doc.reference.delete()
+
         return {"status": "reset", "event_id": str(event_id)}
     except Exception as e:
         logging.error(f"Error resetting players: {e}")
@@ -477,7 +388,6 @@ def get_rankings(
     try:
         enforce_event_league_relationship(event_id=event_id)
             
-        # Parse weights if all are provided
         custom_weights = None
         weight_params = [weight_40m_dash, weight_vertical_jump, weight_catching, weight_throwing, weight_agility]
         drill_keys = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
@@ -491,7 +401,6 @@ def get_rankings(
         elif any(w is not None for w in weight_params):
             raise HTTPException(status_code=400, detail="Either provide all weights or none.")
             
-        # Query players from the event subcollection and filter by age group
         players_stream = execute_with_timeout(
             lambda: list(db.collection("events").document(str(event_id)).collection("players").stream()),
             timeout=15
@@ -500,7 +409,6 @@ def get_rankings(
         ranked = []
         for player in players_stream:
             player_data = player.to_dict()
-            # Filter by age group
             if player_data.get("age_group") != age_group:
                 continue
                 
@@ -510,7 +418,6 @@ def get_rankings(
                 "name": player_data.get("name"),
                 "number": player_data.get("number"),
                 "composite_score": composite_score,
-                # Include individual drill scores
                 "40m_dash": player_data.get("40m_dash"),
                 "vertical_jump": player_data.get("vertical_jump"), 
                 "catching": player_data.get("catching"),
@@ -527,12 +434,6 @@ def get_rankings(
         logging.error(f"Error getting rankings: {e}")
         raise HTTPException(status_code=500, detail="Failed to get rankings")
 
-# Note: Bulk upload, custom weights, and admin dashboard endpoints 
-# were removed as they are not currently used by the frontend.
-# The bulk upload functionality is handled by the existing /players/upload endpoint.
-# Custom weights are handled client-side in the rankings component.
-# Admin functionality is handled by the frontend /admin route.
-
 @router.get('/leagues/{league_id}/players')
 @require_permission("league_players", "read", target="league", target_param="league_id")
 def list_players(
@@ -543,20 +444,17 @@ def list_players(
 ):
     try:
         ensure_league_document(league_id)
-        players_ref = db.collection("leagues").document(league_id).collection("players")
-        # Add timeout to players retrieval
-        players_stream = execute_with_timeout(
-            lambda: list(players_ref.stream()),
-            timeout=10
-        )
+        
+        def get_league_players_query():
+            query = db.collection("leagues").document(league_id).collection("players")
+            if page is not None and limit is not None:
+                offset_val = (page - 1) * limit
+                query = query.offset(offset_val).limit(limit)
+            return list(query.stream())
+            
+        players_stream = execute_with_timeout(get_league_players_query, timeout=10)
         items = [dict(p.to_dict(), id=p.id) for p in players_stream]
-        if page is not None and limit is not None:
-            start = (page - 1) * limit
-            end = start + limit
-            players = items[start:end]
-        else:
-            players = items
-        return {"players": players}
+        return {"players": items}
     except HTTPException:
         raise
     except Exception as e:
@@ -572,7 +470,6 @@ def add_player(request: Request, league_id: str, req: dict, current_user=Depends
         players_ref = db.collection("leagues").document(league_id).collection("players")
         player_doc = players_ref.document()
         
-        # Add timeout to player creation
         execute_with_timeout(
             lambda: player_doc.set({
                 **req,
@@ -593,7 +490,6 @@ def list_drill_results(request: Request, league_id: str, player_id: str, current
     try:
         ensure_league_document(league_id)
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")
-        # Add timeout to drill results retrieval
         results_stream = execute_with_timeout(
             lambda: list(drill_results_ref.stream()),
             timeout=10

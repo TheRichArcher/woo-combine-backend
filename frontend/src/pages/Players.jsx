@@ -39,11 +39,26 @@ const ICON_MAP = {
 
 
 
-// PERFORMANCE OPTIMIZATION: Cached API function
+// PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
 const cachedFetchPlayers = withCache(
   async (eventId) => {
-    const res = await api.get(`/players?event_id=${eventId}`);
-    return res.data;
+    let allPlayers = [];
+    let page = 1;
+    const limit = 200; // Chunk size to avoid 1MB limits and timeouts
+    let hasMore = true;
+
+    while (hasMore) {
+      const res = await api.get(`/players?event_id=${eventId}&page=${page}&limit=${limit}`);
+      const chunk = res.data || [];
+      allPlayers = [...allPlayers, ...chunk];
+      
+      if (chunk.length < limit) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+    return allPlayers;
   },
   'players',
   60 * 1000 // 60s cache per requirements
