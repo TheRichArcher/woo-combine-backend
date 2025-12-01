@@ -97,7 +97,7 @@ export default function OnboardingEvent() {
             const status = activeStep === step ? "active" : activeStep > step ? "complete" : "upcoming";
             const circleClasses =
               status === "complete"
-                ? "bg-green-600 text-white"
+                ? "bg-semantic-success text-white"
                 : status === "active"
                   ? "bg-brand-primary text-white"
                   : "bg-gray-200 text-gray-500";
@@ -487,7 +487,7 @@ export default function OnboardingEvent() {
                 
                 {csvFileName && (
                   <div className="text-left">
-                    <p className="text-sm text-green-600">
+                    <p className="text-sm text-semantic-success">
                       📄 {csvFileName} loaded ({csvRows.length} players)
                     </p>
                     <p className="text-xs text-gray-600 mb-2">🎉 CSV file loaded ({csvRows.length} players). Next, click <span className="font-semibold">Map Fields</span> to match your columns to our fields.</p>
@@ -514,7 +514,7 @@ export default function OnboardingEvent() {
                 )}
                 
                 {uploadMsg && (
-                  <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-red-600" : uploadStatus === "success" ? "text-green-600" : "text-brand-primary"}`}>
+                  <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-semantic-error" : uploadStatus === "success" ? "text-semantic-success" : "text-brand-primary"}`}>
                     {uploadMsg}
                   </div>
                 )}
@@ -533,7 +533,7 @@ export default function OnboardingEvent() {
                             <div className="flex items-center gap-3">
                               <div className="w-40 text-sm text-gray-700 font-medium">
                                 {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                                {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
                               </div>
                               <select
                                 value={selectedHeader}
@@ -581,19 +581,19 @@ export default function OnboardingEvent() {
                   </div>
                 )}
                 {uploadStatus === 'error' && backendErrors.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mt-3">
-                    <div className="text-sm text-red-800 font-medium mb-1">Row Errors</div>
+                  <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-3 mt-3">
+                    <div className="text-sm text-semantic-error font-medium mb-1">Row Errors</div>
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr className="bg-red-100">
+                          <tr className="bg-semantic-error/10">
                             <th className="px-2 py-1 text-left">Row</th>
                             <th className="px-2 py-1 text-left">Message</th>
                           </tr>
                         </thead>
                         <tbody>
                           {backendErrors.map((err, idx) => (
-                            <tr key={idx} className="border-t border-red-200">
+                            <tr key={idx} className="border-t border-semantic-error/20">
                               <td className="px-2 py-1">{err.row}</td>
                               <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
                             </tr>
@@ -608,7 +608,7 @@ export default function OnboardingEvent() {
               {/* Manual Add Section */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-green-600" />
+                  <UserPlus className="w-5 h-5 text-semantic-success" />
                   Add Players Manually
                 </h3>
                 <p className="text-sm text-gray-600 mb-3">
@@ -630,7 +630,7 @@ export default function OnboardingEvent() {
                     </Button>
                     
                     {manualMsg && (
-                      <div className={`text-sm ${manualStatus === 'error' ? 'text-red-600' : manualStatus === 'success' ? 'text-green-600' : 'text-brand-primary'}`}>
+                      <div className={`text-sm ${manualStatus === 'error' ? 'text-semantic-error' : manualStatus === 'success' ? 'text-semantic-success' : 'text-brand-primary'}`}>
                         {manualMsg}
                       </div>
                     )}
@@ -641,10 +641,10 @@ export default function OnboardingEvent() {
 
             {/* Current Player Count */}
             {playerCount > 0 && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+              <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-3 mb-4">
                 <div className="flex items-center justify-center gap-2">
-                  <Users className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-green-800">
+                  <Users className="w-5 h-5 text-semantic-success" />
+                  <span className="font-semibold text-semantic-success">
                     {playerCount} players added to this event
                   </span>
                 </div>
@@ -713,10 +713,10 @@ export default function OnboardingEvent() {
           <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
             <StepIndicator activeStep={5} />
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+            <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-4 mb-4">
               <div className="text-center mb-3">
-                <h3 className="text-green-800 font-semibold text-lg">🎉 Time to Track Performance</h3>
-                <p className="text-green-700 text-sm">
+                <h3 className="text-semantic-success font-semibold text-lg">🎉 Time to Track Performance</h3>
+                <p className="text-semantic-success/80 text-sm">
                   Launch Live Entry to record drill results and watch rankings update in real-time.
                 </p>
               </div>

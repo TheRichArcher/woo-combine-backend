@@ -74,11 +74,11 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
     const variancePercent = (variance / average) * 100;
     
     if (variancePercent < 10) {
-      return { level: 'low', color: 'text-green-600', label: 'High agreement' };
+      return { level: 'low', color: 'text-semantic-success', label: 'High agreement' };
     } else if (variancePercent < 20) {
-      return { level: 'medium', color: 'text-yellow-600', label: 'Moderate agreement' };
+      return { level: 'medium', color: 'text-semantic-warning', label: 'Moderate agreement' };
     } else {
-      return { level: 'high', color: 'text-red-600', label: 'Low agreement' };
+      return { level: 'high', color: 'text-semantic-error', label: 'Low agreement' };
     }
   };
 
@@ -93,7 +93,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
         key={drillType}
         className={`p-4 border rounded-lg cursor-pointer transition-all ${
           selectedDrill === drillType 
-            ? 'border-blue-500 bg-blue-50' 
+            ? 'border-brand-primary bg-brand-light/20' 
             : 'border-gray-200 hover:border-gray-300'
         }`}
         onClick={() => setSelectedDrill(selectedDrill === drillType ? null : drillType)}
@@ -112,7 +112,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Final Score:</span>
-              <span className="font-bold text-lg text-blue-600">
+              <span className="font-bold text-lg text-brand-primary">
                 {aggregated.final_score.toFixed(2)}
               </span>
             </div>
@@ -130,8 +130,8 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
 
             <div className="flex items-center gap-2">
               <div className={`w-2 h-2 rounded-full ${
-                varianceInfo.level === 'low' ? 'bg-green-400' :
-                varianceInfo.level === 'medium' ? 'bg-yellow-400' : 'bg-red-400'
+                varianceInfo.level === 'low' ? 'bg-semantic-success' :
+                varianceInfo.level === 'medium' ? 'bg-semantic-warning' : 'bg-semantic-error'
               }`}></div>
               <span className={`text-xs ${varianceInfo.color}`}>
                 {varianceInfo.label}
@@ -169,8 +169,8 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
                           {drillEvaluations.map((evalData) => (
               <div key={evalData.id} className="flex items-center justify-between p-3 bg-white rounded border">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-medium text-blue-600">
+                  <div className="w-8 h-8 bg-brand-light/20 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-medium text-brand-primary">
                       {evalData.evaluator_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -253,7 +253,7 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-6">
-        <Award className="w-6 h-6 text-yellow-600" />
+        <Award className="w-6 h-6 text-semantic-warning" />
         <div>
           <h2 className="text-xl font-bold text-gray-900">Multi-Evaluator Results</h2>
           <p className="text-sm text-gray-600">
@@ -276,25 +276,25 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-brand-primary">
               {Object.keys(evaluations).length}
             </div>
             <div className="text-xs text-gray-600">Drills Evaluated</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-semantic-success">
               {Object.values(evaluations).flat().length}
             </div>
             <div className="text-xs text-gray-600">Total Evaluations</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-2xl font-bold text-brand-accent">
               {new Set(Object.values(evaluations).flat().map(e => e.evaluator_id)).size}
             </div>
             <div className="text-xs text-gray-600">Unique Evaluators</div>
           </div>
           <div className="text-center">
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-2xl font-bold text-semantic-warning">
               {Object.values(aggregatedResults).filter(r => r.score_count > 1).length}
             </div>
             <div className="text-xs text-gray-600">Multi-Eval Drills</div>
@@ -303,14 +303,14 @@ const MultiEvaluatorResults = ({ playerId, playerName }) => {
       </div>
 
       {/* Benefits Info */}
-      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mt-4 p-4 bg-brand-light/20 border border-brand-primary/20 rounded-lg">
         <div className="flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+          <Info className="w-5 h-5 text-brand-primary mt-0.5" />
           <div>
-            <h4 className="font-medium text-blue-900 mb-1">Multi-Evaluator Advantages</h4>
-            <p className="text-sm text-blue-800">
+            <h4 className="font-medium text-brand-primary mb-1">Multi-Evaluator Advantages</h4>
+            <p className="text-sm text-brand-primary/80">
               Multiple evaluations reduce bias and provide more reliable assessments. 
-              Look for <span className="font-medium text-green-600">high agreement</span> scores 
+              Look for <span className="font-medium text-semantic-success">high agreement</span> scores 
               as the most trustworthy results.
             </p>
           </div>

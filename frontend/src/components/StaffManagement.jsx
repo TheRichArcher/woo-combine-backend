@@ -74,9 +74,9 @@ export default function StaffManagement({ leagueId, currentUser }) {
     );
   }
 
-  if (error) {
+    if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg flex items-center gap-2">
+      <div className="bg-semantic-error/10 border border-semantic-error/20 text-semantic-error p-4 rounded-lg flex items-center gap-2">
         <AlertCircle className="w-5 h-5" />
         {error}
       </div>
@@ -98,10 +98,10 @@ export default function StaffManagement({ leagueId, currentUser }) {
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-full ${
                 member.role === 'organizer' 
-                  ? 'bg-purple-100 text-purple-600' 
+                  ? 'bg-brand-accent/10 text-brand-accent' 
                   : member.role === 'coach'
-                    ? 'bg-blue-100 text-blue-600'
-                    : 'bg-green-100 text-green-600'
+                    ? 'bg-brand-primary/10 text-brand-primary'
+                    : 'bg-semantic-success/10 text-semantic-success'
               }`}>
                 <Users className="w-5 h-5" />
               </div>
@@ -112,7 +112,7 @@ export default function StaffManagement({ leagueId, currentUser }) {
                     <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">You</span>
                   )}
                   {member.disabled && (
-                    <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">
+                    <span className="text-xs bg-semantic-error/10 text-semantic-error px-2 py-0.5 rounded-full font-bold">
                       SUSPENDED
                     </span>
                   )}
@@ -155,7 +155,7 @@ export default function StaffManagement({ leagueId, currentUser }) {
         )}
       </div>
       
-      <div className="mt-4 bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm text-blue-800 flex items-start gap-2">
+      <div className="mt-4 bg-brand-light/20 p-4 rounded-lg border border-brand-primary/20 text-sm text-brand-primary flex items-start gap-2">
         <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
         <div>
           <strong>Access Control:</strong> Revoking access immediately blocks the user from viewing any league data, submitting scores, or managing players. It does not delete their account.

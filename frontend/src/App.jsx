@@ -245,7 +245,7 @@ function App() {
                       
                       <div className="text-sm text-gray-500 space-y-2">
                         <p>Need additional help?</p>
-                        <Link to="/help" className="text-cyan-600 hover:text-cyan-700 underline font-semibold">Contact Support</Link>
+                        <Link to="/help" className="text-brand-primary hover:text-brand-secondary underline font-semibold">Contact Support</Link>
                       </div>
                       
                       <div className="mt-6 pt-4 border-t border-gray-200">
@@ -296,7 +296,7 @@ function App() {
                       <div className="space-y-3 mb-6">
                         <a 
                           href="mailto:support@woo-combine.com" 
-                          className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-3 rounded-xl transition block"
+                          className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl transition block"
                         >
                           📧 Email Support
                         </a>

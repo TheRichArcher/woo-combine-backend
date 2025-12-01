@@ -222,21 +222,21 @@ export default function JoinEvent() {
     >
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 text-center">
         <div className="mb-6">
-          <QrCode className="w-16 h-16 mx-auto mb-4 text-cyan-600" />
+          <QrCode className="w-16 h-16 mx-auto mb-4 text-brand-primary" />
           <h1 className="text-2xl font-bold mb-2">Join Event</h1>
         </div>
 
         {status === "found" && event && league && (
           <div className="space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <CheckCircle className="w-8 h-8 mx-auto mb-2 text-green-600" />
-              <h2 className="text-lg font-semibold text-green-800 mb-2">
+            <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-4">
+              <CheckCircle className="w-8 h-8 mx-auto mb-2 text-semantic-success" />
+              <h2 className="text-lg font-semibold text-semantic-success mb-2">
                 Successfully Joined!
               </h2>
-              <p className="text-green-700 mb-2">
+              <p className="text-semantic-success/90 mb-2">
                 <strong>{event.name}</strong>
               </p>
-              <p className="text-green-600 text-sm">
+              <p className="text-semantic-success/80 text-sm">
                 League: {league.name}
               </p>
             </div>
@@ -248,12 +248,12 @@ export default function JoinEvent() {
 
         {status === "not_found" && (
           <div className="space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-red-600" />
-              <h2 className="text-lg font-semibold text-red-800 mb-2">
+            <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-4">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2 text-semantic-error" />
+              <h2 className="text-lg font-semibold text-semantic-error mb-2">
                 Unable to Join Event
               </h2>
-              <p className="text-red-700 mb-4">
+              <p className="text-semantic-error/90 mb-4">
                 {error || "This event link is invalid or expired."}
               </p>
             </div>
@@ -261,7 +261,7 @@ export default function JoinEvent() {
             <div className="space-y-3">
               <button
                 onClick={() => navigate("/join")}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
+                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200"
               >
                 Join League with Code
               </button>

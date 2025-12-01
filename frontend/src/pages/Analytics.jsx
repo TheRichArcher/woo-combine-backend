@@ -203,7 +203,7 @@ export default function Analytics() {
               <p className="text-sm text-gray-600">{selectedEvent?.name || ''}</p>
             </div>
           </div>
-          <div className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
+          <div className="text-xs bg-brand-accent/10 text-brand-accent px-3 py-1 rounded-full font-medium flex items-center gap-1">
             <BarChart3 className="w-4 h-4" />
             Overview
           </div>
@@ -214,7 +214,7 @@ export default function Analytics() {
         {loading ? (
           <div className="text-center text-gray-600">Loading analytics…</div>
         ) : error ? (
-          <div className="text-center text-red-600">{error}</div>
+          <div className="text-center text-semantic-error">{error}</div>
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -228,11 +228,11 @@ export default function Analytics() {
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
                 <div className="text-xs text-gray-500">Avg 40-Yard (sec)</div>
-                <div className="text-2xl font-bold text-blue-600">{totals.avg40 ? totals.avg40.toFixed(2) : '—'}</div>
+                <div className="text-2xl font-bold text-brand-primary">{totals.avg40 ? totals.avg40.toFixed(2) : '—'}</div>
               </div>
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
                 <div className="text-xs text-gray-500">Avg Vertical (in)</div>
-                <div className="text-2xl font-bold text-blue-600">{totals.avgVertical ? totals.avgVertical.toFixed(1) : '—'}</div>
+                <div className="text-2xl font-bold text-brand-primary">{totals.avgVertical ? totals.avgVertical.toFixed(1) : '—'}</div>
               </div>
             </div>
 
@@ -351,8 +351,8 @@ export default function Analytics() {
                       {/* Bucket bars */}
                       <div className="space-y-2">
                         {[
-                          { label: 'Best', count: drillStats.bestCount, color: 'bg-green-500' },
-                          { label: 'Typical', count: drillStats.typicalCount, color: 'bg-yellow-500' },
+                          { label: 'Best', count: drillStats.bestCount, color: 'bg-semantic-success' },
+                          { label: 'Typical', count: drillStats.typicalCount, color: 'bg-semantic-warning' },
                           { label: 'Needs work', count: drillStats.needsWorkCount, color: 'bg-gray-400' },
                         ].map((bkt, i) => {
                           const pct = Math.round((bkt.count / drillStats.count) * 100);
@@ -420,10 +420,10 @@ export default function Analytics() {
                       {drillStats.top5.map((t, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm bg-white rounded border p-2">
                           <div className="flex items-center gap-2">
-                            <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-green-600':idx<3?'bg-yellow-500':'bg-gray-500'}`}>{idx+1}</div>
+                            <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-semantic-success':idx<3?'bg-semantic-warning':'bg-gray-500'}`}>{idx+1}</div>
                             <div className="text-gray-900">#{t.number} {t.name}</div>
                           </div>
-                          <div className="font-mono text-blue-600">{t.value} {selectedDrill.unit}</div>
+                          <div className="font-mono text-brand-primary">{t.value} {selectedDrill.unit}</div>
                         </div>
                       ))}
                     </div>

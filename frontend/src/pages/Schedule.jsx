@@ -122,9 +122,9 @@ export default function Schedule() {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 mt-20">
         {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
-            <Calendar className="w-8 h-8 text-blue-600" />
+            <Calendar className="w-8 h-8 text-brand-primary" />
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Schedule</h2>
               {selectedEvent && (
@@ -144,12 +144,12 @@ export default function Schedule() {
         </div>
 
         {events.length === 0 ? (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
+          <div className="bg-semantic-warning/10 border border-semantic-warning/20 rounded-xl p-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-6 h-6 text-yellow-600 mt-0.5" />
+              <AlertCircle className="w-6 h-6 text-semantic-warning mt-0.5" />
               <div>
-                <h3 className="font-semibold text-yellow-900 mb-2">No Events Found</h3>
-                <p className="text-yellow-800 mb-3">
+                <h3 className="font-semibold text-semantic-warning mb-2">No Events Found</h3>
+                <p className="text-semantic-warning/90 mb-3">
                   You don't have any events in your current league yet.
                   Create or join an event to see your schedule.
                 </p>
@@ -202,7 +202,7 @@ export default function Schedule() {
               >
                 {day && (
                   <>
-                    <span className={`${day.hasEvent ? 'font-bold text-blue-600' : 'text-gray-900'} mb-1`}>
+                    <span className={`${day.hasEvent ? 'font-bold text-brand-primary' : 'text-gray-900'} mb-1`}>
                       {day.day}
                     </span>
                     {day.hasEvent && (
@@ -211,9 +211,9 @@ export default function Schedule() {
                           <div 
                             key={eventIndex}
                             className={`w-2 h-2 rounded-full ${
-                              event.type === 'PRACTICE' ? 'bg-purple-500' :
-                              event.type === 'COMBINE' ? 'bg-blue-500' :
-                              'bg-green-500'
+                              event.type === 'PRACTICE' ? 'bg-brand-accent' :
+                              event.type === 'COMBINE' ? 'bg-brand-primary' :
+                              'bg-semantic-success'
                             }`}
                             title={event.title}
                           ></div>
@@ -246,17 +246,17 @@ export default function Schedule() {
                   <div className="flex">
                     {/* Colored accent bar */}
                     <div className={`w-1 ${
-                      event.type === 'PRACTICE' ? 'bg-purple-500' : 
-                      event.type === 'COMBINE' ? 'bg-blue-500' : 
-                      'bg-green-500'
+                      event.type === 'PRACTICE' ? 'bg-brand-accent' : 
+                      event.type === 'COMBINE' ? 'bg-brand-primary' : 
+                      'bg-semantic-success'
                     } rounded-full mr-4`}></div>
                     
                     <div className="flex-1">
                       {/* Event Type */}
                       <div className={`${
-                        event.type === 'PRACTICE' ? 'text-purple-600 bg-purple-100' : 
-                        event.type === 'COMBINE' ? 'text-blue-600 bg-blue-100' : 
-                        'text-green-600 bg-green-100'
+                        event.type === 'PRACTICE' ? 'text-brand-accent bg-brand-accent/10' : 
+                        event.type === 'COMBINE' ? 'text-brand-primary bg-brand-primary/10' : 
+                        'text-semantic-success bg-semantic-success/10'
                       } font-bold text-xs uppercase tracking-wide mb-2 px-2 py-1 rounded-full inline-block`}>
                         {event.type}
                       </div>
@@ -294,7 +294,7 @@ export default function Schedule() {
                     {/* Status indicator */}
                     <div className="flex items-start">
                       <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        event.status === 'upcoming' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        event.status === 'upcoming' ? 'bg-semantic-success/10 text-semantic-success' : 'bg-gray-100 text-gray-800'
                       }`}>
                         {event.status}
                       </div>

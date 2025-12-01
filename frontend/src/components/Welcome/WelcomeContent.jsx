@@ -34,12 +34,12 @@ export default function WelcomeContent({ variant = 'default' }) {
       <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4 drop-shadow-lg">
         {content.title}
       </h1>
-      <p className="text-lg sm:text-2xl text-cyan-100 mb-8 max-w-xl">
+      <p className="text-lg sm:text-2xl text-brand-light/80 mb-8 max-w-xl">
         {content.subtitle}
       </p>
       <button
-        className="bg-cyan-700 hover:bg-cyan-800 text-white text-xl font-semibold px-10 py-4 rounded-lg shadow-lg mb-8 transition-colors duration-150"
-                    onClick={() => navigate("/signup")}
+        className="bg-brand-primary hover:bg-brand-secondary text-white text-xl font-semibold px-10 py-4 rounded-lg shadow-lg mb-8 transition-colors duration-150"
+        onClick={() => navigate("/signup")}
       >
         {content.buttonText}
       </button>

@@ -60,8 +60,8 @@ export default function SportTemplatesPage() {
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Settings className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-brand-light/20 rounded-xl flex items-center justify-center">
+              <Settings className="w-5 h-5 text-brand-secondary" />
             </div>
             <h1 className="text-2xl font-bold text-brand-secondary">Sport Templates</h1>
           </div>
@@ -71,7 +71,7 @@ export default function SportTemplatesPage() {
               <span className="text-gray-300">|</span>
               <div><span className="font-semibold">Selected:</span> {selectedTemplate?.name || currentTemplate?.name}</div>
               {hasChanges && (
-                <span className="inline-flex items-center text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full text-xs font-semibold">Changes not applied</span>
+                <span className="inline-flex items-center text-semantic-warning bg-semantic-warning/10 px-2 py-0.5 rounded-full text-xs font-semibold">Changes not applied</span>
               )}
             </div>
           </div>
@@ -79,7 +79,7 @@ export default function SportTemplatesPage() {
             <button onClick={() => setShowDetails(v => !v)} className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
               {showDetails ? 'Hide Details' : 'Show Details'}
             </button>
-            <button onClick={handleApplyTemplate} disabled={applying || !selectedEvent || !hasChanges} className={hasChanges ? 'px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-blue-600 hover:bg-blue-700 text-white' : 'px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-gray-200 text-gray-500'}>
+            <button onClick={handleApplyTemplate} disabled={applying || !selectedEvent || !hasChanges} className={hasChanges ? 'px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-brand-primary hover:bg-brand-secondary text-white' : 'px-4 py-2 text-sm rounded-lg font-semibold transition-colors bg-gray-200 text-gray-500'}>
               {applying ? 'Applying...' : 'Apply Template'}
             </button>
           </div>
@@ -93,7 +93,7 @@ export default function SportTemplatesPage() {
           {hasChanges && (
             <div className="mt-3">
               {applyError && (<div className="mb-2"><ErrorDisplay error={applyError} /></div>)}
-              <button onClick={handleApplyTemplate} disabled={applying || !selectedEvent} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-2 px-4 rounded-lg text-sm">
+              <button onClick={handleApplyTemplate} disabled={applying || !selectedEvent} className="w-full bg-brand-primary hover:bg-brand-secondary disabled:bg-brand-primary/50 text-white font-medium py-2 px-4 rounded-lg text-sm">
                 {applying ? 'Applying...' : 'Apply Selected Template'}
               </button>
             </div>
@@ -104,27 +104,27 @@ export default function SportTemplatesPage() {
           {showDetails && (
             <>
               <div className="bg-white rounded-2xl shadow-lg p-6 border-2 border-brand-primary/30">
-                <h2 className="text-sm font-semibold text-purple-900 mb-3">Why sport-specific templates?</h2>
+                <h2 className="text-sm font-semibold text-brand-secondary mb-3">Why sport-specific templates?</h2>
                 <div className="space-y-3 text-xs">
                   <div className="flex items-start gap-3">
                     <Trophy className="w-4 h-4 text-yellow-500 mt-0.5" />
                     <div>
-                      <div className="font-medium text-purple-900">Sport Expertise</div>
-                      <div className="text-purple-700">Professionally designed by sport-specific experts</div>
+                      <div className="font-medium text-brand-secondary">Sport Expertise</div>
+                      <div className="text-brand-primary">Professionally designed by sport-specific experts</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Star className="w-4 h-4 text-orange-500 mt-0.5" />
+                    <Star className="w-4 h-4 text-brand-accent mt-0.5" />
                     <div>
-                      <div className="font-medium text-purple-900">Relevant Metrics</div>
-                      <div className="text-purple-700">Evaluate skills that matter for each sport</div>
+                      <div className="font-medium text-brand-secondary">Relevant Metrics</div>
+                      <div className="text-brand-primary">Evaluate skills that matter for each sport</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Zap className="w-4 h-4 text-green-500 mt-0.5" />
+                    <Zap className="w-4 h-4 text-semantic-success mt-0.5" />
                     <div>
-                      <div className="font-medium text-purple-900">Coaching Presets</div>
-                      <div className="text-purple-700">Ready-made weight configurations</div>
+                      <div className="font-medium text-brand-secondary">Coaching Presets</div>
+                      <div className="text-brand-primary">Ready-made weight configurations</div>
                     </div>
                   </div>
                 </div>
@@ -144,12 +144,12 @@ export default function SportTemplatesPage() {
                     </thead>
                     <tbody>
                       {templates.map((template) => (
-                        <tr key={template.id} className={(selectedTemplateId === template.id ? 'bg-purple-50 ' : '') + 'border-b border-gray-100'}>
+                        <tr key={template.id} className={(selectedTemplateId === template.id ? 'bg-brand-light/20 ' : '') + 'border-b border-gray-100'}>
                           <td className="py-2 px-3">
                             <div className="flex items-center gap-2">
                               <span className="text-lg">{template.sport === 'Football' ? '🏈' : template.sport === 'Soccer' ? '⚽' : template.sport === 'Basketball' ? '🏀' : template.sport === 'Baseball' ? '⚾' : template.sport === 'Track & Field' ? '🏃' : '🏐'}</span>
                               <span className="font-medium">{template.name}</span>
-                              {selectedTemplateId === template.id && <CheckCircle className="w-3 h-3 text-purple-600" />}
+                              {selectedTemplateId === template.id && <CheckCircle className="w-3 h-3 text-brand-primary" />}
                             </div>
                           </td>
                           <td className="py-2 px-3">{template.drills.length}</td>
@@ -171,26 +171,26 @@ export default function SportTemplatesPage() {
               <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3">Quick Actions</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <Link to="/players/rankings" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition group">
-                    <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">+</div>
+                  <Link to="/players/rankings" className="flex items-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-lg border border-brand-primary/20 transition group">
+                    <div className="w-7 h-7 bg-brand-primary rounded-lg flex items-center justify-center text-white text-xs font-bold">+</div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-blue-900 group-hover:text-blue-800 text-sm">Manage Players</h4>
+                      <h4 className="font-medium text-brand-secondary group-hover:text-brand-primary text-sm">Manage Players</h4>
                     </div>
-                    <span className="text-blue-600">→</span>
+                    <span className="text-brand-primary">→</span>
                   </Link>
-                  <Link to="/evaluators" className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition group">
-                    <div className="w-7 h-7 bg-green-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">+</div>
+                  <Link to="/evaluators" className="flex items-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-lg border border-semantic-success/20 transition group">
+                    <div className="w-7 h-7 bg-semantic-success rounded-lg flex items-center justify-center text-white text-xs font-bold">+</div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-green-900 group-hover:text-green-800 text-sm">Manage Evaluators</h4>
+                      <h4 className="font-medium text-semantic-success group-hover:text-green-800 text-sm">Manage Evaluators</h4>
                     </div>
-                    <span className="text-green-600">→</span>
+                    <span className="text-semantic-success">→</span>
                   </Link>
-                  <Link to="/team-formation" className="flex items-center gap-2 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition group">
-                    <div className="w-7 h-7 bg-purple-600 rounded-lg flex items-center justify-center text-white text-xs font-bold">⚡</div>
+                  <Link to="/team-formation" className="flex items-center gap-2 p-3 bg-brand-accent/10 hover:bg-brand-accent/20 rounded-lg border border-brand-accent/20 transition group">
+                    <div className="w-7 h-7 bg-brand-accent rounded-lg flex items-center justify-center text-white text-xs font-bold">⚡</div>
                     <div className="flex-1">
-                      <h4 className="font-medium text-purple-900 group-hover:text-purple-800 text-sm">Form Teams</h4>
+                      <h4 className="font-medium text-brand-accent group-hover:text-brand-accent text-sm">Form Teams</h4>
                     </div>
-                    <span className="text-purple-600">→</span>
+                    <span className="text-brand-accent">→</span>
                   </Link>
                 </div>
               </div>

@@ -79,8 +79,8 @@ export default function LeagueFallback() {
             className="w-16 h-16 mx-auto mb-4"
             style={{ objectFit: 'contain' }}
           />
-          <div className="w-12 h-12 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Users className="w-6 h-6 text-cyan-600" />
+          <div className="w-12 h-12 bg-brand-light/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Users className="w-6 h-6 text-brand-primary" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             No League Selected
@@ -92,7 +92,7 @@ export default function LeagueFallback() {
 
         {/* Feedback Message */}
         {feedback && (
-          <div className="bg-blue-50 border-l-4 border-blue-400 text-blue-700 px-4 py-3 rounded mb-6 text-sm">
+          <div className="bg-brand-light/20 border-l-4 border-brand-primary text-brand-primary px-4 py-3 rounded mb-6 text-sm">
             {feedback}
           </div>
         )}
@@ -101,22 +101,22 @@ export default function LeagueFallback() {
         <div className="space-y-3 mb-6">
           {/* For Organizers: Create League First (with Wizard) */}
           {userRole === 'organizer' && (
-            <div className="border-2 border-green-300 bg-green-50 rounded-xl p-3 hover:border-green-400 transition">
+            <div className="border-2 border-semantic-success/30 bg-semantic-success/10 rounded-xl p-3 hover:border-semantic-success/50 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Rocket className="w-4 h-4 text-green-600" />
+                <div className="w-8 h-8 bg-semantic-success/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Rocket className="w-4 h-4 text-semantic-success" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-gray-900">🚀 Start Guided Setup</h3>
-                    <span className="bg-green-200 text-green-800 text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
+                    <span className="bg-semantic-success/20 text-semantic-success text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
                     Create event - Import players - Share with coaches
                   </p>
                   <button
                     onClick={handleCreateLeague}
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-semantic-success hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <Rocket className="w-3 h-3" />
                     Get Started
@@ -128,22 +128,22 @@ export default function LeagueFallback() {
 
           {/* For Coaches: Join League First */}
           {userRole !== 'organizer' && (
-            <div className="border-2 border-cyan-300 bg-cyan-50 rounded-xl p-3 hover:border-cyan-400 transition">
+            <div className="border-2 border-brand-primary/30 bg-brand-light/10 rounded-xl p-3 hover:border-brand-primary/50 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <QrCode className="w-4 h-4 text-cyan-600" />
+                <div className="w-8 h-8 bg-brand-light/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-4 h-4 text-brand-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="font-semibold text-gray-900">Join with Invite Code</h3>
-                    <span className="bg-cyan-200 text-cyan-800 text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
+                    <span className="bg-brand-primary/20 text-brand-primary text-xs px-2 py-0.5 rounded-full font-medium">Recommended</span>
                   </div>
                   <p className="text-sm text-gray-600 mb-2">
                     Ask your organizer for an invite code
                   </p>
                   <button
                     onClick={handleJoinLeague}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <QrCode className="w-3 h-3" />
                     Join League
@@ -154,10 +154,10 @@ export default function LeagueFallback() {
           )}
 
           {/* Choose Existing League Option */}
-          <div className="border border-gray-200 rounded-xl p-3 hover:border-blue-300 transition">
+          <div className="border border-gray-200 rounded-xl p-3 hover:border-brand-primary/30 transition">
             <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <List className="w-4 h-4 text-blue-600" />
+              <div className="w-8 h-8 bg-brand-light/20 rounded-full flex items-center justify-center flex-shrink-0">
+                <List className="w-4 h-4 text-brand-primary" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900 mb-1">Choose from Your Leagues</h3>
@@ -166,7 +166,7 @@ export default function LeagueFallback() {
                 </p>
                 <button
                   onClick={handleSelectLeague}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                  className="bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                 >
                   <List className="w-3 h-3" />
                   Choose League
@@ -177,10 +177,10 @@ export default function LeagueFallback() {
 
           {/* Secondary Options */}
           {userRole === 'organizer' ? (
-            <div className="border border-gray-200 rounded-xl p-3 hover:border-cyan-300 transition">
+            <div className="border border-gray-200 rounded-xl p-3 hover:border-brand-primary/30 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-cyan-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <QrCode className="w-4 h-4 text-cyan-600" />
+                <div className="w-8 h-8 bg-brand-light/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <QrCode className="w-4 h-4 text-brand-primary" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">Join Existing League</h3>
@@ -189,7 +189,7 @@ export default function LeagueFallback() {
                   </p>
                   <button
                     onClick={handleJoinLeague}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <QrCode className="w-3 h-3" />
                     Join League
@@ -198,10 +198,10 @@ export default function LeagueFallback() {
               </div>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-xl p-3 hover:border-green-300 transition">
+            <div className="border border-gray-200 rounded-xl p-3 hover:border-semantic-success/30 transition">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-4 h-4 text-green-600" />
+                <div className="w-8 h-8 bg-semantic-success/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Plus className="w-4 h-4 text-semantic-success" />
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">Create New League</h3>
@@ -210,7 +210,7 @@ export default function LeagueFallback() {
                   </p>
                   <button
                     onClick={handleCreateLeague}
-                    className="bg-green-600 hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
+                    className="bg-semantic-success hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
                   >
                     <Plus className="w-3 h-3" />
                     Create League
@@ -237,7 +237,7 @@ export default function LeagueFallback() {
             </div>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1 text-red-600 hover:text-red-700 font-medium text-xs transition"
+              className="flex items-center gap-1 text-semantic-error hover:text-red-700 font-medium text-xs transition"
             >
               <LogOut className="w-3 h-3" />
               Log Out

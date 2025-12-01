@@ -6,10 +6,10 @@ import api from '../lib/api';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 
 const EVALUATOR_ROLES = [
-  { value: 'head_coach', label: 'Head Coach', icon: Shield, color: 'text-purple-600 bg-purple-100' },
-  { value: 'assistant_coach', label: 'Assistant Coach', icon: UserCheck, color: 'text-blue-600 bg-blue-100' },
-  { value: 'evaluator', label: 'Evaluator', icon: Eye, color: 'text-green-600 bg-green-100' },
-  { value: 'scout', label: 'Scout', icon: Users, color: 'text-orange-600 bg-orange-100' },
+  { value: 'head_coach', label: 'Head Coach', icon: Shield, color: 'text-brand-accent bg-brand-accent/10' },
+  { value: 'assistant_coach', label: 'Assistant Coach', icon: UserCheck, color: 'text-brand-primary bg-brand-primary/10' },
+  { value: 'evaluator', label: 'Evaluator', icon: Eye, color: 'text-semantic-success bg-semantic-success/10' },
+  { value: 'scout', label: 'Scout', icon: Users, color: 'text-semantic-warning bg-semantic-warning/10' },
 ];
 
 const EvaluatorManagement = () => {
@@ -115,7 +115,7 @@ const EvaluatorManagement = () => {
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Users className="w-6 h-6 text-blue-600" />
+          <Users className="w-6 h-6 text-brand-primary" />
           <div>
             <h2 className="text-xl font-bold text-gray-900">Evaluator Management</h2>
             <p className="text-sm text-gray-600">
@@ -125,7 +125,7 @@ const EvaluatorManagement = () => {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+          className="flex items-center gap-2 bg-brand-primary hover:bg-brand-secondary text-white px-4 py-2 rounded-lg transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Evaluator
@@ -134,8 +134,8 @@ const EvaluatorManagement = () => {
 
       {/* Add Evaluator Form */}
       {showAddForm && (
-        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h3 className="font-semibold text-blue-900 mb-3">Add New Evaluator</h3>
+        <div className="mb-6 p-4 bg-brand-light/20 border border-brand-primary/20 rounded-lg">
+          <h3 className="font-semibold text-brand-secondary mb-3">Add New Evaluator</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -145,7 +145,7 @@ const EvaluatorManagement = () => {
                 type="text"
                 value={newEvaluator.name}
                 onChange={(e) => setNewEvaluator({ ...newEvaluator, name: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 placeholder="Evaluator name"
               />
             </div>
@@ -157,7 +157,7 @@ const EvaluatorManagement = () => {
                 type="email"
                 value={newEvaluator.email}
                 onChange={(e) => setNewEvaluator({ ...newEvaluator, email: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                 placeholder="email@example.com"
               />
             </div>
@@ -168,7 +168,7 @@ const EvaluatorManagement = () => {
               <select
                 value={newEvaluator.role}
                 onChange={(e) => setNewEvaluator({ ...newEvaluator, role: e.target.value })}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
               >
                 {EVALUATOR_ROLES.map(role => (
                   <option key={role.value} value={role.value}>
@@ -182,7 +182,7 @@ const EvaluatorManagement = () => {
             <button
               onClick={handleAddEvaluator}
               disabled={addingEvaluator}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+              className="bg-brand-primary hover:bg-brand-secondary disabled:bg-brand-primary/50 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
               {addingEvaluator ? 'Adding...' : 'Add Evaluator'}
             </button>
@@ -200,7 +200,7 @@ const EvaluatorManagement = () => {
       <div className="space-y-4">
         {loadingEvaluators ? (
           <div className="text-center py-8">
-            <div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <div className="animate-spin w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full mx-auto mb-2"></div>
             <p className="text-gray-600">Loading evaluators...</p>
           </div>
         ) : evaluators.length === 0 ? (
@@ -210,7 +210,7 @@ const EvaluatorManagement = () => {
             <p className="text-gray-600 mb-4">Add evaluators to enable multi-coach scoring</p>
             <button
               onClick={() => setShowAddForm(true)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+              className="bg-brand-primary hover:bg-brand-secondary text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
               Add First Evaluator
             </button>
@@ -261,23 +261,23 @@ const EvaluatorManagement = () => {
           <h3 className="font-medium text-gray-900 mb-2">Evaluation Team Summary</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{evaluators.length}</div>
+              <div className="text-2xl font-bold text-brand-primary">{evaluators.length}</div>
               <div className="text-xs text-gray-600">Total Evaluators</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
+              <div className="text-2xl font-bold text-brand-accent">
                 {evaluators.filter(e => e.role === 'head_coach').length}
               </div>
               <div className="text-xs text-gray-600">Head Coaches</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
+              <div className="text-2xl font-bold text-semantic-success">
                 {evaluators.filter(e => e.role === 'evaluator').length}
               </div>
               <div className="text-xs text-gray-600">Evaluators</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
+              <div className="text-2xl font-bold text-semantic-warning">
                 {evaluators.filter(e => e.role === 'scout').length}
               </div>
               <div className="text-xs text-gray-600">Scouts</div>
@@ -287,12 +287,12 @@ const EvaluatorManagement = () => {
       )}
 
       {/* Benefits Callout */}
-      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div className="mt-6 p-4 bg-semantic-success/10 border border-semantic-success/20 rounded-lg">
         <div className="flex items-start gap-3">
-          <UserCheck className="w-5 h-5 text-green-600 mt-0.5" />
+          <UserCheck className="w-5 h-5 text-semantic-success mt-0.5" />
           <div>
-            <h4 className="font-medium text-green-900 mb-1">Multi-Evaluator Benefits</h4>
-            <ul className="text-sm text-green-800 space-y-1">
+            <h4 className="font-medium text-semantic-success mb-1">Multi-Evaluator Benefits</h4>
+            <ul className="text-sm text-semantic-success space-y-1">
               <li>- Reduce individual bias with multiple perspectives</li>
               <li>- Automatic score aggregation and variance analysis</li>
               <li>- Real-time collaborative evaluation</li>

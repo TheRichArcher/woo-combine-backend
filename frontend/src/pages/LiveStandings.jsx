@@ -131,7 +131,7 @@ export default function LiveStandings() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">
+            <div className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium">
               ✨ Live Updates
             </div>
           </div>
@@ -148,17 +148,17 @@ export default function LiveStandings() {
           <div className="grid grid-cols-2 gap-2">
             <Link
               to="/live-entry"
-              className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition"
+              className="flex items-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-lg border border-semantic-success/20 transition"
             >
-              <Target className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-900">Continue Recording</span>
+              <Target className="w-4 h-4 text-semantic-success" />
+              <span className="text-sm font-medium text-semantic-success">Continue Recording</span>
             </Link>
             <Link
               to="/players/rankings"
-              className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
+              className="flex items-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-lg border border-brand-primary/20 transition"
             >
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Full Player View</span>
+              <Users className="w-4 h-4 text-brand-primary" />
+              <span className="text-sm font-medium text-brand-secondary">Full Player View</span>
             </Link>
           </div>
         </div>
@@ -202,8 +202,8 @@ export default function LiveStandings() {
                 onClick={() => applyPreset(key)} 
                 className={`p-3 text-left rounded-lg border-2 transition-all ${
                   activePreset === key 
-                    ? 'border-blue-500 bg-blue-50 text-blue-900' 
-                    : 'border-gray-200 hover:border-blue-300 bg-white text-gray-700'
+                    ? 'border-brand-primary bg-brand-primary/10 text-brand-secondary' 
+                    : 'border-gray-200 hover:border-brand-primary/50 bg-white text-gray-700'
                 }`}
               >
                 <div className="font-medium text-sm">{preset.name}</div>
@@ -228,9 +228,9 @@ export default function LiveStandings() {
                     step={1}
                     value={weights[drill.key] || 0}
                     onChange={(e) => handleWeightChange(drill.key, parseInt(e.target.value))}
-                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
                   />
-                  <span className="text-sm font-mono text-blue-600 bg-blue-100 px-2 py-1 rounded min-w-[40px] text-center">
+                  <span className="text-sm font-mono text-brand-primary bg-brand-primary/10 px-2 py-1 rounded min-w-[40px] text-center">
                     {weights[drill.key] || 0}%
                   </span>
                 </div>
@@ -248,7 +248,7 @@ export default function LiveStandings() {
               <select
                 value={displayCount === -1 ? 'all' : String(displayCount)}
                 onChange={(e) => setDisplayCount(e.target.value === 'all' ? -1 : parseInt(e.target.value, 10))}
-                className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full border border-blue-200"
+                className="text-xs bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full border border-brand-primary/20"
               >
                 <option value="3">3</option>
                 <option value="5">5</option>
@@ -277,14 +277,14 @@ export default function LiveStandings() {
                 <div 
                   key={player.id} 
                   className={`flex items-center justify-between p-3 rounded-lg border ${
-                    index === 0 ? 'bg-green-50 border-green-200' :
+                    index === 0 ? 'bg-semantic-success/10 border-semantic-success/20' :
                     index < 3 ? 'bg-yellow-50 border-yellow-200' :
                     'bg-gray-50 border-gray-200'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                      index === 0 ? 'bg-green-600 text-white' :
+                      index === 0 ? 'bg-semantic-success text-white' :
                       index < 3 ? 'bg-yellow-500 text-white' :
                       'bg-gray-500 text-white'
                     }`}>
@@ -296,7 +296,7 @@ export default function LiveStandings() {
                       <div className="text-xs mt-1">
                         <Link
                           to={`/live-entry?player=${encodeURIComponent(player.number || '')}`}
-                          className="text-blue-600 hover:text-blue-700 underline"
+                          className="text-brand-primary hover:text-brand-secondary underline"
                         >
                           Record this player
                         </Link>
@@ -304,7 +304,7 @@ export default function LiveStandings() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-blue-600">{player.compositeScore.toFixed(1)}</div>
+                    <div className="font-bold text-brand-primary">{player.compositeScore.toFixed(1)}</div>
                     <div className="text-xs text-gray-500">score</div>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export default function LiveStandings() {
                 <div className="text-center pt-2">
                   <Link 
                     to="/players/rankings"
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                    className="text-brand-primary hover:text-brand-secondary text-sm font-medium"
                   >
                     View all {liveRankings.length} players →
                   </Link>
@@ -326,26 +326,26 @@ export default function LiveStandings() {
 
         {/* Access to Advanced Features */}
         {(userRole === 'organizer' || userRole === 'coach') && liveRankings.length >= 3 && (
-          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+          <div className="bg-brand-accent/10 border border-brand-accent/20 rounded-xl p-4">
             <div className="flex items-start gap-3">
-              <div className="text-purple-600">
+              <div className="text-brand-accent">
                 <BarChart3 className="w-5 h-5" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-purple-900 mb-1">Advanced Tools Available</h3>
-                <p className="text-purple-700 text-sm mb-3">
+                <h3 className="font-semibold text-brand-secondary mb-1">Advanced Tools Available</h3>
+                <p className="text-brand-accent text-sm mb-3">
                   You have enough data to use advanced features
                 </p>
                 <div className="flex gap-2">
                   <Link
                     to="/team-formation"
-                    className="text-xs bg-white text-purple-800 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition font-medium"
+                    className="text-xs bg-white text-brand-accent px-3 py-1.5 rounded-lg border border-brand-accent/20 hover:bg-brand-accent/10 transition font-medium"
                   >
                     Create Teams
                   </Link>
                   <Link
                     to="/analytics"
-                    className="text-xs bg-white text-purple-800 px-3 py-1.5 rounded-lg border border-purple-200 hover:bg-purple-50 transition font-medium"
+                    className="text-xs bg-white text-brand-accent px-3 py-1.5 rounded-lg border border-brand-accent/20 hover:bg-brand-accent/10 transition font-medium"
                   >
                     Full Analytics
                   </Link>
