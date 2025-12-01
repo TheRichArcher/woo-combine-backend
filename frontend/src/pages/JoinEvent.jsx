@@ -10,7 +10,7 @@ import api from '../lib/api';
 export default function JoinEvent() {
   const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
-  const { user, leagues, addLeague, setSelectedLeagueId, userRole } = useAuth();
+  const { user, leagues, addLeague, setSelectedLeagueId, userRole, initializing } = useAuth();
   const { setSelectedEvent } = useEvent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -19,6 +19,9 @@ export default function JoinEvent() {
   const [status, setStatus] = useState("checking"); // checking, found, not_found, success
 
   useEffect(() => {
+    // Wait for auth initialization to complete
+    if (initializing) return;
+
     const handleEventJoin = async () => {
       // Clean parameter extraction - handle multiple URL formats
       let actualLeagueId, actualEventId, intendedRole;
@@ -208,9 +211,9 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole]);
+  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole, initializing]);
 
-  if (loading) {
+  if (loading || initializing) {
     return <LoadingScreen size="medium" />;
   }
 

@@ -28,6 +28,24 @@ export default function JoinLeague() {
     else if (urlCode) setJoinCode(urlCode);
   }, [urlCode]);
 
+  const handleStartScanner = async () => {
+    try {
+      // iOS requires getUserMedia to be called directly from a user gesture
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' } 
+        });
+        // We don't need to keep the stream, just triggering the permission prompt
+      }
+      setShowQrScanner(true);
+    } catch (err) {
+      console.error("Camera permission error:", err);
+      // We still show the scanner so the user sees the error state in the modal
+      setShowQrScanner(true);
+      setQrError('Camera permission is required. Please enable camera access in your browser settings.');
+    }
+  };
+
   // Start QR scanner when modal opens
   useEffect(() => {
     if (showQrScanner && videoRef.current) {
@@ -41,6 +59,14 @@ export default function JoinLeague() {
             let code = '';
             try {
               const url = new URL(result.getText());
+              // Support both /join/CODE and /join-event/CODE formats
+              if (url.pathname.includes('/join-event/')) {
+                // Full event URL format
+                navigate(`/join-event${url.pathname.replace('/join-event', '')}${url.search}`);
+                setShowQrScanner(false);
+                qrReaderRef.current.reset();
+                return;
+              }
               code = url.searchParams.get('code') || url.pathname.split('/').pop();
             } catch {
               // If URL parsing fails, treat the raw text as the code
@@ -49,8 +75,13 @@ export default function JoinLeague() {
             setShowQrScanner(false);
             qrReaderRef.current.reset();
             navigate(`/join?code=${encodeURIComponent(code)}`);
-          } else if (err) {
-            setQrError('Camera error: ' + (err?.message || err));
+          } else if (err && err.name !== 'NotFoundException') {
+            // Ignore NotFoundException as it just means no QR code found in current frame
+            console.error("QR Scanner error:", err);
+            // Only show persistent errors, not temporary scanning errors
+            if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
+              setQrError('Camera error: ' + (err.message || err));
+            }
           }
         }
       );
@@ -100,21 +131,27 @@ export default function JoinLeague() {
       {/* Floating QR Scan Button */}
       <Button
         className="fixed bottom-6 right-6 z-50 rounded-full shadow-lg p-4 flex items-center gap-2 text-lg font-bold"
-        onClick={() => setShowQrScanner(true)}
-        aria-label="Scan QR to Join"
+        onClick={handleStartScanner}
+        aria-label="Scan Event QR Code"
       >
-        <span role="img" aria-label="scan">📷</span> Scan QR to Join
+        <span role="img" aria-label="scan">📷</span> Scan Event QR Code
       </Button>
       
       {/* QR Scanner Modal */}
       {showQrScanner && (
         <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 shadow-2xl flex flex-col items-center max-w-xs w-full">
-            <h2 className="text-lg font-bold mb-2">Scan League QR Code</h2>
-            <div className="w-full h-64 mb-2 flex items-center justify-center">
-              <video ref={videoRef} className="w-full h-full rounded" style={{ objectFit: 'cover' }} />
+            <h2 className="text-lg font-bold mb-2">Scan Event QR Code</h2>
+            <div className="w-full h-64 mb-2 flex items-center justify-center relative overflow-hidden bg-black rounded">
+              <video 
+                ref={videoRef} 
+                className="w-full h-full rounded object-cover" 
+                playsInline 
+                autoPlay 
+                muted 
+              />
             </div>
-            {qrError && <div className="text-red-500 text-sm mb-2">{qrError}</div>}
+            {qrError && <div className="text-red-500 text-sm mb-2 text-center">{qrError}</div>}
             <Button onClick={() => setShowQrScanner(false)} className="w-full">Cancel</Button>
           </div>
         </div>
