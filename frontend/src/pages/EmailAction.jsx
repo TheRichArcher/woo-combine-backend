@@ -39,7 +39,7 @@ export default function EmailAction() {
           await applyActionCode(auth, oobCode);
           
           setStatus("success");
-          setMessage("Your email has been verified. You can close this tab or continue to login.");
+          setMessage("Your email has been verified. You can now close this tab.");
           
           // Attempt to notify the original tab
           try {
@@ -76,12 +76,15 @@ export default function EmailAction() {
             <h2 className="text-2xl font-bold text-semantic-success mb-3">Success! Email Verified.</h2>
             <p className="text-gray-700 mb-6 font-semibold">{message}</p>
             
-            <button onClick={() => navigate('/login')} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition">
-              Continue to Login
+            <button 
+              onClick={() => window.close()} 
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
+            >
+              Close This Tab
             </button>
             
             <p className="text-gray-500 text-sm mt-4">
-              Or close this tab if you're already logged in elsewhere.
+              You can return to the tab where you started.
             </p>
           </>
         )}
