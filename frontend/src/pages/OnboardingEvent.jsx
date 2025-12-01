@@ -676,7 +676,7 @@ export default function OnboardingEvent() {
 
           <div className="space-y-3">
             <Button onClick={() => handleStepNavigation(5)} className="w-full flex items-center justify-center gap-2">
-              Skip & Start Tracking
+              Done and/or Skip and Start Tracking
               <ArrowRight className="w-5 h-5" />
             </Button>
             <Button variant="subtle" onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
