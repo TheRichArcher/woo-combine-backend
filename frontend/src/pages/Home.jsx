@@ -151,14 +151,14 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => handleNavigation('/event-sharing')}
-                    className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                    className="bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-2"
                   >
                     <BarChart3 className="w-5 h-5" />
                     Share QR Codes
                   </button>
                   <button
                     onClick={() => handleNavigation('/admin#player-upload')}
-                    className="bg-green-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
+                    className="bg-semantic-success text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
                   >
                     <Users className="w-5 h-5" />
                     Import Players
@@ -178,13 +178,13 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => handleNavigation('/team-formation')}
-                    className="bg-purple-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                    className="bg-brand-primary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-2"
                   >
                     Create Teams
                   </button>
                   <button
                     onClick={() => handleNavigation('/scorecards')}
-                    className="bg-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-orange-700 transition flex items-center justify-center gap-2"
+                    className="bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-2"
                   >
                     Player Scorecards
                   </button>
@@ -203,13 +203,13 @@ export default function Home() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => handleNavigation('/team-formation')}
-                    className="bg-purple-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-purple-700 transition flex items-center justify-center gap-2"
+                    className="bg-brand-primary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-2"
                   >
                     Create Teams
                   </button>
                   <button
                     onClick={() => handleNavigation('/scorecards')}
-                    className="bg-orange-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-orange-700 transition flex items-center justify-center gap-2"
+                    className="bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-2"
                   >
                     Player Scorecards
                   </button>
@@ -219,7 +219,7 @@ export default function Home() {
             {userRole === 'viewer' && (
               <button
                 onClick={() => handleNavigation('/players')}
-                className="bg-blue-600 text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-3 text-lg"
+                className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
               >
                 <Users className="w-6 h-6" />
                 👁️ View Event Results
@@ -228,7 +228,7 @@ export default function Home() {
             {userRole === 'player' && selectedEvent && (
               <button
                 onClick={() => handleNavigation('/drill-input')}
-                className="bg-brand-secondary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-3 text-lg"
+                className="bg-semantic-success text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-3 text-lg"
               >
                 📝 Submit Drill Results
               </button>
@@ -290,7 +290,7 @@ export default function Home() {
                   <p className="text-sm text-gray-600 mb-3">Check out the latest results and rankings</p>
                   <button
                     onClick={() => handleNavigation('/players')}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium"
+                    className="bg-brand-primary text-white px-6 py-3 rounded-lg hover:bg-brand-secondary transition font-medium"
                   >
                     👁️ View Results
                   </button>
@@ -301,7 +301,7 @@ export default function Home() {
                   <p className="text-sm text-gray-600 mb-3">Submit your combine performance results</p>
                   <button
                     onClick={() => handleNavigation('/drill-input')}
-                    className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
+                    className="bg-semantic-success text-white px-6 py-3 rounded-lg hover:bg-green-700 transition font-medium"
                   >
                     📝 Submit Results
                   </button>
