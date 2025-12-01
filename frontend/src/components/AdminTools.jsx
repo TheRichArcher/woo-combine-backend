@@ -127,42 +127,56 @@ export default function AdminTools() {
       const text = evt.target.result;
       const { headers, rows, mappingType } = parseCsv(text);
       
+      // Generate default mapping immediately
+      const initialMapping = generateDefaultMapping(headers);
+      setFieldMapping(initialMapping);
+      setOriginalCsvRows(rows); // Always save original rows
+      
       // Enhanced validation with mapping type support
       const headerErrors = validateHeaders(headers, mappingType);
       
-      // Validate rows
-      const validatedRows = rows.map(row => validateRow(row));
+      if (headerErrors.length > 0) {
+        // Case 1: Invalid headers - Force mapping, no validation yet
+        setCsvHeaders(headers);
+        setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings
+        setCsvErrors(headerErrors);
+        setShowMapping(true);
+        showError(`⚠️ Column headers don't match. Please map fields to continue.`);
+        return;
+      }
+
+      // Case 2: Valid headers (direct or synonyms) - Auto-apply mapping & validate
+      const mappedRows = applyMapping(rows, initialMapping);
+      const validatedRows = mappedRows.map(row => validateRow(row));
       
-      // Count validation issues
+      // Determine active headers for preview (canonical)
+      const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
+        const source = initialMapping[key];
+        return source && source !== '__ignore__';
+      });
+      const previewHeaders = selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS;
+      
+      setCsvHeaders(previewHeaders);
+      setCsvRows(validatedRows);
+      setCsvErrors([]);
+      setShowMapping(false);
+
+      // Count validation issues on MAPPED rows
       const rowsWithErrors = validatedRows.filter(row => row.warnings.length > 0);
       const criticalErrors = validatedRows.filter(row => 
         row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"))
       );
       const validPlayers = validatedRows.filter(row => row.isValid);
       
-      // Show appropriate feedback
-      if (headerErrors.length > 0) {
-        showError(`❌ CSV Error: ${headerErrors[0]}`);
-      } else if (criticalErrors.length > 0) {
-        // Non-blocking warning: missing names are allowed; those rows will be skipped
+      // Show appropriate feedback based on TRUE validation results
+      if (criticalErrors.length > 0) {
         showInfo(`⚠️ ${criticalErrors.length} players are missing first or last names. You can continue — those rows will be skipped.`);
       } else if (rowsWithErrors.length > 0) {
         showInfo(`⚠️ ${validPlayers.length} players ready, ${rowsWithErrors.length} have warnings. Review table below.`);
       } else {
-        // Show success message with mapping type information
         const mappingDesc = getMappingDescription(mappingType);
         showSuccess(`✅ ${rows.length} players validated successfully! ${mappingDesc}`);
       }
-      
-      setCsvHeaders(headers);
-      setOriginalCsvRows(rows);
-      setCsvRows(validatedRows);
-      setCsvErrors(headerErrors);
-      try {
-        const initialMapping = generateDefaultMapping(headers);
-        setFieldMapping(initialMapping);
-        setShowMapping(headerErrors.length > 0);
-      } catch {}
     };
     reader.readAsText(file);
   };
