@@ -132,6 +132,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
         id: response.data.event_id,
         name: name,
         date: isoDate,
+        drillTemplate: selectedTemplate,
         created_at: new Date().toISOString()
       };
       

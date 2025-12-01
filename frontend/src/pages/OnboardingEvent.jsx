@@ -149,14 +149,16 @@ export default function OnboardingEvent() {
     }
   }, [createdEvent, fetchPlayerCount]);
 
-  // If the user already has a selected event in context (e.g., navigated back),
-  // restore it and move to step 2 so they're not stuck on step 1.
+  // Auto-advance REMOVED to prevent skipping the Sport Selection step.
+  // Users will see the "Continue" button in Step 1 if an event is already selected.
+  /*
   useEffect(() => {
     if (currentStep === 1 && selectedEvent && !createdEvent) {
       setCreatedEvent(selectedEvent);
       setCurrentStep(2);
     }
   }, [currentStep, selectedEvent, createdEvent]);
+  */
 
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
