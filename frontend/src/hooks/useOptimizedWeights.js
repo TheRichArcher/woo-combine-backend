@@ -6,6 +6,7 @@
  * and memoized calculations.
  * 
  * @param {Array<Object>} players - Array of player objects with drill scores
+ * @param {Array<Object>} drills - Array of drill definitions (template + custom)
  * @returns {{
  *   persistedWeights: Object,
  *   sliderWeights: Object,
@@ -27,9 +28,10 @@ import { calculateOptimizedRankings } from '../utils/optimizedScoring';
 /**
  * Custom hook for optimized weight management with performance optimizations
  * @param {Array<Object>} players - Array of player objects
+ * @param {Array<Object>} drills - Array of drill definitions
  * @returns {Object} Weight management state and methods
  */
-export function useOptimizedWeights(players = []) {
+export function useOptimizedWeights(players = [], drills) {
   // Persisted weights (the source of truth)
   const [persistedWeights, setPersistedWeights] = useState({
     "40m_dash": 20,
@@ -119,8 +121,8 @@ export function useOptimizedWeights(players = []) {
   const memoizedRankings = useMemo(() => {
     if (!players || players.length === 0) return [];
     
-    return calculateOptimizedRankings(players, persistedWeights);
-  }, [players, persistedWeights]);
+    return calculateOptimizedRankings(players, persistedWeights, drills);
+  }, [players, persistedWeights, drills]);
 
   // Group rankings by age group for efficient rendering
   const groupedRankings = useMemo(() => {
@@ -145,8 +147,8 @@ export function useOptimizedWeights(players = []) {
       return memoizedRankings;
     }
 
-    return calculateOptimizedRankings(players, sliderWeights);
-  }, [players, sliderWeights, persistedWeights, memoizedRankings]);
+    return calculateOptimizedRankings(players, sliderWeights, drills);
+  }, [players, sliderWeights, persistedWeights, memoizedRankings, drills]);
 
   // Check if weights match a preset
   const detectActivePreset = useCallback(() => {

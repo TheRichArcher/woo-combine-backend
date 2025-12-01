@@ -87,6 +87,15 @@ async def set_user_role(
         
         if not role or role not in ["organizer", "coach", "viewer", "player"]:
             raise HTTPException(status_code=400, detail="Invalid role")
+
+        # SAFETY CHECK: Prevent Organizer self-demotion
+        current_role = current_user.get("role")
+        if current_role == "organizer" and role != "organizer":
+            logging.warning(f"Organizer {uid} attempted self-demotion to {role}. Blocked.")
+            raise HTTPException(
+                status_code=400, 
+                detail="Organizers cannot remove their own organizer role. Please contact support or another organizer."
+            )
         
         # Database operations with comprehensive error handling
         try:

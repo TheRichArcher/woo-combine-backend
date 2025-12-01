@@ -36,10 +36,27 @@ export default function LiveEntry() {
     }
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
 
-  // Get drills from event template
+  // Get drills from event template and custom drills
   const drills = useMemo(() => {
     if (!selectedEvent) return [];
-    return getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    
+    // 1. Get standard drills from template
+    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    
+    // 2. Get custom drills from event data
+    // Note: backend returns snake_case fields, but we normalize for UI
+    const customDrills = selectedEvent.custom_drills || [];
+    
+    const formattedCustomDrills = customDrills.map(d => ({
+      key: d.id,
+      label: d.name,
+      unit: d.unit,
+      lowerIsBetter: d.lower_is_better,
+      category: d.category || 'custom',
+      isCustom: true
+    }));
+
+    return [...templateDrills, ...formattedCustomDrills];
   }, [selectedEvent]);
   
   // Core state
@@ -309,9 +326,25 @@ export default function LiveEntry() {
   const attemptSubmit = async () => {
     if (!selectedDrill || !playerId || !score) return;
     if (lockedDrills[selectedDrill]) return; // locked: no submit
+    
+    // Validate score input before sending to backend
+    const numericScore = parseFloat(score);
+    if (isNaN(numericScore)) {
+      alert("Please enter a valid number for the score.");
+      scoreRef.current?.focus();
+      return;
+    }
+    
+    // Optional: Reject obvious typo cases like "4..5" or "abc" that might slip through some parsers
+    if (!/^-?\d*\.?\d+$/.test(score.trim())) {
+      alert("Please enter a valid numeric format.");
+      scoreRef.current?.focus();
+      return;
+    }
+
     const duplicate = checkForDuplicate(playerId, selectedDrill);
     if (duplicate) {
-      setDuplicateData({ ...duplicate, newScore: parseFloat(score) });
+      setDuplicateData({ ...duplicate, newScore: numericScore });
       setShowDuplicateDialog(true);
       return;
     }

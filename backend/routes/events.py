@@ -73,7 +73,7 @@ def create_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: EventCreateRequest | None = None, 
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_role("organizer"))
 ):
     try:
         name = req.name if req else None
@@ -198,7 +198,7 @@ def update_event(
     league_id: str = Path(..., regex=r"^.{1,50}$"), 
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
     req: EventUpdateRequest | None = None, 
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_role("organizer"))
 ):
     try:
         name = req.name if req else None

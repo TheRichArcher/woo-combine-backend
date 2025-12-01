@@ -6,11 +6,12 @@ import Select from '../ui/Select';
 import { CheckCircle, AlertTriangle, ArrowRight, ArrowLeft, Ruler, Info } from 'lucide-react';
 import api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
+import { getDrillsFromTemplate } from '../../constants/drillTemplates';
 
 const DRILL_CATEGORIES = ["Speed", "Agility", "Power", "Strength", "Skill", "Conditioning"];
 const SCORING_UNITS = ["Seconds", "Inches", "Reps", "MPH", "Percent", "Other"];
 
-export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, onDrillCreated, initialData = null }) {
+export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, onDrillCreated, initialData = null, drillTemplate = 'football' }) {
   const { showSuccess, showError } = useToast();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -30,15 +31,28 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
   // Validation Warnings
   const [showRangeWarning, setShowRangeWarning] = useState(false);
   const [warningConfirmed, setWarningConfirmed] = useState(false);
+  const [nameError, setNameError] = useState(null);
 
   // Handlers
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (field === 'name') setNameError(null);
   };
 
   const validateStep = () => {
     if (step === 1) {
-      return formData.name.trim().length >= 3 && formData.category;
+      if (formData.name.trim().length < 3) return false;
+      
+      // Check for collision with template drills
+      const templateDrills = getDrillsFromTemplate(drillTemplate);
+      const collision = templateDrills.find(d => d.label.toLowerCase() === formData.name.trim().toLowerCase());
+      
+      if (collision) {
+        setNameError(`"${collision.label}" is already a standard drill in this event.`);
+        return false;
+      }
+      
+      return !!formData.category;
     }
     if (step === 2) {
       if (formData.unit === 'Other' && !formData.customUnit.trim()) return false;
@@ -206,7 +220,9 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
                         value={formData.name} 
                         onChange={(e) => updateField('name', e.target.value)}
                         placeholder="e.g. 3-Cone Shuttle"
+                        error={nameError}
                     />
+                    {nameError && <p className="mt-1 text-xs text-red-500">{nameError}</p>}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category *</label>

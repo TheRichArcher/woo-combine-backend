@@ -11,7 +11,7 @@ import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
-import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS } from '../utils/csvUtils';
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS, OPTIONAL_HEADERS } from '../utils/csvUtils';
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
 

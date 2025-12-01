@@ -21,6 +21,7 @@ import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
 import WeightControls from '../components/WeightControls';
+import { getDrillsFromTemplate } from '../constants/drillTemplates';
 
 // Icon mapping for TABS
 const ICON_MAP = {
@@ -49,7 +50,7 @@ const cachedFetchPlayers = withCache(
 );
 
 export default function Players() {
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, setSelectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +82,51 @@ export default function Players() {
     }
   }, [userRole]);
   
+  // Refresh event data on mount to ensure drill template and custom drills are up to date
+  // This matches the LiveEntry behavior to ensure consistency
+  useEffect(() => {
+    if (selectedEvent?.id && selectedEvent?.league_id) {
+      const fetchFreshEvent = async () => {
+        try {
+          const response = await api.get(`/leagues/${selectedEvent.league_id}/events/${selectedEvent.id}`);
+          const freshEvent = response.data;
+          
+          // Only update if critical fields differ to avoid unnecessary context updates
+          if (freshEvent.drillTemplate !== selectedEvent.drillTemplate || 
+              freshEvent.name !== selectedEvent.name ||
+              JSON.stringify(freshEvent.custom_drills) !== JSON.stringify(selectedEvent.custom_drills)) {
+             setSelectedEvent(freshEvent);
+          }
+        } catch (error) {
+          console.warn("Background event refresh failed:", error);
+        }
+      };
+      fetchFreshEvent();
+    }
+  }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
+
+  // Compute the full list of drills (template + custom)
+  const allDrills = useMemo(() => {
+    if (!selectedEvent) return DRILLS;
+    
+    // 1. Get standard drills from template
+    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    
+    // 2. Get custom drills from event data
+    const customDrills = selectedEvent.custom_drills || [];
+    
+    const formattedCustomDrills = customDrills.map(d => ({
+      key: d.id,
+      label: d.name,
+      unit: d.unit,
+      lowerIsBetter: d.lower_is_better,
+      category: d.category || 'custom',
+      isCustom: true
+    }));
+
+    return [...templateDrills, ...formattedCustomDrills];
+  }, [selectedEvent]);
+
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 
   // PERFORMANCE OPTIMIZATION: Replace complex weight management with optimized hook
@@ -95,7 +141,7 @@ export default function Players() {
     groupedRankings,
     setSliderWeights,
     persistSliderWeights
-  } = useOptimizedWeights(players);
+  } = useOptimizedWeights(players, allDrills);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
@@ -123,22 +169,22 @@ export default function Players() {
   const selectedGroupRankings = useMemo(() => {
     if (!selectedAgeGroup) return [];
     if (selectedAgeGroup === 'all') {
-      return calculateOptimizedRankingsAcrossAll(players, persistedWeights);
+      return calculateOptimizedRankingsAcrossAll(players, persistedWeights, allDrills);
     }
     return groupedRankings[selectedAgeGroup] || [];
-  }, [selectedAgeGroup, players, persistedWeights, groupedRankings]);
+  }, [selectedAgeGroup, players, persistedWeights, groupedRankings, allDrills]);
 
   // Live rankings for the selected group based on current slider weights
   const selectedLiveRankings = useMemo(() => {
     if (!selectedAgeGroup) return [];
     if (selectedAgeGroup === 'all') {
-      return calculateOptimizedRankingsAcrossAll(players, sliderWeights);
+      return calculateOptimizedRankingsAcrossAll(players, sliderWeights, allDrills);
     }
     // liveRankings is a flat array across age groups; filter to the selected group
     const filtered = (Array.isArray(liveRankings) ? liveRankings : [])
       .filter(p => p && p.age_group === selectedAgeGroup);
     return filtered.length > 0 ? filtered : selectedGroupRankings;
-  }, [selectedAgeGroup, players, sliderWeights, liveRankings, selectedGroupRankings]);
+  }, [selectedAgeGroup, players, sliderWeights, liveRankings, selectedGroupRankings, allDrills]);
 
   // Selected group players and completion stats (supports partial/no-shows)
   const selectedGroupPlayers = useMemo(() => {
@@ -149,9 +195,9 @@ export default function Players() {
   const selectedGroupScoredCount = useMemo(() => {
     if (!selectedGroupPlayers || selectedGroupPlayers.length === 0) return 0;
     return selectedGroupPlayers.filter(p =>
-      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+      allDrills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
     ).length;
-  }, [selectedGroupPlayers]);
+  }, [selectedGroupPlayers, allDrills]);
 
   const selectedGroupCompletionPct = useMemo(() => {
     const total = selectedGroupPlayers.length || 0;
@@ -163,9 +209,9 @@ export default function Players() {
   const overallScoredCount = useMemo(() => {
     if (!players || players.length === 0) return 0;
     return players.filter(p =>
-      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+      allDrills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
     ).length;
-  }, [players]);
+  }, [players, allDrills]);
 
   const overallCompletionPct = useMemo(() => {
     const total = players.length || 0;
@@ -197,7 +243,7 @@ export default function Players() {
     }
     
     // Fallback to original calculation for different weights
-    const rankedPlayers = calculateNormalizedCompositeScores(playersGroup, weights);
+    const rankedPlayers = calculateNormalizedCompositeScores(playersGroup, weights, allDrills);
     rankedPlayers.sort((a, b) => b.compositeScore - a.compositeScore);
     
     return rankedPlayers.map((player, index) => ({
@@ -205,7 +251,7 @@ export default function Players() {
       weightedScore: player.compositeScore, // Keep backward compatibility with existing UI
       rank: index + 1
     }));
-  }, [optimizedRankings, persistedWeights]);
+  }, [optimizedRankings, persistedWeights, allDrills]);
 
   // PERFORMANCE OPTIMIZATION: Removed old weight management functions
   // These are now handled by useOptimizedWeights hook
@@ -299,6 +345,7 @@ export default function Players() {
         applyPreset={applyPreset}
         showCustomControls={showCustomControls}
         setShowCustomControls={setShowCustomControls}
+        drills={allDrills}
       />
     );
   });
@@ -683,7 +730,7 @@ export default function Players() {
                       {showCompactSliders && (
                         <div className="bg-white/10 rounded p-2">
                           <div className="grid grid-cols-5 gap-2 text-xs">
-                            {DRILLS.map((drill) => (
+                            {allDrills.map((drill) => (
                               <div key={drill.key} className="text-center">
                                 <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
                                 <input
@@ -897,7 +944,7 @@ export default function Players() {
                           {showCompactSliders && (
                             <div className="bg-white/10 rounded p-2">
                               <div className="grid grid-cols-5 gap-2 text-xs">
-                                {DRILLS.map((drill) => (
+                                {allDrills.map((drill) => (
                                   <div key={drill.key} className="text-center">
                                     <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>
                                     <input
@@ -1029,7 +1076,10 @@ export default function Players() {
                             
                             {expandedPlayerIds[player.id] && (
                               <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mt-3">
-                                <DrillInputForm playerId={player.id} onSuccess={() => { 
+                                <DrillInputForm 
+                                  playerId={player.id} 
+                                  drills={allDrills}
+                                  onSuccess={() => { 
                                   toggleForm(player.id); 
                                   // Invalidate cache on data update
                                   if (selectedEvent) {
@@ -1072,6 +1122,7 @@ export default function Players() {
                 handleWeightChange={handleWeightChange}
                 activePreset={activePreset}
                 applyPreset={applyPreset}
+                drills={allDrills}
               />
             )}
             {editingPlayer && (
@@ -1136,12 +1187,24 @@ export default function Players() {
                     const allPlayers = flatAll.filter(p => p.composite_score != null);
                     const handleExportAllCsv = () => {
                       if (allPlayers.length === 0) return;
-                      let csv = 'Rank,Name,Player Number,Age Group,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                      
+                      const headers = ['Rank', 'Name', 'Player Number', 'Age Group', 'Composite Score', ...allDrills.map(d => d.label)];
+                      let csv = headers.join(',') + '\n';
+                      
                       allPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
-                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},"${player.age_group || 'Unknown'}",${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] ?? 'Missing'},${player.vertical_jump ?? 'Missing'},${player.catching ?? 'Missing'},${player.throwing ?? 'Missing'},${player.agility ?? 'Missing'}\n`;
+                          const row = [
+                            index + 1,
+                            `"${player.name}"`,
+                            player.number || 'N/A',
+                            `"${player.age_group || 'Unknown'}"`,
+                            (player.composite_score || 0).toFixed(2),
+                            ...allDrills.map(d => player[d.key] ?? 'Missing')
+                          ];
+                          csv += row.join(',') + '\n';
                         });
+                      
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
                       const filename = `rankings_all_players_${eventDate}_${allPlayers.length}-of-${flatAll.length}.csv`;
                       const blob = new Blob([csv], { type: 'text/csv' });
@@ -1175,12 +1238,23 @@ export default function Players() {
                     const ageGroupPlayers = ageGroupAll.filter(p => p.composite_score != null);
                     const handleExportCsv = () => {
                       if (ageGroupPlayers.length === 0) return;
-                      let csv = 'Rank,Name,Player Number,Composite Score,40-Yard Dash,Vertical Jump,Catching,Throwing,Agility\n';
+                      
+                      const headers = ['Rank', 'Name', 'Player Number', 'Composite Score', ...allDrills.map(d => d.label)];
+                      let csv = headers.join(',') + '\n';
+                      
                       ageGroupPlayers
                         .sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0))
                         .forEach((player, index) => {
-                          csv += `${index + 1},"${player.name}",${player.number || 'N/A'},${(player.composite_score || 0).toFixed(2)},${player["40m_dash"] ?? 'Missing'},${player.vertical_jump ?? 'Missing'},${player.catching ?? 'Missing'},${player.throwing ?? 'Missing'},${player.agility ?? 'Missing'}\n`;
+                          const row = [
+                            index + 1,
+                            `"${player.name}"`,
+                            player.number || 'N/A',
+                            (player.composite_score || 0).toFixed(2),
+                            ...allDrills.map(d => player[d.key] ?? 'Missing')
+                          ];
+                          csv += row.join(',') + '\n';
                         });
+                        
                       const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
                       const filename = `rankings_${ageGroup}_${eventDate}_${ageGroupPlayers.length}-of-${ageGroupAll.length}.csv`;
                       const blob = new Blob([csv], { type: 'text/csv' });
