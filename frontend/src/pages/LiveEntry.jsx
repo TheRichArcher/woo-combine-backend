@@ -3,21 +3,44 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info, Lock, LockOpen, StickyNote } from 'lucide-react';
+import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 
-const DRILLS = [
-  { key: "40m_dash", label: "40-Yard Dash", unit: "sec", lowerIsBetter: true },
-  { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false },
-  { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false },
-  { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false },
-  { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false },
-];
 
 export default function LiveEntry() {
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, setSelectedEvent } = useEvent();
   const { userRole } = useAuth();
   const location = useLocation();
+
+  // Refresh event data on mount to ensure drill template is up to date
+  useEffect(() => {
+    if (selectedEvent?.id && selectedEvent?.league_id) {
+      const fetchFreshEvent = async () => {
+        try {
+          const response = await api.get(`/leagues/${selectedEvent.league_id}/events/${selectedEvent.id}`);
+          const freshEvent = response.data;
+          
+          // Only update if critical fields differ to avoid unnecessary context updates
+          if (freshEvent.drillTemplate !== selectedEvent.drillTemplate || 
+              freshEvent.name !== selectedEvent.name ||
+              JSON.stringify(freshEvent.custom_drills) !== JSON.stringify(selectedEvent.custom_drills)) {
+             setSelectedEvent(freshEvent);
+          }
+        } catch (error) {
+          // Silent failure is acceptable here, falls back to context data
+          console.warn("Background event refresh failed:", error);
+        }
+      };
+      fetchFreshEvent();
+    }
+  }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
+
+  // Get drills from event template
+  const drills = useMemo(() => {
+    if (!selectedEvent) return [];
+    return getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+  }, [selectedEvent]);
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
@@ -143,7 +166,7 @@ export default function LiveEntry() {
     const drillParam = params.get('drill');
     const playerParam = params.get('player');
     let applied = false;
-    if (drillParam && DRILLS.some(d => d.key === drillParam)) {
+    if (drillParam && drills.some(d => d.key === drillParam)) {
       setSelectedDrill(drillParam);
       setDrillConfirmed(true);
       applied = true;
@@ -232,10 +255,10 @@ export default function LiveEntry() {
       if (isTyping) return;
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         e.preventDefault();
-        const idx = DRILLS.findIndex(d => d.key === selectedDrill);
+        const idx = drills.findIndex(d => d.key === selectedDrill);
         if (idx === -1) return;
-        const nextIdx = e.key === 'ArrowRight' ? (idx + 1) % DRILLS.length : (idx - 1 + DRILLS.length) % DRILLS.length;
-        setSelectedDrill(DRILLS[nextIdx].key);
+        const nextIdx = e.key === 'ArrowRight' ? (idx + 1) % drills.length : (idx - 1 + drills.length) % drills.length;
+        setSelectedDrill(drills[nextIdx].key);
         setDrillConfirmed(true);
         setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
       }
@@ -276,11 +299,11 @@ export default function LiveEntry() {
       return {
         existingScore: player[targetDrill],
         playerName: player.name,
-        drill: DRILLS.find(d => d.key === targetDrill)
+        drill: drills.find(d => d.key === targetDrill)
       };
     }
     return null;
-  }, [players]);
+  }, [players, drills]);
   
   // Handle score submission
   const attemptSubmit = async () => {
@@ -317,7 +340,7 @@ export default function LiveEntry() {
         playerId,
         playerNumber,
         playerName,
-        drill: DRILLS.find(d => d.key === selectedDrill),
+        drill: drills.find(d => d.key === selectedDrill),
         score: parseFloat(score),
         timestamp: new Date(),
         overridden: overrideDuplicate,
@@ -415,12 +438,12 @@ export default function LiveEntry() {
     );
   }
   
-  const currentDrill = DRILLS.find(d => d.key === selectedDrill);
+  const currentDrill = drills.find(d => d.key === selectedDrill);
   const totalPlayers = players.length;
   const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
   const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
-  const currentIndex = DRILLS.findIndex(d => d.key === selectedDrill);
-  const nextDrill = currentIndex >= 0 ? DRILLS[(currentIndex + 1) % DRILLS.length] : null;
+  const currentIndex = drills.findIndex(d => d.key === selectedDrill);
+  const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
   const missingPlayers = useMemo(() => {
     if (!selectedDrill) return [];
     return players.filter(p => p && (p[selectedDrill] == null || p[selectedDrill] === undefined));
@@ -449,7 +472,7 @@ export default function LiveEntry() {
                 className="p-2 border rounded-lg text-sm bg-white"
               >
                 <option value="">Select drill…</option>
-                {DRILLS.map((d) => (
+                {drills.map((d) => (
                   <option key={d.key} value={d.key}>{d.label}</option>
                 ))}
               </select>
@@ -524,7 +547,7 @@ export default function LiveEntry() {
                 className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
               >
                 <option value="" disabled>Select a drill to begin...</option>
-                {DRILLS.map((drill) => (
+                {drills.map((drill) => (
                   <option key={drill.key} value={drill.key}>
                     {drill.label} - {drill.unit} {drill.lowerIsBetter ? '(lower is better)' : '(higher is better)'}
                   </option>
@@ -596,7 +619,7 @@ export default function LiveEntry() {
             {/* Quick Drill Switcher */}
             <div className="mt-3 px-2">
               <div className="flex flex-wrap gap-2 justify-center">
-                {DRILLS.map((d) => (
+                {drills.map((d) => (
                   <button
                     key={d.key}
                     onClick={() => { setSelectedDrill(d.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
