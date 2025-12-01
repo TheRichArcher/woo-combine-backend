@@ -32,6 +32,7 @@ ACCESS_MATRIX: Dict[ResourceKey, RoleSet] = {
     ("league_players", "create"): MANAGE_ROLES,
     ("league_players", "drill_results"): VIEW_ROLES,
     ("drills", "create_result"): MANAGE_ROLES,
+    ("drills", "delete_result"): MANAGE_ROLES,
     ("evaluators", "list"): VIEW_ROLES,
     ("evaluators", "add"): MANAGE_ROLES,
     ("evaluators", "submit_evaluation"): MANAGE_ROLES,

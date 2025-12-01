@@ -32,14 +32,27 @@ import { calculateOptimizedRankings } from '../utils/optimizedScoring';
  * @returns {Object} Weight management state and methods
  */
 export function useOptimizedWeights(players = [], drills) {
+  // Load initial weights from localStorage or use defaults
+  const getInitialWeights = () => {
+    try {
+      const saved = localStorage.getItem('wooCombine:weights');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Failed to load weights from localStorage', e);
+    }
+    return {
+      "40m_dash": 20,
+      "vertical_jump": 20, 
+      "catching": 20,
+      "throwing": 20,
+      "agility": 20
+    };
+  };
+
   // Persisted weights (the source of truth)
-  const [persistedWeights, setPersistedWeights] = useState({
-    "40m_dash": 20,
-    "vertical_jump": 20, 
-    "catching": 20,
-    "throwing": 20,
-    "agility": 20
-  });
+  const [persistedWeights, setPersistedWeights] = useState(getInitialWeights);
 
   // Live slider values for smooth interaction
   const [sliderWeights, setSliderWeights] = useState(persistedWeights);
@@ -54,6 +67,12 @@ export function useOptimizedWeights(players = [], drills) {
   useEffect(() => {
     if (!isUpdating.current) {
       setSliderWeights({ ...persistedWeights });
+    }
+    // Persist to localStorage whenever weights change
+    try {
+      localStorage.setItem('wooCombine:weights', JSON.stringify(persistedWeights));
+    } catch (e) {
+      console.warn('Failed to save weights to localStorage', e);
     }
   }, [persistedWeights]);
 

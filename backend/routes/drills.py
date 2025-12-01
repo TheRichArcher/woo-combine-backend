@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from typing import List
 from pydantic import BaseModel
 from ..models import DrillResultSchema
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from ..firestore_client import db
+from google.cloud.firestore import Query as FsQuery, FieldValue
 import logging
 from datetime import datetime
 from ..utils.database import execute_with_timeout
@@ -106,3 +107,73 @@ def create_drill_result(
     except Exception as e:
         logging.error(f"Error creating drill result: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create drill result: {str(e)}")
+
+@router.delete("/drill-results/{result_id}")
+@write_rate_limit()
+@require_permission(
+    "drills",
+    "delete_result",
+    target="event",
+    target_getter=lambda kwargs: kwargs.get("event_id"),
+)
+def delete_drill_result(
+    request: Request,
+    result_id: str,
+    event_id: str = Query(..., regex=r"^.{1,50}$"),
+    player_id: str = Query(..., regex=r"^.{1,50}$"),
+    current_user=Depends(require_role("organizer", "coach"))
+):
+    """
+    Delete a specific drill result and revert the player's current score 
+    to the most recent previous entry (or remove it if none exist).
+    """
+    try:
+        enforce_event_league_relationship(event_id=event_id)
+        
+        player_ref = db.collection("events").document(event_id).collection("players").document(player_id)
+        result_ref = player_ref.collection("drill_results").document(result_id)
+        
+        # Get the result to identify the drill type before deleting
+        result_doc = execute_with_timeout(lambda: result_ref.get(), timeout=5)
+        
+        if not result_doc.exists:
+            raise HTTPException(status_code=404, detail="Drill result not found")
+            
+        drill_type = result_doc.to_dict().get("type")
+        
+        # Delete the result
+        execute_with_timeout(lambda: result_ref.delete(), timeout=5)
+        
+        # Find the next most recent result for this drill type to revert to
+        results_query = (
+            player_ref.collection("drill_results")
+            .where("type", "==", drill_type)
+            .order_by("created_at", direction=FsQuery.DESCENDING)
+            .limit(1)
+        )
+        
+        previous_results = execute_with_timeout(lambda: list(results_query.stream()), timeout=5)
+        
+        if previous_results:
+            # Revert to previous score
+            previous_value = previous_results[0].to_dict().get("value")
+            execute_with_timeout(
+                lambda: player_ref.update({drill_type: previous_value}),
+                timeout=5
+            )
+            logging.info(f"Reverted {drill_type} for player {player_id} to {previous_value}")
+        else:
+            # No previous scores, remove the field
+            execute_with_timeout(
+                lambda: player_ref.update({drill_type: FieldValue.delete()}),
+                timeout=5
+            )
+            logging.info(f"Removed {drill_type} for player {player_id} (no previous scores)")
+            
+        return {"message": "Drill result deleted and score reverted"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error deleting drill result: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete drill result")
