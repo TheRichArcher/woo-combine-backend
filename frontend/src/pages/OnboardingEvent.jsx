@@ -464,146 +464,201 @@ export default function OnboardingEvent() {
 
             {/* CSV Upload Section */}
             <div className="space-y-4 mb-6">
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-brand-primary" />
-                  Upload CSV File (Recommended)
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Quickly import all your players at once
-                </p>
+              {/* Step 1: Upload File */}
+              <div className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden ${csvFileName ? 'bg-gray-50 p-3' : 'p-4'}`}>
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className={`font-semibold text-gray-900 flex items-center gap-2 ${csvFileName ? 'text-sm' : ''}`}>
+                    <div className={`flex items-center justify-center rounded-full bg-brand-primary text-white font-bold ${csvFileName ? 'w-6 h-6 text-xs' : 'w-6 h-6 text-sm'}`}>1</div>
+                    Upload CSV File
+                  </h3>
+                  {csvFileName && (
+                    <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs h-8 px-2">
+                      Change File
+                    </Button>
+                  )}
+                </div>
                 
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".csv"
-                  onChange={handleCsv}
-                  className="hidden"
-                />
-                
-                <Button onClick={() => fileInputRef.current?.click()} className="w-full mb-3">
-                  Choose CSV File
-                </Button>
-                
-                {csvFileName && (
-                  <div className="text-left">
-                    <p className="text-sm text-semantic-success">
-                      📄 {csvFileName} loaded ({csvRows.length} players)
+                {!csvFileName ? (
+                  <div className="ml-8">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Quickly import all your players at once
                     </p>
-                    <p className="text-xs text-gray-600 mb-2">🎉 CSV file loaded ({csvRows.length} players). Next, click <span className="font-semibold">Map Fields</span> to match your columns to our fields.</p>
                     
-                    {!mappingApplied ? (
-                      <>
-                        <Button onClick={() => setShowMapping(true)} className="w-full">
-                          Map Fields
-                        </Button>
-                        <p className="text-[11px] text-gray-500 mt-2">Step 1 of 2: Match your CSV columns to our fields.</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-xs text-gray-600 mb-2">✅ Fields matched. Click <span className="font-semibold">Import Players</span> to complete the upload.</p>
-                        {hasValidPlayers && (
-                          <Button onClick={handleUpload} disabled={uploadStatus === "uploading"} className="w-full">
-                            {uploadStatus === "uploading" ? "Importing..." : "Import Players"}
-                          </Button>
-                        )}
-                        <p className="text-[11px] text-gray-500 mt-2">Step 2 of 2: Import {csvRows.filter(r => r.name && r.name.trim() !== "").length} players. Rows without names will be skipped.</p>
-                      </>
-                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleCsv}
+                      className="hidden"
+                    />
+                    
+                    <Button onClick={() => fileInputRef.current?.click()} className="w-full mb-3">
+                      Choose CSV File
+                    </Button>
                   </div>
-                )}
-                
-                {uploadMsg && (
-                  <div className={`text-sm mt-2 ${uploadStatus === "error" ? "text-semantic-error" : uploadStatus === "success" ? "text-semantic-success" : "text-brand-primary"}`}>
-                    {uploadMsg}
-                  </div>
-                )}
-                {showMapping && (
-                  <div className="bg-white rounded-lg border border-gray-200 p-4 mt-3 text-left">
-                    <h4 className="font-semibold text-gray-900 mb-2">Match Column Headers</h4>
-                    <p className="text-sm text-gray-600 mb-3">Match our fields to the headers in your CSV. Only First and Last Name are required. Others are optional. Choose “Ignore” to skip a field.</p>
-                    <div className="grid grid-cols-1 gap-3">
-                      {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => {
-                        const selectedHeader = fieldMapping[fieldKey] || '';
-                        const sampleValue = selectedHeader && selectedHeader !== '__ignore__'
-                          ? (originalCsvRows.find(row => (row?.[selectedHeader] || '').trim() !== '')?.[selectedHeader] || '')
-                          : '';
-                        return (
-                          <div key={fieldKey} className="flex flex-col gap-1">
-                            <div className="flex items-center gap-3">
-                              <div className="w-40 text-sm text-gray-700 font-medium">
-                                {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
-                              </div>
-                              <select
-                                value={selectedHeader}
-                                onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-                              >
-                                <option value="">Auto</option>
-                                <option value="__ignore__">Ignore</option>
-                                {csvHeaders.map(h => (
-                                  <option key={h} value={h}>{h}</option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="pl-40 text-xs text-gray-500">
-                              {selectedHeader === '__ignore__' && 'Ignored for this import'}
-                              {!selectedHeader && 'Auto-detecting based on header name'}
-                              {selectedHeader && selectedHeader !== '__ignore__' && (
-                                <>
-                                  Mapped to “{selectedHeader}”
-                                  {sampleValue && ` (e.g., ${sampleValue})`}
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex gap-3 mt-4">
-                      <Button
-                        onClick={() => {
-                          const mapped = applyMapping(originalCsvRows, fieldMapping);
-                          const validated = mapped.map(row => validateRow(row));
-                          setCsvRows(validated);
-                          setCsvErrors([]);
-                          setShowMapping(false);
-                          setMappingApplied(true);
-                          // Immediately begin import after mapping for smoother UX
-                          handleUpload(validated);
-                        }}
-                      >
-                        Apply Mapping & Import
-                      </Button>
-                      <Button variant="subtle" onClick={() => setShowMapping(false)}>Cancel</Button>
-                    </div>
-                  </div>
-                )}
-                {uploadStatus === 'error' && backendErrors.length > 0 && (
-                  <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-3 mt-3">
-                    <div className="text-sm text-semantic-error font-medium mb-1">Row Errors</div>
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full text-sm">
-                        <thead>
-                          <tr className="bg-semantic-error/10">
-                            <th className="px-2 py-1 text-left">Row</th>
-                            <th className="px-2 py-1 text-left">Message</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {backendErrors.map((err, idx) => (
-                            <tr key={idx} className="border-t border-semantic-error/20">
-                              <td className="px-2 py-1">{err.row}</td>
-                              <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                ) : (
+                  <div className="ml-8 flex items-center gap-2 text-sm text-semantic-success font-medium">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>{csvFileName} loaded ({csvRows.length} rows)</span>
                   </div>
                 )}
               </div>
+
+              {/* Step 2: Import Players */}
+              {csvFileName && uploadStatus !== 'success' && (
+                <div className="border-2 border-brand-primary/20 bg-white rounded-lg p-4 shadow-lg animate-in fade-in slide-in-from-top-4 relative ring-4 ring-brand-primary/5">
+                  <div className="absolute -left-3 top-4 w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold shadow-sm z-10">
+                    2
+                  </div>
+                  
+                  <div className="pl-6">
+                    <h3 className="font-bold text-gray-900 text-lg mb-3">Import Players</h3>
+                    
+                    {/* Mandatory Banner */}
+                    <div className="bg-blue-50 border-l-4 border-brand-secondary p-4 mb-5 rounded-r-md">
+                      <p className="font-bold text-gray-800 text-base">
+                        CSV uploaded. Now import your players to complete the process.
+                      </p>
+                    </div>
+
+                    {!mappingApplied ? (
+                      <>
+                        <div className="mb-4">
+                          <p className="text-sm text-gray-600 mb-3">Match your CSV columns to our fields.</p>
+                          <Button onClick={() => setShowMapping(true)} variant="outline" className="w-full">
+                            Review Field Mapping
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {hasValidPlayers && (
+                          <Button 
+                            onClick={() => handleUpload()} 
+                            disabled={uploadStatus === "uploading"} 
+                            className="w-full py-4 text-lg font-bold shadow-md hover:shadow-lg transition-all transform active:scale-[0.98]"
+                          >
+                            {uploadStatus === "uploading" ? (
+                              "Importing..."
+                            ) : (
+                              `Import ${csvRows.filter(r => r.name && r.name.trim() !== "").length} Players`
+                            )}
+                          </Button>
+                        )}
+                        <p className="text-xs text-gray-500 mt-3 text-center">
+                          Rows without names will be automatically skipped.
+                        </p>
+                      </>
+                    )}
+                    
+                    {uploadMsg && (
+                      <div className={`text-sm mt-3 font-medium p-2 rounded ${uploadStatus === "error" ? "bg-semantic-error/10 text-semantic-error" : "text-brand-primary"}`}>
+                        {uploadMsg}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Mapping UI Modal/Expandable */}
+                  {showMapping && (
+                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 mt-4 text-left animate-in zoom-in-95">
+                      <h4 className="font-semibold text-gray-900 mb-2">Match Column Headers</h4>
+                      <p className="text-sm text-gray-600 mb-3">Match our fields to the headers in your CSV.</p>
+                      <div className="grid grid-cols-1 gap-3">
+                        {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => {
+                          const selectedHeader = fieldMapping[fieldKey] || '';
+                          const sampleValue = selectedHeader && selectedHeader !== '__ignore__'
+                            ? (originalCsvRows.find(row => (row?.[selectedHeader] || '').trim() !== '')?.[selectedHeader] || '')
+                            : '';
+                          return (
+                            <div key={fieldKey} className="flex flex-col gap-1">
+                              <div className="flex items-center gap-3">
+                                <div className="w-40 text-sm text-gray-700 font-medium">
+                                  {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                  {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
+                                </div>
+                                <select
+                                  value={selectedHeader}
+                                  onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                                >
+                                  <option value="">Auto</option>
+                                  <option value="__ignore__">Ignore</option>
+                                  {csvHeaders.map(h => (
+                                    <option key={h} value={h}>{h}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="pl-40 text-xs text-gray-500">
+                                {selectedHeader === '__ignore__' && 'Ignored for this import'}
+                                {!selectedHeader && 'Auto-detecting based on header name'}
+                                {selectedHeader && selectedHeader !== '__ignore__' && (
+                                  <>
+                                    Mapped to “{selectedHeader}”
+                                    {sampleValue && ` (e.g., ${sampleValue})`}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex gap-3 mt-4">
+                        <Button
+                          onClick={() => {
+                            const mapped = applyMapping(originalCsvRows, fieldMapping);
+                            const validated = mapped.map(row => validateRow(row));
+                            setCsvRows(validated);
+                            setCsvErrors([]);
+                            setShowMapping(false);
+                            setMappingApplied(true);
+                            // Auto-start import not requested, but "Import X Players" button will now show
+                          }}
+                          className="flex-1"
+                        >
+                          Save Mapping
+                        </Button>
+                        <Button variant="subtle" onClick={() => setShowMapping(false)}>Cancel</Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {uploadStatus === 'error' && backendErrors.length > 0 && (
+                    <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-3 mt-3">
+                      <div className="text-sm text-semantic-error font-medium mb-1">Row Errors</div>
+                      <div className="overflow-x-auto max-h-40">
+                        <table className="min-w-full text-sm">
+                          <thead>
+                            <tr className="bg-semantic-error/10">
+                              <th className="px-2 py-1 text-left">Row</th>
+                              <th className="px-2 py-1 text-left">Message</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {backendErrors.map((err, idx) => (
+                              <tr key={idx} className="border-t border-semantic-error/20">
+                                <td className="px-2 py-1">{err.row}</td>
+                                <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Success Message */}
+              {uploadStatus === 'success' && (
+                <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-4 flex items-center gap-3 animate-in fade-in zoom-in">
+                  <CheckCircle className="w-6 h-6 text-semantic-success" />
+                  <div>
+                    <h3 className="font-bold text-semantic-success">Import Complete!</h3>
+                    <p className="text-sm text-gray-600">Successfully imported {csvRows.length} players.</p>
+                  </div>
+                </div>
+              )}
+            </div>
 
               {/* Manual Add Section */}
               <div className="border border-gray-200 rounded-lg p-4">
@@ -653,10 +708,19 @@ export default function OnboardingEvent() {
 
             {/* Navigation */}
             <div className="space-y-3">
-              <Button onClick={() => handleStepNavigation(4)} className="w-full flex items-center justify-center gap-2">
+              <Button 
+                onClick={() => handleStepNavigation(4)} 
+                disabled={!!csvFileName && uploadStatus !== 'success'}
+                className="w-full flex items-center justify-center gap-2"
+              >
                 Continue
                 <ArrowRight className="w-5 h-5" />
               </Button>
+              {!!csvFileName && uploadStatus !== 'success' && (
+                <p className="text-xs text-center text-gray-500 -mt-1">
+                  Finish importing players to continue.
+                </p>
+              )}
               <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Back
