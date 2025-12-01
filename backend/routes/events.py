@@ -610,6 +610,30 @@ def delete_custom_drill(
         if not drill_doc.exists:
             raise HTTPException(status_code=404, detail="Drill not found")
 
+        # CRITICAL DATA INTEGRITY: Check if any scores exist for this drill
+        # We check the 'players' collection because create_drill_result denormalizes 
+        # the score onto the player document using the drill ID as the field key.
+        # This allows us to use a simple subcollection query (supported by default indexes)
+        # rather than a complex Collection Group Query.
+        scores_query = (
+            db.collection("events").document(event_id).collection("players")
+            .where(drill_id, ">", float("-inf")) # Checks if field exists and has a value
+            .limit(1)
+        )
+        
+        existing_scores = execute_with_timeout(
+            lambda: list(scores_query.stream()), 
+            timeout=8,
+            operation_name="check existing scores"
+        )
+        
+        if len(existing_scores) > 0:
+            logging.warning(f"Attempted to delete custom drill {drill_id} (event {event_id}) which has existing scores. Blocked.")
+            raise HTTPException(
+                status_code=409, 
+                detail="Cannot delete this drill because player scores have already been recorded for it. Please clear the scores first or use Reset Event."
+            )
+
         execute_with_timeout(
             lambda: drill_ref.delete(),
             timeout=10,

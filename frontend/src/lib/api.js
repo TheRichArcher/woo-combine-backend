@@ -158,9 +158,16 @@ api.interceptors.response.use(
     // Avoid retries for auth-critical endpoints to prevent cascades
     const url = String(error.config?.url || '');
     const isAuthCritical = url.includes('/users/me') || url.includes('/leagues/me');
+    
+    // Check for non-idempotent methods (POST, PUT, PATCH, DELETE)
+    const method = (error.config?.method || 'get').toLowerCase();
+    const isIdempotent = ['get', 'head', 'options'].includes(method) || !!error.config?.idempotent;
+    
     // COLD START handling: limited retry for generic timeouts, none for auth-critical endpoints
+    // CRITICAL FIX: Do not retry non-idempotent requests (POST/PUT/DELETE) on timeout to prevent duplicate data
     const maxRetries = url.includes('/warmup') ? 0
                       : isAuthCritical ? 0
+                      : !isIdempotent ? 0  // Disable retry for non-idempotent methods
                       : (error.code === 'ECONNABORTED' || error.message.includes('timeout')) ? 2
                       : (error.response?.status >= 500 ? 2 : 0);
     const shouldRetry = config._retryCount < maxRetries && (
