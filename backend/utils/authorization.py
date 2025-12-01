@@ -88,6 +88,20 @@ def ensure_league_access(
             _register_denial(f"league:{league_id}")
             raise HTTPException(status_code=403, detail="You do not have access to this league")
 
+        # Check for disabled access (Kill Switch)
+        if membership.get("disabled") is True:
+            logging.warning(
+                "[AUTHZ] Disabled user %s attempted %s on league %s",
+                user_id,
+                operation_name,
+                league_id,
+            )
+            _register_denial(f"league:{league_id}:disabled")
+            raise HTTPException(
+                status_code=403, 
+                detail="You no longer have access to this league. Please contact the organizer."
+            )
+
         role = (membership.get("role") or "").lower()
         if normalized_roles and role not in normalized_roles:
             logging.warning(

@@ -43,6 +43,8 @@ ACCESS_MATRIX: Dict[ResourceKey, RoleSet] = {
     ("batch", "dashboard"): MANAGE_ROLES,
     ("invitations", "list"): ADMIN_ROLES,
     ("teams", "list"): VIEW_ROLES,
+    ("league_members", "list"): ADMIN_ROLES,
+    ("league_members", "update"): ADMIN_ROLES,
 }
 
 REGISTERED_PERMISSIONS: list[Dict[str, Any]] = []

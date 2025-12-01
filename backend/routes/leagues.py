@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Body
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
@@ -358,4 +358,76 @@ def list_invitations(
         return {"invitations": invitations}
     except Exception as e:
         logging.error(f"Error retrieving invitations: {str(e)}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve invitations") 
+        raise HTTPException(status_code=500, detail="Failed to retrieve invitations")
+
+@router.get('/leagues/{league_id}/members')
+@read_rate_limit()
+@require_permission("league_members", "list", target="league", target_param="league_id")
+def list_league_members(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    try:
+        members_ref = db.collection("leagues").document(league_id).collection("members")
+        # Use stream for efficient listing
+        members_stream = execute_with_timeout(
+            lambda: list(members_ref.stream()),
+            timeout=8,
+            operation_name="league members stream"
+        )
+        
+        members = []
+        for doc in members_stream:
+            data = doc.to_dict()
+            data["id"] = doc.id
+            members.append(data)
+            
+        return {"members": members}
+    except Exception as e:
+        logging.error(f"Error listing league members: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to list league members")
+
+@router.patch('/leagues/{league_id}/members/{member_id}/status')
+@write_rate_limit()
+@require_permission("league_members", "update", target="league", target_param="league_id")
+def update_member_status(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    member_id: str = Path(..., regex=r"^.{1,50}$"),
+    status_data: dict = Body(...),
+    current_user=Depends(get_current_user)
+):
+    try:
+        disabled = status_data.get("disabled")
+        if disabled is None:
+            raise HTTPException(status_code=400, detail="Missing 'disabled' field in body")
+            
+        logging.info(f"[PATCH] Updating member {member_id} status in league {league_id} to disabled={disabled}")
+        
+        batch = db.batch()
+        
+        # 1. Update legacy member document
+        member_ref = db.collection("leagues").document(league_id).collection("members").document(member_id)
+        batch.update(member_ref, {"disabled": disabled})
+        
+        # 2. Update user_memberships (FAST PATH)
+        # We must update the nested field leagues.{league_id}.disabled
+        user_membership_ref = db.collection("user_memberships").document(member_id)
+        # Check if document exists first to avoid error on update
+        user_doc = user_membership_ref.get()
+        if user_doc.exists:
+            batch.update(user_membership_ref, {f"leagues.{league_id}.disabled": disabled})
+        else:
+            logging.warning(f"User membership doc not found for {member_id}, skipping fast path update")
+            
+        batch.commit()
+        
+        return {"success": True, "disabled": disabled}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating member status: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update member status")
+ 

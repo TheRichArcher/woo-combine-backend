@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS } from '../utils/csvUtils';
 import DrillManager from "./drills/DrillManager";
+import StaffManagement from "./StaffManagement";
 
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
@@ -1065,10 +1066,20 @@ export default function AdminTools() {
           </div>
         </div>
 
-        {/* Step 5: Live Drill Entry */}
+        {/* Step 5: Staff & Access Control */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
+            <h2 className="text-lg font-semibold text-gray-900">Staff & Access Control</h2>
+          </div>
+          
+          <StaffManagement leagueId={selectedLeagueId} currentUser={user} />
+        </div>
+
+        {/* Step 6: Live Drill Entry */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">6</div>
             <h2 className="text-lg font-semibold text-gray-900">Live Drill Entry</h2>
           </div>
           
@@ -1122,10 +1133,10 @@ export default function AdminTools() {
           </div>
         </div>
 
-        {/* Step 6: Advanced Options */}
+        {/* Step 7: Advanced Options */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">6</div>
+            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">7</div>
             <h2 className="text-lg font-semibold text-gray-900">Advanced Options</h2>
           </div>
           
