@@ -204,8 +204,25 @@ def join_league(
 ):
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
     
+    # Security Check 1: Email Verification
+    if not current_user.get("email_verified", False):
+        raise HTTPException(status_code=403, detail="Email verification required")
+    
     user_id = current_user["uid"]
-    role = req.get("role", "coach") if req else "coach"
+    
+    # Security Check 2: Role Validation
+    requested_role = req.get("role", "coach") if req else "coach"
+    
+    # Strictly forbid joining as organizer via public code
+    if requested_role == "organizer":
+         logging.warning(f"Security Alert: User {user_id} attempted to join as organizer via code. Blocked.")
+         raise HTTPException(status_code=403, detail="Cannot join as organizer via public code. Please contact a league admin.")
+    
+    # Whitelist allowed roles
+    if requested_role not in ["coach", "viewer", "player"]:
+         requested_role = "coach" # Default safe fallback
+         
+    role = requested_role
     
     try:
         resolved_league_id = code
@@ -404,6 +421,30 @@ def update_member_status(
             raise HTTPException(status_code=400, detail="Missing 'disabled' field in body")
             
         logging.info(f"[PATCH] Updating member {member_id} status in league {league_id} to disabled={disabled}")
+        
+        # ORPHAN PROTECTION: If disabling, check if this is the last active organizer
+        if disabled:
+             member_ref = db.collection("leagues").document(league_id).collection("members").document(member_id)
+             member_doc = execute_with_timeout(lambda: member_ref.get(), timeout=5)
+             
+             if member_doc.exists and member_doc.to_dict().get("role") == "organizer":
+                 # Check for other active organizers
+                 orgs_ref = db.collection("leagues").document(league_id).collection("members")
+                 # Get all organizers and check disabled status in memory
+                 organizers = list(orgs_ref.where("role", "==", "organizer").stream())
+                 active_count = 0
+                 is_target_active = False
+                 
+                 for org in organizers:
+                     org_data = org.to_dict()
+                     if not org_data.get("disabled", False):
+                         active_count += 1
+                         if org.id == member_id:
+                             is_target_active = True
+                 
+                 # If the target user is currently active and there are no other active organizers
+                 if is_target_active and active_count <= 1:
+                     raise HTTPException(status_code=400, detail="Cannot disable the last active organizer. Promote another member first.")
         
         batch = db.batch()
         

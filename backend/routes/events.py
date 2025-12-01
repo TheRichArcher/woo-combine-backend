@@ -107,19 +107,20 @@ def create_event(
             "live_entry_active": False,
         }
         
+        # ATOMIC BATCH WRITE for consistency
+        batch = db.batch()
+        
         # Store event in league subcollection
-        execute_with_timeout(
-            lambda: event_ref.set(event_data),
-            timeout=10,
-            operation_name="event creation in league"
-        )
+        batch.set(event_ref, event_data)
         
         # ALSO store event in top-level events collection (for players endpoints)
         top_level_event_ref = db.collection("events").document(event_ref.id)
+        batch.set(top_level_event_ref, event_data)
+        
         execute_with_timeout(
-            lambda: top_level_event_ref.set(event_data),
+            lambda: batch.commit(),
             timeout=10,
-            operation_name="event creation in global collection"
+            operation_name="atomic event creation"
         )
         
         logging.info(f"Created event {event_ref.id} in league {league_id}")
