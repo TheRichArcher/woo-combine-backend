@@ -86,6 +86,27 @@ def create_event(
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
 
+        # DUPLICATE PROTECTION: Check if event with same name and date already exists in this league
+        # This prevents accidental double-submissions from frontend
+        existing_query = (
+            db.collection("leagues").document(league_id).collection("events")
+            .where("name", "==", name)
+            .where("date", "==", date)
+            .limit(1)
+        )
+        
+        existing_events = execute_with_timeout(
+            lambda: list(existing_query.stream()),
+            timeout=5,
+            operation_name="check duplicate event"
+        )
+        
+        if len(existing_events) > 0:
+            logging.warning(f"Duplicate event creation attempted: {name} on {date} in league {league_id}")
+            # Return the existing event ID instead of creating a new one (idempotency)
+            # or raise error. Returning existing ID is safer for "double click" scenarios.
+            return {"event_id": existing_events[0].id, "message": "Event already exists"}
+
         # Validate drill template exists
         valid_templates = ["football", "soccer", "basketball", "baseball", "track", "volleyball"]
         if drill_template not in valid_templates:

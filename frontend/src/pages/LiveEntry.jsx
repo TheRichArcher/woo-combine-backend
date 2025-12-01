@@ -315,29 +315,35 @@ export default function LiveEntry() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [drillConfirmed, selectedDrill]);
   
-  // Auto-complete logic
+  // Debounce search input
   useEffect(() => {
-    if (playerNumber && players.length > 0) {
-      const filtered = players.filter(p => 
-        p.number && p.number.toString().startsWith(playerNumber)
-      );
-      
-      // Auto-select if exact match and hide suggestions
-      const exactMatch = players.find(p => p.number && p.number.toString() === playerNumber);
-      if (exactMatch) {
-        setPlayerName(exactMatch.name);
-        setPlayerId(exactMatch.id);
-        setFilteredPlayers([]);
+    const handler = setTimeout(() => {
+      if (playerNumber && players.length > 0) {
+        const filtered = players.filter(p => 
+          p.number && p.number.toString().startsWith(playerNumber)
+        );
+        
+        // Auto-select if exact match and hide suggestions
+        const exactMatch = players.find(p => p.number && p.number.toString() === playerNumber);
+        if (exactMatch) {
+          setPlayerName(exactMatch.name);
+          setPlayerId(exactMatch.id);
+          setFilteredPlayers([]);
+        } else {
+          setPlayerName("");
+          setPlayerId("");
+          setFilteredPlayers(filtered);
+        }
       } else {
+        setFilteredPlayers([]);
         setPlayerName("");
         setPlayerId("");
-        setFilteredPlayers(filtered);
       }
-    } else {
-      setFilteredPlayers([]);
-      setPlayerName("");
-      setPlayerId("");
-    }
+    }, 250); // 250ms debounce
+
+    return () => {
+      clearTimeout(handler);
+    };
   }, [playerNumber, players]);
   
   // Check for existing scores
@@ -518,14 +524,23 @@ export default function LiveEntry() {
     );
   }
   
+  // Memoize completion stats to avoid recalculation on every render
+  const completionStats = useMemo(() => {
+    const totalPlayers = players.length;
+    const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
+    const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
+    return { totalPlayers, completedForDrill, completionPct };
+  }, [players, selectedDrill]);
+
+  const { totalPlayers, completedForDrill, completionPct } = completionStats;
+
   const currentDrill = drills.find(d => d.key === selectedDrill);
-  const totalPlayers = players.length;
-  const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
-  const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
   const currentIndex = drills.findIndex(d => d.key === selectedDrill);
   const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
+  
   const missingPlayers = useMemo(() => {
     if (!selectedDrill) return [];
+    // Optimization: Use simple loop instead of filter if array is huge, but filter is fine for <2000 with useMemo
     return players.filter(p => p && (p[selectedDrill] == null || p[selectedDrill] === undefined));
   }, [players, selectedDrill]);
   
