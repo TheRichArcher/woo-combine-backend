@@ -12,6 +12,7 @@ import EditEventModal from "./EditEventModal";
 import { Link } from 'react-router-dom';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS } from '../utils/csvUtils';
+import DrillManager from "./drills/DrillManager";
 
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
@@ -522,10 +523,24 @@ export default function AdminTools() {
           </button>
         </div>
 
-        {/* Step 2: Add Players Section */}
-        <div id="player-upload-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        {/* Step 2: Manage Drills */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            <h2 className="text-lg font-semibold text-gray-900">Manage Drills</h2>
+          </div>
+          
+          <DrillManager 
+            event={selectedEvent} 
+            leagueId={selectedLeagueId} 
+            isLiveEntryActive={selectedEvent?.live_entry_active || false} 
+          />
+        </div>
+
+        {/* Step 3: Add Players Section */}
+        <div id="player-upload-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
             <h2 className="text-lg font-semibold text-gray-900">Add Players to Your Event</h2>
           </div>
           
@@ -910,10 +925,10 @@ export default function AdminTools() {
 
         </div>
 
-        {/* Step 3: Invite Coaches & Share */}
+        {/* Step 4: Invite Coaches & Share */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
             <h2 className="text-lg font-semibold text-gray-900">Invite People to Event</h2>
           </div>
           
@@ -1050,10 +1065,10 @@ export default function AdminTools() {
           </div>
         </div>
 
-        {/* Step 4: Live Drill Entry */}
+        {/* Step 5: Live Drill Entry */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
             <h2 className="text-lg font-semibold text-gray-900">Live Drill Entry</h2>
           </div>
           
@@ -1107,10 +1122,10 @@ export default function AdminTools() {
           </div>
         </div>
 
-        {/* Step 5: Advanced Options */}
+        {/* Step 6: Advanced Options */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
+            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">6</div>
             <h2 className="text-lg font-semibold text-gray-900">Advanced Options</h2>
           </div>
           
@@ -1192,4 +1207,4 @@ export default function AdminTools() {
         )}
       </div>
   );
-} 
+}

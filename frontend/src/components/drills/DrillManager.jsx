@@ -1,0 +1,198 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { getDrillsFromTemplate, getTemplateById } from '../../constants/drillTemplates';
+import CustomDrillWizard from './CustomDrillWizard';
+import api from '../../lib/api';
+import { useToast } from '../../context/ToastContext';
+import { Plus, Lock, Edit2, Trash2, Info } from 'lucide-react';
+
+export default function DrillManager({ event, leagueId, isLiveEntryActive = false }) {
+  const [activeTab, setActiveTab] = useState('template'); // 'template' | 'custom'
+  const [customDrills, setCustomDrills] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const [editingDrill, setEditingDrill] = useState(null);
+  const { showError, showSuccess } = useToast();
+
+  const templateId = event?.drillTemplate || 'football';
+  const templateDrills = getDrillsFromTemplate(templateId);
+  const templateInfo = getTemplateById(templateId);
+
+  const fetchCustomDrills = useCallback(async () => {
+    if (!event?.id || !leagueId) return;
+    setLoading(true);
+    try {
+      const { data } = await api.get(`/leagues/${leagueId}/events/${event.id}/custom-drills`);
+      setCustomDrills(data.custom_drills || []);
+    } catch (error) {
+      console.error("Failed to fetch custom drills", error);
+      // Don't show error toast on mount to avoid spam if just empty
+    } finally {
+      setLoading(false);
+    }
+  }, [event?.id, leagueId]);
+
+  useEffect(() => {
+    fetchCustomDrills();
+  }, [fetchCustomDrills]);
+
+  const handleDelete = async (drillId) => {
+    if (isLiveEntryActive) return;
+    if (!window.confirm("Are you sure you want to delete this drill? This cannot be undone.")) return;
+
+    try {
+      await api.delete(`/leagues/${leagueId}/events/${event.id}/custom-drills/${drillId}`);
+      showSuccess("Drill deleted successfully");
+      fetchCustomDrills();
+    } catch (error) {
+      showError("Failed to delete drill");
+    }
+  };
+
+  const handleEdit = (drill) => {
+    if (isLiveEntryActive) return;
+    setEditingDrill(drill);
+    setIsWizardOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingDrill(null);
+    setIsWizardOpen(true);
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center flex-wrap gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">Manage Drills</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Template: {templateInfo?.name || 'Standard'}
+          </p>
+        </div>
+        
+        {/* Tabs */}
+        <div className="flex bg-gray-100 p-1 rounded-lg">
+            <button
+                onClick={() => setActiveTab('template')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'template' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+                Template Drills ({templateDrills.length})
+            </button>
+            <button
+                onClick={() => setActiveTab('custom')}
+                className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === 'custom' ? 'bg-white text-teal-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+            >
+                Custom Drills ({customDrills.length})
+            </button>
+        </div>
+      </div>
+
+      <div className="bg-gray-50 min-h-[300px]">
+        {activeTab === 'template' ? (
+            <ul className="divide-y divide-gray-200 bg-white">
+                {templateDrills.map((drill) => (
+                    <li key={drill.key} className="px-6 py-4 hover:bg-gray-50 flex items-center justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-gray-900">{drill.label}</span>
+                                <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">Built-in</span>
+                            </div>
+                            <div className="mt-1 text-xs text-gray-500">
+                                Category: {drill.category} • Unit: {drill.unit} • {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
+                            </div>
+                        </div>
+                        <div className="text-xs text-gray-400 italic">Read-only</div>
+                    </li>
+                ))}
+            </ul>
+        ) : (
+            <div className="bg-white h-full">
+                {/* Empty State / List */}
+                {customDrills.length === 0 ? (
+                    <div className="p-8 text-center">
+                        <div className="mx-auto h-12 w-12 text-teal-600 bg-teal-50 rounded-full flex items-center justify-center mb-3">
+                            <Plus className="h-6 w-6" />
+                        </div>
+                        <h3 className="text-sm font-medium text-gray-900">No custom drills yet</h3>
+                        <p className="mt-1 text-sm text-gray-500 max-w-xs mx-auto">
+                            Create drills unique to this event. They will be locked once Live Entry begins.
+                        </p>
+                        <button 
+                            onClick={handleCreate}
+                            disabled={isLiveEntryActive}
+                            className={`mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
+                                isLiveEntryActive ? 'bg-gray-400 cursor-not-allowed' : 'bg-teal-600 hover:bg-teal-700'
+                            }`}
+                        >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Custom Drill
+                        </button>
+                    </div>
+                ) : (
+                    <div>
+                         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                            <span className="text-xs text-gray-500 uppercase font-semibold tracking-wider">
+                                {isLiveEntryActive ? 'Locked (Live Entry Active)' : 'Editable'}
+                            </span>
+                            {!isLiveEntryActive && (
+                                <button 
+                                    onClick={handleCreate}
+                                    className="text-xs font-medium text-teal-700 hover:text-teal-800 flex items-center"
+                                >
+                                    <Plus className="w-3 h-3 mr-1" /> New Drill
+                                </button>
+                            )}
+                        </div>
+                        <ul className="divide-y divide-gray-200">
+                            {customDrills.map((drill) => (
+                                <li key={drill.id} className={`px-6 py-4 hover:bg-gray-50 flex items-center justify-between ${isLiveEntryActive ? 'opacity-75' : ''}`}>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-semibold text-gray-900">{drill.name}</span>
+                                            <span className="inline-flex items-center rounded-md bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-600/20">Custom</span>
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">
+                                            Category: {drill.category} • Unit: {drill.unit} • {drill.lower_is_better ? 'Lower is better' : 'Higher is better'}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        {isLiveEntryActive ? (
+                                            <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">
+                                                <Lock className="w-3 h-3 mr-1" /> Locked
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <button onClick={() => handleEdit(drill)} className="p-1 text-gray-400 hover:text-teal-600">
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button onClick={() => handleDelete(drill.id)} className="p-1 text-gray-400 hover:text-red-600">
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+            </div>
+        )}
+      </div>
+
+      {/* Wizard Modal */}
+      <CustomDrillWizard
+        isOpen={isWizardOpen}
+        onClose={() => setIsWizardOpen(false)}
+        eventId={event?.id}
+        leagueId={leagueId}
+        initialData={editingDrill}
+        onDrillCreated={fetchCustomDrills}
+      />
+    </div>
+  );
+}
+

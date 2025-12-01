@@ -62,6 +62,7 @@ class EventSchema(BaseModel):
     date: str
     created_at: str
     league_id: Optional[str] = None
+    live_entry_active: bool = False  # Controls locking of custom drills
 
 class LeagueSchema(BaseModel):
     id: str
@@ -73,4 +74,36 @@ class UserSchema(BaseModel):
     id: str  # Firebase UID
     email: str
     role: Optional[str] = None
-    created_at: str 
+    created_at: str
+
+class CustomDrillSchema(BaseModel):
+    id: str
+    event_id: str
+    name: str
+    unit: str
+    category: str
+    lower_is_better: bool
+    min_val: float
+    max_val: float
+    description: Optional[str] = None
+    created_at: str
+    created_by: str
+    is_locked: Optional[bool] = False  # Derived from event status
+
+class CustomDrillCreateRequest(BaseModel):
+    name: str
+    unit: str
+    category: str
+    lower_is_better: bool
+    min_val: float
+    max_val: float
+    description: Optional[str] = None
+
+class CustomDrillUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    unit: Optional[str] = None
+    category: Optional[str] = None
+    lower_is_better: Optional[bool] = None
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
+    description: Optional[str] = None

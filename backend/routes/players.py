@@ -448,6 +448,14 @@ def reset_players(event_id: str = Query(...), current_user=Depends(require_role(
         # Then delete all players
         for player in players_stream:
             player.reference.delete()
+            
+        # Reset Live Entry status (unlock drills)
+        event_ref = db.collection("events").document(str(event_id))
+        execute_with_timeout(
+            lambda: event_ref.update({"live_entry_active": False}),
+            timeout=5,
+            operation_name="reset live entry status"
+        )
         
         return {"status": "reset", "event_id": str(event_id)}
     except Exception as e:

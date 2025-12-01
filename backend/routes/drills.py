@@ -87,6 +87,14 @@ def create_drill_result(
             timeout=10
         )
         
+        # Activate Live Entry mode for the event (locks custom drills)
+        # Only update if not already active to save writes
+        execute_with_timeout(
+            lambda: event_ref.update({"live_entry_active": True}),
+            timeout=5,
+            operation_name="activate live entry"
+        )
+        
         logging.info(f"Drill result created for player {result.player_id}, type: {result.type}, value: {result.value}")
         
         return {

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WooCombine Custom Drill Builder - Mockups</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cmf: {
+                            primary: '#0d9488', // teal-600
+                            secondary: '#0f766e', // teal-700
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f3f4f6; }
+        .step-content { display: none; }
+        .step-content.active { display: block; }
+    </style>
+</head>
+<body class="p-8 font-sans text-gray-800">
+
+    <div class="max-w-5xl mx-auto">
+        <h1 class="text-3xl font-bold mb-2 text-gray-900">Custom Drill Builder UX</h1>
+        <p class="text-gray-600 mb-8">High-fidelity mockups for the creation flow and management interface.</p>
+
+        <!-- Tab Navigation -->
+        <div class="flex space-x-4 mb-6 border-b border-gray-200 pb-2">
+            <button onclick="showTab('setup')" class="tab-btn active px-4 py-2 font-medium text-teal-700 border-b-2 border-teal-600">1. Event Setup Entry</button>
+            <button onclick="showTab('wizard1')" class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-gray-700">2. Wizard (Steps 1-4)</button>
+            <button onclick="showTab('admin')" class="tab-btn px-4 py-2 font-medium text-gray-500 hover:text-gray-700">3. Admin Tools</button>
+        </div>
+
+        <!-- VIEW 1: Event Setup Entry -->
+        <div id="setup" class="view-section">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden max-w-3xl mx-auto">
+                <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <h2 class="text-lg font-semibold text-gray-700">Event Setup Wizard</h2>
+                    <span class="text-sm text-gray-500">Step 3 of 5: Configure Drills</span>
+                </div>
+                <div class="p-6">
+                    <h3 class="text-xl font-bold mb-4">Select Drills</h3>
+                    <p class="text-gray-600 mb-6">Choose the standard drills for this event template (Football).</p>
+                    
+                    <div class="space-y-3 mb-8">
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50">
+                            <input type="checkbox" checked class="h-5 w-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500">
+                            <div class="ml-3">
+                                <span class="block text-sm font-medium text-gray-900">40 Yard Dash</span>
+                                <span class="block text-xs text-gray-500">Speed • Seconds (Lower is better)</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-3 border rounded-lg bg-gray-50">
+                            <input type="checkbox" checked class="h-5 w-5 text-teal-600 rounded border-gray-300 focus:ring-teal-500">
+                            <div class="ml-3">
+                                <span class="block text-sm font-medium text-gray-900">Broad Jump</span>
+                                <span class="block text-xs text-gray-500">Explosive • Inches (Higher is better)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- THE NEW ENTRY POINT -->
+                    <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group">
+                        <div class="mx-auto h-12 w-12 text-teal-600 bg-teal-50 rounded-full flex items-center justify-center mb-3 group-hover:bg-teal-100 transition">
+                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        </div>
+                        <h3 class="text-sm font-medium text-gray-900">Need a custom drill?</h3>
+                        <p class="mt-1 text-sm text-gray-500">Create a drill unique to this event. Editable until Live Entry begins.</p>
+                        <button onclick="showTab('wizard1')" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none">
+                            Create Custom Drill
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-between">
+                    <button class="text-gray-600 font-medium">Back</button>
+                    <button class="bg-gray-900 text-white px-4 py-2 rounded-md font-medium">Continue</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 2: The Wizard (Steps 1-4) -->
+        <div id="wizard1" class="view-section hidden">
+            <!-- Mockup of the Modal Overlay -->
+            <div class="relative z-10" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+                <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+                <div class="fixed inset-0 z-10 overflow-y-auto">
+                    <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                        <div class="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-2xl">
+                            
+                            <!-- Header -->
+                            <div class="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4 border-b border-gray-100">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-semibold leading-6 text-gray-900" id="modal-title">Create Custom Drill</h3>
+                                    <button onclick="showTab('setup')" class="text-gray-400 hover:text-gray-500">✕</button>
+                                </div>
+                                <!-- Stepper -->
+                                <nav aria-label="Progress">
+                                    <ol role="list" class="flex items-center">
+                                        <li class="relative pr-8 sm:pr-20">
+                                            <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="h-0.5 w-full bg-teal-600"></div></div>
+                                            <a href="#" class="relative flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 hover:bg-teal-900">
+                                                <span class="text-white text-sm font-bold">1</span>
+                                            </a>
+                                            <span class="absolute mt-2 -ml-2 text-xs font-medium text-teal-600">Basics</span>
+                                        </li>
+                                        <li class="relative pr-8 sm:pr-20">
+                                            <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="h-0.5 w-full bg-gray-200" id="step2-bar"></div></div>
+                                            <a href="#" class="relative flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-300 hover:border-gray-400" id="step2-bubble">
+                                                <span class="text-gray-500 text-sm font-bold">2</span>
+                                            </a>
+                                            <span class="absolute mt-2 -ml-2 text-xs font-medium text-gray-500">Unit</span>
+                                        </li>
+                                        <li class="relative pr-8 sm:pr-20">
+                                            <div class="absolute inset-0 flex items-center" aria-hidden="true"><div class="h-0.5 w-full bg-gray-200"></div></div>
+                                            <a href="#" class="relative flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-300">
+                                                <span class="text-gray-500 text-sm font-bold">3</span>
+                                            </a>
+                                            <span class="absolute mt-2 -ml-2 text-xs font-medium text-gray-500">Range</span>
+                                        </li>
+                                        <li class="relative">
+                                            <a href="#" class="relative flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 border-gray-300">
+                                                <span class="text-gray-500 text-sm font-bold">4</span>
+                                            </a>
+                                            <span class="absolute mt-2 -ml-2 text-xs font-medium text-gray-500">Preview</span>
+                                        </li>
+                                    </ol>
+                                </nav>
+                            </div>
+
+                            <!-- Step Content Area -->
+                            <div class="px-6 py-6 min-h-[300px]">
+                                
+                                <!-- STEP 1 CONTENT -->
+                                <div id="step-1-content" class="step-content active">
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Drill Name</label>
+                                            <input type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border" placeholder="e.g. 3-Cone Shuttle">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Category</label>
+                                            <select class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border">
+                                                <option>Speed</option>
+                                                <option>Agility</option>
+                                                <option>Power</option>
+                                                <option>Strength</option>
+                                                <option>Skill</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700">Description (Optional)</label>
+                                            <textarea class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border" rows="3" placeholder="Instructions for the evaluator..."></textarea>
+                                        </div>
+                                        <div class="bg-blue-50 p-3 rounded-md border border-blue-100">
+                                            <p class="text-xs text-blue-700 flex items-center">
+                                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                                This drill will only be available in the <strong>Spring Combine 2025</strong> event.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 2 CONTENT -->
+                                <div id="step-2-content" class="step-content">
+                                    <div class="space-y-6">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Scoring Unit</label>
+                                            <div class="grid grid-cols-3 gap-3">
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500 border-teal-500 bg-teal-50 text-teal-700 font-medium">Seconds</button>
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500">Inches</button>
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500">Reps</button>
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500">MPH</button>
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500">Percent</button>
+                                                <button class="border rounded-md p-3 text-center hover:bg-gray-50 focus:ring-2 focus:ring-teal-500">Other...</button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Scoring Direction</label>
+                                            <div class="flex space-x-4">
+                                                <label class="relative flex cursor-pointer rounded-lg border bg-white p-4 shadow-sm focus:outline-none ring-2 ring-teal-600 border-transparent w-1/2">
+                                                    <input type="radio" name="direction" value="lower" class="sr-only" checked>
+                                                    <span class="flex flex-1">
+                                                        <span class="flex flex-col">
+                                                            <span class="block text-sm font-medium text-gray-900">Lower is Better</span>
+                                                            <span class="mt-1 flex items-center text-sm text-gray-500">Faster times = Higher score</span>
+                                                            <span class="mt-2 text-xs bg-gray-100 text-gray-600 py-1 px-2 rounded w-fit">e.g. Sprints, Agility</span>
+                                                        </span>
+                                                    </span>
+                                                    <svg class="h-5 w-5 text-teal-600" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                                </label>
+                                                <label class="relative flex cursor-pointer rounded-lg border border-gray-300 bg-white p-4 shadow-sm focus:outline-none hover:bg-gray-50 w-1/2">
+                                                    <input type="radio" name="direction" value="higher" class="sr-only">
+                                                    <span class="flex flex-1">
+                                                        <span class="flex flex-col">
+                                                            <span class="block text-sm font-medium text-gray-900">Higher is Better</span>
+                                                            <span class="mt-1 flex items-center text-sm text-gray-500">More reps/dist = Higher score</span>
+                                                            <span class="mt-2 text-xs bg-gray-100 text-gray-600 py-1 px-2 rounded w-fit">e.g. Jumps, Strength</span>
+                                                        </span>
+                                                    </span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 3 CONTENT (Validation) -->
+                                <div id="step-3-content" class="step-content">
+                                    <div class="space-y-6">
+                                        <p class="text-sm text-gray-500">Define the expected range to ensure accurate normalization (0-500 scale).</p>
+                                        
+                                        <div class="grid grid-cols-2 gap-6">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Best Possible Result (Max Score)</label>
+                                                <div class="mt-1 relative rounded-md shadow-sm">
+                                                    <input type="number" class="block w-full rounded-md border-gray-300 focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border" placeholder="0.00" value="3.5">
+                                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                        <span class="text-gray-500 sm:text-sm">sec</span>
+                                                    </div>
+                                                </div>
+                                                <p class="mt-1 text-xs text-green-600">Score: 500 pts</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">Worst Expected Result (0 Score)</label>
+                                                <div class="mt-1 relative rounded-md shadow-sm">
+                                                    <input type="number" class="block w-full rounded-md border-gray-300 focus:border-teal-500 focus:ring-teal-500 sm:text-sm p-2 border" placeholder="0.00" value="12.0">
+                                                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                        <span class="text-gray-500 sm:text-sm">sec</span>
+                                                    </div>
+                                                </div>
+                                                <p class="mt-1 text-xs text-red-500">Score: 0 pts</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- WARNING MODAL SIMULATION -->
+                                        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mt-4">
+                                            <div class="flex">
+                                                <div class="flex-shrink-0">
+                                                    <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <h3 class="text-sm font-medium text-yellow-800">Unusual Range Detected</h3>
+                                                    <div class="mt-2 text-sm text-yellow-700">
+                                                        <p>A max time of 300 seconds seems high for a sprint drill. Typical values are under 120 seconds.</p>
+                                                    </div>
+                                                    <div class="mt-2">
+                                                        <label class="inline-flex items-center">
+                                                            <input type="checkbox" class="rounded border-gray-300 text-yellow-600 shadow-sm focus:border-yellow-300 focus:ring focus:ring-yellow-200 focus:ring-opacity-50">
+                                                            <span class="ml-2 text-sm text-yellow-800 font-medium">I confirm this range is correct</span>
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STEP 4 CONTENT (Preview) -->
+                                <div id="step-4-content" class="step-content">
+                                    <div class="space-y-6">
+                                        <div class="text-center">
+                                            <h4 class="text-lg font-medium text-gray-900">Preview: 3-Cone Shuttle</h4>
+                                            <p class="text-sm text-gray-500">Category: Agility • Unit: Seconds</p>
+                                        </div>
+
+                                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                            <h5 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Example Normalization</h5>
+                                            <div class="space-y-3">
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-mono text-gray-700">4.0 sec</span>
+                                                    <div class="w-1/2 bg-gray-200 rounded-full h-2">
+                                                        <div class="bg-green-500 h-2 rounded-full" style="width: 95%"></div>
+                                                    </div>
+                                                    <span class="font-bold text-green-600">485 pts</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-mono text-gray-700">7.5 sec</span>
+                                                    <div class="w-1/2 bg-gray-200 rounded-full h-2">
+                                                        <div class="bg-yellow-500 h-2 rounded-full" style="width: 50%"></div>
+                                                    </div>
+                                                    <span class="font-bold text-gray-700">250 pts</span>
+                                                </div>
+                                                <div class="flex justify-between items-center">
+                                                    <span class="font-mono text-gray-700">11.0 sec</span>
+                                                    <div class="w-1/2 bg-gray-200 rounded-full h-2">
+                                                        <div class="bg-red-500 h-2 rounded-full" style="width: 10%"></div>
+                                                    </div>
+                                                    <span class="font-bold text-red-500">50 pts</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="bg-blue-50 rounded-md p-4 flex items-start">
+                                            <svg class="h-5 w-5 text-blue-400 mt-0.5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                                            <p class="text-sm text-blue-700">
+                                                Once <strong>Live Entry</strong> begins, this drill configuration will be locked to ensure scoring integrity for all players.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Footer Buttons -->
+                            <div class="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                                <button type="button" class="inline-flex w-full justify-center rounded-md bg-teal-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-teal-500 sm:ml-3 sm:w-auto" id="next-btn" onclick="nextStep()">Continue</button>
+                                <button type="button" class="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto" onclick="prevStep()">Back</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VIEW 3: Admin Tools List -->
+        <div id="admin" class="view-section hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 max-w-4xl mx-auto">
+                <div class="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900">Manage Drills</h2>
+                        <p class="text-sm text-gray-500 mt-1">Event: Spring Combine 2025</p>
+                    </div>
+                    <button onclick="showTab('wizard1')" class="bg-teal-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-teal-700 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        New Custom Drill
+                    </button>
+                </div>
+                
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex px-6 space-x-8" aria-label="Tabs">
+                        <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium">
+                            Template Drills (8)
+                        </a>
+                        <a href="#" class="border-teal-500 text-teal-600 whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium" aria-current="page">
+                            Custom Drills (2)
+                        </a>
+                    </nav>
+                </div>
+
+                <div class="bg-white">
+                    <ul role="list" class="divide-y divide-gray-100">
+                        <li class="flex items-center justify-between gap-x-6 px-6 py-5 hover:bg-gray-50">
+                            <div class="min-w-0">
+                                <div class="flex items-start gap-x-3">
+                                    <p class="text-sm font-semibold leading-6 text-gray-900">3-Cone Shuttle</p>
+                                    <span class="inline-flex items-center rounded-md bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 ring-1 ring-inset ring-teal-600/20">Custom</span>
+                                </div>
+                                <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                                    <p class="truncate">Agility • Seconds (Lower is better)</p>
+                                    <svg viewBox="0 0 2 2" class="h-0.5 w-0.5 fill-current"><circle cx="1" cy="1" r="1" /></svg>
+                                    <p class="whitespace-nowrap">Created by You</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-none items-center gap-x-4">
+                                <a href="#" class="hidden rounded-md bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:block">Edit</a>
+                                <button class="text-gray-400 hover:text-red-500">
+                                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                </button>
+                            </div>
+                        </li>
+                        
+                        <!-- LOCKED STATE EXAMPLE -->
+                        <li class="flex items-center justify-between gap-x-6 px-6 py-5 hover:bg-gray-50 bg-gray-50/50">
+                            <div class="min-w-0">
+                                <div class="flex items-start gap-x-3">
+                                    <p class="text-sm font-semibold leading-6 text-gray-500">Vertical Tap</p>
+                                    <span class="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600 ring-1 ring-inset ring-gray-500/10">Locked</span>
+                                </div>
+                                <div class="mt-1 flex items-center gap-x-2 text-xs leading-5 text-gray-500">
+                                    <p class="truncate">Power • Inches (Higher is better)</p>
+                                </div>
+                            </div>
+                            <div class="flex flex-none items-center gap-x-4">
+                                <span class="text-xs text-gray-400 italic mr-2">Live Entry Started</span>
+                                <a href="#" class="hidden rounded-md bg-gray-100 px-2.5 py-1.5 text-sm font-semibold text-gray-400 cursor-not-allowed sm:block">Edit</a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Simple script to handle tab switching and wizard steps
+        let currentStep = 1;
+
+        function showTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'text-teal-700', 'border-b-2', 'border-teal-600');
+                el.classList.add('text-gray-500');
+            });
+            
+            // Highlight active tab button (logic simplified for mockups)
+            const btnIndex = tabId === 'setup' ? 0 : tabId === 'wizard1' ? 1 : 2;
+            const activeBtn = document.querySelectorAll('.tab-btn')[btnIndex];
+            activeBtn.classList.remove('text-gray-500');
+            activeBtn.classList.add('active', 'text-teal-700', 'border-b-2', 'border-teal-600');
+
+            if(tabId === 'wizard1') {
+                currentStep = 1;
+                updateWizardStep();
+            }
+        }
+
+        function nextStep() {
+            if (currentStep < 4) {
+                currentStep++;
+                updateWizardStep();
+            } else {
+                // Finish
+                showTab('admin');
+            }
+        }
+
+        function prevStep() {
+            if (currentStep > 1) {
+                currentStep--;
+                updateWizardStep();
+            } else {
+                showTab('setup');
+            }
+        }
+
+        function updateWizardStep() {
+            // Hide all contents
+            document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+            // Show current
+            document.getElementById(`step-${currentStep}-content`).classList.add('active');
+            
+            // Update button text
+            document.getElementById('next-btn').innerText = currentStep === 4 ? 'Save Drill' : 'Continue';
+            
+            // Update Stepper UI (Visual only for mockup)
+            // This is just hacky JS for the mockup visual
+            const step2Bar = document.getElementById('step2-bar');
+            const step2Bubble = document.getElementById('step2-bubble');
+            
+            if (currentStep >= 2) {
+                if(step2Bar) step2Bar.className = "h-0.5 w-full bg-teal-600";
+                if(step2Bubble) {
+                    step2Bubble.className = "relative flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 hover:bg-teal-900";
+                    step2Bubble.innerHTML = '<span class="text-white text-sm font-bold">2</span>';
+                    step2Bubble.nextElementSibling.classList.remove('text-gray-500');
+                    step2Bubble.nextElementSibling.classList.add('text-teal-600');
+                }
+            }
+            // ... logic repeats for other steps in a real app
+        }
+    </script>
+</body>
+</html>
+

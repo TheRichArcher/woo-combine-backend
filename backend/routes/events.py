@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
 from google.cloud.firestore import Query as FsQuery
-from typing import Optional
+from typing import Optional, List
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
@@ -14,6 +14,11 @@ from ..utils.data_integrity import (
 from ..security.access_matrix import require_permission
 from pydantic import BaseModel
 from typing import Dict
+from ..models import (
+    CustomDrillCreateRequest,
+    CustomDrillUpdateRequest,
+    CustomDrillSchema
+)
 
 router = APIRouter()
 
@@ -89,6 +94,7 @@ def create_event(
             "league_id": league_id,  # Add league_id reference
             "drillTemplate": "football",  # Default to football template
             "created_at": datetime.utcnow().isoformat(),
+            "live_entry_active": False,
         }
         
         # Store event in league subcollection
@@ -172,6 +178,7 @@ class EventUpdateRequest(BaseModel):
     date: str | None = None
     location: str | None = None
     drillTemplate: str | None = None
+    live_entry_active: bool | None = None
 
 @router.put('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
@@ -211,6 +218,10 @@ def update_event(
                 raise HTTPException(status_code=400, detail=f"Invalid drill template. Must be one of: {', '.join(valid_templates)}")
             update_data["drillTemplate"] = req.drillTemplate
         
+        # Add live_entry_active if provided
+        if req and req.live_entry_active is not None:
+            update_data["live_entry_active"] = req.live_entry_active
+
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
         execute_with_timeout(
@@ -406,4 +417,199 @@ def delete_event(
         raise
     except Exception as e:
         logging.error(f"Error deleting event {event_id} from league {league_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete event") 
+        raise HTTPException(status_code=500, detail="Failed to delete event")
+
+
+# --- Custom Drill Endpoints ---
+
+def check_event_unlocked(event_id: str):
+    """Helper to ensure event is not locked (Live Entry active)"""
+    event_ref = db.collection("events").document(event_id)
+    event_doc = execute_with_timeout(
+        lambda: event_ref.get(),
+        timeout=5,
+        operation_name="check event lock status"
+    )
+    
+    if not event_doc.exists:
+        raise HTTPException(status_code=404, detail="Event not found")
+        
+    if event_doc.to_dict().get("live_entry_active", False):
+        raise HTTPException(status_code=409, detail="Cannot modify drills after Live Entry has started")
+
+@router.post('/leagues/{league_id}/events/{event_id}/custom-drills')
+@write_rate_limit()
+@require_permission("events", "update", target="league", target_param="league_id")
+def create_custom_drill(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    req: CustomDrillCreateRequest = None,
+    current_user=Depends(require_role("organizer"))
+):
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+        check_event_unlocked(event_id)
+        
+        if req.min_val >= req.max_val:
+            raise HTTPException(status_code=400, detail="Minimum value must be less than maximum value")
+            
+        # Check for name uniqueness (case-insensitive)
+        drills_ref = db.collection("events").document(event_id).collection("custom_drills")
+        existing_drills = execute_with_timeout(
+            lambda: list(drills_ref.stream()),
+            timeout=10
+        )
+        
+        for d in existing_drills:
+            if d.to_dict().get("name", "").lower() == req.name.lower():
+                raise HTTPException(status_code=400, detail="A drill with this name already exists in this event")
+        
+        new_drill_ref = drills_ref.document()
+        drill_data = req.dict()
+        drill_data.update({
+            "id": new_drill_ref.id,
+            "event_id": event_id,
+            "created_at": datetime.utcnow().isoformat(),
+            "created_by": current_user["uid"]
+        })
+        
+        execute_with_timeout(
+            lambda: new_drill_ref.set(drill_data),
+            timeout=10,
+            operation_name="create custom drill"
+        )
+        
+        logging.info(f"Created custom drill {new_drill_ref.id} for event {event_id}")
+        return drill_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error creating custom drill for event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create custom drill")
+
+@router.get('/leagues/{league_id}/events/{event_id}/custom-drills')
+@read_rate_limit()
+@require_permission("events", "read", target="league", target_param="league_id")
+def list_custom_drills(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+        
+        # Get lock status
+        event_ref = db.collection("events").document(event_id)
+        event_doc = execute_with_timeout(lambda: event_ref.get(), timeout=5)
+        is_locked = False
+        if event_doc.exists:
+            is_locked = event_doc.to_dict().get("live_entry_active", False)
+            
+        drills_ref = db.collection("events").document(event_id).collection("custom_drills")
+        drills_stream = execute_with_timeout(
+            lambda: list(drills_ref.order_by("created_at").stream()),
+            timeout=10,
+            operation_name="list custom drills"
+        )
+        
+        drills = []
+        for d in drills_stream:
+            data = d.to_dict()
+            data["id"] = d.id
+            data["is_locked"] = is_locked
+            drills.append(data)
+            
+        return {"custom_drills": drills}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error listing custom drills for event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to list custom drills")
+
+@router.put('/leagues/{league_id}/events/{event_id}/custom-drills/{drill_id}')
+@write_rate_limit()
+@require_permission("events", "update", target="league", target_param="league_id")
+def update_custom_drill(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    drill_id: str = Path(..., regex=r"^.{1,50}$"),
+    req: CustomDrillUpdateRequest = None,
+    current_user=Depends(require_role("organizer"))
+):
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+        check_event_unlocked(event_id)
+        
+        drill_ref = db.collection("events").document(event_id).collection("custom_drills").document(drill_id)
+        drill_doc = execute_with_timeout(lambda: drill_ref.get(), timeout=5)
+        
+        if not drill_doc.exists:
+            raise HTTPException(status_code=404, detail="Drill not found")
+            
+        update_data = req.dict(exclude_unset=True)
+        if not update_data:
+            return drill_doc.to_dict()
+            
+        # Validate min/max if both present
+        current_data = drill_doc.to_dict()
+        new_min = update_data.get("min_val", current_data.get("min_val"))
+        new_max = update_data.get("max_val", current_data.get("max_val"))
+        
+        if new_min >= new_max:
+             raise HTTPException(status_code=400, detail="Minimum value must be less than maximum value")
+             
+        execute_with_timeout(
+            lambda: drill_ref.update(update_data),
+            timeout=10,
+            operation_name="update custom drill"
+        )
+        
+        updated_doc = execute_with_timeout(lambda: drill_ref.get(), timeout=5)
+        return updated_doc.to_dict()
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating custom drill {drill_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update custom drill")
+
+@router.delete('/leagues/{league_id}/events/{event_id}/custom-drills/{drill_id}')
+@write_rate_limit()
+@require_permission("events", "update", target="league", target_param="league_id")
+def delete_custom_drill(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    drill_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(require_role("organizer"))
+):
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+        check_event_unlocked(event_id)
+        
+        drill_ref = db.collection("events").document(event_id).collection("custom_drills").document(drill_id)
+        
+        # Check existence first
+        drill_doc = execute_with_timeout(lambda: drill_ref.get(), timeout=5)
+        if not drill_doc.exists:
+            raise HTTPException(status_code=404, detail="Drill not found")
+
+        execute_with_timeout(
+            lambda: drill_ref.delete(),
+            timeout=10,
+            operation_name="delete custom drill"
+        )
+        
+        logging.info(f"Deleted custom drill {drill_id} from event {event_id}")
+        return Response(status_code=204)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error deleting custom drill {drill_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete custom drill")

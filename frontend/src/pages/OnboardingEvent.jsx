@@ -9,21 +9,21 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import OnboardingCard from "../components/OnboardingCard";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
-import Select from "../components/ui/Select";
 import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import LoadingScreen from "../components/LoadingScreen";
+import DrillManager from "../components/drills/DrillManager";
 
-// CSV processing utilities (simplified from AdminTools)
-import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, SAMPLE_ROWS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS } from '../utils/csvUtils';
+// CSV processing utilities
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS } from '../utils/csvUtils';
 
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
   const { user, userRole, leagues, selectedLeagueId } = useAuth();
-  const { notifyEventCreated, notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
+  const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   
   // Enhanced auth check with loading state
   if (!user) {
@@ -89,7 +89,7 @@ export default function OnboardingEvent() {
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
 
   const StepIndicator = ({ activeStep }) => {
-    const steps = [1, 2, 3, 4];
+    const steps = [1, 2, 3, 4, 5];
     return (
       <div className="flex justify-center mb-6">
         <div className="flex items-center space-x-2">
@@ -160,7 +160,7 @@ export default function OnboardingEvent() {
 
   const handleEventCreated = (event) => {
     setCreatedEvent(event);
-    setCurrentStep(2); // Move to player import step
+    setCurrentStep(2); // Move to configure drills step
   };
 
   const handleContinueToPlayers = () => {
@@ -290,7 +290,7 @@ export default function OnboardingEvent() {
       
       // Move to next step after brief delay
       setTimeout(() => {
-        setCurrentStep(3);
+        setCurrentStep(4);
       }, 1500);
       
     } catch (error) {
@@ -387,8 +387,48 @@ export default function OnboardingEvent() {
     );
   }
 
-  // STEP 2: Player Import
+  // STEP 2: Configure Drills
   if (currentStep === 2) {
+    return (
+        <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+            <div className="w-full max-w-2xl text-center">
+                <OnboardingCard 
+                    title="⚙️ Configure Drills" 
+                    subtitle={
+                        <>
+                            <span className="block">Event: <strong>{createdEvent?.name}</strong></span>
+                            <span className="text-sm text-gray-500">Review standard drills or add custom ones</span>
+                        </>
+                    }
+                >
+                    <StepIndicator activeStep={2} />
+                    
+                    <div className="mb-6 text-left">
+                        <DrillManager 
+                            event={createdEvent} 
+                            leagueId={selectedLeagueId} 
+                            isLiveEntryActive={false} // New events are not active yet
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <Button onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
+                            Continue to Add Players
+                            <ArrowRight className="w-5 h-5" />
+                        </Button>
+                        <Button variant="subtle" onClick={() => handleStepNavigation(1)} className="w-full flex items-center justify-center gap-2">
+                            <ArrowLeft className="w-4 h-4" />
+                            Back
+                        </Button>
+                    </div>
+                </OnboardingCard>
+            </div>
+        </WelcomeLayout>
+    );
+  }
+
+  // STEP 3: Player Import
+  if (currentStep === 3) {
     return (
       <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
@@ -402,7 +442,7 @@ export default function OnboardingEvent() {
             }
           >
 
-            <StepIndicator activeStep={2} />
+            <StepIndicator activeStep={3} />
 
             {/* CSV Upload Section */}
             <div className="space-y-4 mb-6">
@@ -595,13 +635,13 @@ export default function OnboardingEvent() {
 
             {/* Navigation */}
             <div className="space-y-3">
-              <Button onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
+              <Button onClick={() => handleStepNavigation(4)} className="w-full flex items-center justify-center gap-2">
                 Continue
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              <Button variant="subtle" onClick={() => handleStepNavigation(1)} className="w-full flex items-center justify-center gap-2">
+              <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                Back to Event Creation
+                Back
               </Button>
             </div>
           </OnboardingCard>
@@ -610,12 +650,12 @@ export default function OnboardingEvent() {
     );
   }
 
-  // STEP 3: Share event with staff
-  if (currentStep === 3) {
+  // STEP 4: Share event with staff
+  if (currentStep === 4) {
     return (
       <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-lg text-center space-y-4">
-          <StepIndicator activeStep={3} />
+          <StepIndicator activeStep={4} />
           {createdEvent && selectedLeague ? (
             <div className="bg-white rounded-2xl shadow-2xl p-4">
               <EventJoinCode event={createdEvent} league={selectedLeague} />
@@ -625,7 +665,7 @@ export default function OnboardingEvent() {
               title="Share codes after selecting an event"
               subtitle="We couldn't find your event details. Head back one step and make sure an event is selected."
             >
-              <Button onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+              <Button onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Return to Add Players
               </Button>
@@ -633,11 +673,11 @@ export default function OnboardingEvent() {
           )}
 
           <div className="space-y-3">
-            <Button onClick={() => handleStepNavigation(4)} className="w-full flex items-center justify-center gap-2">
+            <Button onClick={() => handleStepNavigation(5)} className="w-full flex items-center justify-center gap-2">
               Skip & Start Tracking
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+            <Button variant="subtle" onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               Add More Players
             </Button>
@@ -647,13 +687,13 @@ export default function OnboardingEvent() {
     );
   }
 
-  // STEP 4: Completion and next steps
-  if (currentStep === 4) {
+  // STEP 5: Completion and next steps
+  if (currentStep === 5) {
     return (
       <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
         <div className="w-full max-w-md text-center">
           <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
-            <StepIndicator activeStep={4} />
+            <StepIndicator activeStep={5} />
 
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
               <div className="text-center mb-3">
@@ -682,7 +722,7 @@ export default function OnboardingEvent() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-brand-secondary">Share QR codes with staff</span>
-                    <Button size="sm" onClick={() => handleStepNavigation(3)}>
+                    <Button size="sm" onClick={() => handleStepNavigation(4)}>
                       📱 Share
                     </Button>
                   </div>
@@ -697,12 +737,12 @@ export default function OnboardingEvent() {
             </div>
 
             <div className="space-y-2">
-              <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
+              <Button variant="subtle" onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Add More Players
               </Button>
               
-              <Button variant="subtle" onClick={() => handleStepNavigation(3)} className="w-full flex items-center justify-center gap-2">
+              <Button variant="subtle" onClick={() => handleStepNavigation(4)} className="w-full flex items-center justify-center gap-2">
                 📱 Share Invitations Again
               </Button>
               
