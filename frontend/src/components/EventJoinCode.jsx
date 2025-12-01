@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import QRCode from 'react-qr-code';
 import { Copy, QrCode } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
 
 export default function EventJoinCode({ event, league }) {
   const [selectedRole, setSelectedRole] = useState('coach');
+  const { showSuccess } = useToast();
 
   if (!event || !league) return null;
 
@@ -13,8 +15,9 @@ export default function EventJoinCode({ event, league }) {
   const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
   const legacyButtonLabel = legacyJoinUrl ? 'Copy Legacy Link (woo-combine.com/join)' : 'Copy General Link (Legacy)';
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text, description) => {
     navigator.clipboard.writeText(text);
+    showSuccess(`📋 ${description} copied to clipboard!`);
   };
 
   return (
@@ -79,7 +82,7 @@ export default function EventJoinCode({ event, league }) {
 
         <div className="flex flex-col gap-2 mb-4">
           <button
-            onClick={() => copyToClipboard(roleJoinUrl)}
+            onClick={() => copyToClipboard(roleJoinUrl, `${selectedRole === 'coach' ? 'Coach' : 'Viewer'} Link`)}
             className={`text-white px-4 py-2 rounded-lg font-semibold transition flex items-center justify-center gap-2 ${
               selectedRole === 'coach' 
                 ? 'bg-blue-600 hover:bg-blue-700' 
@@ -90,7 +93,7 @@ export default function EventJoinCode({ event, league }) {
             Copy {selectedRole === 'coach' ? 'Coach' : 'Viewer'} Link
           </button>
           <button
-            onClick={() => copyToClipboard(legacyJoinUrl)}
+            onClick={() => copyToClipboard(legacyJoinUrl, 'Legacy Join Link')}
             className="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2 text-sm"
             title={legacyJoinUrl}
             aria-label={`Copy legacy join link ${legacyJoinUrl}`}
