@@ -10,6 +10,7 @@ from ..models import PlayerSchema
 from ..schemas import SportSchema
 from ..services.schema_registry import SchemaRegistry
 from ..utils.database import execute_with_timeout
+from ..utils.event_schema import get_event_schema
 from ..utils.data_integrity import (
     enforce_event_league_relationship,
     ensure_league_document,
@@ -20,23 +21,6 @@ import hashlib
 import uuid
 
 router = APIRouter()
-
-def get_event_schema(event_id: str) -> SportSchema:
-    """Fetch the schema for an event. Defaults to football if not found."""
-    try:
-        # Optimally, we should cache this or pass it down if we already fetched the event
-        event_doc = db.collection("events").document(event_id).get()
-        if not event_doc.exists:
-            return SchemaRegistry.get_schema("football")
-            
-        event_data = event_doc.to_dict()
-        # Use drillTemplate field (e.g. "soccer", "basketball") or fallback to football
-        template_id = event_data.get("drillTemplate", "football")
-        schema = SchemaRegistry.get_schema(template_id)
-        return schema if schema else SchemaRegistry.get_schema("football")
-    except Exception as e:
-        logging.warning(f"Failed to fetch schema for event {event_id}: {e}. Using default.")
-        return SchemaRegistry.get_schema("football")
 
 def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dict[str, float]] = None, schema: Optional[SportSchema] = None) -> float:
     """

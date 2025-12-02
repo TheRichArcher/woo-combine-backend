@@ -168,7 +168,7 @@ class DataImporter:
         return "football", "low"
 
     @staticmethod
-    def parse_csv(content: bytes, event_id: str = None) -> ImportResult:
+    def parse_csv(content: bytes, event_id: str = None, disabled_drills: List[str] = None) -> ImportResult:
         """Parse CSV content"""
         try:
             # Decode bytes to string
@@ -192,7 +192,7 @@ class DataImporter:
                 for field in reader.fieldnames
             }
             
-            result = DataImporter._process_rows(reader, normalized_field_map, sport)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -202,7 +202,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse CSV: {str(e)}"}])
 
     @staticmethod
-    def parse_excel(content: bytes, sheet_name: Optional[str] = None, event_id: str = None) -> ImportResult:
+    def parse_excel(content: bytes, sheet_name: Optional[str] = None, event_id: str = None, disabled_drills: List[str] = None) -> ImportResult:
         """
         Parse Excel (XLSX) content.
         If multiple sheets exist and no sheet_name provided, returns list of sheets.
@@ -267,7 +267,7 @@ class DataImporter:
                 if has_data:
                     data_rows.append(row_data)
             
-            result = DataImporter._process_rows(data_rows, normalized_field_map, sport)
+            result = DataImporter._process_rows(data_rows, normalized_field_map, sport, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -306,7 +306,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse image: {str(e)}"}])
 
     @staticmethod
-    def parse_text(text: str) -> ImportResult:
+    def parse_text(text: str, disabled_drills: List[str] = None) -> ImportResult:
         """
         Parse pasted text. Assumes either CSV-like structure or specific format.
         For now, implements a robust delimiter sniffer (tab, comma, pipe).
@@ -346,7 +346,7 @@ class DataImporter:
                 for field in reader.fieldnames
             }
             
-            result = DataImporter._process_rows(reader, normalized_field_map, sport)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -356,7 +356,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse text: {str(e)}"}])
 
     @staticmethod
-    def _process_rows(rows: Any, field_map: Dict[str, str], sport_id: str) -> ImportResult:
+    def _process_rows(rows: Any, field_map: Dict[str, str], sport_id: str, disabled_drills: List[str] = None) -> ImportResult:
         """Common processing logic for all input types"""
         valid_rows = []
         errors = []
@@ -369,6 +369,11 @@ class DataImporter:
             
         # Identify which columns map to drill scores from Schema
         drill_keys = set(d.key for d in schema.drills)
+        
+        # FILTER DISABLED DRILLS
+        if disabled_drills:
+            drill_keys = drill_keys - set(disabled_drills)
+            
         drill_defs = {d.key: d for d in schema.drills}
         
         for idx, row in enumerate(rows, start=1):

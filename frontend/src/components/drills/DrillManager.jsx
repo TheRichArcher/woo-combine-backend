@@ -3,7 +3,7 @@ import { getDrillsFromTemplate, getTemplateById } from '../../constants/drillTem
 import CustomDrillWizard from './CustomDrillWizard';
 import api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
-import { Plus, Lock, Edit2, Trash2, Info } from 'lucide-react';
+import { Plus, Lock, Edit2, Trash2, Info, Eye, EyeOff } from 'lucide-react';
 
 export default function DrillManager({ event, leagueId, isLiveEntryActive = false }) {
   const [activeTab, setActiveTab] = useState('template'); // 'template' | 'custom'
@@ -11,11 +11,20 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
   const [loading, setLoading] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [editingDrill, setEditingDrill] = useState(null);
+  const [disabledDrills, setDisabledDrills] = useState([]);
+  const [updatingEvent, setUpdatingEvent] = useState(false);
   const { showError, showSuccess } = useToast();
 
   const templateId = event?.drillTemplate || 'football';
   const templateDrills = getDrillsFromTemplate(templateId);
   const templateInfo = getTemplateById(templateId);
+
+  // Initialize disabled drills from event
+  useEffect(() => {
+    if (event?.disabled_drills) {
+      setDisabledDrills(event.disabled_drills);
+    }
+  }, [event]);
 
   const fetchCustomDrills = useCallback(async () => {
     if (!event?.id || !leagueId) return;
@@ -34,6 +43,35 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
   useEffect(() => {
     fetchCustomDrills();
   }, [fetchCustomDrills]);
+
+  const toggleDrill = async (drillKey) => {
+    if (isLiveEntryActive) return;
+    
+    setUpdatingEvent(true);
+    try {
+      const isCurrentlyDisabled = disabledDrills.includes(drillKey);
+      const newDisabled = isCurrentlyDisabled
+        ? disabledDrills.filter(k => k !== drillKey)
+        : [...disabledDrills, drillKey];
+      
+      setDisabledDrills(newDisabled);
+      
+      // Persist to backend
+      await api.put(`/leagues/${leagueId}/events/${event.id}`, {
+        name: event.name, // Required field
+        disabledDrills: newDisabled
+      });
+      
+      // showSuccess(isCurrentlyDisabled ? "Drill enabled" : "Drill disabled");
+    } catch (error) {
+      console.error("Failed to update event drills", error);
+      showError("Failed to update drill status");
+      // Revert
+      setDisabledDrills(event?.disabled_drills || []);
+    } finally {
+      setUpdatingEvent(false);
+    }
+  };
 
   const handleDelete = async (drillId) => {
     if (isLiveEntryActive) return;
@@ -92,25 +130,58 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
 
       <div className="bg-gray-50 min-h-[300px]">
         {activeTab === 'template' ? (
-            <ul className="divide-y divide-gray-200 bg-white">
-                {templateDrills.map((drill) => (
-                    <li key={drill.key} className="px-6 py-4 hover:bg-gray-50 flex items-center justify-between">
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-gray-900">{drill.label}</span>
-                                <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">Built-in</span>
-                            </div>
-                            <div className="mt-1 text-xs text-gray-500">
-                                Category: {drill.category} • Unit: {drill.unit} • {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-xs font-medium text-gray-500">Standard Drill</div>
-                            <div className="text-[10px] text-gray-400">(Included in the {templateInfo?.sport || 'Standard'} Combine template — not editable)</div>
-                        </div>
-                    </li>
-                ))}
-            </ul>
+            <div>
+                <div className="bg-blue-50 p-4 border-b border-blue-100 text-sm text-blue-800 flex items-start gap-3">
+                    <Info className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <strong>Configure Standard Drills:</strong> You can disable drills that you won't be using for this event. 
+                        Disabled drills will be hidden from the app and reports.
+                    </div>
+                </div>
+                <ul className="divide-y divide-gray-200 bg-white">
+                    {templateDrills.map((drill) => {
+                        const isDisabled = disabledDrills.includes(drill.key);
+                        return (
+                            <li key={drill.key} className={`px-6 py-4 hover:bg-gray-50 flex items-center justify-between ${isDisabled ? 'bg-gray-50 opacity-75' : ''}`}>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-sm font-semibold ${isDisabled ? 'text-gray-500 line-through' : 'text-gray-900'}`}>{drill.label}</span>
+                                        <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">Built-in</span>
+                                        {isDisabled && <span className="inline-flex items-center rounded-md bg-red-50 px-2 py-1 text-xs font-medium text-red-600 ring-1 ring-inset ring-red-600/10">Disabled</span>}
+                                    </div>
+                                    <div className="mt-1 text-xs text-gray-500">
+                                        Category: {drill.category} • Unit: {drill.unit} • {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {/* Toggle Switch */}
+                                    <div className="flex items-center">
+                                        <button
+                                            onClick={() => toggleDrill(drill.key)}
+                                            disabled={isLiveEntryActive || updatingEvent}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 ${
+                                                !isDisabled ? 'bg-teal-600' : 'bg-gray-200'
+                                            } ${isLiveEntryActive || updatingEvent ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            role="switch"
+                                            aria-checked={!isDisabled}
+                                        >
+                                            <span
+                                                aria-hidden="true"
+                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                                    !isDisabled ? 'translate-x-5' : 'translate-x-0'
+                                                }`}
+                                            />
+                                        </button>
+                                        <span className="ml-3 text-sm font-medium text-gray-900 w-16">
+                                            {!isDisabled ? 'Enabled' : 'Disabled'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </div>
         ) : (
             <div className="bg-white h-full">
                 {/* Empty State / List */}

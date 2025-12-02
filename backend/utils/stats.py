@@ -1,6 +1,6 @@
 from typing import Dict, Any, List
 from ..firestore_client import db
-from ..utils.validation import DRILL_SCORE_RANGES
+from ..utils.event_schema import get_event_schema
 
 def calculate_event_stats(event_id: str) -> Dict[str, Any]:
     """
@@ -20,16 +20,11 @@ def calculate_event_stats(event_id: str) -> Dict[str, Any]:
         "anomalies": []
     }
     
-    # Define drill sort directions (True = Lower is Better, False = Higher is Better)
-    LOWER_IS_BETTER = {
-        "40m_dash": True,
-        "agility": True,
-        "vertical_jump": False,
-        "throwing": False,
-        "catching": False
-    }
+    # Get schema for dynamic drills
+    schema = get_event_schema(event_id)
     
-    for key in DRILL_SCORE_RANGES.keys():
+    for drill in schema.drills:
+        key = drill.key
         drill_stats = {
             "min": None,
             "max": None,
@@ -44,7 +39,12 @@ def calculate_event_stats(event_id: str) -> Dict[str, Any]:
         
         # Collect values
         for p in player_data:
-            val = p.get(key)
+            # Check 'scores' map first, then legacy fields
+            scores_map = p.get("scores", {})
+            val = scores_map.get(key)
+            if val is None:
+                val = p.get(key) or p.get(f"drill_{key}")
+
             if val is not None and str(val).strip() != "":
                 try:
                     v = float(val)
@@ -73,14 +73,10 @@ def calculate_event_stats(event_id: str) -> Dict[str, Any]:
         if drill_stats["count"] > 0:
             drill_stats["mean"] = drill_stats["sum"] / drill_stats["count"]
             
-            # Sort values
-            lower_better = LOWER_IS_BETTER.get(key, False) # Default to higher is better
+            # Sort values based on schema direction
+            lower_better = drill.lower_is_better
             
             # If lower is better, sort ASC (reverse=False). If higher is better, sort DESC (reverse=True).
-            # Wait, sort(reverse=False) is ASC (small to large).
-            # Lower is better -> Small values are best -> ASC sort -> Take first N.
-            # Higher is better -> Large values are best -> DESC sort -> Take first N.
-            
             reverse_sort = not lower_better
             
             values.sort(key=lambda x: x["value"], reverse=reverse_sort)

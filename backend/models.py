@@ -120,6 +120,7 @@ class EventSchema(BaseModel):
     league_id: Optional[str] = None
     live_entry_active: bool = False  # Controls locking of custom drills
     drillTemplate: Optional[str] = "football" # Track which schema this event uses
+    disabled_drills: List[str] = []  # List of built-in drill keys to hide/disable
 
 class LeagueSchema(BaseModel):
     id: str

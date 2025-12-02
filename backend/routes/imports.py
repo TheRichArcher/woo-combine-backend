@@ -16,7 +16,7 @@ from ..utils.identity import generate_player_id
 from ..firestore_client import db
 from ..security.access_matrix import require_permission
 from ..services.schema_registry import SchemaRegistry
-from ..routes.players import get_event_schema
+from ..utils.event_schema import get_event_schema
 
 router = APIRouter()
 
@@ -57,14 +57,25 @@ def parse_import_file(
         
         result = None
         
+        # Fetch disabled drills from event configuration
+        disabled_drills = []
+        try:
+            event_ref = db.collection("events").document(event_id)
+            event_doc = execute_with_timeout(lambda: event_ref.get(), timeout=5)
+            if event_doc.exists:
+                disabled_drills = event_doc.to_dict().get("disabled_drills", [])
+        except Exception:
+            # Fallback if fetch fails, proceed with full schema
+            pass
+        
         if file:
             content = file.file.read()
             filename = file.filename.lower()
             
             if filename.endswith('.csv'):
-                result = DataImporter.parse_csv(content, event_id=event_id)
+                result = DataImporter.parse_csv(content, event_id=event_id, disabled_drills=disabled_drills)
             elif filename.endswith(('.xls', '.xlsx')):
-                result = DataImporter.parse_excel(content, sheet_name=sheet_name, event_id=event_id)
+                result = DataImporter.parse_excel(content, sheet_name=sheet_name, event_id=event_id, disabled_drills=disabled_drills)
             elif filename.endswith(('.jpg', '.jpeg', '.png', '.heic')):
                 result = DataImporter.parse_image(content)
             else:
@@ -75,12 +86,12 @@ def parse_import_file(
             try:
                 content = fetch_url_content(url)
                 # Assume CSV content from URL
-                result = DataImporter.parse_csv(content, event_id=event_id)
+                result = DataImporter.parse_csv(content, event_id=event_id, disabled_drills=disabled_drills)
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
-
+        
         elif text:
-            result = DataImporter.parse_text(text)
+            result = DataImporter.parse_text(text, disabled_drills=disabled_drills)
             
         else:
             raise HTTPException(status_code=400, detail="No file, text, or URL provided")

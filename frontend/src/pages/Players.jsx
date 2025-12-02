@@ -92,7 +92,8 @@ export default function Players() {
           
           if (freshEvent.drillTemplate !== selectedEvent.drillTemplate || 
               freshEvent.name !== selectedEvent.name ||
-              JSON.stringify(freshEvent.custom_drills) !== JSON.stringify(selectedEvent.custom_drills)) {
+              JSON.stringify(freshEvent.custom_drills) !== JSON.stringify(selectedEvent.custom_drills) ||
+              JSON.stringify(freshEvent.disabled_drills) !== JSON.stringify(selectedEvent.disabled_drills)) {
              setSelectedEvent(freshEvent);
           }
         } catch (error) {
@@ -106,7 +107,9 @@ export default function Players() {
   // Compute drills
   const allDrills = useMemo(() => {
     if (!selectedEvent) return DRILLS;
-    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    const disabled = selectedEvent.disabled_drills || [];
+    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football')
+      .filter(d => !disabled.includes(d.key));
     const customDrills = selectedEvent.custom_drills || [];
     const formattedCustomDrills = customDrills.map(d => ({
       key: d.id,

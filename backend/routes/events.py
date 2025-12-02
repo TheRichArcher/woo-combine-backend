@@ -65,6 +65,7 @@ class EventCreateRequest(BaseModel):
     date: str | None = None
     location: str | None = None
     drillTemplate: str | None = "football"
+    disabledDrills: List[str] = []
 
 @router.post('/leagues/{league_id}/events')
 @write_rate_limit()
@@ -80,8 +81,9 @@ def create_event(
         date = req.date if req else None
         location = req.location if req else None
         drill_template = req.drillTemplate if req and req.drillTemplate else "football"
+        disabled_drills = req.disabledDrills if req else []
         
-        logging.info(f"Event creation request - Name: {name}, Template: {drill_template}")
+        logging.info(f"Event creation request - Name: {name}, Template: {drill_template}, Disabled: {disabled_drills}")
 
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
@@ -124,6 +126,7 @@ def create_event(
             "location": location or "",
             "league_id": league_id,  # Add league_id reference
             "drillTemplate": drill_template,
+            "disabled_drills": disabled_drills,
             "created_at": datetime.utcnow().isoformat(),
             "live_entry_active": False,
         }
@@ -211,6 +214,7 @@ class EventUpdateRequest(BaseModel):
     location: str | None = None
     drillTemplate: str | None = None
     live_entry_active: bool | None = None
+    disabledDrills: List[str] | None = None
 
 @router.put('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
@@ -253,6 +257,10 @@ def update_event(
         # Add live_entry_active if provided
         if req and req.live_entry_active is not None:
             update_data["live_entry_active"] = req.live_entry_active
+
+        # Add disabledDrills if provided
+        if req and req.disabledDrills is not None:
+            update_data["disabled_drills"] = req.disabledDrills
 
         # Update event in league subcollection
         league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
