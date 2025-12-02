@@ -409,7 +409,7 @@ export default function OnboardingEvent() {
   if (currentStep === 2) {
     return (
         <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
-            <div className="w-full max-w-2xl text-center mx-auto">
+            <div className="w-full max-w-md text-center">
                 <OnboardingCard 
                     title="⚙️ Configure Drills" 
                     subtitle={
