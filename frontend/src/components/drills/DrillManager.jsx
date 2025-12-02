@@ -155,27 +155,27 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
                                 </div>
                                 <div className="flex items-center gap-4">
                                     {/* Toggle Switch */}
-                                    <div className="flex items-center">
-                                        <button
-                                            onClick={() => toggleDrill(drill.key)}
-                                            disabled={isLiveEntryActive || updatingEvent}
-                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-teal-600 focus:ring-offset-2 ${
-                                                !isDisabled ? 'bg-teal-600' : 'bg-gray-200'
-                                            } ${isLiveEntryActive || updatingEvent ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            role="switch"
-                                            aria-checked={!isDisabled}
-                                        >
-                                            <span
-                                                aria-hidden="true"
-                                                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                                    !isDisabled ? 'translate-x-5' : 'translate-x-0'
-                                                }`}
-                                            />
-                                        </button>
-                                        <span className="ml-3 text-sm font-medium text-gray-900 w-16">
-                                            {!isDisabled ? 'Enabled' : 'Disabled'}
-                                        </span>
-                                    </div>
+                                    <button
+                                        onClick={() => toggleDrill(drill.key)}
+                                        disabled={isLiveEntryActive || updatingEvent}
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                                            isDisabled 
+                                                ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
+                                                : 'bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200'
+                                        } ${isLiveEntryActive || updatingEvent ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isDisabled ? (
+                                            <>
+                                                <EyeOff className="w-4 h-4" />
+                                                <span>Hidden</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Eye className="w-4 h-4" />
+                                                <span>Visible</span>
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
                             </li>
                         );
