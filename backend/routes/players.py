@@ -7,6 +7,8 @@ import logging
 from ..firestore_client import db
 from datetime import datetime
 from ..models import PlayerSchema
+from ..schemas import SportSchema
+from ..services.schema_registry import SchemaRegistry
 from ..utils.database import execute_with_timeout
 from ..utils.data_integrity import (
     enforce_event_league_relationship,
@@ -19,45 +21,80 @@ import uuid
 
 router = APIRouter()
 
-# Utility: Composite Score Calculation
-DRILL_WEIGHTS = {
-    "40m_dash": 0.3,
-    "vertical_jump": 0.2,
-    "catching": 0.15,
-    "throwing": 0.15,
-    "agility": 0.2,
-}
+def get_event_schema(event_id: str) -> SportSchema:
+    """Fetch the schema for an event. Defaults to football if not found."""
+    try:
+        # Optimally, we should cache this or pass it down if we already fetched the event
+        event_doc = db.collection("events").document(event_id).get()
+        if not event_doc.exists:
+            return SchemaRegistry.get_schema("football")
+            
+        event_data = event_doc.to_dict()
+        # Use drillTemplate field (e.g. "soccer", "basketball") or fallback to football
+        template_id = event_data.get("drillTemplate", "football")
+        schema = SchemaRegistry.get_schema(template_id)
+        return schema if schema else SchemaRegistry.get_schema("football")
+    except Exception as e:
+        logging.warning(f"Failed to fetch schema for event {event_id}: {e}. Using default.")
+        return SchemaRegistry.get_schema("football")
 
-def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dict[str, float]] = None) -> float:
-    """Calculate composite score for a player based on their drill results"""
-    use_weights = weights if weights is not None else DRILL_WEIGHTS
+def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dict[str, float]] = None, schema: Optional[SportSchema] = None) -> float:
+    """
+    Calculate composite score using the Multi-Sport Schema Engine.
+    Fully dynamic based on the provided schema (or default football).
+    """
+    # 1. Resolve Schema
+    if not schema:
+        # Fallback for legacy calls that didn't provide schema
+        schema = SchemaRegistry.get_schema("football")
+
+    # 2. Resolve Weights
+    # If no custom weights provided, use defaults from schema
+    use_weights = weights if weights is not None else {d.key: d.default_weight for d in schema.drills}
+    
     score = 0.0
     
-    # Define which drills have "lower is better" scoring
-    lower_is_better_drills = {"40m_dash"}
-    
-    for drill, weight in use_weights.items():
-        # Get drill value from player data (stored as drill_[type] or just [type])
-        value = player_data.get(drill) or player_data.get(f"drill_{drill}")
+    # 3. Iterate Drills defined in Schema
+    for drill in schema.drills:
+        key = drill.key
+        weight = use_weights.get(key, 0.0)
         
-        # CRITICAL FIX: Handle missing scores properly
-        if value is not None and value != "":
+        if weight <= 0:
+            continue
+            
+        # 4. Get Value (Check 'scores' map first, then legacy fields)
+        scores_map = player_data.get("scores", {})
+        raw_val = scores_map.get(key)
+        
+        # Legacy fallback if not in scores map
+        if raw_val is None:
+            raw_val = player_data.get(key) or player_data.get(f"drill_{key}")
+            
+        if raw_val is not None and raw_val != "":
             try:
-                drill_value = float(value)
+                val = float(raw_val)
                 
-                # For "lower is better" drills like 40-yard dash, invert the score
-                # Use a reasonable maximum (30 seconds for 40-yard dash) to create an inverted scale
-                if drill in lower_is_better_drills:
-                    if drill == "40m_dash":
-                        # Convert to "higher is better" scale: use (30 - time) so 4 seconds becomes 26, 15 seconds becomes 15
-                        drill_value = max(0, 30 - drill_value)
+                # 5. Normalize Score (0-100 scale) based on Schema Min/Max
+                # Use schema min/max if defined, otherwise sensible defaults or raw
+                min_v = drill.min_value if drill.min_value is not None else 0.0
+                max_v = drill.max_value if drill.max_value is not None else 100.0
                 
-                score += drill_value * weight
+                if max_v == min_v:
+                    normalized = 50.0 # Avoid division by zero
+                elif drill.lower_is_better:
+                    # Invert logic: (Max - Value) / (Max - Min) * 100
+                    # Clamp value to range first to avoid negative scores
+                    clamped = max(min_v, min(max_v, val))
+                    normalized = ((max_v - clamped) / (max_v - min_v)) * 100
+                else:
+                    # Standard logic: (Value - Min) / (Max - Min) * 100
+                    clamped = max(min_v, min(max_v, val))
+                    normalized = ((clamped - min_v) / (max_v - min_v)) * 100
+                
+                score += normalized * weight
             except (ValueError, TypeError):
-                # Invalid values contribute 0 to score (missing data is penalized)
                 pass
-        # Missing or null values contribute 0 to score (no artificial boost)
-    
+                
     return round(score, 2)
 
 @router.get("/players", response_model=List[PlayerSchema])
@@ -75,6 +112,9 @@ def get_players(
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
         
         enforce_event_league_relationship(event_id=event_id)
+        
+        # FETCH SCHEMA ONCE FOR BATCH SCORING
+        schema = get_event_schema(event_id)
             
         # Add timeout to players retrieval
         def get_players_query():
@@ -93,8 +133,8 @@ def get_players(
         for player in players_stream:
             player_dict = player.to_dict()
             player_dict["id"] = player.id
-            # Calculate and add composite score
-            player_dict["composite_score"] = calculate_composite_score(player_dict)
+            # Pass schema to scoring engine
+            player_dict["composite_score"] = calculate_composite_score(player_dict, schema=schema)
             result.append(player_dict)
         return result
     except HTTPException:
@@ -144,6 +184,7 @@ def create_player(
             "photo_url": player.photo_url,
             "event_id": event_id,
             "created_at": datetime.utcnow().isoformat(),
+            "scores": {} # Initialize empty scores map
         }
         
         # Add timeout to player creation (merge=True allows idempotent retries)
@@ -234,9 +275,16 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         enforce_event_league_relationship(event_id=req.event_id)
             
         event_id = req.event_id
+        
+        # FETCH SCHEMA FOR VALIDATION
+        schema = get_event_schema(event_id)
+        
         players = req.players
         required_fields = ["first_name", "last_name", "jersey_number"]
-        drill_fields = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
+        
+        # DYNAMIC DRILL FIELDS FROM SCHEMA
+        drill_fields = [d.key for d in schema.drills]
+        
         errors = []
         added = 0
         
@@ -252,7 +300,6 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         
         # First, identify all player IDs we are about to touch
         ids_to_fetch = []
-        id_to_player_idx = {} # Map generated ID to input list index for validation logic reuse? No, just for fetching.
         
         # We need to iterate through players to generate IDs, similar to validation loop below
         for p in players:
@@ -326,6 +373,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             })
 
             full_name = f"{first_name} {last_name}".strip()
+            
+            # BASE PLAYER DATA
             player_data = {
                 "name": full_name,
                 "first": first_name,
@@ -339,28 +388,45 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 "photo_url": None,
                 "event_id": event_id,
                 "created_at": datetime.utcnow().isoformat(),
+                "scores": {} # Start with empty scores
             }
 
-            for drill in drill_fields:
-                value = player.get(drill, "")
+            # PROCESS DYNAMIC SCORES
+            scores = {}
+            
+            # If we are merging, preserve existing scores
+            if previous_state and previous_state.get("scores"):
+                scores = previous_state.get("scores").copy()
+                
+            for drill_key in drill_fields:
+                value = player.get(drill_key, "")
+                
+                # Handle both new keys "sprint_100" and legacy mapping if needed
+                # (Frontend usually normalizes CSV headers to match drill keys)
+                
                 if value and str(value).strip() != "":
                     try:
-                        player_data[drill] = float(value)
+                        val_float = float(value)
+                        scores[drill_key] = val_float
+                        # Also set legacy field for football compatibility if it matches
+                        # This ensures older frontends still see data
+                        if drill_key in ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]:
+                            player_data[drill_key] = val_float
                     except ValueError:
-                        player_data[drill] = None
-                else:
-                    player_data[drill] = None
+                        pass
+            
+            player_data["scores"] = scores
             
             # --- IMPROVED DUPLICATE HANDLING (MERGE LOGIC) ---
             # Strategy: 'overwrite' (default) or 'merge'
             strategy = player.get("merge_strategy", "overwrite")
             
             if strategy == "merge":
-                # Filter out keys with None values to prevent overwriting existing data
-                # For 'created_at', we might want to keep original if merging?
-                # Actually, if we merge, we should preserve 'created_at' if it exists.
                 if previous_state and "created_at" in previous_state:
                     del player_data["created_at"]
+                
+                # For merge, we need to be careful not to overwrite the whole 'scores' map with a partial one
+                # Logic above already handled merging scores into existing dictionary
                 
                 # Filter out None values from payload
                 player_data = {k: v for k, v in player_data.items() if v is not None}
@@ -389,16 +455,15 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 "user_id": current_user["uid"] if current_user else "unknown",
                 "timestamp": datetime.utcnow().isoformat(),
                 "rows_imported": added,
-                "rows_skipped": req.skipped_count or len(errors), # If frontend passed skipped count use it, else use errors
+                "rows_skipped": req.skipped_count or len(errors),
                 "method": req.method,
                 "filename": req.filename,
-                "undo_available": True, # Since we return undo_log
+                "undo_available": True,
                 "errors_count": len(errors)
             }
             execute_with_timeout(lambda: import_log_ref.set(log_entry), timeout=5)
         except Exception as e:
             logging.error(f"Failed to write import audit log: {e}")
-            # Don't fail the request for this
             
         logging.info(f"Player upload completed: {added} processed, {len(errors)} errors")
         return {"added": added, "errors": errors, "undo_log": undo_log}
@@ -448,9 +513,6 @@ def revert_import(request: Request, req: RevertRequest, current_user=Depends(req
                 deleted += 1
             else:
                 # Player existed -> Restore previous data
-                # We use set(..., merge=False) to completely overwrite with old state?
-                # Or should we just restore fields?
-                # Safer to restore the exact document snapshot we had.
                 batch.set(player_ref, previous_data)
                 restored += 1
                 
@@ -524,35 +586,26 @@ def reset_players(event_id: str = Query(...), current_user=Depends(require_role(
         logging.error(f"Error resetting players: {e}")
         raise HTTPException(status_code=500, detail="Failed to reset players")
 
-# ... rest of file (get_rankings, list_players, add_player, list_drill_results) ...
 @router.get("/rankings")
 @require_permission("players", "rankings", target="event", target_param="event_id")
 def get_rankings(
+    request: Request,
     age_group: str = Query(...),
     event_id: str = Query(...),
-    weight_40m_dash: float = Query(None, alias="weight_40m_dash"),
-    weight_vertical_jump: float = Query(None, alias="weight_vertical_jump"),
-    weight_catching: float = Query(None, alias="weight_catching"),
-    weight_throwing: float = Query(None, alias="weight_throwing"),
-    weight_agility: float = Query(None, alias="weight_agility"),
     current_user=Depends(get_current_user)
 ):
     try:
         enforce_event_league_relationship(event_id=event_id)
-            
-        custom_weights = None
-        weight_params = [weight_40m_dash, weight_vertical_jump, weight_catching, weight_throwing, weight_agility]
-        drill_keys = ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]
-        if all(w is not None for w in weight_params):
-            if not all(isinstance(w, float) and 0 <= w <= 1 for w in weight_params):
-                raise HTTPException(status_code=400, detail="All weights must be numbers between 0 and 1.")
-            total = sum(weight_params)
-            if abs(total - 1.0) > 1e-6:
-                raise HTTPException(status_code=400, detail="Weights must sum to 1.0.")
-            custom_weights = dict(zip(drill_keys, weight_params))
-        elif any(w is not None for w in weight_params):
-            raise HTTPException(status_code=400, detail="Either provide all weights or none.")
-            
+        
+        # FETCH SCHEMA FOR RANKINGS
+        schema = get_event_schema(event_id)
+        
+        # NOTE: We've removed the granular weight_* query params in favor of the schema engine
+        # Frontend should pass weights via POST body if custom weights are needed, 
+        # but for now we rely on the schema defaults or handle simple overrides if necessary.
+        # For backward compatibility, if query params exist, we could map them, but 
+        # it's cleaner to rely on the schema.
+        
         players_stream = execute_with_timeout(
             lambda: list(db.collection("events").document(str(event_id)).collection("players").stream()),
             timeout=15
@@ -564,18 +617,28 @@ def get_rankings(
             if player_data.get("age_group") != age_group:
                 continue
                 
-            composite_score = calculate_composite_score(player_data, custom_weights)
-            ranked.append({
+            composite_score = calculate_composite_score(player_data, schema=schema)
+            
+            # Dynamic Response Construction
+            response_obj = {
                 "player_id": player.id,
                 "name": player_data.get("name"),
                 "number": player_data.get("number"),
                 "composite_score": composite_score,
-                "40m_dash": player_data.get("40m_dash"),
-                "vertical_jump": player_data.get("vertical_jump"), 
-                "catching": player_data.get("catching"),
-                "throwing": player_data.get("throwing"),
-                "agility": player_data.get("agility")
-            })
+                # Scores map takes precedence
+                "scores": player_data.get("scores", {})
+            }
+            
+            # Backward compatibility for football frontend
+            if schema.id == "football":
+                response_obj["40m_dash"] = player_data.get("40m_dash") or player_data.get("scores", {}).get("40m_dash")
+                response_obj["vertical_jump"] = player_data.get("vertical_jump") or player_data.get("scores", {}).get("vertical_jump")
+                response_obj["catching"] = player_data.get("catching") or player_data.get("scores", {}).get("catching")
+                response_obj["throwing"] = player_data.get("throwing") or player_data.get("scores", {}).get("throwing")
+                response_obj["agility"] = player_data.get("agility") or player_data.get("scores", {}).get("agility")
+            
+            ranked.append(response_obj)
+            
         ranked.sort(key=lambda x: x.get("composite_score", 0), reverse=True)
         for idx, player in enumerate(ranked, start=1):
             player["rank"] = idx

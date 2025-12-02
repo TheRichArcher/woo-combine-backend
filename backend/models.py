@@ -1,7 +1,7 @@
 # Firestore is now used for all data storage.
 # See the approved Firestore schema for collections and document structure.
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Any, Dict, List
 from datetime import datetime
 
@@ -14,16 +14,52 @@ class PlayerSchema(BaseModel):
     photo_url: Optional[str] = None
     event_id: Optional[str] = None
     created_at: Optional[str] = None
-    # Drill scores
+    
+    # Dynamic Scores Map (Phase 2)
+    # This replaces the fixed fields below for all new sports/drills
+    scores: Dict[str, float] = Field(default_factory=dict)
+    
+    # LEGACY FIELDS (Deprecated - Maintained for Football backward compatibility)
     drill_40m_dash: Optional[float] = Field(None, alias="40m_dash")
     vertical_jump: Optional[float] = None
     catching: Optional[float] = None
     throwing: Optional[float] = None
     agility: Optional[float] = None
+    
     composite_score: Optional[float] = None
     
     class Config:
-        allow_population_by_field_name = True
+        populate_by_name = True  # Replaces allow_population_by_field_name in V2
+        validate_assignment = True
+
+    @model_validator(mode='after')
+    def sync_scores_and_legacy_fields(self):
+        """
+        Bidirectional sync between dynamic 'scores' map and legacy fields.
+        Ensures older clients see fields, and newer logic sees map.
+        """
+        # 1. Map Legacy Fields -> Scores Map (if scores is empty/incomplete)
+        legacy_map = {
+            "40m_dash": self.drill_40m_dash,
+            "vertical_jump": self.vertical_jump,
+            "catching": self.catching,
+            "throwing": self.throwing,
+            "agility": self.agility
+        }
+        
+        for key, value in legacy_map.items():
+            if value is not None and key not in self.scores:
+                self.scores[key] = value
+
+        # 2. Map Scores Map -> Legacy Fields (for backward compatibility)
+        # Only if the legacy field exists on the model and is None
+        if "40m_dash" in self.scores: self.drill_40m_dash = self.scores["40m_dash"]
+        if "vertical_jump" in self.scores: self.vertical_jump = self.scores["vertical_jump"]
+        if "catching" in self.scores: self.catching = self.scores["catching"]
+        if "throwing" in self.scores: self.throwing = self.scores["throwing"]
+        if "agility" in self.scores: self.agility = self.scores["agility"]
+        
+        return self
 
 class DrillResultSchema(BaseModel):
     id: str
@@ -63,6 +99,7 @@ class EventSchema(BaseModel):
     created_at: str
     league_id: Optional[str] = None
     live_entry_active: bool = False  # Controls locking of custom drills
+    drillTemplate: Optional[str] = "football" # Track which schema this event uses
 
 class LeagueSchema(BaseModel):
     id: str
