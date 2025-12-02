@@ -3,7 +3,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, Target, Info, Lock, LockOpen, StickyNote } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen } from 'lucide-react';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
@@ -78,7 +78,10 @@ export default function LiveEntry() {
   const [recentEntries, setRecentEntries] = useState([]);
   const [duplicateData, setDuplicateData] = useState(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
-  const [checklistDismissed, setChecklistDismissed] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [playersExpanded, setPlayersExpanded] = useState(false);
+  const [playerFilter, setPlayerFilter] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editValues, setEditValues] = useState({}); // {entryId: value}
   const [savingEditId, setSavingEditId] = useState(null);
@@ -113,7 +116,6 @@ export default function LiveEntry() {
     return {
       drill: `liveEntry:${selectedEvent.id}:selectedDrill`,
       entries: `liveEntry:${selectedEvent.id}:recentEntries`,
-      checklist: `liveEntry:${selectedEvent.id}:checklistDismissed`,
       focus: `liveEntry:${selectedEvent.id}:lastPlayerNumber`,
       locks: `liveEntry:${selectedEvent.id}:locks`,
       reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`,
@@ -156,14 +158,6 @@ export default function LiveEntry() {
         }
       } else {
         setRecentEntries([]);
-      }
-    } catch {}
-    try {
-      const savedChecklist = localStorage.getItem(storageKeys.checklist);
-      if (savedChecklist === '1') {
-        setChecklistDismissed(true);
-      } else {
-        setChecklistDismissed(false);
       }
     } catch {}
     try {
@@ -420,6 +414,9 @@ export default function LiveEntry() {
       
       setRecentEntries(prev => [entry, ...prev.slice(0, 9)]); // Keep last 10
       
+      setSubmitSuccess(true);
+      setTimeout(() => setSubmitSuccess(false), 300);
+      
       // Reset form
       setPlayerNumber("");
       setScore("");
@@ -558,10 +555,10 @@ export default function LiveEntry() {
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            {/* Drill selector - now visible on all screen sizes */}
-            <div className="block">
-              <select
+            <div className="flex items-center gap-3">
+              {/* Drill selector - now visible on all screen sizes */}
+              <div className="block">
+                <select
                 value={selectedDrill || ''}
                 onChange={(e) => { setSelectedDrill(e.target.value); setDrillConfirmed(!!e.target.value); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
                 className="p-2 border rounded-lg text-sm bg-white"
@@ -571,10 +568,6 @@ export default function LiveEntry() {
                   <option key={d.key} value={d.key}>{d.label}</option>
                 ))}
               </select>
-            </div>
-            <div className="bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-full flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span className="font-semibold">{recentEntries.length} entries</span>
             </div>
                   {selectedDrill && (
                     <button
@@ -589,28 +582,33 @@ export default function LiveEntry() {
         </div>
       </div>
 
-      {/* Slim checklist banner */}
-      {!checklistDismissed && (
-        <div className="px-4">
-          <div className="max-w-lg mx-auto mt-3 bg-semantic-warning/10 border border-semantic-warning/30 text-semantic-warning rounded-lg p-3 text-sm flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-semibold">Steps:</span>
-              <span>1) Select a drill</span>
-              <span>→ 2) Enter scores</span>
-              <span>→ 3) View Rankings</span>
-              {(!selectedDrill || !drillConfirmed) && (
-                <span className="ml-2 text-semantic-warning font-bold">Start here: Choose a drill</span>
-              )}
+      {/* How It Works - Collapsible Help */}
+      <div className="max-w-lg mx-auto px-4 mt-3">
+        <button 
+          onClick={() => setShowHelp(!showHelp)}
+          className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-brand-primary transition-colors"
+        >
+          <span className="text-brand-primary">📘</span> How Live Entry Works
+          {showHelp ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+        
+        {showHelp && (
+          <div className="mt-2 p-3 bg-gray-50 rounded-lg text-sm text-gray-700 border border-gray-200 shadow-sm space-y-1 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-white border border-gray-200 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-brand-primary shadow-sm">1</span>
+              <span>Select a drill</span>
             </div>
-            <button
-              onClick={() => { setChecklistDismissed(true); try { if (storageKeys) localStorage.setItem(storageKeys.checklist, '1'); } catch {} }}
-              className="text-semantic-warning hover:text-yellow-900 text-xs px-2 py-1"
-            >
-              Dismiss
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="bg-white border border-gray-200 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-brand-primary shadow-sm">2</span>
+              <span>Enter player scores</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-white border border-gray-200 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-brand-primary shadow-sm">3</span>
+              <span>View rankings</span>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
       
       <div className="max-w-lg mx-auto p-4 space-y-6">
         {/* Drill Selection */}
@@ -713,12 +711,12 @@ export default function LiveEntry() {
 
             {/* Quick Drill Switcher */}
             <div className="mt-3 px-2">
-              <div className="flex flex-wrap gap-2 justify-center">
+              <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:justify-center pb-2 no-scrollbar">
                 {drills.map((d) => (
                   <button
                     key={d.key}
                     onClick={() => { setSelectedDrill(d.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
-                    className={`whitespace-nowrap px-3 py-1.5 rounded-full text-sm border ${d.key === selectedDrill ? 'bg-brand-primary text-white border-brand-primary' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                    className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-brand-primary text-white border-brand-primary shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
                     aria-pressed={d.key === selectedDrill}
                   >
                     {d.label}
@@ -865,23 +863,32 @@ export default function LiveEntry() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading || !playerId || !score || isCurrentDrillLocked}
-                  className="w-full bg-semantic-success hover:bg-green-600 disabled:bg-gray-300 text-white font-bold text-xl py-4 rounded-lg transition"
+                  disabled={loading || (!submitSuccess && (!playerId || !score || isCurrentDrillLocked))}
+                  className={`w-full font-bold text-xl py-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2
+                    ${submitSuccess 
+                      ? 'bg-green-500 text-white scale-[1.02] shadow-lg' 
+                      : 'bg-semantic-success hover:bg-green-600 disabled:bg-gray-300 text-white'}`}
                 >
-                  {loading ? "Saving..." : "Submit & Next"}
+                  {submitSuccess ? (
+                    <>
+                      <CheckCircle className="w-6 h-6" />
+                      Saved!
+                    </>
+                  ) : (
+                    loading ? "Saving..." : "Submit & Next"
+                  )}
                 </button>
               </form>
             </div>
             
+            <div className="flex justify-center -mt-2 mb-4">
+              <Link to="/live-standings" className="text-brand-primary hover:text-brand-secondary text-sm flex items-center gap-1 transition-colors">
+                <Target className="w-4 h-4" /> View Live Standings →
+              </Link>
+            </div>
+
             {/* Action Buttons - Forward-looking flow */}
             <div className="flex gap-3 flex-wrap">
-              <Link
-                to="/live-standings"
-                className="flex-1 bg-semantic-success hover:bg-green-600 text-white font-semibold py-3 rounded-lg flex items-center justify-center gap-2 transition shadow-lg transform hover:scale-[1.02]"
-              >
-                <Target className="w-5 h-5" />
-                View Live Standings
-              </Link>
               {/* Next Drill CTA at >=80% completion */}
               {selectedDrill && completionPct >= 80 && nextDrill && (
                 <button
@@ -975,25 +982,55 @@ export default function LiveEntry() {
 
             {/* Players remaining for this drill */}
             {selectedDrill && missingPlayers.length > 0 && (
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4">
-                <div className="flex items-center justify-between mb-2">
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 transition-all">
+                <button 
+                  onClick={() => setPlayersExpanded(!playersExpanded)}
+                  className="w-full flex items-center justify-between group"
+                >
                   <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                    <AlertTriangle className="w-5 h-5 text-semantic-warning" /> Players Remaining
+                    <AlertTriangle className="w-5 h-5 text-semantic-warning" /> 
+                    {missingPlayers.length} Players Remaining
                   </h3>
-                  <span className="text-xs bg-semantic-warning/10 text-semantic-warning border border-semantic-warning/30 rounded-full px-2 py-1">{missingPlayers.length} missing</span>
-                </div>
-                <div className="max-h-40 overflow-y-auto space-y-1">
-                  {missingPlayers.slice(0, 20).map(p => (
-                    <div key={p.id} className="text-sm text-gray-500 flex items-center gap-2 opacity-80">
-                      <span className="w-16">#{p.number || '—'}</span>
-                      <span className="flex-1 truncate">{p.name}</span>
-                      <span className="text-xs text-semantic-warning">Missing</span>
+                  <div className="flex items-center gap-2 text-sm text-brand-primary group-hover:text-brand-secondary">
+                    {playersExpanded ? 'Collapse' : 'Expand List'}
+                    {playersExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  </div>
+                </button>
+                
+                {playersExpanded && (
+                  <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search by player # or name..." 
+                        value={playerFilter}
+                        onChange={(e) => setPlayerFilter(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+                      />
                     </div>
-                  ))}
-                  {missingPlayers.length > 20 && (
-                    <div className="text-xs text-gray-400">+{missingPlayers.length - 20} more…</div>
-                  )}
-                </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-1">
+                      {missingPlayers
+                        .filter(p => 
+                          !playerFilter || 
+                          (p.number && p.number.toString().includes(playerFilter)) || 
+                          (p.name && p.name.toLowerCase().includes(playerFilter.toLowerCase()))
+                        )
+                        .slice(0, 50)
+                        .map(p => (
+                        <div key={p.id} className="text-sm text-gray-500 flex items-center gap-2 opacity-80 p-1 hover:bg-gray-50 rounded">
+                          <span className="w-16">#{p.number || '—'}</span>
+                          <span className="flex-1 truncate">{p.name}</span>
+                          <span className="text-xs text-semantic-warning">Missing</span>
+                        </div>
+                      ))}
+                      {missingPlayers.length > 0 && missingPlayers.filter(p => !playerFilter || (p.number && p.number.toString().includes(playerFilter)) || (p.name && p.name.toLowerCase().includes(playerFilter.toLowerCase()))).length === 0 && (
+                        <div className="text-center text-gray-400 text-sm py-2">No matches found</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
