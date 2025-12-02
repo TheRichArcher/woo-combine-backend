@@ -37,6 +37,7 @@ class PlayerSchema(BaseModel):
         """
         Bidirectional sync between dynamic 'scores' map and legacy fields.
         Ensures older clients see fields, and newer logic sees map.
+        Updates __dict__ directly to avoid recursion from validate_assignment.
         """
         # 1. Map Legacy Fields -> Scores Map (if scores is empty/incomplete)
         legacy_map = {
@@ -47,17 +48,36 @@ class PlayerSchema(BaseModel):
             "agility": self.agility
         }
         
+        # Update scores map if needed
+        scores_updated = False
         for key, value in legacy_map.items():
             if value is not None and key not in self.scores:
                 self.scores[key] = value
-
+                scores_updated = True
+        
+        # If we updated scores via self.scores[...] assignment, that's safe because 
+        # 'scores' is a mutable dict, not a field assignment on self (unless we replaced the whole dict)
+        # But to be safe, let's ensure we are working with the dict reference
+        
         # 2. Map Scores Map -> Legacy Fields (for backward compatibility)
-        # Only if the legacy field exists on the model and is None
-        if "40m_dash" in self.scores: self.drill_40m_dash = self.scores["40m_dash"]
-        if "vertical_jump" in self.scores: self.vertical_jump = self.scores["vertical_jump"]
-        if "catching" in self.scores: self.catching = self.scores["catching"]
-        if "throwing" in self.scores: self.throwing = self.scores["throwing"]
-        if "agility" in self.scores: self.agility = self.scores["agility"]
+        # Use direct __dict__ access to bypass validation hooks
+        legacy_keys = {
+            "40m_dash": "drill_40m_dash",
+            "vertical_jump": "vertical_jump",
+            "catching": "catching",
+            "throwing": "throwing",
+            "agility": "agility"
+        }
+        
+        for score_key, field_name in legacy_keys.items():
+            if score_key in self.scores:
+                val = self.scores[score_key]
+                # Only update if different to be idempotent
+                if getattr(self, field_name) != val:
+                    self.__dict__[field_name] = val
+                    # Also update private attributes if Pydantic uses them (V2 uses __dict__ usually)
+                    # Note: In Pydantic V2, model fields are in __dict__. 
+                    # If using private attributes or slots, this might differ, but for BaseModel it's standard.
         
         return self
 
