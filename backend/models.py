@@ -31,6 +31,7 @@ class PlayerSchema(BaseModel):
     class Config:
         populate_by_name = True  # Replaces allow_population_by_field_name in V2
         validate_assignment = True
+        extra = "allow"  # Allow dynamic drill fields to pass through API response
 
     @model_validator(mode='after')
     def sync_scores_and_legacy_fields(self):

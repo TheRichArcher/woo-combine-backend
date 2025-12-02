@@ -117,6 +117,15 @@ def get_players(
         for player in players_stream:
             player_dict = player.to_dict()
             player_dict["id"] = player.id
+            
+            # Flatten scores for frontend compatibility
+            scores = player_dict.get("scores", {})
+            if scores:
+                for k, v in scores.items():
+                    # Only set if not already present to allow scores to be the source of truth
+                    if k not in player_dict:
+                        player_dict[k] = v
+            
             # Pass schema to scoring engine
             player_dict["composite_score"] = calculate_composite_score(player_dict, schema=schema)
             result.append(player_dict)
