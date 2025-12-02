@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from typing import List
 from ..schemas import SportSchema
 from ..services.schema_registry import SchemaRegistry
@@ -8,7 +8,7 @@ router = APIRouter()
 
 @router.get("/sports/{sport_id}/schema", response_model=SportSchema)
 @read_rate_limit()
-def get_sport_schema(sport_id: str):
+def get_sport_schema(request: Request, sport_id: str):
     """
     Get the authoritative schema for a specific sport.
     This schema defines all drills, scoring rules, and presets.
@@ -20,7 +20,7 @@ def get_sport_schema(sport_id: str):
 
 @router.get("/schemas", response_model=List[SportSchema])
 @read_rate_limit()
-def list_all_schemas():
+def list_all_schemas(request: Request):
     """List all available sport schemas"""
     return SchemaRegistry.get_all_schemas()
 
