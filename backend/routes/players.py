@@ -12,6 +12,7 @@ from ..utils.data_integrity import (
     enforce_event_league_relationship,
     ensure_league_document,
 )
+from ..utils.identity import generate_player_id
 from ..security.access_matrix import require_permission
 import hashlib
 
@@ -57,19 +58,6 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
         # Missing or null values contribute 0 to score (no artificial boost)
     
     return round(score, 2)
-
-def generate_player_id(event_id: str, first: str, last: str, number: Optional[int]) -> str:
-    """Generate a deterministic, unique ID for a player based on their identity"""
-    # Normalize inputs
-    f = (first or "").strip().lower()
-    l = (last or "").strip().lower()
-    n = str(number).strip() if number is not None else "nonum"
-    
-    # Create raw string for hashing
-    raw = f"{event_id}:{f}:{l}:{n}"
-    
-    # Return SHA-256 hash hex digest (truncated to 20 chars for ID-like length)
-    return hashlib.sha256(raw.encode('utf-8')).hexdigest()[:20]
 
 @router.get("/players", response_model=List[PlayerSchema])
 @read_rate_limit()
@@ -254,6 +242,42 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
 
         # Local duplicate detection within upload batch
         seen_keys = set()
+        
+        # CAPTURE PREVIOUS STATE FOR UNDO
+        undo_log = []
+        
+        # First, identify all player IDs we are about to touch
+        ids_to_fetch = []
+        id_to_player_idx = {} # Map generated ID to input list index for validation logic reuse? No, just for fetching.
+        
+        # We need to iterate through players to generate IDs, similar to validation loop below
+        for p in players:
+            # Only generate ID if required fields present
+            if p.get("first_name") and p.get("last_name"):
+                try:
+                     num = int(str(p.get("jersey_number")).strip()) if p.get("jersey_number") not in (None, "") else None
+                     if num is not None:
+                         pid = generate_player_id(event_id, p.get("first_name"), p.get("last_name"), num)
+                         ids_to_fetch.append(pid)
+                except:
+                    pass
+        
+        # Fetch existing documents in batches (Firestore limit 10-30 per getAll? No, supports more but better chunked)
+        existing_docs_map = {}
+        if ids_to_fetch:
+            # Unique IDs only
+            unique_ids = list(set(ids_to_fetch))
+            
+            # Fetch in chunks of 100
+            for i in range(0, len(unique_ids), 100):
+                chunk = unique_ids[i:i+100]
+                refs = [db.collection("events").document(event_id).collection("players").document(pid) for pid in chunk]
+                docs = db.get_all(refs)
+                for doc in docs:
+                    if doc.exists:
+                        existing_docs_map[doc.id] = doc.to_dict()
+                    else:
+                        existing_docs_map[doc.id] = None # Explicitly mark as not existing
 
         batch = db.batch()
         batch_count = 0
@@ -290,6 +314,13 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
 
             player_id = generate_player_id(event_id, first_name, last_name, num)
             
+            # Record Undo State
+            previous_state = existing_docs_map.get(player_id)
+            undo_log.append({
+                "player_id": player_id,
+                "previous_data": previous_state # None if didn't exist, dict if existed
+            })
+
             full_name = f"{first_name} {last_name}".strip()
             player_data = {
                 "name": full_name,
@@ -332,12 +363,77 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             execute_with_timeout(lambda: batch.commit(), timeout=10)
             
         logging.info(f"Player upload completed: {added} processed, {len(errors)} errors")
-        return {"added": added, "errors": errors}
+        return {"added": added, "errors": errors, "undo_log": undo_log}
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error uploading players: {e}")
         raise HTTPException(status_code=500, detail="Failed to upload players")
+
+class RevertRequest(BaseModel):
+    event_id: str
+    undo_log: List[Dict[str, Any]]
+
+@router.post("/players/revert-import")
+@bulk_rate_limit()
+@require_permission(
+    "players",
+    "upload", # Using 'upload' permission for revert as it's part of the import flow
+    target="event",
+    target_getter=lambda kwargs: getattr(kwargs.get("req"), "event_id", None),
+)
+def revert_import(request: Request, req: RevertRequest, current_user=Depends(require_role("organizer"))):
+    """
+    Revert a previous import using the provided undo log.
+    Restores previous state or deletes created players.
+    """
+    try:
+        enforce_event_league_relationship(event_id=req.event_id)
+        
+        event_id = req.event_id
+        undo_log = req.undo_log
+        
+        batch = db.batch()
+        batch_count = 0
+        restored = 0
+        deleted = 0
+        
+        for item in undo_log:
+            player_id = item.get("player_id")
+            previous_data = item.get("previous_data")
+            
+            player_ref = db.collection("events").document(event_id).collection("players").document(player_id)
+            
+            if previous_data is None:
+                # Player didn't exist before -> Delete it
+                batch.delete(player_ref)
+                deleted += 1
+            else:
+                # Player existed -> Restore previous data
+                # We use set(..., merge=False) to completely overwrite with old state?
+                # Or should we just restore fields?
+                # Safer to restore the exact document snapshot we had.
+                batch.set(player_ref, previous_data)
+                restored += 1
+                
+            batch_count += 1
+            
+            if batch_count >= 400:
+                execute_with_timeout(lambda: batch.commit(), timeout=10)
+                batch = db.batch()
+                batch_count = 0
+                
+        if batch_count > 0:
+            execute_with_timeout(lambda: batch.commit(), timeout=10)
+            
+        logging.info(f"Revert completed: {restored} restored, {deleted} deleted")
+        return {"status": "success", "restored": restored, "deleted": deleted}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error reverting import: {e}")
+        raise HTTPException(status_code=500, detail="Failed to revert import")
 
 @router.delete("/players/reset")
 @require_permission("players", "reset", target="event", target_param="event_id")
@@ -373,6 +469,7 @@ def reset_players(event_id: str = Query(...), current_user=Depends(require_role(
         logging.error(f"Error resetting players: {e}")
         raise HTTPException(status_code=500, detail="Failed to reset players")
 
+# ... rest of file (get_rankings, list_players, add_player, list_drill_results) ...
 @router.get("/rankings")
 @require_permission("players", "rankings", target="event", target_param="event_id")
 def get_rankings(

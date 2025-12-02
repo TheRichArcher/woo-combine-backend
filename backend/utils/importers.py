@@ -1,6 +1,7 @@
 import csv
 import io
 import logging
+import re
 from typing import List, Dict, Any, Optional, Tuple
 import openpyxl
 from datetime import datetime
@@ -9,9 +10,11 @@ from .validation import validate_drill_score, get_unit_for_drill, DRILL_SCORE_RA
 logger = logging.getLogger(__name__)
 
 class ImportResult:
-    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]]):
+    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]], detected_sport: str = "football", confidence: str = "high"):
         self.valid_rows = valid_rows
         self.errors = errors
+        self.detected_sport = detected_sport
+        self.confidence = confidence
 
 class DataImporter:
     """
@@ -71,6 +74,60 @@ class DataImporter:
         return clean
 
     @staticmethod
+    def _clean_value(value: Any) -> Optional[float]:
+        """
+        Smart Error Correction: Clean and normalize numeric values.
+        Handles:
+        - Units (s, sec, in, ", etc.)
+        - European decimals (4,52 -> 4.52)
+        - Typos (4..5 -> 4.5)
+        - Whitespace
+        """
+        if value is None:
+            return None
+            
+        s_val = str(value).strip().lower()
+        if not s_val:
+            return None
+            
+        # Remove common units
+        s_val = re.sub(r'[a-z"]+$', '', s_val).strip() # Remove trailing units like 's', 'in', '"'
+        
+        # Replace comma with dot (European decimal)
+        s_val = s_val.replace(',', '.')
+        
+        # Fix double dots (typo)
+        s_val = s_val.replace('..', '.')
+        
+        try:
+            return float(s_val)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _detect_sport(headers: List[str]) -> Tuple[str, str]:
+        """
+        Auto-detect sport type based on headers.
+        Returns (sport, confidence)
+        """
+        normalized = [DataImporter._normalize_header(h) for h in headers]
+        
+        # Football indicators
+        football_score = 0
+        if '40m_dash' in normalized: football_score += 1
+        if 'vertical_jump' in normalized: football_score += 1
+        if 'agility' in normalized: football_score += 1
+        if 'catching' in normalized: football_score += 1
+        if 'throwing' in normalized: football_score += 1
+        
+        if football_score >= 2:
+            return 'football', 'high'
+        elif football_score == 1:
+            return 'football', 'medium'
+            
+        return 'football', 'low' # Default
+
+    @staticmethod
     def parse_csv(content: bytes) -> ImportResult:
         """Parse CSV content"""
         try:
@@ -88,7 +145,12 @@ class DataImporter:
                 for field in reader.fieldnames
             }
             
-            return DataImporter._process_rows(reader, normalized_field_map)
+            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
+            
+            result = DataImporter._process_rows(reader, normalized_field_map)
+            result.detected_sport = sport
+            result.confidence = confidence
+            return result
             
         except Exception as e:
             logger.error(f"CSV Parse Error: {e}")
@@ -115,6 +177,8 @@ class DataImporter:
                 for i in range(len(headers))
             }
             
+            sport, confidence = DataImporter._detect_sport(headers)
+            
             # Convert to dict list for processing
             data_rows = []
             for row_idx, row in enumerate(rows[1:], start=2):
@@ -130,7 +194,10 @@ class DataImporter:
                 if has_data:
                     data_rows.append(row_data)
             
-            return DataImporter._process_rows(data_rows, normalized_field_map)
+            result = DataImporter._process_rows(data_rows, normalized_field_map)
+            result.detected_sport = sport
+            result.confidence = confidence
+            return result
             
         except Exception as e:
             logger.error(f"Excel Parse Error: {e}")
@@ -172,7 +239,12 @@ class DataImporter:
                 for field in reader.fieldnames
             }
             
-            return DataImporter._process_rows(reader, normalized_field_map)
+            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
+            
+            result = DataImporter._process_rows(reader, normalized_field_map)
+            result.detected_sport = sport
+            result.confidence = confidence
+            return result
             
         except Exception as e:
             logger.error(f"Text Parse Error: {e}")
@@ -200,27 +272,23 @@ class DataImporter:
                 clean_val = str(value).strip() if value is not None else ""
                 
                 if mapped_key in drill_keys and clean_val:
-                    try:
-                        # Validate drill score immediately
-                        float_val = float(clean_val)
-                        # We don't hard-fail here on range, we just mark it?
-                        # Actually, let's just store the raw value for now and let the next step validate,
-                        # OR validate strictly here.
-                        # The requirement says: "Any invalid/missing scores... Option to correct fields"
-                        # So we should flag invalid scores but maybe keep the row?
-                        # Let's validation logic:
+                    # SMART ERROR CORRECTION: Try to fix common formatting issues
+                    cleaned_num = DataImporter._clean_value(clean_val)
+                    
+                    if cleaned_num is not None:
                         try:
-                            validate_drill_score(float_val, mapped_key)
-                            processed_row[mapped_key] = float_val
+                            validate_drill_score(cleaned_num, mapped_key)
+                            processed_row[mapped_key] = cleaned_num
+                            
+                            # If corrected, maybe we should indicate it?
+                            # For now, we just use the corrected value.
+                            
                         except Exception as e:
                             row_errors.append(f"Invalid {mapped_key}: {str(e)}")
-                            # Keep the raw value so user can see what was wrong?
-                            # For simplicity, we omit invalid values from 'processed_row' but add error
                             processed_row[f"{mapped_key}_raw"] = clean_val
-                            
-                    except ValueError:
-                         row_errors.append(f"Invalid number format for {mapped_key}: '{clean_val}'")
-                         processed_row[f"{mapped_key}_raw"] = clean_val
+                    else:
+                        row_errors.append(f"Invalid number format for {mapped_key}: '{clean_val}'")
+                        processed_row[f"{mapped_key}_raw"] = clean_val
                 
                 elif mapped_key == 'jersey_number' and clean_val:
                     try:
@@ -259,4 +327,3 @@ class DataImporter:
                 valid_rows.append(item)
                 
         return ImportResult(valid_rows, errors)
-

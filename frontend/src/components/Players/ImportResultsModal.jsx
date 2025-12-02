@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 
@@ -11,6 +11,10 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   const [text, setText] = useState('');
   const [parseResult, setParseResult] = useState(null);
   const [error, setError] = useState(null);
+  const [undoLog, setUndoLog] = useState(null);
+  const [undoing, setUndoing] = useState(false);
+  const [conflictMode, setConflictMode] = useState('overwrite'); // overwrite, skip
+  const [undoTimer, setUndoTimer] = useState(30);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -18,6 +22,12 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       setFile(e.target.files[0]);
       setError(null);
     }
+  };
+
+  const handleDownloadTemplate = () => {
+    // Direct download link
+    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/import-template`;
+    window.open(url, '_blank');
   };
 
   const handleParse = async () => {
@@ -61,25 +71,77 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
 
     setStep('submitting');
     try {
-      // Extract the data objects from the valid_rows wrapper
-      const playersToUpload = parseResult.valid_rows.map(row => row.data);
+      // Filter rows based on conflict mode
+      let playersToUpload = parseResult.valid_rows;
+      
+      if (conflictMode === 'skip') {
+        playersToUpload = playersToUpload.filter(row => !row.is_duplicate);
+      }
+      
+      // Extract data objects
+      playersToUpload = playersToUpload.map(row => row.data);
 
-      await api.post('/players/upload', {
+      if (playersToUpload.length === 0) {
+        setError("No players to import after skipping duplicates.");
+        setStep('review');
+        return;
+      }
+
+      const response = await api.post('/players/upload', {
         event_id: selectedEvent.id,
         players: playersToUpload
       });
+      
+      if (response.data.undo_log) {
+        setUndoLog(response.data.undo_log);
+      }
 
       setStep('success');
-      setTimeout(() => {
-        onSuccess?.();
-        onClose();
-      }, 1500);
+      // Don't auto-close immediately if undo is available
+      // Start timer
     } catch (err) {
       console.error("Import error:", err);
       setError(err.response?.data?.detail || "Failed to import results");
       setStep('review');
     }
   };
+
+  const handleUndo = async () => {
+    if (!undoLog) return;
+    setUndoing(true);
+    try {
+      await api.post('/players/revert-import', {
+        event_id: selectedEvent.id,
+        undo_log: undoLog
+      });
+      setStep('input'); // Go back to start or close?
+      setUndoLog(null);
+      onSuccess?.(); // Refresh parent
+      onClose();
+    } catch (err) {
+      console.error("Undo error:", err);
+      setError("Failed to undo import");
+      setUndoing(false);
+    }
+  };
+  
+  useEffect(() => {
+    let interval;
+    if (step === 'success' && undoLog && undoTimer > 0) {
+      interval = setInterval(() => {
+        setUndoTimer(prev => prev - 1);
+      }, 1000);
+    } else if (undoTimer === 0) {
+        // Timer expired, clear undo log
+        setUndoLog(null);
+        // Auto close?
+        setTimeout(() => {
+            onSuccess?.();
+            onClose();
+        }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [step, undoLog, undoTimer, onSuccess, onClose]);
 
   const renderInputStep = () => (
     <div className="space-y-6">
@@ -149,35 +211,46 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         </div>
       )}
 
+      <div className="flex items-center justify-between pt-2">
+        <button
+            onClick={handleDownloadTemplate}
+            className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center gap-2"
+        >
+            <Download className="w-4 h-4" /> Download Template with My Players
+        </button>
+
+        <div className="flex gap-3">
+            <button
+            onClick={onClose}
+            className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
+            >
+            Cancel
+            </button>
+            <button
+            onClick={handleParse}
+            disabled={!file && !text}
+            className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+            Review Data <ChevronRight className="w-4 h-4" />
+            </button>
+        </div>
+      </div>
+      
       {error && (
-        <div className="flex items-start gap-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+        <div className="flex items-start gap-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm mt-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>{error}</div>
         </div>
       )}
-
-      <div className="flex justify-end gap-3 pt-2">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg font-medium"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={handleParse}
-          disabled={!file && !text}
-          className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          Review Data <ChevronRight className="w-4 h-4" />
-        </button>
-      </div>
     </div>
   );
 
   const renderReviewStep = () => {
     if (!parseResult) return null;
-    const { valid_rows, errors, summary } = parseResult;
+    const { valid_rows, errors, summary, detected_sport, confidence } = parseResult;
     const hasErrors = errors.length > 0;
+    const duplicates = valid_rows.filter(r => r.is_duplicate);
+    const hasDuplicates = duplicates.length > 0;
 
     // Get all unique keys from data for table headers
     const allKeys = valid_rows.length > 0 
@@ -191,6 +264,15 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
 
     return (
       <div className="space-y-4">
+        {/* Detected Sport Banner */}
+        <div className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
+            <Info className="w-4 h-4" />
+            <span>
+                Detected Sport: <strong>{detected_sport || 'Unknown'}</strong> 
+                {confidence && <span className="opacity-75 text-xs ml-1">({confidence} confidence)</span>}
+            </span>
+        </div>
+
         <div className="flex gap-4">
           <div className="flex-1 bg-green-50 p-4 rounded-xl border border-green-100">
             <div className="text-2xl font-bold text-green-700">{summary.valid_count}</div>
@@ -217,6 +299,43 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
           </div>
         )}
 
+        {hasDuplicates && (
+             <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
+                <div className="flex items-start justify-between">
+                    <div>
+                        <h4 className="font-semibold text-amber-800 mb-1 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" /> {duplicates.length} Potential Duplicates Found
+                        </h4>
+                        <p className="text-xs text-amber-700 mb-2">
+                            Some players in your file match existing players in this event.
+                        </p>
+                    </div>
+                    <div className="flex bg-white rounded-lg border border-amber-200 p-1">
+                        <button
+                            onClick={() => setConflictMode('overwrite')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                conflictMode === 'overwrite' 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Overwrite
+                        </button>
+                        <button
+                            onClick={() => setConflictMode('skip')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                conflictMode === 'skip' 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Skip Duplicates
+                        </button>
+                    </div>
+                </div>
+             </div>
+        )}
+
         <div className="border rounded-xl overflow-hidden">
           <div className="bg-gray-50 px-4 py-2 border-b font-medium text-gray-700 text-sm flex justify-between items-center">
             <span>Preview (First 5 Valid Rows)</span>
@@ -234,15 +353,25 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {valid_rows.slice(0, 5).map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
-                    {displayKeys.map(key => (
-                      <td key={key} className="px-4 py-2 whitespace-nowrap text-gray-700">
-                        {row.data[key] ?? '-'}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
+                {valid_rows.slice(0, 5).map((row, i) => {
+                    const isDup = row.is_duplicate;
+                    const isSkipped = isDup && conflictMode === 'skip';
+                    return (
+                      <tr key={i} className={`hover:bg-gray-50 ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/50' : ''}`}>
+                        {displayKeys.map(key => {
+                            const isRaw = row.data[`${key}_raw`] !== undefined; // Flag if value was corrected (implicit) or raw exists
+                            // Actually backend stores raw in separate key if invalid, but corrected value in main key
+                            // If we want to show "Smart Correction", we'd need backend to tell us it corrected it.
+                            // For now just show value.
+                            return (
+                              <td key={key} className="px-4 py-2 whitespace-nowrap text-gray-700">
+                                {row.data[key] ?? '-'}
+                              </td>
+                            );
+                        })}
+                      </tr>
+                    );
+                })}
               </tbody>
             </table>
           </div>
@@ -323,6 +452,23 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Import Complete!</h3>
               <p className="text-gray-500">Results have been added to your event.</p>
+              
+              {undoLog && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200 max-w-md mx-auto">
+                      <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Made a mistake?</span>
+                          <span className="text-xs text-gray-500">{undoTimer}s remaining</span>
+                      </div>
+                      <button
+                          onClick={handleUndo}
+                          disabled={undoing}
+                          className="w-full py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                      >
+                          {undoing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                          Undo Import
+                      </button>
+                  </div>
+              )}
             </div>
           )}
         </div>
@@ -330,4 +476,3 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     </div>
   );
 }
-
