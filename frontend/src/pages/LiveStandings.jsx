@@ -4,32 +4,111 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
-import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
+import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
   const { userRole } = useAuth();
   const navigate = useNavigate();
+  const [activeSchema, setActiveSchema] = useState(null);
+
+  // Fetch schema for active event
+  useEffect(() => {
+    if (selectedEvent?.drillTemplate) {
+      const fetchSchema = async () => {
+        try {
+          const res = await api.get(`/sports/${selectedEvent.drillTemplate}/schema`);
+          if (res.data) {
+            setActiveSchema(res.data);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch schema:", err);
+        }
+      };
+      fetchSchema();
+    }
+  }, [selectedEvent?.drillTemplate]);
+
+  // Compute drills
+  const allDrills = useMemo(() => {
+    if (!selectedEvent) return [];
+    
+    let baseDrills = [];
+    if (activeSchema && activeSchema.drills) {
+      // Use fetched schema
+      baseDrills = activeSchema.drills.map(d => ({
+        key: d.key,
+        label: d.label,
+        unit: d.unit,
+        lowerIsBetter: d.lower_is_better,
+        category: d.category,
+        min: d.min_value,
+        max: d.max_value,
+        defaultWeight: d.default_weight
+      }));
+    } else {
+      // Fallback to local templates
+      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    }
+
+    const disabled = selectedEvent.disabled_drills || [];
+    const templateDrills = baseDrills.filter(d => !disabled.includes(d.key));
+    
+    const customDrills = selectedEvent.custom_drills || [];
+    const formattedCustomDrills = customDrills.map(d => ({
+      key: d.id,
+      label: d.name,
+      unit: d.unit,
+      lowerIsBetter: d.lower_is_better,
+      category: d.category || 'custom',
+      isCustom: true
+    }));
+    return [...templateDrills, ...formattedCustomDrills];
+  }, [selectedEvent, activeSchema]);
+
+  // Compute presets
+  const currentPresets = useMemo(() => {
+    if (activeSchema && activeSchema.presets) {
+      return activeSchema.presets;
+    }
+    return getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
+  }, [activeSchema, selectedEvent]);
   
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [weights, setWeights] = useState(() => {
-    // Default balanced weights
-    const defaultWeights = {};
-    DRILLS.forEach(drill => {
-      defaultWeights[drill.key] = 20; // Equal 20% weighting
-    });
-    return defaultWeights;
-  });
+  const [weights, setWeights] = useState({});
   const [activePreset, setActivePreset] = useState('balanced');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
   const [displayCount, setDisplayCount] = useState(3); // number of players to show in list (default 3; -1 means All)
+
+  // Initialize weights when drills change
+  useEffect(() => {
+    if (allDrills.length > 0) {
+        const initialWeights = {};
+        allDrills.forEach(drill => {
+            // Use default weight from schema if available (scale to 0-100)
+            // If default_weight is < 1 (e.g. 0.2), multiply by 100. If > 1, use as is.
+            const def = drill.defaultWeight !== undefined ? drill.defaultWeight : 0;
+            initialWeights[drill.key] = def <= 1 ? def * 100 : def;
+        });
+        setWeights(initialWeights);
+        
+        // If we have a balanced preset, try to apply it by default if no specific defaults set
+        // Actually, the logic above sets based on drill defaults.
+        // Let's check if we should default to 'balanced' preset explicitly
+        if (currentPresets['balanced']) {
+             // We could force apply it, but setting based on default weights is usually safer/more generic
+             // If we want to match the preset:
+             // setActivePreset('balanced');
+        }
+    }
+  }, [allDrills]); // Only re-run when drills definition changes
 
   // PERFORMANCE OPTIMIZATION: Cached fetch for LiveStandings
   const cachedFetchPlayersLive = withCache(
@@ -76,11 +155,11 @@ export default function LiveStandings() {
   const liveRankings = useMemo(() => {
     if (!filteredPlayers.length) return [];
     const source = normalizeAcrossAll && selectedAgeGroup === 'ALL'
-      ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights)
-      : calculateOptimizedRankings(filteredPlayers, weights);
+      ? calculateOptimizedRankingsAcrossAll(filteredPlayers, weights, allDrills)
+      : calculateOptimizedRankings(filteredPlayers, weights, allDrills);
     // Include players even if composite score is 0 so the dropdown represents a max, not a minimum
     return source;
-  }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup]);
+  }, [filteredPlayers, weights, normalizeAcrossAll, selectedAgeGroup, allDrills]);
 
   const displayLimit = useMemo(() => (displayCount === -1 ? liveRankings.length : displayCount), [displayCount, liveRankings.length]);
 
@@ -92,9 +171,9 @@ export default function LiveStandings() {
 
   // Apply preset weights
   const applyPreset = (presetKey) => {
-    if (WEIGHT_PRESETS[presetKey]) {
+    if (currentPresets[presetKey]) {
       const newWeights = {};
-      Object.entries(WEIGHT_PRESETS[presetKey].weights).forEach(([key, value]) => {
+      Object.entries(currentPresets[presetKey].weights).forEach(([key, value]) => {
         newWeights[key] = value * 100; // Convert to percentage
       });
       setWeights(newWeights);
@@ -196,7 +275,7 @@ export default function LiveStandings() {
           
           {/* Preset Buttons */}
           <div className="grid grid-cols-2 gap-2 mb-4">
-            {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+            {Object.entries(currentPresets).map(([key, preset]) => (
               <button 
                 key={key}
                 onClick={() => applyPreset(key)} 
@@ -214,7 +293,7 @@ export default function LiveStandings() {
 
           {/* Weight Sliders */}
           <div className="space-y-3">
-            {DRILLS.map((drill) => (
+            {allDrills.map((drill) => (
               <div key={drill.key} className="flex items-center justify-between">
                 <div className="flex-1">
                   <label className="text-sm font-medium text-gray-700">{drill.label}</label>
@@ -231,7 +310,7 @@ export default function LiveStandings() {
                     className="w-24 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-brand-primary"
                   />
                   <span className="text-sm font-mono text-brand-primary bg-brand-primary/10 px-2 py-1 rounded min-w-[40px] text-center">
-                    {weights[drill.key] || 0}%
+                    {Math.round(weights[drill.key] || 0)}%
                   </span>
                 </div>
               </div>
