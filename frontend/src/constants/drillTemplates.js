@@ -234,10 +234,21 @@ export const fetchSchemas = async () => {
             if (d.default_weight > 0) acc[d.key] = d.default_weight;
             return acc;
           }, {}),
-          presets: Object.entries(schema.presets || {}).reduce((acc, [k, v]) => {
-            acc[k] = { name: v.name, description: v.description, weights: v.weights };
-            return acc;
-          }, {})
+          presets: Array.isArray(schema.presets) 
+            ? schema.presets.reduce((acc, preset) => {
+                // Use explicit ID or generate fallback from name
+                const key = preset.id || preset.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+                acc[key] = { 
+                  name: preset.name, 
+                  description: preset.description, 
+                  weights: preset.weights 
+                };
+                return acc;
+              }, {})
+            : Object.entries(schema.presets || {}).reduce((acc, [k, v]) => {
+                acc[k] = { name: v.name, description: v.description, weights: v.weights };
+                return acc;
+              }, {})
         };
       });
     }

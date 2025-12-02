@@ -13,6 +13,7 @@ class DrillDefinition(BaseModel):
     description: Optional[str] = None
 
 class PresetDefinition(BaseModel):
+    id: Optional[str] = None
     name: str
     description: str
     weights: Dict[str, float]
@@ -23,7 +24,7 @@ class SportSchema(BaseModel):
     name: str
     description: str
     drills: List[DrillDefinition]
-    presets: Dict[str, PresetDefinition] = Field(default_factory=dict)
+    presets: List[PresetDefinition] = Field(default_factory=list)
     
     # Helper to get a drill by key
     def get_drill(self, key: str) -> Optional[DrillDefinition]:

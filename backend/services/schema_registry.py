@@ -59,28 +59,32 @@ FOOTBALL_DEFAULT = SportSchema(
             default_weight=0.2
         ),
     ],
-    presets={
-        "balanced": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="balanced",
             name="Balanced",
             description="Equal emphasis on all skills",
             weights={"40m_dash": 0.2, "vertical_jump": 0.2, "catching": 0.2, "throwing": 0.2, "agility": 0.2}
         ),
-        "speed": PresetDefinition(
+        PresetDefinition(
+            id="speed",
             name="Speed Focused",
             description="Emphasizes speed and athleticism",
             weights={"40m_dash": 0.4, "vertical_jump": 0.3, "catching": 0.1, "throwing": 0.1, "agility": 0.1}
         ),
-        "skills": PresetDefinition(
+        PresetDefinition(
+            id="skills",
             name="Skills Focused",
             description="Emphasizes catching and throwing",
             weights={"40m_dash": 0.1, "vertical_jump": 0.1, "catching": 0.35, "throwing": 0.35, "agility": 0.1}
         ),
-        "athletic": PresetDefinition(
+        PresetDefinition(
+            id="athletic",
             name="Athletic",
             description="Emphasizes physical abilities",
             weights={"40m_dash": 0.25, "vertical_jump": 0.25, "catching": 0.15, "throwing": 0.15, "agility": 0.2}
         )
-    }
+    ]
 )
 
 # --- SOCCER SCHEMA (Example for Multi-Sport) ---
@@ -97,18 +101,20 @@ SOCCER_DEFAULT = SportSchema(
         DrillDefinition(key="agility_cones", label="Agility (Cones)", unit="sec", lower_is_better=True, category="agility", default_weight=0.1),
         DrillDefinition(key="endurance", label="Endurance (Beep Test)", unit="level", lower_is_better=False, category="fitness", default_weight=0.1),
     ],
-    presets={
-        "balanced": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="balanced",
             name="Balanced",
             description="Equal emphasis on all areas",
             weights={"sprint_speed": 0.15, "ball_control": 0.2, "passing_accuracy": 0.2, "shooting_power": 0.15, "agility_cones": 0.15, "endurance": 0.15}
         ),
-        "technical": PresetDefinition(
+        PresetDefinition(
+            id="technical",
             name="Technical Focus",
             description="Emphasizes ball skills and accuracy",
             weights={"sprint_speed": 0.05, "ball_control": 0.35, "passing_accuracy": 0.35, "shooting_power": 0.15, "agility_cones": 0.05, "endurance": 0.05}
         )
-    }
+    ]
 )
 
 # --- BASKETBALL SCHEMA ---
@@ -125,13 +131,32 @@ BASKETBALL_DEFAULT = SportSchema(
         DrillDefinition(key="dribbling", label="Ball Handling", unit="pts", lower_is_better=False, category="skills", default_weight=0.15),
         DrillDefinition(key="defensive_slide", label="Defensive Slides", unit="sec", lower_is_better=True, category="defense", default_weight=0.1),
     ],
-    presets={
-        "shooter": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="balanced",
+            name="Balanced",
+            description="Balanced approach",
+            weights={"lane_agility": 0.15, "vertical_jump": 0.15, "free_throws": 0.2, "three_point": 0.2, "dribbling": 0.15, "defensive_slide": 0.15}
+        ),
+        PresetDefinition(
+            id="shooter",
             name="Shooter Focus",
             description="Emphasizes shooting abilities",
             weights={"lane_agility": 0.1, "vertical_jump": 0.1, "free_throws": 0.35, "three_point": 0.35, "dribbling": 0.05, "defensive_slide": 0.05}
+        ),
+        PresetDefinition(
+            id="athleticism",
+            name="Athleticism",
+            description="Emphasizes physical attributes",
+            weights={"lane_agility": 0.3, "vertical_jump": 0.3, "defensive_slide": 0.3, "dribbling": 0.05, "free_throws": 0.025, "three_point": 0.025}
+        ),
+        PresetDefinition(
+            id="skill_focus",
+            name="Skill Focus",
+            description="Emphasizes ball handling and shooting",
+            weights={"dribbling": 0.5, "free_throws": 0.2, "three_point": 0.2, "lane_agility": 0.05, "vertical_jump": 0.025, "defensive_slide": 0.025}
         )
-    }
+    ]
 )
 
 # --- BASEBALL SCHEMA ---
@@ -147,13 +172,20 @@ BASEBALL_DEFAULT = SportSchema(
         DrillDefinition(key="fielding_accuracy", label="Fielding Accuracy", unit="pts", lower_is_better=False, category="fielding", default_weight=0.15),
         DrillDefinition(key="pop_time", label="Pop Time (Catchers)", unit="sec", lower_is_better=True, category="catching", default_weight=0.1),
     ],
-    presets={
-        "hitter": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="balanced",
+            name="Balanced",
+            description="Balanced evaluation",
+            weights={"sprint_60": 0.2, "exit_velocity": 0.2, "throwing_velocity": 0.2, "fielding_accuracy": 0.2, "pop_time": 0.2}
+        ),
+        PresetDefinition(
+            id="hitter",
             name="Hitter Focus",
             description="Emphasizes hitting abilities",
             weights={"sprint_60": 0.15, "exit_velocity": 0.5, "throwing_velocity": 0.15, "fielding_accuracy": 0.15, "pop_time": 0.05}
         )
-    }
+    ]
 )
 
 # --- TRACK SCHEMA ---
@@ -170,13 +202,14 @@ TRACK_DEFAULT = SportSchema(
         DrillDefinition(key="shot_put", label="Shot Put", unit="ft", lower_is_better=False, category="field", default_weight=0.15),
         DrillDefinition(key="mile_time", label="Mile Run", unit="min", lower_is_better=True, category="distance", default_weight=0.1),
     ],
-    presets={
-        "sprinter": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="sprinter",
             name="Sprinter Focus",
             description="Short distance speed events",
             weights={"sprint_100": 0.45, "sprint_400": 0.25, "long_jump": 0.15, "high_jump": 0.1, "shot_put": 0.025, "mile_time": 0.025}
         )
-    }
+    ]
 )
 
 # --- VOLLEYBALL SCHEMA ---
@@ -193,13 +226,14 @@ VOLLEYBALL_DEFAULT = SportSchema(
         DrillDefinition(key="attack_power", label="Attack Power", unit="mph", lower_is_better=False, category="offense", default_weight=0.15),
         DrillDefinition(key="blocking_reach", label="Blocking Reach", unit="in", lower_is_better=False, category="defense", default_weight=0.15),
     ],
-    presets={
-        "hitter": PresetDefinition(
+    presets=[
+        PresetDefinition(
+            id="hitter",
             name="Hitter Focus",
             description="Outside hitter/attacker focus",
             weights={"vertical_jump": 0.25, "approach_jump": 0.3, "serving_accuracy": 0.1, "passing_accuracy": 0.1, "attack_power": 0.2, "blocking_reach": 0.05}
         )
-    }
+    ]
 )
 
 class SchemaRegistry:
@@ -234,4 +268,3 @@ class SchemaRegistry:
 
 # Global instance
 registry = SchemaRegistry()
-

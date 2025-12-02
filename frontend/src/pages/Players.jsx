@@ -160,10 +160,23 @@ export default function Players() {
 
   // Compute presets
   const currentPresets = useMemo(() => {
+    let rawPresets = null;
     if (activeSchema && activeSchema.presets) {
-      return activeSchema.presets;
+      rawPresets = activeSchema.presets;
+    } else {
+      rawPresets = getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
     }
-    return getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
+
+    // Normalize Array to Object if needed
+    if (Array.isArray(rawPresets)) {
+      return rawPresets.reduce((acc, preset) => {
+        const key = preset.id || preset.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        acc[key] = preset;
+        return acc;
+      }, {});
+    }
+    
+    return rawPresets;
   }, [activeSchema, selectedEvent]);
 
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
