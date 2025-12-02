@@ -600,7 +600,26 @@ def get_rankings(
             player_data = player.to_dict()
             if player_data.get("age_group") != age_group:
                 continue
+            
+            # ELIGIBILITY CHECK: Player must have at least one scored drill in the schema
+            has_valid_score = False
+            scores_map = player_data.get("scores", {})
+            
+            for drill in schema.drills:
+                # Check scores map first
+                raw_val = scores_map.get(drill.key)
                 
+                # Check legacy field if not in scores map
+                if raw_val is None:
+                    raw_val = player_data.get(drill.key)
+                
+                if raw_val is not None and str(raw_val).strip() != "":
+                    has_valid_score = True
+                    break
+            
+            if not has_valid_score:
+                continue
+
             composite_score = calculate_composite_score(player_data, schema=schema)
             
             # Dynamic Response Construction
@@ -610,16 +629,16 @@ def get_rankings(
                 "number": player_data.get("number"),
                 "composite_score": composite_score,
                 # Scores map takes precedence
-                "scores": player_data.get("scores", {})
+                "scores": scores_map
             }
             
-            # Backward compatibility for football frontend
-            if schema.id == "football":
-                response_obj["40m_dash"] = player_data.get("40m_dash") or player_data.get("scores", {}).get("40m_dash")
-                response_obj["vertical_jump"] = player_data.get("vertical_jump") or player_data.get("scores", {}).get("vertical_jump")
-                response_obj["catching"] = player_data.get("catching") or player_data.get("scores", {}).get("catching")
-                response_obj["throwing"] = player_data.get("throwing") or player_data.get("scores", {}).get("throwing")
-                response_obj["agility"] = player_data.get("agility") or player_data.get("scores", {}).get("agility")
+            # Flatten drill scores into response object for frontend convenience
+            for drill in schema.drills:
+                key = drill.key
+                val = scores_map.get(key)
+                if val is None:
+                    val = player_data.get(key)
+                response_obj[key] = val
             
             ranked.append(response_obj)
             

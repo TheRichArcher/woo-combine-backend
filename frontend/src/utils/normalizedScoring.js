@@ -50,13 +50,13 @@ export function calculateNormalizedCompositeScore(player, allPlayers, weights, d
       if (range.max === range.min) {
         // All players have same score, give them all 50 (middle score)
         normalizedScore = 50;
-      } else if (drill.key === "40m_dash") {
-        // For 40-yard dash: lower time = better score (invert the scale)
-        normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
-      } else {
-        // For other drills: higher value = better score
-        normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
-      }
+        } else if (drill.lowerIsBetter !== undefined ? drill.lowerIsBetter : drill.key === "40m_dash") {
+          // For timed drills (lower is better): lower time = better score (invert the scale)
+          normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
+        } else {
+          // For other drills: higher value = better score
+          normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
+        }
       
       // Apply weight to normalized score (weights are expected in percentage format)
       totalWeightedScore += normalizedScore * (weight / 100);
@@ -110,8 +110,8 @@ export function calculateNormalizedCompositeScores(players, weights, drillList =
         if (range.max === range.min) {
           // All players have same score, give them all 50 (middle score)
           normalizedScore = 50;
-        } else if (drill.key === "40m_dash") {
-          // For 40-yard dash: lower time = better score (invert the scale)
+        } else if (drill.lowerIsBetter !== undefined ? drill.lowerIsBetter : drill.key === "40m_dash") {
+          // For timed drills (lower is better): lower time = better score (invert the scale)
           normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
         } else {
           // For other drills: higher value = better score
