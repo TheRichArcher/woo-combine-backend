@@ -24,6 +24,7 @@ class ImportParseResponse(BaseModel):
     summary: Dict[str, int]
     detected_sport: str = "football"
     confidence: str = "low"
+    sheets: List[Dict[str, Any]] = []
 
 @router.post("/events/{event_id}/parse-import")
 @write_rate_limit()
@@ -33,6 +34,7 @@ def parse_import_file(
     event_id: str,
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
+    sheet_name: Optional[str] = Form(None),
     current_user=Depends(require_role("organizer", "coach"))
 ):
     """
@@ -42,6 +44,7 @@ def parse_import_file(
     - Sport detection
     - Smart error correction
     - Duplicate detection
+    - Multi-sheet Excel support
     """
     try:
         # Enforce access
@@ -56,7 +59,7 @@ def parse_import_file(
             if filename.endswith('.csv'):
                 result = DataImporter.parse_csv(content)
             elif filename.endswith(('.xls', '.xlsx')):
-                result = DataImporter.parse_excel(content)
+                result = DataImporter.parse_excel(content, sheet_name=sheet_name)
             else:
                 raise HTTPException(status_code=400, detail="Unsupported file format. Please use CSV or Excel.")
                 
@@ -65,6 +68,17 @@ def parse_import_file(
             
         else:
             raise HTTPException(status_code=400, detail="No file or text provided")
+        
+        # Handle multi-sheet response (pause parsing)
+        if result.sheets:
+            return {
+                "valid_rows": [],
+                "errors": [],
+                "summary": {"total_rows": 0, "valid_count": 0, "error_count": 0},
+                "detected_sport": "unknown",
+                "confidence": "low",
+                "sheets": result.sheets
+            }
             
         # --- DUPLICATE DETECTION ---
         # Fetch existing players to check for conflicts
@@ -107,7 +121,8 @@ def parse_import_file(
                 "error_count": len(result.errors)
             },
             "detected_sport": result.detected_sport,
-            "confidence": result.confidence
+            "confidence": result.confidence,
+            "sheets": []
         }
         
     except HTTPException:
@@ -237,3 +252,35 @@ def get_import_template(
     except Exception as e:
         logging.error(f"Template generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate template")
+
+@router.get("/events/{event_id}/history")
+@read_rate_limit()
+@require_permission("events", "read", target="event", target_param="event_id")
+def get_import_history(
+    request: Request,
+    event_id: str,
+    limit: int = 20,
+    current_user=Depends(require_role("organizer", "coach"))
+):
+    """
+    Get import audit history for the event.
+    """
+    try:
+        enforce_event_league_relationship(event_id=event_id)
+        
+        imports_ref = db.collection("events").document(event_id).collection("imports")
+        query = imports_ref.order_by("timestamp", direction=db.Query.DESCENDING).limit(limit)
+        
+        history = execute_with_timeout(
+            lambda: list(query.stream()),
+            timeout=5,
+            operation_name="fetch import history"
+        )
+        
+        return [dict(doc.to_dict(), id=doc.id) for doc in history]
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error fetching import history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to fetch import history")

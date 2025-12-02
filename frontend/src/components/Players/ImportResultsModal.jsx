@@ -1,11 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 
 export default function ImportResultsModal({ onClose, onSuccess }) {
   const { selectedEvent } = useEvent();
-  const [step, setStep] = useState('input'); // input, parsing, review, submitting, success
+  const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
   const [method, setMethod] = useState('file'); // file, text
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
@@ -13,9 +13,65 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   const [error, setError] = useState(null);
   const [undoLog, setUndoLog] = useState(null);
   const [undoing, setUndoing] = useState(false);
-  const [conflictMode, setConflictMode] = useState('overwrite'); // overwrite, skip
+  const [conflictMode, setConflictMode] = useState('overwrite'); // overwrite, skip, merge
   const [undoTimer, setUndoTimer] = useState(30);
   const fileInputRef = useRef(null);
+
+  // Multi-sheet support
+  const [sheets, setSheets] = useState([]);
+  
+  // Inline Editing & Strategies
+  const [editedRows, setEditedRows] = useState({}); // Map<row_id, { ...data }>
+  const [rowStrategies, setRowStrategies] = useState({}); // Map<row_id, strategy>
+  const [editingCell, setEditingCell] = useState(null); // { rowId, key }
+
+  // History
+  const [importHistory, setImportHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Auto-save key
+  const draftKey = `import_draft_${selectedEvent?.id}`;
+
+  // Load draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft && step === 'input') {
+        try {
+            const draft = JSON.parse(savedDraft);
+            // Ask user if they want to restore? For now, just show a notification or restore if it's in review step
+            if (draft.step === 'review' && draft.parseResult) {
+                if (window.confirm("Found an unfinished import draft. Would you like to resume?")) {
+                    setParseResult(draft.parseResult);
+                    setEditedRows(draft.editedRows || {});
+                    setRowStrategies(draft.rowStrategies || {});
+                    setConflictMode(draft.conflictMode || 'overwrite');
+                    setStep('review');
+                } else {
+                    localStorage.removeItem(draftKey);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load draft", e);
+        }
+    }
+  }, [draftKey]);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (step === 'review' && parseResult) {
+        const draft = {
+            step,
+            parseResult,
+            editedRows,
+            rowStrategies,
+            conflictMode,
+            timestamp: new Date().toISOString()
+        };
+        localStorage.setItem(draftKey, JSON.stringify(draft));
+    } else if (step === 'success' || step === 'input') {
+        localStorage.removeItem(draftKey);
+    }
+  }, [step, parseResult, editedRows, rowStrategies, conflictMode, draftKey]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -25,12 +81,11 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   };
 
   const handleDownloadTemplate = () => {
-    // Direct download link
     const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/import-template`;
     window.open(url, '_blank');
   };
 
-  const handleParse = async () => {
+  const handleParse = async (sheetName = null) => {
     if (method === 'file' && !file) {
       setError('Please select a file');
       return;
@@ -50,12 +105,23 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       } else {
         formData.append('text', text);
       }
+      
+      if (sheetName) {
+          formData.append('sheet_name', sheetName);
+      }
 
       const response = await api.post(`/events/${selectedEvent.id}/parse-import`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
+
+      // Check for multi-sheet response
+      if (response.data.sheets && response.data.sheets.length > 0) {
+          setSheets(response.data.sheets);
+          setStep('sheet_selection');
+          return;
+      }
 
       setParseResult(response.data);
       setStep('review');
@@ -71,25 +137,34 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
 
     setStep('submitting');
     try {
-      // Filter rows based on conflict mode
-      let playersToUpload = parseResult.valid_rows;
+      // Merge edited data and filter based on strategy
+      let playersToUpload = parseResult.valid_rows.map(row => {
+          const edited = editedRows[row.row_id] || {};
+          const mergedData = { ...row.data, ...edited };
+          const strategy = rowStrategies[row.row_id] || (row.is_duplicate ? conflictMode : 'overwrite');
+          
+          return {
+              ...mergedData,
+              merge_strategy: strategy
+          };
+      });
       
-      if (conflictMode === 'skip') {
-        playersToUpload = playersToUpload.filter(row => !row.is_duplicate);
-      }
-      
-      // Extract data objects
-      playersToUpload = playersToUpload.map(row => row.data);
+      // Filter out skipped rows
+      const skippedCount = playersToUpload.filter(p => p.merge_strategy === 'skip').length;
+      playersToUpload = playersToUpload.filter(p => p.merge_strategy !== 'skip');
 
       if (playersToUpload.length === 0) {
-        setError("No players to import after skipping duplicates.");
+        setError("No players to import (all skipped).");
         setStep('review');
         return;
       }
 
       const response = await api.post('/players/upload', {
         event_id: selectedEvent.id,
-        players: playersToUpload
+        players: playersToUpload,
+        skipped_count: skippedCount,
+        method: method,
+        filename: file ? file.name : 'paste'
       });
       
       if (response.data.undo_log) {
@@ -97,8 +172,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       }
 
       setStep('success');
-      // Don't auto-close immediately if undo is available
-      // Start timer
+      localStorage.removeItem(draftKey);
     } catch (err) {
       console.error("Import error:", err);
       setError(err.response?.data?.detail || "Failed to import results");
@@ -114,9 +188,9 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         event_id: selectedEvent.id,
         undo_log: undoLog
       });
-      setStep('input'); // Go back to start or close?
+      setStep('input'); 
       setUndoLog(null);
-      onSuccess?.(); // Refresh parent
+      onSuccess?.(); 
       onClose();
     } catch (err) {
       console.error("Undo error:", err);
@@ -132,9 +206,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         setUndoTimer(prev => prev - 1);
       }, 1000);
     } else if (undoTimer === 0) {
-        // Timer expired, clear undo log
         setUndoLog(null);
-        // Auto close?
         setTimeout(() => {
             onSuccess?.();
             onClose();
@@ -143,6 +215,21 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     return () => clearInterval(interval);
   }, [step, undoLog, undoTimer, onSuccess, onClose]);
 
+  const fetchHistory = async () => {
+      setLoadingHistory(true);
+      try {
+          const res = await api.get(`/events/${selectedEvent.id}/history`);
+          setImportHistory(res.data);
+          setStep('history');
+      } catch (err) {
+          console.error(err);
+          setError("Failed to fetch history");
+      } finally {
+          setLoadingHistory(false);
+      }
+  };
+
+  // Render Steps
   const renderInputStep = () => (
     <div className="space-y-6">
       <div className="flex gap-4 mb-4">
@@ -212,12 +299,20 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       )}
 
       <div className="flex items-center justify-between pt-2">
-        <button
-            onClick={handleDownloadTemplate}
-            className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center gap-2"
-        >
-            <Download className="w-4 h-4" /> Download Template with My Players
-        </button>
+        <div className="flex gap-4">
+            <button
+                onClick={handleDownloadTemplate}
+                className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center gap-2"
+            >
+                <Download className="w-4 h-4" /> Template
+            </button>
+            <button
+                onClick={fetchHistory}
+                className="text-sm text-gray-600 hover:text-gray-900 font-medium flex items-center gap-2"
+            >
+                <Clock className="w-4 h-4" /> History
+            </button>
+        </div>
 
         <div className="flex gap-3">
             <button
@@ -227,7 +322,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
             Cancel
             </button>
             <button
-            onClick={handleParse}
+            onClick={() => handleParse()}
             disabled={!file && !text}
             className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
@@ -245,6 +340,46 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     </div>
   );
 
+  const renderSheetSelectionStep = () => (
+      <div className="space-y-4">
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex items-start gap-3">
+              <FileSpreadsheet className="w-6 h-6 text-blue-600 mt-0.5" />
+              <div>
+                  <h3 className="font-medium text-blue-900">Multiple Sheets Detected</h3>
+                  <p className="text-sm text-blue-700">Please select which sheet contains your combine results.</p>
+              </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3">
+              {sheets.map((sheet, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => handleParse(sheet.name)}
+                    className="text-left p-4 rounded-xl border hover:border-cmf-primary hover:shadow-sm transition-all bg-white group"
+                  >
+                      <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold text-gray-900 group-hover:text-cmf-primary">{sheet.name}</span>
+                          <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-cmf-primary" />
+                      </div>
+                      {sheet.preview && (
+                          <div className="text-xs text-gray-500 font-mono bg-gray-50 p-2 rounded overflow-hidden whitespace-nowrap">
+                              {sheet.preview.map((row, rIdx) => (
+                                  <div key={rIdx} className="truncate">{row.join(' | ')}</div>
+                              ))}
+                          </div>
+                      )}
+                  </button>
+              ))}
+          </div>
+          <button
+            onClick={() => setStep('input')}
+            className="text-gray-500 text-sm hover:text-gray-700"
+          >
+              Cancel and go back
+          </button>
+      </div>
+  );
+
   const renderReviewStep = () => {
     if (!parseResult) return null;
     const { valid_rows, errors, summary, detected_sport, confidence } = parseResult;
@@ -257,20 +392,42 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       ? Array.from(new Set(valid_rows.flatMap(r => Object.keys(r.data))))
       : [];
     
-    // Prioritize certain columns
     const priorityKeys = ['first_name', 'last_name', 'jersey_number', 'age_group'];
-    const drillKeys = allKeys.filter(k => !priorityKeys.includes(k) && !k.endsWith('_raw'));
+    const drillKeys = allKeys.filter(k => !priorityKeys.includes(k) && !k.endsWith('_raw') && k !== 'merge_strategy');
     const displayKeys = [...priorityKeys.filter(k => allKeys.includes(k)), ...drillKeys];
+
+    const handleCellEdit = (rowId, key, value) => {
+        setEditedRows(prev => ({
+            ...prev,
+            [rowId]: {
+                ...(prev[rowId] || {}),
+                [key]: value
+            }
+        }));
+    };
+
+    const handleStrategyChange = (rowId, strategy) => {
+        setRowStrategies(prev => ({
+            ...prev,
+            [rowId]: strategy
+        }));
+    };
 
     return (
       <div className="space-y-4">
         {/* Detected Sport Banner */}
-        <div className="flex items-center gap-2 p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
-            <Info className="w-4 h-4" />
-            <span>
-                Detected Sport: <strong>{detected_sport || 'Unknown'}</strong> 
-                {confidence && <span className="opacity-75 text-xs ml-1">({confidence} confidence)</span>}
-            </span>
+        <div className="flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
+            <div className="flex items-center gap-2">
+                <Info className="w-4 h-4" />
+                <span>
+                    Detected Sport: <strong>{detected_sport || 'Unknown'}</strong> 
+                    {confidence && <span className="opacity-75 text-xs ml-1">({confidence} confidence)</span>}
+                </span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-blue-600">
+                <Save className="w-3 h-3" />
+                <span>Draft saved automatically</span>
+            </div>
         </div>
 
         <div className="flex gap-4">
@@ -284,33 +441,18 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
           </div>
         </div>
 
-        {hasErrors && (
-          <div className="bg-red-50 rounded-xl p-4 border border-red-100 max-h-40 overflow-y-auto">
-            <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> Validation Errors
-            </h4>
-            <ul className="space-y-1">
-              {errors.map((err, i) => (
-                <li key={i} className="text-sm text-red-700">
-                  <span className="font-mono font-bold">Row {err.row}:</span> {err.message}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
         {hasDuplicates && (
              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
                         <h4 className="font-semibold text-amber-800 mb-1 flex items-center gap-2">
                         <AlertTriangle className="w-4 h-4" /> {duplicates.length} Potential Duplicates Found
                         </h4>
-                        <p className="text-xs text-amber-700 mb-2">
-                            Some players in your file match existing players in this event.
+                        <p className="text-xs text-amber-700">
+                            Select a default action for duplicates. You can override this per row below.
                         </p>
                     </div>
-                    <div className="flex bg-white rounded-lg border border-amber-200 p-1">
+                    <div className="flex bg-white rounded-lg border border-amber-200 p-1 self-start">
                         <button
                             onClick={() => setConflictMode('overwrite')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
@@ -322,6 +464,16 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                             Overwrite
                         </button>
                         <button
+                            onClick={() => setConflictMode('merge')}
+                            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                                conflictMode === 'merge' 
+                                ? 'bg-amber-100 text-amber-800' 
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                        >
+                            Merge
+                        </button>
+                        <button
                             onClick={() => setConflictMode('skip')}
                             className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
                                 conflictMode === 'skip' 
@@ -329,43 +481,96 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                                 : 'text-gray-500 hover:text-gray-700'
                             }`}
                         >
-                            Skip Duplicates
+                            Skip
                         </button>
                     </div>
                 </div>
              </div>
         )}
 
-        <div className="border rounded-xl overflow-hidden">
-          <div className="bg-gray-50 px-4 py-2 border-b font-medium text-gray-700 text-sm flex justify-between items-center">
-            <span>Preview (First 5 Valid Rows)</span>
-            <span className="text-xs text-gray-500">Total: {valid_rows.length}</span>
+        <div className="border rounded-xl overflow-hidden flex flex-col max-h-[50vh]">
+          <div className="bg-gray-50 px-4 py-2 border-b font-medium text-gray-700 text-sm flex justify-between items-center sticky top-0 z-10">
+            <span>Review Data ({valid_rows.length} Rows)</span>
+            <span className="text-xs text-gray-500">Click cells to edit</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-600">
+          <div className="overflow-auto flex-1">
+            <table className="w-full text-sm relative">
+              <thead className="bg-gray-50 text-gray-600 sticky top-0 z-10 shadow-sm">
                 <tr>
+                  <th className="px-4 py-2 w-10 bg-gray-50"></th>
                   {displayKeys.map(key => (
-                    <th key={key} className="px-4 py-2 text-left font-medium capitalize whitespace-nowrap">
+                    <th key={key} className="px-4 py-2 text-left font-medium capitalize whitespace-nowrap bg-gray-50">
                       {key.replace('_', ' ')}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {valid_rows.slice(0, 5).map((row, i) => {
+                {valid_rows.map((row, i) => {
+                    const rowId = row.row_id;
                     const isDup = row.is_duplicate;
-                    const isSkipped = isDup && conflictMode === 'skip';
+                    const edited = editedRows[rowId] || {};
+                    const currentData = { ...row.data, ...edited };
+                    
+                    // Determine current strategy
+                    const strategy = rowStrategies[rowId] || (isDup ? conflictMode : 'overwrite');
+                    const isSkipped = strategy === 'skip';
+                    
                     return (
-                      <tr key={i} className={`hover:bg-gray-50 ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/50' : ''}`}>
+                      <tr key={i} className={`hover:bg-gray-50 group ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/30' : ''}`}>
+                        <td className="px-2 py-2 text-center">
+                            {isDup ? (
+                                <div className="relative group-hover:visible">
+                                    <select
+                                        value={strategy}
+                                        onChange={(e) => handleStrategyChange(rowId, e.target.value)}
+                                        className={`text-xs rounded border-none focus:ring-1 cursor-pointer p-1 w-6 h-6 appearance-none text-transparent bg-transparent absolute top-0 left-0 inset-0 z-10`}
+                                        title="Handle Duplicate"
+                                    >
+                                        <option value="overwrite">Overwrite</option>
+                                        <option value="merge">Merge</option>
+                                        <option value="skip">Skip</option>
+                                    </select>
+                                    {/* Visual Indicator */}
+                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                                        ${strategy === 'overwrite' ? 'bg-amber-100 text-amber-700' : 
+                                          strategy === 'merge' ? 'bg-blue-100 text-blue-700' : 
+                                          'bg-gray-200 text-gray-500'}`
+                                    }>
+                                        {strategy === 'overwrite' ? 'O' : strategy === 'merge' ? 'M' : 'S'}
+                                    </div>
+                                </div>
+                            ) : (
+                                <span className="text-gray-300 text-xs">{i+1}</span>
+                            )}
+                        </td>
                         {displayKeys.map(key => {
-                            const isRaw = row.data[`${key}_raw`] !== undefined; // Flag if value was corrected (implicit) or raw exists
-                            // Actually backend stores raw in separate key if invalid, but corrected value in main key
-                            // If we want to show "Smart Correction", we'd need backend to tell us it corrected it.
-                            // For now just show value.
+                            const val = currentData[key] ?? '';
+                            const isEditing = editingCell?.rowId === rowId && editingCell?.key === key;
+                            
                             return (
-                              <td key={key} className="px-4 py-2 whitespace-nowrap text-gray-700">
-                                {row.data[key] ?? '-'}
+                              <td 
+                                key={key} 
+                                className="px-4 py-2 whitespace-nowrap text-gray-700 relative"
+                                onClick={() => setEditingCell({ rowId, key })}
+                              >
+                                {isEditing ? (
+                                    <input
+                                        autoFocus
+                                        className="w-full px-2 py-1 -mx-2 -my-1 border rounded shadow-sm text-sm"
+                                        value={val}
+                                        onChange={(e) => handleCellEdit(rowId, key, e.target.value)}
+                                        onBlur={() => setEditingCell(null)}
+                                        onKeyDown={(e) => {
+                                            if(e.key === 'Enter') setEditingCell(null);
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="flex items-center gap-1 min-h-[20px]">
+                                        {val !== '' ? val : <span className="text-gray-300">-</span>}
+                                        {edited[key] !== undefined && <span className="w-1.5 h-1.5 bg-blue-400 rounded-full" title="Edited"></span>}
+                                    </div>
+                                )}
                               </td>
                             );
                         })}
@@ -375,11 +580,6 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
               </tbody>
             </table>
           </div>
-          {valid_rows.length > 5 && (
-            <div className="bg-gray-50 px-4 py-2 border-t text-xs text-center text-gray-500">
-              ...and {valid_rows.length - 5} more rows
-            </div>
-          )}
         </div>
 
         {error && (
@@ -397,10 +597,9 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={valid_rows.length === 0}
-            className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary flex items-center gap-2"
           >
-            {valid_rows.length > 0 ? `Import ${valid_rows.length} Rows` : 'No Valid Data'}
+            Import Data
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -408,9 +607,40 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     );
   };
 
+  const renderHistoryStep = () => (
+      <div className="space-y-4 h-full flex flex-col">
+          <div className="flex justify-between items-center">
+            <h3 className="text-lg font-medium">Import History</h3>
+            <button onClick={() => setStep('input')} className="text-sm text-cmf-primary hover:underline">Back</button>
+          </div>
+          
+          <div className="overflow-y-auto flex-1 border rounded-xl divide-y">
+              {loadingHistory && <div className="p-8 text-center text-gray-500">Loading history...</div>}
+              {!loadingHistory && importHistory.length === 0 && (
+                  <div className="p-8 text-center text-gray-500">No import history found.</div>
+              )}
+              {importHistory.map((item) => (
+                  <div key={item.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex justify-between mb-1">
+                          <span className="font-medium text-gray-900">{new Date(item.timestamp).toLocaleString()}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${item.type === 'revert' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                              {item.type === 'revert' ? 'Reverted' : 'Imported'}
+                          </span>
+                      </div>
+                      <div className="flex gap-4 text-sm text-gray-500">
+                          <span>{item.rows_imported ?? item.restored} Rows</span>
+                          <span>{item.filename || item.method}</span>
+                          <span>User: {item.user_id.slice(0, 6)}...</span>
+                      </div>
+                  </div>
+              ))}
+          </div>
+      </div>
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
@@ -426,6 +656,8 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         {/* Content */}
         <div className="p-6 overflow-y-auto flex-1">
           {step === 'input' && renderInputStep()}
+          {step === 'sheet_selection' && renderSheetSelectionStep()}
+          {step === 'history' && renderHistoryStep()}
           
           {step === 'parsing' && (
             <div className="text-center py-12">

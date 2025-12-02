@@ -15,6 +15,7 @@ from ..utils.data_integrity import (
 from ..utils.identity import generate_player_id
 from ..security.access_matrix import require_permission
 import hashlib
+import uuid
 
 router = APIRouter()
 
@@ -216,6 +217,9 @@ def update_player(
 class UploadRequest(BaseModel):
     event_id: str
     players: List[Dict[str, Any]]
+    skipped_count: Optional[int] = 0
+    method: Optional[str] = "file"
+    filename: Optional[str] = None
 
 @router.post("/players/upload")
 @bulk_rate_limit()
@@ -346,6 +350,20 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         player_data[drill] = None
                 else:
                     player_data[drill] = None
+            
+            # --- IMPROVED DUPLICATE HANDLING (MERGE LOGIC) ---
+            # Strategy: 'overwrite' (default) or 'merge'
+            strategy = player.get("merge_strategy", "overwrite")
+            
+            if strategy == "merge":
+                # Filter out keys with None values to prevent overwriting existing data
+                # For 'created_at', we might want to keep original if merging?
+                # Actually, if we merge, we should preserve 'created_at' if it exists.
+                if previous_state and "created_at" in previous_state:
+                    del player_data["created_at"]
+                
+                # Filter out None values from payload
+                player_data = {k: v for k, v in player_data.items() if v is not None}
 
             player_ref = db.collection("events").document(event_id).collection("players").document(player_id)
             batch.set(player_ref, player_data, merge=True)
@@ -361,6 +379,26 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         # Commit remaining
         if batch_count > 0:
             execute_with_timeout(lambda: batch.commit(), timeout=10)
+            
+        # --- IMPORT AUDIT LOG ---
+        try:
+            import_log_ref = db.collection("events").document(event_id).collection("imports").document()
+            log_entry = {
+                "id": import_log_ref.id,
+                "event_id": event_id,
+                "user_id": current_user["uid"] if current_user else "unknown",
+                "timestamp": datetime.utcnow().isoformat(),
+                "rows_imported": added,
+                "rows_skipped": req.skipped_count or len(errors), # If frontend passed skipped count use it, else use errors
+                "method": req.method,
+                "filename": req.filename,
+                "undo_available": True, # Since we return undo_log
+                "errors_count": len(errors)
+            }
+            execute_with_timeout(lambda: import_log_ref.set(log_entry), timeout=5)
+        except Exception as e:
+            logging.error(f"Failed to write import audit log: {e}")
+            # Don't fail the request for this
             
         logging.info(f"Player upload completed: {added} processed, {len(errors)} errors")
         return {"added": added, "errors": errors, "undo_log": undo_log}
@@ -425,6 +463,23 @@ def revert_import(request: Request, req: RevertRequest, current_user=Depends(req
                 
         if batch_count > 0:
             execute_with_timeout(lambda: batch.commit(), timeout=10)
+            
+        # Log the revert in audit log?
+        try:
+            import_log_ref = db.collection("events").document(event_id).collection("imports").document()
+            log_entry = {
+                "id": import_log_ref.id,
+                "event_id": event_id,
+                "user_id": current_user["uid"] if current_user else "unknown",
+                "timestamp": datetime.utcnow().isoformat(),
+                "type": "revert",
+                "restored": restored,
+                "deleted": deleted,
+                "method": "undo"
+            }
+            execute_with_timeout(lambda: import_log_ref.set(log_entry), timeout=5)
+        except:
+            pass
             
         logging.info(f"Revert completed: {restored} restored, {deleted} deleted")
         return {"status": "success", "restored": restored, "deleted": deleted}

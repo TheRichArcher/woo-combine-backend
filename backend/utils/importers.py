@@ -10,11 +10,12 @@ from .validation import validate_drill_score, get_unit_for_drill, DRILL_SCORE_RA
 logger = logging.getLogger(__name__)
 
 class ImportResult:
-    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]], detected_sport: str = "football", confidence: str = "high"):
+    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]], detected_sport: str = "football", confidence: str = "high", sheets: List[Dict[str, Any]] = None):
         self.valid_rows = valid_rows
         self.errors = errors
         self.detected_sport = detected_sport
         self.confidence = confidence
+        self.sheets = sheets or []
 
 class DataImporter:
     """
@@ -157,19 +158,45 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse CSV: {str(e)}"}])
 
     @staticmethod
-    def parse_excel(content: bytes) -> ImportResult:
-        """Parse Excel (XLSX) content"""
+    def parse_excel(content: bytes, sheet_name: Optional[str] = None) -> ImportResult:
+        """
+        Parse Excel (XLSX) content.
+        If multiple sheets exist and no sheet_name provided, returns list of sheets.
+        """
         try:
             wb = openpyxl.load_workbook(filename=io.BytesIO(content), read_only=True, data_only=True)
-            ws = wb.active
             
-            rows = list(ws.rows)
+            # Handle multi-sheet detection
+            if not sheet_name and len(wb.sheetnames) > 1:
+                sheets_info = []
+                for name in wb.sheetnames:
+                    ws = wb[name]
+                    # Get first 3 rows for preview
+                    preview = []
+                    for i, row in enumerate(ws.iter_rows(min_row=1, max_row=3, values_only=True)):
+                        preview.append([str(cell or "") for cell in row])
+                    sheets_info.append({
+                        "name": name,
+                        "preview": preview
+                    })
+                return ImportResult([], [], sheets=sheets_info)
+            
+            # Select worksheet
+            if sheet_name:
+                if sheet_name in wb.sheetnames:
+                    ws = wb[sheet_name]
+                else:
+                    return ImportResult([], [{"row": 0, "message": f"Sheet '{sheet_name}' not found"}])
+            else:
+                ws = wb.active
+            
+            # Read rows
+            rows = list(ws.iter_rows(values_only=True))
             if not rows:
-                return ImportResult([], [{"row": 0, "message": "Empty Excel file"}])
+                return ImportResult([], [{"row": 0, "message": "Empty Excel sheet"}])
                 
             # Extract headers from first row
-            header_cells = rows[0]
-            headers = [str(cell.value or "").strip() for cell in header_cells]
+            headers = [str(cell or "").strip() for cell in rows[0]]
             
             # Map headers
             normalized_field_map = {
@@ -184,12 +211,11 @@ class DataImporter:
             for row_idx, row in enumerate(rows[1:], start=2):
                 row_data = {}
                 has_data = False
-                for col_idx, cell in enumerate(row):
+                for col_idx, cell_value in enumerate(row):
                     if col_idx < len(headers):
                         key = headers[col_idx]
-                        val = cell.value
-                        if val is not None and str(val).strip() != "":
-                            row_data[key] = val
+                        if cell_value is not None and str(cell_value).strip() != "":
+                            row_data[key] = cell_value
                             has_data = True
                 if has_data:
                     data_rows.append(row_data)
