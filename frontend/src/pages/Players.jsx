@@ -88,6 +88,8 @@ export default function Players() {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
+    const actionParam = urlParams.get('action');
+
     if (tabParam === 'analyze') {
       setShowRankings(true);
       setShowRoster(true);
@@ -96,6 +98,10 @@ export default function Players() {
       }, 100);
     } else if (tabParam === 'manage') {
       setShowRoster(true);
+    }
+
+    if (actionParam === 'import') {
+      setShowImportModal(true);
     }
   }, [location.search]);
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Users, BarChart3 } from 'lucide-react';
+import { Calendar, Users, BarChart3, Upload, QrCode } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
 import EventSelector from '../components/EventSelector';
 import LeagueFallback from '../context/LeagueFallback';
@@ -144,18 +144,11 @@ export default function Home() {
                   className="bg-brand-primary text-white font-bold px-6 py-4 rounded-xl shadow hover:bg-brand-secondary transition flex items-center justify-center gap-3 text-lg"
                 >
                   <Users className="w-6 h-6" />
-                  Manage Players & Start Event
+                  Player Management
                 </button>
                 
-                {/* Additional Quick Actions for Organizers */}
+                {/* Import Actions */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => handleNavigation('/event-sharing')}
-                    className="bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-2"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    Share QR Codes
-                  </button>
                   <button
                     onClick={() => handleNavigation('/admin#player-upload')}
                     className="bg-semantic-success text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
@@ -163,15 +156,30 @@ export default function Home() {
                     <Users className="w-5 h-5" />
                     Import Players
                   </button>
+                  <button
+                    onClick={() => handleNavigation('/players?action=import')}
+                    className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                  >
+                    <Upload className="w-5 h-5" />
+                    Import Results
+                  </button>
                 </div>
-                {/* Analytics quick access */}
-                <div>
+
+                {/* Sharing & Analytics */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => handleNavigation('/event-sharing')}
+                    className="bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-brand-primary transition flex items-center justify-center gap-2"
+                  >
+                    <QrCode className="w-5 h-5" />
+                    Share QR Codes
+                  </button>
                   <button
                     onClick={() => handleNavigation('/analytics')}
-                    className="mt-3 w-full bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl border-2 border-gray-200 shadow hover:bg-gray-50 transition flex items-center justify-center gap-2"
+                    className="bg-white text-gray-800 font-semibold px-4 py-3 rounded-xl border-2 border-gray-200 shadow hover:bg-gray-50 transition flex items-center justify-center gap-2"
                   >
                     <BarChart3 className="w-5 h-5 text-brand-primary" />
-                    Open Analytics
+                    Analytics
                   </button>
                 </div>
                 {/* Promote Teams and Scorecards */}
