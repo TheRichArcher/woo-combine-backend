@@ -405,26 +405,26 @@ export default function LiveStandings() {
 
         {/* Access to Advanced Features */}
         {(userRole === 'organizer' || userRole === 'coach') && liveRankings.length >= 3 && (
-          <div className="bg-brand-accent/10 border border-brand-accent/20 rounded-xl p-4">
+          <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4">
             <div className="flex items-start gap-3">
-              <div className="text-brand-accent">
+              <div className="text-brand-secondary">
                 <BarChart3 className="w-5 h-5" />
               </div>
               <div className="flex-1">
                 <h3 className="font-semibold text-brand-secondary mb-1">Advanced Tools Available</h3>
-                <p className="text-brand-accent text-sm mb-3">
+                <p className="text-gray-600 text-sm mb-3">
                   You have enough data to use advanced features
                 </p>
                 <div className="flex gap-2">
                   <Link
                     to="/team-formation"
-                    className="text-xs bg-white text-brand-accent px-3 py-1.5 rounded-lg border border-brand-accent/20 hover:bg-brand-accent/10 transition font-medium"
+                    className="text-xs bg-white text-brand-secondary px-3 py-1.5 rounded-lg border border-brand-secondary/20 hover:bg-brand-secondary/5 transition font-medium"
                   >
                     Create Teams
                   </Link>
                   <Link
                     to="/analytics"
-                    className="text-xs bg-white text-brand-accent px-3 py-1.5 rounded-lg border border-brand-accent/20 hover:bg-brand-accent/10 transition font-medium"
+                    className="text-xs bg-white text-brand-secondary px-3 py-1.5 rounded-lg border border-brand-secondary/20 hover:bg-brand-secondary/5 transition font-medium"
                   >
                     Full Analytics
                   </Link>
