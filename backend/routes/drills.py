@@ -9,9 +9,9 @@ from google.cloud import firestore
 import logging
 from datetime import datetime
 from ..utils.database import execute_with_timeout
-from ..utils.validation import validate_drill_score, get_unit_for_drill
 from ..utils.data_integrity import enforce_event_league_relationship
 from ..security.access_matrix import require_permission
+from ..utils.event_schema import get_event_schema
 
 router = APIRouter()
 
@@ -55,9 +55,23 @@ def create_drill_result(
         if not player_doc.exists:
             raise HTTPException(status_code=404, detail="Player not found")
         
-        # Validate value and attach unit
-        validated_value = validate_drill_score(float(result.value), result.type)
-        unit = get_unit_for_drill(result.type)
+        # Fetch schema for validation
+        schema = get_event_schema(result.event_id)
+        drill_def = next((d for d in schema.drills if d.key == result.type), None)
+        
+        if not drill_def:
+             raise HTTPException(status_code=400, detail=f"Unknown drill type: {result.type}")
+
+        # Validate value against schema
+        min_val = drill_def.min_value if drill_def.min_value is not None else 0
+        max_val = drill_def.max_value if drill_def.max_value is not None else 9999
+        
+        if result.value < min_val or result.value > max_val:
+             raise HTTPException(status_code=400, detail=f"Value must be between {min_val} and {max_val}")
+
+        validated_value = float(result.value)
+        unit = drill_def.unit
+        
         now_iso = datetime.utcnow().isoformat()
         drill_result_data = {
             "player_id": result.player_id,
@@ -79,12 +93,10 @@ def create_drill_result(
             timeout=10
         )
         
-        # Also update the player's main drill score field for easier querying
-        drill_field_name = result.type
-        
-        # Update player document with the new drill score with timeout protection
+        # Update player document with the new drill score in scores map
+        # This triggers the schema-driven scoring engine on next read
         execute_with_timeout(
-            lambda: player_ref.update({drill_field_name: validated_value}),
+            lambda: player_ref.update({f"scores.{result.type}": validated_value}),
             timeout=10
         )
         
@@ -158,14 +170,14 @@ def delete_drill_result(
             # Revert to previous score
             previous_value = previous_results[0].to_dict().get("value")
             execute_with_timeout(
-                lambda: player_ref.update({drill_type: previous_value}),
+                lambda: player_ref.update({f"scores.{drill_type}": previous_value}),
                 timeout=5
             )
             logging.info(f"Reverted {drill_type} for player {player_id} to {previous_value}")
         else:
             # No previous scores, remove the field
             execute_with_timeout(
-                lambda: player_ref.update({drill_type: firestore.FieldValue.delete()}),
+                lambda: player_ref.update({f"scores.{drill_type}": firestore.DELETE_FIELD}),
                 timeout=5
             )
             logging.info(f"Removed {drill_type} for player {player_id} (no previous scores)")
