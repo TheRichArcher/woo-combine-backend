@@ -1,6 +1,10 @@
 // Comprehensive Drill Templates System for Multiple Sports
-// This replaces the hardcoded drill arrays and makes WooCombine multi-sport capable
+// Now serves as a caching/hybrid layer that matches backend schema definitions.
+// The frontend should prefer fetching schemas from the backend, using these as fallbacks.
 
+import api from '../lib/api';
+
+// --- LOCAL FALLBACK DEFINITIONS (Must match backend/services/schema_registry.py) ---
 export const DRILL_TEMPLATES = {
   // FOOTBALL COMBINE (Original)
   football: {
@@ -46,7 +50,7 @@ export const DRILL_TEMPLATES = {
     }
   },
 
-  // SOCCER/FOOTBALL COMBINE
+  // SOCCER COMBINE
   soccer: {
     id: 'soccer',
     name: 'Soccer Combine', 
@@ -69,20 +73,15 @@ export const DRILL_TEMPLATES = {
       "endurance": 0.1,
     },
     presets: {
-      technical: {
-        name: "Technical Focus",
-        description: "Emphasizes ball skills and accuracy",
-        weights: { "sprint_speed": 0.05, "ball_control": 0.35, "passing_accuracy": 0.35, "shooting_power": 0.15, "agility_cones": 0.05, "endurance": 0.05 }
-      },
-      athletic: {
-        name: "Athletic Focus", 
-        description: "Emphasizes speed and fitness",
-        weights: { "sprint_speed": 0.3, "ball_control": 0.15, "passing_accuracy": 0.15, "shooting_power": 0.1, "agility_cones": 0.2, "endurance": 0.1 }
-      },
       balanced: {
         name: "Balanced",
         description: "Equal emphasis on all areas",
         weights: { "sprint_speed": 0.15, "ball_control": 0.2, "passing_accuracy": 0.2, "shooting_power": 0.15, "agility_cones": 0.15, "endurance": 0.15 }
+      },
+      technical: {
+        name: "Technical Focus",
+        description: "Emphasizes ball skills and accuracy",
+        weights: { "sprint_speed": 0.05, "ball_control": 0.35, "passing_accuracy": 0.35, "shooting_power": 0.15, "agility_cones": 0.05, "endurance": 0.05 }
       }
     }
   },
@@ -114,16 +113,6 @@ export const DRILL_TEMPLATES = {
         name: "Shooter Focus",
         description: "Emphasizes shooting abilities",
         weights: { "lane_agility": 0.1, "vertical_jump": 0.1, "free_throws": 0.35, "three_point": 0.35, "dribbling": 0.05, "defensive_slide": 0.05 }
-      },
-      athletic: {
-        name: "Athletic Focus",
-        description: "Emphasizes physical abilities", 
-        weights: { "lane_agility": 0.25, "vertical_jump": 0.35, "free_throws": 0.1, "three_point": 0.1, "dribbling": 0.1, "defensive_slide": 0.1 }
-      },
-      guard: {
-        name: "Guard Skills",
-        description: "Point guard and ball handling focus",
-        weights: { "lane_agility": 0.2, "vertical_jump": 0.1, "free_throws": 0.2, "three_point": 0.2, "dribbling": 0.25, "defensive_slide": 0.05 }
       }
     }
   },
@@ -153,16 +142,6 @@ export const DRILL_TEMPLATES = {
         name: "Hitter Focus",
         description: "Emphasizes hitting abilities",
         weights: { "sprint_60": 0.15, "exit_velocity": 0.5, "throwing_velocity": 0.15, "fielding_accuracy": 0.15, "pop_time": 0.05 }
-      },
-      pitcher: {
-        name: "Pitcher Focus", 
-        description: "Emphasizes throwing velocity",
-        weights: { "sprint_60": 0.1, "exit_velocity": 0.1, "throwing_velocity": 0.6, "fielding_accuracy": 0.15, "pop_time": 0.05 }
-      },
-      fielder: {
-        name: "Fielder Focus",
-        description: "Emphasizes defensive skills",
-        weights: { "sprint_60": 0.25, "exit_velocity": 0.2, "throwing_velocity": 0.25, "fielding_accuracy": 0.25, "pop_time": 0.05 }
       }
     }
   },
@@ -194,16 +173,6 @@ export const DRILL_TEMPLATES = {
         name: "Sprinter Focus",
         description: "Short distance speed events",
         weights: { "sprint_100": 0.45, "sprint_400": 0.25, "long_jump": 0.15, "high_jump": 0.1, "shot_put": 0.025, "mile_time": 0.025 }
-      },
-      jumper: {
-        name: "Jumper Focus",
-        description: "Jumping events focus",
-        weights: { "sprint_100": 0.2, "sprint_400": 0.1, "long_jump": 0.35, "high_jump": 0.25, "shot_put": 0.05, "mile_time": 0.05 }
-      },
-      distance: {
-        name: "Distance Focus", 
-        description: "Distance running events",
-        weights: { "sprint_100": 0.05, "sprint_400": 0.2, "long_jump": 0.05, "high_jump": 0.05, "shot_put": 0.05, "mile_time": 0.6 }
       }
     }
   },
@@ -235,25 +204,57 @@ export const DRILL_TEMPLATES = {
         name: "Hitter Focus",
         description: "Outside hitter/attacker focus",
         weights: { "vertical_jump": 0.25, "approach_jump": 0.3, "serving_accuracy": 0.1, "passing_accuracy": 0.1, "attack_power": 0.2, "blocking_reach": 0.05 }
-      },
-      setter: {
-        name: "Setter Focus",
-        description: "Setting and ball control focus", 
-        weights: { "vertical_jump": 0.1, "approach_jump": 0.1, "serving_accuracy": 0.25, "passing_accuracy": 0.35, "attack_power": 0.05, "blocking_reach": 0.15 }
-      },
-      libero: {
-        name: "Libero Focus",
-        description: "Defensive specialist focus",
-        weights: { "vertical_jump": 0.05, "approach_jump": 0.05, "serving_accuracy": 0.2, "passing_accuracy": 0.5, "attack_power": 0.05, "blocking_reach": 0.15 }
       }
     }
   }
 };
 
-// Utility functions for working with drill templates
-export const getTemplateById = (templateId) => DRILL_TEMPLATES[templateId];
+// Cache for fetched schemas
+let schemaCache = { ...DRILL_TEMPLATES };
 
-export const getAllTemplates = () => Object.values(DRILL_TEMPLATES);
+// API Function to fetch schemas from backend
+export const fetchSchemas = async () => {
+  try {
+    const response = await api.get('/schemas');
+    if (response.data) {
+      response.data.forEach(schema => {
+        schemaCache[schema.id] = {
+          ...schema,
+          // Normalize backend schema structure to frontend template structure if needed
+          drills: schema.drills.map(d => ({
+            key: d.key,
+            label: d.label,
+            unit: d.unit,
+            lowerIsBetter: d.lower_is_better, // Backend uses snake_case
+            category: d.category,
+            min: d.min_value,
+            max: d.max_value
+          })),
+          defaultWeights: schema.drills.reduce((acc, d) => {
+            if (d.default_weight > 0) acc[d.key] = d.default_weight;
+            return acc;
+          }, {}),
+          presets: Object.entries(schema.presets || {}).reduce((acc, [k, v]) => {
+            acc[k] = { name: v.name, description: v.description, weights: v.weights };
+            return acc;
+          }, {})
+        };
+      });
+    }
+    return schemaCache;
+  } catch (error) {
+    console.error("Failed to fetch schemas:", error);
+    return schemaCache; // Fallback to local/cache
+  }
+};
+
+// --- UTILITY FUNCTIONS ---
+
+export const getTemplateById = (templateId) => {
+  return schemaCache[templateId] || DRILL_TEMPLATES[templateId] || DRILL_TEMPLATES.football;
+};
+
+export const getAllTemplates = () => Object.values(schemaCache);
 
 export const getTemplatesByCategory = (category) => 
   getAllTemplates().filter(template => template.category === category);
