@@ -188,7 +188,7 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
   
   // Process each age group separately
   playersByAgeGroup.forEach((ageGroupPlayers, ageGroup) => {
-    // Filter players with at least one drill score
+    // Filter players with at least one drill score based on CURRENT drills
     const playersWithScores = ageGroupPlayers.filter(player => 
       currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
     );
@@ -246,7 +246,7 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
   
   const currentDrills = drillList || [];
   
-  // Filter players with at least one drill score
+  // Filter players with at least one drill score based on CURRENT drills
   const playersWithScores = players.filter(player => 
     currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
   );
