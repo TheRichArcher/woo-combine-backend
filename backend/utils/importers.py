@@ -6,11 +6,12 @@ from typing import List, Dict, Any, Optional, Tuple
 import openpyxl
 from datetime import datetime
 from .validation import validate_drill_score, get_unit_for_drill, DRILL_SCORE_RANGES
+from ..services.schema_registry import SchemaRegistry
 
 logger = logging.getLogger(__name__)
 
 class ImportResult:
-    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]], detected_sport: str = "football", confidence: str = "high", sheets: List[Dict[str, Any]] = None):
+    def __init__(self, valid_rows: List[Dict[str, Any]], errors: List[Dict[str, Any]], detected_sport: str = "unknown", confidence: str = "low", sheets: List[Dict[str, Any]] = None):
         self.valid_rows = valid_rows
         self.errors = errors
         self.detected_sport = detected_sport
@@ -21,6 +22,7 @@ class DataImporter:
     """
     Utility class to parse and normalize input data (CSV, Excel, Text)
     into a standardized list of player objects with drill results.
+    Supports multi-sport schema detection.
     """
     
     REQUIRED_HEADERS = ['first_name', 'last_name']
@@ -45,8 +47,8 @@ class DataImporter:
     }
 
     @staticmethod
-    def _normalize_header(header: str) -> str:
-        """Normalize header string to match canonical field names"""
+    def _normalize_header(header: str, schema_drills: List[str] = None) -> str:
+        """Normalize header string to match canonical field names or schema drill keys"""
         if not header:
             return ""
         
@@ -56,21 +58,49 @@ class DataImporter:
         if clean in DataImporter.FIELD_MAPPING:
             return DataImporter.FIELD_MAPPING[clean]
             
-        # Check if it matches any drill keys
+        # Check if it matches any known schema drill keys (if provided)
+        if schema_drills and clean in schema_drills:
+            return clean
+            
+        # Check if it matches any known legacy football drill keys
         if clean in DRILL_SCORE_RANGES:
             return clean
             
-        # Check if it looks like a drill (e.g. "40_yard_dash" -> "40m_dash")
-        if '40' in clean and 'dash' in clean:
-            return '40m_dash'
-        if 'jump' in clean or 'vert' in clean:
-            return 'vertical_jump'
-        if 'catch' in clean:
-            return 'catching'
-        if 'throw' in clean:
-            return 'throwing'
-        if 'agil' in clean or 'l_drill' in clean:
-            return 'agility'
+        # Fuzzy Matching Logic
+        # Football
+        if '40' in clean and 'dash' in clean: return '40m_dash'
+        if 'jump' in clean or 'vert' in clean: return 'vertical_jump'
+        if 'catch' in clean: return 'catching'
+        if 'throw' in clean and 'vel' not in clean: return 'throwing' # Avoid overlap with throwing_velocity
+        if 'agil' in clean and 'lane' not in clean: return 'agility' # Avoid overlap with lane_agility
+        
+        # Baseball
+        if 'exit' in clean and 'vel' in clean: return 'exit_velocity'
+        if 'pop' in clean: return 'pop_time'
+        if 'fielding' in clean: return 'fielding_accuracy'
+        
+        # Basketball
+        if 'lane' in clean: return 'lane_agility'
+        if 'free' in clean: return 'free_throws'
+        if 'three' in clean: return 'three_point'
+        if 'dribble' in clean or 'handl' in clean: return 'dribbling'
+        
+        # Soccer
+        if 'ball' in clean and 'control' in clean: return 'ball_control'
+        if 'pass' in clean: return 'passing_accuracy'
+        if 'shoot' in clean and 'power' in clean: return 'shooting_power'
+        
+        # Track
+        if '100' in clean: return 'sprint_100'
+        if '400' in clean: return 'sprint_400'
+        if 'long' in clean and 'jump' in clean: return 'long_jump'
+        if 'shot' in clean: return 'shot_put'
+        if 'mile' in clean: return 'mile_time'
+        
+        # Volleyball
+        if 'approach' in clean: return 'approach_jump'
+        if 'serve' in clean: return 'serving_accuracy'
+        if 'block' in clean: return 'blocking_reach'
             
         return clean
 
@@ -92,7 +122,7 @@ class DataImporter:
             return None
             
         # Remove common units
-        s_val = re.sub(r'[a-z"]+$', '', s_val).strip() # Remove trailing units like 's', 'in', '"'
+        s_val = re.sub(r'[a-z"%]+$', '', s_val).strip() # Remove trailing units like 's', 'in', '"', '%'
         
         # Replace comma with dot (European decimal)
         s_val = s_val.replace(',', '.')
@@ -109,27 +139,36 @@ class DataImporter:
     def _detect_sport(headers: List[str]) -> Tuple[str, str]:
         """
         Auto-detect sport type based on headers.
-        Returns (sport, confidence)
+        Returns (sport_id, confidence)
         """
         normalized = [DataImporter._normalize_header(h) for h in headers]
+        schemas = SchemaRegistry.get_all_schemas()
         
-        # Football indicators
-        football_score = 0
-        if '40m_dash' in normalized: football_score += 1
-        if 'vertical_jump' in normalized: football_score += 1
-        if 'agility' in normalized: football_score += 1
-        if 'catching' in normalized: football_score += 1
-        if 'throwing' in normalized: football_score += 1
+        best_sport = "football" # Default
+        max_score = 0
         
-        if football_score >= 2:
-            return 'football', 'high'
-        elif football_score == 1:
-            return 'football', 'medium'
+        for schema in schemas:
+            score = 0
+            drill_keys = [d.key for d in schema.drills]
+            for h in normalized:
+                if h in drill_keys:
+                    score += 1
             
-        return 'football', 'low' # Default
+            # Normalize score by number of drills to avoid bias toward larger schemas
+            # But prefer higher absolute matches too.
+            if score > max_score:
+                max_score = score
+                best_sport = schema.id
+        
+        if max_score >= 3:
+            return best_sport, "high"
+        elif max_score >= 1:
+            return best_sport, "medium"
+            
+        return "football", "low"
 
     @staticmethod
-    def parse_csv(content: bytes) -> ImportResult:
+    def parse_csv(content: bytes, event_id: str = None) -> ImportResult:
         """Parse CSV content"""
         try:
             # Decode bytes to string
@@ -141,14 +180,19 @@ class DataImporter:
             if not reader.fieldnames:
                 return ImportResult([], [{"row": 0, "message": "Empty CSV file"}])
                 
+            # Detect Sport
+            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
+            
+            # Get Schema Drills for better normalization
+            schema = SchemaRegistry.get_schema(sport)
+            schema_drills = [d.key for d in schema.drills] if schema else []
+            
             normalized_field_map = {
-                field: DataImporter._normalize_header(field) 
+                field: DataImporter._normalize_header(field, schema_drills) 
                 for field in reader.fieldnames
             }
             
-            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
-            
-            result = DataImporter._process_rows(reader, normalized_field_map)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -158,7 +202,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse CSV: {str(e)}"}])
 
     @staticmethod
-    def parse_excel(content: bytes, sheet_name: Optional[str] = None) -> ImportResult:
+    def parse_excel(content: bytes, sheet_name: Optional[str] = None, event_id: str = None) -> ImportResult:
         """
         Parse Excel (XLSX) content.
         If multiple sheets exist and no sheet_name provided, returns list of sheets.
@@ -198,13 +242,16 @@ class DataImporter:
             # Extract headers from first row
             headers = [str(cell or "").strip() for cell in rows[0]]
             
+            # Detect Sport
+            sport, confidence = DataImporter._detect_sport(headers)
+            schema = SchemaRegistry.get_schema(sport)
+            schema_drills = [d.key for d in schema.drills] if schema else []
+            
             # Map headers
             normalized_field_map = {
-                headers[i]: DataImporter._normalize_header(headers[i])
+                headers[i]: DataImporter._normalize_header(headers[i], schema_drills)
                 for i in range(len(headers))
             }
-            
-            sport, confidence = DataImporter._detect_sport(headers)
             
             # Convert to dict list for processing
             data_rows = []
@@ -220,7 +267,7 @@ class DataImporter:
                 if has_data:
                     data_rows.append(row_data)
             
-            result = DataImporter._process_rows(data_rows, normalized_field_map)
+            result = DataImporter._process_rows(data_rows, normalized_field_map, sport)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -289,14 +336,17 @@ class DataImporter:
             if not reader.fieldnames:
                 return ImportResult([], [{"row": 0, "message": "Could not parse headers"}])
 
+            # Detect Sport
+            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
+            schema = SchemaRegistry.get_schema(sport)
+            schema_drills = [d.key for d in schema.drills] if schema else []
+
             normalized_field_map = {
-                field: DataImporter._normalize_header(field) 
+                field: DataImporter._normalize_header(field, schema_drills) 
                 for field in reader.fieldnames
             }
             
-            sport, confidence = DataImporter._detect_sport(reader.fieldnames)
-            
-            result = DataImporter._process_rows(reader, normalized_field_map)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -306,13 +356,20 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse text: {str(e)}"}])
 
     @staticmethod
-    def _process_rows(rows: Any, field_map: Dict[str, str]) -> ImportResult:
+    def _process_rows(rows: Any, field_map: Dict[str, str], sport_id: str) -> ImportResult:
         """Common processing logic for all input types"""
         valid_rows = []
         errors = []
         
-        # Identify which columns map to drill scores
-        drill_keys = set(DRILL_SCORE_RANGES.keys())
+        # Load Schema for Validation
+        schema = SchemaRegistry.get_schema(sport_id)
+        if not schema:
+            # Fallback to football if detection failed completely
+            schema = SchemaRegistry.get_schema("football")
+            
+        # Identify which columns map to drill scores from Schema
+        drill_keys = set(d.key for d in schema.drills)
+        drill_defs = {d.key: d for d in schema.drills}
         
         for idx, row in enumerate(rows, start=1):
             processed_row = {}
@@ -329,18 +386,19 @@ class DataImporter:
                 if mapped_key in drill_keys and clean_val:
                     # SMART ERROR CORRECTION: Try to fix common formatting issues
                     cleaned_num = DataImporter._clean_value(clean_val)
+                    drill_def = drill_defs.get(mapped_key)
                     
                     if cleaned_num is not None:
-                        try:
-                            validate_drill_score(cleaned_num, mapped_key)
+                        # Validate Range from Schema
+                        if drill_def:
+                            min_v = drill_def.min_value if drill_def.min_value is not None else -1000
+                            max_v = drill_def.max_value if drill_def.max_value is not None else 10000
+                            if not (min_v <= cleaned_num <= max_v):
+                                row_errors.append(f"Value {cleaned_num} for {mapped_key} out of range ({min_v}-{max_v})")
+                            else:
+                                processed_row[mapped_key] = cleaned_num
+                        else:
                             processed_row[mapped_key] = cleaned_num
-                            
-                            # If corrected, maybe we should indicate it?
-                            # For now, we just use the corrected value.
-                            
-                        except Exception as e:
-                            row_errors.append(f"Invalid {mapped_key}: {str(e)}")
-                            processed_row[f"{mapped_key}_raw"] = clean_val
                     else:
                         row_errors.append(f"Invalid number format for {mapped_key}: '{clean_val}'")
                         processed_row[f"{mapped_key}_raw"] = clean_val

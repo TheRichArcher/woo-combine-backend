@@ -15,6 +15,8 @@ from ..utils.database import execute_with_timeout
 from ..utils.identity import generate_player_id
 from ..firestore_client import db
 from ..security.access_matrix import require_permission
+from ..services.schema_registry import SchemaRegistry
+from ..routes.players import get_event_schema
 
 router = APIRouter()
 
@@ -60,9 +62,9 @@ def parse_import_file(
             filename = file.filename.lower()
             
             if filename.endswith('.csv'):
-                result = DataImporter.parse_csv(content)
+                result = DataImporter.parse_csv(content, event_id=event_id)
             elif filename.endswith(('.xls', '.xlsx')):
-                result = DataImporter.parse_excel(content, sheet_name=sheet_name)
+                result = DataImporter.parse_excel(content, sheet_name=sheet_name, event_id=event_id)
             elif filename.endswith(('.jpg', '.jpeg', '.png', '.heic')):
                 result = DataImporter.parse_image(content)
             else:
@@ -73,7 +75,7 @@ def parse_import_file(
             try:
                 content = fetch_url_content(url)
                 # Assume CSV content from URL
-                result = DataImporter.parse_csv(content)
+                result = DataImporter.parse_csv(content, event_id=event_id)
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
@@ -153,11 +155,12 @@ def get_import_schema(
 ):
     """
     Return the schema definition for import mapping.
-    Currently supports 'football' (default).
+    Fully schema-driven.
     """
-    # In Phase 2, we will switch on 'sport' to return different schemas.
-    # For Phase 1, we return the global drill ranges.
-    
+    schema_def = SchemaRegistry.get_schema(sport)
+    if not schema_def:
+        schema_def = SchemaRegistry.get_schema("football")
+        
     schema = []
     
     # Player Identity Fields
@@ -190,16 +193,16 @@ def get_import_schema(
         "aliases": ["age", "group", "division"]
     })
     
-    # Drill Fields
-    for key, ranges in DRILL_SCORE_RANGES.items():
+    # Drill Fields from Schema
+    for drill in schema_def.drills:
         schema.append({
-            "key": key,
-            "label": key.replace("_", " ").title(), # Simple label generation
+            "key": drill.key,
+            "label": drill.label,
             "required": False,
             "type": "number",
-            "min": ranges["min"],
-            "max": ranges["max"],
-            "unit": ranges["unit"]
+            "min": drill.min_value,
+            "max": drill.max_value,
+            "unit": drill.unit
         })
         
     return {"sport": sport, "fields": schema}
@@ -220,9 +223,12 @@ def get_import_template(
     try:
         enforce_event_league_relationship(event_id=event_id)
         
+        # Fetch Schema for Event
+        schema = get_event_schema(event_id)
+        
         # Define headers
         identity_headers = ["First Name", "Last Name", "Jersey Number", "Age Group"]
-        drill_headers = [k.replace("_", " ").title() for k in DRILL_SCORE_RANGES.keys()]
+        drill_headers = [d.label for d in schema.drills]
         all_headers = identity_headers + drill_headers
         
         # Fetch existing players
