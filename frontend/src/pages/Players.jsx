@@ -4,6 +4,7 @@ import DrillInputForm from "../components/DrillInputForm";
 import EditPlayerModal from "../components/Players/EditPlayerModal";
 import PlayerDetailsModal from "../components/Players/PlayerDetailsModal";
 import AddPlayerModal from "../components/Players/AddPlayerModal";
+import ImportResultsModal from "../components/Players/ImportResultsModal";
 
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -56,6 +57,7 @@ export default function Players() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -446,11 +448,11 @@ export default function Players() {
               </button>
               
               <button
-                onClick={() => navigate('/admin#player-upload-section')}
+                onClick={() => setShowImportModal(true)}
                 className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
               >
                 <Upload className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Import CSV</span>
+                <span className="text-xs font-medium">Import Results</span>
               </button>
               
               <button
@@ -713,6 +715,16 @@ export default function Players() {
           allPlayers={players}
           onClose={() => setShowAddPlayerModal(false)}
           onSave={() => {
+            if (selectedEvent) cacheInvalidation.playersUpdated(selectedEvent.id);
+            fetchPlayers();
+          }}
+        />
+      )}
+
+      {showImportModal && (
+        <ImportResultsModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
             if (selectedEvent) cacheInvalidation.playersUpdated(selectedEvent.id);
             fetchPlayers();
           }}
