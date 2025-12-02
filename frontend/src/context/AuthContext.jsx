@@ -8,6 +8,7 @@ import { useToast } from './ToastContext';
 import LoadingScreen from '../components/LoadingScreen';
 import { authLogger } from '../utils/logger';
 import { cacheInvalidation } from '../utils/dataCache';
+import { fetchSchemas } from '../constants/drillTemplates';
 
 const AuthContext = createContext();
 
@@ -82,7 +83,12 @@ export function AuthProvider({ children }) {
       const warmupStart = performance.now();
       
       // Parallel warmup requests for maximum efficiency
-      const warmupPromises = [apiWarmup().catch(() => null), apiHealth().catch(() => null)];
+      // ALSO FETCH SCHEMAS HERE to preload the Multi-Sport Engine
+      const warmupPromises = [
+        apiWarmup().catch(() => null), 
+        apiHealth().catch(() => null),
+        fetchSchemas().catch(() => null)
+      ];
       
       await Promise.race([
         Promise.allSettled(warmupPromises),
@@ -90,7 +96,7 @@ export function AuthProvider({ children }) {
       ]);
       
       const warmupTime = performance.now() - warmupStart;
-      authLogger.debug(`Enhanced backend warmup completed in ${warmupTime.toFixed(0)}ms`);
+      authLogger.debug(`Enhanced backend warmup & schema load completed in ${warmupTime.toFixed(0)}ms`);
     } catch (error) {
       // Warmup is best-effort; avoid noisy warnings in production
       authLogger.debug('Backend warmup non-critical failure', error.message);
@@ -138,7 +144,6 @@ export function AuthProvider({ children }) {
       setLeagueFetchInProgress(false);
     }
   }, []);
-
 
 
 
@@ -731,4 +736,4 @@ export function useAuth() {
 export function useLogout() {
   const { logout } = useAuth();
   return logout;
-} 
+}
