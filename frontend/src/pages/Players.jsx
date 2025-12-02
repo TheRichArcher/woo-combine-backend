@@ -13,14 +13,13 @@ import api from '../lib/api';
 import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
-import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
 import WeightControls from '../components/WeightControls';
-import { getDrillsFromTemplate } from '../constants/drillTemplates';
+import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
 // PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
 const cachedFetchPlayers = withCache(
@@ -66,6 +65,24 @@ export default function Players() {
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const rankingsRef = useRef(null);
+  const [activeSchema, setActiveSchema] = useState(null);
+
+  // Fetch schema for active event
+  useEffect(() => {
+    if (selectedEvent?.drillTemplate) {
+      const fetchSchema = async () => {
+        try {
+          const res = await api.get(`/sports/${selectedEvent.drillTemplate}/schema`);
+          if (res.data) {
+            setActiveSchema(res.data);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch schema:", err);
+        }
+      };
+      fetchSchema();
+    }
+  }, [selectedEvent?.drillTemplate]);
 
   // Handle deep linking to sections
   useEffect(() => {
@@ -106,10 +123,29 @@ export default function Players() {
 
   // Compute drills
   const allDrills = useMemo(() => {
-    if (!selectedEvent) return DRILLS;
+    if (!selectedEvent) return [];
+    
+    let baseDrills = [];
+    if (activeSchema && activeSchema.drills) {
+      // Use fetched schema with normalization
+      baseDrills = activeSchema.drills.map(d => ({
+        key: d.key,
+        label: d.label,
+        unit: d.unit,
+        lowerIsBetter: d.lower_is_better,
+        category: d.category,
+        min: d.min_value,
+        max: d.max_value,
+        defaultWeight: d.default_weight
+      }));
+    } else {
+      // Fallback to local templates
+      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+    }
+
     const disabled = selectedEvent.disabled_drills || [];
-    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football')
-      .filter(d => !disabled.includes(d.key));
+    const templateDrills = baseDrills.filter(d => !disabled.includes(d.key));
+    
     const customDrills = selectedEvent.custom_drills || [];
     const formattedCustomDrills = customDrills.map(d => ({
       key: d.id,
@@ -120,7 +156,15 @@ export default function Players() {
       isCustom: true
     }));
     return [...templateDrills, ...formattedCustomDrills];
-  }, [selectedEvent]);
+  }, [selectedEvent, activeSchema]);
+
+  // Compute presets
+  const currentPresets = useMemo(() => {
+    if (activeSchema && activeSchema.presets) {
+      return activeSchema.presets;
+    }
+    return getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
+  }, [activeSchema, selectedEvent]);
 
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 
@@ -136,7 +180,7 @@ export default function Players() {
     groupedRankings,
     setSliderWeights,
     persistSliderWeights
-  } = useOptimizedWeights(players, allDrills);
+  } = useOptimizedWeights(players, allDrills, currentPresets);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
@@ -351,7 +395,7 @@ export default function Players() {
                         <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white p-3">
                            {/* Weight Presets */}
                            <div className="flex gap-1 mb-3">
-                            {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                            {Object.entries(currentPresets).map(([key, preset]) => (
                               <button
                                 key={key}
                                 onClick={() => applyPreset(key)}
@@ -602,9 +646,9 @@ export default function Players() {
                         </div>
                       </div>
                       
-                      {/* Presets */}
+                         {/* Presets */}
                       <div className="flex gap-1 mb-3">
-                        {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+                        {Object.entries(currentPresets).map(([key, preset]) => (
                           <button
                             key={key}
                             onClick={() => applyPreset(key)}
@@ -700,6 +744,7 @@ export default function Players() {
           activePreset={activePreset}
           applyPreset={applyPreset}
           drills={allDrills}
+          presets={currentPresets}
         />
       )}
       {editingPlayer && (

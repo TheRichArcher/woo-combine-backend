@@ -11,7 +11,7 @@
  * - Reduced object creation
  */
 
-import { DRILLS } from '../constants/players';
+import { calculateNormalizedDrillScore as calcNormScore } from './normalizedScoring'; // Optional reuse if desired, but we have local implementation
 
 /**
  * Cache for drill ranges to avoid recalculation
@@ -31,7 +31,7 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
     .sort()
     .join(',');
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   
   const scores = currentDrills.map(drill => {
     const values = filtered
@@ -52,14 +52,14 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
  * @param {Array<Object>} drillList - List of drills to calculate ranges for
  * @returns {Object<string, {min: number, max: number}>} Drill ranges by drill key
  */
-function getCachedDrillRanges(players, ageGroup, drillList = DRILLS) {
+function getCachedDrillRanges(players, ageGroup, drillList = []) {
   const cacheKey = getDrillRangeCacheKey(players, ageGroup, drillList);
   
   if (drillRangeCache.has(cacheKey)) {
     return drillRangeCache.get(cacheKey);
   }
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   
   const ageGroupPlayers = (ageGroup === 'ALL' ? players : players.filter(p => p && p.age_group === ageGroup))
     .filter(p => currentDrills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number'));
@@ -67,15 +67,24 @@ function getCachedDrillRanges(players, ageGroup, drillList = DRILLS) {
   const drillRanges = {};
   
   currentDrills.forEach(drill => {
-    const values = ageGroupPlayers
-      .map(p => p[drill.key])
-      .filter(val => val != null && typeof val === 'number');
-    
-    if (values.length > 0) {
+    // Use schema-defined ranges if available
+    if (drill.min != null && drill.max != null) {
       drillRanges[drill.key] = {
-        min: Math.min(...values),
-        max: Math.max(...values)
+        min: drill.min,
+        max: drill.max
       };
+    } else {
+      // Calculate from data
+      const values = ageGroupPlayers
+        .map(p => p[drill.key])
+        .filter(val => val != null && typeof val === 'number');
+      
+      if (values.length > 0) {
+        drillRanges[drill.key] = {
+          min: Math.min(...values),
+          max: Math.max(...values)
+        };
+      }
     }
   });
   
@@ -130,10 +139,10 @@ function calculateNormalizedDrillScore(rawScore, range, drillKey, lowerIsBetter)
  * @param {Array} drillList - List of drills (optional)
  * @returns {number} Composite score
  */
-export function calculateOptimizedCompositeScore(player, allPlayers, weights, drillList = DRILLS) {
+export function calculateOptimizedCompositeScore(player, allPlayers, weights, drillList = []) {
   if (!player || !allPlayers || allPlayers.length === 0) return 0;
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   const drillRanges = getCachedDrillRanges(allPlayers, player.age_group, currentDrills);
   let totalWeightedScore = 0;
   
@@ -159,10 +168,10 @@ export function calculateOptimizedCompositeScore(player, allPlayers, weights, dr
  * @param {Array} drillList - List of drills (optional)
  * @returns {Array} Ranked players with scores and ranks
  */
-export function calculateOptimizedRankings(players, weights, drillList = DRILLS) {
+export function calculateOptimizedRankings(players, weights, drillList = []) {
   if (!players || players.length === 0) return [];
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   
   // Group players by age group for efficient processing
   const playersByAgeGroup = new Map();
@@ -232,10 +241,10 @@ export function calculateOptimizedRankings(players, weights, drillList = DRILLS)
  * @param {Array} drillList - List of drills (optional)
  * @returns {Array}
  */
-export function calculateOptimizedRankingsAcrossAll(players, weights, drillList = DRILLS) {
+export function calculateOptimizedRankingsAcrossAll(players, weights, drillList = []) {
   if (!players || players.length === 0) return [];
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   
   // Filter players with at least one drill score
   const playersWithScores = players.filter(player => 
@@ -270,10 +279,10 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
  * @param {Array} drillList - List of drills (optional)
  * @returns {Object} Drill rankings { drillKey: rank }
  */
-export function calculateDrillRankings(player, allPlayers, drillList = DRILLS) {
+export function calculateDrillRankings(player, allPlayers, drillList = []) {
   if (!player || !allPlayers || allPlayers.length === 0) return {};
   
-  const currentDrills = drillList || DRILLS;
+  const currentDrills = drillList || [];
   const rankings = {};
   
   currentDrills.forEach(drill => {

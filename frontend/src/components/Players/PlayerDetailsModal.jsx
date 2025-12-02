@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, TrendingUp, Settings, Award } from 'lucide-react';
-import { DRILLS, WEIGHT_PRESETS } from '../../constants/players';
 
 const PlayerDetailsModal = React.memo(function PlayerDetailsModal({ 
   player, 
@@ -10,7 +9,9 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   sliderWeights, 
   persistSliderWeights, 
   activePreset, 
-  applyPreset 
+  applyPreset,
+  drills = [],
+  presets = {}
 }) {
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
@@ -32,7 +33,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
     if (!player || !allPlayers || allPlayers.length === 0) return {};
     
     const rankings = {};
-    DRILLS.forEach(drill => {
+    drills.forEach(drill => {
       try {
         const validPlayers = allPlayers.filter(p => 
           p && 
@@ -69,11 +70,11 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
     // Calculate drill ranges for normalization (same age group only)
     const ageGroupPlayers = allPlayers.filter(p => 
       p && p.age_group === player.age_group && 
-      DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+      drills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
     );
     
     const drillRanges = {};
-    DRILLS.forEach(drill => {
+    drills.forEach(drill => {
       const values = ageGroupPlayers
         .map(p => p[drill.key])
         .filter(val => val != null && typeof val === 'number');
@@ -86,7 +87,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
       }
     });
     
-    return DRILLS.map(drill => {
+    return drills.map(drill => {
       try {
         const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
           ? player[drill.key] 
@@ -150,11 +151,11 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
     if (ageGroupPlayers.length > 0) {
       // Calculate drill ranges for normalized scoring
       const playersWithAnyScore = ageGroupPlayers.filter(p => 
-        DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+        drills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
       );
       
       const drillRanges = {};
-      DRILLS.forEach(drill => {
+      drills.forEach(drill => {
         const values = playersWithAnyScore
           .map(p => p[drill.key])
           .filter(val => val != null && typeof val === 'number');
@@ -169,7 +170,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
       
       const playersWithScores = ageGroupPlayers.map(p => {
         try {
-          const score = DRILLS.reduce((sum, drill) => {
+          const score = drills.reduce((sum, drill) => {
             const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
             const weight = weights[drill.key] || 0;
             const range = drillRanges[drill.key];
@@ -314,11 +315,11 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                     Weight Scenarios
                   </h3>
                   
-                  <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
-                    {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
-                      <button
-                        key={key}
-                        onClick={() => applyPreset(key)}
+                <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                  {Object.entries(presets).map(([key, preset]) => (
+                    <button
+                      key={key}
+                      onClick={() => applyPreset(key)}
                         className={`p-2 text-left rounded-lg border-2 transition-all ${
                           activePreset === key 
                             ? 'border-brand-primary bg-brand-primary bg-opacity-5 text-brand-primary' 
@@ -361,7 +362,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
                     
                     <div className="pt-2 border-t border-gray-200">
                       <div className="text-xs text-gray-500">
-                        {activePreset ? 'Using ' + WEIGHT_PRESETS[activePreset].name : 'Custom weights'}
+                        {activePreset && presets[activePreset] ? 'Using ' + presets[activePreset].name : 'Custom weights'}
                       </div>
                     </div>
                   </div>

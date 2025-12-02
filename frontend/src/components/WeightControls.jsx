@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { DRILLS, WEIGHT_PRESETS } from '../constants/players';
 import { Settings } from 'lucide-react';
 
 const WeightControls = ({
@@ -9,6 +8,8 @@ const WeightControls = ({
   applyPreset,
   showCustomControls,
   setShowCustomControls,
+  drills = [],
+  presets = {}
 }) => {
   const sliderRefs = useRef({});
 
@@ -21,7 +22,7 @@ const WeightControls = ({
       <p className="text-cmf-primary text-sm mb-3">
         Set drill priorities for ranking calculations. Higher values = more important to you.
         <span className="block text-xs mt-1 opacity-75">
-          Currently: <strong>{WEIGHT_PRESETS[activePreset]?.name || 'Custom'}</strong>
+          Currently: <strong>{presets[activePreset]?.name || 'Custom'}</strong>
           {!activePreset && (
             <span className="ml-1 text-green-600">⚡ Live updates!</span>
           )}
@@ -29,7 +30,7 @@ const WeightControls = ({
       </p>
 
       <div className="grid grid-cols-2 gap-3 mb-4">
-        {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+        {Object.entries(presets).map(([key, preset]) => (
           <button
             key={key}
             onClick={() => applyPreset(key)}
@@ -64,7 +65,7 @@ const WeightControls = ({
 
       {showCustomControls && (
         <div className="space-y-3">
-          {DRILLS.map((drill) => (
+          {drills.map((drill) => (
             <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div>

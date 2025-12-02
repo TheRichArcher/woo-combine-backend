@@ -21,7 +21,6 @@
  */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { WEIGHT_PRESETS } from '../constants/players';
 import { debounce } from '../utils/debounce';
 import { calculateOptimizedRankings } from '../utils/optimizedScoring';
 
@@ -29,19 +28,45 @@ import { calculateOptimizedRankings } from '../utils/optimizedScoring';
  * Custom hook for optimized weight management with performance optimizations
  * @param {Array<Object>} players - Array of player objects
  * @param {Array<Object>} drills - Array of drill definitions
+ * @param {Object} presets - Weight presets configuration
  * @returns {Object} Weight management state and methods
  */
-export function useOptimizedWeights(players = [], drills) {
+export function useOptimizedWeights(players = [], drills, presets = {}) {
   // Load initial weights from localStorage or use defaults
   const getInitialWeights = () => {
-    try {
-      const saved = localStorage.getItem('wooCombine:weights');
-      if (saved) {
-        return JSON.parse(saved);
+    // Try to use defaults from drills first
+    const defaults = {};
+    if (drills && drills.length > 0) {
+      drills.forEach(d => {
+        // Check if defaultWeight is provided (0-1 scale or 0-100 scale?)
+        // Backend schema default_weight is usually 0.2 (float). Frontend uses 0-100 for sliders.
+        // If it's < 1 assume it's decimal, otherwise assume percentage.
+        const weight = d.defaultWeight !== undefined ? d.defaultWeight : 0;
+        defaults[d.key] = weight <= 1 ? weight * 100 : weight;
+      });
+      
+      // If we have valid defaults from drills, verify against localStorage
+      // If localStorage keys don't match current drills, ignore localStorage
+      try {
+        const saved = localStorage.getItem('wooCombine:weights');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const savedKeys = Object.keys(parsed);
+          const drillKeys = drills.map(d => d.key);
+          
+          // Only use saved weights if they match the current drills
+          const isMatch = drillKeys.every(k => savedKeys.includes(k));
+          if (isMatch) return parsed;
+        }
+      } catch (e) {
+        console.warn('Failed to load weights from localStorage', e);
       }
-    } catch (e) {
-      console.warn('Failed to load weights from localStorage', e);
+      
+      // If no valid saved weights, return defaults calculated from drills
+      if (Object.keys(defaults).length > 0) return defaults;
     }
+    
+    // Fallback for initial render if drills not yet loaded
     return {
       "40m_dash": 20,
       "vertical_jump": 20, 
@@ -53,6 +78,31 @@ export function useOptimizedWeights(players = [], drills) {
 
   // Persisted weights (the source of truth)
   const [persistedWeights, setPersistedWeights] = useState(getInitialWeights);
+
+  // Update weights when drills change (e.g. fetching schema completed)
+  useEffect(() => {
+    if (drills && drills.length > 0) {
+      const currentKeys = Object.keys(persistedWeights);
+      const drillKeys = drills.map(d => d.key);
+      
+      // Check if we need to reset weights because drills changed
+      const mismatch = drillKeys.some(k => !persistedWeights[k]) || 
+                       (currentKeys.length > 0 && !currentKeys.includes('40m_dash') && !drillKeys.includes(currentKeys[0]));
+      
+      if (mismatch) {
+        const newDefaults = {};
+        drills.forEach(d => {
+           const weight = d.defaultWeight !== undefined ? d.defaultWeight : 0;
+           newDefaults[d.key] = weight <= 1 ? weight * 100 : weight;
+        });
+        // Normalize to ensure they sum to 100 if needed, or just use as is.
+        // Our system uses relative weights so sum doesn't strictly matter for UI but usually 100 is good.
+        
+        setPersistedWeights(newDefaults);
+        setSliderWeights(newDefaults);
+      }
+    }
+  }, [drills]); // Deep comparison might be better but drills array ref should change on load
 
   // Live slider values for smooth interaction
   const [sliderWeights, setSliderWeights] = useState(persistedWeights);
@@ -106,7 +156,7 @@ export function useOptimizedWeights(players = [], drills) {
 
   // Apply preset weights
   const applyPreset = useCallback((presetKey) => {
-    const preset = WEIGHT_PRESETS[presetKey];
+    const preset = presets[presetKey];
     if (!preset) return;
 
     // Preset weights are defined as fractions (0-1). Convert to percentage (0-100)
@@ -171,7 +221,9 @@ export function useOptimizedWeights(players = [], drills) {
 
   // Check if weights match a preset
   const detectActivePreset = useCallback(() => {
-    for (const [key, preset] of Object.entries(WEIGHT_PRESETS)) {
+    if (!presets) return null;
+    
+    for (const [key, preset] of Object.entries(presets)) {
       // Compare against percentage scale
       const matches = Object.keys(preset.weights).every((drillKey) => {
         const expected = (preset.weights[drillKey] || 0) * 100;
@@ -183,7 +235,7 @@ export function useOptimizedWeights(players = [], drills) {
       }
     }
     return null;
-  }, [persistedWeights]);
+  }, [persistedWeights, presets]);
 
   // Update active preset when weights change
   useEffect(() => {
