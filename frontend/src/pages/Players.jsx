@@ -743,6 +743,24 @@ export default function Players() {
              </div>
              
              <div className="space-y-3">
+               {/* PDF Export Button */}
+               <button
+                  onClick={() => {
+                    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/export-pdf`;
+                    window.open(url, '_blank');
+                    setShowExportModal(false);
+                  }}
+                  className="w-full p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-left transition flex items-center justify-between mb-4"
+               >
+                 <div>
+                    <div className="font-semibold text-teal-900 flex items-center gap-2">
+                        <FileText className="w-5 h-5" /> Download Results PDF
+                    </div>
+                    <div className="text-sm text-teal-700">Formal report with rankings & stats</div>
+                 </div>
+                 <Download className="w-5 h-5 text-teal-700" />
+               </button>
+
                {/* Export All */}
                <button
                   onClick={() => {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database } from 'lucide-react';
+import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 
@@ -9,6 +9,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   const [method, setMethod] = useState('file'); // file, text
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
+  const [url, setUrl] = useState('');
   const [parseResult, setParseResult] = useState(null);
   const [error, setError] = useState(null);
   const [undoLog, setUndoLog] = useState(null);
@@ -28,6 +29,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   // History
   const [importHistory, setImportHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState('all'); // all, valid, errors
 
   // Auto-save key
   const draftKey = `import_draft_${selectedEvent?.id}`;
@@ -85,13 +87,22 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     window.open(url, '_blank');
   };
 
+  const handleDownloadPDF = () => {
+    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/export-pdf`;
+    window.open(url, '_blank');
+  };
+
   const handleParse = async (sheetName = null) => {
-    if (method === 'file' && !file) {
-      setError('Please select a file');
+    if ((method === 'file' || method === 'photo') && !file) {
+      setError(method === 'photo' ? 'Please select a photo' : 'Please select a file');
       return;
     }
     if (method === 'text' && !text.trim()) {
       setError('Please enter some text');
+      return;
+    }
+    if (method === 'sheets' && !url.trim()) {
+      setError('Please enter a Google Sheets URL');
       return;
     }
 
@@ -100,8 +111,10 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
 
     try {
       const formData = new FormData();
-      if (method === 'file') {
+      if (method === 'file' || method === 'photo') {
         formData.append('file', file);
+      } else if (method === 'sheets') {
+        formData.append('url', url);
       } else {
         formData.append('text', text);
       }
@@ -133,14 +146,26 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   };
 
   const handleSubmit = async () => {
-    if (!parseResult || !parseResult.valid_rows.length) return;
+    if (!parseResult) return;
 
     setStep('submitting');
     try {
+      // Combine valid and errors to allow fixing
+      const formattedErrors = parseResult.errors.map(e => ({
+          row_id: e.row,
+          data: e.data || {},
+          errors: [e.message],
+          is_error: true,
+          is_duplicate: false
+      }));
+      const allRows = [...parseResult.valid_rows, ...formattedErrors];
+
       // Merge edited data and filter based on strategy
-      let playersToUpload = parseResult.valid_rows.map(row => {
+      let playersToUpload = allRows.map(row => {
           const edited = editedRows[row.row_id] || {};
           const mergedData = { ...row.data, ...edited };
+          // Strategy: if it was an error row, default to overwrite (new insert attempt)
+          // unless it matches a duplicate? Error rows usually don't have is_duplicate set by backend
           const strategy = rowStrategies[row.row_id] || (row.is_duplicate ? conflictMode : 'overwrite');
           
           return {
@@ -164,7 +189,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         players: playersToUpload,
         skipped_count: skippedCount,
         method: method,
-        filename: file ? file.name : 'paste'
+        filename: file ? file.name : (url || 'paste')
       });
       
       if (response.data.undo_log) {
@@ -232,7 +257,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   // Render Steps
   const renderInputStep = () => (
     <div className="space-y-6">
-      <div className="flex gap-4 mb-4">
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <button
           onClick={() => setMethod('file')}
           className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
@@ -246,6 +271,30 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
           <span className="text-xs text-gray-500">CSV or Excel</span>
         </button>
         <button
+          onClick={() => setMethod('photo')}
+          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+            method === 'photo' 
+              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
+              : 'border-gray-200 hover:border-gray-300 text-gray-600'
+          }`}
+        >
+          <Camera className="w-6 h-6" />
+          <span className="font-medium">Upload Photo</span>
+          <span className="text-xs text-gray-500">OCR Scan</span>
+        </button>
+        <button
+          onClick={() => setMethod('sheets')}
+          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+            method === 'sheets' 
+              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
+              : 'border-gray-200 hover:border-gray-300 text-gray-600'
+          }`}
+        >
+          <Link className="w-6 h-6" />
+          <span className="font-medium">Google Sheets</span>
+          <span className="text-xs text-gray-500">Public Link</span>
+        </button>
+        <button
           onClick={() => setMethod('text')}
           className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
             method === 'text' 
@@ -255,11 +304,11 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         >
           <FileText className="w-6 h-6" />
           <span className="font-medium">Copy & Paste</span>
-          <span className="text-xs text-gray-500">From spreadsheets/notes</span>
+          <span className="text-xs text-gray-500">From clipboard</span>
         </button>
       </div>
 
-      {method === 'file' ? (
+      {method === 'file' || method === 'photo' ? (
         <div 
           className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
@@ -269,9 +318,13 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
-            accept=".csv,.xlsx,.xls"
+            accept={method === 'photo' ? "image/*" : ".csv,.xlsx,.xls"}
           />
-          <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+          {method === 'photo' ? (
+             <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+          ) : (
+             <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+          )}
           {file ? (
             <div>
               <p className="font-medium text-cmf-primary">{file.name}</p>
@@ -279,10 +332,27 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
             </div>
           ) : (
             <div>
-              <p className="font-medium text-gray-700">Click to select file</p>
-              <p className="text-sm text-gray-500 mt-1">Supports CSV, Excel (.xlsx)</p>
+              <p className="font-medium text-gray-700">
+                {method === 'photo' ? "Click to take/upload photo" : "Click to select file"}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {method === 'photo' ? "Supports JPG, PNG, HEIC" : "Supports CSV, Excel (.xlsx)"}
+              </p>
             </div>
           )}
+        </div>
+      ) : method === 'sheets' ? (
+        <div>
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://docs.google.com/spreadsheets/d/..."
+            className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+          />
+          <p className="text-xs text-gray-500 mt-2">
+            Paste a public Google Sheet link. Make sure "Anyone with the link" can view.
+          </p>
         </div>
       ) : (
         <div>
@@ -387,9 +457,24 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
     const duplicates = valid_rows.filter(r => r.is_duplicate);
     const hasDuplicates = duplicates.length > 0;
 
+    // Format errors to match row structure
+    const formattedErrors = errors.map(e => ({
+        row_id: e.row,
+        data: e.data || {},
+        errors: [e.message],
+        is_error: true,
+        is_duplicate: false
+    }));
+
+    const allRows = [...valid_rows, ...formattedErrors].sort((a, b) => a.row_id - b.row_id);
+    
+    const rowsToDisplay = reviewFilter === 'errors' ? formattedErrors 
+                        : reviewFilter === 'valid' ? valid_rows 
+                        : allRows;
+
     // Get all unique keys from data for table headers
-    const allKeys = valid_rows.length > 0 
-      ? Array.from(new Set(valid_rows.flatMap(r => Object.keys(r.data))))
+    const allKeys = allRows.length > 0 
+      ? Array.from(new Set(allRows.flatMap(r => Object.keys(r.data || {}))))
       : [];
     
     const priorityKeys = ['first_name', 'last_name', 'jersey_number', 'age_group'];
@@ -431,14 +516,33 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         </div>
 
         <div className="flex gap-4">
-          <div className="flex-1 bg-green-50 p-4 rounded-xl border border-green-100">
+          <button 
+            onClick={() => setReviewFilter('valid')}
+            className={`flex-1 p-4 rounded-xl border text-left transition-all ${
+                reviewFilter === 'valid' ? 'ring-2 ring-green-500 border-transparent' : ''
+            } bg-green-50 border-green-100`}
+          >
             <div className="text-2xl font-bold text-green-700">{summary.valid_count}</div>
             <div className="text-sm text-green-600 font-medium">Valid Rows</div>
-          </div>
-          <div className={`flex-1 p-4 rounded-xl border ${hasErrors ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+          </button>
+          <button 
+            onClick={() => setReviewFilter('errors')}
+            className={`flex-1 p-4 rounded-xl border text-left transition-all ${
+                reviewFilter === 'errors' ? 'ring-2 ring-red-500 border-transparent' : ''
+            } ${hasErrors ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
+          >
             <div className={`text-2xl font-bold ${hasErrors ? 'text-red-700' : 'text-gray-700'}`}>{summary.error_count}</div>
             <div className={`text-sm font-medium ${hasErrors ? 'text-red-600' : 'text-gray-600'}`}>Errors</div>
-          </div>
+          </button>
+          <button 
+            onClick={() => setReviewFilter('all')}
+            className={`flex-1 p-4 rounded-xl border text-left transition-all ${
+                reviewFilter === 'all' ? 'ring-2 ring-blue-500 border-transparent' : ''
+            } bg-white border-gray-200`}
+          >
+            <div className="text-2xl font-bold text-gray-700">{summary.total_rows}</div>
+            <div className="text-sm text-gray-500 font-medium">Total Rows</div>
+          </button>
         </div>
 
         {hasDuplicates && (
@@ -490,7 +594,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
 
         <div className="border rounded-xl overflow-hidden flex flex-col max-h-[50vh]">
           <div className="bg-gray-50 px-4 py-2 border-b font-medium text-gray-700 text-sm flex justify-between items-center sticky top-0 z-10">
-            <span>Review Data ({valid_rows.length} Rows)</span>
+            <span>Review Data ({rowsToDisplay.length} Rows)</span>
             <span className="text-xs text-gray-500">Click cells to edit</span>
           </div>
           <div className="overflow-auto flex-1">
@@ -503,21 +607,23 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                       {key.replace('_', ' ')}
                     </th>
                   ))}
+                  <th className="px-4 py-2 text-left font-medium bg-gray-50">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {valid_rows.map((row, i) => {
+                {rowsToDisplay.map((row, i) => {
                     const rowId = row.row_id;
                     const isDup = row.is_duplicate;
+                    const isErr = row.is_error;
                     const edited = editedRows[rowId] || {};
                     const currentData = { ...row.data, ...edited };
                     
                     // Determine current strategy
                     const strategy = rowStrategies[rowId] || (isDup ? conflictMode : 'overwrite');
-                    const isSkipped = strategy === 'skip';
+                    const isSkipped = strategy === 'skip' && !isErr;
                     
                     return (
-                      <tr key={i} className={`hover:bg-gray-50 group ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/30' : ''}`}>
+                      <tr key={i} className={`hover:bg-gray-50 group ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/30' : ''} ${isErr ? 'bg-red-50/30' : ''}`}>
                         <td className="px-2 py-2 text-center">
                             {isDup ? (
                                 <div className="relative group-hover:visible">
@@ -541,7 +647,7 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                                     </div>
                                 </div>
                             ) : (
-                                <span className="text-gray-300 text-xs">{i+1}</span>
+                                <span className="text-gray-300 text-xs">{rowId}</span>
                             )}
                         </td>
                         {displayKeys.map(key => {
@@ -574,6 +680,18 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                               </td>
                             );
                         })}
+                        <td className="px-4 py-2">
+                            {isErr ? (
+                                <div className="text-xs text-red-600 flex items-center gap-1">
+                                    <AlertCircle className="w-3 h-3" />
+                                    {row.errors[0]}
+                                </div>
+                            ) : isDup ? (
+                                <span className="text-xs text-amber-600 font-medium">Duplicate</span>
+                            ) : (
+                                <span className="text-xs text-green-600 font-medium">Valid</span>
+                            )}
+                        </td>
                       </tr>
                     );
                 })}
@@ -685,6 +803,21 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Import Complete!</h3>
               <p className="text-gray-500">Results have been added to your event.</p>
               
+              <div className="flex justify-center gap-4 mt-8 mb-8">
+                   <button 
+                       onClick={onClose}
+                       className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                   >
+                       Close
+                   </button>
+                   <button
+                       onClick={handleDownloadPDF}
+                       className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary flex items-center gap-2"
+                   >
+                       <FileText className="w-4 h-4" /> Download Results PDF
+                   </button>
+              </div>
+
               {undoLog && (
                   <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200 max-w-md mx-auto">
                       <div className="flex items-center justify-between mb-2">

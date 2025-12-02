@@ -230,6 +230,35 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse Excel file: {str(e)}"}])
 
     @staticmethod
+    def parse_image(content: bytes) -> ImportResult:
+        """
+        Parse image content using OCR.
+        """
+        try:
+            from .ocr import OCRProcessor
+            
+            lines, confidence = OCRProcessor.extract_rows_from_image(content)
+            
+            if not lines:
+                 return ImportResult([], [{"row": 0, "message": "No text detected in image"}])
+                 
+            # Convert lines to CSV-like string for parsing
+            csv_text = OCRProcessor.lines_to_csv_string(lines)
+            
+            # Reuse parse_text logic
+            result = DataImporter.parse_text(csv_text)
+            
+            # Override confidence if needed, but for now rely on structure detection
+            return result
+            
+        except ImportError:
+            logger.error("OCR dependencies not installed")
+            return ImportResult([], [{"row": 0, "message": "OCR system not initialized"}])
+        except Exception as e:
+            logger.error(f"Image Parse Error: {e}")
+            return ImportResult([], [{"row": 0, "message": f"Failed to parse image: {str(e)}"}])
+
+    @staticmethod
     def parse_text(text: str) -> ImportResult:
         """
         Parse pasted text. Assumes either CSV-like structure or specific format.

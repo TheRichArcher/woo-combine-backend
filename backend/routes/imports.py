@@ -34,6 +34,7 @@ def parse_import_file(
     event_id: str,
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
+    url: Optional[str] = Form(None),
     sheet_name: Optional[str] = Form(None),
     current_user=Depends(require_role("organizer", "coach"))
 ):
@@ -45,6 +46,8 @@ def parse_import_file(
     - Smart error correction
     - Duplicate detection
     - Multi-sheet Excel support
+    - Image OCR
+    - URL Import (Google Sheets)
     """
     try:
         # Enforce access
@@ -60,14 +63,25 @@ def parse_import_file(
                 result = DataImporter.parse_csv(content)
             elif filename.endswith(('.xls', '.xlsx')):
                 result = DataImporter.parse_excel(content, sheet_name=sheet_name)
+            elif filename.endswith(('.jpg', '.jpeg', '.png', '.heic')):
+                result = DataImporter.parse_image(content)
             else:
-                raise HTTPException(status_code=400, detail="Unsupported file format. Please use CSV or Excel.")
+                raise HTTPException(status_code=400, detail="Unsupported file format. Please use CSV, Excel, or Image.")
                 
+        elif url:
+            from ..utils.sheets import fetch_url_content
+            try:
+                content = fetch_url_content(url)
+                # Assume CSV content from URL
+                result = DataImporter.parse_csv(content)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
         elif text:
             result = DataImporter.parse_text(text)
             
         else:
-            raise HTTPException(status_code=400, detail="No file or text provided")
+            raise HTTPException(status_code=400, detail="No file, text, or URL provided")
         
         # Handle multi-sheet response (pause parsing)
         if result.sheets:
