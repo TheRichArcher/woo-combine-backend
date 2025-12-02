@@ -64,15 +64,24 @@ export default function LiveEntry() {
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
   const [drillConfirmed, setDrillConfirmed] = useState(false);
-  const [playerNumber, setPlayerNumber] = useState("");
+  // playerNumber/playerName/playerId represent the CONFIRMED selection
+  const [playerNumber, setPlayerNumber] = useState(""); 
   const [playerName, setPlayerName] = useState("");
   const [playerId, setPlayerId] = useState("");
+  
+  // Search input state
+  const [inputValue, setInputValue] = useState("");
+  const [shortlist, setShortlist] = useState([]);
+  const [focusedMatchIndex, setFocusedMatchIndex] = useState(-1);
+  const [isNameMode, setIsNameMode] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+
   const [score, setScore] = useState("");
   const [loading, setLoading] = useState(false);
   
   // Players data for auto-complete
   const [players, setPlayers] = useState([]);
-  const [filteredPlayers, setFilteredPlayers] = useState([]);
+  // filteredPlayers is replaced by shortlist/search logic, but kept for now if needed or removed
   
   // Entry tracking
   const [recentEntries, setRecentEntries] = useState([]);
@@ -163,9 +172,9 @@ export default function LiveEntry() {
     try {
       const savedFocus = localStorage.getItem(storageKeys.focus);
       if (savedFocus) {
-        setPlayerNumber(savedFocus);
+        setInputValue(savedFocus);
       } else {
-        setPlayerNumber("");
+        setInputValue("");
       }
     } catch {}
     try {
@@ -209,14 +218,14 @@ export default function LiveEntry() {
       applied = true;
     }
     if (playerParam) {
-      setPlayerNumber(playerParam.toString());
+      setInputValue(playerParam.toString());
       applied = true;
     }
     if (applied) {
       setTimeout(() => {
         if (playerParam) {
           // focus score after auto-complete resolves
-          scoreRef.current?.focus();
+          // We let the search effect handle selection
         } else {
           playerNumberRef.current?.focus();
         }
@@ -309,38 +318,144 @@ export default function LiveEntry() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [drillConfirmed, selectedDrill]);
   
-  // Debounce search input
+  // Memoized normalized players for efficient search
+  const normalizedPlayers = useMemo(() => {
+    return players.map(p => {
+      const name = p.name || "";
+      const parts = name.trim().split(/\s+/);
+      const first = parts[0] || "";
+      const last = parts.slice(1).join(" ") || "";
+      
+      return {
+        ...p,
+        normFirst: first.toLowerCase(),
+        normLast: last.toLowerCase(),
+        normFull: name.toLowerCase(),
+        normNumber: (p.number || "").toString()
+      };
+    });
+  }, [players]);
+
+  const selectPlayer = useCallback((player) => {
+    if (!player) return;
+    setPlayerNumber(player.number.toString());
+    setPlayerName(player.name);
+    setPlayerId(player.id);
+    
+    // Update input to reflect selection (using number as canonical display)
+    setInputValue(player.number.toString());
+    
+    setShortlist([]);
+    setSearchError(null);
+    setScore(""); 
+    setFocusedMatchIndex(-1);
+    
+    // Focus score
+    setTimeout(() => {
+      scoreRef.current?.focus();
+    }, 100);
+  }, []);
+
+  // Dual-mode search logic
   useEffect(() => {
-    const handler = setTimeout(() => {
-      if (playerNumber && players.length > 0) {
-        const filtered = players.filter(p => 
-          p.number && p.number.toString().startsWith(playerNumber)
-        );
-        
-        // Auto-select if exact match and hide suggestions
-        const exactMatch = players.find(p => p.number && p.number.toString() === playerNumber);
-        if (exactMatch) {
-          setPlayerName(exactMatch.name);
-          setPlayerId(exactMatch.id);
-          setFilteredPlayers([]);
-        } else {
-          setPlayerName("");
-          setPlayerId("");
-          setFilteredPlayers(filtered);
-        }
-      } else {
-        setFilteredPlayers([]);
+    // Skip if input matches currently selected player (avoids loops)
+    if (playerId && inputValue === playerNumber) {
+      return;
+    }
+
+    if (!inputValue) {
+      setShortlist([]);
+      setSearchError(null);
+      setFocusedMatchIndex(-1);
+      if (playerId) {
+        setPlayerNumber("");
         setPlayerName("");
         setPlayerId("");
       }
-    }, 250); // 250ms debounce
+      return;
+    }
 
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [playerNumber, players]);
-  
-  // Check for existing scores
+    const isDigits = /^\d+$/.test(inputValue);
+    setIsNameMode(!isDigits);
+
+    if (isDigits) {
+      // NUMBER MODE: Instant
+      // Exact match has highest priority
+      const exactMatch = normalizedPlayers.find(p => p.normNumber === inputValue);
+      
+      if (exactMatch) {
+         // Auto-select if confident
+         if (playerId !== exactMatch.id) {
+            selectPlayer(exactMatch);
+         }
+      } else {
+        // No exact match - reset selection
+        if (playerId) {
+            setPlayerNumber("");
+            setPlayerName("");
+            setPlayerId("");
+        }
+        
+        // Show partials for convenience
+        const partials = normalizedPlayers
+          .filter(p => p.normNumber.startsWith(inputValue))
+          .slice(0, 5);
+        setShortlist(partials);
+      }
+    } else {
+      // NAME MODE: Debounced
+      const handler = setTimeout(() => {
+        const query = inputValue.toLowerCase().trim();
+        if (!query) return;
+        
+        // Filter logic
+        const matches = normalizedPlayers.filter(p => {
+            // 1. Starts with first or last
+            if (p.normFirst.startsWith(query) || p.normLast.startsWith(query)) return true;
+            // 2. Starts with full name
+            if (p.normFull.startsWith(query)) return true;
+            // 3. Includes full name
+            if (p.normFull.includes(query)) return true;
+            // 4. First letter + last name (e.g. "j sm" -> "john smith")
+            if (query.includes(' ')) {
+                const [qFirst, ...qRest] = query.split(' ');
+                const qLast = qRest.join(' ');
+                if (p.normFirst.startsWith(qFirst) && p.normLast.startsWith(qLast)) return true;
+            }
+            return false;
+        });
+        
+        // Ranking/Sorting matches
+        matches.sort((a, b) => {
+            // Priority 1: Starts with query (First/Last/Full)
+            const aStarts = a.normFirst.startsWith(query) || a.normLast.startsWith(query) || a.normFull.startsWith(query);
+            const bStarts = b.normFirst.startsWith(query) || b.normLast.startsWith(query) || b.normFull.startsWith(query);
+            if (aStarts && !bStarts) return -1;
+            if (!aStarts && bStarts) return 1;
+            return 0;
+        });
+
+        const topMatches = matches.slice(0, 5);
+        setShortlist(topMatches);
+        
+        // Auto-select if SINGLE confident match
+        if (matches.length === 1) {
+             if (playerId !== matches[0].id) {
+                selectPlayer(matches[0]);
+             }
+        } else {
+            // Multiple or none - clear selection if ambiguous
+            if (playerId) {
+                setPlayerNumber("");
+                setPlayerName("");
+                setPlayerId("");
+            }
+        }
+      }, 150);
+      
+      return () => clearTimeout(handler);
+    }
+  }, [inputValue, normalizedPlayers, playerId, playerNumber, selectPlayer]);
   const checkForDuplicate = useCallback((targetPlayerId, targetDrill) => {
     const player = players.find(p => p.id === targetPlayerId);
     if (player && player[targetDrill] != null) {
@@ -419,6 +534,9 @@ export default function LiveEntry() {
       
       // Reset form
       setPlayerNumber("");
+      setPlayerName("");
+      setPlayerId("");
+      setInputValue("");
       setScore("");
       setNote("");
       setShowNote(false);
@@ -468,17 +586,7 @@ export default function LiveEntry() {
       showSuccess('Entry undone');
     }
   };
-  
-  const selectPlayer = (player) => {
-    setPlayerNumber(player.number.toString());
-    setPlayerName(player.name);
-    setPlayerId(player.id);
-    setScore(""); // Clear score on explicit player selection to prevent phantom scores
-    setFilteredPlayers([]);
-    setTimeout(() => {
-      scoreRef.current?.focus();
-    }, 100);
-  };
+
 
   const isCurrentDrillLocked = selectedDrill ? !!lockedDrills[selectedDrill] : false;
   const toggleCurrentDrillLock = () => {
@@ -755,64 +863,138 @@ export default function LiveEntry() {
             {/* Entry Form */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Player Number */}
-                <div>
+                {/* Player Number or Name Input */}
+                <div className="relative">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Player Number
+                    Player Number or Name
                   </label>
-                  <input
-                    ref={playerNumberRef}
-                    type="text"
-                    inputMode="numeric"
-                    value={playerNumber}
-                    onChange={(e) => setPlayerNumber(e.target.value)}
-                    onWheel={preventWheel}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        if (playerId) {
-                          // Move to score field
+                  <div className="relative">
+                    <input
+                      ref={playerNumberRef}
+                      type="text"
+                      inputMode="text"
+                      autoCapitalize="words"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onWheel={preventWheel}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown') {
                           e.preventDefault();
-                          setTimeout(() => scoreRef.current?.focus(), 0);
+                          setFocusedMatchIndex(prev => Math.min(prev + 1, shortlist.length - 1));
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          setFocusedMatchIndex(prev => Math.max(prev - 1, -1));
+                        } else if (e.key === 'Enter') {
+                          if (focusedMatchIndex >= 0 && shortlist[focusedMatchIndex]) {
+                            e.preventDefault();
+                            selectPlayer(shortlist[focusedMatchIndex]);
+                          } else if (playerId) {
+                            // Move to score field
+                            e.preventDefault();
+                            setTimeout(() => scoreRef.current?.focus(), 0);
+                          } else if (inputValue && !playerId) {
+                            // Invalid submission check
+                            if (shortlist.length > 0) {
+                                // If user hits enter with shortlist but no selection, maybe select top?
+                                // User: "If the user presses Enter... and no valid player is selected... Input border turns red"
+                                // But keyboard section says: "Up/Down arrows to move, Enter to confirm".
+                            }
+                            setSearchError(true);
+                          }
+                        } else if (e.key === 'Escape') {
+                          setShortlist([]);
                         }
-                      }
-                    }}
-                    placeholder="Enter player #"
-                    className="w-full text-2xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
-                    disabled={isCurrentDrillLocked}
-                    autoFocus
-                    required
-                  />
+                      }}
+                      onBlur={() => {
+                        // Delay clearing shortlist to allow clicks
+                        setTimeout(() => {
+                           // if (!playerId && inputValue) setSearchError(true); // Optional: validate on blur
+                           setShortlist([]);
+                        }, 200);
+                      }}
+                      placeholder="Enter player # or name..."
+                      className={`w-full text-2xl p-4 border-2 rounded-lg text-center transition-colors
+                        ${playerId 
+                          ? 'border-green-500 bg-green-50 focus:border-green-500 focus:ring-green-500' 
+                          : searchError 
+                            ? 'border-red-500 bg-red-50 focus:border-red-500 focus:ring-red-500' 
+                            : 'border-gray-300 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20'
+                        }`}
+                      disabled={isCurrentDrillLocked}
+                      autoFocus
+                      required
+                    />
+                    
+                    {/* Selected Indicator Icon */}
+                    {playerId && (
+                         <div className="absolute right-4 top-1/2 transform -translate-y-1/2 text-green-600 flex items-center pointer-events-none animate-in zoom-in duration-200">
+                             <CheckCircle className="w-6 h-6" />
+                         </div>
+                    )}
+                  </div>
+
+                  {/* Selected Helper Text */}
+                  {playerId && (
+                    <div className="mt-1 text-center text-green-700 font-medium text-sm animate-in fade-in slide-in-from-top-1">
+                        Selected: #{playerNumber} · {playerName}
+                    </div>
+                  )}
                   
-                  {/* Player Auto-complete */}
-                  {filteredPlayers.length > 0 && !playerId && (
-                    <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg max-h-40 overflow-y-auto">
-                      {filteredPlayers.slice(0, 5).map(player => (
+                  {/* Error Message */}
+                  {searchError && !playerId && (
+                      <div className="text-red-500 text-sm mt-1 text-center font-medium animate-in fade-in slide-in-from-top-1">
+                          {/^\d+$/.test(inputValue) 
+                              ? `No player #${inputValue} in this event.` 
+                              : "No player found. Check the number or name."}
+                      </div>
+                  )}
+                  
+                  {/* Shortlist Dropdown */}
+                  {!playerId && shortlist.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
+                      {shortlist.map((player, idx) => (
                         <button
                           key={player.id}
                           type="button"
                           onClick={() => selectPlayer(player)}
-                          className="w-full p-3 text-left hover:bg-brand-light/20 border-b border-gray-200 last:border-b-0"
+                          className={`w-full p-3 text-left border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors
+                            ${idx === focusedMatchIndex ? 'bg-brand-primary/10 text-brand-primary' : 'hover:bg-gray-50'}`}
                         >
-                          <div className="font-medium">#{player.number} - {player.name}</div>
-                          <div className="text-sm text-gray-600">{player.age_group}</div>
+                          <span className="font-bold w-12 bg-gray-100 rounded px-2 py-1 text-center text-xs">#{player.number}</span>
+                          <span className="flex-1 font-medium">{player.name}</span>
+                          <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">{player.age_group}</span>
                         </button>
                       ))}
                     </div>
                   )}
-                </div>
-                
-                {/* Player Confirmation */}
-                {playerName && (
-                  <div className="bg-semantic-success/10 border border-semantic-success/30 rounded-lg p-3">
-                    <div className="flex items-center gap-2">
-                      <CheckCircle className="w-5 h-5 text-semantic-success" />
-                      <div>
-                        <div className="font-medium text-semantic-success">{playerName}</div>
-                        <div className="text-sm text-semantic-success/80">Player #{playerNumber}</div>
+                  
+                  {/* Recent Players Quick-Select */}
+                  {!playerId && !shortlist.length && recentEntries.length > 0 && (
+                      <div className="mt-3 flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar">
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap mr-1">Recent:</span>
+                          {Array.from(new Set(recentEntries.map(e => e.playerId)))
+                             .slice(0, 5)
+                             .map(pid => {
+                                 const entry = recentEntries.find(e => e.playerId === pid);
+                                 return (
+                                     <button
+                                         key={pid}
+                                         type="button"
+                                         onClick={() => {
+                                             const p = players.find(pl => pl.id === pid);
+                                             if (p) selectPlayer(p);
+                                         }}
+                                         className="text-xs bg-white hover:bg-brand-light/30 text-gray-700 border border-gray-200 hover:border-brand-primary/30 rounded-full px-3 py-1.5 transition-all shadow-sm whitespace-nowrap flex items-center gap-1"
+                                     >
+                                         <span className="font-bold text-brand-primary">#{entry.playerNumber}</span>
+                                         <span>{entry.playerName}</span>
+                                     </button>
+                                 );
+                             })
+                          }
                       </div>
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 
                 {/* Score Entry */}
                 <div>
