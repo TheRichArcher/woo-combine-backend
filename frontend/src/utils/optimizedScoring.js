@@ -2,6 +2,8 @@ console.log('Loading optimizedScoring.js');
 
 /**
  * Optimized Scoring Utilities for WooCombine
+ */
+console.log('optimizedScoring.js: Starting module initialization');
  *
  * Centralized, performance-optimized scoring calculations
  * that replace the scattered scoring logic throughout the app.

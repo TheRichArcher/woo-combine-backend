@@ -1,5 +1,7 @@
 console.log('Loading drillTemplates.js');
 
+console.log('drillTemplates.js: Starting module initialization');
+
 // Comprehensive Drill Templates System for Multiple Sports
 // Now serves as a caching/hybrid layer that matches backend schema definitions.
 // The frontend should prefer fetching schemas from the backend, using these as fallbacks.

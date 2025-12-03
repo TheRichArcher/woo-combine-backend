@@ -1,6 +1,7 @@
 console.log('Loading rankingUtils.js');
 
 // Ranking and weight calculation utilities
+console.log('rankingUtils.js: Starting module initialization');
 import {
   getDefaultFootballTemplate,
   getDrillsFromTemplate,

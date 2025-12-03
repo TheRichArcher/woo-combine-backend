@@ -2,6 +2,8 @@ console.log('Loading useOptimizedWeights.js');
 
 /**
  * Optimized Weight Management Hook
+ */
+console.log('useOptimizedWeights.js: Starting module initialization');
  *
  * Replaces the complex weight management logic in Players.jsx
  * with a clean, performance-optimized solution using debouncing
