@@ -1,6 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { DRILL_WEIGHTS, WEIGHT_PRESETS } from '../constants/players';
+import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';
+
+const defaultTemplate = getDefaultFootballTemplate();
+const DRILL_WEIGHTS = defaultTemplate.defaultWeights;
+const WEIGHT_PRESETS = defaultTemplate.presets;
 
 /**
  * Custom hook for managing drill weight adjustments and presets

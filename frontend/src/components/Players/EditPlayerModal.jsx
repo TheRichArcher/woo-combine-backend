@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { X, Edit } from 'lucide-react';
 import api from '../../lib/api';
-import { AGE_GROUP_OPTIONS } from '../../constants/players';
+import { AGE_GROUP_OPTIONS } from '../../constants/app';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { useToast } from '../../context/ToastContext';
 import ErrorDisplay from '../ErrorDisplay';

@@ -4,7 +4,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import api from '../../lib/api';
-import { AGE_GROUP_OPTIONS } from '../../constants/players';
+import { AGE_GROUP_OPTIONS } from '../../constants/app';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { useToast } from '../../context/ToastContext';
 import { useEvent } from '../../context/EventContext';

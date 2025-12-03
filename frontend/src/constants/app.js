@@ -108,6 +108,11 @@ export const ROUTES = {
   EVENT_SHARING: '/event-sharing'
 };
 
+export const AGE_GROUP_OPTIONS = [
+  "6U", "U6", "8U", "U8", "10U", "U10", "12U", "U12",
+  "5-6", "7-8", "9-10", "11-12", "13-14", "15-16", "17-18"
+];
+
 // Error messages
 export const ERROR_MESSAGES = {
   NETWORK: {
