@@ -14,27 +14,32 @@ console.log('Loading optimizedScoring.js');
  */
 
 /**
- * Cache for drill ranges to avoid recalculation
+ * Cache for drill ranges to avoid recalculation - lazy initialized to avoid TDZ
  */
-console.log('optimizedScoring.js: Before Map');
-const drillRangeCache = new Map();
-console.log('optimizedScoring.js: After Map');
+let drillRangeCache = null;
+
+function getDrillRangeCache() {
+  if (!drillRangeCache) {
+    drillRangeCache = new Map();
+  }
+  return drillRangeCache;
+}
 
 /**
  * Generate cache key for drill ranges
  */
 function getDrillRangeCacheKey(players, ageGroup, drillList) {
-  const filtered = ageGroup === 'ALL' 
-    ? players 
+  const filtered = ageGroup === 'ALL'
+    ? players
     : players.filter(p => p.age_group === ageGroup);
 
   const playerIds = filtered
     .map(p => p.id)
     .sort()
     .join(',');
-  
+
   const currentDrills = drillList || [];
-  
+
   const scores = currentDrills.map(drill => {
     const values = filtered
       .filter(p => p[drill.key] != null)
@@ -43,7 +48,7 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
       .join(',');
     return `${drill.key}:${values}`;
   }).join('|');
-  
+
   return `${ageGroup}|${playerIds}_${scores}`;
 }
 
@@ -56,19 +61,19 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
  */
 function getCachedDrillRanges(players, ageGroup, drillList = []) {
   const cacheKey = getDrillRangeCacheKey(players, ageGroup, drillList);
+  const cache = getDrillRangeCache();
 
-  // Temporarily disable caching to test TDZ
-  // if (drillRangeCache.has(cacheKey)) {
-  //   return drillRangeCache.get(cacheKey);
-  // }
-  
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey);
+  }
+
   const currentDrills = drillList || [];
-  
+
   const ageGroupPlayers = (ageGroup === 'ALL' ? players : players.filter(p => p && p.age_group === ageGroup))
     .filter(p => currentDrills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number'));
-  
+
   const drillRanges = {};
-  
+
   currentDrills.forEach(drill => {
     // Use schema-defined ranges if available
     if (drill.min != null && drill.max != null) {
@@ -81,7 +86,7 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
       const values = ageGroupPlayers
         .map(p => p[drill.key])
         .filter(val => val != null && typeof val === 'number');
-      
+
       if (values.length > 0) {
         drillRanges[drill.key] = {
           min: Math.min(...values),
@@ -90,17 +95,16 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
       }
     }
   });
-  
+
   // Cache the result
-  // drillRangeCache.set(cacheKey, drillRanges);
-  
+  cache.set(cacheKey, drillRanges);
+
   // Clear old cache entries if cache gets too large
-  // Cache disabled for TDZ debugging
-  // if (drillRangeCache.size > 50) {
-  //   const keysToDelete = Array.from(drillRangeCache.keys()).slice(0, 25);
-  //   keysToDelete.forEach(key => drillRangeCache.delete(key));
-  // }
-  
+  if (cache.size > 50) {
+    const keysToDelete = Array.from(cache.keys()).slice(0, 25);
+    keysToDelete.forEach(key => cache.delete(key));
+  }
+
   return drillRanges;
 }
 
@@ -330,17 +334,17 @@ export function calculateDrillRankings(player, allPlayers, drillList = []) {
  * Clear the drill range cache (useful when player data changes significantly)
  */
 export function clearDrillRangeCache() {
-  // Cache disabled for TDZ debugging
-  // drillRangeCache.clear();
+  const cache = getDrillRangeCache();
+  cache.clear();
 }
 
 /**
  * Get cache statistics for debugging
  */
 export function getCacheStats() {
-  // Cache disabled for TDZ debugging
+  const cache = getDrillRangeCache();
   return {
-    size: 0,
-    keys: []
+    size: cache.size,
+    keys: Array.from(cache.keys())
   };
 }

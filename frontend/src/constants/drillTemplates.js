@@ -213,16 +213,24 @@ export const DRILL_TEMPLATES = {
   }
 };
 
-// Cache for fetched schemas
-let schemaCache = { ...DRILL_TEMPLATES };
+// Cache for fetched schemas - lazy initialized to avoid TDZ
+let schemaCache = null;
+
+function ensureSchemaCache() {
+  if (!schemaCache) {
+    schemaCache = { ...DRILL_TEMPLATES };
+  }
+  return schemaCache;
+}
 
 // API Function to fetch schemas from backend
 export const fetchSchemas = async () => {
   try {
     const response = await api.get('/schemas');
     if (response.data) {
+      const cache = ensureSchemaCache();
       response.data.forEach(schema => {
-        schemaCache[schema.id] = {
+        cache[schema.id] = {
           ...schema,
           // Normalize backend schema structure to frontend template structure if needed
           drills: schema.drills.map(d => ({
@@ -238,14 +246,14 @@ export const fetchSchemas = async () => {
             if (d.default_weight > 0) acc[d.key] = d.default_weight;
             return acc;
           }, {}),
-          presets: Array.isArray(schema.presets) 
+          presets: Array.isArray(schema.presets)
             ? schema.presets.reduce((acc, preset) => {
                 // Use explicit ID or generate fallback from name
                 const key = preset.id || preset.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-                acc[key] = { 
-                  name: preset.name, 
-                  description: preset.description, 
-                  weights: preset.weights 
+                acc[key] = {
+                  name: preset.name,
+                  description: preset.description,
+                  weights: preset.weights
                 };
                 return acc;
               }, {})
@@ -256,22 +264,22 @@ export const fetchSchemas = async () => {
         };
       });
     }
-    return schemaCache;
+    return ensureSchemaCache();
   } catch (error) {
     console.error("Failed to fetch schemas:", error);
-    return schemaCache; // Fallback to local/cache
+    return ensureSchemaCache(); // Fallback to local/cache
   }
 };
 
 // --- UTILITY FUNCTIONS ---
 
 export const getTemplateById = (templateId) => {
-  return schemaCache[templateId] || DRILL_TEMPLATES[templateId] || DRILL_TEMPLATES.football;
+  return ensureSchemaCache()[templateId] || DRILL_TEMPLATES[templateId] || DRILL_TEMPLATES.football;
 };
 
-export const getAllTemplates = () => Object.values(schemaCache);
+export const getAllTemplates = () => Object.values(ensureSchemaCache());
 
-export const getTemplatesByCategory = (category) => 
+export const getTemplatesByCategory = (category) =>
   getAllTemplates().filter(template => template.category === category);
 
 export const getTemplatesBySport = (sport) =>
