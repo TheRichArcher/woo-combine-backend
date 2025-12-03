@@ -190,6 +190,7 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
 
   // Memoized rankings calculation using optimized algorithm
   const memoizedRankings = useMemo(() => {
+    console.log('useOptimizedWeights.js: Calculating memoizedRankings');
     if (!players || players.length === 0) return [];
     
     return calculateOptimizedRankings(players, persistedWeights, drills);
@@ -197,6 +198,7 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
 
   // Group rankings by age group for efficient rendering
   const groupedRankings = useMemo(() => {
+    console.log('useOptimizedWeights.js: Calculating groupedRankings');
     return memoizedRankings.reduce((acc, player) => {
       const ageGroup = player.age_group || 'unknown';
       if (!acc[ageGroup]) {
@@ -209,6 +211,7 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
 
   // Live rankings for immediate UI feedback (using slider weights)
   const liveRankings = useMemo(() => {
+    console.log('useOptimizedWeights.js: Calculating liveRankings');
     // Only recalculate if slider weights differ significantly from persisted
     const weightsChanged = Object.keys(sliderWeights).some(
       key => Math.abs(sliderWeights[key] - persistedWeights[key]) > 0.5
