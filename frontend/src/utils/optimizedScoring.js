@@ -95,10 +95,11 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
   // drillRangeCache.set(cacheKey, drillRanges);
   
   // Clear old cache entries if cache gets too large
-  if (drillRangeCache.size > 50) {
-    const keysToDelete = Array.from(drillRangeCache.keys()).slice(0, 25);
-    keysToDelete.forEach(key => drillRangeCache.delete(key));
-  }
+  // Cache disabled for TDZ debugging
+  // if (drillRangeCache.size > 50) {
+  //   const keysToDelete = Array.from(drillRangeCache.keys()).slice(0, 25);
+  //   keysToDelete.forEach(key => drillRangeCache.delete(key));
+  // }
   
   return drillRanges;
 }
@@ -329,15 +330,17 @@ export function calculateDrillRankings(player, allPlayers, drillList = []) {
  * Clear the drill range cache (useful when player data changes significantly)
  */
 export function clearDrillRangeCache() {
-  drillRangeCache.clear();
+  // Cache disabled for TDZ debugging
+  // drillRangeCache.clear();
 }
 
 /**
  * Get cache statistics for debugging
  */
 export function getCacheStats() {
+  // Cache disabled for TDZ debugging
   return {
-    size: drillRangeCache.size,
-    keys: Array.from(drillRangeCache.keys())
+    size: 0,
+    keys: []
   };
 }
