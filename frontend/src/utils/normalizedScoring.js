@@ -8,25 +8,27 @@
 import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 
 // Use default template drills as fallback to avoid circular dependency with players.js
-const DRILLS = getDefaultFootballTemplate().drills;
+// const DRILLS = getDefaultFootballTemplate().drills; // REMOVED: Top-level call causes TDZ
 
 /**
  * Calculate normalized composite score for a single player
  * This matches the method used in Players.jsx for consistency
  */
-export function calculateNormalizedCompositeScore(player, allPlayers, weights, drillList = DRILLS) {
+export function calculateNormalizedCompositeScore(player, allPlayers, weights, drillList = null) {
+  const effectiveDrills = drillList || getDefaultFootballTemplate().drills;
+
   if (!player || !allPlayers || allPlayers.length === 0) return 0;
   
   // Filter players with at least one drill score for normalization
   const playersWithScores = allPlayers.filter(player => 
-    (drillList || DRILLS).some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    effectiveDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
   );
   
   if (playersWithScores.length === 0) return 0;
   
   // Calculate min/max for each drill for normalization
   const drillRanges = {};
-  (drillList || DRILLS).forEach(drill => {
+  effectiveDrills.forEach(drill => {
     const values = playersWithScores
       .map(p => p[drill.key])
       .filter(val => val != null && typeof val === 'number');
@@ -42,7 +44,7 @@ export function calculateNormalizedCompositeScore(player, allPlayers, weights, d
   // Calculate normalized weighted score for this player
   let totalWeightedScore = 0;
   
-  (drillList || DRILLS).forEach(drill => {
+  effectiveDrills.forEach(drill => {
     const rawScore = player[drill.key];
     const weight = weights[drill.key] || 0;
     const range = drillRanges[drill.key];
@@ -73,19 +75,21 @@ export function calculateNormalizedCompositeScore(player, allPlayers, weights, d
  * Calculate normalized composite scores for multiple players
  * Returns array of players with compositeScore added
  */
-export function calculateNormalizedCompositeScores(players, weights, drillList = DRILLS) {
+export function calculateNormalizedCompositeScores(players, weights, drillList = null) {
+  const effectiveDrills = drillList || getDefaultFootballTemplate().drills;
+
   if (!players || players.length === 0) return [];
   
   // Filter players with at least one drill score
   const playersWithScores = players.filter(player => 
-    (drillList || DRILLS).some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    effectiveDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
   );
   
   if (playersWithScores.length === 0) return [];
   
   // Calculate min/max for each drill for normalization
   const drillRanges = {};
-  (drillList || DRILLS).forEach(drill => {
+  effectiveDrills.forEach(drill => {
     const values = playersWithScores
       .map(p => p[drill.key])
       .filter(val => val != null && typeof val === 'number');
@@ -102,7 +106,7 @@ export function calculateNormalizedCompositeScores(players, weights, drillList =
   return playersWithScores.map(player => {
     let totalWeightedScore = 0;
     
-    (drillList || DRILLS).forEach(drill => {
+    effectiveDrills.forEach(drill => {
       const rawScore = player[drill.key];
       const weight = weights[drill.key] || 0;
       const range = drillRanges[drill.key];
