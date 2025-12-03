@@ -855,6 +855,7 @@ export default function Players() {
             if (selectedEvent) cacheInvalidation.playersUpdated(selectedEvent.id);
             fetchPlayers();
           }}
+          availableDrills={allDrills}
         />
       )}
       

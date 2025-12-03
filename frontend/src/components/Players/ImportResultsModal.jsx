@@ -5,7 +5,7 @@ import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, Alert
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 
-export default function ImportResultsModal({ onClose, onSuccess }) {
+export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [] }) {
   const { selectedEvent } = useEvent();
   const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
   const [method, setMethod] = useState('file'); // file, text
@@ -19,6 +19,9 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
   const [conflictMode, setConflictMode] = useState('overwrite'); // overwrite, skip, merge
   const [undoTimer, setUndoTimer] = useState(30);
   const fileInputRef = useRef(null);
+  
+  // Column Mapping State
+  const [keyMapping, setKeyMapping] = useState({}); // { originalKey: targetKey }
 
   // Multi-sheet support
   const [sheets, setSheets] = useState([]);
@@ -139,6 +142,19 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       }
 
       setParseResult(response.data);
+      
+      // Initialize key mapping (default to identity)
+      const initialMapping = {};
+      if (response.data.valid_rows.length > 0 || response.data.errors.length > 0) {
+          const firstRow = response.data.valid_rows[0] || response.data.errors[0];
+          if (firstRow && firstRow.data) {
+              Object.keys(firstRow.data).forEach(k => {
+                  initialMapping[k] = k;
+              });
+          }
+      }
+      setKeyMapping(initialMapping);
+      
       setStep('review');
     } catch (err) {
       console.error("Parse error:", err);
@@ -166,12 +182,22 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
       let playersToUpload = allRows.map(row => {
           const edited = editedRows[row.row_id] || {};
           const mergedData = { ...row.data, ...edited };
+          
+          // Apply column mapping (rename keys)
+          const mappedData = {};
+          Object.keys(mergedData).forEach(k => {
+              const targetKey = keyMapping[k] || k;
+              if (targetKey !== '__ignore__') {
+                  mappedData[targetKey] = mergedData[k];
+              }
+          });
+
           // Strategy: if it was an error row, default to overwrite (new insert attempt)
           // unless it matches a duplicate? Error rows usually don't have is_duplicate set by backend
           const strategy = rowStrategies[row.row_id] || (row.is_duplicate ? conflictMode : 'overwrite');
           
           return {
-              ...mergedData,
+              ...mappedData,
               merge_strategy: strategy
           };
       });
@@ -500,6 +526,23 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
         }));
     };
 
+    // Prepare mapping options
+    const STANDARD_FIELDS = [
+        { key: 'first_name', label: 'First Name' },
+        { key: 'last_name', label: 'Last Name' },
+        { key: 'jersey_number', label: 'Jersey Number' },
+        { key: 'age_group', label: 'Age Group' },
+        { key: 'team_name', label: 'Team Name' },
+        { key: 'position', label: 'Position' },
+        { key: 'external_id', label: 'External ID' },
+        { key: 'notes', label: 'Notes' }
+    ];
+    
+    const MAPPING_OPTIONS = [
+        { label: "Player Fields", options: STANDARD_FIELDS },
+        { label: "Drill Fields", options: availableDrills.map(d => ({ key: d.key, label: d.label })) }
+    ];
+
     return (
       <div className="space-y-4">
         {/* Detected Sport Banner */}
@@ -605,8 +648,31 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                 <tr>
                   <th className="px-4 py-2 w-10 bg-gray-50"></th>
                   {displayKeys.map(key => (
-                    <th key={key} className="px-4 py-2 text-left font-medium capitalize whitespace-nowrap bg-gray-50">
-                      {key.replace('_', ' ')}
+                    <th key={key} className="px-4 py-2 text-left font-medium whitespace-nowrap bg-gray-50 min-w-[150px]">
+                      <select
+                        value={keyMapping[key] || key}
+                        onChange={(e) => setKeyMapping(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="bg-transparent border-b border-dashed border-gray-400 text-gray-700 font-semibold focus:outline-none focus:border-cmf-primary hover:text-cmf-primary cursor-pointer text-sm pr-6 py-1"
+                        style={{ maxWidth: '140px' }}
+                      >
+                        <option value="__ignore__">Ignore Column</option>
+                        {MAPPING_OPTIONS.map((group, idx) => (
+                            <optgroup key={idx} label={group.label}>
+                                {group.options.map(opt => (
+                                    <option key={opt.key} value={opt.key}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </optgroup>
+                        ))}
+                        {/* Allow keeping original if not in list */}
+                        {!MAPPING_OPTIONS.some(g => g.options.some(o => o.key === key)) && (
+                            <option value={key}>{key.replace('_', ' ')} (Original)</option>
+                        )}
+                      </select>
+                      <div className="text-xs text-gray-400 font-normal mt-0.5 truncate max-w-[140px]">
+                        Src: {key}
+                      </div>
                     </th>
                   ))}
                   <th className="px-4 py-2 text-left font-medium bg-gray-50">Status</th>
@@ -624,6 +690,11 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                     const strategy = rowStrategies[rowId] || (isDup ? conflictMode : 'overwrite');
                     const isSkipped = strategy === 'skip' && !isErr;
                     
+                    // Check if any mapped columns are ignored
+                    const isIgnored = displayKeys.every(k => keyMapping[k] === '__ignore__');
+                    
+                    if (isIgnored) return null;
+
                     return (
                       <tr key={i} className={`hover:bg-gray-50 group ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/30' : ''} ${isErr ? 'bg-red-50/30' : ''}`}>
                         <td className="px-2 py-2 text-center">
@@ -655,12 +726,13 @@ export default function ImportResultsModal({ onClose, onSuccess }) {
                         {displayKeys.map(key => {
                             const val = currentData[key] ?? '';
                             const isEditing = editingCell?.rowId === rowId && editingCell?.key === key;
+                            const isColumnIgnored = keyMapping[key] === '__ignore__';
                             
                             return (
                               <td 
                                 key={key} 
-                                className="px-4 py-2 whitespace-nowrap text-gray-700 relative"
-                                onClick={() => setEditingCell({ rowId, key })}
+                                className={`px-4 py-2 whitespace-nowrap text-gray-700 relative ${isColumnIgnored ? 'opacity-30 bg-gray-100' : ''}`}
+                                onClick={() => !isColumnIgnored && setEditingCell({ rowId, key })}
                               >
                                 {isEditing ? (
                                     <input
