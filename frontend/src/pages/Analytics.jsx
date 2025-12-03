@@ -3,7 +3,7 @@ import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
 import api from '../lib/api';
-import { getDrillsForEvent } from '../constants/players';
+import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {

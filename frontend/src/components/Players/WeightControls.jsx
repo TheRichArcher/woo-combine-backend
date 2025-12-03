@@ -1,6 +1,11 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Settings } from 'lucide-react';
-import { DRILLS, WEIGHT_PRESETS } from '../../constants/players';
+import { getDefaultFootballTemplate } from '../../constants/drillTemplates';
+
+// Use dynamic defaults instead of potentially circular constants/players.js
+const defaultTemplate = getDefaultFootballTemplate();
+const DRILLS = defaultTemplate.drills;
+const WEIGHT_PRESETS = defaultTemplate.presets;
 
 /**
  * Mobile-optimized weight control component with preset buttons and custom sliders

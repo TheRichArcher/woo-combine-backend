@@ -11,7 +11,13 @@ import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 
 // PERFORMANCE OPTIMIZATION: Use centralized constants
-import { DRILLS, DRILL_WEIGHTS, WEIGHT_PRESETS } from '../constants/players';
+import { getDefaultFootballTemplate } from '../constants/drillTemplates';
+
+// Use dynamic defaults instead of circular constants
+const defaultTemplate = getDefaultFootballTemplate();
+const DRILLS = defaultTemplate.drills;
+const WEIGHT_PRESETS = defaultTemplate.presets;
+const DRILL_WEIGHTS = defaultTemplate.defaultWeights;
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
