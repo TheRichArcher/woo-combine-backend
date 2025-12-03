@@ -14,7 +14,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
-import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
+import { calculateOptimizedCompositeScore } from '../utils/optimizedScoring';
 
 const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { showSuccess, showError } = useToast();
@@ -39,10 +39,16 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       percentageWeights[key] = value * 100; // Convert 0.2 to 20
     });
     
-    return calculateNormalizedCompositeScores(players, percentageWeights)
+    // Use optimized scoring instead of normalized scoring to avoid legacy dependencies
+    const scoredPlayers = players.map(player => ({
+      ...player,
+      compositeScore: calculateOptimizedCompositeScore(player, players, percentageWeights, currentDrills)
+    }));
+
+    return scoredPlayers
       .filter(player => player.compositeScore > 0) // Only include players with scores
       .sort((a, b) => b.compositeScore - a.compositeScore);
-  }, [players, weights]);
+  }, [players, weights, currentDrills]);
 
   // Initialize team names
   useEffect(() => {

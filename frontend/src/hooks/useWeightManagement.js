@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { DEFAULT_WEIGHTS, WEIGHT_PRESETS } from '../constants/players';
+import { DRILL_WEIGHTS, WEIGHT_PRESETS } from '../constants/players';
 import { logger } from '../utils/logger';
 
 /**
@@ -9,13 +9,13 @@ import { logger } from '../utils/logger';
  */
 export function useWeightManagement(onWeightsChange) {
   // Persisted weights (used for actual calculations)
-  const [persistedWeights, setPersistedWeights] = useState(DEFAULT_WEIGHTS);
+  const [persistedWeights, setPersistedWeights] = useState(DRILL_WEIGHTS);
   
   // Live slider values for smooth interaction
-  const [sliderWeights, setSliderWeights] = useState(DEFAULT_WEIGHTS);
+  const [sliderWeights, setSliderWeights] = useState(DRILL_WEIGHTS);
   
   // Track current weights during drag operations
-  const currentWeights = useRef({ ...DEFAULT_WEIGHTS });
+  const currentWeights = useRef({ ...DRILL_WEIGHTS });
   
   // Timer for debouncing weight persistence
   const timer = useRef(null);
