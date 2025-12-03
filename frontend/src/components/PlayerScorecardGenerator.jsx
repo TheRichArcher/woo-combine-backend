@@ -18,7 +18,8 @@ import {
   Info
 } from 'lucide-react';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
-import { calculateNormalizedCompositeScore, calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
+import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
+import { calculateOptimizedCompositeScore } from '../utils/optimizedScoring';
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();
