@@ -1,12 +1,15 @@
-console.log('Loading csvUtils.js');
+console.log('Loading csvUtils.js - START');
 
 // CSV parsing and validation utilities
 
 // Required: first_name, last_name. jersey_number and age_group are optional
 export const REQUIRED_HEADERS = ["first_name", "last_name"];
+console.log('csvUtils.js: REQUIRED_HEADERS defined');
+
 // Optional columns supported by backend
 export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
+console.log('csvUtils.js: OPTIONAL_HEADERS and ALL_HEADERS defined');
 
 // Function to get drill headers from schema (called with event schema)
 export function getDrillHeaders(drillDefinitions = []) {
@@ -20,46 +23,56 @@ export function getAllHeadersWithDrills(drillDefinitions = []) {
 
 export const SAMPLE_ROWS = [
   ["John", "Smith", "12U", "12"],
-  ["Emma", "Johnson", "Mighty Mites", "25"], 
+  ["Emma", "Johnson", "Mighty Mites", "25"],
   ["Michael", "Davis", "", ""]
 ];
+console.log('csvUtils.js: SAMPLE_ROWS defined');
 
-// Synonyms for common headers to improve auto-mapping & detection
-const HEADER_SYNONYMS = {
-  first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name'],
-  last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name'],
-  age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
-  jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
-  external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
-  team_name: ['team_name', 'team', 'squad', 'club'],
-  position: ['position', 'pos'],
-  notes: ['notes', 'note', 'comments', 'comment', 'remarks'],
-  // Common drill synonyms - these will be extended based on schema
-  '40m_dash': ['40m_dash', '40m dash', '40 yard dash', '40-yard dash', '40yd dash', '40-dash', '40dash', 'sprint', 'speed'],
-  'vertical_jump': ['vertical_jump', 'vertical jump', 'vert jump', 'vj', 'jump', 'vertical'],
-  'catching': ['catching', 'catch', 'reception', 'receiving', 'hands'],
-  'throwing': ['throwing', 'throw', 'passing', 'pass'],
-  'agility': ['agility', 'agile', 'cone drill', 'cones', 'weave', 'ladder'],
-  'lane_agility': ['lane_agility', 'lane agility', 'lane', 'basketball agility', 'bb agility'],
-  'free_throws': ['free_throws', 'free throws', 'ft', 'free throw %', 'free throw percentage', 'free_throw_pct'],
-  'three_point': ['three_point', 'three point', '3pt', '3-point', 'three pointer', 'three_pointer'],
-  'dribbling': ['dribbling', 'dribble', 'ball handling', 'handles', 'dribbling skill'],
-  'exit_velocity': ['exit_velocity', 'exit velocity', 'bat speed', 'swing speed', 'exit velo'],
-  'throwing_velocity': ['throwing_velocity', 'throwing velocity', 'arm strength', 'arm speed', 'throw velo'],
-  'fielding_accuracy': ['fielding_accuracy', 'fielding accuracy', 'fielding', 'defense', 'fielding skill'],
-  'pop_time': ['pop_time', 'pop time', 'catcher pop', 'c pop time'],
-  'sprint_100': ['sprint_100', '100m sprint', '100 meter sprint', '100m', '100 sprint'],
-  'sprint_400': ['sprint_400', '400m sprint', '400 meter sprint', '400m', '400 sprint'],
-  'long_jump': ['long_jump', 'long jump', 'broad jump', 'lj'],
-  'shot_put': ['shot_put', 'shot put', 'shotput', 'sp'],
-  'mile_time': ['mile_time', 'mile time', 'mile run', 'mile'],
-  'approach_jump': ['approach_jump', 'approach jump', 'block jump'],
-  'serving_accuracy': ['serving_accuracy', 'serving accuracy', 'serve accuracy', 'serving'],
-  'blocking_reach': ['blocking_reach', 'blocking reach', 'block reach', 'blocking'],
-  'ball_control': ['ball_control', 'ball control', 'touch', 'first touch'],
-  'passing_accuracy': ['passing_accuracy', 'passing accuracy', 'passing', 'pass accuracy'],
-  'shooting_power': ['shooting_power', 'shooting power', 'shot power', 'shooting']
-};
+// Synonyms for common headers to improve auto-mapping & detection - lazy initialized to avoid TDZ
+let headerSynonymsCache = null;
+
+function getHeaderSynonyms() {
+  if (!headerSynonymsCache) {
+    console.log('csvUtils.js: Creating HEADER_SYNONYMS cache');
+    headerSynonymsCache = {
+      first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name'],
+      last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name'],
+      age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
+      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
+      external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
+      team_name: ['team_name', 'team', 'squad', 'club'],
+      position: ['position', 'pos'],
+      notes: ['notes', 'note', 'comments', 'comment', 'remarks'],
+      // Common drill synonyms - these will be extended based on schema
+      '40m_dash': ['40m_dash', '40m dash', '40 yard dash', '40-yard dash', '40yd dash', '40-dash', '40dash', 'sprint', 'speed'],
+      'vertical_jump': ['vertical_jump', 'vertical jump', 'vert jump', 'vj', 'jump', 'vertical'],
+      'catching': ['catching', 'catch', 'reception', 'receiving', 'hands'],
+      'throwing': ['throwing', 'throw', 'passing', 'pass'],
+      'agility': ['agility', 'agile', 'cone drill', 'cones', 'weave', 'ladder'],
+      'lane_agility': ['lane_agility', 'lane agility', 'lane', 'basketball agility', 'bb agility'],
+      'free_throws': ['free_throws', 'free throws', 'ft', 'free throw %', 'free throw percentage', 'free_throw_pct'],
+      'three_point': ['three_point', 'three point', '3pt', '3-point', 'three pointer', 'three_pointer'],
+      'dribbling': ['dribbling', 'dribble', 'ball handling', 'handles', 'dribbling skill'],
+      'exit_velocity': ['exit_velocity', 'exit velocity', 'bat speed', 'swing speed', 'exit velo'],
+      'throwing_velocity': ['throwing_velocity', 'throwing velocity', 'arm strength', 'arm speed', 'throw velo'],
+      'fielding_accuracy': ['fielding_accuracy', 'fielding accuracy', 'fielding', 'defense', 'fielding skill'],
+      'pop_time': ['pop_time', 'pop time', 'catcher pop', 'c pop time'],
+      'sprint_100': ['sprint_100', '100m sprint', '100 meter sprint', '100m', '100 sprint'],
+      'sprint_400': ['sprint_400', '400m sprint', '400 meter sprint', '400m', '400 sprint'],
+      'long_jump': ['long_jump', 'long jump', 'broad jump', 'lj'],
+      'shot_put': ['shot_put', 'shot put', 'shotput', 'sp'],
+      'mile_time': ['mile_time', 'mile time', 'mile run', 'mile'],
+      'approach_jump': ['approach_jump', 'approach jump', 'block jump'],
+      'serving_accuracy': ['serving_accuracy', 'serving accuracy', 'serve accuracy', 'serving'],
+      'blocking_reach': ['blocking_reach', 'blocking reach', 'block reach', 'blocking'],
+      'ball_control': ['ball_control', 'ball control', 'touch', 'first touch'],
+      'passing_accuracy': ['passing_accuracy', 'passing accuracy', 'passing', 'pass accuracy'],
+      'shooting_power': ['shooting_power', 'shooting power', 'shot power', 'shooting']
+    };
+    console.log('csvUtils.js: HEADER_SYNONYMS cache created');
+  }
+  return headerSynonymsCache;
+}
 
 function normalizeHeader(header) {
   return String(header || '')
@@ -72,8 +85,9 @@ function normalizeHeader(header) {
 // Check if headers indicate header-based format
 function hasValidHeaders(headers) {
   const normalizedHeaders = headers.map((h) => normalizeHeader(h));
+  const synonyms = getHeaderSynonyms();
   return REQUIRED_HEADERS.every((required) => {
-    const candidates = HEADER_SYNONYMS[required] || [required];
+    const candidates = synonyms[required] || [required];
     return candidates.some((syn) => normalizedHeaders.some((header) => header === normalizeHeader(syn) || header.includes(normalizeHeader(syn))));
   });
 }
@@ -185,17 +199,18 @@ export function validateRow(row, drillDefinitions = []) {
 // Enhanced header validation that supports both formats
 export function validateHeaders(headers, mappingType = 'header-based') {
   const errors = [];
-  
+
   if (mappingType === 'header-based') {
     // Traditional header validation
     const normalizedHeaders = headers.map((header) => normalizeHeader(header));
+    const synonyms = getHeaderSynonyms();
     const missingHeaders = REQUIRED_HEADERS.filter((required) => {
-      const candidates = HEADER_SYNONYMS[required] || [required];
+      const candidates = synonyms[required] || [required];
       return !candidates.some((candidate) =>
         normalizedHeaders.includes(normalizeHeader(candidate))
       );
     });
-    
+
     if (missingHeaders.length > 0) {
       errors.push(`Missing required headers: ${missingHeaders.join(", ")}. Headers must include: ${REQUIRED_HEADERS.join(", ")}`);
     }
@@ -203,7 +218,7 @@ export function validateHeaders(headers, mappingType = 'header-based') {
     // Positional validation - no header errors since we're using position mapping
     // This is intentionally empty since positional mapping doesn't require specific headers
   }
-  
+
   return errors;
 }
 
@@ -246,8 +261,9 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   const drillKeys = drillDefinitions.map(drill => drill.key);
   allKeys.push(...drillKeys);
 
+  const synonyms = getHeaderSynonyms();
   allKeys.forEach(key => {
-    mapping[key] = matchHeader(headers, HEADER_SYNONYMS[key] || [key]);
+    mapping[key] = matchHeader(headers, synonyms[key] || [key]);
   });
   return mapping;
 }
