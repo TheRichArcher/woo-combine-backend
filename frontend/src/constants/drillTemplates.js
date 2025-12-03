@@ -1,6 +1,4 @@
-console.log('Loading drillTemplates.js');
-
-console.log('drillTemplates.js: Starting module initialization');
+console.log('Loading drillTemplates.js - START');
 
 // Comprehensive Drill Templates System for Multiple Sports
 // Now serves as a caching/hybrid layer that matches backend schema definitions.

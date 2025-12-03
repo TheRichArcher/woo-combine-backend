@@ -1,4 +1,4 @@
-console.log('Loading optimizedScoring.js');
+console.log('Loading optimizedScoring.js - START');
 
 /*
  * Optimized Scoring Utilities for WooCombine

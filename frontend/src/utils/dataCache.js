@@ -1,4 +1,4 @@
-console.log('Loading dataCache.js');
+console.log('Loading dataCache.js - START');
 
 /**
  * Data Caching Utility for WooCombine
