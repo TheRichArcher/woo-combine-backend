@@ -35,27 +35,34 @@ export const getWeightsForEvent = (event) => {
   return getDefaultWeightsFromTemplate(templateId);
 };
 
-// Default to football template for backward compatibility
-const defaultTemplate = getDefaultFootballTemplate();
+// Getter functions to avoid top-level function calls
+export const getDefaultDrills = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.drills;
+};
 
-export const DRILLS = defaultTemplate.drills;
-export const DRILL_WEIGHTS = defaultTemplate.defaultWeights;
+export const getDefaultWeights = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.defaultWeights;
+};
 
-// Legacy exports for backward compatibility
-export const FOOTBALL_DRILLS = getDrillsFromTemplate('football');
-export const FOOTBALL_WEIGHTS = getDefaultWeightsFromTemplate('football');
+export const getDefaultPresets = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.presets;
+};
+
+// Legacy exports for backward compatibility - move to functions to avoid top-level calls
+export const getFootballDrills = () => getDrillsFromTemplate('football');
+export const getFootballWeights = () => getDefaultWeightsFromTemplate('football');
 
 // New dynamic exports
-export { 
-  getDrillsFromTemplate, 
+export {
+  getDrillsFromTemplate,
   getDefaultWeightsFromTemplate,
   getAllTemplates,
   getTemplateById,
   getPresetsFromTemplate
 } from './drillTemplates.js';
-
-// Use presets from default template for backward compatibility
-export const WEIGHT_PRESETS = defaultTemplate.presets;
 
 export const TABS = [
   {

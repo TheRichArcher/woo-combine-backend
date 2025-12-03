@@ -2,9 +2,15 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';
 
-const defaultTemplate = getDefaultFootballTemplate();
-const DRILL_WEIGHTS = defaultTemplate.defaultWeights;
-const WEIGHT_PRESETS = defaultTemplate.presets;
+const getDefaultWeights = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.defaultWeights;
+};
+
+const getDefaultWeightPresets = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.presets;
+};
 
 /**
  * Custom hook for managing drill weight adjustments and presets
@@ -13,13 +19,13 @@ const WEIGHT_PRESETS = defaultTemplate.presets;
  */
 export function useWeightManagement(onWeightsChange) {
   // Persisted weights (used for actual calculations)
-  const [persistedWeights, setPersistedWeights] = useState(DRILL_WEIGHTS);
+  const [persistedWeights, setPersistedWeights] = useState(getDefaultWeights());
   
   // Live slider values for smooth interaction
-  const [sliderWeights, setSliderWeights] = useState(DRILL_WEIGHTS);
+  const [sliderWeights, setSliderWeights] = useState(getDefaultWeights());
   
   // Track current weights during drag operations
-  const currentWeights = useRef({ ...DRILL_WEIGHTS });
+  const currentWeights = useRef({ ...getDefaultWeights() });
   
   // Timer for debouncing weight persistence
   const timer = useRef(null);
@@ -37,14 +43,14 @@ export function useWeightManagement(onWeightsChange) {
    * Apply a weight preset
    */
   const applyPreset = useCallback((presetKey) => {
-    if (!WEIGHT_PRESETS[presetKey]) {
+    if (!getDefaultWeightPresets()[presetKey]) {
       if (import.meta.env.DEV) {
         logger.warn('WEIGHT_MANAGEMENT', 'Invalid preset key', { presetKey });
       }
       return;
     }
 
-    const preset = WEIGHT_PRESETS[presetKey];
+    const preset = getDefaultWeightPresets()[presetKey];
     const newWeights = { ...preset.weights };
     
     // Update all states

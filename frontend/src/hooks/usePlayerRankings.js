@@ -3,8 +3,10 @@ import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';
 
 // Use dynamic defaults to avoid circular dependency
-const defaultTemplate = getDefaultFootballTemplate();
-const DRILLS = defaultTemplate.drills;
+const getDrills = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.drills;
+};
 
 /**
  * Custom hook for player ranking calculations and management
@@ -24,11 +26,11 @@ export function usePlayerRankings() {
       // Calculate drill ranges for normalization (same age group only)
       const ageGroupPlayers = allPlayers.filter(p => 
         p && p.age_group === player.age_group && 
-        DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+        getDrills().some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
       );
       
       const drillRanges = {};
-      DRILLS.forEach(drill => {
+      getDrills().forEach(drill => {
         const values = ageGroupPlayers
           .map(p => p[drill.key])
           .filter(val => val != null && typeof val === 'number');
@@ -43,7 +45,7 @@ export function usePlayerRankings() {
       
       // Calculate drill rankings inline to avoid circular dependency
       const drillRankings = {};
-      DRILLS.forEach(drill => {
+      getDrills().forEach(drill => {
         try {
           const validPlayers = allPlayers.filter(p => 
             p && 
@@ -75,7 +77,7 @@ export function usePlayerRankings() {
         }
       });
       
-      return DRILLS.map(drill => {
+      return getDrills().map(drill => {
         try {
           const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
             ? player[drill.key] 
@@ -140,7 +142,7 @@ export function usePlayerRankings() {
     
     // Calculate min/max for each drill for normalization
     const drillRanges = {};
-    DRILLS.forEach(drill => {
+    getDrills().forEach(drill => {
       const values = playersWithScores
         .map(p => p[drill.key])
         .filter(val => val != null && typeof val === 'number');
@@ -157,7 +159,7 @@ export function usePlayerRankings() {
     const rankedPlayers = playersWithScores.map(player => {
       let totalWeightedScore = 0;
       
-      DRILLS.forEach(drill => {
+      getDrills().forEach(drill => {
         const rawScore = player[drill.key];
         const weight = currentWeights[drill.key] || 0;
         const range = drillRanges[drill.key];
@@ -214,11 +216,11 @@ export function usePlayerRankings() {
       if (ageGroupPlayers.length > 0) {
         // Calculate drill ranges for normalized scoring
         const playersWithAnyScore = ageGroupPlayers.filter(p => 
-          DRILLS.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+          getDrills().some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
         );
         
         const drillRanges = {};
-        DRILLS.forEach(drill => {
+        getDrills().forEach(drill => {
           const values = playersWithAnyScore
             .map(p => p[drill.key])
             .filter(val => val != null && typeof val === 'number');
@@ -233,7 +235,7 @@ export function usePlayerRankings() {
         
         const playersWithScores = ageGroupPlayers.map(p => {
           try {
-            const score = DRILLS.reduce((sum, drill) => {
+            const score = getDrills().reduce((sum, drill) => {
               const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
               const weight = currentWeights[drill.key] || 0;
               const range = drillRanges[drill.key];

@@ -5,18 +5,26 @@ import {
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates.js';
 
-// Use dynamic drills from template system
-const defaultTemplate = getDefaultFootballTemplate();
-export const DRILLS = defaultTemplate.drills;
-export const DRILL_WEIGHTS = defaultTemplate.defaultWeights;
+// Getter functions to avoid top-level calls that cause TDZ
+const getDrills = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.drills;
+};
 
-// Use presets from template system
-export const WEIGHT_PRESETS = defaultTemplate.presets;
+const getDrillWeights = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.defaultWeights;
+};
+
+const getWeightPresets = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.presets;
+};
 
 // Convert percentage weights to decimal weights (0-1)
 export function convertPercentagesToWeights(percentages) {
   const weights = {};
-  DRILLS.forEach(drill => {
+  getDrills().forEach(drill => {
     weights[drill.key] = (percentages[drill.key] || 0) / 100;
   });
   return weights;
@@ -25,7 +33,7 @@ export function convertPercentagesToWeights(percentages) {
 // Convert decimal weights to percentages for display
 export function convertWeightsToPercentages(weights) {
   const percentages = {};
-  DRILLS.forEach(drill => {
+  getDrills().forEach(drill => {
     percentages[drill.key] = (weights[drill.key] || 0) * 100;
   });
   return percentages;
@@ -48,7 +56,7 @@ export async function calculateCompositeScore(player, weights = DRILL_WEIGHTS, e
   let hasAnyScore = false;
 
   // Use event-specific drills if event is provided
-  const drillsToUse = event ? await getDrillsForEvent(event) : DRILLS;
+  const drillsToUse = event ? await getDrillsForEvent(event) : getDrills();
   const weightsToUse = event && !weights ? getWeightsForEvent(event) : weights;
   
   drillsToUse.forEach(drill => {
@@ -103,7 +111,7 @@ export function normalizeScoresForAgeGroup(players, ageGroup) {
   const drillStats = {};
   
   // Calculate min/max for each drill in this age group
-  DRILLS.forEach(drill => {
+  getDrills().forEach(drill => {
     const scores = ageGroupPlayers
       .map(p => p[drill.key])
       .filter(score => score !== null && score !== undefined && score !== '')
@@ -123,7 +131,7 @@ export function normalizeScoresForAgeGroup(players, ageGroup) {
     
     const normalizedPlayer = { ...player };
     
-    DRILLS.forEach(drill => {
+    getDrills().forEach(drill => {
       const value = player[drill.key];
       const stats = drillStats[drill.key];
       

@@ -3,9 +3,15 @@ import { Settings } from 'lucide-react';
 import { getDefaultFootballTemplate } from '../../constants/drillTemplates';
 
 // Use dynamic defaults instead of potentially circular constants/players.js
-const defaultTemplate = getDefaultFootballTemplate();
-const DRILLS = defaultTemplate.drills;
-const WEIGHT_PRESETS = defaultTemplate.presets;
+const getDefaultDrills = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.drills;
+};
+
+const getDefaultWeightPresets = () => {
+  const defaultTemplate = getDefaultFootballTemplate();
+  return defaultTemplate.presets;
+};
 
 /**
  * Mobile-optimized weight control component with preset buttons and custom sliders
@@ -44,7 +50,7 @@ const WeightControls = React.memo(function WeightControls({
           <h3 className="font-semibold text-gray-900">Weight Adjustment Controls</h3>
         </div>
         <span className="bg-brand-primary/10 text-brand-primary px-2 py-1 rounded-full text-xs font-medium">
-          {WEIGHT_PRESETS[activePreset]?.name || 'Custom'}
+          {getDefaultWeightPresets()[activePreset]?.name || 'Custom'}
         </span>
       </div>
 
@@ -54,7 +60,7 @@ const WeightControls = React.memo(function WeightControls({
 
       {/* Preset Buttons */}
       <div className="grid grid-cols-2 gap-2 mb-4">
-        {Object.entries(WEIGHT_PRESETS).map(([key, preset]) => (
+        {Object.entries(getDefaultWeightPresets()).map(([key, preset]) => (
           <button
             key={key}
             onClick={() => onPresetApply && onPresetApply(key)}
@@ -88,7 +94,7 @@ const WeightControls = React.memo(function WeightControls({
       {/* Custom Sliders */}
       {showCustomControls && (
         <div className="space-y-3">
-          {DRILLS.map((drill) => (
+          {getDefaultDrills().map((drill) => (
             <div key={drill.key} className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <div>
