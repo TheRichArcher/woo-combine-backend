@@ -5,7 +5,10 @@
  * Scores are normalized within the dataset to a 0-100 scale for fair comparison.
  */
 
-import { DRILLS } from '../constants/players';
+import { getDefaultFootballTemplate } from '../constants/drillTemplates';
+
+// Use default template drills as fallback to avoid circular dependency with players.js
+const DRILLS = getDefaultFootballTemplate().drills;
 
 /**
  * Calculate normalized composite score for a single player

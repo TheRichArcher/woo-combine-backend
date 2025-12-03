@@ -13,7 +13,6 @@ import api from '../lib/api';
 import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
-import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
