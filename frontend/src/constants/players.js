@@ -1,12 +1,30 @@
 // Player-related constants for WooCombine App
-import { 
-  getDefaultFootballTemplate, 
-  getDrillsFromTemplate, 
-  getDefaultWeightsFromTemplate 
+import {
+  getDefaultFootballTemplate,
+  getDrillsFromTemplate,
+  getDefaultWeightsFromTemplate
 } from './drillTemplates.js';
+import { getDrillsForEvent as getDrillsFromSchema } from '../services/schemaService';
 
-// Dynamic function to get drills based on event template
-export const getDrillsForEvent = (event) => {
+// Dynamic function to get drills based on event schema (preferred) or fallback to template
+export const getDrillsForEvent = async (event) => {
+  if (!event?.id) {
+    // Fallback to template system for backward compatibility
+    const templateId = event?.drillTemplate || 'football';
+    return getDrillsFromTemplate(templateId);
+  }
+
+  try {
+    // Try to get drills from event schema first
+    const drills = await getDrillsFromSchema(event.id);
+    if (drills && drills.length > 0) {
+      return drills;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch event schema, falling back to template:', error);
+  }
+
+  // Fallback to template system
   const templateId = event?.drillTemplate || 'football';
   return getDrillsFromTemplate(templateId);
 };

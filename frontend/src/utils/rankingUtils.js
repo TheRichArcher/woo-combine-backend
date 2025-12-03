@@ -43,12 +43,12 @@ export const getWeightsForEvent = (event) => {
 };
 
 // Calculate composite score for a player
-export function calculateCompositeScore(player, weights = DRILL_WEIGHTS, event = null) {
+export async function calculateCompositeScore(player, weights = DRILL_WEIGHTS, event = null) {
   let score = 0;
   let hasAnyScore = false;
-  
+
   // Use event-specific drills if event is provided
-  const drillsToUse = event ? getDrillsForEvent(event) : DRILLS;
+  const drillsToUse = event ? await getDrillsForEvent(event) : DRILLS;
   const weightsToUse = event && !weights ? getWeightsForEvent(event) : weights;
   
   drillsToUse.forEach(drill => {
@@ -70,19 +70,19 @@ export function calculateCompositeScore(player, weights = DRILL_WEIGHTS, event =
 }
 
 // Calculate live rankings for a set of players
-export function calculateLiveRankings(players, weights, ageGroup = null, event = null) {
+export async function calculateLiveRankings(players, weights, ageGroup = null, event = null) {
   if (!players || players.length === 0) return [];
-  
+
   // Filter by age group if specified
-  const filteredPlayers = ageGroup ? 
-    players.filter(p => p.age_group === ageGroup) : 
+  const filteredPlayers = ageGroup ?
+    players.filter(p => p.age_group === ageGroup) :
     players;
-  
+
   // Calculate scores and rank
-  const playersWithScores = filteredPlayers.map(player => ({
+  const playersWithScores = await Promise.all(filteredPlayers.map(async player => ({
     ...player,
-    composite_score: calculateCompositeScore(player, weights, event)
-  }));
+    composite_score: await calculateCompositeScore(player, weights, event)
+  })));
   
   // Sort by composite score (highest first)
   playersWithScores.sort((a, b) => b.composite_score - a.composite_score);

@@ -3,7 +3,7 @@ import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
 import api from '../lib/api';
-import { getDrillsFromTemplate } from '../constants/drillTemplates';
+import { getDrillsForEvent } from '../services/schemaService';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
@@ -11,7 +11,8 @@ export default function Analytics() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const drills = useMemo(() => getDrillsForEvent(selectedEvent || {}), [selectedEvent]);
+  const [drills, setDrills] = useState([]);
+  const [drillsLoading, setDrillsLoading] = useState(true);
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
@@ -35,6 +36,30 @@ export default function Analytics() {
     'throwing': { min: 0, max: 100 },
     'agility': { min: 0, max: 100 }
   };
+
+  // Fetch drills for the selected event
+  useEffect(() => {
+    const loadDrills = async () => {
+      if (!selectedEvent?.id) {
+        setDrills([]);
+        setDrillsLoading(false);
+        return;
+      }
+
+      setDrillsLoading(true);
+      try {
+        const eventDrills = await getDrillsForEvent(selectedEvent.id);
+        setDrills(eventDrills);
+      } catch (error) {
+        console.error('Failed to load drills for analytics:', error);
+        setDrills([]);
+      } finally {
+        setDrillsLoading(false);
+      }
+    };
+
+    loadDrills();
+  }, [selectedEvent?.id]);
 
   useEffect(() => {
     const run = async () => {
@@ -72,10 +97,10 @@ export default function Analytics() {
 
   // Initialize drill selection when drills load
   useEffect(() => {
-    if (!selectedDrillKey && drills && drills.length > 0) {
+    if (!selectedDrillKey && drills && drills.length > 0 && !drillsLoading) {
       setSelectedDrillKey(drills[0].key);
     }
-  }, [drills, selectedDrillKey]);
+  }, [drills, selectedDrillKey, drillsLoading]);
 
   const selectedDrill = useMemo(() => drills.find(d => d.key === selectedDrillKey), [drills, selectedDrillKey]);
 
