@@ -583,8 +583,8 @@ def reset_players(event_id: str = Query(...), current_user=Depends(require_role(
 @require_permission("players", "rankings", target="event", target_param="event_id")
 def get_rankings(
     request: Request,
-    age_group: str = Query(...),
     event_id: str = Query(...),
+    age_group: Optional[str] = Query(None),
     current_user=Depends(get_current_user)
 ):
     try:
@@ -593,11 +593,18 @@ def get_rankings(
         # FETCH SCHEMA FOR RANKINGS
         schema = get_event_schema(event_id)
         
-        # NOTE: We've removed the granular weight_* query params in favor of the schema engine
-        # Frontend should pass weights via POST body if custom weights are needed, 
-        # but for now we rely on the schema defaults or handle simple overrides if necessary.
-        # For backward compatibility, if query params exist, we could map them, but 
-        # it's cleaner to rely on the schema.
+        # Extract custom weights from query params
+        custom_weights = {}
+        for key, value in request.query_params.items():
+            if key.startswith("weight_"):
+                drill_key = key.replace("weight_", "")
+                try:
+                    custom_weights[drill_key] = float(value)
+                except:
+                    pass
+        
+        # Use custom weights if provided, otherwise calculate_composite_score uses schema defaults
+        use_weights = custom_weights if custom_weights else None
         
         players_stream = execute_with_timeout(
             lambda: list(db.collection("events").document(str(event_id)).collection("players").stream()),
@@ -607,7 +614,9 @@ def get_rankings(
         ranked = []
         for player in players_stream:
             player_data = player.to_dict()
-            if player_data.get("age_group") != age_group:
+            
+            # Filter by age group if provided and not "ALL"
+            if age_group and age_group.upper() != "ALL" and player_data.get("age_group") != age_group:
                 continue
             
             # ELIGIBILITY CHECK: Player must have at least one scored drill in the schema
@@ -629,7 +638,7 @@ def get_rankings(
             if not has_valid_score:
                 continue
 
-            composite_score = calculate_composite_score(player_data, schema=schema)
+            composite_score = calculate_composite_score(player_data, weights=use_weights, schema=schema)
             
             # Dynamic Response Construction
             response_obj = {

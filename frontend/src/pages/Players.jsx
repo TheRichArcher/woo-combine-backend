@@ -18,6 +18,7 @@ import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
+import { debounce } from '../utils/debounce';
 import WeightControls from '../components/WeightControls';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
@@ -66,6 +67,10 @@ export default function Players() {
   const [showExportModal, setShowExportModal] = useState(false);
   const rankingsRef = useRef(null);
   const [activeSchema, setActiveSchema] = useState(null);
+  
+  // Backend Rankings State (Fix for Analyze Rankings Widget)
+  const [backendRankings, setBackendRankings] = useState([]);
+  const [loadingRankings, setLoadingRankings] = useState(false);
 
   // Fetch schema for active event
   useEffect(() => {
@@ -104,6 +109,43 @@ export default function Players() {
       setShowImportModal(true);
     }
   }, [location.search]);
+
+  // Fetch backend rankings (Schema-driven engine)
+  const fetchRankings = useCallback(async (weights, ageGroup) => {
+    if (!selectedEvent || !selectedEvent.id) return;
+    
+    setLoadingRankings(true);
+    try {
+      const params = new URLSearchParams();
+      params.append('event_id', selectedEvent.id);
+      if (ageGroup) params.append('age_group', ageGroup === 'all' ? 'ALL' : ageGroup);
+      
+      // Add weights
+      if (weights) {
+        Object.entries(weights).forEach(([key, val]) => {
+           params.append(`weight_${key}`, val);
+        });
+      }
+
+      const res = await api.get(`/rankings?${params.toString()}`);
+      setBackendRankings(res.data || []);
+    } catch (error) {
+      console.error("Failed to fetch rankings:", error);
+    } finally {
+      setLoadingRankings(false);
+    }
+  }, [selectedEvent]);
+
+  // Debounced fetch effect for rankings
+  useEffect(() => {
+    if (!showRankings) return; 
+    
+    const debounced = debounce(() => {
+        fetchRankings(sliderWeights, selectedAgeGroup);
+    }, 500);
+    
+    debounced();
+  }, [fetchRankings, sliderWeights, selectedAgeGroup, showRankings]);
 
   // Refresh event data on mount
   useEffect(() => {
@@ -646,7 +688,14 @@ export default function Players() {
 
           {showRankings && (
             <div className="p-4 border-t border-gray-200">
-               {selectedLiveRankings && selectedLiveRankings.length > 0 ? (
+               {loadingRankings ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-24 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                    <Skeleton className="h-12 w-full rounded-lg" />
+                  </div>
+               ) : backendRankings && backendRankings.length > 0 ? (
                   <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     {/* Weight Controls */}
                     <div className="bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white p-3">
@@ -714,8 +763,8 @@ export default function Players() {
 
                     {/* Rankings List */}
                     <div className="p-3 space-y-1">
-                      {selectedLiveRankings.slice(0, 10).map((player, index) => (
-                        <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                      {backendRankings.slice(0, 5).map((player, index) => (
+                        <div key={player.player_id || player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
                           <div className={`font-bold w-6 text-center ${
                             index === 0 ? "text-yellow-500" : 
                             index === 1 ? "text-gray-500" : 
@@ -730,11 +779,21 @@ export default function Players() {
                             </div>
                           </div>
                           <div className="text-right">
-                            <div className="font-bold text-cmf-primary">{(player.weightedScore ?? player.compositeScore ?? 0).toFixed(1)}</div>
-                            <div className="text-[10px] text-gray-400">points</div>
+                            <div className="font-bold text-cmf-primary">{(player.composite_score ?? player.weightedScore ?? 0).toFixed(1)}</div>
+                            <div className="text-xs text-gray-400">points</div>
                           </div>
                         </div>
                       ))}
+
+                      {/* View Full Rankings CTA */}
+                      <div className="pt-3 text-center border-t border-gray-100 mt-2">
+                        <Link 
+                          to="/live-standings"
+                          className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center justify-center gap-1"
+                        >
+                          View Full Rankings <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      </div>
                     </div>
                   </div>
                ) : (
