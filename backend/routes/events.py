@@ -19,6 +19,7 @@ from ..models import (
     CustomDrillUpdateRequest,
     CustomDrillSchema
 )
+from ..utils.event_schema import get_event_schema
 
 router = APIRouter()
 
@@ -671,9 +672,49 @@ def delete_custom_drill(
         
         logging.info(f"Deleted custom drill {drill_id} from event {event_id}")
         return Response(status_code=204)
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Error deleting custom drill {drill_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete custom drill")
+
+@router.get('/events/{event_id}/schema')
+@read_rate_limit()
+@require_permission("events", "read", target="event", target_param="event_id")
+def get_event_schema_endpoint(
+    request: Request,
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    """
+    Get the drill schema for an event, including all available drills.
+    Used by frontend for CSV import field mapping.
+    """
+    try:
+        enforce_event_league_relationship(event_id=event_id)
+
+        schema = get_event_schema(event_id)
+        if not schema:
+            raise HTTPException(status_code=404, detail="Event schema not found")
+
+        return {
+            "drills": [
+                {
+                    "key": drill.key,
+                    "label": drill.label,
+                    "unit": drill.unit,
+                    "min_value": drill.min_value,
+                    "max_value": drill.max_value,
+                    "default_weight": drill.default_weight,
+                    "lower_is_better": drill.lower_is_better
+                }
+                for drill in schema.drills
+            ]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting event schema for {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get event schema")

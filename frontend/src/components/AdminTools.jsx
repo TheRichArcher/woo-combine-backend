@@ -60,6 +60,11 @@ export default function AdminTools() {
   // Player count state
   const [playerCount, setPlayerCount] = useState(0);
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
+
+  // Drill definitions from event schema
+  const [drillDefinitions, setDrillDefinitions] = useState([]);
+  const [schemaLoading, setSchemaLoading] = useState(false);
+
   const fileInputRef = useRef();
   const manualFormRef = useRef(null);
 
@@ -126,15 +131,15 @@ export default function AdminTools() {
     reader.onload = (evt) => {
       const text = evt.target.result;
       const { headers, rows, mappingType } = parseCsv(text);
-      
-      // Generate default mapping immediately
-      const initialMapping = generateDefaultMapping(headers);
+
+      // Generate default mapping immediately with drill definitions
+      const initialMapping = generateDefaultMapping(headers, drillDefinitions);
       setFieldMapping(initialMapping);
       setOriginalCsvRows(rows); // Always save original rows
-      
+
       // Enhanced validation with mapping type support
       const headerErrors = validateHeaders(headers, mappingType);
-      
+
       if (headerErrors.length > 0) {
         // Case 1: Invalid headers - Force mapping, no validation yet
         setCsvHeaders(headers);
@@ -146,16 +151,24 @@ export default function AdminTools() {
       }
 
       // Case 2: Valid headers (direct or synonyms) - Auto-apply mapping & validate
-      const mappedRows = applyMapping(rows, initialMapping);
-      const validatedRows = mappedRows.map(row => validateRow(row));
-      
-      // Determine active headers for preview (canonical)
+      const mappedRows = applyMapping(rows, initialMapping, drillDefinitions);
+      const validatedRows = mappedRows.map(row => validateRow(row, drillDefinitions));
+
+      // Determine active headers for preview (canonical + drill headers)
       const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
         const source = initialMapping[key];
         return source && source !== '__ignore__';
       });
-      const previewHeaders = selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS;
-      
+      const selectedDrills = drillDefinitions.filter(drill => {
+        const source = initialMapping[drill.key];
+        return source && source !== '__ignore__';
+      }).map(drill => drill.key);
+
+      const previewHeaders = [...selectedCanonical, ...selectedDrills];
+      if (previewHeaders.length === 0) {
+        previewHeaders.push(...REQUIRED_HEADERS);
+      }
+
       setCsvHeaders(previewHeaders);
       setCsvRows(validatedRows);
       setCsvErrors([]);
@@ -163,11 +176,11 @@ export default function AdminTools() {
 
       // Count validation issues on MAPPED rows
       const rowsWithErrors = validatedRows.filter(row => row.warnings.length > 0);
-      const criticalErrors = validatedRows.filter(row => 
+      const criticalErrors = validatedRows.filter(row =>
         row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"))
       );
       const validPlayers = validatedRows.filter(row => row.isValid);
-      
+
       // Show appropriate feedback based on TRUE validation results
       if (criticalErrors.length > 0) {
         showInfo(`⚠️ ${criticalErrors.length} players are missing first or last names. You can continue — those rows will be skipped.`);
@@ -193,13 +206,22 @@ export default function AdminTools() {
   };
 
   const handleApplyMapping = () => {
-    const mapped = applyMapping(originalCsvRows, fieldMapping);
-    const validated = mapped.map(row => validateRow(row));
+    const mapped = applyMapping(originalCsvRows, fieldMapping, drillDefinitions);
+    const validated = mapped.map(row => validateRow(row, drillDefinitions));
     const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
       const source = fieldMapping[key];
       return source && source !== '__ignore__';
     });
-    const headersForPreview = selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS;
+    const selectedDrills = drillDefinitions.filter(drill => {
+      const source = fieldMapping[drill.key];
+      return source && source !== '__ignore__';
+    }).map(drill => drill.key);
+
+    const headersForPreview = [...selectedCanonical, ...selectedDrills];
+    if (headersForPreview.length === 0) {
+      headersForPreview.push(...REQUIRED_HEADERS);
+    }
+
     setCsvHeaders(headersForPreview);
     setCsvRows(validated);
     setCsvErrors([]);
@@ -212,6 +234,25 @@ export default function AdminTools() {
 
   // Allow upload if we have valid players with first and last names
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
+
+  // Fetch event schema to get drill definitions
+  const fetchEventSchema = useCallback(async () => {
+    if (!selectedEvent) {
+      setDrillDefinitions([]);
+      return;
+    }
+
+    setSchemaLoading(true);
+    try {
+      const response = await api.get(`/events/${selectedEvent.id}/schema`);
+      setDrillDefinitions(response.data?.drills || []);
+    } catch (error) {
+      console.error('Failed to fetch event schema:', error);
+      setDrillDefinitions([]);
+    } finally {
+      setSchemaLoading(false);
+    }
+  }, [selectedEvent]);
 
   // Fetch player count for summary badge
   const fetchPlayerCount = useCallback(async () => {
@@ -237,6 +278,10 @@ export default function AdminTools() {
     fetchPlayerCount();
   }, [selectedEvent, user, selectedLeagueId, fetchPlayerCount]);
 
+  useEffect(() => {
+    fetchEventSchema();
+  }, [selectedEvent, fetchEventSchema]);
+
   // Call this after upload or manual add
   const handlePostUploadSuccess = () => {
     fetchPlayerCount();
@@ -258,19 +303,33 @@ export default function AdminTools() {
       jersey_number: p.jersey_number || p.number || p.number === 0 ? p.number : p.jersey_number
     }));
     
-    // Shape per contract
+    // Shape per contract - include drill scores
     const payload = {
       event_id: selectedEvent.id,
-      players: playersWithNumbers.map(r => ({
-        first_name: r.first_name,
-        last_name: r.last_name,
-        age_group: r.age_group,
-        jersey_number: r.jersey_number || r.number,
-        external_id: r.external_id,
-        team_name: r.team_name,
-        position: r.position,
-        notes: r.notes,
-      }))
+      players: playersWithNumbers.map(r => {
+        const playerData = {
+          first_name: r.first_name,
+          last_name: r.last_name,
+          age_group: r.age_group,
+          jersey_number: r.jersey_number || r.number,
+          external_id: r.external_id,
+          team_name: r.team_name,
+          position: r.position,
+          notes: r.notes,
+        };
+
+        // Add drill scores if they exist
+        drillDefinitions.forEach(drill => {
+          if (r[drill.key] && r[drill.key].trim() !== '') {
+            const score = parseFloat(r[drill.key]);
+            if (!isNaN(score)) {
+              playerData[drill.key] = score;
+            }
+          }
+        });
+
+        return playerData;
+      })
     };
     
     try {
@@ -777,28 +836,62 @@ export default function AdminTools() {
             {showMapping && (
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 text-left">
                 <h3 className="font-medium text-gray-900 mb-2">Match Column Headers</h3>
-                <p className="text-sm text-gray-600 mb-3">Match our fields to the columns in your CSV. Only First and Last Name are required. Others are optional. Select “Ignore” to skip a field.</p>
-                <div className="grid grid-cols-1 gap-3">
-                  {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
-                    <div key={fieldKey} className="flex items-center gap-3">
-                      <div className="w-40 text-sm text-gray-700 font-medium">
-                        {canonicalHeaderLabels[fieldKey] || fieldKey}
-                        {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                <p className="text-sm text-gray-600 mb-3">Match our fields to the columns in your CSV. Only First and Last Name are required. Others are optional. Select "Ignore" to skip a field.</p>
+
+                {/* Player Fields */}
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Player Information</h4>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
+                      <div key={fieldKey} className="flex items-center gap-3">
+                        <div className="w-40 text-sm text-gray-700 font-medium">
+                          {canonicalHeaderLabels[fieldKey] || fieldKey}
+                          {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                        </div>
+                        <select
+                          value={fieldMapping[fieldKey] || ''}
+                          onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                        >
+                          <option value="">Auto</option>
+                          <option value="__ignore__">Ignore</option>
+                          {csvHeaders.map(h => (
+                            <option key={h} value={h}>{h}</option>
+                          ))}
+                        </select>
                       </div>
-                      <select
-                        value={fieldMapping[fieldKey] || ''}
-                        onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                      >
-                        <option value="">Auto</option>
-                        <option value="__ignore__">Ignore</option>
-                        {csvHeaders.map(h => (
-                          <option key={h} value={h}>{h}</option>
-                        ))}
-                      </select>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+
+                {/* Drill Fields */}
+                {drillDefinitions.length > 0 && (
+                  <div className="border-t border-gray-200 pt-4">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Drill Scores ({drillDefinitions.length} drills available)</h4>
+                    <div className="grid grid-cols-1 gap-3">
+                      {drillDefinitions.map((drill) => (
+                        <div key={drill.key} className="flex items-center gap-3">
+                          <div className="w-40 text-sm text-gray-700 font-medium">
+                            {drill.label}
+                            <span className="text-xs text-gray-500 ml-1">({drill.unit})</span>
+                          </div>
+                          <select
+                            value={fieldMapping[drill.key] || ''}
+                            onChange={(e) => setFieldMapping(prev => ({ ...prev, [drill.key]: e.target.value }))}
+                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                          >
+                            <option value="">Auto</option>
+                            <option value="__ignore__">Ignore</option>
+                            {csvHeaders.map(h => (
+                              <option key={h} value={h}>{h}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={handleApplyMapping}
