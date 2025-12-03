@@ -21,6 +21,8 @@ import { debounce } from '../utils/debounce';
 import WeightControls from '../components/WeightControls';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
+console.log('Loading Players.jsx');
+
 // PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
 const cachedFetchPlayers = withCache(
   async (eventId) => {

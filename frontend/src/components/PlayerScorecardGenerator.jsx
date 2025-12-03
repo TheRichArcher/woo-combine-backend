@@ -18,8 +18,10 @@ import {
   Info
 } from 'lucide-react';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
-import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
-import { calculateOptimizedCompositeScore } from '../utils/optimizedScoring';
+import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from '../utils/optimizedScoring';
+// REMOVED: import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
+
+console.log('Loading PlayerScorecardGenerator.jsx');
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();
@@ -33,24 +35,26 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   const template = getTemplateById(selectedDrillTemplate);
   const drills = getDrillsFromTemplate(selectedDrillTemplate);
   
-  // Calculate player stats using normalized scoring
+  // Calculate player stats using optimized scoring
   const playerStats = React.useMemo(() => {
     if (!player) return null;
     
-    // Convert decimal weights to percentage format expected by normalized scoring
+    // Convert decimal weights to percentage format expected by scoring utils
     const percentageWeights = {};
     Object.entries(weights).forEach(([key, value]) => {
       percentageWeights[key] = value * 100; // Convert 0.2 to 20
     });
     
-    const compositeScore = calculateNormalizedCompositeScore(player, allPlayers, percentageWeights, drills);
+    const compositeScore = calculateOptimizedCompositeScore(player, allPlayers, percentageWeights, drills);
     
-    // Calculate rank among age group
+    // Calculate rank among age group using optimized ranking
     const ageGroupPlayers = allPlayers.filter(p => p.age_group === player.age_group);
-    const rankedPlayers = calculateNormalizedCompositeScores(ageGroupPlayers, percentageWeights, drills)
-      .sort((a, b) => b.compositeScore - a.compositeScore);
+    // optimizedRankings already returns sorted array with ranks
+    const rankedPlayers = calculateOptimizedRankings(ageGroupPlayers, percentageWeights, drills);
     
-    const rank = rankedPlayers.findIndex(p => p.id === player.id) + 1;
+    const rankData = rankedPlayers.find(p => p.id === player.id);
+    const rank = rankData ? rankData.rank : (rankedPlayers.length + 1);
+    
     const totalInAgeGroup = rankedPlayers.length;
     const percentile = Math.round(((totalInAgeGroup - rank + 1) / totalInAgeGroup) * 100);
     
@@ -60,7 +64,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
       totalInAgeGroup,
       percentile
     };
-  }, [player, allPlayers, weights]);
+  }, [player, allPlayers, weights, drills]);
 
   // Calculate drill-specific rankings and recommendations
   const drillAnalysis = React.useMemo(() => {
