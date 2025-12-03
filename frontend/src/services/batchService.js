@@ -1,6 +1,8 @@
+console.log('Loading batchService.js');
+
 /**
  * Batch Service for WooCombine Frontend
- * 
+ *
  * Provides optimized batch operations to reduce API call overhead
  * and improve page load performance.
  */

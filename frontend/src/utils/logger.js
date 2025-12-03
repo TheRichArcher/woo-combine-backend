@@ -1,3 +1,5 @@
+console.log('Loading logger.js');
+
 /**
  * Centralized logging utility for WooCombine App
  * Provides environment-aware logging with consistent formatting

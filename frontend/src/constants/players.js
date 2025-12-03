@@ -1,3 +1,5 @@
+console.log('Loading players.js');
+
 // Player-related constants for WooCombine App
 import {
   getDefaultFootballTemplate,

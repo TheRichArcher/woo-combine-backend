@@ -1,3 +1,5 @@
+console.log('Loading schemaService.js');
+
 import api from '../lib/api';
 
 /**

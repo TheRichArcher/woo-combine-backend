@@ -1,3 +1,5 @@
+console.log('Loading validation.js');
+
 /**
  * Frontend validation utilities for form inputs and user data
  */

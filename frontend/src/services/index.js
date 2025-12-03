@@ -1,3 +1,5 @@
+console.log('Loading services/index.js');
+
 export { default as playerService } from './playerService';
 export { default as leagueService } from './leagueService';
 export { default as eventService } from './eventService';

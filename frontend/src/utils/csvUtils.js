@@ -1,3 +1,5 @@
+console.log('Loading csvUtils.js');
+
 // CSV parsing and validation utilities
 
 // Required: first_name, last_name. jersey_number and age_group are optional

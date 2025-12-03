@@ -1,6 +1,8 @@
+console.log('Loading playerNumbering.js');
+
 /**
  * Player Auto-Numbering System
- * 
+ *
  * Generates smart player numbers based on age groups for easy identification
  * in Live Drill Entry mode.
  * 

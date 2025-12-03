@@ -1,6 +1,8 @@
+console.log('Loading dataCache.js');
+
 /**
  * Data Caching Utility for WooCombine
- * 
+ *
  * Implements intelligent caching to reduce redundant API calls
  * and improve page load performance.
  */

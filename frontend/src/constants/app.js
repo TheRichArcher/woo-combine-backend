@@ -1,3 +1,5 @@
+console.log('Loading app.js');
+
 // Application-wide constants and configuration
 export const APP_CONFIG = {
   // Timeouts and delays (in milliseconds)

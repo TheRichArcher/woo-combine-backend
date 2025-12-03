@@ -1,3 +1,5 @@
+console.log('Loading debounce.js');
+
 /**
  * Performance optimization utilities for WooCombine
  * Implements debouncing for heavy operations like ranking calculations

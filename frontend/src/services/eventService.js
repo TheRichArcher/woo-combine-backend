@@ -1,3 +1,5 @@
+console.log('Loading eventService.js');
+
 import api from '../lib/api';
 
 export const eventService = {
