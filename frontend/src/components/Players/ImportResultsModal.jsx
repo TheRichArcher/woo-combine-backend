@@ -544,26 +544,26 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     const drillMappingOptions = useMemo(() => {
         const options = [];
         
-        // 1. If sport is detected, show only that sport's drills
+        // 1. If sport is detected, add it first as "Recommended"
         if (detectedSport && DRILL_TEMPLATES[detectedSport]) {
              const template = DRILL_TEMPLATES[detectedSport];
              options.push({
-                 label: `${template.sport} Drills`,
+                 label: `${template.sport} Drills (Recommended)`,
                  options: template.drills.map(d => ({ key: d.key, label: d.label }))
              });
         } 
-        // 2. If no sport detected (or unknown), show all sports grouped
-        else {
-             Object.values(DRILL_TEMPLATES).forEach(template => {
-                 options.push({
-                     label: template.sport,
-                     options: template.drills.map(d => ({ key: d.key, label: d.label }))
-                 });
-             });
-        }
         
-        // 3. Always include any custom drills from the event that aren't standard
-        // (Optional enhancement, but safe to leave out to keep list clean as per user request)
+        // 2. Add all other sports (or all sports if none detected)
+        // This ensures organizers can always access any drill from any sport
+        Object.values(DRILL_TEMPLATES).forEach(template => {
+             // Skip the detected sport if we already added it to the top
+             if (detectedSport && template.id === detectedSport) return;
+             
+             options.push({
+                 label: template.sport,
+                 options: template.drills.map(d => ({ key: d.key, label: d.label }))
+             });
+        });
         
         return options;
     }, [detectedSport]);
