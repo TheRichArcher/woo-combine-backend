@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
+import { DRILL_TEMPLATES } from '../../constants/drillTemplates';
 
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [] }) {
   const { selectedEvent } = useEvent();
@@ -538,9 +539,38 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         { key: 'notes', label: 'Notes' }
     ];
     
+    const detectedSport = parseResult?.detected_sport?.toLowerCase();
+
+    const drillMappingOptions = useMemo(() => {
+        const options = [];
+        
+        // 1. If sport is detected, show only that sport's drills
+        if (detectedSport && DRILL_TEMPLATES[detectedSport]) {
+             const template = DRILL_TEMPLATES[detectedSport];
+             options.push({
+                 label: `${template.sport} Drills`,
+                 options: template.drills.map(d => ({ key: d.key, label: d.label }))
+             });
+        } 
+        // 2. If no sport detected (or unknown), show all sports grouped
+        else {
+             Object.values(DRILL_TEMPLATES).forEach(template => {
+                 options.push({
+                     label: template.sport,
+                     options: template.drills.map(d => ({ key: d.key, label: d.label }))
+                 });
+             });
+        }
+        
+        // 3. Always include any custom drills from the event that aren't standard
+        // (Optional enhancement, but safe to leave out to keep list clean as per user request)
+        
+        return options;
+    }, [detectedSport]);
+
     const MAPPING_OPTIONS = [
         { label: "Player Fields", options: STANDARD_FIELDS },
-        { label: "Drill Fields", options: availableDrills.map(d => ({ key: d.key, label: d.label })) }
+        ...drillMappingOptions
     ];
 
     return (
