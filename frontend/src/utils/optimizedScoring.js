@@ -16,9 +16,9 @@ console.log('Loading optimizedScoring.js');
 /**
  * Cache for drill ranges to avoid recalculation
  */
-console.log('optimizedScoring.js: Before Map');
-const drillRangeCache = new Map();
-console.log('optimizedScoring.js: After Map');
+// console.log('optimizedScoring.js: Before Map');
+// const drillRangeCache = new Map();
+// console.log('optimizedScoring.js: After Map');
 
 /**
  * Generate cache key for drill ranges
