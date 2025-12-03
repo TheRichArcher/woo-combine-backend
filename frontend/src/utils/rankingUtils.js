@@ -51,13 +51,13 @@ export const getWeightsForEvent = (event) => {
 };
 
 // Calculate composite score for a player
-export async function calculateCompositeScore(player, weights = DRILL_WEIGHTS, event = null) {
+export async function calculateCompositeScore(player, weights = null, event = null) {
   let score = 0;
   let hasAnyScore = false;
 
   // Use event-specific drills if event is provided
   const drillsToUse = event ? await getDrillsForEvent(event) : getDrills();
-  const weightsToUse = event && !weights ? getWeightsForEvent(event) : weights;
+  const weightsToUse = weights || (event ? getWeightsForEvent(event) : getDrillWeights());
   
   drillsToUse.forEach(drill => {
     const value = player[drill.key];
