@@ -16,7 +16,9 @@ console.log('Loading optimizedScoring.js');
 /**
  * Cache for drill ranges to avoid recalculation
  */
+console.log('optimizedScoring.js: Before Map');
 const drillRangeCache = new Map();
+console.log('optimizedScoring.js: After Map');
 
 /**
  * Generate cache key for drill ranges
@@ -54,10 +56,11 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
  */
 function getCachedDrillRanges(players, ageGroup, drillList = []) {
   const cacheKey = getDrillRangeCacheKey(players, ageGroup, drillList);
-  
-  if (drillRangeCache.has(cacheKey)) {
-    return drillRangeCache.get(cacheKey);
-  }
+
+  // Temporarily disable caching to test TDZ
+  // if (drillRangeCache.has(cacheKey)) {
+  //   return drillRangeCache.get(cacheKey);
+  // }
   
   const currentDrills = drillList || [];
   
@@ -89,7 +92,7 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
   });
   
   // Cache the result
-  drillRangeCache.set(cacheKey, drillRanges);
+  // drillRangeCache.set(cacheKey, drillRanges);
   
   // Clear old cache entries if cache gets too large
   if (drillRangeCache.size > 50) {
