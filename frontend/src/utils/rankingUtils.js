@@ -1,5 +1,7 @@
+console.log('Loading rankingUtils.js');
+
 // Ranking and weight calculation utilities
-import { 
+import {
   getDefaultFootballTemplate,
   getDrillsFromTemplate,
   getDefaultWeightsFromTemplate

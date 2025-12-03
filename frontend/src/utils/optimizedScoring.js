@@ -1,9 +1,11 @@
+console.log('Loading optimizedScoring.js');
+
 /**
  * Optimized Scoring Utilities for WooCombine
- * 
+ *
  * Centralized, performance-optimized scoring calculations
  * that replace the scattered scoring logic throughout the app.
- * 
+ *
  * Key optimizations:
  * - Single-pass calculations where possible
  * - Memoized drill ranges

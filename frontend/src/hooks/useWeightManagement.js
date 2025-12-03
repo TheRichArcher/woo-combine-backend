@@ -1,3 +1,5 @@
+console.log('Loading useWeightManagement.js');
+
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';

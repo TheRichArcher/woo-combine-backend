@@ -1,3 +1,5 @@
+console.log('Loading WeightControls.jsx');
+
 import React, { useRef } from 'react';
 import { Settings } from 'lucide-react';
 

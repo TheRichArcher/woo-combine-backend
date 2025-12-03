@@ -1,12 +1,14 @@
+console.log('Loading PlayerScorecardGenerator.jsx');
+
 import React, { useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { 
-  Share2, 
-  Download, 
-  Mail, 
-  FileText, 
-  Award, 
+import {
+  Share2,
+  Download,
+  Mail,
+  FileText,
+  Award,
   TrendingUp,
   Target,
   BarChart3,
@@ -19,8 +21,6 @@ import {
 } from 'lucide-react';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from '../utils/optimizedScoring';
-
-console.log('Loading PlayerScorecardGenerator.jsx');
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();

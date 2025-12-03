@@ -1,3 +1,5 @@
+console.log('Loading Players/WeightControls.jsx');
+
 import React, { useState, useRef, useCallback } from 'react';
 import { Settings } from 'lucide-react';
 import { getDefaultFootballTemplate } from '../../constants/drillTemplates';

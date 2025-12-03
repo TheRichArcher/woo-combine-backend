@@ -1,3 +1,5 @@
+console.log('Loading AddPlayerModal.jsx');
+
 import React, { useState, useMemo, useCallback } from "react";
 import { UserPlus } from 'lucide-react';
 import Modal from '../ui/Modal';

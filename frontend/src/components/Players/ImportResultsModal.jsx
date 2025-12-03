@@ -1,3 +1,5 @@
+console.log('Loading ImportResultsModal.jsx');
+
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
 import api from '../../lib/api';

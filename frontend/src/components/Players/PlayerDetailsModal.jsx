@@ -1,3 +1,5 @@
+console.log('Loading PlayerDetailsModal.jsx');
+
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, TrendingUp, Settings, Award } from 'lucide-react';
 

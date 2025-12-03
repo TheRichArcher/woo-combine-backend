@@ -1,10 +1,12 @@
+console.log('Loading useOptimizedWeights.js');
+
 /**
  * Optimized Weight Management Hook
- * 
+ *
  * Replaces the complex weight management logic in Players.jsx
  * with a clean, performance-optimized solution using debouncing
  * and memoized calculations.
- * 
+ *
  * @param {Array<Object>} players - Array of player objects with drill scores
  * @param {Array<Object>} drills - Array of drill definitions (template + custom)
  * @returns {{

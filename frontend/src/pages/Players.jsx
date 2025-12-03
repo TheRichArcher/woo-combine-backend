@@ -1,3 +1,5 @@
+console.log('Loading Players.jsx');
+
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Skeleton from "../components/Skeleton";
 import DrillInputForm from "../components/DrillInputForm";
@@ -20,8 +22,6 @@ import { withCache, cacheInvalidation } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
 import WeightControls from '../components/WeightControls';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
-
-console.log('Loading Players.jsx');
 
 // PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
 const cachedFetchPlayers = withCache(
