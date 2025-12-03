@@ -1,8 +1,4 @@
-console.log('Loading schemaService.js - START');
-
-console.log('schemaService.js: About to import api');
 import api from '../lib/api';
-console.log('schemaService.js: api imported successfully');
 
 /**
  * Fetch the event schema for a given event ID

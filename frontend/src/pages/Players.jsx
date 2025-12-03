@@ -49,11 +49,8 @@ const cachedFetchPlayers = withCache(
 );
 
 export default function Players() {
-  console.log('Players.jsx: Component rendering - START');
   const { selectedEvent, setSelectedEvent } = useEvent();
-  console.log('Players.jsx: useEvent called');
   const { user, selectedLeagueId, userRole } = useAuth();
-  console.log('Players.jsx: useAuth called');
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -164,7 +161,6 @@ export default function Players() {
 
   // Compute drills
   const allDrills = useMemo(() => {
-    console.log('Players.jsx: Calculating allDrills');
     if (!selectedEvent) return [];
     
     let baseDrills = [];
@@ -202,7 +198,6 @@ export default function Players() {
 
   // Compute presets
   const currentPresets = useMemo(() => {
-    console.log('Players.jsx: Calculating currentPresets');
     let rawPresets = null;
     if (activeSchema && activeSchema.presets) {
       rawPresets = activeSchema.presets;
@@ -225,7 +220,6 @@ export default function Players() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 
   // Optimized weights hook
-  console.log('Players.jsx: Calling useOptimizedWeights');
   const {
     persistedWeights,
     sliderWeights,
@@ -238,7 +232,6 @@ export default function Players() {
     setSliderWeights,
     persistSliderWeights
   } = useOptimizedWeights(players, allDrills, currentPresets);
-  console.log('Players.jsx: useOptimizedWeights returned');
 
   // Debounced fetch effect for rankings - moved after hook to use sliderWeights
   useEffect(() => {
@@ -257,7 +250,6 @@ export default function Players() {
 
   // Grouped players
   const grouped = useMemo(() => {
-    console.log('Players.jsx: Calculating grouped');
     if (Object.keys(groupedRankings).length > 0) {
       return groupedRankings;
     }
@@ -388,8 +380,6 @@ export default function Players() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
-
-  console.log('Players.jsx: Render prep complete');
 
   // Render Loading
   if (loading) return (

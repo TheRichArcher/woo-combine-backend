@@ -1,17 +1,10 @@
-console.log('Loading players.js - START');
-
 // Player-related constants for WooCombine App
-console.log('players.js: About to import from drillTemplates.js');
 import {
   getDefaultFootballTemplate,
   getDrillsFromTemplate,
   getDefaultWeightsFromTemplate
 } from './drillTemplates.js';
-console.log('players.js: drillTemplates.js imported successfully');
-
-console.log('players.js: About to import from schemaService.js');
 import { getDrillsForEvent as getDrillsFromSchema } from '../services/schemaService';
-console.log('players.js: schemaService.js imported successfully');
 
 // Dynamic function to get drills based on event schema (preferred) or fallback to template
 export const getDrillsForEvent = async (event) => {

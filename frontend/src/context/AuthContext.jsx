@@ -1,5 +1,3 @@
-console.log('Loading AuthContext.jsx - START');
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";

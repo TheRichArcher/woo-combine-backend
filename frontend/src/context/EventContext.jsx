@@ -1,5 +1,3 @@
-console.log('Loading EventContext.jsx - START');
-
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';

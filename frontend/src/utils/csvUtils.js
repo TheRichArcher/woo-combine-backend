@@ -1,15 +1,11 @@
-console.log('Loading csvUtils.js - START');
-
 // CSV parsing and validation utilities
 
 // Required: first_name, last_name. jersey_number and age_group are optional
 export const REQUIRED_HEADERS = ["first_name", "last_name"];
-console.log('csvUtils.js: REQUIRED_HEADERS defined');
 
 // Optional columns supported by backend
 export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
-console.log('csvUtils.js: OPTIONAL_HEADERS and ALL_HEADERS defined');
 
 // Function to get drill headers from schema (called with event schema)
 export function getDrillHeaders(drillDefinitions = []) {
@@ -26,14 +22,12 @@ export const SAMPLE_ROWS = [
   ["Emma", "Johnson", "Mighty Mites", "25"],
   ["Michael", "Davis", "", ""]
 ];
-console.log('csvUtils.js: SAMPLE_ROWS defined');
 
 // Synonyms for common headers to improve auto-mapping & detection - lazy initialized to avoid TDZ
 let headerSynonymsCache = null;
 
 function getHeaderSynonyms() {
   if (!headerSynonymsCache) {
-    console.log('csvUtils.js: Creating HEADER_SYNONYMS cache');
     headerSynonymsCache = {
       first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name'],
       last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name'],
@@ -69,7 +63,6 @@ function getHeaderSynonyms() {
       'passing_accuracy': ['passing_accuracy', 'passing accuracy', 'passing', 'pass accuracy'],
       'shooting_power': ['shooting_power', 'shooting power', 'shot power', 'shooting']
     };
-    console.log('csvUtils.js: HEADER_SYNONYMS cache created');
   }
   return headerSynonymsCache;
 }
