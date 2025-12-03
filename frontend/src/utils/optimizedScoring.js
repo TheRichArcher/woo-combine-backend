@@ -11,7 +11,8 @@
  * - Reduced object creation
  */
 
-import { calculateNormalizedDrillScore as calcNormScore } from './normalizedScoring'; // Optional reuse if desired, but we have local implementation
+// Internal implementation used instead of import to avoid circular dependencies
+// import { calculateNormalizedDrillScore as calcNormScore } from './normalizedScoring';
 
 /**
  * Cache for drill ranges to avoid recalculation
