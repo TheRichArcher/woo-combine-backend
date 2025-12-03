@@ -81,6 +81,53 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     }
   }, [step, parseResult, editedRows, rowStrategies, conflictMode, draftKey]);
 
+  // Move detectedSport logic to top level (used in useMemo)
+  const detectedSport = parseResult?.detected_sport?.toLowerCase();
+
+  // Move drillMappingOptions to top level (was inside renderReviewStep causing Hook Error #310)
+  const drillMappingOptions = useMemo(() => {
+      const options = [];
+      
+      // 1. If sport is detected, add it first as "Recommended"
+      if (detectedSport && DRILL_TEMPLATES[detectedSport]) {
+           const template = DRILL_TEMPLATES[detectedSport];
+           options.push({
+               label: `${template.sport} Drills (Recommended)`,
+               options: template.drills.map(d => ({ key: d.key, label: d.label }))
+           });
+      } 
+      
+      // 2. Add all other sports (or all sports if none detected)
+      // This ensures organizers can always access any drill from any sport
+      Object.values(DRILL_TEMPLATES).forEach(template => {
+           // Skip the detected sport if we already added it to the top
+           if (detectedSport && template.id === detectedSport) return;
+           
+           options.push({
+               label: template.sport,
+               options: template.drills.map(d => ({ key: d.key, label: d.label }))
+           });
+      });
+      
+      return options;
+  }, [detectedSport]);
+
+  const STANDARD_FIELDS = [
+      { key: 'first_name', label: 'First Name' },
+      { key: 'last_name', label: 'Last Name' },
+      { key: 'jersey_number', label: 'Jersey Number' },
+      { key: 'age_group', label: 'Age Group' },
+      { key: 'team_name', label: 'Team Name' },
+      { key: 'position', label: 'Position' },
+      { key: 'external_id', label: 'External ID' },
+      { key: 'notes', label: 'Notes' }
+  ];
+
+  const MAPPING_OPTIONS = [
+      { label: "Player Fields", options: STANDARD_FIELDS },
+      ...drillMappingOptions
+  ];
+
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
@@ -526,52 +573,6 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             [rowId]: strategy
         }));
     };
-
-    // Prepare mapping options
-    const STANDARD_FIELDS = [
-        { key: 'first_name', label: 'First Name' },
-        { key: 'last_name', label: 'Last Name' },
-        { key: 'jersey_number', label: 'Jersey Number' },
-        { key: 'age_group', label: 'Age Group' },
-        { key: 'team_name', label: 'Team Name' },
-        { key: 'position', label: 'Position' },
-        { key: 'external_id', label: 'External ID' },
-        { key: 'notes', label: 'Notes' }
-    ];
-    
-    const detectedSport = parseResult?.detected_sport?.toLowerCase();
-
-    const drillMappingOptions = useMemo(() => {
-        const options = [];
-        
-        // 1. If sport is detected, add it first as "Recommended"
-        if (detectedSport && DRILL_TEMPLATES[detectedSport]) {
-             const template = DRILL_TEMPLATES[detectedSport];
-             options.push({
-                 label: `${template.sport} Drills (Recommended)`,
-                 options: template.drills.map(d => ({ key: d.key, label: d.label }))
-             });
-        } 
-        
-        // 2. Add all other sports (or all sports if none detected)
-        // This ensures organizers can always access any drill from any sport
-        Object.values(DRILL_TEMPLATES).forEach(template => {
-             // Skip the detected sport if we already added it to the top
-             if (detectedSport && template.id === detectedSport) return;
-             
-             options.push({
-                 label: template.sport,
-                 options: template.drills.map(d => ({ key: d.key, label: d.label }))
-             });
-        });
-        
-        return options;
-    }, [detectedSport]);
-
-    const MAPPING_OPTIONS = [
-        { label: "Player Fields", options: STANDARD_FIELDS },
-        ...drillMappingOptions
-    ];
 
     return (
       <div className="space-y-4">
