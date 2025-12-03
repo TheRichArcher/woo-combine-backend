@@ -229,36 +229,79 @@ export function getMappingDescription(mappingType) {
 
 // ---- Mapping helpers: guess and apply user-selected mappings ----
 
-function matchHeader(headers, synonyms) {
-  const normalized = headers.map(h => ({ raw: h, norm: normalizeHeader(h) }));
+function calculateMatchScore(header, key, synonyms) {
+  const normHeader = normalizeHeader(header);
+  
+  // 1. Exact Key Match (Highest confidence)
+  if (normHeader === normalizeHeader(key)) return 100;
+  
+  // 2. Synonym Matches
   for (const syn of synonyms) {
-    const target = normalizeHeader(syn);
-    const found = normalized.find(h => h.norm === target);
-    if (found) return found.raw;
+    const normSyn = normalizeHeader(syn);
+    
+    // Exact synonym match
+    if (normHeader === normSyn) return 90;
+    
+    // Header contains synonym (Partial match)
+    // We prioritize longer synonyms to avoid "Throw" matching "Free Throw"
+    if (normHeader.includes(normSyn)) {
+      // Score based on specificity (length of synonym relative to header)
+      const specificity = normSyn.length / normHeader.length;
+      return 50 + (specificity * 30); // 50-80 range
+    }
   }
-  // fuzzy contains match (e.g., "player first name")
-  for (const syn of synonyms) {
-    const target = normalizeHeader(syn);
-    const found = normalized.find(h => h.norm.includes(target));
-    if (found) return found.raw;
-  }
-  return '';
+  
+  return 0;
 }
 
 // Create a suggested mapping from arbitrary CSV headers to our canonical fields
+// Returns { mapping: {}, confidence: {} } where confidence is 'high', 'medium', 'low'
 export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   const mapping = {};
+  const confidence = {};
+  
   const allKeys = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
-
-  // Add drill keys to mapping
   const drillKeys = drillDefinitions.map(drill => drill.key);
   allKeys.push(...drillKeys);
-
+  
   const synonyms = getHeaderSynonyms();
+  const usedHeaders = new Set();
+  
+  // Calculate all possible matches with scores
+  const allMatches = [];
+  
   allKeys.forEach(key => {
-    mapping[key] = matchHeader(headers, synonyms[key] || [key]);
+    const keySynonyms = synonyms[key] || [key];
+    headers.forEach(header => {
+      const score = calculateMatchScore(header, key, keySynonyms);
+      if (score > 0) {
+        allMatches.push({ key, header, score });
+      }
+    });
   });
-  return mapping;
+  
+  // Sort matches by score (descending) to prioritize best matches
+  allMatches.sort((a, b) => b.score - a.score);
+  
+  // Assign mappings greedily
+  allMatches.forEach(({ key, header, score }) => {
+    // If key is already mapped or header is already used, skip
+    if (!mapping[key] && !usedHeaders.has(header)) {
+      mapping[key] = header;
+      usedHeaders.add(header);
+      
+      // Determine confidence level
+      if (score >= 90) confidence[key] = 'high';
+      else if (score >= 60) confidence[key] = 'medium';
+      else confidence[key] = 'low';
+    }
+  });
+  
+  // Return object with both mapping and confidence (backward compat: properties on the object)
+  // We attach confidence as a non-enumerable property or just a side property if callers expect a plain object?
+  // Callers expect `mapping[key]`. Adding extra properties might confuse iteration if using for-in.
+  // Best to return { mapping, confidence } and update callers.
+  return { mapping, confidence };
 }
 
 // Apply a mapping from arbitrary headers to canonical fields

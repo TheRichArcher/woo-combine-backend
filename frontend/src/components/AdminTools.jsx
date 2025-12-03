@@ -40,6 +40,7 @@ export default function AdminTools() {
   const [originalCsvRows, setOriginalCsvRows] = useState([]);
   const [showMapping, setShowMapping] = useState(false);
   const [fieldMapping, setFieldMapping] = useState({});
+  const [mappingConfidence, setMappingConfidence] = useState({});
 
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle | loading | success | error
   const [uploadMsg, setUploadMsg] = useState("");
@@ -133,62 +134,30 @@ export default function AdminTools() {
       const { headers, rows, mappingType } = parseCsv(text);
 
       // Generate default mapping immediately with drill definitions
-      const initialMapping = generateDefaultMapping(headers, drillDefinitions);
+      const { mapping: initialMapping, confidence } = generateDefaultMapping(headers, drillDefinitions);
       setFieldMapping(initialMapping);
+      setMappingConfidence(confidence);
       setOriginalCsvRows(rows); // Always save original rows
 
       // Enhanced validation with mapping type support
       const headerErrors = validateHeaders(headers, mappingType);
 
+      // Always show mapping review to ensure accuracy
+      setCsvHeaders(headers);
+      setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings initially
+      setCsvErrors(headerErrors);
+      setShowMapping(true);
+
       if (headerErrors.length > 0) {
-        // Case 1: Invalid headers - Force mapping, no validation yet
-        setCsvHeaders(headers);
-        setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings
-        setCsvErrors(headerErrors);
-        setShowMapping(true);
         showError(`⚠️ Column headers don't match. Please map fields to continue.`);
-        return;
-      }
-
-      // Case 2: Valid headers (direct or synonyms) - Auto-apply mapping & validate
-      const mappedRows = applyMapping(rows, initialMapping, drillDefinitions);
-      const validatedRows = mappedRows.map(row => validateRow(row, drillDefinitions));
-
-      // Determine active headers for preview (canonical + drill headers)
-      const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
-        const source = initialMapping[key];
-        return source && source !== '__ignore__';
-      });
-      const selectedDrills = drillDefinitions.filter(drill => {
-        const source = initialMapping[drill.key];
-        return source && source !== '__ignore__';
-      }).map(drill => drill.key);
-
-      const previewHeaders = [...selectedCanonical, ...selectedDrills];
-      if (previewHeaders.length === 0) {
-        previewHeaders.push(...REQUIRED_HEADERS);
-      }
-
-      setCsvHeaders(previewHeaders);
-      setCsvRows(validatedRows);
-      setCsvErrors([]);
-      setShowMapping(false);
-
-      // Count validation issues on MAPPED rows
-      const rowsWithErrors = validatedRows.filter(row => row.warnings.length > 0);
-      const criticalErrors = validatedRows.filter(row =>
-        row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"))
-      );
-      const validPlayers = validatedRows.filter(row => row.isValid);
-
-      // Show appropriate feedback based on TRUE validation results
-      if (criticalErrors.length > 0) {
-        showInfo(`⚠️ ${criticalErrors.length} players are missing first or last names. You can continue — those rows will be skipped.`);
-      } else if (rowsWithErrors.length > 0) {
-        showInfo(`⚠️ ${validPlayers.length} players ready, ${rowsWithErrors.length} have warnings. Review table below.`);
       } else {
-        const mappingDesc = getMappingDescription(mappingType);
-        showSuccess(`✅ ${rows.length} players validated successfully! ${mappingDesc}`);
+        // Check if any fields need review
+        const needsReview = Object.values(confidence).some(c => c !== 'high');
+        if (needsReview) {
+          showInfo(`⚠️ Some columns need review. Please check mappings marked "Review".`);
+        } else {
+          showInfo(`📋 Please confirm column mappings before importing.`);
+        }
       }
     };
     reader.readAsText(file);
@@ -845,16 +814,25 @@ export default function AdminTools() {
                     {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
                       <div key={fieldKey} className="flex items-center gap-3">
                         <div className="w-40 text-sm text-gray-700 font-medium">
-                          {canonicalHeaderLabels[fieldKey] || fieldKey}
-                          {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                          <div className="flex items-center">
+                            {canonicalHeaderLabels[fieldKey] || fieldKey}
+                            {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
+                          </div>
+                          {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' && (
+                            <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review</div>
+                          )}
                         </div>
                         <select
                           value={fieldMapping[fieldKey] || ''}
                           onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                          className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary ${
+                            fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' 
+                              ? 'border-amber-300 bg-amber-50' 
+                              : 'border-gray-300'
+                          }`}
                         >
-                          <option value="">Auto</option>
-                          <option value="__ignore__">Ignore</option>
+                          <option value="">Select Column...</option>
+                          <option value="__ignore__">Ignore (Don't Import)</option>
                           {csvHeaders.map(h => (
                             <option key={h} value={h}>{h}</option>
                           ))}
@@ -872,16 +850,25 @@ export default function AdminTools() {
                       {drillDefinitions.map((drill) => (
                         <div key={drill.key} className="flex items-center gap-3">
                           <div className="w-40 text-sm text-gray-700 font-medium">
-                            {drill.label}
-                            <span className="text-xs text-gray-500 ml-1">({drill.unit})</span>
+                            <div className="flex items-center">
+                              {drill.label}
+                              <span className="text-xs text-gray-500 ml-1">({drill.unit})</span>
+                            </div>
+                            {fieldMapping[drill.key] && fieldMapping[drill.key] !== '__ignore__' && mappingConfidence[drill.key] && mappingConfidence[drill.key] !== 'high' && (
+                              <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review</div>
+                            )}
                           </div>
                           <select
                             value={fieldMapping[drill.key] || ''}
                             onChange={(e) => setFieldMapping(prev => ({ ...prev, [drill.key]: e.target.value }))}
-                            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                            className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary ${
+                              fieldMapping[drill.key] && fieldMapping[drill.key] !== '__ignore__' && mappingConfidence[drill.key] && mappingConfidence[drill.key] !== 'high'
+                                ? 'border-amber-300 bg-amber-50'
+                                : 'border-gray-300'
+                            }`}
                           >
-                            <option value="">Auto</option>
-                            <option value="__ignore__">Ignore</option>
+                            <option value="">Select Column...</option>
+                            <option value="__ignore__">Ignore (Don't Import)</option>
                             {csvHeaders.map(h => (
                               <option key={h} value={h}>{h}</option>
                             ))}

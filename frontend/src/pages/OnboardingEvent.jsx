@@ -72,6 +72,7 @@ export default function OnboardingEvent() {
   const [originalCsvRows, setOriginalCsvRows] = useState([]);
   const [showMapping, setShowMapping] = useState(false);
   const [fieldMapping, setFieldMapping] = useState({});
+  const [mappingConfidence, setMappingConfidence] = useState({});
   const [mappingApplied, setMappingApplied] = useState(false);
   
   // Manual add player state
@@ -180,56 +181,31 @@ export default function OnboardingEvent() {
       const { headers, rows, mappingType } = parseCsv(text);
       
       // Generate default mapping immediately
-      const initialMapping = generateDefaultMapping(headers);
+      const { mapping: initialMapping, confidence } = generateDefaultMapping(headers);
       setFieldMapping(initialMapping);
+      setMappingConfidence(confidence);
       setOriginalCsvRows(rows); // Always save original rows
       
       // Enhanced validation with mapping type support
       const headerErrors = validateHeaders(headers, mappingType);
       
+      // Always show mapping for confirmation
+      setCsvHeaders(headers);
+      setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings
+      setCsvErrors(headerErrors);
+      setShowMapping(true);
+      setMappingApplied(false);
+
       if (headerErrors.length > 0) {
-        // Case 1: Invalid headers - Force mapping, no validation yet
-        setCsvHeaders(headers);
-        setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings
-        setCsvErrors(headerErrors);
-        setShowMapping(true);
-        setMappingApplied(false);
         showError(`⚠️ Column headers don't match. Please map fields to continue.`);
-        return;
-      }
-
-      // Case 2: Valid headers (direct or synonyms) - Auto-apply mapping & validate
-      const mappedRows = applyMapping(rows, initialMapping);
-      const validatedRows = mappedRows.map(row => validateRow(row));
-      
-      // Determine active headers for preview (canonical)
-      const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
-        const source = initialMapping[key];
-        return source && source !== '__ignore__';
-      });
-      const previewHeaders = selectedCanonical.length > 0 ? selectedCanonical : REQUIRED_HEADERS;
-      
-      setCsvHeaders(previewHeaders);
-      setCsvRows(validatedRows);
-      setCsvErrors([]);
-      setShowMapping(false);
-      setMappingApplied(true); // Auto-applied
-
-      // Count validation issues on MAPPED rows
-      const rowsWithErrors = validatedRows.filter(row => row.warnings.length > 0);
-      const criticalErrors = validatedRows.filter(row => 
-        row.warnings.some(w => w.includes("Missing first name") || w.includes("Missing last name"))
-      );
-      const validPlayers = validatedRows.filter(row => row.isValid);
-      
-      // Show appropriate feedback based on TRUE validation results
-      if (criticalErrors.length > 0) {
-        showInfo(`⚠️ ${criticalErrors.length} players are missing first or last names. You can continue — those rows will be skipped.`);
-      } else if (rowsWithErrors.length > 0) {
-        showInfo(`⚠️ ${validPlayers.length} players ready, ${rowsWithErrors.length} have warnings. Review table below.`);
       } else {
-        const mappingDesc = getMappingDescription(mappingType);
-        showSuccess(`✅ ${rows.length} players validated successfully! ${mappingDesc}`);
+        // Check confidence
+        const needsReview = Object.values(confidence).some(c => c !== 'high');
+        if (needsReview) {
+          showInfo(`⚠️ Some columns need review. Please check mappings.`);
+        } else {
+          showInfo(`📋 Please review and confirm field mappings.`);
+        }
       }
       
       // Log mapping type for debugging
@@ -573,16 +549,25 @@ export default function OnboardingEvent() {
                             <div key={fieldKey} className="flex flex-col gap-1">
                               <div className="flex items-center gap-3">
                                 <div className="w-40 text-sm text-gray-700 font-medium">
-                                  {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                  {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
+                                  <div className="flex items-center">
+                                    {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
+                                  </div>
+                                  {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' && (
+                                    <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review</div>
+                                  )}
                                 </div>
                                 <select
                                   value={selectedHeader}
                                   onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+                                  className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
+                                    selectedHeader && selectedHeader !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' 
+                                      ? 'border-amber-300 bg-amber-50' 
+                                      : 'border-gray-300'
+                                  }`}
                                 >
-                                  <option value="">Auto</option>
-                                  <option value="__ignore__">Ignore</option>
+                                  <option value="">Select Column...</option>
+                                  <option value="__ignore__">Ignore (Don't Import)</option>
                                   {csvHeaders.map(h => (
                                     <option key={h} value={h}>{h}</option>
                                   ))}
