@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from '../utils/optimizedScoring';
-// REMOVED: import { calculateNormalizedCompositeScores } from '../utils/normalizedScoring';
 
 console.log('Loading PlayerScorecardGenerator.jsx');
 

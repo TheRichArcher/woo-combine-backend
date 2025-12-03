@@ -11,9 +11,6 @@
  * - Reduced object creation
  */
 
-// Internal implementation used instead of import to avoid circular dependencies
-// import { calculateNormalizedDrillScore as calcNormScore } from './normalizedScoring';
-
 /**
  * Cache for drill ranges to avoid recalculation
  */
