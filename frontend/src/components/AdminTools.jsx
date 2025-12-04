@@ -65,6 +65,7 @@ export default function AdminTools() {
   // Drill definitions from event schema
   const [drillDefinitions, setDrillDefinitions] = useState([]);
   const [schemaLoading, setSchemaLoading] = useState(false);
+  const [schemaError, setSchemaError] = useState(null);
 
   const fileInputRef = useRef();
   const manualFormRef = useRef(null);
@@ -175,6 +176,13 @@ export default function AdminTools() {
   };
 
   const handleApplyMapping = () => {
+    // Check for critical schema error - user requested blocking import if schema fails
+    if (drillDefinitions.length === 0) {
+      if (!window.confirm("⚠️ WARNING: No drill columns are mapped because the event schema failed to load. \n\nOnly roster information (names, numbers) will be imported. Drill scores will be ignored. \n\nDo you want to proceed with a Roster-Only import?")) {
+        return;
+      }
+    }
+
     const mapped = applyMapping(originalCsvRows, fieldMapping, drillDefinitions);
     const validated = mapped.map(row => validateRow(row, drillDefinitions));
     const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
@@ -208,15 +216,22 @@ export default function AdminTools() {
   const fetchEventSchema = useCallback(async () => {
     if (!selectedEvent) {
       setDrillDefinitions([]);
+      setSchemaError(null);
       return;
     }
 
     setSchemaLoading(true);
+    setSchemaError(null);
     try {
       const response = await api.get(`/events/${selectedEvent.id}/schema`);
-      setDrillDefinitions(response.data?.drills || []);
+      const drills = response.data?.drills || [];
+      setDrillDefinitions(drills);
+      if (drills.length === 0) {
+        console.warn('Event schema returned no drills');
+      }
     } catch (error) {
       console.error('Failed to fetch event schema:', error);
+      setSchemaError("Failed to load event configuration. Drill scores may not import correctly.");
       setDrillDefinitions([]);
     } finally {
       setSchemaLoading(false);
@@ -843,7 +858,7 @@ export default function AdminTools() {
                 </div>
 
                 {/* Drill Fields */}
-                {drillDefinitions.length > 0 && (
+                {drillDefinitions.length > 0 ? (
                   <div className="border-t border-gray-200 pt-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">Drill Scores ({drillDefinitions.length} drills available)</h4>
                     <div className="grid grid-cols-1 gap-3">
@@ -876,6 +891,17 @@ export default function AdminTools() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-200 pt-4">
+                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                       <p className="text-amber-800 font-medium text-sm">
+                         {schemaError ? `⚠️ ${schemaError}` : "⚠️ No drills found for this event type. Only roster data will be imported."}
+                       </p>
+                       <p className="text-amber-700 text-xs mt-1">
+                         Check that the event has a valid sport type configured (Football, Soccer, etc).
+                       </p>
+                     </div>
                   </div>
                 )}
 

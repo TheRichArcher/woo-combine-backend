@@ -248,8 +248,11 @@ class SchemaRegistry:
     
     @classmethod
     def get_schema(cls, sport_or_id: str) -> Optional[SportSchema]:
+        if not sport_or_id:
+            return None
+            
         # Normalize ID (e.g., "Football" -> "football")
-        key = sport_or_id.lower()
+        key = str(sport_or_id).lower()
         
         # Direct lookup
         if key in cls._schemas:
