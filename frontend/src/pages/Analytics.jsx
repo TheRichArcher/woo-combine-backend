@@ -3,7 +3,7 @@ import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
 import api from '../lib/api';
-import { getDrillsForEvent } from '../services/schemaService';
+import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
@@ -32,7 +32,7 @@ export default function Analytics() {
   // Fetch drills for the selected event
   useEffect(() => {
     const loadDrills = async () => {
-      if (!selectedEvent?.id) {
+      if (!selectedEvent) {
         setDrills([]);
         setDrillsLoading(false);
         return;
@@ -40,8 +40,21 @@ export default function Analytics() {
 
       setDrillsLoading(true);
       try {
-        const eventDrills = await getDrillsForEvent(selectedEvent.id);
-        setDrills(eventDrills);
+        // Use drill template from event directly for consistency with Players tab
+        // This ensures we use the correct sport's drills even if backend schema endpoint defaults to football
+        const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate);
+        
+        // Merge with custom drills if any
+        const customDrills = (selectedEvent.custom_drills || []).map(d => ({
+          key: d.id,
+          label: d.name,
+          unit: d.unit,
+          lowerIsBetter: d.lower_is_better,
+          category: d.category || 'custom',
+          isCustom: true
+        }));
+
+        setDrills([...templateDrills, ...customDrills]);
       } catch (error) {
         console.error('Failed to load drills for analytics:', error);
         setDrills([]);
@@ -51,7 +64,7 @@ export default function Analytics() {
     };
 
     loadDrills();
-  }, [selectedEvent?.id]);
+  }, [selectedEvent]);
 
   useEffect(() => {
     const run = async () => {
