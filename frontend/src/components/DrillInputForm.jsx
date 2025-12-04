@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
@@ -8,20 +8,16 @@ import ErrorDisplay from './ErrorDisplay';
 import Button from './ui/Button';
 import { customValidators } from '../utils/validation';
 import { cacheInvalidation } from '../utils/dataCache';
-
-const DRILL_TYPES = [
-  { value: "40m_dash", label: "40-Yard Dash" },
-  { value: "vertical_jump", label: "Vertical Jump" },
-  { value: "catching", label: "Catching" },
-  { value: "throwing", label: "Throwing" },
-  { value: "agility", label: "Agility" },
-];
+import { useDrills } from '../hooks/useDrills';
 
 const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess }) {
   const { user: _user, selectedLeagueId: _selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const [type, setType] = useState("");
   const [value, setValue] = useState("");
+  
+  // Unified Drills Hook to get available drills for this event
+  const { drills } = useDrills(selectedEvent);
   
   const { showSuccess, showError } = useToast();
   const { loading, error, execute: executeSubmit } = useAsyncOperation({
@@ -87,8 +83,8 @@ const DrillInputForm = React.memo(function DrillInputForm({ playerId, onSuccess 
           required
         >
           <option value="">Select a drill</option>
-          {DRILL_TYPES.map(dt => (
-            <option key={dt.value} value={dt.value}>{dt.label}</option>
+          {drills.map(dt => (
+            <option key={dt.key} value={dt.key}>{dt.label}</option>
           ))}
         </select>
       </div>

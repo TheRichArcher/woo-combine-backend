@@ -1,12 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';
-
-// Use dynamic defaults to avoid circular dependency
-const getDrills = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.drills;
-};
 
 /**
  * Custom hook for player ranking calculations and management

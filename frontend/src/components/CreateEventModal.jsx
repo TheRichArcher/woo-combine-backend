@@ -20,11 +20,8 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("football");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  
   const templates = getAllTemplates();
+  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || "football");
 
   if (!open) return null;
 
@@ -52,7 +49,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
       setName("");
       setDate("");
       setLocation("");
-      setSelectedTemplate("football");
+      setSelectedTemplate(templates[0]?.id || "football");
       if (onCreated) onCreated(newEvent);
       if (onClose) onClose();
     } catch (err) {
@@ -110,7 +107,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="e.g., Central Park Football Field"
+            placeholder="e.g., Event Location"
             className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
           {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}

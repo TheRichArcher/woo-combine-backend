@@ -91,7 +91,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
             type="text"
             value={location}
             onChange={e => setLocation(e.target.value)}
-            placeholder="e.g., Central Park Football Field"
+            placeholder="e.g., Event Location"
             className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
           <small className="text-gray-500 text-xs mb-4 block">

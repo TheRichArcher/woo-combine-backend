@@ -33,13 +33,8 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("football");
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState("");
-  const [creatingLeague, setCreatingLeague] = useState(false);
-  const [playerCount, setPlayerCount] = useState(0);
-  
   const templates = getAllTemplates();
+  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || "football");
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
@@ -142,7 +137,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       setName("");
       setDate("");
       setLocation("");
-      setSelectedTemplate("football");
+      setSelectedTemplate(templates[0]?.id || "football");
       if (onEventSelected) onEventSelected(newEvent);
     } catch (err) {
       setCreateError(err.response?.data?.detail || err.message || 'Failed to create event');
@@ -402,7 +397,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                   type="text"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Central Park Football Field"
+                  placeholder="e.g., Event Location"
                   className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
                 />
               </div>

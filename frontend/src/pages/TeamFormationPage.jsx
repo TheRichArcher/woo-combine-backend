@@ -191,7 +191,7 @@ const TeamFormationPage = () => {
           <div className="flex items-center justify-between mb-3">
             <div>
               <h2 className="font-semibold text-gray-900">Quick Actions</h2>
-              <p className="text-xs text-gray-500">Using {template?.name || 'Football'} template • {playersWithScores.length} players with scores</p>
+              <p className="text-xs text-gray-500">Using {template?.name || 'Default'} template • {playersWithScores.length} players with scores</p>
             </div>
             <button
               onClick={() => setShowWeightControls(!showWeightControls)}
