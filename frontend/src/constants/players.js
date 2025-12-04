@@ -1,6 +1,5 @@
 // Player-related constants for WooCombine App
 import {
-  getDefaultFootballTemplate,
   getDrillsFromTemplate,
   getDefaultWeightsFromTemplate
 } from './drillTemplates.js';
@@ -9,9 +8,8 @@ import { getDrillsForEvent as getDrillsFromSchema } from '../services/schemaServ
 // Dynamic function to get drills based on event schema (preferred) or fallback to template
 export const getDrillsForEvent = async (event) => {
   if (!event?.id) {
-    // Fallback to template system for backward compatibility
-    const templateId = event?.drillTemplate || 'football';
-    return getDrillsFromTemplate(templateId);
+    // Fallback to template system
+    return event?.drillTemplate ? getDrillsFromTemplate(event.drillTemplate) : [];
   }
 
   try {
@@ -25,35 +23,13 @@ export const getDrillsForEvent = async (event) => {
   }
 
   // Fallback to template system
-  const templateId = event?.drillTemplate || 'football';
-  return getDrillsFromTemplate(templateId);
+  return event?.drillTemplate ? getDrillsFromTemplate(event.drillTemplate) : [];
 };
 
 // Dynamic function to get weights based on event template
 export const getWeightsForEvent = (event) => {
-  const templateId = event?.drillTemplate || 'football';
-  return getDefaultWeightsFromTemplate(templateId);
+  return event?.drillTemplate ? getDefaultWeightsFromTemplate(event.drillTemplate) : {};
 };
-
-// Getter functions to avoid top-level function calls
-export const getDefaultDrills = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.drills;
-};
-
-export const getDefaultWeights = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.defaultWeights;
-};
-
-export const getDefaultPresets = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.presets;
-};
-
-// Legacy exports for backward compatibility - move to functions to avoid top-level calls
-export const getFootballDrills = () => getDrillsFromTemplate('football');
-export const getFootballWeights = () => getDefaultWeightsFromTemplate('football');
 
 // New dynamic exports
 export {

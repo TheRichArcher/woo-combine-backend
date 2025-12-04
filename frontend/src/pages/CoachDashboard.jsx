@@ -9,25 +9,7 @@ import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, Tr
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
-
-// PERFORMANCE OPTIMIZATION: Use centralized constants
-import { getDefaultFootballTemplate } from '../constants/drillTemplates';
-
-// Use dynamic defaults instead of circular constants
-const getDefaultDrills = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.drills;
-};
-
-const getDefaultWeightPresets = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.presets;
-};
-
-const getDefaultWeights = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.defaultWeights;
-};
+import { useDrills } from '../hooks/useDrills';
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback } = useEvent();
@@ -37,16 +19,37 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
-  const [weights, setWeights] = useState({ ...getDefaultWeights() });
-  const [activePreset, setActivePreset] = useState("athletic"); // Default preset
+  
+  // Unified Drills Hook
+  const { drills: allDrills, presets: currentPresets, loading: drillsLoading } = useDrills(selectedEvent);
+
+  // Initialize weights from default preset or first available preset
+  const [weights, setWeights] = useState({});
+  const [activePreset, setActivePreset] = useState(""); 
+
+  // Initialize weights when presets load
+  useEffect(() => {
+    if (Object.keys(currentPresets).length > 0 && Object.keys(weights).length === 0) {
+        // Default to 'balanced' or first available
+        const defaultPresetKey = currentPresets.balanced ? 'balanced' : Object.keys(currentPresets)[0];
+        if (defaultPresetKey) {
+            setWeights(currentPresets[defaultPresetKey].weights);
+            setActivePreset(defaultPresetKey);
+        }
+    } else if (allDrills.length > 0 && Object.keys(weights).length === 0) {
+        // If no presets but drills exist, init equal weights? Or wait.
+        // Actually useDrills filters disabled ones, so we can just init.
+    }
+  }, [currentPresets, allDrills, weights]);
+
   const navigate = useNavigate();
 
   // Convert weights to percentages for display
   const getPercentages = () => {
     const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
     const percentages = {};
-    getDefaultDrills().forEach(drill => {
-      percentages[drill.key] = Math.round((weights[drill.key] / total) * 100);
+    allDrills.forEach(drill => {
+      percentages[drill.key] = total > 0 ? Math.round((weights[drill.key] / total) * 100) : 0;
     });
     return percentages;
   };
@@ -60,7 +63,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     
     // Normalize to sum to 1.0
     const newWeights = {};
-    getDefaultDrills().forEach(drill => {
+    allDrills.forEach(drill => {
       newWeights[drill.key] = newPercentages[drill.key] / total;
     });
     
@@ -70,8 +73,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   // Apply a preset
   const applyPreset = (presetKey) => {
-    setWeights({ ...getDefaultWeightPresets()[presetKey].weights });
-    setActivePreset(presetKey);
+    if (currentPresets[presetKey]) {
+        setWeights({ ...currentPresets[presetKey].weights });
+        setActivePreset(presetKey);
+    }
   };
 
   // Cached players fetcher for dashboard (TTL 60s)
@@ -386,7 +391,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">Quick Presets:</label>
               <div className="grid grid-cols-2 gap-2">
-                {Object.entries(getDefaultWeightPresets()).map(([key, preset]) => (
+                {Object.entries(currentPresets).map(([key, preset]) => (
                   <button
                     key={key}
                     onClick={() => applyPreset(key)}
@@ -407,15 +412,15 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 Custom Adjustments:
-                {activePreset && (
+                {activePreset && currentPresets[activePreset] && (
                   <span className="ml-2 text-xs text-gray-500">
-                    (Currently using {getDefaultWeightPresets()[activePreset].name})
+                    (Currently using {currentPresets[activePreset].name})
                   </span>
                 )}
               </label>
               
               <div className="space-y-4">
-                {getDefaultDrills().map(drill => (
+                {allDrills.map(drill => (
                   <div key={drill.key} className="flex items-center justify-between">
                     <div className="flex-1">
                       <label className="block text-sm text-gray-700 mb-1">{drill.label}</label>
@@ -424,14 +429,14 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           type="range"
                           min={0}
                           max={100}
-                          value={percentages[drill.key]}
+                          value={percentages[drill.key] || 0}
                           onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
                         />
                         <div className="w-12 text-right">
                           <span className="text-sm font-mono text-cmf-primary">
-                            {percentages[drill.key]}%
+                            {percentages[drill.key] || 0}%
                           </span>
                         </div>
                       </div>
@@ -482,7 +487,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               {rankings.map((player) => {
                 // Calculate individual drill rankings
                 const drillRankings = {};
-                getDefaultDrills().forEach(drill => {
+                allDrills.forEach(drill => {
                   const drillRanks = rankings
                     .filter(p => p[drill.key] != null)
                     .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
@@ -512,7 +517,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     
                     {/* Drill Results Grid */}
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      {getDefaultDrills().map(drill => (
+                      {allDrills.map(drill => (
                         <div key={drill.key} className="bg-white rounded p-2">
                           <div className="font-medium text-gray-700">{drill.label}</div>
                           {player[drill.key] != null ? (
@@ -540,18 +545,16 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     <th className="py-3 px-2">Name</th>
                     <th className="py-3 px-2">Player #</th>
                     <th className="py-3 px-2">Overall Score</th>
-                                                <th className="py-3 px-2 text-center">40-Yard Dash</th>
-                    <th className="py-3 px-2 text-center">Vertical</th>
-                    <th className="py-3 px-2 text-center">Catching</th>
-                    <th className="py-3 px-2 text-center">Throwing</th>
-                    <th className="py-3 px-2 text-center">Agility</th>
+                    {allDrills.map(drill => (
+                      <th key={drill.key} className="py-3 px-2 text-center">{drill.label}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rankings.map((player) => {
                     // Calculate individual drill rankings
                     const drillRankings = {};
-                    getDefaultDrills().forEach(drill => {
+                    allDrills.forEach(drill => {
                       const drillRanks = rankings
                         .filter(p => p[drill.key] != null)
                         .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
@@ -568,7 +571,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                         <td className="py-3 px-2">{player.name}</td>
                         <td className="py-3 px-2">{player.number}</td>
                         <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
-                        {getDefaultDrills().map(drill => (
+                        {allDrills.map(drill => (
                           <td key={drill.key} className="py-3 px-2 text-center">
                             {player[drill.key] != null ? (
                               <div className="flex flex-col">

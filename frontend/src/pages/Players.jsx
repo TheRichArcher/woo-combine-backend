@@ -16,10 +16,10 @@ import { parseISO, isValid, format } from 'date-fns';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
+import { useDrills } from '../hooks/useDrills';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
 import WeightControls from '../components/WeightControls';
-import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
 // PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
 const cachedFetchPlayers = withCache(
@@ -65,28 +65,13 @@ export default function Players() {
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const rankingsRef = useRef(null);
-  const [activeSchema, setActiveSchema] = useState(null);
   
   // Backend Rankings State (Fix for Analyze Rankings Widget)
   const [backendRankings, setBackendRankings] = useState([]);
   const [loadingRankings, setLoadingRankings] = useState(false);
 
-  // Fetch schema for active event
-  useEffect(() => {
-    if (selectedEvent?.drillTemplate) {
-      const fetchSchema = async () => {
-        try {
-          const res = await api.get(`/sports/${selectedEvent.drillTemplate}/schema`);
-          if (res.data) {
-            setActiveSchema(res.data);
-          }
-        } catch (err) {
-          console.warn("Failed to fetch schema:", err);
-        }
-      };
-      fetchSchema();
-    }
-  }, [selectedEvent?.drillTemplate]);
+  // Unified Drills Hook
+  const { drills: allDrills, presets: currentPresets } = useDrills(selectedEvent);
 
   // Handle deep linking to sections
   useEffect(() => {
@@ -156,64 +141,6 @@ export default function Players() {
       fetchFreshEvent();
     }
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
-
-  // Compute drills
-  const allDrills = useMemo(() => {
-    if (!selectedEvent) return [];
-    
-    let baseDrills = [];
-    if (activeSchema && activeSchema.drills) {
-      // Use fetched schema with normalization
-      baseDrills = activeSchema.drills.map(d => ({
-        key: d.key,
-        label: d.label,
-        unit: d.unit,
-        lowerIsBetter: d.lower_is_better,
-        category: d.category,
-        min: d.min_value,
-        max: d.max_value,
-        defaultWeight: d.default_weight
-      }));
-    } else {
-      // Fallback to local templates
-      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate);
-    }
-
-    const disabled = selectedEvent.disabled_drills || [];
-    const templateDrills = baseDrills.filter(d => !disabled.includes(d.key));
-    
-    const customDrills = selectedEvent.custom_drills || [];
-    const formattedCustomDrills = customDrills.map(d => ({
-      key: d.id,
-      label: d.name,
-      unit: d.unit,
-      lowerIsBetter: d.lower_is_better,
-      category: d.category || 'custom',
-      isCustom: true
-    }));
-    return [...templateDrills, ...formattedCustomDrills];
-  }, [selectedEvent, activeSchema]);
-
-  // Compute presets
-  const currentPresets = useMemo(() => {
-    let rawPresets = null;
-    if (activeSchema && activeSchema.presets) {
-      rawPresets = activeSchema.presets;
-    } else {
-      rawPresets = getPresetsFromTemplate(selectedEvent?.drillTemplate) || {};
-    }
-
-    // Normalize Array to Object if needed
-    if (Array.isArray(rawPresets)) {
-      return rawPresets.reduce((acc, preset) => {
-        const key = preset.id || preset.name.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-        acc[key] = preset;
-        return acc;
-      }, {});
-    }
-    
-    return rawPresets;
-  }, [activeSchema, selectedEvent]);
 
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
 

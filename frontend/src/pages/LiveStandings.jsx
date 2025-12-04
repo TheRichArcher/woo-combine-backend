@@ -53,7 +53,7 @@ export default function LiveStandings() {
       }));
     } else {
       // Fallback to local templates
-      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate);
     }
 
     const disabled = selectedEvent.disabled_drills || [];
@@ -76,7 +76,7 @@ export default function LiveStandings() {
     if (activeSchema && activeSchema.presets) {
       return activeSchema.presets;
     }
-    return getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
+    return getPresetsFromTemplate(selectedEvent?.drillTemplate) || {};
   }, [activeSchema, selectedEvent]);
   
   const [players, setPlayers] = useState([]);

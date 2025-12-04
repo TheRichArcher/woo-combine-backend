@@ -25,8 +25,8 @@ const TeamFormationPage = () => {
   const [error, setError] = useState(null);
   const [showWeightControls, setShowWeightControls] = useState(false);
   
-  // Get drill template from event or default to football
-  const drillTemplate = selectedEvent?.drillTemplate || 'football';
+  // Get drill template from event
+  const drillTemplate = selectedEvent?.drillTemplate;
   const template = getTemplateById(drillTemplate);
   
   // Weight management state

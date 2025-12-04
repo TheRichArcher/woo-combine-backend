@@ -3,7 +3,7 @@ import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
 import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
 import api from '../lib/api';
-import { getDrillsFromTemplate } from '../constants/drillTemplates';
+import { useDrills } from '../hooks/useDrills';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
@@ -11,7 +11,10 @@ export default function Analytics() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeSchema, setActiveSchema] = useState(null);
+  
+  // Unified Drills Hook
+  const { drills } = useDrills(selectedEvent);
+
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
@@ -28,65 +31,6 @@ export default function Analytics() {
     if (t < 0.66) return '#f59e0b'; // orange
     return '#ef4444';               // red
   };
-
-  // Fetch schema for active event (Sport-aware logic from Players.jsx)
-  useEffect(() => {
-    if (selectedEvent?.drillTemplate) {
-      const fetchSchema = async () => {
-        try {
-          const res = await api.get(`/sports/${selectedEvent.drillTemplate}/schema`);
-          if (res.data) {
-            setActiveSchema(res.data);
-          }
-        } catch (err) {
-          console.warn("Failed to fetch schema:", err);
-        }
-      };
-      fetchSchema();
-    }
-  }, [selectedEvent?.drillTemplate]);
-
-  // Compute drills based on schema/template + custom drills (Sport-aware logic)
-  const drills = useMemo(() => {
-    if (!selectedEvent) return [];
-    
-    let baseDrills = [];
-    if (activeSchema && activeSchema.drills) {
-      // Use fetched schema with normalization
-      baseDrills = activeSchema.drills.map(d => ({
-        key: d.key,
-        label: d.label,
-        unit: d.unit,
-        lowerIsBetter: d.lower_is_better,
-        category: d.category,
-        min_value: d.min_value,
-        max_value: d.max_value,
-        defaultWeight: d.default_weight
-      }));
-    } else {
-      // Fallback to local templates
-      // Use drillTemplate from event, or default to 'football' if missing
-      const templateId = selectedEvent.drillTemplate || 'football';
-      baseDrills = getDrillsFromTemplate(templateId);
-    }
-
-    // Filter disabled drills
-    const disabled = selectedEvent.disabled_drills || [];
-    const templateDrills = baseDrills.filter(d => !disabled.includes(d.key));
-    
-    // Add custom drills
-    const customDrills = selectedEvent.custom_drills || [];
-    const formattedCustomDrills = customDrills.map(d => ({
-      key: d.id,
-      label: d.name,
-      unit: d.unit,
-      lowerIsBetter: d.lower_is_better,
-      category: d.category || 'custom',
-      isCustom: true
-    }));
-
-    return [...templateDrills, ...formattedCustomDrills];
-  }, [selectedEvent, activeSchema]);
 
   useEffect(() => {
     const run = async () => {

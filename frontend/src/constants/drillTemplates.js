@@ -270,7 +270,7 @@ export const fetchSchemas = async () => {
 // --- UTILITY FUNCTIONS ---
 
 export const getTemplateById = (templateId) => {
-  return ensureSchemaCache()[templateId] || DRILL_TEMPLATES[templateId] || DRILL_TEMPLATES.football;
+  return ensureSchemaCache()[templateId] || DRILL_TEMPLATES[templateId];
 };
 
 export const getAllTemplates = () => Object.values(ensureSchemaCache());
@@ -280,9 +280,6 @@ export const getTemplatesByCategory = (category) =>
 
 export const getTemplatesBySport = (sport) =>
   getAllTemplates().filter(template => template.sport === sport);
-
-// For backward compatibility with existing code
-export const getDefaultFootballTemplate = () => DRILL_TEMPLATES.football;
 
 // Helper to get drills array from template
 export const getDrillsFromTemplate = (templateId) => {

@@ -27,7 +27,7 @@ const ScorecardsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   
   // Get drill template and weights from event
-  const drillTemplate = selectedEvent?.drillTemplate || 'football';
+  const drillTemplate = selectedEvent?.drillTemplate;
   const weights = getDefaultWeightsFromTemplate(drillTemplate);
   
   // Fetch players for the selected event

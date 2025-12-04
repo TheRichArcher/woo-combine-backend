@@ -4,9 +4,9 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen } from 'lucide-react';
-import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
+import { useDrills } from '../hooks/useDrills';
 
 
 export default function LiveEntry() {
@@ -38,28 +38,8 @@ export default function LiveEntry() {
     }
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
 
-  // Get drills from event template and custom drills
-  const drills = useMemo(() => {
-    if (!selectedEvent) return [];
-    
-    // 1. Get standard drills from template
-    const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
-    
-    // 2. Get custom drills from event data
-    // Note: backend returns snake_case fields, but we normalize for UI
-    const customDrills = selectedEvent.custom_drills || [];
-    
-    const formattedCustomDrills = customDrills.map(d => ({
-      key: d.id,
-      label: d.name,
-      unit: d.unit,
-      lowerIsBetter: d.lower_is_better,
-      category: d.category || 'custom',
-      isCustom: true
-    }));
-
-    return [...templateDrills, ...formattedCustomDrills];
-  }, [selectedEvent]);
+  // Unified Drills Hook
+  const { drills } = useDrills(selectedEvent);
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");

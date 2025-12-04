@@ -11,13 +11,13 @@ import ErrorDisplay from '../components/ErrorDisplay';
 export default function SportTemplatesPage() {
   const { selectedEvent, updateEvent } = useEvent();
   const { showSuccess } = useToast();
-  const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || 'football');
+  const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || '');
   const [showDetails, setShowDetails] = useState(false);
   const templates = getAllTemplates();
 
-  const currentTemplate = getTemplateById(selectedEvent?.drillTemplate || 'football');
+  const currentTemplate = getTemplateById(selectedEvent?.drillTemplate);
   const selectedTemplate = getTemplateById(selectedTemplateId);
-  const hasChanges = selectedTemplateId !== (selectedEvent?.drillTemplate || 'football');
+  const hasChanges = selectedTemplateId !== (selectedEvent?.drillTemplate || '');
 
   const { loading: applying, error: applyError, execute: executeApply } = useAsyncOperation({
     context: 'TEMPLATE_APPLY',
@@ -67,9 +67,9 @@ export default function SportTemplatesPage() {
           </div>
           <div className="text-sm text-gray-700">
             <div className="flex items-center gap-2 flex-wrap">
-              <div><span className="font-semibold">Current:</span> {currentTemplate?.name || 'Football'}</div>
+              <div><span className="font-semibold">Current:</span> {currentTemplate?.name || 'None'}</div>
               <span className="text-gray-300">|</span>
-              <div><span className="font-semibold">Selected:</span> {selectedTemplate?.name || currentTemplate?.name}</div>
+              <div><span className="font-semibold">Selected:</span> {selectedTemplate?.name || currentTemplate?.name || 'None'}</div>
               {hasChanges && (
                 <span className="inline-flex items-center text-semantic-warning bg-semantic-warning/10 px-2 py-0.5 rounded-full text-xs font-semibold">Changes not applied</span>
               )}
