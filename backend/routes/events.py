@@ -699,6 +699,9 @@ def get_event_schema_endpoint(
             raise HTTPException(status_code=404, detail="Event schema not found")
 
         return {
+            "id": schema.id,
+            "name": schema.name,
+            "sport": schema.sport,
             "drills": [
                 {
                     "key": drill.key,
@@ -707,9 +710,20 @@ def get_event_schema_endpoint(
                     "min_value": drill.min_value,
                     "max_value": drill.max_value,
                     "default_weight": drill.default_weight,
-                    "lower_is_better": drill.lower_is_better
+                    "lower_is_better": drill.lower_is_better,
+                    "category": drill.category,
+                    "description": drill.description
                 }
                 for drill in schema.drills
+            ],
+            "presets": [
+                {
+                    "id": preset.id,
+                    "name": preset.name,
+                    "description": preset.description,
+                    "weights": preset.weights
+                }
+                for preset in schema.presets
             ]
         }
 

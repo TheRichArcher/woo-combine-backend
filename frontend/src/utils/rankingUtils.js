@@ -114,7 +114,7 @@ export function normalizeScoresForAgeGroup(players, ageGroup, drills = []) {
   
   const drillsToUse = drills.length > 0 ? drills : [];
   if (drillsToUse.length === 0) return players;
-
+  
   const drillStats = {};
   
   // Calculate min/max for each drill in this age group

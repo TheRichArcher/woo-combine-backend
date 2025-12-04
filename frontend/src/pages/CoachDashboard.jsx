@@ -75,7 +75,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const applyPreset = (presetKey) => {
     if (currentPresets[presetKey]) {
         setWeights({ ...currentPresets[presetKey].weights });
-        setActivePreset(presetKey);
+    setActivePreset(presetKey);
     }
   };
 

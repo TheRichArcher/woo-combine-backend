@@ -32,7 +32,31 @@ export function useDrills(selectedEvent) {
         const { data } = await api.get(`/events/${selectedEvent.id}/schema`);
         
         if (isMounted) {
-          setSchema(data);
+          // Normalize backend data to match frontend expectations
+          const normalizedDrills = (data.drills || []).map(d => ({
+            ...d,
+            // Backend sends snake_case, Frontend expects camelCase
+            lowerIsBetter: d.lowerIsBetter !== undefined ? d.lowerIsBetter : d.lower_is_better,
+            min: d.min !== undefined ? d.min : d.min_value,
+            max: d.max !== undefined ? d.max : d.max_value,
+            defaultWeight: d.defaultWeight !== undefined ? d.defaultWeight : d.default_weight,
+          }));
+
+          // Normalize presets from list (backend) to object (frontend expectation)
+          let normalizedPresets = {};
+          if (Array.isArray(data.presets)) {
+             data.presets.forEach(p => {
+               if (p.id) normalizedPresets[p.id] = p;
+             });
+          } else if (data.presets) {
+             normalizedPresets = data.presets;
+          }
+
+          setSchema({
+            ...data,
+            drills: normalizedDrills,
+            presets: normalizedPresets
+          });
           setError(null);
         }
       } catch (err) {
