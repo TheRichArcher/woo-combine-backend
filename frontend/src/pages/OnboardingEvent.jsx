@@ -15,6 +15,8 @@ import { logger } from '../utils/logger';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import LoadingScreen from "../components/LoadingScreen";
 import DrillManager from "../components/drills/DrillManager";
+import ImportResultsModal from "../components/Players/ImportResultsModal";
+import { useDrills } from "../hooks/useDrills";
 
 // CSV processing utilities
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS, detectColumnTypes } from '../utils/csvUtils';
@@ -87,6 +89,9 @@ export default function OnboardingEvent() {
   const [manualStatus, setManualStatus] = useState('idle');
   const [manualMsg, setManualMsg] = useState('');
   
+  const [showImportModal, setShowImportModal] = useState(false);
+  const { drills: allDrills } = useDrills(createdEvent);
+
   const fileInputRef = useRef();
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
 
@@ -829,6 +834,30 @@ export default function OnboardingEvent() {
                   🚀 Start Tracking Performance
                   <ArrowRight className="w-5 h-5" />
                 </Button>
+
+                {/* New Section: Upload Results Option */}
+                <div className="relative my-5">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500 font-medium">OR</span>
+                  </div>
+                </div>
+
+                <div className="text-center mb-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowImportModal(true)} 
+                    className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 text-gray-700 py-3"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Upload Drill Results Instead
+                  </Button>
+                  <p className="text-xs text-gray-500 mt-2">
+                    If you already recorded scores on a spreadsheet, upload them here.
+                  </p>
+                </div>
               </div>
 
               <div className="border-t border-brand-primary/30 pt-3">
@@ -871,6 +900,16 @@ export default function OnboardingEvent() {
                 View Players & Rankings
               </Button>
             </div>
+
+            {showImportModal && (
+              <ImportResultsModal
+                onClose={() => setShowImportModal(false)}
+                onSuccess={() => {
+                  fetchPlayerCount();
+                }}
+                availableDrills={allDrills}
+              />
+            )}
           </OnboardingCard>
         </div>
       </WelcomeLayout>
