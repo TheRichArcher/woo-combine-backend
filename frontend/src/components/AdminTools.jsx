@@ -818,15 +818,15 @@ export default function AdminTools() {
                             {canonicalHeaderLabels[fieldKey] || fieldKey}
                             {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
                           </div>
-                          {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' && (
-                            <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review</div>
+                          {((fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high') || (!fieldMapping[fieldKey])) && (
+                            <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review Required</div>
                           )}
                         </div>
                         <select
                           value={fieldMapping[fieldKey] || ''}
                           onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
                           className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary ${
-                            fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' 
+                            (!fieldMapping[fieldKey]) || (fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high')
                               ? 'border-amber-300 bg-amber-50' 
                               : 'border-gray-300'
                           }`}

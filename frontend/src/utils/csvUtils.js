@@ -1,10 +1,11 @@
 // CSV parsing and validation utilities
 
-// Required: first_name, last_name. jersey_number and age_group are optional
+// Required: first_name, last_name
 export const REQUIRED_HEADERS = ["first_name", "last_name"];
 
 // Optional columns supported by backend
-export const OPTIONAL_HEADERS = ["external_id", "team_name", "position", "notes"];
+// Added age_group and jersey_number to ensure they appear in mapping UI
+export const OPTIONAL_HEADERS = ["age_group", "jersey_number", "external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 // Function to get drill headers from schema (called with event schema)
@@ -134,6 +135,36 @@ export function parseCsv(text) {
   }
   
   return { headers, rows, mappingType };
+}
+
+// Analyze columns to detect if they are numeric
+export function detectColumnTypes(headers, rows) {
+  const columnTypes = {};
+  const SAMPLE_SIZE = 50; // Check first 50 rows
+  
+  headers.forEach(header => {
+    let numericCount = 0;
+    let totalCount = 0;
+    
+    for (let i = 0; i < Math.min(rows.length, SAMPLE_SIZE); i++) {
+      const val = rows[i][header];
+      if (val && val.trim() !== '') {
+        totalCount++;
+        if (!isNaN(Number(val.trim()))) {
+          numericCount++;
+        }
+      }
+    }
+    
+    // If >80% of non-empty values are numeric, consider it numeric
+    if (totalCount > 0 && (numericCount / totalCount) > 0.8) {
+      columnTypes[header] = 'numeric';
+    } else {
+      columnTypes[header] = 'text';
+    }
+  });
+  
+  return columnTypes;
 }
 
 // Validate a single CSV row
@@ -297,10 +328,6 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
     }
   });
   
-  // Return object with both mapping and confidence (backward compat: properties on the object)
-  // We attach confidence as a non-enumerable property or just a side property if callers expect a plain object?
-  // Callers expect `mapping[key]`. Adding extra properties might confuse iteration if using for-in.
-  // Best to return { mapping, confidence } and update callers.
   return { mapping, confidence };
 }
 

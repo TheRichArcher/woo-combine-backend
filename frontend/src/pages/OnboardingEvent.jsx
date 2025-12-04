@@ -17,7 +17,7 @@ import LoadingScreen from "../components/LoadingScreen";
 import DrillManager from "../components/drills/DrillManager";
 
 // CSV processing utilities
-import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS } from '../utils/csvUtils';
+import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS, detectColumnTypes } from '../utils/csvUtils';
 
 export default function OnboardingEvent() {
   const navigate = useNavigate();
@@ -74,6 +74,7 @@ export default function OnboardingEvent() {
   const [fieldMapping, setFieldMapping] = useState({});
   const [mappingConfidence, setMappingConfidence] = useState({});
   const [mappingApplied, setMappingApplied] = useState(false);
+  const [forcedIgnoreFields, setForcedIgnoreFields] = useState([]);
   
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -182,6 +183,30 @@ export default function OnboardingEvent() {
       
       // Generate default mapping immediately
       const { mapping: initialMapping, confidence } = generateDefaultMapping(headers);
+      
+      // NEW: Auto-detect numeric columns to prevent score mapping errors
+      const columnTypes = detectColumnTypes(headers, rows);
+      
+      // Check if all remaining columns (not auto-mapped) are numeric
+      const mappedHeaders = Object.values(initialMapping);
+      const remainingHeaders = headers.filter(h => !mappedHeaders.includes(h));
+      const allRemainingAreNumeric = remainingHeaders.length > 0 && remainingHeaders.every(h => columnTypes[h] === 'numeric');
+      
+      const forcedFields = [];
+      if (allRemainingAreNumeric) {
+        // If only numeric columns remain, they are likely scores - safely ignore unmapped roster fields
+        [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].forEach(key => {
+            if (!initialMapping[key]) {
+                initialMapping[key] = '__ignore__';
+                forcedFields.push(key);
+            }
+        });
+        if (forcedFields.length > 0) {
+             showInfo('⚠️ Numeric columns detected - score fields automatically set to Ignore.');
+        }
+      }
+      setForcedIgnoreFields(forcedFields);
+
       setFieldMapping(initialMapping);
       setMappingConfidence(confidence);
       setOriginalCsvRows(rows); // Always save original rows
@@ -496,6 +521,22 @@ export default function OnboardingEvent() {
                         CSV uploaded. Now import your players to complete the process.
                       </p>
                     </div>
+                    
+                    {/* Instructional Banner for Mapping */}
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
+                        <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span className="text-amber-600 text-sm font-bold">!</span>
+                            </div>
+                            <div>
+                                <p className="text-amber-800 font-bold text-sm mb-1">Only map roster information here.</p>
+                                <p className="text-amber-700 text-sm">
+                                    Drill scores will be imported separately on the Players page. 
+                                    All score columns should be set to <strong>"Ignore / Don't Import."</strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     {!mappingApplied ? (
                       <>
@@ -542,6 +583,8 @@ export default function OnboardingEvent() {
                       <div className="grid grid-cols-1 gap-3">
                         {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => {
                           const selectedHeader = fieldMapping[fieldKey] || '';
+                          const isForcedIgnore = forcedIgnoreFields.includes(fieldKey);
+                          
                           const sampleValue = selectedHeader && selectedHeader !== '__ignore__'
                             ? (originalCsvRows.find(row => (row?.[selectedHeader] || '').trim() !== '')?.[selectedHeader] || '')
                             : '';
@@ -553,29 +596,41 @@ export default function OnboardingEvent() {
                                     {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                                     {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
                                   </div>
-                                  {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' && (
-                                    <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review</div>
+                                  {/* Show Review warning if confidence is low OR if unmapped */}
+                                  {((fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high') || (!selectedHeader && !isForcedIgnore)) && (
+                                    <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review Required</div>
                                   )}
                                 </div>
-                                <select
-                                  value={selectedHeader}
-                                  onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                  className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
-                                    selectedHeader && selectedHeader !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high' 
-                                      ? 'border-amber-300 bg-amber-50' 
-                                      : 'border-gray-300'
-                                  }`}
-                                >
-                                  <option value="">Select Column...</option>
-                                  <option value="__ignore__">Ignore (Don't Import)</option>
-                                  {csvHeaders.map(h => (
-                                    <option key={h} value={h}>{h}</option>
-                                  ))}
-                                </select>
+                                <div className="flex-1 relative">
+                                    <select
+                                    value={selectedHeader}
+                                    onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                    disabled={isForcedIgnore}
+                                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
+                                        (!selectedHeader && !isForcedIgnore) || (selectedHeader && selectedHeader !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high')
+                                        ? 'border-amber-300 bg-amber-50' 
+                                        : 'border-gray-300'
+                                    } ${isForcedIgnore ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                    >
+                                    <option value="">Select Column...</option>
+                                    <option value="__ignore__">Ignore (Don't Import)</option>
+                                    {csvHeaders.map(h => (
+                                        <option key={h} value={h}>{h}</option>
+                                    ))}
+                                    </select>
+                                    {isForcedIgnore && (
+                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                                            🔒
+                                        </div>
+                                    )}
+                                </div>
                               </div>
                               <div className="pl-40 text-xs text-gray-500">
-                                {selectedHeader === '__ignore__' && 'Ignored for this import'}
-                                {!selectedHeader && 'Auto-detecting based on header name'}
+                                {isForcedIgnore && (
+                                    <span className="text-amber-600 font-medium">Auto-ignored (Numeric column detected)</span>
+                                )}
+                                {!isForcedIgnore && selectedHeader === '__ignore__' && 'Ignored for this import'}
+                                {!selectedHeader && !isForcedIgnore && <span className="text-amber-600 font-medium">Please select a column or choose Ignore</span>}
                                 {selectedHeader && selectedHeader !== '__ignore__' && (
                                   <>
                                     Mapped to “{selectedHeader}”
