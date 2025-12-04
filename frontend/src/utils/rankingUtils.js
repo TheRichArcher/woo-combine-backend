@@ -1,7 +1,4 @@
-console.log('Loading rankingUtils.js');
-
 // Ranking and weight calculation utilities
-console.log('rankingUtils.js: Starting module initialization');
 import {
   getDefaultFootballTemplate,
   getDrillsFromTemplate,
@@ -9,14 +6,14 @@ import {
 } from '../constants/drillTemplates.js';
 
 // Getter functions to avoid top-level calls that cause TDZ
-const getDrills = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.drills;
+const getDrills = (templateId = 'football') => {
+  const defaultTemplate = getDrillsFromTemplate(templateId);
+  return defaultTemplate || [];
 };
 
-const getDrillWeights = () => {
-  const defaultTemplate = getDefaultFootballTemplate();
-  return defaultTemplate.defaultWeights;
+const getDrillWeights = (templateId = 'football') => {
+  const defaultTemplate = getDefaultWeightsFromTemplate(templateId);
+  return defaultTemplate || {};
 };
 
 const getWeightPresets = () => {
@@ -44,12 +41,12 @@ export function convertWeightsToPercentages(weights) {
 
 // Dynamic helper functions for event-specific drills and weights
 export const getDrillsForEvent = (event) => {
-  const templateId = event?.drillTemplate || 'football';
+  const templateId = event?.drillTemplate;
   return getDrillsFromTemplate(templateId);
 };
 
 export const getWeightsForEvent = (event) => {
-  const templateId = event?.drillTemplate || 'football';
+  const templateId = event?.drillTemplate;
   return getDefaultWeightsFromTemplate(templateId);
 };
 
@@ -69,7 +66,9 @@ export async function calculateCompositeScore(player, weights = null, event = nu
       
       // Handle lower-is-better drills (like times)
       if (drill.lowerIsBetter) {
-        drillScore = Math.max(0, 30 - drillScore);
+        // Try to use max value from drill definition, otherwise default to 100 (safe upper bound for seconds)
+        const maxVal = drill.max || 100; 
+        drillScore = Math.max(0, maxVal - drillScore);
       }
       
       score += drillScore * (weightsToUse[drill.key] || 0);
@@ -143,8 +142,9 @@ export function normalizeScoresForAgeGroup(players, ageGroup) {
         const range = stats.max - stats.min;
         
         if (range > 0) {
-          // For 40m dash, lower is better, so invert
-          if (drill.key === '40m_dash') {
+          // Use drill definition for lower-is-better check if available
+          // We need to fetch the drill definition first
+          if (drill.lowerIsBetter) {
             normalizedPlayer[`${drill.key}_normalized`] = 
               ((stats.max - numValue) / range) * 100;
           } else {

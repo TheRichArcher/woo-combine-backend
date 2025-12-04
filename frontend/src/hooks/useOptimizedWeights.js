@@ -1,5 +1,3 @@
-console.log('Loading useOptimizedWeights.js');
-
 /*
  * Optimized Weight Management Hook
  *
@@ -69,13 +67,7 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
     }
     
     // Fallback for initial render if drills not yet loaded
-    return {
-      "40m_dash": 20,
-      "vertical_jump": 20, 
-      "catching": 20,
-      "throwing": 20,
-      "agility": 20
-    };
+    return {};
   };
 
   // Persisted weights (the source of truth)
@@ -84,12 +76,14 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
   // Update weights when drills change (e.g. fetching schema completed)
   useEffect(() => {
     if (drills && drills.length > 0) {
+      // Check if we need to reset weights because drills changed
+      // If we have keys but they don't match any current drill, reset.
       const currentKeys = Object.keys(persistedWeights);
       const drillKeys = drills.map(d => d.key);
       
-      // Check if we need to reset weights because drills changed
-      const mismatch = drillKeys.some(k => !persistedWeights[k]) || 
-                       (currentKeys.length > 0 && !currentKeys.includes('40m_dash') && !drillKeys.includes(currentKeys[0]));
+      // Mismatch if current weights have keys not in drills, or if we have no weights but have drills
+      const mismatch = (currentKeys.length > 0 && !currentKeys.every(k => drillKeys.includes(k))) ||
+                       (currentKeys.length === 0 && drillKeys.length > 0);
       
       if (mismatch) {
         const newDefaults = {};

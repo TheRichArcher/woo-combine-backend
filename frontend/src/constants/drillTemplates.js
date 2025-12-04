@@ -13,11 +13,11 @@ export const DRILL_TEMPLATES = {
     description: 'Traditional football combine drills',
     sport: 'Football',
     drills: [
-      { key: "40m_dash", label: "40-Yard Dash", unit: "sec", lowerIsBetter: true, category: "speed" },
-      { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false, category: "power" },
-      { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false, category: "skills" },
-      { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false, category: "skills" },
-      { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false, category: "agility" },
+      { key: "40m_dash", label: "40-Yard Dash", unit: "sec", lowerIsBetter: true, category: "speed", min: 4, max: 10 },
+      { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false, category: "power", min: 0, max: 50 },
+      { key: "catching", label: "Catching", unit: "pts", lowerIsBetter: false, category: "skills", min: 0, max: 100 },
+      { key: "throwing", label: "Throwing", unit: "pts", lowerIsBetter: false, category: "skills", min: 0, max: 100 },
+      { key: "agility", label: "Agility", unit: "pts", lowerIsBetter: false, category: "agility", min: 0, max: 100 },
     ],
     defaultWeights: {
       "40m_dash": 0.3,

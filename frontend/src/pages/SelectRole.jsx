@@ -99,7 +99,6 @@ export default function SelectRole() {
           // Check if invite was restored
           const restoredInvite = localStorage.getItem('pendingEventJoin');
           if (restoredInvite) {
-            console.log("Restored pending invite from server:", restoredInvite);
             const parts = restoredInvite.split('/');
             // Re-run the navigation logic
             const safePath = restoredInvite.split('/').map(part => encodeURIComponent(part)).join('/');

@@ -1,5 +1,3 @@
-console.log('Loading usePlayerRankings.js');
-
 import { useCallback, useMemo } from 'react';
 import { getDefaultFootballTemplate } from '../constants/drillTemplates';
 import { logger } from '../utils/logger';

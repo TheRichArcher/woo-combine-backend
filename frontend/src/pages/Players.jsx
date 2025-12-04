@@ -1,5 +1,3 @@
-console.log('Loading Players.jsx');
-
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import Skeleton from "../components/Skeleton";
 import DrillInputForm from "../components/DrillInputForm";
@@ -178,7 +176,7 @@ export default function Players() {
       }));
     } else {
       // Fallback to local templates
-      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate || 'football');
+      baseDrills = getDrillsFromTemplate(selectedEvent.drillTemplate);
     }
 
     const disabled = selectedEvent.disabled_drills || [];
@@ -202,7 +200,7 @@ export default function Players() {
     if (activeSchema && activeSchema.presets) {
       rawPresets = activeSchema.presets;
     } else {
-      rawPresets = getPresetsFromTemplate(selectedEvent?.drillTemplate || 'football') || {};
+      rawPresets = getPresetsFromTemplate(selectedEvent?.drillTemplate) || {};
     }
 
     // Normalize Array to Object if needed

@@ -1,5 +1,3 @@
-console.log('Loading validation.js');
-
 /**
  * Frontend validation utilities for form inputs and user data
  */
@@ -94,9 +92,10 @@ export const customValidators = {
    * Validates drill values based on drill type
    * @param {string|number} value - The drill value to validate
    * @param {string} type - The type of drill (40m_dash, vertical_jump, etc.)
+   * @param {object} drillDef - Optional drill definition with min/max/unit
    * @returns {string|null} - Error message if invalid, null if valid
    */
-  drillValue(value, type) {
+  drillValue(value, type, drillDef = null) {
     if (!value && value !== 0) {
       return "Drill value is required";
     }
@@ -110,36 +109,21 @@ export const customValidators = {
       return "Drill value cannot be negative";
     }
 
-    // Type-specific validation
-    switch (type) {
-      case "40m_dash":
-        if (numValue > 20) {
-          return "40m dash time seems unrealistic (max 20 seconds)";
-        }
-        if (numValue < 3) {
-          return "40m dash time seems unrealistic (min 3 seconds)";
-        }
-        break;
-      
-      case "vertical_jump":
-        if (numValue > 200) {
-          return "Vertical jump height seems unrealistic (max 200cm)";
-        }
-        break;
-      
-      case "catching":
-      case "throwing":
-      case "agility":
-        if (numValue > 100) {
-          return "Score cannot exceed 100";
-        }
-        break;
-      
-      default:
-        // Generic validation for unknown drill types
-        if (numValue > 10000) {
-          return "Value seems unrealistically high";
-        }
+    // Use drill definition constraints if available
+    if (drillDef) {
+      if (drillDef.min_value !== undefined && drillDef.min_value !== null && numValue < drillDef.min_value) {
+        return `Value seems unrealistic (min ${drillDef.min_value})`;
+      }
+      if (drillDef.max_value !== undefined && drillDef.max_value !== null && numValue > drillDef.max_value) {
+        return `Value seems unrealistic (max ${drillDef.max_value})`;
+      }
+      return null;
+    }
+
+    // Legacy fallback (deprecate football-specific hardcoding where possible)
+    // Only keep extremely generic bounds if absolutely necessary
+    if (numValue > 100000) {
+       return "Value seems unrealistically high";
     }
 
     return null; // Valid

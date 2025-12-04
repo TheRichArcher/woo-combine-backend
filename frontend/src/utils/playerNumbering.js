@@ -1,5 +1,3 @@
-console.log('Loading playerNumbering.js');
-
 /**
  * Player Auto-Numbering System
  *

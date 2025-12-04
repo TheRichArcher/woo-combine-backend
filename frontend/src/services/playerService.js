@@ -1,5 +1,3 @@
-console.log('Loading playerService.js');
-
 import api from '../lib/api';
 
 export const playerService = {

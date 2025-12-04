@@ -1,5 +1,3 @@
-console.log('Loading api.js');
-
 import axios from 'axios';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';

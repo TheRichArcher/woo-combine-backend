@@ -1,5 +1,3 @@
-console.log('Loading useAsyncOperation.js');
-
 /**
  * Standardized async operation hook for consistent error handling
  * across the WooCombine application

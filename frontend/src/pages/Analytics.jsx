@@ -28,14 +28,6 @@ export default function Analytics() {
     if (t < 0.66) return '#f59e0b'; // orange
     return '#ef4444';               // red
   };
-  // Reasonable value ranges per drill to avoid skew/outliers
-  const DRILL_BOUNDS = {
-    '40m_dash': { min: 3, max: 20 },
-    'vertical_jump': { min: 0, max: 60 },
-    'catching': { min: 0, max: 100 },
-    'throwing': { min: 0, max: 100 },
-    'agility': { min: 0, max: 100 }
-  };
 
   // Fetch drills for the selected event
   useEffect(() => {
@@ -80,13 +72,22 @@ export default function Analytics() {
   const totals = useMemo(() => {
     const sum = (arr, key) => arr.reduce((acc, p) => acc + (Number(p[key]) || 0), 0);
     const countWith = (key) => players.filter(p => p[key] != null && p[key] !== '').length;
+    
+    // Dynamically find top 2 drills to display in summary cards
+    const topDrills = drills.slice(0, 2);
+    
+    const drillStats = topDrills.map(d => ({
+      label: d.label,
+      unit: d.unit,
+      avg: players.length ? (sum(players, d.key) / Math.max(1, countWith(d.key))) : 0
+    }));
+
     return {
       count: players.length,
-      withAnyScore: players.filter(p => ['40m_dash','vertical_jump','catching','throwing','agility'].some(k => p[k] != null)).length,
-      avg40: players.length ? (sum(players, '40m_dash') / Math.max(1, countWith('40m_dash'))) : 0,
-      avgVertical: players.length ? (sum(players, 'vertical_jump') / Math.max(1, countWith('vertical_jump'))) : 0,
+      withAnyScore: players.filter(p => drills.some(d => p[d.key] != null && p[d.key] !== '')).length,
+      drillStats
     };
-  }, [players]);
+  }, [players, drills]);
 
   // Age groups for filter
   const ageGroups = useMemo(() => {
@@ -125,7 +126,10 @@ export default function Analytics() {
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
       }
 
-      const bounds = DRILL_BOUNDS[drill.key] || { min: -Infinity, max: Infinity };
+      const bounds = {
+        min: drill.min_value !== undefined ? drill.min_value : -Infinity, 
+        max: drill.max_value !== undefined ? drill.max_value : Infinity
+      };
       const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
 
       if (inRange.length === 0) {
@@ -251,14 +255,12 @@ export default function Analytics() {
                 <div className="text-xs text-gray-500">With Scores</div>
                 <div className="text-2xl font-bold text-gray-900">{totals.withAnyScore}</div>
               </div>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                <div className="text-xs text-gray-500">Avg 40-Yard (sec)</div>
-                <div className="text-2xl font-bold text-brand-primary">{totals.avg40 ? totals.avg40.toFixed(2) : '—'}</div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                <div className="text-xs text-gray-500">Avg Vertical (in)</div>
-                <div className="text-2xl font-bold text-brand-primary">{totals.avgVertical ? totals.avgVertical.toFixed(1) : '—'}</div>
-              </div>
+              {totals.drillStats.map((stat, idx) => (
+                <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                  <div className="text-xs text-gray-500">Avg {stat.label} ({stat.unit})</div>
+                  <div className="text-2xl font-bold text-brand-primary">{stat.avg ? stat.avg.toFixed(2) : '—'}</div>
+                </div>
+              ))}
             </div>
 
             {/* Drill Explorer */}

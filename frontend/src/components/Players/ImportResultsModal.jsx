@@ -1,5 +1,3 @@
-console.log('Loading ImportResultsModal.jsx');
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
 import api from '../../lib/api';
@@ -330,7 +328,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       }
   };
 
-  // Render Steps
+  // Dynamic placeholder text
+  const placeholderText = useMemo(() => {
+    const exampleDrill = availableDrills[0] || { label: '40m Dash', key: '40m_dash' };
+    const exampleValue = exampleDrill.key === '40m_dash' ? '4.5' : '10';
+    return `Paste your data here...\nFirst Name, Last Name, ${exampleDrill.label}\nJohn, Doe, ${exampleValue}\nJane, Smith, ${Number(exampleValue) + 0.3}`;
+  }, [availableDrills]);
+
+  const supportedColumnsText = useMemo(() => {
+    const drillLabels = availableDrills.slice(0, 3).map(d => d.label).join(', ');
+    return `Supported columns: First Name, Last Name, Jersey Number, Age Group, Drill Names (${drillLabels || 'e.g. 40m Dash'}, etc.)`;
+  }, [availableDrills]);
+
   const renderInputStep = () => (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4 mb-4">
@@ -435,11 +444,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            placeholder="Paste your data here...&#10;First Name, Last Name, 40m Dash&#10;John, Doe, 4.5&#10;Jane, Smith, 4.8"
+            placeholder={placeholderText}
             className="w-full h-48 p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-cmf-primary focus:border-transparent font-mono text-sm"
           />
           <p className="text-xs text-gray-500 mt-2">
-            Supported columns: First Name, Last Name, Jersey Number, Age Group, Drill Names (40m Dash, etc.)
+            {supportedColumnsText}
           </p>
         </div>
       )}

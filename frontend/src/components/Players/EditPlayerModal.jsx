@@ -1,5 +1,3 @@
-console.log('Loading EditPlayerModal.jsx');
-
 import React, { useState, useMemo, useCallback } from "react";
 import { X, Edit } from 'lucide-react';
 import api from '../../lib/api';

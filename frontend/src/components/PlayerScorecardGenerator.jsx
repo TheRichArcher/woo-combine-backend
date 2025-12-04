@@ -1,5 +1,3 @@
-console.log('Loading PlayerScorecardGenerator.jsx');
-
 import React, { useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';

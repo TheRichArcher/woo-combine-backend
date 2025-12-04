@@ -1,5 +1,3 @@
-console.log('Loading leagueService.js');
-
 import api from '../lib/api';
 
 export const leagueService = {

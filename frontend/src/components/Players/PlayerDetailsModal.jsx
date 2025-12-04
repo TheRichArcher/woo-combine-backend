@@ -1,5 +1,3 @@
-console.log('Loading PlayerDetailsModal.jsx');
-
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { X, TrendingUp, Settings, Award } from 'lucide-react';
 
@@ -51,7 +49,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
         }
         
         const sortedPlayers = validPlayers.sort((a, b) => {
-          if (drill.key === "40m_dash") {
+          if (drill.lowerIsBetter) {
             return a[drill.key] - b[drill.key];
           }
           return b[drill.key] - a[drill.key];
@@ -104,8 +102,8 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
           if (range.max === range.min) {
             // All players have same score, give them all 50 (middle score)
             normalizedScore = 50;
-          } else if (drill.key === "40m_dash") {
-            // For 40-yard dash: lower time = better score (invert the scale)
+          } else if (drill.lowerIsBetter) {
+            // For lower-is-better drills (like times): lower value = higher score
             normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
           } else {
             // For other drills: higher value = better score
@@ -182,7 +180,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               
               if (range.max === range.min) {
                 normalizedScore = 50;
-              } else if (drill.key === "40m_dash") {
+              } else if (drill.lowerIsBetter) {
                 normalizedScore = ((range.max - drillScore) / (range.max - range.min)) * 100;
               } else {
                 normalizedScore = ((drillScore - range.min) / (range.max - range.min)) * 100;

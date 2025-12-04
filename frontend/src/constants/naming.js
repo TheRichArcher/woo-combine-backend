@@ -1,5 +1,3 @@
-console.log('Loading naming.js');
-
 /**
  * Naming conventions and field mappings for consistent data handling
  */

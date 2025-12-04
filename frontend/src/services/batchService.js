@@ -1,5 +1,3 @@
-console.log('Loading batchService.js');
-
 /**
  * Batch Service for WooCombine Frontend
  *

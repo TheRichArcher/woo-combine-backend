@@ -122,11 +122,9 @@ function calculateNormalizedDrillScore(rawScore, range, drillKey, lowerIsBetter)
   }
   
   // Determine if lower is better. 
-  // Default logic: 40m_dash is lower-is-better. 
-  // If lowerIsBetter param is provided, use it.
-  const isLowerBetter = lowerIsBetter !== undefined 
-    ? lowerIsBetter 
-    : (drillKey === "40m_dash");
+  // Use drill metadata if available, otherwise default to false (higher is better).
+  // No hardcoded sport logic here.
+  const isLowerBetter = lowerIsBetter === true;
   
   if (isLowerBetter) {
     // Lower time = better score (invert the scale)
@@ -308,9 +306,7 @@ export function calculateDrillRankings(player, allPlayers, drillList = []) {
       
       // Sort players for this drill
       const sortedPlayers = validPlayers.sort((a, b) => {
-        const isLowerBetter = drill.lowerIsBetter !== undefined 
-          ? drill.lowerIsBetter 
-          : (drill.key === "40m_dash");
+        const isLowerBetter = drill.lowerIsBetter === true;
           
         if (isLowerBetter) {
           return a[drill.key] - b[drill.key]; // Lower time = better
