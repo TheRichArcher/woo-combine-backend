@@ -2,6 +2,19 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import api from '../lib/api';
+import { getAllTemplates } from '../constants/drillTemplates';
+
+const getSportIcon = (sport) => {
+  switch(sport) {
+    case 'Football': return '🏈';
+    case 'Soccer': return '⚽';
+    case 'Basketball': return '🏀';
+    case 'Baseball': return '⚾';
+    case 'Track & Field': return '🏃';
+    case 'Volleyball': return '🏐';
+    default: return '🏆';
+  }
+};
 
 export default function EditEventModal({ open, onClose, event, onUpdated }) {
   const { selectedLeagueId } = useAuth();
@@ -9,8 +22,11 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [drillTemplate, setDrillTemplate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  const templates = getAllTemplates();
 
   // Pre-populate form when event prop changes
   useEffect(() => {
@@ -18,6 +34,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
       setName(event.name || "");
       setDate(event.date || "");
       setLocation(event.location || "");
+      setDrillTemplate(event.drillTemplate || "football");
     }
   }, [event]);
 
@@ -33,7 +50,8 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
       await api.put(`/leagues/${selectedLeagueId}/events/${event.id}`, {
         name,
         date: isoDate,
-        location
+        location,
+        drillTemplate
       });
       
       const updatedEvent = {
@@ -41,6 +59,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
         name: name,
         date: isoDate,
         location: location,
+        drillTemplate: drillTemplate,
         updated_at: new Date().toISOString()
       };
       
@@ -78,6 +97,21 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
             className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
+          
+          <label className="block mb-2 font-semibold">Sport Template</label>
+          <select
+            value={drillTemplate}
+            onChange={e => setDrillTemplate(e.target.value)}
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
+            required
+          >
+            {templates.map(template => (
+              <option key={template.id} value={template.id}>
+                {getSportIcon(template.sport)} {template.name}
+              </option>
+            ))}
+          </select>
+
           <label className="block mb-2 font-semibold">Event Date</label>
           <input
             type="date"
@@ -118,4 +152,4 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
       </div>
     </div>
   );
-} 
+}
