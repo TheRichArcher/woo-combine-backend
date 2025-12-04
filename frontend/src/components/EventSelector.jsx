@@ -35,6 +35,12 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const [location, setLocation] = useState("");
   const templates = getAllTemplates();
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || "football");
+  
+  // Missing state variables restoration
+  const [playerCount, setPlayerCount] = useState(0);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [creatingLeague, setCreatingLeague] = useState(false);
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
