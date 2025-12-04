@@ -316,6 +316,20 @@ export default function LiveEntry() {
     });
   }, [players]);
 
+  // Memoize completion stats to avoid recalculation on every render
+  const completionStats = useMemo(() => {
+    const totalPlayers = players.length;
+    const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
+    const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
+    return { totalPlayers, completedForDrill, completionPct };
+  }, [players, selectedDrill]);
+
+  const missingPlayers = useMemo(() => {
+    if (!selectedDrill) return [];
+    // Optimization: Use simple loop instead of filter if array is huge, but filter is fine for <2000 with useMemo
+    return players.filter(p => p && (p[selectedDrill] == null || p[selectedDrill] === undefined));
+  }, [players, selectedDrill]);
+
   const selectPlayer = useCallback((player) => {
     if (!player) return;
     setPlayerNumber(player.number.toString());
@@ -620,25 +634,11 @@ export default function LiveEntry() {
     );
   }
   
-  // Memoize completion stats to avoid recalculation on every render
-  const completionStats = useMemo(() => {
-    const totalPlayers = players.length;
-    const completedForDrill = selectedDrill ? players.filter(p => p && p[selectedDrill] != null).length : 0;
-    const completionPct = totalPlayers > 0 ? Math.round((completedForDrill / totalPlayers) * 100) : 0;
-    return { totalPlayers, completedForDrill, completionPct };
-  }, [players, selectedDrill]);
-
   const { totalPlayers, completedForDrill, completionPct } = completionStats;
 
   const currentDrill = drills.find(d => d.key === selectedDrill);
   const currentIndex = drills.findIndex(d => d.key === selectedDrill);
   const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
-  
-  const missingPlayers = useMemo(() => {
-    if (!selectedDrill) return [];
-    // Optimization: Use simple loop instead of filter if array is huge, but filter is fine for <2000 with useMemo
-    return players.filter(p => p && (p[selectedDrill] == null || p[selectedDrill] === undefined));
-  }, [players, selectedDrill]);
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-light/20 to-white">
