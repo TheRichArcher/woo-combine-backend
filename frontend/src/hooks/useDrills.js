@@ -28,8 +28,12 @@ export function useDrills(selectedEvent) {
       setLoading(true);
       try {
         // Fetch the authoritative schema from backend
-        // This endpoint now returns merged custom drills + excludes disabled drills
-        const { data } = await api.get(`/events/${selectedEvent.id}/schema`);
+        // Use league-scoped endpoint if available for better reliability with subcollections
+        const endpoint = selectedEvent.league_id 
+          ? `/leagues/${selectedEvent.league_id}/events/${selectedEvent.id}/schema`
+          : `/events/${selectedEvent.id}/schema`;
+          
+        const { data } = await api.get(endpoint);
         
         if (isMounted) {
           // Normalize backend data to match frontend expectations
@@ -105,6 +109,7 @@ export function useDrills(selectedEvent) {
     };
   }, [
     selectedEvent?.id, 
+    selectedEvent?.league_id,
     selectedEvent?.drillTemplate, 
     // Deep compare disabled/custom lengths to trigger refetch if they change locally
     selectedEvent?.disabled_drills?.length,

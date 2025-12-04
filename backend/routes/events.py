@@ -679,6 +679,62 @@ def delete_custom_drill(
         logging.error(f"Error deleting custom drill {drill_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete custom drill")
 
+@router.get('/leagues/{league_id}/events/{event_id}/schema')
+@read_rate_limit()
+@require_permission("events", "read", target="league", target_param="league_id")
+def get_league_event_schema_endpoint(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    """
+    Get the drill schema for a specific league event.
+    Prefer this endpoint over /events/{id}/schema as it reliably finds events in subcollections.
+    """
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+
+        # Pass league_id to find event in subcollection
+        schema = get_event_schema(event_id, league_id=league_id)
+        if not schema:
+            raise HTTPException(status_code=404, detail="Event schema not found")
+
+        return {
+            "id": schema.id,
+            "name": schema.name,
+            "sport": schema.sport,
+            "drills": [
+                {
+                    "key": drill.key,
+                    "label": drill.label,
+                    "unit": drill.unit,
+                    "min_value": drill.min_value,
+                    "max_value": drill.max_value,
+                    "default_weight": drill.default_weight,
+                    "lower_is_better": drill.lower_is_better,
+                    "category": drill.category,
+                    "description": drill.description
+                }
+                for drill in schema.drills
+            ],
+            "presets": [
+                {
+                    "id": preset.id,
+                    "name": preset.name,
+                    "description": preset.description,
+                    "weights": preset.weights
+                }
+                for preset in schema.presets
+            ]
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting event schema for {event_id} in league {league_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get event schema")
+
 @router.get('/events/{event_id}/schema')
 @read_rate_limit()
 @require_permission("events", "read", target="event", target_param="event_id")

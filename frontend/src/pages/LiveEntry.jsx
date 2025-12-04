@@ -39,7 +39,7 @@ export default function LiveEntry() {
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
 
   // Unified Drills Hook
-  const { drills } = useDrills(selectedEvent);
+  const { drills, loading: drillsLoading } = useDrills(selectedEvent);
   
   // Core state
   const [selectedDrill, setSelectedDrill] = useState("");
@@ -604,6 +604,17 @@ export default function LiveEntry() {
               <strong>Tip:</strong> Select an event from the header dropdown first, then return to Live Entry.
             </p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (drillsLoading && drills.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading event configuration...</p>
         </div>
       </div>
     );

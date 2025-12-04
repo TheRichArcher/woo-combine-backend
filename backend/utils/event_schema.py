@@ -4,7 +4,7 @@ from ..services.schema_registry import SchemaRegistry
 from ..schemas import SportSchema, DrillDefinition
 import logging
 
-def get_event_schema(event_id: str) -> SportSchema:
+def get_event_schema(event_id: str, league_id: Optional[str] = None) -> SportSchema:
     """
     Fetch the complete drill schema for an event, merging:
     1. Base Sport Template (e.g. Football, Soccer)
@@ -15,9 +15,19 @@ def get_event_schema(event_id: str) -> SportSchema:
     """
     try:
         # 1. Fetch Event Document to get template and settings
-        event_doc = db.collection("events").document(event_id).get()
+        event_doc = None
+        
+        # Strategy A: Try league subcollection first if league_id is provided (More specific)
+        if league_id:
+            league_event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
+            event_doc = league_event_ref.get()
+            
+        # Strategy B: Fallback to root collection if not found or no league_id
+        if not event_doc or not event_doc.exists:
+            event_doc = db.collection("events").document(event_id).get()
+            
         if not event_doc.exists:
-            logging.warning(f"Event {event_id} not found for schema fetch. Defaulting to football.")
+            logging.warning(f"Event {event_id} not found for schema fetch (league_id={league_id}). Defaulting to football.")
             return SchemaRegistry.get_schema("football")
             
         event_data = event_doc.to_dict()
