@@ -185,7 +185,7 @@ const ScorecardsPage = () => {
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">No Players with Evaluation Scores</h3>
                 <p className="text-yellow-800 mb-3">Players need to have drill scores recorded before scorecards can be generated.</p>
-                <Link to="/players/roster" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                <Link to="/players" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
                   <Users className="w-4 h-4" /> Go to Players Page
                 </Link>
               </div>

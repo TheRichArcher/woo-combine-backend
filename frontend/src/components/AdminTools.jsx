@@ -978,7 +978,7 @@ export default function AdminTools() {
                     📂 Upload More Players
                   </button>
                   <Link
-                    to="/players/roster"
+                    to="/players"
                     className="block w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition text-center"
                   >
                     🏈 View Roster

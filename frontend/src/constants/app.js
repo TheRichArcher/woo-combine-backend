@@ -91,7 +91,7 @@ export const APP_CONFIG = {
 export const ROUTES = {
   HOME: '/dashboard',
   PLAYERS: '/players',
-  PLAYERS_ROSTER: '/players/roster',
+  PLAYERS_ROSTER: '/players',
   PLAYERS_RANKINGS: '/scorecards',
   ADMIN: '/admin',
   LIVE_ENTRY: '/live-entry',

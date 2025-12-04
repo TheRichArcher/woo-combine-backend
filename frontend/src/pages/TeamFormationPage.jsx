@@ -349,7 +349,7 @@ const TeamFormationPage = () => {
               </p>
               <div className="grid grid-cols-1 gap-2">
                 <Link
-                  to="/players/roster"
+                  to="/players"
                   className="flex items-center gap-2 p-3 bg-white rounded-lg border border-green-200 hover:bg-green-50 transition"
                 >
                   <Users className="w-5 h-5 text-green-600" />
