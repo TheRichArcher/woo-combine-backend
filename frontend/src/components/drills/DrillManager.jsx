@@ -15,7 +15,7 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
   const [updatingEvent, setUpdatingEvent] = useState(false);
   const { showError, showSuccess } = useToast();
 
-  const templateId = event?.drillTemplate || 'football';
+  const templateId = event?.drillTemplate;
   const templateDrills = getDrillsFromTemplate(templateId);
   const templateInfo = getTemplateById(templateId);
 

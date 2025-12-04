@@ -38,7 +38,8 @@ export default function LiveEntry() {
     }
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
 
-  // Unified Drills Hook
+  // Unified Drills Hook - resolves schema from backend or local template
+  // NOTE: This handles the multi-sport logic (no hardcoded football fallback)
   const { drills, loading: drillsLoading } = useDrills(selectedEvent);
   
   // Core state
