@@ -289,8 +289,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       });
       setStep('input'); 
       setUndoLog(null);
-      onSuccess?.(); 
-      onClose();
+      onSuccess?.(true); // isRevert = true
+      // Don't close on undo, allow user to try again
     } catch (err) {
       console.error("Undo error:", err);
       setError("Failed to undo import");
@@ -307,7 +307,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     } else if (undoTimer === 0) {
         setUndoLog(null);
         setTimeout(() => {
-            onSuccess?.();
+            onSuccess?.(false); // isRevert = false
             onClose();
         }, 1000);
     }
@@ -880,7 +880,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             <h2 className="text-xl font-bold text-gray-900">Import Results</h2>
             <p className="text-sm text-gray-500">Add players and drill scores in bulk</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button 
+            onClick={() => {
+              // If closing while on success screen, treat as completion so parent can redirect
+              if (step === 'success') {
+                onSuccess?.(false); 
+              }
+              onClose();
+            }}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -919,10 +928,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               
               <div className="flex justify-center gap-4 mt-8 mb-8">
                    <button 
-                       onClick={onClose}
+                       onClick={() => { onSuccess?.(false); onClose(); }} // isRevert = false
                        className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
                    >
-                       Close
+                       View Rankings
                    </button>
                    <button
                        onClick={handleDownloadPDF}

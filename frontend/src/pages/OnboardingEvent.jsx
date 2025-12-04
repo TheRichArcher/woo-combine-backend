@@ -62,6 +62,7 @@ export default function OnboardingEvent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [createdEvent, setCreatedEvent] = useState(null);
   const [playerCount, setPlayerCount] = useState(0);
+  const [hasScores, setHasScores] = useState(false);
   
   // CSV upload state
   const [csvRows, setCsvRows] = useState([]);
@@ -138,23 +139,30 @@ export default function OnboardingEvent() {
     }
   }, [userRole, selectedLeagueId, leagues, navigate]);
 
-  // Fetch player count
-  const fetchPlayerCount = useCallback(async () => {
+  // Fetch event data (players and scores)
+  const fetchEventData = useCallback(async () => {
     if (!createdEvent?.id) return;
     try {
       const { data } = await api.get(`/players?event_id=${createdEvent.id}`);
-      setPlayerCount(Array.isArray(data) ? data.length : 0);
-    // eslint-disable-next-line no-unused-vars
+      const players = Array.isArray(data) ? data : [];
+      setPlayerCount(players.length);
+      
+      // Check if any player has scores (non-empty scores object)
+      const scoresExist = players.some(p => p.scores && Object.keys(p.scores).length > 0);
+      setHasScores(scoresExist);
+      return { playerCount: players.length, hasScores: scoresExist };
     } catch (_error) {
       setPlayerCount(0);
+      setHasScores(false);
+      return { playerCount: 0, hasScores: false };
     }
   }, [createdEvent]);
 
   useEffect(() => {
     if (createdEvent) {
-      fetchPlayerCount();
+      fetchEventData();
     }
-  }, [createdEvent, fetchPlayerCount]);
+  }, [createdEvent, fetchEventData]);
 
   // Auto-advance REMOVED to prevent skipping the Sport Selection step.
   // Users will see the "Continue" button in Step 1 if an event is already selected.
@@ -310,7 +318,7 @@ export default function OnboardingEvent() {
       }
       
       // Refresh player count
-      await fetchPlayerCount();
+      await fetchEventData();
       
       // Move to next step after brief delay
       setTimeout(() => {
@@ -369,7 +377,7 @@ export default function OnboardingEvent() {
       });
       
       // Refresh player count
-      await fetchPlayerCount();
+      await fetchEventData();
       
       // Reset status after brief delay
       setTimeout(() => {
@@ -823,17 +831,35 @@ export default function OnboardingEvent() {
 
             <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-4 mb-4">
               <div className="text-center mb-3">
-                <h3 className="text-semantic-success font-semibold text-lg">🎉 Time to Track Performance</h3>
-                <p className="text-semantic-success/80 text-sm">
-                  Launch Live Entry to record drill results and watch rankings update in real-time.
-                </p>
+                {hasScores ? (
+                  <>
+                    <h3 className="text-semantic-success font-semibold text-lg">✅ Results Ready!</h3>
+                    <p className="text-semantic-success/80 text-sm">
+                      Scores already uploaded — review rankings or explore analytics.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-semantic-success font-semibold text-lg">🎉 Time to Track Performance</h3>
+                    <p className="text-semantic-success/80 text-sm">
+                      Launch Live Entry to record drill results and watch rankings update in real-time.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="mb-4">
-                <Button onClick={() => { navigate('/live-entry'); }} className="w-full flex items-center justify-center gap-2" size="lg">
-                  🚀 Start Tracking Performance
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
+                {hasScores ? (
+                  <Button onClick={() => { navigate('/players'); }} className="w-full flex items-center justify-center gap-2" size="lg">
+                    🏆 View Player Rankings
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                ) : (
+                  <Button onClick={() => { navigate('/live-entry'); }} className="w-full flex items-center justify-center gap-2" size="lg">
+                    🚀 Start Tracking Performance
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                )}
 
                 {/* New Section: Upload Results Option */}
                 <div className="relative my-5">
@@ -904,8 +930,16 @@ export default function OnboardingEvent() {
             {showImportModal && (
               <ImportResultsModal
                 onClose={() => setShowImportModal(false)}
-                onSuccess={() => {
-                  fetchPlayerCount();
+                onSuccess={async (isRevert) => {
+                  // Refresh data to update counts/scores state
+                  const { hasScores } = await fetchEventData();
+                  
+                  // If import successful (not revert) and scores exist, redirect
+                  if (!isRevert && hasScores) {
+                    setShowImportModal(false);
+                    showSuccess("Drill scores imported successfully!");
+                    navigate('/players');
+                  }
                 }}
                 availableDrills={allDrills}
               />
