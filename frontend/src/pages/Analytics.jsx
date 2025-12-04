@@ -11,11 +11,11 @@ export default function Analytics() {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [drills, setDrills] = useState([]);
-  const [drillsLoading, setDrillsLoading] = useState(true);
+  const [activeSchema, setActiveSchema] = useState(null);
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
+  
   // High-contrast palette (no bright yellows)
   const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
 
@@ -29,42 +29,64 @@ export default function Analytics() {
     return '#ef4444';               // red
   };
 
-  // Fetch drills for the selected event
+  // Fetch schema for active event (Sport-aware logic from Players.jsx)
   useEffect(() => {
-    const loadDrills = async () => {
-      if (!selectedEvent) {
-        setDrills([]);
-        setDrillsLoading(false);
-        return;
-      }
+    if (selectedEvent?.drillTemplate) {
+      const fetchSchema = async () => {
+        try {
+          const res = await api.get(`/sports/${selectedEvent.drillTemplate}/schema`);
+          if (res.data) {
+            setActiveSchema(res.data);
+          }
+        } catch (err) {
+          console.warn("Failed to fetch schema:", err);
+        }
+      };
+      fetchSchema();
+    }
+  }, [selectedEvent?.drillTemplate]);
 
-      setDrillsLoading(true);
-      try {
-        // Use drill template from event directly for consistency with Players tab
-        // This ensures we use the correct sport's drills even if backend schema endpoint defaults to football
-        const templateDrills = getDrillsFromTemplate(selectedEvent.drillTemplate);
-        
-        // Merge with custom drills if any
-        const customDrills = (selectedEvent.custom_drills || []).map(d => ({
-          key: d.id,
-          label: d.name,
-          unit: d.unit,
-          lowerIsBetter: d.lower_is_better,
-          category: d.category || 'custom',
-          isCustom: true
-        }));
+  // Compute drills based on schema/template + custom drills (Sport-aware logic)
+  const drills = useMemo(() => {
+    if (!selectedEvent) return [];
+    
+    let baseDrills = [];
+    if (activeSchema && activeSchema.drills) {
+      // Use fetched schema with normalization
+      baseDrills = activeSchema.drills.map(d => ({
+        key: d.key,
+        label: d.label,
+        unit: d.unit,
+        lowerIsBetter: d.lower_is_better,
+        category: d.category,
+        min_value: d.min_value,
+        max_value: d.max_value,
+        defaultWeight: d.default_weight
+      }));
+    } else {
+      // Fallback to local templates
+      // Use drillTemplate from event, or default to 'football' if missing
+      const templateId = selectedEvent.drillTemplate || 'football';
+      baseDrills = getDrillsFromTemplate(templateId);
+    }
 
-        setDrills([...templateDrills, ...customDrills]);
-      } catch (error) {
-        console.error('Failed to load drills for analytics:', error);
-        setDrills([]);
-      } finally {
-        setDrillsLoading(false);
-      }
-    };
+    // Filter disabled drills
+    const disabled = selectedEvent.disabled_drills || [];
+    const templateDrills = baseDrills.filter(d => !disabled.includes(d.key));
+    
+    // Add custom drills
+    const customDrills = selectedEvent.custom_drills || [];
+    const formattedCustomDrills = customDrills.map(d => ({
+      key: d.id,
+      label: d.name,
+      unit: d.unit,
+      lowerIsBetter: d.lower_is_better,
+      category: d.category || 'custom',
+      isCustom: true
+    }));
 
-    loadDrills();
-  }, [selectedEvent]);
+    return [...templateDrills, ...formattedCustomDrills];
+  }, [selectedEvent, activeSchema]);
 
   useEffect(() => {
     const run = async () => {
@@ -109,12 +131,15 @@ export default function Analytics() {
     return ['ALL', ...Array.from(groups).sort()];
   }, [players]);
 
-  // Initialize drill selection when drills load
+  // Initialize drill selection when drills available
   useEffect(() => {
-    if (!selectedDrillKey && drills && drills.length > 0 && !drillsLoading) {
+    // Check if current selected key is valid in new drills list
+    const isValidKey = selectedDrillKey && drills.some(d => d.key === selectedDrillKey);
+    
+    if ((!selectedDrillKey || !isValidKey) && drills && drills.length > 0) {
       setSelectedDrillKey(drills[0].key);
     }
-  }, [drills, selectedDrillKey, drillsLoading]);
+  }, [drills, selectedDrillKey]);
 
   const selectedDrill = useMemo(() => drills.find(d => d.key === selectedDrillKey), [drills, selectedDrillKey]);
 
@@ -479,5 +504,3 @@ export default function Analytics() {
     </div>
   );
 }
-
-
