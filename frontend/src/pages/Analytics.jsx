@@ -101,6 +101,16 @@ export default function Analytics() {
       const entries = filteredPlayers
         .map(p => {
           // Use player.scores to access drill data
+          // Debug logging to trace exactly why data is missing
+          if (Math.random() < 0.01) { // Sample 1% to avoid spam
+             console.log('DEBUG Analytics Drill Access:', { 
+               drillKey: drill.key, 
+               playerScores: p.scores, 
+               drillValue: p.scores?.[drill.key],
+               flattenedValue: p[drill.key] 
+             });
+          }
+          
           const raw = p.scores?.[drill.key];
           const value = raw === '' || raw == null ? NaN : Number(raw);
           return Number.isFinite(value) ? { player: p, value } : null;
