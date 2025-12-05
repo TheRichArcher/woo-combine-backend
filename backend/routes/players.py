@@ -75,7 +75,8 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
                     clamped = max(min_v, min(max_v, val))
                     normalized = ((clamped - min_v) / (max_v - min_v)) * 100
                 
-                score += normalized * weight
+                # Treat weight as percentage (0-100) to prevent inflation
+                score += normalized * (weight / 100.0)
             except (ValueError, TypeError):
                 pass
                 

@@ -18,7 +18,6 @@ import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import { useDrills } from '../hooks/useDrills';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
-import { debounce } from '../utils/debounce';
 import WeightControls from '../components/WeightControls';
 
 // PERFORMANCE OPTIMIZATION: Cached API function with chunked fetching
@@ -162,11 +161,11 @@ export default function Players() {
   useEffect(() => {
     if (!showRankings) return; 
     
-    const debounced = debounce(() => {
+    const timer = setTimeout(() => {
         fetchRankings(sliderWeights, selectedAgeGroup);
     }, 500);
     
-    debounced();
+    return () => clearTimeout(timer);
   }, [fetchRankings, sliderWeights, selectedAgeGroup, showRankings]);
 
   const [showCustomControls, setShowCustomControls] = useState(false);
