@@ -49,8 +49,9 @@ export default function Analytics() {
   }, [selectedEvent]);
 
   const totals = useMemo(() => {
-    const sum = (arr, key) => arr.reduce((acc, p) => acc + (Number(p[key]) || 0), 0);
-    const countWith = (key) => players.filter(p => p[key] != null && p[key] !== '').length;
+    // Use player.scores for all calculations (replaces legacy flattened access)
+    const sum = (arr, key) => arr.reduce((acc, p) => acc + (Number(p.scores?.[key]) || 0), 0);
+    const countWith = (key) => players.filter(p => p.scores?.[key] != null && p.scores?.[key] !== '').length;
     
     // Dynamically find top 2 drills to display in summary cards
     const topDrills = drills.slice(0, 2);
@@ -63,7 +64,7 @@ export default function Analytics() {
 
     return {
       count: players.length,
-      withAnyScore: players.filter(p => drills.some(d => p[d.key] != null && p[d.key] !== '')).length,
+      withAnyScore: players.filter(p => drills.some(d => p.scores?.[d.key] != null && p.scores?.[d.key] !== '')).length,
       drillStats
     };
   }, [players, drills]);
@@ -98,7 +99,8 @@ export default function Analytics() {
 
       const entries = filteredPlayers
         .map(p => {
-          const raw = p[drill.key];
+          // Use player.scores to access drill data
+          const raw = p.scores?.[drill.key];
           const value = raw === '' || raw == null ? NaN : Number(raw);
           return Number.isFinite(value) ? { player: p, value } : null;
         })
