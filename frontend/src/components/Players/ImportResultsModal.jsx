@@ -84,17 +84,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   // Move drillMappingOptions to top level (was inside renderReviewStep causing Hook Error #310)
   const drillMappingOptions = useMemo(() => {
-      // Use availableDrills from the event schema (passed as prop)
+      // STRICT: Use availableDrills from the event schema (passed as prop)
       // This ensures we map to the exact keys the backend expects
-      if (availableDrills && availableDrills.length > 0) {
-          return [{
-              label: "Event Drills",
-              options: availableDrills.map(d => ({ key: d.key, label: d.label }))
-          }];
-      }
-      
-      // Fallback if no drills provided (shouldn't happen for valid events)
-      return [];
+      // NO FALLBACKS to legacy templates allowed per requirements
+      return [{
+          label: "Event Drills",
+          options: (availableDrills || []).map(d => ({ key: d.key, label: d.label }))
+      }];
   }, [availableDrills]);
 
   const STANDARD_FIELDS = [

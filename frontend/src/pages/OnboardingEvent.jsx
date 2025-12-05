@@ -941,7 +941,7 @@ export default function OnboardingEvent() {
                     navigate('/players');
                   }
                 }}
-                availableDrills={allDrills}
+                availableDrills={allDrills} // REQUIRED: Pass event-specific drills
               />
             )}
           </OnboardingCard>
