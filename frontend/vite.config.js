@@ -6,6 +6,7 @@ export default defineConfig({
   plugins: [react()],
   build: {
     copyPublicDir: true,
+    // Force rebuild - clear cache
     // Optimize bundle splitting
     rollupOptions: {
       output: {
