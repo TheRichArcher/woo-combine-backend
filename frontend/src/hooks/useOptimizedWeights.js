@@ -168,7 +168,7 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
     setTimeout(() => {
       isUpdating.current = false;
     }, 100);
-  }, []);
+  }, [presets]);
 
   // Batch update multiple weights (for preset applications)
   const batchUpdateWeights = useCallback((newWeights) => {

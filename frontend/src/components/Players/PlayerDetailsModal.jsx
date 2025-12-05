@@ -19,6 +19,13 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   // Sync local weights when sliderWeights change
   useEffect(() => {
     setModalLocalWeights(sliderWeights);
+    
+    // Update slider DOM elements directly since they are uncontrolled
+    Object.keys(sliderWeights).forEach(key => {
+      if (modalSliderRefs.current[key]) {
+        modalSliderRefs.current[key].value = sliderWeights[key];
+      }
+    });
   }, [sliderWeights]);
   
   // Persist weights function for modal
