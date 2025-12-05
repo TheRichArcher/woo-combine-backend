@@ -113,13 +113,15 @@ export default function Analytics() {
                  console.warn('DEBUG: Has scores but invalid value for', drill.key, p.scores);
              } else {
                  // Valid entry found - log once to confirm
-                 // console.log('DEBUG: Valid entry found', drill.key, value); 
+                 console.log('DEBUG: Valid entry found', drill.key, value); 
              }
           }
           
           return isValid ? { player: p, value } : null;
         })
         .filter(Boolean);
+
+      console.log(`DEBUG: Stats for ${drill.key} -> entries: ${entries.length}`);
 
       if (entries.length === 0) {
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
@@ -129,7 +131,10 @@ export default function Analytics() {
         min: drill.min_value !== undefined ? drill.min_value : -Infinity, 
         max: drill.max_value !== undefined ? drill.max_value : Infinity
       };
+      console.log(`DEBUG: Bounds for ${drill.key}:`, bounds);
+
       const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
+      console.log(`DEBUG: inRange for ${drill.key}: ${inRange.length}`);
 
       if (inRange.length === 0) {
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], outliers: entries.length };
