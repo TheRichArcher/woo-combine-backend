@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 2, 2025_
+_Last updated: December 5, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -12,6 +12,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 - **Stability**: Critical infinite loops, race conditions, and temporal dead zones have been definitively resolved.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
+- **Analytics**: Full data pipeline verified. Analytics charts now correctly read normalized scores from `player.scores` and handle all edge cases (null bounds, missing data).
 - **Security**: Phone authentication and reCAPTCHA have been **completely removed** in favor of a robust, verified Email/Password flow.
 - **UX**: Onboarding flows (Organizer & Invited Users) are fully guided with "What's Next" steps and no dead ends.
 
@@ -28,6 +29,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Data Access**: All data operations go through the backend API (`/api/v1`). **No direct Firestore writes from the frontend.**
 - **Key Components**:
   - `Players.jsx`: The core workspace. Features tabbed interface (Management vs. Exports), real-time weight sliders, and normalized ranking calculations.
+  - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
   - `AdminTools.jsx`: QR code generation, roster uploads, and event settings.
 
@@ -62,12 +64,18 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Switching**: Header dropdowns allow instant context switching.
 - **Scoring**: "Live Entry" mode for rapid data input.
 - **Analysis**: `Players` page with real-time weight sliders (Speed vs. Skills vs. Balanced).
+- **Insights**: `Analytics` page provides deep-dive histograms and drill comparisons.
 
 ---
 
 ## 4. 🛠 Recent Major Upgrades (Dec 2025)
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
+
+### 📊 Analytics & Data Integrity
+- **Data Sourcing**: Fixed Analytics page to correctly read drill scores from the `player.scores` object instead of legacy flat paths.
+- **Robust Calculations**: Implemented bounds checking that handles `null` or missing schema min/max values (`-Infinity`/`Infinity` fallback) to prevent valid data from being filtered out.
+- **Drill Explorer**: Charts now reliably populate with player performance data.
 
 ### 🔐 Authentication & Security
 - **Removed Phone Auth & reCAPTCHA**: Eliminated complexity, costs, and configuration issues. Simplified to standard Email/Password.
@@ -90,10 +98,18 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 
 ## 5. 📊 Operational Guide
 
-### Deployment
-- **Platform**: Render (Auto-deploy from `main` branch).
-- **Environment**: Production is `woo-combine.com`.
-- **Testing**: Stakeholder prefers testing directly in Production (Smoke tests required after deploy).
+### Deployment Configuration (Critical)
+The frontend is a Static Site on Render. **Strict adherence to these settings is required** to prevent caching issues and build failures:
+
+- **Repository**: `woo-combine-backend` (Monorepo)
+- **Root Directory**: `frontend`
+- **Build Command**: `npm run build` (or `VITE_API_BASE=... npm run build`)
+- **Publish Directory**: `dist`
+  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist`. Render appends this to the Root Directory automatically. Setting it incorrectly causes 404s or stale cache serving.
+
+### Caching Strategy
+- **Vite Configuration**: `vite.config.js` is configured to append timestamps to output filenames (e.g., `assets/index-HASH-TIMESTAMP.js`).
+- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render. It ensures that every deployment serves fresh code, preventing the "stale bundle" issue that plagued the Analytics rollout.
 
 ### Monitoring
 - **Logs**: Check Render Dashboard for backend logs.
@@ -124,6 +140,7 @@ frontend/src/
 │   ├── Home.jsx                 # Dashboard routing
 │   ├── OnboardingEvent.jsx      # Guided setup wizard
 │   ├── Players.jsx              # Core workspace
+│   ├── Analytics.jsx            # Charts & Data Visualization
 │   └── AdminTools.jsx           # Admin settings
 └── lib/api.js                   # Axios with retries
 
@@ -131,7 +148,8 @@ backend/
 ├── routes/
 │   ├── users.py                 # User management
 │   ├── leagues.py               # League logic
-│   └── events.py                # Event logic
+│   ├── events.py                # Event logic
+│   └── players.py               # Player & Scoring logic
 └── main.py                      # App entry point
 ```
 
