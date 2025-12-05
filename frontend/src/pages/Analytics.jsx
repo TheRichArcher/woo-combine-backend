@@ -128,8 +128,8 @@ export default function Analytics() {
       }
 
       const bounds = {
-        min: drill.min_value !== undefined ? drill.min_value : -Infinity, 
-        max: drill.max_value !== undefined ? drill.max_value : Infinity
+        min: (drill.min_value !== undefined && drill.min_value !== null) ? Number(drill.min_value) : -Infinity, 
+        max: (drill.max_value !== undefined && drill.max_value !== null) ? Number(drill.max_value) : Infinity
       };
       console.log(`DEBUG: Bounds for ${drill.key}:`, bounds);
 
