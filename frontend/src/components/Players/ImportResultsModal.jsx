@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
-import { DRILL_TEMPLATES } from '../../constants/drillTemplates';
+import { generateDefaultMapping } from '../../utils/csvUtils';
 
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [] }) {
   const { selectedEvent } = useEvent();
@@ -84,31 +84,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   // Move drillMappingOptions to top level (was inside renderReviewStep causing Hook Error #310)
   const drillMappingOptions = useMemo(() => {
-      const options = [];
+      // Use availableDrills from the event schema (passed as prop)
+      // This ensures we map to the exact keys the backend expects
+      if (availableDrills && availableDrills.length > 0) {
+          return [{
+              label: "Event Drills",
+              options: availableDrills.map(d => ({ key: d.key, label: d.label }))
+          }];
+      }
       
-      // 1. If sport is detected, add it first as "Recommended"
-      if (detectedSport && DRILL_TEMPLATES[detectedSport]) {
-           const template = DRILL_TEMPLATES[detectedSport];
-           options.push({
-               label: `${template.sport} Drills (Recommended)`,
-               options: template.drills.map(d => ({ key: d.key, label: d.label }))
-           });
-      } 
-      
-      // 2. Add all other sports (or all sports if none detected)
-      // This ensures organizers can always access any drill from any sport
-      Object.values(DRILL_TEMPLATES).forEach(template => {
-           // Skip the detected sport if we already added it to the top
-           if (detectedSport && template.id === detectedSport) return;
-           
-           options.push({
-               label: template.sport,
-               options: template.drills.map(d => ({ key: d.key, label: d.label }))
-           });
-      });
-      
-      return options;
-  }, [detectedSport]);
+      // Fallback if no drills provided (shouldn't happen for valid events)
+      return [];
+  }, [availableDrills]);
 
   const STANDARD_FIELDS = [
       { key: 'first_name', label: 'First Name' },
@@ -189,16 +176,40 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
       setParseResult(response.data);
       
-      // Initialize key mapping (default to identity)
+      // Initialize key mapping using smart detection
+      // We use generateDefaultMapping to match the incoming keys (from backend parsing)
+      // to our target schema (availableDrills)
       const initialMapping = {};
-      if (response.data.valid_rows.length > 0 || response.data.errors.length > 0) {
-          const firstRow = response.data.valid_rows[0] || response.data.errors[0];
-          if (firstRow && firstRow.data) {
-              Object.keys(firstRow.data).forEach(k => {
-                  initialMapping[k] = k;
-              });
-          }
+      const sourceKeys = (response.data.valid_rows.length > 0 || response.data.errors.length > 0)
+          ? Object.keys((response.data.valid_rows[0] || response.data.errors[0]).data)
+          : [];
+          
+      if (sourceKeys.length > 0) {
+          // generateDefaultMapping returns { targetKey: sourceKey }
+          // We need { sourceKey: targetKey } for our state
+          const { mapping: suggestedMapping } = generateDefaultMapping(sourceKeys, availableDrills);
+          
+          // Apply suggested mappings
+          Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {
+              if (sourceHeader) {
+                  initialMapping[sourceHeader] = targetKey;
+              }
+          });
+          
+          // For any unmapped keys, default to identity if it matches a known drill key directly
+          // or leave as identity (which shows as "Original" in UI)
+          sourceKeys.forEach(key => {
+              if (!initialMapping[key]) {
+                  // If the key itself matches a drill key exactly, map it
+                  if (availableDrills.some(d => d.key === key)) {
+                      initialMapping[key] = key;
+                  } else {
+                      initialMapping[key] = key; // Default to identity (Original)
+                  }
+              }
+          });
       }
+      
       setKeyMapping(initialMapping);
       
       setStep('review');
@@ -211,6 +222,27 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   const handleSubmit = async () => {
     if (!parseResult) return;
+
+    // Validate that all mapped columns correspond to valid schema fields
+    const validKeys = new Set([
+        ...STANDARD_FIELDS.map(f => f.key),
+        ...availableDrills.map(d => d.key)
+    ]);
+
+    const activeMappings = Object.entries(keyMapping)
+        .filter(([_, targetKey]) => targetKey !== '__ignore__');
+
+    const invalidMappings = activeMappings.filter(([sourceKey, targetKey]) => {
+        // If mapped to identity (Original) and that key isn't in schema
+        return !validKeys.has(targetKey);
+    });
+
+    if (invalidMappings.length > 0) {
+        const invalidNames = invalidMappings.map(([source]) => source).join(', ');
+        setError(`The following columns are not mapped to valid fields: ${invalidNames}. Please map them to an event drill or choose "Ignore".`);
+        setStep('review');
+        return;
+    }
 
     setStep('submitting');
     try {
