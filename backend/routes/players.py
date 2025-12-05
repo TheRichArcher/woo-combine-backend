@@ -300,7 +300,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # Only generate ID if required fields present
             if p.get("first_name") and p.get("last_name"):
                 try:
-                     num = int(str(p.get("jersey_number")).strip()) if p.get("jersey_number") not in (None, "") else None
+                     # Robust number parsing (handle "12.0", "12", 12, 12.0)
+                     raw_num = p.get("jersey_number")
+                     num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
+                     
                      if num is not None:
                          pid = generate_player_id(event_id, p.get("first_name"), p.get("last_name"), num)
                          ids_to_fetch.append(pid)
@@ -336,7 +339,9 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append(f"Missing {field}")
             
             try:
-                num = int(str(player.get("jersey_number")).strip()) if player.get("jersey_number") not in (None, "") else None
+                raw_num = player.get("jersey_number")
+                num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
+                
                 if num is None:
                     row_errors.append("Missing jersey_number")
                 elif num < 1 or num > 9999:

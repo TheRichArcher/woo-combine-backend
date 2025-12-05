@@ -38,7 +38,7 @@ def generate_player_id(event_id: str, first: str, last: str, number: Optional[in
     raw = f"{event_id}:{f}:{l}:{n}"
     
     # Log exactly as requested for investigation
-    logging.info(f"[IDENTITY_DEBUG] Generating ID from raw string: '{raw}'")
+    logging.info(f"[ID RAW] {raw}")
     
     # Return SHA-256 hash hex digest (truncated to 20 chars for ID-like length)
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()[:20]
