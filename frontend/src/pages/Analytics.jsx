@@ -101,19 +101,23 @@ export default function Analytics() {
       const entries = filteredPlayers
         .map(p => {
           // Use player.scores to access drill data
-          // Debug logging to trace exactly why data is missing
-          if (Math.random() < 0.01) { // Sample 1% to avoid spam
-             console.log('DEBUG Analytics Drill Access:', { 
-               drillKey: drill.key, 
-               playerScores: p.scores, 
-               drillValue: p.scores?.[drill.key],
-               flattenedValue: p[drill.key] 
-             });
-          }
-          
           const raw = p.scores?.[drill.key];
           const value = raw === '' || raw == null ? NaN : Number(raw);
-          return Number.isFinite(value) ? { player: p, value } : null;
+          const isValid = Number.isFinite(value);
+
+          // Aggressive Debugging: Only log if we HAVE scores but it's invalid, 
+          // OR if it's the first player with scores we see
+          if (p.scores && Object.keys(p.scores).length > 0) {
+             // Found a player with scores!
+             if (!isValid) {
+                 console.warn('DEBUG: Has scores but invalid value for', drill.key, p.scores);
+             } else {
+                 // Valid entry found - log once to confirm
+                 // console.log('DEBUG: Valid entry found', drill.key, value); 
+             }
+          }
+          
+          return isValid ? { player: p, value } : null;
         })
         .filter(Boolean);
 
