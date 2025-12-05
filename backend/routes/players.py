@@ -312,6 +312,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # Unique IDs only
             unique_ids = list(set(ids_to_fetch))
             
+            logging.info(f"[IMPORT_DEBUG] Fetching {len(unique_ids)} potential existing players for duplicate check.")
+
             # Fetch in chunks of 100
             for i in range(0, len(unique_ids), 100):
                 chunk = unique_ids[i:i+100]
@@ -357,9 +359,22 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             seen_keys.add(key)
 
             player_id = generate_player_id(event_id, first_name, last_name, num)
-            
+
+            # DEBUG LOGGING FOR DUPLICATION DIAGNOSIS
+            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Incoming Identity -> First='{first_name}', Last='{last_name}', Num={num}")
+            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Generated ID -> {player_id}")
+
             # Record Undo State
             previous_state = existing_docs_map.get(player_id)
+            
+            if previous_state:
+                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: FOUND EXISTING PLAYER -> ID={player_id}, Name='{previous_state.get('name')}'")
+            else:
+                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: NO MATCH FOUND -> Will create new document {player_id}")
+                # Also log why it might have failed - check if we tried to fetch it?
+                if player_id not in ids_to_fetch:
+                     logging.info(f"[IMPORT_DEBUG] Row {idx+1}: WARNING - ID {player_id} was NOT in pre-fetch list. 'ids_to_fetch' only included players with valid jersey numbers.")
+
             undo_log.append({
                 "player_id": player_id,
                 "previous_data": previous_state # None if didn't exist, dict if existed

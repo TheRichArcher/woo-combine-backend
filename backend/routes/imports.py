@@ -125,7 +125,13 @@ def parse_import_file(
             data = row["data"]
             first = data.get("first_name", "")
             last = data.get("last_name", "")
-            number = data.get("jersey_number")
+            
+            # Robust parsing for jersey number to match players.py logic
+            try:
+                raw_num = data.get("jersey_number")
+                number = int(str(raw_num).strip()) if raw_num not in (None, "") else None
+            except:
+                number = None
             
             # Generate ID deterministically
             pid = generate_player_id(event_id, first, last, number)
