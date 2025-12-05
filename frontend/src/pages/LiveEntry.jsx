@@ -1121,7 +1121,7 @@ export default function LiveEntry() {
                   Edit Recent
                 </button>
                     <Link
-                      to="/players/rankings"
+                      to="/players?tab=analyze"
                       className="text-brand-primary hover:text-brand-secondary text-sm font-medium"
                     >
                       View All →

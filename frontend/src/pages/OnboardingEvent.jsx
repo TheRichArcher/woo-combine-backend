@@ -851,7 +851,7 @@ export default function OnboardingEvent() {
               <div className="mb-4">
                 {hasScores ? (
                   <Button onClick={() => { navigate('/players'); }} className="w-full flex items-center justify-center gap-2" size="lg">
-                    🏆 View Player Rankings
+                    🏆 Analyze Player Rankings
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 ) : (
@@ -923,7 +923,7 @@ export default function OnboardingEvent() {
               </Button>
               
               <Button onClick={handleContinueToPlayers} className="w-full flex items-center justify-center gap-2">
-                View Players & Rankings
+                View Players & Analytics
               </Button>
             </div>
 

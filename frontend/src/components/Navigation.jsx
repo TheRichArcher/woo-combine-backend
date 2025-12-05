@@ -340,7 +340,7 @@ export default function Navigation() {
               title="Manage your event’s player list and scores"
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              <Users className="w-4 h-4 inline-block mr-1" /> Roster
+              <Users className="w-4 h-4 inline-block mr-1" /> Players
             </Link>
             <Link 
               to="/players?tab=analyze" 
@@ -481,7 +481,7 @@ export default function Navigation() {
               onClick={closeMobile}
               title="Manage your event’s player list and scores"
             >
-              <Users className="w-4 h-4 inline-block mr-1" /> Roster
+              <Users className="w-4 h-4 inline-block mr-1" /> Players
             </Link>
             <Link 
               to="/players?tab=analyze" 

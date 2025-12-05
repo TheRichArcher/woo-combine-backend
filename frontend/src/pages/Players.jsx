@@ -717,7 +717,7 @@ export default function Players() {
                           to="/live-standings"
                           className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center justify-center gap-1"
                         >
-                          View Full Rankings <ArrowRight className="w-4 h-4" />
+                          View Full Leaderboard <ArrowRight className="w-4 h-4" />
                         </Link>
                       </div>
                     </div>

@@ -6,9 +6,9 @@ import PlayerScorecardGenerator from '../components/PlayerScorecardGenerator';
 import EventSelector from '../components/EventSelector';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorDisplay from '../components/ErrorDisplay';
+import { useDrills } from '../hooks/useDrills';
 import { 
-  getDefaultWeightsFromTemplate,
-  getDrillsFromTemplate 
+  getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
 import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -20,6 +20,9 @@ const ScorecardsPage = () => {
   const { user, selectedLeagueId, userRole } = useAuth();
   const { showError } = useToast();
   
+  // Unified Drills Hook
+  const { drills: currentDrills, loading: drillsLoading } = useDrills(selectedEvent);
+
   const [players, setPlayers] = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,8 +83,8 @@ const ScorecardsPage = () => {
   // Filter players with at least some drill scores (with validation)
   const playersWithScores = filteredPlayers.filter(player => {
     try {
-      const drills = getDrillsFromTemplate(drillTemplate);
-      return drills.some(drill => {
+      if (!currentDrills.length) return false;
+      return currentDrills.some(drill => {
         const value = player[drill.key];
         return value != null && 
                typeof value === 'number' && 
@@ -94,7 +97,7 @@ const ScorecardsPage = () => {
     }
   });
 
-  if (loading) {
+  if (loading || drillsLoading) {
     return (
       <LoadingScreen 
         title="Loading Player Scorecards"
@@ -163,7 +166,7 @@ const ScorecardsPage = () => {
               <Zap className="w-4 h-4 text-green-600" />
               <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
-            <Link to="/players/rankings" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
+            <Link to="/players?tab=analyze" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
               <Users className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">Full Player View</span>
             </Link>
@@ -244,6 +247,7 @@ const ScorecardsPage = () => {
               allPlayers={players}
               weights={weights}
               selectedDrillTemplate={drillTemplate}
+              drills={currentDrills}
             />
           </>
         )}

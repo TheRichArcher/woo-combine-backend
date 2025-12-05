@@ -7,8 +7,8 @@ import TeamFormationTool from '../components/TeamFormationTool';
 import EventSelector from '../components/EventSelector';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorDisplay from '../components/ErrorDisplay';
+import { useDrills } from '../hooks/useDrills';
 import { 
-  getDrillsFromTemplate, 
   getDefaultWeightsFromTemplate,
   getTemplateById 
 } from '../constants/drillTemplates';
@@ -25,30 +25,27 @@ const TeamFormationPage = () => {
   const [error, setError] = useState(null);
   const [showWeightControls, setShowWeightControls] = useState(false);
   
+  // Use unified drills hook
+  const { drills: currentDrills, loading: drillsLoading } = useDrills(selectedEvent);
+  
   // Get drill template from event
   const drillTemplate = selectedEvent?.drillTemplate;
   const template = getTemplateById(drillTemplate);
   
   // Weight management state
-  const [weights, setWeights] = useState(() => {
-    const defaultWeights = getDefaultWeightsFromTemplate(drillTemplate);
-    // Convert to percentage format that TeamFormationTool expects
-    const percentageWeights = {};
-    Object.entries(defaultWeights).forEach(([key, value]) => {
-      percentageWeights[key] = value * 100; // Convert 0.2 to 20
-    });
-    return percentageWeights;
-  });
-  
-  // Update weights when drill template changes
+  const [weights, setWeights] = useState({});
+
+  // Initialize weights when drills load
   useEffect(() => {
-    const defaultWeights = getDefaultWeightsFromTemplate(drillTemplate);
-    const percentageWeights = {};
-    Object.entries(defaultWeights).forEach(([key, value]) => {
-      percentageWeights[key] = value * 100;
-    });
-    setWeights(percentageWeights);
-  }, [drillTemplate]);
+    if (currentDrills.length > 0) {
+      const percentageWeights = {};
+      currentDrills.forEach(drill => {
+        // Default to 20% or use schema default if available
+        percentageWeights[drill.key] = (drill.defaultWeight || 0.2) * 100;
+      });
+      setWeights(percentageWeights);
+    }
+  }, [currentDrills]);
   
   // Normalize weights for TeamFormationTool (expects decimal format)
   const normalizedWeights = useMemo(() => {
@@ -89,11 +86,11 @@ const TeamFormationPage = () => {
 
   // Filter players with drill scores
   const playersWithScores = useMemo(() => {
-    const drills = getDrillsFromTemplate(drillTemplate);
+    if (!currentDrills.length) return [];
     return players.filter(player => 
-      drills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+      currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
     );
-  }, [players, drillTemplate]);
+  }, [players, currentDrills]);
 
   // Weight preset functions
   const applyPreset = (presetKey) => {
@@ -116,16 +113,15 @@ const TeamFormationPage = () => {
   };
 
   const resetWeights = () => {
-    const defaultWeights = getDefaultWeightsFromTemplate(drillTemplate);
     const percentageWeights = {};
-    Object.entries(defaultWeights).forEach(([key, value]) => {
-      percentageWeights[key] = value * 100;
+    currentDrills.forEach(drill => {
+      percentageWeights[drill.key] = (drill.defaultWeight || 0.2) * 100;
     });
     setWeights(percentageWeights);
     showSuccess('Reset to default weights');
   };
 
-  if (loading) {
+  if (loading || drillsLoading) {
     return (
       <LoadingScreen 
         title="Loading Team Formation"
@@ -168,7 +164,8 @@ const TeamFormationPage = () => {
     );
   }
 
-  const currentDrills = getDrillsFromTemplate(drillTemplate);
+  // Not using this anymore, replaced by currentDrills
+  // const currentDrills = getDrillsFromTemplate(drillTemplate);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -212,7 +209,7 @@ const TeamFormationPage = () => {
               <span className="text-sm font-medium text-green-900">Continue Recording</span>
             </Link>
             <Link
-              to="/players/rankings"
+              to="/players?tab=analyze"
               className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
             >
               <Users className="w-4 h-4 text-blue-600" />
@@ -324,7 +321,7 @@ const TeamFormationPage = () => {
                 <h4 className="font-medium text-yellow-900 mb-1">No Players with Scores</h4>
                 <p className="text-sm text-yellow-800">
                   Players need to have drill scores recorded before they can be formed into teams.
-                  Head to the <Link to="/players/rankings" className="underline">Rankings page</Link> to record drill scores first.
+                  Head to the <Link to="/players?tab=analyze" className="underline">Rankings page</Link> to record drill scores first.
                 </p>
               </div>
             </div>
@@ -336,6 +333,7 @@ const TeamFormationPage = () => {
           players={playersWithScores}
           weights={normalizedWeights}
           selectedDrillTemplate={drillTemplate}
+          drills={currentDrills}
         />
         
         {/* Continue Your Event Actions */}
