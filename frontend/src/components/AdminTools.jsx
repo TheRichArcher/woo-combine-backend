@@ -338,6 +338,11 @@ export default function AdminTools() {
         setCsvFileName("");
         cacheInvalidation.playersUpdated(selectedEvent.id);
         handlePostUploadSuccess();
+        
+        // Guidance for next steps
+        setTimeout(() => {
+            showInfo("🚀 Pro Tip: View your roster on the Players page or start Live Entry to add more results.");
+        }, 1000);
       }
     } catch (err) {
       setUploadStatus("error");
@@ -609,10 +614,10 @@ export default function AdminTools() {
                 <span className="text-blue-600 text-sm">💡</span>
               </div>
               <div>
-                <p className="text-blue-800 font-medium text-sm mb-1">Simplified Upload Process</p>
+                <p className="text-blue-800 font-medium text-sm mb-1">Upload Roster (and optional scores)</p>
                 <p className="text-blue-700 text-sm">
-                  Only First Name, Last Name, and Age Group (optional) are needed. 
-                  Drill results will be collected during your combine event using this program.
+                  Upload your player list here. If your CSV already contains drill scores, map them below. 
+                  Otherwise, you can enter scores later using Live Entry or the Import Results tool.
                 </p>
               </div>
             </div>
