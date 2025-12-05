@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   build: {
     copyPublicDir: true,
-    // Force rebuild - clear cache
+    // Disable Vite cache during build
+    emptyOutDir: true,
     // Optimize bundle splitting
     rollupOptions: {
       output: {
