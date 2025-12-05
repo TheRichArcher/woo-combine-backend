@@ -931,11 +931,12 @@ export default function OnboardingEvent() {
               <ImportResultsModal
                 onClose={() => setShowImportModal(false)}
                 onSuccess={async (isRevert) => {
-                  // Refresh data to update counts/scores state
-                  const { hasScores } = await fetchEventData();
+                  // Always fetch fresh data to update local state, but don't block redirect
+                  await fetchEventData();
                   
-                  // If import successful (not revert) and scores exist, redirect
-                  if (!isRevert && hasScores) {
+                  // If import successful (not revert), redirect immediately to Players page
+                  // This exits the onboarding flow since the user has successfully imported data
+                  if (!isRevert) {
                     setShowImportModal(false);
                     showSuccess("Drill scores imported successfully!");
                     navigate('/players');
