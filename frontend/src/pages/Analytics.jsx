@@ -7,6 +7,7 @@ import { useDrills } from '../hooks/useDrills';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
+  // FORCE NEW BUILD - Analytics fix deployed
   const { selectedEvent } = useEvent();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
