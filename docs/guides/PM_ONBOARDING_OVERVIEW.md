@@ -105,11 +105,11 @@ The frontend is a Static Site on Render. **Strict adherence to these settings is
 - **Root Directory**: `frontend`
 - **Build Command**: `npm run build` (or `VITE_API_BASE=... npm run build`)
 - **Publish Directory**: `dist`
-  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist`. Render appends this to the Root Directory automatically. Setting it incorrectly causes 404s or stale cache serving.
+  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist` or `frontend/ dist`. Since the Root Directory is already `frontend`, Render looks for the Publish Directory *relative* to that. Setting it incorrectly causes Render to silently serve stale cached builds because it cannot find the new files.
 
 ### Caching Strategy
 - **Vite Configuration**: `vite.config.js` is configured to append timestamps to output filenames (e.g., `assets/index-HASH-TIMESTAMP.js`).
-- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render. It ensures that every deployment serves fresh code, preventing the "stale bundle" issue that plagued the Analytics rollout.
+- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render. It ensures that every deployment serves fresh code with a unique filename, preventing the "stale bundle" issue that plagued the Analytics rollout.
 
 ### Monitoring
 - **Logs**: Check Render Dashboard for backend logs.
