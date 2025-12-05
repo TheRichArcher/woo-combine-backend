@@ -7,7 +7,6 @@ import { useDrills } from '../hooks/useDrills';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
-  // FORCE NEW BUILD - Analytics fix deployed
   const { selectedEvent } = useEvent();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -103,25 +102,9 @@ export default function Analytics() {
           // Use player.scores to access drill data
           const raw = p.scores?.[drill.key];
           const value = raw === '' || raw == null ? NaN : Number(raw);
-          const isValid = Number.isFinite(value);
-
-          // Aggressive Debugging: Only log if we HAVE scores but it's invalid, 
-          // OR if it's the first player with scores we see
-          if (p.scores && Object.keys(p.scores).length > 0) {
-             // Found a player with scores!
-             if (!isValid) {
-                 console.warn('DEBUG: Has scores but invalid value for', drill.key, p.scores);
-             } else {
-                 // Valid entry found - log once to confirm
-                 console.log('DEBUG: Valid entry found', drill.key, value); 
-             }
-          }
-          
-          return isValid ? { player: p, value } : null;
+          return Number.isFinite(value) ? { player: p, value } : null;
         })
         .filter(Boolean);
-
-      console.log(`DEBUG: Stats for ${drill.key} -> entries: ${entries.length}`);
 
       if (entries.length === 0) {
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
@@ -131,10 +114,7 @@ export default function Analytics() {
         min: (drill.min_value !== undefined && drill.min_value !== null) ? Number(drill.min_value) : -Infinity, 
         max: (drill.max_value !== undefined && drill.max_value !== null) ? Number(drill.max_value) : Infinity
       };
-      console.log(`DEBUG: Bounds for ${drill.key}:`, bounds);
-
       const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
-      console.log(`DEBUG: inRange for ${drill.key}: ${inRange.length}`);
 
       if (inRange.length === 0) {
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], outliers: entries.length };
