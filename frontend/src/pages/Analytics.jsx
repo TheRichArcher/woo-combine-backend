@@ -290,7 +290,7 @@ export default function Analytics() {
                       <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ name: e.player.name, score: Number(e.value.toFixed(2)) }))}>
                         <XAxis dataKey="name" label={{ value: 'Player', position: 'bottom' }} />
                         <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
-                        <Tooltip />
+                        <Tooltip wrapperStyle={{ pointerEvents: 'none' }} />
                         <Bar dataKey="score">
                           {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
                             <Cell key={`bar-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
