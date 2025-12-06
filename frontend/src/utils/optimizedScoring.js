@@ -40,8 +40,8 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
 
   const scores = currentDrills.map(drill => {
     const values = filtered
-      .filter(p => p[drill.key] != null)
-      .map(p => p[drill.key])
+      .filter(p => (p.scores?.[drill.key] ?? p[drill.key]) != null)
+      .map(p => p.scores?.[drill.key] ?? p[drill.key])
       .sort()
       .join(',');
     return `${drill.key}:${values}`;
@@ -68,21 +68,21 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
   const currentDrills = drillList || [];
 
   const ageGroupPlayers = (ageGroup === 'ALL' ? players : players.filter(p => p && p.age_group === ageGroup))
-    .filter(p => currentDrills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number'));
+    .filter(p => currentDrills.some(drill => (p.scores?.[drill.key] ?? p[drill.key]) != null && typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number'));
 
   const drillRanges = {};
 
   currentDrills.forEach(drill => {
-    // Use schema-defined ranges if available
-    if (drill.min != null && drill.max != null) {
+    // Use schema-defined ranges if available (and robustly valid)
+    if (drill.min != null && drill.max != null && drill.min !== undefined && drill.max !== undefined) {
       drillRanges[drill.key] = {
-        min: drill.min,
-        max: drill.max
+        min: Number(drill.min),
+        max: Number(drill.max)
       };
     } else {
       // Calculate from data
       const values = ageGroupPlayers
-        .map(p => p[drill.key])
+        .map(p => p.scores?.[drill.key] ?? p[drill.key])
         .filter(val => val != null && typeof val === 'number');
 
       if (values.length > 0) {
@@ -90,6 +90,9 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
           min: Math.min(...values),
           max: Math.max(...values)
         };
+      } else {
+        // Fallback if no data and no schema range
+        drillRanges[drill.key] = { min: -Infinity, max: Infinity };
       }
     }
   });
@@ -151,7 +154,7 @@ export function calculateOptimizedCompositeScore(player, allPlayers, weights, dr
   let totalWeightedScore = 0;
   
   currentDrills.forEach(drill => {
-    const rawScore = player[drill.key];
+    const rawScore = player.scores?.[drill.key] ?? player[drill.key];
     const weight = weights[drill.key] || 0;
     const range = drillRanges[drill.key];
     
@@ -194,7 +197,7 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
   playersByAgeGroup.forEach((ageGroupPlayers, ageGroup) => {
     // Filter players with at least one drill score based on CURRENT drills
     const playersWithScores = ageGroupPlayers.filter(player => 
-      currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+      currentDrills.some(drill => (player.scores?.[drill.key] ?? player[drill.key]) != null && typeof (player.scores?.[drill.key] ?? player[drill.key]) === 'number')
     );
     
     if (playersWithScores.length === 0) return;
@@ -207,7 +210,7 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
       let totalWeightedScore = 0;
       
       currentDrills.forEach(drill => {
-        const rawScore = player[drill.key];
+        const rawScore = player.scores?.[drill.key] ?? player[drill.key];
         const weight = weights[drill.key] || 0;
         const range = drillRanges[drill.key];
         
@@ -252,7 +255,7 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
   
   // Filter players with at least one drill score based on CURRENT drills
   const playersWithScores = players.filter(player => 
-    currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+    currentDrills.some(drill => (player.scores?.[drill.key] ?? player[drill.key]) != null && typeof (player.scores?.[drill.key] ?? player[drill.key]) === 'number')
   );
   if (playersWithScores.length === 0) return [];
 
@@ -261,7 +264,7 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
   const scored = playersWithScores.map(player => {
     let totalWeightedScore = 0;
     currentDrills.forEach(drill => {
-      const rawScore = player[drill.key];
+      const rawScore = player.scores?.[drill.key] ?? player[drill.key];
       const weight = weights[drill.key] || 0;
       const range = drillRanges[drill.key];
       if (rawScore != null && typeof rawScore === 'number' && range) {
@@ -295,8 +298,8 @@ export function calculateDrillRankings(player, allPlayers, drillList = []) {
         p && 
         p.id && 
         p.age_group === player.age_group && 
-        p[drill.key] != null && 
-        typeof p[drill.key] === 'number'
+        (p.scores?.[drill.key] ?? p[drill.key]) != null && 
+        typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number'
       );
       
       if (validPlayers.length === 0) {
@@ -306,12 +309,14 @@ export function calculateDrillRankings(player, allPlayers, drillList = []) {
       
       // Sort players for this drill
       const sortedPlayers = validPlayers.sort((a, b) => {
+        const valA = a.scores?.[drill.key] ?? a[drill.key];
+        const valB = b.scores?.[drill.key] ?? b[drill.key];
         const isLowerBetter = drill.lowerIsBetter === true;
           
         if (isLowerBetter) {
-          return a[drill.key] - b[drill.key]; // Lower time = better
+          return valA - valB; // Lower time = better
         }
-        return b[drill.key] - a[drill.key]; // Higher score = better
+        return valB - valA; // Higher score = better
       });
       
       const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
