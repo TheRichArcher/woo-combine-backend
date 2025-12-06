@@ -974,11 +974,21 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 <Check className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Import Complete!</h3>
-              <p className="text-gray-500">Results have been added to your event.</p>
+              <p className="text-gray-500 mb-1">Results have been added to your event.</p>
+              {selectedEvent?.name && (
+                <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700 mb-2">
+                   <Database className="w-3 h-3" /> {selectedEvent.name}
+                </div>
+              )}
               
               <div className="flex justify-center gap-4 mt-8 mb-8">
                    <button 
-                       onClick={() => { onSuccess?.(false); onClose(); }} // isRevert = false
+                       onClick={() => { 
+                           onSuccess?.(false); 
+                           onClose(); 
+                           // Force navigation to players tab to ensure context is refreshed
+                           window.location.href = '/players';
+                       }} 
                        className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
                    >
                        View Rankings
