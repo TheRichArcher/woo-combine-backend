@@ -8,7 +8,7 @@ import api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { getDrillsFromTemplate } from '../../constants/drillTemplates';
 
-const DRILL_CATEGORIES = ["Speed", "Agility", "Power", "Strength", "Skill", "Conditioning"];
+const DRILL_CATEGORIES = ["Speed", "Agility", "Power", "Strength", "Skill", "Conditioning", "Physical"];
 const SCORING_UNITS = ["Seconds", "Inches", "Reps", "MPH", "Percent", "Other"];
 
 export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, onDrillCreated, initialData = null, drillTemplate = 'football' }) {
