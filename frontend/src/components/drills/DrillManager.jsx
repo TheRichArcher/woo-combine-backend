@@ -5,7 +5,7 @@ import api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { Plus, Lock, Edit2, Trash2, Info, Eye, EyeOff } from 'lucide-react';
 
-export default function DrillManager({ event, leagueId, isLiveEntryActive = false }) {
+export default function DrillManager({ event, leagueId, isLiveEntryActive = false, onDrillsChanged }) {
   const [activeTab, setActiveTab] = useState('template'); // 'template' | 'custom'
   const [customDrills, setCustomDrills] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -63,6 +63,7 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
       });
       
       // showSuccess(isCurrentlyDisabled ? "Drill enabled" : "Drill disabled");
+      onDrillsChanged?.();
     } catch (error) {
       console.error("Failed to update event drills", error);
       showError("Failed to update drill status");
@@ -80,7 +81,8 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
     try {
       await api.delete(`/leagues/${leagueId}/events/${event.id}/custom-drills/${drillId}`);
       showSuccess("Drill deleted successfully");
-      fetchCustomDrills();
+      await fetchCustomDrills();
+      onDrillsChanged?.();
     } catch (error) {
       showError("Failed to delete drill");
     }
@@ -265,7 +267,10 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
           eventId={event?.id}
           leagueId={leagueId}
           initialData={editingDrill}
-          onDrillCreated={fetchCustomDrills}
+          onDrillCreated={async () => {
+            await fetchCustomDrills();
+            onDrillsChanged?.();
+          }}
         />
       )}
     </div>

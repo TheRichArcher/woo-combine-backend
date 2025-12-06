@@ -91,7 +91,8 @@ export default function OnboardingEvent() {
   const [manualMsg, setManualMsg] = useState('');
   
   const [showImportModal, setShowImportModal] = useState(false);
-  const { drills: allDrills } = useDrills(createdEvent);
+  const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
+  const { drills: allDrills } = useDrills(createdEvent, drillRefreshTrigger);
 
   const fileInputRef = useRef();
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
@@ -440,6 +441,7 @@ export default function OnboardingEvent() {
                             event={createdEvent} 
                             leagueId={selectedLeagueId} 
                             isLiveEntryActive={false} // New events are not active yet
+                            onDrillsChanged={() => setDrillRefreshTrigger(t => t + 1)}
                         />
                     </div>
 

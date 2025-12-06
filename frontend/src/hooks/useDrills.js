@@ -10,7 +10,7 @@ import { DRILL_TEMPLATES } from '../constants/drillTemplates';
  * 
  * This hook replaces all ad-hoc drill merging logic across the app.
  */
-export function useDrills(selectedEvent) {
+export function useDrills(selectedEvent, refreshTrigger = 0) {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -113,7 +113,8 @@ export function useDrills(selectedEvent) {
     selectedEvent?.drillTemplate, 
     // Deep compare disabled/custom lengths to trigger refetch if they change locally
     selectedEvent?.disabled_drills?.length,
-    selectedEvent?.custom_drills?.length
+    selectedEvent?.custom_drills?.length,
+    refreshTrigger
   ]);
 
   // Memoized derived state
