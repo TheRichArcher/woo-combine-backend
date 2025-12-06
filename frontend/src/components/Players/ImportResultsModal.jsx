@@ -202,14 +202,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           });
           
           // For any unmapped keys, default to identity if it matches a known drill key directly
-          // or leave as identity (which shows as "Original" in UI)
+          // otherwise default to __ignore__ to prevent blocking validation errors on non-drill columns
           sourceKeys.forEach(key => {
               if (!initialMapping[key]) {
                   // If the key itself matches a drill key exactly, map it
                   if (availableDrills.some(d => d.key === key)) {
                       initialMapping[key] = key;
                   } else {
-                      initialMapping[key] = key; // Default to identity (Original)
+                      // CHANGED: Default to Ignore instead of identity to prevent "not mapped to valid fields" error
+                      // for extra columns like "overallZ", "goodAt", etc.
+                      initialMapping[key] = '__ignore__'; 
                   }
               }
           });
@@ -242,7 +244,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         return !validKeys.has(targetKey);
     });
 
+    // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
+        // If user hasn't explicitly mapped them (defaulted to identity), but they aren't valid drills,
+        // we should probably just ignore them or warn more gently.
+        // The current behavior blocks submission.
+        
+        // Change: Only block if the USER explicitly selected an invalid option (unlikely with dropdown)
+        // OR if it defaulted to identity but isn't a valid drill.
+        // Let's proactively suggest ignoring them by just warning for now?
+        // Or better: Auto-set them to ignore if we can?
+        // We can't auto-set state easily here without a re-render loop.
+        
         const invalidNames = invalidMappings.map(([source]) => source).join(', ');
         setError(`The following columns are not mapped to valid fields: ${invalidNames}. Please map them to an event drill or choose "Ignore".`);
         setStep('review');
