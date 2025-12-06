@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Dict, Any, Optional
+from collections import defaultdict
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit, bulk_rate_limit
@@ -279,8 +280,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         # DYNAMIC DRILL FIELDS FROM SCHEMA
         drill_fields = [d.key for d in schema.drills]
         
+        # REQUESTED LOG: Server's drill_fields list
+        logging.info(f"[IMPORT_DEBUG] Server Drill Fields for Event {event_id}: {drill_fields}")
+        
         errors = []
         added = 0
+        players_matched = 0
+        scores_written_total = 0
+        scores_written_by_drill = defaultdict(int)
         
         MAX_ROWS = 5000
         if len(players) > MAX_ROWS:
@@ -333,6 +340,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         batch_count = 0
         
         for idx, player in enumerate(players):
+            # REQUESTED LOG: First player's payload keys
+            if idx == 0:
+                logging.info(f"[IMPORT_DEBUG] First Player Payload Keys: {list(player.keys())}")
+
             row_errors = []
             for field in required_fields:
                 if player.get(field) in (None, ""):
@@ -374,6 +385,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             previous_state = existing_docs_map.get(player_id)
             
             if previous_state:
+                players_matched += 1
                 logging.info(f"[IMPORT_DEBUG] Row {idx+1}: FOUND EXISTING PLAYER -> ID={player_id}, Name='{previous_state.get('name')}'")
             else:
                 logging.info(f"[IMPORT_DEBUG] Row {idx+1}: NO MATCH FOUND -> Will create new document {player_id}")
@@ -422,6 +434,11 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     try:
                         val_float = float(value)
                         scores[drill_key] = val_float
+                        
+                        # Track stats
+                        scores_written_total += 1
+                        scores_written_by_drill[drill_key] += 1
+
                         # Also set legacy field for football compatibility if it matches
                         # This ensures older frontends still see data
                         if drill_key in ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]:
@@ -480,7 +497,15 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             logging.error(f"Failed to write import audit log: {e}")
             
         logging.info(f"Player upload completed: {added} processed, {len(errors)} errors")
-        return {"added": added, "errors": errors, "undo_log": undo_log}
+        return {
+            "added": added, 
+            "errors": errors, 
+            "undo_log": undo_log,
+            "players_received": len(players),
+            "players_matched": players_matched,
+            "scores_written_total": scores_written_total,
+            "scores_written_by_drill": scores_written_by_drill
+        }
     except HTTPException:
         raise
     except Exception as e:
