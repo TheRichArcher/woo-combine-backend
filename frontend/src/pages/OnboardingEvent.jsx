@@ -876,7 +876,10 @@ export default function OnboardingEvent() {
                 <div className="text-center mb-2">
                   <Button 
                     variant="outline" 
-                    onClick={() => setShowImportModal(true)} 
+                    onClick={() => {
+                      setDrillRefreshTrigger(t => t + 1);
+                      setShowImportModal(true);
+                    }} 
                     className="w-full flex items-center justify-center gap-2 border-gray-300 hover:bg-gray-50 text-gray-700 py-3"
                   >
                     <Upload className="w-4 h-4" />

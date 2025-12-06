@@ -79,6 +79,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     }
   }, [step, parseResult, editedRows, rowStrategies, conflictMode, draftKey]);
 
+  // Debug logging for available drills
+  useEffect(() => {
+    console.log("[ImportResultsModal] availableDrills updated:", {
+      count: availableDrills.length,
+      names: availableDrills.map(d => d.label),
+      ids: availableDrills.map(d => d.key)
+    });
+  }, [availableDrills]);
+
   // Move detectedSport logic to top level (used in useMemo)
   const detectedSport = parseResult?.detected_sport?.toLowerCase();
 
