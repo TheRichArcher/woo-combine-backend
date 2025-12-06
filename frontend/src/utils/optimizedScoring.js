@@ -249,34 +249,22 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
  * @returns {Array}
  */
 export function calculateOptimizedRankingsAcrossAll(players, weights, drillList = []) {
-  if (!players || players.length === 0) {
-    console.log("DEBUG: No players to rank");
-    return [];
-  }
+  if (!players || players.length === 0) return [];
   
   const currentDrills = drillList || [];
-  console.log("DEBUG: Ranking with drills:", currentDrills.map(d => d.key));
   
-  if (players.length > 0) {
-    console.log("DEBUG: Sample Player:", JSON.stringify(players[0], null, 2));
-  }
-
   // Filter players with at least one drill score based on CURRENT drills
   const playersWithScores = players.filter(player => 
     currentDrills.some(drill => {
       const val = player.scores?.[drill.key] ?? player[drill.key];
       const isValid = val != null && typeof val === 'number';
-      if (!isValid && val) console.log("DEBUG: Invalid score for", player.name, drill.key, val, typeof val);
       return isValid;
     })
   );
   
-  console.log(`DEBUG: Players with scores: ${playersWithScores.length} / ${players.length}`);
-  
   if (playersWithScores.length === 0) return [];
 
   const drillRanges = getCachedDrillRanges(playersWithScores, 'ALL', currentDrills);
-  console.log("DEBUG: Drill Ranges:", drillRanges);
 
   const scored = playersWithScores.map(player => {
     let totalWeightedScore = 0;
@@ -284,8 +272,6 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
       const rawScore = player.scores?.[drill.key] ?? player[drill.key];
       const weight = weights[drill.key] || 0;
       const range = drillRanges[drill.key];
-      
-      // console.log(`DEBUG: Scoring ${player.name} - ${drill.key}: raw=${rawScore}, weight=${weight}, range=`, range);
       
       if (rawScore != null && typeof rawScore === 'number' && range) {
         const normalizedScore = calculateNormalizedDrillScore(rawScore, range, drill.key, drill.lowerIsBetter);
