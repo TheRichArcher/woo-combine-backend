@@ -24,8 +24,8 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
     unit: initialData?.unit === 'Other' ? 'Other' : (SCORING_UNITS.includes(initialData?.unit) ? initialData?.unit : 'Other'),
     customUnit: (!SCORING_UNITS.includes(initialData?.unit) ? initialData?.unit : '') || '',
     direction: initialData?.lower_is_better ? 'lower' : 'higher',
-    minVal: initialData?.min_val || '',
-    maxVal: initialData?.max_val || '',
+    minVal: initialData?.min_val !== undefined ? initialData.min_val : '0',
+    maxVal: initialData?.max_val !== undefined ? initialData.max_val : '',
   });
 
   // Validation Warnings
