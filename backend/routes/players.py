@@ -613,7 +613,6 @@ def get_rankings(
         
         # FETCH SCHEMA FOR RANKINGS
         schema = get_event_schema(event_id)
-        logging.info(f"[GET_RANKINGS] Event: {event_id}, Schema: {schema.id}, Drills: {[d.key for d in schema.drills]}")
         
         # Extract custom weights from query params
         custom_weights = {}
@@ -634,7 +633,6 @@ def get_rankings(
         )
         
         ranked = []
-        debug_logged = False
         for player in players_stream:
             player_data = player.to_dict()
             
@@ -659,9 +657,6 @@ def get_rankings(
                     break
             
             if not has_valid_score:
-                if not debug_logged:
-                    logging.info(f"[GET_RANKINGS] Skipping player {player.id} (No valid score). Scores keys: {list(scores_map.keys())}, Schema keys: {[d.key for d in schema.drills]}")
-                    debug_logged = True
                 continue
 
             composite_score = calculate_composite_score(player_data, weights=use_weights, schema=schema)
