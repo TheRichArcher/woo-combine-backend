@@ -258,14 +258,16 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
       </div>
 
       {/* Wizard Modal */}
-      <CustomDrillWizard
-        isOpen={isWizardOpen}
-        onClose={() => setIsWizardOpen(false)}
-        eventId={event?.id}
-        leagueId={leagueId}
-        initialData={editingDrill}
-        onDrillCreated={fetchCustomDrills}
-      />
+      {isWizardOpen && (
+        <CustomDrillWizard
+          isOpen={isWizardOpen}
+          onClose={() => setIsWizardOpen(false)}
+          eventId={event?.id}
+          leagueId={leagueId}
+          initialData={editingDrill}
+          onDrillCreated={fetchCustomDrills}
+        />
+      )}
     </div>
   );
 }
