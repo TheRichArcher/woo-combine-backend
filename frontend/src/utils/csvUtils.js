@@ -45,7 +45,7 @@ function getHeaderSynonyms() {
       'throwing': ['throwing', 'throw', 'passing', 'pass'],
       'agility': ['agility', 'agile', 'cone drill', 'cones', 'weave', 'ladder'],
       'lane_agility': ['lane_agility', 'lane agility', 'lane', 'basketball agility', 'bb agility'],
-      'free_throws': ['free_throws', 'free throws', 'ft', 'free throw %', 'free throw percentage', 'free_throw_pct'],
+      'free_throws': ['free_throws', 'free throws', 'ft', 'free throw %', 'free throw percentage', 'free_throw_pct', 'throwing'],
       'three_point': ['three_point', 'three point', '3pt', '3-point', 'three pointer', 'three_pointer'],
       'dribbling': ['dribbling', 'dribble', 'ball handling', 'handles', 'dribbling skill'],
       'exit_velocity': ['exit_velocity', 'exit velocity', 'bat speed', 'swing speed', 'exit velo'],

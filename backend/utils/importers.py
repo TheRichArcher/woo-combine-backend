@@ -67,6 +67,11 @@ class DataImporter:
             return clean
             
         # Fuzzy Matching Logic
+        
+        # Prioritize Specific Compounds that might overlap with generic terms
+        if 'free' in clean: return 'free_throws'
+        if 'exit' in clean and 'vel' in clean: return 'exit_velocity'
+        
         # Football
         if '40' in clean and 'dash' in clean: return '40m_dash'
         if 'jump' in clean or 'vert' in clean: return 'vertical_jump'
@@ -75,13 +80,11 @@ class DataImporter:
         if 'agil' in clean and 'lane' not in clean: return 'agility' # Avoid overlap with lane_agility
         
         # Baseball
-        if 'exit' in clean and 'vel' in clean: return 'exit_velocity'
         if 'pop' in clean: return 'pop_time'
         if 'fielding' in clean: return 'fielding_accuracy'
         
         # Basketball
         if 'lane' in clean: return 'lane_agility'
-        if 'free' in clean: return 'free_throws'
         if 'three' in clean: return 'three_point'
         if 'dribble' in clean or 'handl' in clean: return 'dribbling'
         
@@ -379,6 +382,7 @@ class DataImporter:
         for idx, row in enumerate(rows, start=1):
             processed_row = {}
             row_errors = []
+            found_canonical_keys = set()
             
             # Map fields
             for original_key, value in row.items():
@@ -389,6 +393,7 @@ class DataImporter:
                 clean_val = str(value).strip() if value is not None else ""
                 
                 if mapped_key in drill_keys and clean_val:
+                    found_canonical_keys.add(mapped_key)
                     # SMART ERROR CORRECTION: Try to fix common formatting issues
                     cleaned_num = DataImporter._clean_value(clean_val)
                     drill_def = drill_defs.get(mapped_key)
@@ -399,32 +404,37 @@ class DataImporter:
                             min_v = drill_def.min_value if drill_def.min_value is not None else -1000
                             max_v = drill_def.max_value if drill_def.max_value is not None else 10000
                             if not (min_v <= cleaned_num <= max_v):
-                                row_errors.append(f"Value {cleaned_num} for {mapped_key} out of range ({min_v}-{max_v})")
+                                row_errors.append(f"Value {cleaned_num} for '{original_key}' out of range ({min_v}-{max_v})")
+                                processed_row[original_key] = cleaned_num # Keep value to show error
                             else:
-                                processed_row[mapped_key] = cleaned_num
+                                processed_row[original_key] = cleaned_num
                         else:
-                            processed_row[mapped_key] = cleaned_num
+                            processed_row[original_key] = cleaned_num
                     else:
-                        row_errors.append(f"Invalid number format for {mapped_key}: '{clean_val}'")
-                        processed_row[f"{mapped_key}_raw"] = clean_val
+                        row_errors.append(f"Invalid number format for '{original_key}': '{clean_val}'")
+                        processed_row[original_key] = clean_val # Keep raw value
                 
                 elif mapped_key == 'jersey_number' and clean_val:
+                    found_canonical_keys.add(mapped_key)
                     try:
                         num = int(float(clean_val)) # Handle "10.0" from Excel
-                        processed_row[mapped_key] = num
+                        processed_row[original_key] = num
                     except ValueError:
                         row_errors.append(f"Invalid jersey number: {clean_val}")
-                        processed_row[f"{mapped_key}_raw"] = clean_val
+                        processed_row[original_key] = clean_val
                 
                 else:
                     # Regular string fields
+                    if mapped_key:
+                        found_canonical_keys.add(mapped_key)
+                    
                     if clean_val:
-                        processed_row[mapped_key] = clean_val
+                        processed_row[original_key] = clean_val
 
             # Check required fields
-            if 'first_name' not in processed_row or not processed_row['first_name']:
+            if 'first_name' not in found_canonical_keys:
                 row_errors.append("Missing First Name")
-            if 'last_name' not in processed_row or not processed_row['last_name']:
+            if 'last_name' not in found_canonical_keys:
                 row_errors.append("Missing Last Name")
                 
             # Construct result item
