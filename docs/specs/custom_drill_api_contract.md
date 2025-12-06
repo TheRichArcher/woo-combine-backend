@@ -11,7 +11,7 @@ class CustomDrill(BaseModel):
     event_id: str             # Parent event ID
     name: str                 # Display name (e.g., "40m Shuttle")
     unit: str                 # "sec", "mph", "in", "reps", "%", or custom string
-    category: str             # "Speed", "Agility", "Power", "Skill", "Conditioning"
+    category: str             # "Speed", "Agility", "Power", "Skill", "Conditioning", "Physical"
     lower_is_better: bool     # True for sprints, False for jumps/reps
     min_val: float            # For normalization (0 score anchor)
     max_val: float            # For normalization (500 score anchor)
