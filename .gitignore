@@ -112,5 +112,9 @@ backend/.env
 # Virtual environment
 .venv/ temp_features/
 frontend/dist/
+
+# Temporary assets (screenshots, test files, etc.)
+assets/
+
 # Ignore Alembic template
 alembic/script.py.mako
