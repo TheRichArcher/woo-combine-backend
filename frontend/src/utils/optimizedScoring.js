@@ -257,6 +257,10 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
   const currentDrills = drillList || [];
   console.log("DEBUG: Ranking with drills:", currentDrills.map(d => d.key));
   
+  if (players.length > 0) {
+    console.log("DEBUG: Sample Player:", JSON.stringify(players[0], null, 2));
+  }
+
   // Filter players with at least one drill score based on CURRENT drills
   const playersWithScores = players.filter(player => 
     currentDrills.some(drill => {
