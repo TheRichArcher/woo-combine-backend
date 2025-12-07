@@ -142,8 +142,8 @@ class CustomDrillSchema(BaseModel):
     unit: str
     category: str
     lower_is_better: bool
-    min_val: float
-    max_val: float
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
     description: Optional[str] = None
     created_at: str
     created_by: str
@@ -154,8 +154,8 @@ class CustomDrillCreateRequest(BaseModel):
     unit: str
     category: str
     lower_is_better: bool
-    min_val: float
-    max_val: float
+    min_val: Optional[float] = None
+    max_val: Optional[float] = None
     description: Optional[str] = None
 
 class CustomDrillUpdateRequest(BaseModel):

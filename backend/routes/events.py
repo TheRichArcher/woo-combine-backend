@@ -700,6 +700,10 @@ def get_league_event_schema_endpoint(
         if not schema:
             raise HTTPException(status_code=404, detail="Event schema not found")
 
+        # LOGGING: Custom drill count and keys for debugging import issues
+        custom_drills = [d for d in schema.drills if d.category == "custom" or len(d.key) >= 20] 
+        logging.info(f"League Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
+
         return {
             "id": schema.id,
             "name": schema.name,
@@ -753,6 +757,10 @@ def get_event_schema_endpoint(
         schema = get_event_schema(event_id)
         if not schema:
             raise HTTPException(status_code=404, detail="Event schema not found")
+
+        # LOGGING: Custom drill count and keys for debugging import issues
+        custom_drills = [d for d in schema.drills if d.category == "custom" or len(d.key) >= 20] 
+        logging.info(f"Global Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
 
         return {
             "id": schema.id,
