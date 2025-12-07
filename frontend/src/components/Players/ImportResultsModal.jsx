@@ -34,6 +34,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   }, [serverDrills, availableDrills]);
 
   const [method, setMethod] = useState('file'); // file, text
+  const [importMode, setImportMode] = useState('create_or_update'); // create_or_update, scores_only
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
@@ -385,7 +386,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         players: playersToUpload,
         skipped_count: skippedCount,
         method: method,
-        filename: file ? file.name : (url || 'paste')
+        filename: file ? file.name : (url || 'paste'),
+        mode: importMode
       });
       
       if (response.data.undo_log) {
@@ -472,6 +474,50 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   const renderInputStep = () => (
     <div className="space-y-6">
+      {/* Import Mode Selection */}
+      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+        <label className="block text-sm font-medium text-gray-700 mb-2">Import Goal</label>
+        <div className="flex gap-4">
+            <button
+                onClick={() => setImportMode('create_or_update')}
+                className={`flex-1 py-3 px-4 rounded-lg border-2 text-left flex items-start gap-3 transition-all ${
+                    importMode === 'create_or_update'
+                    ? 'border-cmf-primary bg-white ring-1 ring-cmf-primary'
+                    : 'border-transparent bg-white hover:bg-gray-50'
+                }`}
+            >
+                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
+                    importMode === 'create_or_update' ? 'border-cmf-primary' : 'border-gray-400'
+                }`}>
+                    {importMode === 'create_or_update' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
+                </div>
+                <div>
+                    <div className="font-semibold text-gray-900">Add & Update Players</div>
+                    <div className="text-xs text-gray-500 mt-1">Create new players or update existing ones. Best for rosters.</div>
+                </div>
+            </button>
+            <button
+                onClick={() => setImportMode('scores_only')}
+                className={`flex-1 py-3 px-4 rounded-lg border-2 text-left flex items-start gap-3 transition-all ${
+                    importMode === 'scores_only'
+                    ? 'border-cmf-primary bg-white ring-1 ring-cmf-primary'
+                    : 'border-transparent bg-white hover:bg-gray-50'
+                }`}
+            >
+                <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${
+                    importMode === 'scores_only' ? 'border-cmf-primary' : 'border-gray-400'
+                }`}>
+                    {importMode === 'scores_only' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
+                </div>
+                <div>
+                    <div className="font-semibold text-gray-900">Upload Drill Scores</div>
+                    <div className="text-xs text-gray-500 mt-1">Match existing roster. Won't create new players.</div>
+                    <div className="text-xs text-cmf-primary mt-1 font-medium">Tip: Include External ID for best matching.</div>
+                </div>
+            </button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4 mb-4">
         <button
           onClick={() => setMethod('file')}

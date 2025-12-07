@@ -256,6 +256,7 @@ class UploadRequest(BaseModel):
     skipped_count: Optional[int] = 0
     method: Optional[str] = "file"
     filename: Optional[str] = None
+    mode: Optional[str] = "create_or_update"  # Options: "create_or_update", "scores_only"
 
 @router.post("/players/upload")
 @bulk_rate_limit()
@@ -319,9 +320,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         
         # First, identify all player IDs we are about to touch
         ids_to_fetch = []
+        external_ids_to_fetch = []
         
         # We need to iterate through players to generate IDs, similar to validation loop below
         for p in players:
+            # Capture External ID for robust matching
+            if p.get("external_id") and str(p.get("external_id")).strip():
+                external_ids_to_fetch.append(str(p.get("external_id")).strip())
+
             # Only generate ID if required fields present
             if p.get("first_name") and p.get("last_name"):
                 try:
@@ -344,6 +350,29 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         
         # Fetch existing documents in batches (Firestore limit 10-30 per getAll? No, supports more but better chunked)
         existing_docs_map = {}
+        external_id_map = {}
+
+        # 1. Fetch by External ID (Priority Match)
+        if external_ids_to_fetch:
+            unique_exts = list(set(external_ids_to_fetch))
+            logging.info(f"[IMPORT_DEBUG] Fetching {len(unique_exts)} potential existing players by External ID.")
+            
+            # Firestore 'in' query limit is 10
+            for i in range(0, len(unique_exts), 10):
+                chunk = unique_exts[i:i+10]
+                try:
+                    q = db.collection("events").document(event_id).collection("players").where("external_id", "in", chunk)
+                    docs = q.stream()
+                    for doc in docs:
+                        data = doc.to_dict()
+                        data['id'] = doc.id
+                        ext_key = str(data.get('external_id')).strip()
+                        external_id_map[ext_key] = data
+                        existing_docs_map[doc.id] = data # Also populate ID map
+                except Exception as e:
+                    logging.warning(f"[IMPORT_DEBUG] Failed to fetch by external_id chunk: {e}")
+
+        # 2. Fetch by Generated ID (Name+Number Fallback)
         if ids_to_fetch:
             # Unique IDs only
             unique_ids = list(set(ids_to_fetch))
@@ -392,25 +421,46 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
                 continue
 
-            # Generate ID for deduplication
+            # Generate ID for deduplication (Default / Fallback)
             first_name = (player.get("first_name") or "").strip()
             last_name = (player.get("last_name") or "").strip()
             
+            # Determine Target Player ID with Priority Matching
+            player_id = None
+            previous_state = None
+            
+            # Priority 1: External ID Match
+            incoming_ext_id = str(player.get("external_id") or "").strip()
+            if incoming_ext_id and incoming_ext_id in external_id_map:
+                previous_state = external_id_map[incoming_ext_id]
+                player_id = previous_state['id']
+                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: MATCHED BY EXTERNAL_ID -> {incoming_ext_id} -> {player_id}")
+            else:
+                # Priority 2: Name + Number Match (Deterministic ID)
+                player_id = generate_player_id(event_id, first_name, last_name, num)
+                previous_state = existing_docs_map.get(player_id)
+            
             # Check local batch duplicates
+            # Note: We use Name+Number key for local dup check usually, but what if ext_id matches?
+            # Let's keep the name+number check for simplicity, or should we check ID?
             key = (first_name.lower(), last_name.lower(), num)
             if key in seen_keys:
                 errors.append({"row": idx + 1, "message": "Duplicate player in file"})
                 continue
             seen_keys.add(key)
 
-            player_id = generate_player_id(event_id, first_name, last_name, num)
-
             # DEBUG LOGGING FOR DUPLICATION DIAGNOSIS
             logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Incoming Identity -> First='{first_name}', Last='{last_name}', Num={num}")
-            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Generated ID -> {player_id}")
+            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Resolved ID -> {player_id}")
 
             # Record Undo State
-            previous_state = existing_docs_map.get(player_id)
+            # previous_state is already set above
+            
+            # --- SCORES ONLY MODE CHECK ---
+            if req.mode == "scores_only" and not previous_state:
+                # In scores_only mode, we strictly require the player to exist
+                errors.append({"row": idx + 1, "message": f"Player match not found for {first_name} {last_name} (#{num}). strictly requiring existing player."})
+                continue
             
             if previous_state:
                 players_matched += 1
@@ -418,8 +468,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             else:
                 logging.info(f"[IMPORT_DEBUG] Row {idx+1}: NO MATCH FOUND -> Will create new document {player_id}")
                 # Also log why it might have failed - check if we tried to fetch it?
-                if player_id not in ids_to_fetch:
-                     logging.info(f"[IMPORT_DEBUG] Row {idx+1}: WARNING - ID {player_id} was NOT in pre-fetch list. 'ids_to_fetch' only included players with valid jersey numbers.")
+                if player_id not in ids_to_fetch and not incoming_ext_id:
+                     logging.info(f"[IMPORT_DEBUG] Row {idx+1}: WARNING - ID {player_id} was NOT in pre-fetch list.")
 
             undo_log.append({
                 "player_id": player_id,
@@ -501,7 +551,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # Strategy: 'overwrite' (default) or 'merge'
             strategy = player.get("merge_strategy", "overwrite")
             
-            if strategy == "merge":
+            if strategy == "merge" or (req.mode == "scores_only" and previous_state):
                 if previous_state and "created_at" in previous_state:
                     del player_data["created_at"]
                 
