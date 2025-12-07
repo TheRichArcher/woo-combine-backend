@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 5, 2025_
+_Last updated: December 7, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -12,6 +12,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 - **Stability**: Critical infinite loops, race conditions, and temporal dead zones have been definitively resolved.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
+- **Import Reliability**: Robust CSV/Excel import engine now handles flat vs. nested data structures seamlessly, with optional jersey numbers and clear success stats.
 - **Analytics**: Full data pipeline verified. Analytics charts now correctly read normalized scores from `player.scores` and handle all edge cases (null bounds, missing data).
 - **Security**: Phone authentication and reCAPTCHA have been **completely removed** in favor of a robust, verified Email/Password flow.
 - **UX**: Onboarding flows (Organizer & Invited Users) are fully guided with "What's Next" steps and no dead ends.
@@ -32,6 +33,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
   - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
   - `AdminTools.jsx`: QR code generation, roster uploads, and event settings.
+  - `ImportResultsModal.jsx`: The unified import interface with 2-step validation, schema mapping, and stats reporting.
 
 ### Backend (Server)
 - **Tech**: FastAPI (Python) on Render.
@@ -64,13 +66,19 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Switching**: Header dropdowns allow instant context switching.
 - **Scoring**: "Live Entry" mode for rapid data input.
 - **Analysis**: `Players` page with real-time weight sliders (Speed vs. Skills vs. Balanced).
-- **Insights**: `Analytics` page provides deep-dive histograms and drill comparisons.
+- **Import**: Robust bulk import for offline results (CSV/Excel/Paste) with smart mapping and validation.
 
 ---
 
 ## 4. 🛠 Recent Major Upgrades (Dec 2025)
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
+
+### 📥 Import Engine Overhaul
+- **Score Extraction**: Fixed "0 scores imported" bug. Backend now robustly merges flat CSV keys (e.g., "Lane Agility") with nested data structures.
+- **Flexible Validation**: Made `jersey_number` optional (allowing "Ignore Column") and added smart synonym detection (`#`, `No`, `Jersey`).
+- **Smart Mapping**: Frontend now warns (non-blocking) if data-bearing columns are ignored, preventing accidental data loss while preserving user control.
+- **Success Stats**: Import success modal now displays exact counts: "Players Added | Scores Written".
 
 ### 📊 Analytics & Data Integrity
 - **Data Sourcing**: Fixed Analytics page to correctly read drill scores from the `player.scores` object instead of legacy flat paths.
@@ -142,14 +150,17 @@ frontend/src/
 │   ├── Players.jsx              # Core workspace
 │   ├── Analytics.jsx            # Charts & Data Visualization
 │   └── AdminTools.jsx           # Admin settings
-└── lib/api.js                   # Axios with retries
+└── components/
+    └── Players/
+        └── ImportResultsModal.jsx # Unified Import Interface
 
 backend/
 ├── routes/
 │   ├── users.py                 # User management
 │   ├── leagues.py               # League logic
 │   ├── events.py                # Event logic
-│   └── players.py               # Player & Scoring logic
+│   ├── players.py               # Player & Scoring logic (Import logic here)
+│   └── imports.py               # Import parsing & schema mapping
 └── main.py                      # App entry point
 ```
 
