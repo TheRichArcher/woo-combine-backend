@@ -391,7 +391,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       if (response.data) {
           setImportSummary({
               players: response.data.added || 0,
-              scores: response.data.scores_written_total || 0
+              scores: response.data.scores_written_total || 0,
+              errors: response.data.errors || []
           });
       }
 
@@ -1055,11 +1056,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           {step === 'success' && (
             <div className="text-center py-12">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                  importSummary?.scores === 0 && importSummary?.players > 0 
+                  importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
+                  ? 'bg-red-100 text-red-600'
+                  : importSummary?.scores === 0 && importSummary?.players > 0 
                   ? 'bg-amber-100 text-amber-600' 
                   : 'bg-green-100 text-green-600'
               }`}>
-                {importSummary?.scores === 0 && importSummary?.players > 0 ? (
+                {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0) ? (
+                    <AlertCircle className="w-8 h-8" />
+                ) : importSummary?.scores === 0 && importSummary?.players > 0 ? (
                     <AlertTriangle className="w-8 h-8" />
                 ) : (
                     <Check className="w-8 h-8" />
@@ -1067,7 +1072,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               </div>
               
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  {importSummary?.scores === 0 && importSummary?.players > 0 
+                  {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
+                   ? 'Import Failed'
+                   : importSummary?.scores === 0 && importSummary?.players > 0 
                    ? 'Imported with Warnings' 
                    : 'Import Complete!'}
               </h3>
@@ -1091,6 +1098,25 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                                   <li>You imported into a different event than you’re viewing</li>
                               </ul>
                               <p className="mt-2 text-xs italic">Check the schema and event selection.</p>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
+              {importSummary?.errors?.length > 0 && (
+                  <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
+                      <div className="flex items-start gap-3">
+                          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-red-800">
+                              <p className="font-bold mb-1">Encountered {importSummary.errors.length} errors during import:</p>
+                              <ul className="list-disc pl-4 space-y-1 text-xs max-h-32 overflow-y-auto">
+                                  {importSummary.errors.slice(0, 10).map((e, idx) => (
+                                      <li key={idx}>Row {e.row}: {e.message}</li>
+                                  ))}
+                                  {importSummary.errors.length > 10 && (
+                                      <li>...and {importSummary.errors.length - 10} more.</li>
+                                  )}
+                              </ul>
                           </div>
                       </div>
                   </div>
