@@ -62,7 +62,9 @@ class DataImporter:
         if not header:
             return ""
         
-        clean = str(header).strip().lower().replace(' ', '_').replace('-', '_')
+        # Remove units in parentheses (e.g., "Lane Agility (sec)" -> "Lane Agility")
+        header_no_units = re.sub(r'\s*\([^)]*\)\s*', ' ', str(header))
+        clean = header_no_units.strip().lower().replace(' ', '_').replace('-', '_')
         
         # Check exact matches first
         if clean in DataImporter.FIELD_MAPPING:
@@ -83,24 +85,28 @@ class DataImporter:
         # Fuzzy Matching Logic
         
         # Prioritize Specific Compounds that might overlap with generic terms
-        if 'free' in clean: return 'free_throws'
+        if 'free' in clean and 'throw' in clean: return 'free_throws'
         if 'exit' in clean and 'vel' in clean: return 'exit_velocity'
+        
+        # Basketball - check these before football to avoid conflicts
+        if 'lane' in clean and 'agil' in clean: return 'lane_agility'
+        if ('3pt' in clean or '3_pt' in clean or 'three_point' in clean) and 'shoot' in clean: return 'three_point'
+        if 'spot' in clean and 'shoot' in clean: return 'three_point'  # "Spot Shooting" -> three_point
         
         # Football
         if '40' in clean and 'dash' in clean: return '40m_dash'
         if 'jump' in clean or 'vert' in clean: return 'vertical_jump'
         if 'catch' in clean: return 'catching'
-        if 'throw' in clean and 'vel' not in clean: return 'throwing' # Avoid overlap with throwing_velocity
+        if 'throw' in clean and 'vel' not in clean and 'free' not in clean: return 'throwing' # Avoid overlap with throwing_velocity and free_throws
         if 'agil' in clean and 'lane' not in clean: return 'agility' # Avoid overlap with lane_agility
         
         # Baseball
         if 'pop' in clean: return 'pop_time'
         if 'fielding' in clean: return 'fielding_accuracy'
         
-        # Basketball
-        if 'lane' in clean: return 'lane_agility'
-        if 'three' in clean: return 'three_point'
-        if 'dribble' in clean or 'handl' in clean: return 'dribbling'
+        # Basketball (already checked above for lane_agility and three_point)
+        if 'dribble' in clean or 'handl' in clean or 'ball_handl' in clean: return 'dribbling'
+        if 'defensive' in clean and 'slide' in clean: return 'defensive_slide'
         
         # Soccer
         if 'ball' in clean and 'control' in clean: return 'ball_control'
