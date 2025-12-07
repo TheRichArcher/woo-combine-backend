@@ -281,54 +281,58 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         return !validKeys.has(targetKey);
     });
 
-    // HARD STOP: Block import if there are unmapped columns that contain data
-    // This prevents the "silent failure" scenario where users import but lose scores
-    
-    // 1. Check active mappings that point to invalid/missing keys (shouldn't happen with dropdown, but safety net)
-    if (invalidMappings.length > 0) {
-        const unmappedKeys = invalidMappings.map(([source]) => source);
+        // HARD STOP: Block import if there are unmapped columns that contain data
+        // This prevents the "silent failure" scenario where users import but lose scores
+        // Note: Ignored columns (mapped to __ignore__) are allowed even if they contain data
         
-        // Check if any of these unmapped columns actually have data in the rows
-        const hasDataLossRisk = unmappedKeys.some(key => {
-            // Check first 50 rows for any non-empty value
-            return allRows.slice(0, 50).some(r => {
-                const val = r.data?.[key];
-                return val !== null && val !== undefined && String(val).trim() !== '';
+        // 1. Check active mappings that point to invalid/missing keys (shouldn't happen with dropdown, but safety net)
+        if (invalidMappings.length > 0) {
+            const unmappedKeys = invalidMappings.map(([source]) => source);
+            
+            // Check if any of these unmapped columns actually have data in the rows
+            const hasDataLossRisk = unmappedKeys.some(key => {
+                // Check first 50 rows for any non-empty value
+                return allRows.slice(0, 50).some(r => {
+                    const val = r.data?.[key];
+                    return val !== null && val !== undefined && String(val).trim() !== '';
+                });
             });
-        });
 
-        if (hasDataLossRisk) {
-            const names = unmappedKeys.slice(0, 3).join(', ') + (unmappedKeys.length > 3 ? '...' : '');
-            if (!window.confirm(`⚠️ WARNING: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nThey will NOT be imported. Continue?`)) {
-                setStep('review');
-                return;
+            if (hasDataLossRisk) {
+                const names = unmappedKeys.slice(0, 3).join(', ') + (unmappedKeys.length > 3 ? '...' : '');
+                if (!window.confirm(`⚠️ WARNING: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nThey will NOT be imported. Continue?`)) {
+                    setStep('review');
+                    return;
+                }
             }
         }
-    }
 
-    // 2. CRITICAL: Check columns explicitly set to "__ignore__" but that contain data
-    // This catches the case where auto-mapping failed (so defaulted to ignore) but user didn't notice
-    const sourceKeys = Object.keys(allRows?.[0]?.data || {});
-    const ignoredKeys = sourceKeys.filter(
-      (k) => keyMapping?.[k] === "__ignore__"
-    );
+        // 2. CRITICAL: Check columns explicitly set to "__ignore__" but that contain data
+        // This catches the case where auto-mapping failed (so defaulted to ignore) but user didn't notice
+        // We ONLY warn, we DO NOT block. This supports keeping extra columns for reference.
+        const sourceKeys = Object.keys(allRows?.[0]?.data || {});
+        const ignoredKeys = sourceKeys.filter(
+          (k) => keyMapping?.[k] === "__ignore__"
+        );
 
-    const ignoredWithData = ignoredKeys.filter((k) =>
-      (allRows || []).some((r) => {
-        const v = r?.data?.[k];
-        return v !== null && v !== undefined && String(v).trim() !== "";
-      })
-    );
+        const ignoredWithData = ignoredKeys.filter((k) =>
+          (allRows || []).some((r) => {
+            const v = r?.data?.[k];
+            return v !== null && v !== undefined && String(v).trim() !== "";
+          })
+        );
 
-    if (ignoredWithData.length > 0) {
-      const names = ignoredWithData.slice(0, 5).join(', ') + (ignoredWithData.length > 5 ? '...' : '');
-      if (!window.confirm(
-        `WARNING: These columns contain data but are set to Ignore:\n\n${names}\n\nThey will NOT be imported. Continue?`
-      )) {
-          setStep('review');
-          return;
-      }
-    }
+        if (ignoredWithData.length > 0) {
+          const names = ignoredWithData.slice(0, 5).join(', ') + (ignoredWithData.length > 5 ? '...' : '');
+          // Just a confirmation to ensure they meant to ignore data-bearing columns
+          // If they say cancel, we go back. If OK, we proceed (data is dropped as requested)
+          if (!window.confirm(
+            `NOTE: You are choosing to ignore columns that contain data:\n\n${names}\n\nThis data will NOT be imported. Continue?`
+          )) {
+              setStep('review');
+              return;
+          }
+        }
 
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
@@ -1080,8 +1084,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               </h3>
               
               {importSummary && (
-                  <div className="mb-4 text-gray-600 font-medium">
-                      Imported {importSummary.players} players, wrote {importSummary.scores} scores
+                  <div className="mb-4 text-gray-600 font-medium bg-gray-50 p-3 rounded-lg border border-gray-200">
+                      <div className="flex justify-center gap-6">
+                          <div className="text-center">
+                              <div className="text-2xl font-bold text-gray-800">{importSummary.players}</div>
+                              <div className="text-xs uppercase tracking-wide text-gray-500">Players Added</div>
+                          </div>
+                          <div className="w-px bg-gray-300"></div>
+                          <div className="text-center">
+                              <div className="text-2xl font-bold text-cmf-primary">{importSummary.scores}</div>
+                              <div className="text-xs uppercase tracking-wide text-gray-500">Scores Written</div>
+                          </div>
+                      </div>
                   </div>
               )}
               

@@ -532,12 +532,19 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             logging.info(f"  - {drill_key}: {count} scores")
         
         # Log any drills that were expected but not received
+        # Only warn if we actually wrote 0 scores for that drill AND there were 0 scores total
+        # This prevents noise when users just didn't import that column
         expected_drills = set(drill_fields)
         received_drills = set(scores_written_by_drill.keys())
         missing_drills = expected_drills - received_drills
-        if missing_drills:
+        
+        # Suppress warning if at least some scores were written, unless specific debugging is needed
+        if missing_drills and scores_written_total == 0:
             logging.warning(f"[IMPORT_WARNING] Expected drill keys not received in any player data: {missing_drills}")
             logging.warning(f"[IMPORT_WARNING] This could mean: 1) No players had scores for these drills, 2) CSV columns weren't mapped correctly, or 3) Column names didn't match drill keys/labels")
+        elif missing_drills:
+             # Just info log if we have some data but not all drills (common partial import case)
+             logging.info(f"[IMPORT_INFO] Some drills were not present in this import: {missing_drills}")
             
         # --- IMPORT AUDIT LOG ---
         try:
