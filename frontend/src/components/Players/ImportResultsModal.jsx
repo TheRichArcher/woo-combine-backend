@@ -4,7 +4,7 @@ import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping } from '../../utils/csvUtils';
 
-export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [] }) {
+export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update' }) {
   const { selectedEvent } = useEvent();
   const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
   
@@ -34,7 +34,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   }, [serverDrills, availableDrills]);
 
   const [method, setMethod] = useState('file'); // file, text
-  const [importMode, setImportMode] = useState('create_or_update'); // create_or_update, scores_only
+  const [importMode, setImportMode] = useState(initialMode); // create_or_update, scores_only
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
@@ -512,13 +512,22 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 <div>
                     <div className="font-semibold text-gray-900">Upload Drill Scores</div>
                     <div className="text-xs text-gray-500 mt-1">Match existing roster. Won't create new players.</div>
-                    <div className="text-xs text-cmf-primary mt-1 font-medium">Tip: Include External ID for best matching.</div>
+                    <div className="text-xs text-cmf-primary mt-1 font-medium">
+                        Tip: Include External ID for best matching.
+                    </div>
                 </div>
             </button>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-4">
+        {/* SCORES ONLY WARNING - Placed above actions */}
+        {importMode === 'scores_only' && (
+            <div className="col-span-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 font-bold text-center shadow-sm mb-2">
+                Won't create players. Unmatched rows will error.
+            </div>
+        )}
+
         <button
           onClick={() => setMethod('file')}
           className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${

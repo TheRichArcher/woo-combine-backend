@@ -18,6 +18,7 @@ export default function Analytics() {
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
+  const [labelMode, setLabelMode] = useState('number'); // 'number' | 'name'
   
   // High-contrast palette (no bright yellows)
   const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
@@ -136,12 +137,25 @@ export default function Analytics() {
       // Helper to resolve display label (Number > Initials > ?)
       const getAxisLabel = (p) => {
         const num = p.jersey_number || p.number;
-        if (num !== undefined && num !== null && num !== '') return `#${num}`;
-        if (p.name) {
-          const parts = p.name.trim().split(/\s+/);
-          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
-          return p.name.substring(0, 3).toUpperCase();
+        const hasNum = num !== undefined && num !== null && num !== '';
+        
+        // Mode: Numbers (Default)
+        if (labelMode === 'number') {
+            if (hasNum) return `#${num}`;
+            return '—';
         }
+        
+        // Mode: Names
+        if (labelMode === 'name') {
+            if (p.name) {
+                const parts = p.name.trim().split(/\s+/);
+                // Return Last Name for readability on axis, unless full name is short
+                if (p.name.length < 10) return p.name;
+                return parts.length > 1 ? parts[parts.length-1] : p.name;
+            }
+            if (hasNum) return `#${num}`;
+        }
+
         return '?';
       };
 
@@ -212,7 +226,7 @@ export default function Analytics() {
         maxValue,
       };
     };
-  }, [filteredPlayers]);
+  }, [filteredPlayers, labelMode]);
 
   // Drill stats for currently selected drill (computed via reusable function)
   const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
@@ -265,13 +279,32 @@ export default function Analytics() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3 gap-2">
                 <h2 className="font-semibold text-gray-900">Drill Explorer</h2>
-                <div className="flex items-center gap-2">
-                  <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden">
-                    <button className={`px-2 py-1 ${viewMode==='bar'?'bg-white':''}`} onClick={() => setViewMode('bar')}>Vertical Bar</button>
-                    <button className={`px-2 py-1 ${viewMode==='lollipop'?'bg-white':''}`} onClick={() => setViewMode('lollipop')}>Lollipop</button>
-                    <button className={`px-2 py-1 ${viewMode==='simple'?'bg-white':''}`} onClick={() => setViewMode('simple')}>Simple</button>
-                    <button className={`px-2 py-1 ${viewMode==='histogram'?'bg-white':''}`} onClick={() => setViewMode('histogram')}>Histogram</button>
+                <div className="flex flex-wrap items-center gap-2">
+                  
+                  {/* View Toggles */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 font-medium hidden sm:inline">View:</span>
+                    <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden flex">
+                        <button className={`px-2 py-1 ${viewMode==='bar'?'bg-white font-medium shadow-sm':''}`} onClick={() => setViewMode('bar')}>Bar</button>
+                        <button className={`px-2 py-1 ${viewMode==='lollipop'?'bg-white font-medium shadow-sm':''}`} onClick={() => setViewMode('lollipop')}>Lollipop</button>
+                        <button className={`px-2 py-1 ${viewMode==='simple'?'bg-white font-medium shadow-sm':''}`} onClick={() => setViewMode('simple')}>Simple</button>
+                        <button className={`px-2 py-1 ${viewMode==='histogram'?'bg-white font-medium shadow-sm':''}`} onClick={() => setViewMode('histogram')}>Histogram</button>
+                    </div>
                   </div>
+
+                  {/* Label Toggles (only for charts) */}
+                  {(viewMode === 'bar' || viewMode === 'lollipop') && (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500 font-medium hidden sm:inline">Labels:</span>
+                        <div className="text-xs bg-gray-100 border border-gray-200 rounded overflow-hidden flex">
+                            <button className={`px-2 py-1 ${labelMode==='number'?'bg-white font-medium shadow-sm':''}`} onClick={() => setLabelMode('number')}>#</button>
+                            <button className={`px-2 py-1 ${labelMode==='name'?'bg-white font-medium shadow-sm':''}`} onClick={() => setLabelMode('name')}>Names</button>
+                        </div>
+                    </div>
+                  )}
+
+                  <div className="h-4 w-px bg-gray-300 hidden sm:block mx-1"></div>
+
                   <select
                     value={selectedAgeGroup}
                     onChange={(e) => setSelectedAgeGroup(e.target.value)}
@@ -304,10 +337,11 @@ export default function Analytics() {
                       <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number || '?',
+                        external_id: e.player.external_id,
                         axisLabel: e.displayLabel,
                         score: Number(e.value.toFixed(2)) 
                       }))}>
-                        <XAxis dataKey="axisLabel" label={{ value: 'Player Number', position: 'bottom' }} />
+                        <XAxis dataKey="axisLabel" label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom' }} />
                         <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip 
                           cursor={{ fill: 'transparent' }}
@@ -317,8 +351,10 @@ export default function Analytics() {
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
-                                  <div className="text-gray-600 mb-1">{data.axisLabel}</div>
-                                  <div className="font-mono font-semibold text-brand-primary">
+                                  <div className="text-gray-600 mb-1 flex items-center gap-1">
+                                    <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">#{data.number}</span>
+                                  </div>
+                                  <div className="font-mono font-semibold text-brand-primary mt-1">
                                     {data.score} {selectedDrill.unit}
                                   </div>
                                 </div>

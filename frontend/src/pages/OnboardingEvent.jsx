@@ -481,63 +481,79 @@ export default function OnboardingEvent() {
             {/* CSV Upload Section */}
             <div className="space-y-4 mb-6">
               
-              {/* NEW: Import Goal Guidance */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-left">
-                  <p className="text-blue-800 font-medium mb-1">Uploading results later?</p>
-                  <p className="text-blue-700 mb-2">
-                      You can choose <strong>‘Upload Drill Scores’</strong> in the import flow to match roster without creating new players.
-                  </p>
-                  <button 
-                    onClick={() => {
-                        setDrillRefreshTrigger(t => t + 1);
-                        setShowImportModal(true);
-                    }}
-                    className="text-blue-600 hover:text-blue-800 underline text-xs font-semibold flex items-center gap-1"
-                  >
-                    Open Import Tool
-                    <ArrowRight className="w-3 h-3" />
-                  </button>
+              {/* Updated Import Goal Guidance */}
+              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-center">What are you uploading?</h3>
+                  <p className="text-xs text-gray-500 text-center -mt-2 mb-3">Roster creates players. Scores only adds results to existing players.</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Option A: Roster */}
+                      <div className="border-2 border-blue-100 bg-blue-50/50 rounded-lg p-3 flex flex-col h-full">
+                          <div className="flex-1">
+                              <div className="font-bold text-brand-primary text-sm mb-1">Upload roster (names + jersey #)</div>
+                              <p className="text-xs text-gray-600 mb-3">Creates new players or updates existing details.</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-full mt-auto text-xs py-2"
+                          >
+                            <Upload className="w-3 h-3 mr-1" />
+                            Upload Roster CSV
+                          </Button>
+                      </div>
+
+                      {/* Option B: Scores Only */}
+                      <div className="border-2 border-green-100 bg-green-50/50 rounded-lg p-3 flex flex-col h-full">
+                          <div className="flex-1">
+                              <div className="font-bold text-semantic-success text-sm mb-1">Upload scores (existing roster)</div>
+                              <p className="text-xs text-gray-600 mb-3">Matches existing players only. Never creates players.</p>
+                          </div>
+                          <Button 
+                            size="sm"
+                            variant="outline"
+                            disabled={playerCount === 0}
+                            onClick={() => {
+                                if (playerCount === 0) return; // Disabled means dead
+                                setDrillRefreshTrigger(t => t + 1);
+                                setShowImportModal(true);
+                            }}
+                            className={`w-full mt-auto text-xs py-2 border-semantic-success text-semantic-success hover:bg-green-50 ${playerCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            Upload Scores
+                          </Button>
+                          {playerCount === 0 && <p className="text-xs text-red-500 mt-1 text-center">Upload a roster first.</p>}
+                      </div>
+                  </div>
               </div>
 
-              {/* Step 1: Upload File */}
-              <div className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden ${csvFileName ? 'bg-gray-50 p-3' : 'p-4'}`}>
+              {/* Step 1: Upload File (Hidden if no file selected yet, to reduce clutter since we have the buttons above) */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleCsv}
+                className="hidden"
+              />
+
+              {csvFileName && (
+              <div className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden bg-gray-50 p-3`}>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className={`font-semibold text-gray-900 flex items-center gap-2 ${csvFileName ? 'text-sm' : ''}`}>
-                    <div className={`flex items-center justify-center rounded-full bg-brand-primary text-white font-bold ${csvFileName ? 'w-6 h-6 text-xs' : 'w-6 h-6 text-sm'}`}>1</div>
+                  <h3 className={`font-semibold text-gray-900 flex items-center gap-2 text-sm`}>
+                    <div className={`flex items-center justify-center rounded-full bg-brand-primary text-white font-bold w-6 h-6 text-xs`}>1</div>
                     Upload CSV File
                   </h3>
-                  {csvFileName && (
-                    <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs h-8 px-2">
-                      Change File
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs h-8 px-2">
+                    Change File
+                  </Button>
                 </div>
                 
-                {!csvFileName ? (
-                  <div className="ml-8">
-                    <p className="text-sm text-gray-600 mb-3">
-                      Quickly import all your players at once
-                    </p>
-                    
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv"
-                      onChange={handleCsv}
-                      className="hidden"
-                    />
-                    
-                    <Button onClick={() => fileInputRef.current?.click()} className="w-full mb-3">
-                      Choose CSV File
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="ml-8 flex items-center gap-2 text-sm text-semantic-success font-medium">
-                    <CheckCircle className="w-4 h-4" />
-                    <span>{csvFileName} loaded ({csvRows.length} rows)</span>
-                  </div>
-                )}
+                <div className="ml-8 flex items-center gap-2 text-sm text-semantic-success font-medium">
+                  <CheckCircle className="w-4 h-4" />
+                  <span>{csvFileName} loaded ({csvRows.length} rows)</span>
+                </div>
               </div>
+              )}
 
               {/* Step 2: Import Players */}
               {csvFileName && uploadStatus !== 'success' && (
@@ -954,6 +970,8 @@ export default function OnboardingEvent() {
             {showImportModal && (
               <ImportResultsModal
                 onClose={() => setShowImportModal(false)}
+                // Pre-select correct mode if opened from "Skip Roster"
+                initialMode="scores_only"
                 onSuccess={async (isRevert) => {
                   // Always fetch fresh data to update local state, but don't block redirect
                   await fetchEventData();
