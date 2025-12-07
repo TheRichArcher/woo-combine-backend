@@ -7,6 +7,32 @@ import { generateDefaultMapping } from '../../utils/csvUtils';
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [] }) {
   const { selectedEvent } = useEvent();
   const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
+  
+  // Fetch fresh schema on mount to ensure we have latest custom drills
+  // This fixes issues where user adds a custom drill but Import modal has stale prop data
+  const [serverDrills, setServerDrills] = useState(null);
+  const [schemaError, setSchemaError] = useState(null);
+  
+  useEffect(() => {
+      if (selectedEvent?.id) {
+          setSchemaError(null);
+          api.get(`/events/${selectedEvent.id}/schema`)
+             .then(res => {
+                 console.log("[ImportResultsModal] Fresh schema loaded:", res.data.drills.length, "drills");
+                 setServerDrills(res.data.drills);
+             })
+             .catch(err => {
+                 console.error("[ImportResultsModal] Failed to load fresh schema:", err);
+                 setSchemaError("Failed to load event configuration. Import is disabled to prevent data loss. Please refresh the page.");
+             });
+      }
+  }, [selectedEvent?.id]);
+
+  // Use server drills if available, otherwise fallback to prop
+  const effectiveDrills = useMemo(() => {
+      return serverDrills || availableDrills;
+  }, [serverDrills, availableDrills]);
+
   const [method, setMethod] = useState('file'); // file, text
   const [file, setFile] = useState(null);
   const [text, setText] = useState('');
@@ -82,11 +108,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   // Debug logging for available drills
   useEffect(() => {
     console.log("[ImportResultsModal] availableDrills updated:", {
-      count: availableDrills.length,
-      names: availableDrills.map(d => d.label),
-      ids: availableDrills.map(d => d.key)
+      count: effectiveDrills.length,
+      names: effectiveDrills.map(d => d.label),
+      ids: effectiveDrills.map(d => d.key)
     });
-  }, [availableDrills]);
+  }, [effectiveDrills]);
 
   // Move detectedSport logic to top level (used in useMemo)
   const detectedSport = parseResult?.detected_sport?.toLowerCase();
@@ -98,9 +124,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       // NO FALLBACKS to legacy templates allowed per requirements
       return [{
           label: "Event Drills",
-          options: (availableDrills || []).map(d => ({ key: d.key, label: d.label }))
+          options: (effectiveDrills || []).map(d => ({ key: d.key, label: d.label }))
       }];
-  }, [availableDrills]);
+  }, [effectiveDrills]);
 
   const STANDARD_FIELDS = [
       { key: 'first_name', label: 'First Name' },
@@ -192,7 +218,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       if (sourceKeys.length > 0) {
           // generateDefaultMapping returns { targetKey: sourceKey }
           // We need { sourceKey: targetKey } for our state
-          const { mapping: suggestedMapping } = generateDefaultMapping(sourceKeys, availableDrills);
+          const { mapping: suggestedMapping } = generateDefaultMapping(sourceKeys, effectiveDrills);
           
           // Apply suggested mappings
           Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {
@@ -206,7 +232,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           sourceKeys.forEach(key => {
               if (!initialMapping[key]) {
                   // If the key itself matches a drill key exactly, map it
-                  if (availableDrills.some(d => d.key === key)) {
+                  if (effectiveDrills.some(d => d.key === key)) {
                       initialMapping[key] = key;
                   } else {
                       // CHANGED: Default to Ignore instead of identity to prevent "not mapped to valid fields" error
@@ -389,15 +415,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   // Dynamic placeholder text
   const placeholderText = useMemo(() => {
-    const exampleDrill = availableDrills[0] || { label: '40m Dash', key: '40m_dash' };
+    const exampleDrill = effectiveDrills[0] || { label: '40m Dash', key: '40m_dash' };
     const exampleValue = exampleDrill.key === '40m_dash' ? '4.5' : '10';
     return `Paste your data here...\nFirst Name, Last Name, ${exampleDrill.label}\nJohn, Doe, ${exampleValue}\nJane, Smith, ${Number(exampleValue) + 0.3}`;
-  }, [availableDrills]);
+  }, [effectiveDrills]);
 
   const supportedColumnsText = useMemo(() => {
-    const drillLabels = availableDrills.slice(0, 3).map(d => d.label).join(', ');
+    const drillLabels = effectiveDrills.slice(0, 3).map(d => d.label).join(', ');
     return `Supported columns: First Name, Last Name, Jersey Number, Age Group, Drill Names (${drillLabels || 'e.g. 40m Dash'}, etc.)`;
-  }, [availableDrills]);
+  }, [effectiveDrills]);
 
   const renderInputStep = () => (
     <div className="space-y-6">
@@ -537,7 +563,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             </button>
             <button
             onClick={() => handleParse()}
-            disabled={!file && !text}
+            disabled={(!file && !text) || !!schemaError}
             className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
             Review Data <ChevronRight className="w-4 h-4" />
@@ -549,6 +575,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         <div className="flex items-start gap-3 p-3 bg-red-50 text-red-700 rounded-lg text-sm mt-2">
           <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
           <div>{error}</div>
+        </div>
+      )}
+
+      {schemaError && (
+        <div className="flex items-start gap-3 p-3 bg-red-100 text-red-800 rounded-lg text-sm mt-2 border border-red-200">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          <div>
+            <strong>Configuration Error:</strong> {schemaError}
+          </div>
         </div>
       )}
     </div>
