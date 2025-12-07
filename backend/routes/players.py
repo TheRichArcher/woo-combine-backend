@@ -439,12 +439,15 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 scores = previous_state.get("scores").copy()
                 
             for drill_key in drill_fields:
-                value = player.get(drill_key, "")
+                # Fix: Check both flat keys (priority) and nested scores dict
+                value = player.get(drill_key)
+                if value is None:
+                    value = player.get("scores", {}).get(drill_key)
                 
                 # Handle both new keys "sprint_100" and legacy mapping if needed
                 # (Frontend usually normalizes CSV headers to match drill keys)
                 
-                if value and str(value).strip() != "":
+                if value is not None and str(value).strip() != "":
                     try:
                         val_float = float(value)
                         scores[drill_key] = val_float
@@ -457,7 +460,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         # This ensures older frontends still see data
                         if drill_key in ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]:
                             player_data[drill_key] = val_float
-                    except ValueError:
+                    except (ValueError, TypeError):
                         pass
             
             player_data["scores"] = scores
