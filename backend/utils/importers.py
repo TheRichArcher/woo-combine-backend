@@ -448,10 +448,14 @@ class DataImporter:
             schema = SchemaRegistry.get_schema("football")
             
         # Identify which columns map to drill scores from Schema
+        # NOTE: If using get_event_schema(), disabled drills are already filtered out
+        # The disabled_drills parameter is only needed for base schema fallback
         drill_keys = set(d.key for d in schema.drills)
         
-        # FILTER DISABLED DRILLS
-        if disabled_drills:
+        # FILTER DISABLED DRILLS (only if using base schema, not event schema)
+        # Custom drills should NEVER be filtered - if created, they should be used
+        if disabled_drills and not event_id:
+            # Only filter when using base schema (no event_id means base schema)
             drill_keys = drill_keys - set(disabled_drills)
             
         drill_defs = {d.key: d for d in schema.drills}
