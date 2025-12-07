@@ -476,6 +476,19 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         # Commit remaining
         if batch_count > 0:
             execute_with_timeout(lambda: batch.commit(), timeout=10)
+        
+        # --- DETAILED IMPORT SUMMARY FOR DEBUGGING ---
+        logging.info(f"[IMPORT_SUMMARY] Event {event_id}: {scores_written_total} total scores written across {len(scores_written_by_drill)} drills")
+        for drill_key, count in scores_written_by_drill.items():
+            logging.info(f"  - {drill_key}: {count} scores")
+        
+        # Log any drills that were expected but not received
+        expected_drills = set(drill_fields)
+        received_drills = set(scores_written_by_drill.keys())
+        missing_drills = expected_drills - received_drills
+        if missing_drills:
+            logging.warning(f"[IMPORT_WARNING] Expected drill keys not received in any player data: {missing_drills}")
+            logging.warning(f"[IMPORT_WARNING] This could mean: 1) No players had scores for these drills, 2) CSV columns weren't mapped correctly, or 3) Column names didn't match drill keys/labels")
             
         # --- IMPORT AUDIT LOG ---
         try:

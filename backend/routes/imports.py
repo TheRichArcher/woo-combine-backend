@@ -77,7 +77,7 @@ def parse_import_file(
             elif filename.endswith(('.xls', '.xlsx')):
                 result = DataImporter.parse_excel(content, sheet_name=sheet_name, event_id=event_id, disabled_drills=disabled_drills)
             elif filename.endswith(('.jpg', '.jpeg', '.png', '.heic')):
-                result = DataImporter.parse_image(content)
+                result = DataImporter.parse_image(content, event_id=event_id, disabled_drills=disabled_drills)
             else:
                 raise HTTPException(status_code=400, detail="Unsupported file format. Please use CSV, Excel, or Image.")
                 
@@ -91,7 +91,7 @@ def parse_import_file(
                 raise HTTPException(status_code=400, detail=str(e))
         
         elif text:
-            result = DataImporter.parse_text(text, disabled_drills=disabled_drills)
+            result = DataImporter.parse_text(text, event_id=event_id, disabled_drills=disabled_drills)
             
         else:
             raise HTTPException(status_code=400, detail="No file, text, or URL provided")

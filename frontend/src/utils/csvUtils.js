@@ -298,6 +298,26 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   allKeys.push(...drillKeys);
   
   const synonyms = getHeaderSynonyms();
+  
+  // CRITICAL FIX: Add drill labels as synonyms for each drill key
+  // This enables mapping CSV headers like "Bench Press" to custom drill keys like "x7hG4kL9mN2pQ8vW"
+  drillDefinitions.forEach(drill => {
+    if (!synonyms[drill.key]) {
+      synonyms[drill.key] = [];
+    }
+    // Add the label as a synonym (if it's different from the key)
+    const normalizedKey = normalizeHeader(drill.key);
+    const normalizedLabel = normalizeHeader(drill.label);
+    
+    if (normalizedKey !== normalizedLabel && !synonyms[drill.key].includes(drill.label)) {
+      synonyms[drill.key].push(drill.label);
+    }
+    // Also ensure the key itself is in the synonyms
+    if (!synonyms[drill.key].includes(drill.key)) {
+      synonyms[drill.key].push(drill.key);
+    }
+  });
+  
   const usedHeaders = new Set();
   
   // Calculate all possible matches with scores

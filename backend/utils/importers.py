@@ -47,8 +47,18 @@ class DataImporter:
     }
 
     @staticmethod
-    def _normalize_header(header: str, schema_drills: List[str] = None) -> str:
-        """Normalize header string to match canonical field names or schema drill keys"""
+    def _normalize_header(header: str, schema_drills: List[str] = None, drill_label_map: Dict[str, str] = None) -> str:
+        """
+        Normalize header string to match canonical field names or schema drill keys.
+        
+        Args:
+            header: Raw header from CSV/Excel
+            schema_drills: List of valid drill keys
+            drill_label_map: Dict mapping normalized labels to drill keys (e.g., {"bench_press": "x7hG4kL9mN2pQ8vW"})
+        
+        Returns:
+            Canonical field name or drill key
+        """
         if not header:
             return ""
         
@@ -57,6 +67,10 @@ class DataImporter:
         # Check exact matches first
         if clean in DataImporter.FIELD_MAPPING:
             return DataImporter.FIELD_MAPPING[clean]
+        
+        # CRITICAL FIX: Check if normalized header matches a drill label
+        if drill_label_map and clean in drill_label_map:
+            return drill_label_map[clean]
             
         # Check if it matches any known schema drill keys (if provided)
         if schema_drills and clean in schema_drills:
@@ -186,16 +200,32 @@ class DataImporter:
             # Detect Sport
             sport, confidence = DataImporter._detect_sport(reader.fieldnames)
             
-            # Get Schema Drills for better normalization
-            schema = SchemaRegistry.get_schema(sport)
+            # CRITICAL FIX: If event_id provided, use event schema (includes custom drills)
+            # Otherwise fall back to base sport schema
+            if event_id:
+                from ..utils.event_schema import get_event_schema
+                schema = get_event_schema(event_id)
+            else:
+                schema = SchemaRegistry.get_schema(sport)
+            
             schema_drills = [d.key for d in schema.drills] if schema else []
             
+            # CRITICAL FIX: Build drill label to key mapping for custom drills
+            drill_label_map = {}
+            if schema:
+                for drill in schema.drills:
+                    normalized_label = drill.label.strip().lower().replace(' ', '_').replace('-', '_')
+                    normalized_key = drill.key.strip().lower().replace(' ', '_').replace('-', '_')
+                    # Map label to key if they're different
+                    if normalized_label != normalized_key:
+                        drill_label_map[normalized_label] = drill.key
+            
             normalized_field_map = {
-                field: DataImporter._normalize_header(field, schema_drills) 
+                field: DataImporter._normalize_header(field, schema_drills, drill_label_map) 
                 for field in reader.fieldnames
             }
             
-            result = DataImporter._process_rows(reader, normalized_field_map, sport, disabled_drills)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport, event_id, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -247,12 +277,29 @@ class DataImporter:
             
             # Detect Sport
             sport, confidence = DataImporter._detect_sport(headers)
-            schema = SchemaRegistry.get_schema(sport)
+            
+            # CRITICAL FIX: If event_id provided, use event schema (includes custom drills)
+            # Otherwise fall back to base sport schema
+            if event_id:
+                from ..utils.event_schema import get_event_schema
+                schema = get_event_schema(event_id)
+            else:
+                schema = SchemaRegistry.get_schema(sport)
+            
             schema_drills = [d.key for d in schema.drills] if schema else []
+            
+            # CRITICAL FIX: Build drill label to key mapping for custom drills
+            drill_label_map = {}
+            if schema:
+                for drill in schema.drills:
+                    normalized_label = drill.label.strip().lower().replace(' ', '_').replace('-', '_')
+                    normalized_key = drill.key.strip().lower().replace(' ', '_').replace('-', '_')
+                    if normalized_label != normalized_key:
+                        drill_label_map[normalized_label] = drill.key
             
             # Map headers
             normalized_field_map = {
-                headers[i]: DataImporter._normalize_header(headers[i], schema_drills)
+                headers[i]: DataImporter._normalize_header(headers[i], schema_drills, drill_label_map)
                 for i in range(len(headers))
             }
             
@@ -270,7 +317,7 @@ class DataImporter:
                 if has_data:
                     data_rows.append(row_data)
             
-            result = DataImporter._process_rows(data_rows, normalized_field_map, sport, disabled_drills)
+            result = DataImporter._process_rows(data_rows, normalized_field_map, sport, event_id, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
@@ -280,7 +327,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse Excel file: {str(e)}"}])
 
     @staticmethod
-    def parse_image(content: bytes) -> ImportResult:
+    def parse_image(content: bytes, event_id: str = None, disabled_drills: List[str] = None) -> ImportResult:
         """
         Parse image content using OCR.
         """
@@ -296,7 +343,7 @@ class DataImporter:
             csv_text = OCRProcessor.lines_to_csv_string(lines)
             
             # Reuse parse_text logic
-            result = DataImporter.parse_text(csv_text)
+            result = DataImporter.parse_text(csv_text, event_id=event_id, disabled_drills=disabled_drills)
             
             # Override confidence if needed, but for now rely on structure detection
             return result
@@ -309,7 +356,7 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse image: {str(e)}"}])
 
     @staticmethod
-    def parse_text(text: str, disabled_drills: List[str] = None) -> ImportResult:
+    def parse_text(text: str, event_id: str = None, disabled_drills: List[str] = None) -> ImportResult:
         """
         Parse pasted text. Assumes either CSV-like structure or specific format.
         For now, implements a robust delimiter sniffer (tab, comma, pipe).
@@ -341,15 +388,32 @@ class DataImporter:
 
             # Detect Sport
             sport, confidence = DataImporter._detect_sport(reader.fieldnames)
-            schema = SchemaRegistry.get_schema(sport)
+            
+            # CRITICAL FIX: If event_id provided, use event schema (includes custom drills)
+            # Otherwise fall back to base sport schema
+            if event_id:
+                from ..utils.event_schema import get_event_schema
+                schema = get_event_schema(event_id)
+            else:
+                schema = SchemaRegistry.get_schema(sport)
+            
             schema_drills = [d.key for d in schema.drills] if schema else []
 
+            # CRITICAL FIX: Build drill label to key mapping for custom drills
+            drill_label_map = {}
+            if schema:
+                for drill in schema.drills:
+                    normalized_label = drill.label.strip().lower().replace(' ', '_').replace('-', '_')
+                    normalized_key = drill.key.strip().lower().replace(' ', '_').replace('-', '_')
+                    if normalized_label != normalized_key:
+                        drill_label_map[normalized_label] = drill.key
+
             normalized_field_map = {
-                field: DataImporter._normalize_header(field, schema_drills) 
+                field: DataImporter._normalize_header(field, schema_drills, drill_label_map) 
                 for field in reader.fieldnames
             }
             
-            result = DataImporter._process_rows(reader, normalized_field_map, sport, disabled_drills)
+            result = DataImporter._process_rows(reader, normalized_field_map, sport, event_id, disabled_drills)
             result.detected_sport = sport
             result.confidence = confidence
             return result
