@@ -59,7 +59,9 @@ function getHeaderSynonyms() {
       'mile_time': ['mile_time', 'mile time', 'mile run', 'mile'],
       'approach_jump': ['approach_jump', 'approach jump', 'block jump'],
       'serving_accuracy': ['serving_accuracy', 'serving accuracy', 'serve accuracy', 'serving'],
-      'blocking_reach': ['blocking_reach', 'blocking reach', 'block reach', 'blocking'],
+      'standing_reach': ['standing_reach', 'standing reach', 'reach', 'standing'],
+      'pro_lane_shuttle': ['pro_lane_shuttle', 'pro lane shuttle', 'lane shuttle', 'pro lane', 'shuttle'],
+      'three_quarter_court_sprint': ['three_quarter_court_sprint', '3/4 court sprint', 'three quarter court sprint', 'court sprint', '3/4 sprint', '3/4 court'],
       'ball_control': ['ball_control', 'ball control', 'touch', 'first touch'],
       'passing_accuracy': ['passing_accuracy', 'passing accuracy', 'passing', 'pass accuracy'],
       'shooting_power': ['shooting_power', 'shooting power', 'shot power', 'shooting']
