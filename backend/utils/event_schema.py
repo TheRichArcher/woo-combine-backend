@@ -73,7 +73,15 @@ def get_event_schema(event_id: str, league_id: Optional[str] = None) -> SportSch
         
         # 6. Return New Schema Instance
         # We use copy() to avoid mutating the singleton registry instance
-        return base_schema.copy(update={"drills": final_drills})
+        # IMPORTANT: We must explicitly handle the list of DrillDefinition objects
+        # Pydantic's copy(update={}) might need dicts if not careful, but here we pass valid objects
+        merged_schema = base_schema.copy(update={"drills": final_drills})
+        
+        # Ensure the drills are actually updated (Pydantic V1/V2 nuance check)
+        # Force the update if copy didn't take it (safe redundancy)
+        merged_schema.drills = final_drills
+        
+        return merged_schema
             
     except Exception as e:
         logging.error(f"Failed to build schema for event {event_id}: {e}")
