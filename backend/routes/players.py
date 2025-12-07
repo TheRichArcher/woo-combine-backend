@@ -275,7 +275,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         schema = get_event_schema(event_id)
         
         players = req.players
-        required_fields = ["first_name", "last_name", "jersey_number"]
+        required_fields = ["first_name", "last_name"]
         
         # DYNAMIC DRILL FIELDS FROM SCHEMA
         drill_fields = [d.key for d in schema.drills]
@@ -327,11 +327,18 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 try:
                      # Robust number parsing (handle "12.0", "12", 12, 12.0)
                      raw_num = p.get("jersey_number")
+                     if raw_num is None:
+                         # Try common synonyms
+                         for alias in ["jersey", "number", "no", "No", "#", "Jersey #"]:
+                             if p.get(alias) is not None:
+                                 raw_num = p.get(alias)
+                                 break
+                                 
                      num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
                      
-                     if num is not None:
-                         pid = generate_player_id(event_id, p.get("first_name"), p.get("last_name"), num)
-                         ids_to_fetch.append(pid)
+                     # Even if num is None, we can generate an ID
+                     pid = generate_player_id(event_id, p.get("first_name"), p.get("last_name"), num)
+                     ids_to_fetch.append(pid)
                 except:
                     pass
         
@@ -363,14 +370,21 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 if player.get(field) in (None, ""):
                     row_errors.append(f"Missing {field}")
             
+            num = None
             try:
                 raw_num = player.get("jersey_number")
+                if raw_num is None:
+                    # Try common synonyms
+                    for alias in ["jersey", "number", "no", "No", "#", "Jersey #"]:
+                        if player.get(alias) is not None:
+                            raw_num = player.get(alias)
+                            break
+                            
                 num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
                 
-                if num is None:
-                    row_errors.append("Missing jersey_number")
-                elif num < 1 or num > 9999:
-                    row_errors.append("jersey_number must be between 1 and 9999")
+                # Validation: jersey_number is now OPTIONAL, but if present must be valid
+                if num is not None and (num < 0 or num > 9999):
+                    row_errors.append("jersey_number must be between 0 and 9999")
             except Exception:
                 row_errors.append("Invalid jersey_number")
                 
@@ -432,38 +446,56 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             }
 
             # PROCESS DYNAMIC SCORES
-            scores = {}
             
-            # If we are merging, preserve existing scores
+            # 1. Start with existing scores if we are merging (or overwrite if empty)
+            scores = {}
             if previous_state and previous_state.get("scores"):
                 scores = previous_state.get("scores").copy()
+            
+            # 2. Extract incoming scores from payload
+            incoming_scores = {}
+            
+            # 2a. Check nested 'scores' dict first (highest priority if present)
+            if player.get("scores") and isinstance(player.get("scores"), dict):
+                incoming_scores.update(player.get("scores"))
                 
+            # 2b. Check flat keys for any drills in the schema (merges/overrides)
+            # This handles the "flat" payload sent by the frontend importer
             for drill_key in drill_fields:
-                # Fix: Check both flat keys (priority) and nested scores dict
-                value = player.get(drill_key)
-                if value is None:
-                    value = player.get("scores", {}).get(drill_key)
-                
-                # Handle both new keys "sprint_100" and legacy mapping if needed
-                # (Frontend usually normalizes CSV headers to match drill keys)
-                
-                if value is not None and str(value).strip() != "":
+                val = player.get(drill_key)
+                if val is not None:
+                    incoming_scores[drill_key] = val
+            
+            # Debug log for first player to diagnose why scores might be dropped
+            if idx == 0:
+                 logging.warning(f"[IMPORT_DEBUG] Row 1 incoming_scores (pre-process): {incoming_scores}")
+
+            # 3. Process and validate all incoming scores
+            for drill_key, raw_val in incoming_scores.items():
+                if raw_val is not None and str(raw_val).strip() != "":
                     try:
-                        val_float = float(value)
+                        val_float = float(raw_val)
                         scores[drill_key] = val_float
                         
-                        # Track stats
+                        # Only count as "written" if it's in the current schema or we want to track all?
+                        # Let's track all valid numbers written to 'scores'
                         scores_written_total += 1
                         scores_written_by_drill[drill_key] += 1
+                        
+                        if idx == 0:
+                            logging.warning(f"[IMPORT_DEBUG] Row 1 processed {drill_key}: raw='{raw_val}' -> float={val_float}")
 
                         # Also set legacy field for football compatibility if it matches
-                        # This ensures older frontends still see data
                         if drill_key in ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]:
                             player_data[drill_key] = val_float
                     except (ValueError, TypeError):
+                        if idx == 0:
+                            logging.warning(f"[IMPORT_DEBUG] Row 1 failed to parse {drill_key}: raw='{raw_val}'")
                         pass
             
             player_data["scores"] = scores
+            if idx == 0:
+                logging.warning(f"[IMPORT_DEBUG] Row 1 final scores to write: {scores}")
             
             # --- IMPROVED DUPLICATE HANDLING (MERGE LOGIC) ---
             # Strategy: 'overwrite' (default) or 'merge'
