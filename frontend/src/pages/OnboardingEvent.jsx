@@ -482,22 +482,21 @@ export default function OnboardingEvent() {
             <div className="space-y-4 mb-6">
               
               {/* NEW: Import Goal Guidance */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
-                  <p className="text-blue-800 font-medium mb-1">Uploading a roster or uploading scores?</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-left">
+                  <p className="text-blue-800 font-medium mb-1">Uploading results later?</p>
                   <p className="text-blue-700 mb-2">
-                      This step creates your roster. If you already have a roster and just need to add scores, 
-                      skip this and use <strong>"Upload Drill Results"</strong> on the completion screen.
+                      You can choose <strong>‘Upload Drill Scores’</strong> in the import flow to match roster without creating new players.
                   </p>
-                  <div className="flex gap-4 text-xs mt-2">
-                      <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-brand-primary"></div>
-                          <span className="text-blue-900"><strong>Roster Import:</strong> Creates players</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 rounded-full bg-semantic-success"></div>
-                          <span className="text-blue-900"><strong>Score Import:</strong> Matches existing players</span>
-                      </div>
-                  </div>
+                  <button 
+                    onClick={() => {
+                        setDrillRefreshTrigger(t => t + 1);
+                        setShowImportModal(true);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 underline text-xs font-semibold flex items-center gap-1"
+                  >
+                    Open Import Tool
+                    <ArrowRight className="w-3 h-3" />
+                  </button>
               </div>
 
               {/* Step 1: Upload File */}

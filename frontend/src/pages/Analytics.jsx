@@ -287,10 +287,32 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ name: e.player.name, score: Number(e.value.toFixed(2)) }))}>
-                        <XAxis dataKey="name" label={{ value: 'Player', position: 'bottom' }} />
+                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
+                        name: e.player.name, 
+                        number: e.player.jersey_number || e.player.number || '?',
+                        axisLabel: `#${e.player.jersey_number || e.player.number || '?'}`,
+                        score: Number(e.value.toFixed(2)) 
+                      }))}>
+                        <XAxis dataKey="axisLabel" label={{ value: 'Player Number', position: 'bottom' }} />
                         <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
-                        <Tooltip wrapperStyle={{ pointerEvents: 'none' }} />
+                        <Tooltip 
+                          cursor={{ fill: 'transparent' }}
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
+                                  <div className="font-bold text-gray-900">{data.name}</div>
+                                  <div className="text-gray-600 mb-1">{data.axisLabel}</div>
+                                  <div className="font-mono font-semibold text-brand-primary">
+                                    {data.score} {selectedDrill.unit}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
                         <Bar dataKey="score">
                           {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
                             <Cell key={`bar-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
