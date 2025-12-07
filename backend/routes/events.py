@@ -702,7 +702,7 @@ def get_league_event_schema_endpoint(
 
         # LOGGING: Custom drill count and keys for debugging import issues
         custom_drills = [d for d in schema.drills if d.category == "custom" or len(d.key) >= 20] 
-        logging.info(f"[SCHEMA_DEBUG] League Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
+        logging.warning(f"[SCHEMA_DEBUG] League Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
 
         return {
             "id": schema.id,
@@ -760,7 +760,7 @@ def get_event_schema_endpoint(
 
         # LOGGING: Custom drill count and keys for debugging import issues
         custom_drills = [d for d in schema.drills if d.category == "custom" or len(d.key) >= 20] 
-        logging.info(f"[SCHEMA_DEBUG] Global Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
+        logging.warning(f"[SCHEMA_DEBUG] Global Schema response for {event_id}: {len(schema.drills)} total drills ({len(custom_drills)} custom). Custom keys: {[d.key for d in custom_drills]}")
 
         return {
             "id": schema.id,
