@@ -238,6 +238,19 @@ api.interceptors.response.use(
         apiLogger.warn('Rate limit exceeded. ' + waitMsg);
       }
     } catch {}
+
+    // Handle 403 Forbidden - Clear stale state (e.g. removed from league)
+    if (error.response?.status === 403) {
+      try {
+        console.warn("[API] 403 Forbidden - Clearing selected event/league state");
+        localStorage.removeItem('selectedEvent');
+        localStorage.removeItem('selectedEventId');
+        localStorage.removeItem('selectedLeagueId');
+      } catch (e) {
+        console.error("Failed to clear state on 403", e);
+      }
+    }
+
     // CRITICAL FIX: Handle 401 errors globally without redirect loops
     if (error.response?.status === 401) {
       // Try a one-time token refresh and retry the original request

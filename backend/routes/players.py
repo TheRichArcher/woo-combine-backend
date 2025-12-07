@@ -297,6 +297,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     if k in scores:
                         logging.warning(f"[IMPORT_DEBUG] scores[{k}]={scores.get(k)}")
             else:
+                # Log specific drill keys if found at top level (flat structure)
+                flat_drills = [k for k in p0.keys() if k in drill_fields or k in ["lane_agility", "vertical_jump", "free_throws", "three_point"]]
+                if flat_drills:
+                     logging.warning(f"[IMPORT_DEBUG] first player flat drill keys found: {flat_drills}")
                 logging.warning(f"[IMPORT_DEBUG] first player has no 'scores' dict (type={type(scores)})")
         added = 0
         players_matched = 0

@@ -257,10 +257,20 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     const handleSubmit = async () => {
     if (!parseResult) return;
 
+    // Combine valid and errors to allow fixing - Construct EARLY to avoid TDZ
+    const formattedErrors = parseResult.errors.map(e => ({
+        row_id: e.row,
+        data: e.data || {},
+        errors: [e.message],
+        is_error: true,
+        is_duplicate: false
+    }));
+    const allRows = [...parseResult.valid_rows, ...formattedErrors];
+
     // Validate that all mapped columns correspond to valid schema fields
     const validKeys = new Set([
         ...STANDARD_FIELDS.map(f => f.key),
-        ...availableDrills.map(d => d.key)
+        ...effectiveDrills.map(d => d.key)
     ]);
 
     const activeMappings = Object.entries(keyMapping)
@@ -289,9 +299,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
         if (hasDataLossRisk) {
             const names = unmappedKeys.slice(0, 3).join(', ') + (unmappedKeys.length > 3 ? '...' : '');
-            alert(`⚠️ Import Blocked: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nPlease map them to a valid drill or explicitly select "Ignore" to proceed.`);
-            setStep('review');
-            return;
+            if (!window.confirm(`⚠️ WARNING: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nThey will NOT be imported. Continue?`)) {
+                setStep('review');
+                return;
+            }
         }
     }
 
@@ -310,45 +321,23 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     );
 
     if (ignoredWithData.length > 0) {
-      // Alert user but allow them to proceed if they really mean it? 
-      // The prompt asks to "Map them... or clear the column values". 
-      // The user wanted a "hard stop", so alert and return is correct.
       const names = ignoredWithData.slice(0, 5).join(', ') + (ignoredWithData.length > 5 ? '...' : '');
-      alert(
-        `Import blocked: these columns contain data but are set to Ignore:\n\n${names}\n\nThis usually means they weren't automatically mapped. Please map them to a drill, or if you truly want to ignore them, you must clear the data from your file or proceed knowing this data will be lost.`
-      );
-      
-      // OPTIONAL: If you want to let them override, use confirm(). But "hard stop" implies block.
-      // For now, we block to be safe as requested.
-      setStep('review');
-      return;
+      if (!window.confirm(
+        `WARNING: These columns contain data but are set to Ignore:\n\n${names}\n\nThey will NOT be imported. Continue?`
+      )) {
+          setStep('review');
+          return;
+      }
     }
 
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
-        // If we reached here, the unmapped columns have no data (safe to ignore)
-        // OR the user explicitly ignored them (handled by activeMappings filter above? No, active excludes ignore)
-        // So these are "Identity" mappings to non-existent keys with empty data.
-        // We can safely warn but proceed, or just block to be clean.
-        // Let's block to force clean state.
-        const invalidNames = invalidMappings.map(([source]) => source).join(', ');
-        setError(`The following columns are not mapped to valid fields: ${invalidNames}. Please map them to an event drill or choose "Ignore".`);
-        setStep('review');
-        return;
+        // If we reached here, the unmapped columns have no data OR the user confirmed they accept data loss
+        // So we can proceed. We effectively "ignore" them by not including them in the mapped payload.
     }
 
     setStep('submitting');
     try {
-      // Combine valid and errors to allow fixing
-      const formattedErrors = parseResult.errors.map(e => ({
-          row_id: e.row,
-          data: e.data || {},
-          errors: [e.message],
-          is_error: true,
-          is_duplicate: false
-      }));
-      const allRows = [...parseResult.valid_rows, ...formattedErrors];
-
       // Merge edited data and filter based on strategy
       let playersToUpload = allRows.map(row => {
           const edited = editedRows[row.row_id] || {};
