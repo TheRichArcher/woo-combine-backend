@@ -615,10 +615,17 @@ export default function AdminTools() {
               </div>
               <div>
                 <p className="text-blue-800 font-medium text-sm mb-1">Upload Roster (and optional scores)</p>
-                <p className="text-blue-700 text-sm">
-                  Upload your player list here. If your CSV already contains drill scores, map them below. 
-                  Otherwise, you can enter scores later using Live Entry or the Import Results tool.
+                <p className="text-blue-700 text-sm mb-2">
+                  Upload your player list here. If your CSV already contains drill scores, map them below.
                 </p>
+                
+                {/* IMPORT MODE CALLOUT */}
+                <div className="bg-white bg-opacity-60 border border-blue-200 rounded p-2 mt-2 text-xs text-blue-800">
+                    <strong>Uploading scores separately?</strong> 
+                    <br/>
+                    Use the <Link to="/players" className="underline font-medium hover:text-blue-900">Players Page &gt; Upload Results</Link> tool instead. 
+                    It has a specific <strong>"Upload Drill Scores"</strong> mode that strictly matches your existing roster to prevent duplicates.
+                </div>
               </div>
             </div>
           </div>

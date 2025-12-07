@@ -480,6 +480,26 @@ export default function OnboardingEvent() {
 
             {/* CSV Upload Section */}
             <div className="space-y-4 mb-6">
+              
+              {/* NEW: Import Goal Guidance */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                  <p className="text-blue-800 font-medium mb-1">Uploading a roster or uploading scores?</p>
+                  <p className="text-blue-700 mb-2">
+                      This step creates your roster. If you already have a roster and just need to add scores, 
+                      skip this and use <strong>"Upload Drill Results"</strong> on the completion screen.
+                  </p>
+                  <div className="flex gap-4 text-xs mt-2">
+                      <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-brand-primary"></div>
+                          <span className="text-blue-900"><strong>Roster Import:</strong> Creates players</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 rounded-full bg-semantic-success"></div>
+                          <span className="text-blue-900"><strong>Score Import:</strong> Matches existing players</span>
+                      </div>
+                  </div>
+              </div>
+
               {/* Step 1: Upload File */}
               <div className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden ${csvFileName ? 'bg-gray-50 p-3' : 'p-4'}`}>
                 <div className="flex justify-between items-center mb-2">
