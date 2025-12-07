@@ -115,6 +115,7 @@ export function EventProvider({ children }) {
       // Guard against stale selections from another league
       setSelectedEvent(current => {
         if (current && current.league_id && current.league_id !== selectedLeagueId) {
+          console.log(`[EventContext] Clearing stale event ${current.id} (league ${current.league_id} != ${selectedLeagueId})`);
           localStorage.removeItem('selectedEvent');
           return null;
         }

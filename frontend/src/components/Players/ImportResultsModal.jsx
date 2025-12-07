@@ -330,6 +330,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       const skippedCount = playersToUpload.filter(p => p.merge_strategy === 'skip').length;
       playersToUpload = playersToUpload.filter(p => p.merge_strategy !== 'skip');
 
+      if (playersToUpload.length > 0) {
+          console.log("[ImportResultsModal] Submitting first player:", playersToUpload[0]);
+      }
+
       if (playersToUpload.length === 0) {
         setError("No players to import (all skipped).");
         setStep('review');
