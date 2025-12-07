@@ -359,13 +359,20 @@ class DataImporter:
             return ImportResult([], [{"row": 0, "message": f"Failed to parse text: {str(e)}"}])
 
     @staticmethod
-    def _process_rows(rows: Any, field_map: Dict[str, str], sport_id: str, disabled_drills: List[str] = None) -> ImportResult:
+    def _process_rows(rows: Any, field_map: Dict[str, str], sport_id: str, event_id: Optional[str] = None, disabled_drills: List[str] = None) -> ImportResult:
         """Common processing logic for all input types"""
         valid_rows = []
         errors = []
         
         # Load Schema for Validation
-        schema = SchemaRegistry.get_schema(sport_id)
+        # CRITICAL FIX: If event_id is provided, use get_event_schema to include CUSTOM DRILLS
+        # Otherwise fall back to static template registry
+        if event_id:
+            from ..utils.event_schema import get_event_schema
+            schema = get_event_schema(event_id)
+        else:
+            schema = SchemaRegistry.get_schema(sport_id)
+
         if not schema:
             # Fallback to football if detection failed completely
             schema = SchemaRegistry.get_schema("football")
