@@ -227,7 +227,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     }
   };
 
-  const handleSubmit = async () => {
+    const [importSummary, setImportSummary] = useState(null);
+
+    const handleSubmit = async () => {
     if (!parseResult) return;
 
     // Validate that all mapped columns correspond to valid schema fields
@@ -318,6 +320,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       
       if (response.data.undo_log) {
         setUndoLog(response.data.undo_log);
+      }
+      
+      if (response.data) {
+          setImportSummary({
+              players: response.data.added || 0,
+              scores: response.data.scores_written_total || 0
+          });
       }
 
       setStep('success');
@@ -970,10 +979,42 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
           {step === 'success' && (
             <div className="text-center py-12">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  importSummary?.scores === 0 && importSummary?.players > 0 
+                  ? 'bg-amber-100 text-amber-600' 
+                  : 'bg-green-100 text-green-600'
+              }`}>
+                {importSummary?.scores === 0 && importSummary?.players > 0 ? (
+                    <AlertTriangle className="w-8 h-8" />
+                ) : (
+                    <Check className="w-8 h-8" />
+                )}
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Import Complete!</h3>
+              
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {importSummary?.scores === 0 && importSummary?.players > 0 
+                   ? 'Imported with Warnings' 
+                   : 'Import Complete!'}
+              </h3>
+              
+              {importSummary && (
+                  <div className="mb-4 text-gray-600 font-medium">
+                      Imported {importSummary.players} players, wrote {importSummary.scores} scores
+                  </div>
+              )}
+              
+              {importSummary?.scores === 0 && importSummary?.players > 0 && (
+                  <div className="max-w-md mx-auto bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-left">
+                      <div className="flex items-start gap-3">
+                          <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                          <div className="text-sm text-amber-800">
+                              <p className="font-bold mb-1">No drill scores were saved.</p>
+                              <p>This usually means the column headers in your CSV didn't match the drill names in the system.</p>
+                          </div>
+                      </div>
+                  </div>
+              )}
+
               <p className="text-gray-500 mb-1">Results have been added to your event.</p>
               {selectedEvent?.name && (
                 <div className="inline-flex items-center gap-2 bg-gray-100 px-3 py-1 rounded-full text-sm font-medium text-gray-700 mb-2">
