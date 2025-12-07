@@ -228,16 +228,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           });
           
           // For any unmapped keys, default to identity if it matches a known drill key directly
-          // otherwise default to __ignore__ to prevent blocking validation errors on non-drill columns
           sourceKeys.forEach(key => {
               if (!initialMapping[key]) {
                   // If the key itself matches a drill key exactly, map it
                   if (effectiveDrills.some(d => d.key === key)) {
                       initialMapping[key] = key;
                   } else {
-                      // CHANGED: Default to Ignore instead of identity to prevent "not mapped to valid fields" error
-                      // for extra columns like "overallZ", "goodAt", etc.
-                      initialMapping[key] = '__ignore__'; 
+                      // Fallback: Use identity mapping (key -> key)
+                      // This allows backend fuzzy matching to handle it if frontend normalization wasn't perfect
+                      initialMapping[key] = key; 
                   }
               }
           });
@@ -272,18 +271,66 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         return !validKeys.has(targetKey);
     });
 
+    // HARD STOP: Block import if there are unmapped columns that contain data
+    // This prevents the "silent failure" scenario where users import but lose scores
+    
+    // 1. Check active mappings that point to invalid/missing keys (shouldn't happen with dropdown, but safety net)
+    if (invalidMappings.length > 0) {
+        const unmappedKeys = invalidMappings.map(([source]) => source);
+        
+        // Check if any of these unmapped columns actually have data in the rows
+        const hasDataLossRisk = unmappedKeys.some(key => {
+            // Check first 50 rows for any non-empty value
+            return allRows.slice(0, 50).some(r => {
+                const val = r.data?.[key];
+                return val !== null && val !== undefined && String(val).trim() !== '';
+            });
+        });
+
+        if (hasDataLossRisk) {
+            const names = unmappedKeys.slice(0, 3).join(', ') + (unmappedKeys.length > 3 ? '...' : '');
+            alert(`⚠️ Import Blocked: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nPlease map them to a valid drill or explicitly select "Ignore" to proceed.`);
+            setStep('review');
+            return;
+        }
+    }
+
+    // 2. CRITICAL: Check columns explicitly set to "__ignore__" but that contain data
+    // This catches the case where auto-mapping failed (so defaulted to ignore) but user didn't notice
+    const sourceKeys = Object.keys(allRows?.[0]?.data || {});
+    const ignoredKeys = sourceKeys.filter(
+      (k) => keyMapping?.[k] === "__ignore__"
+    );
+
+    const ignoredWithData = ignoredKeys.filter((k) =>
+      (allRows || []).some((r) => {
+        const v = r?.data?.[k];
+        return v !== null && v !== undefined && String(v).trim() !== "";
+      })
+    );
+
+    if (ignoredWithData.length > 0) {
+      // Alert user but allow them to proceed if they really mean it? 
+      // The prompt asks to "Map them... or clear the column values". 
+      // The user wanted a "hard stop", so alert and return is correct.
+      const names = ignoredWithData.slice(0, 5).join(', ') + (ignoredWithData.length > 5 ? '...' : '');
+      alert(
+        `Import blocked: these columns contain data but are set to Ignore:\n\n${names}\n\nThis usually means they weren't automatically mapped. Please map them to a drill, or if you truly want to ignore them, you must clear the data from your file or proceed knowing this data will be lost.`
+      );
+      
+      // OPTIONAL: If you want to let them override, use confirm(). But "hard stop" implies block.
+      // For now, we block to be safe as requested.
+      setStep('review');
+      return;
+    }
+
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
-        // If user hasn't explicitly mapped them (defaulted to identity), but they aren't valid drills,
-        // we should probably just ignore them or warn more gently.
-        // The current behavior blocks submission.
-        
-        // Change: Only block if the USER explicitly selected an invalid option (unlikely with dropdown)
-        // OR if it defaulted to identity but isn't a valid drill.
-        // Let's proactively suggest ignoring them by just warning for now?
-        // Or better: Auto-set them to ignore if we can?
-        // We can't auto-set state easily here without a re-render loop.
-        
+        // If we reached here, the unmapped columns have no data (safe to ignore)
+        // OR the user explicitly ignored them (handled by activeMappings filter above? No, active excludes ignore)
+        // So these are "Identity" mappings to non-existent keys with empty data.
+        // We can safely warn but proceed, or just block to be clean.
+        // Let's block to force clean state.
         const invalidNames = invalidMappings.map(([source]) => source).join(', ');
         setError(`The following columns are not mapped to valid fields: ${invalidNames}. Please map them to an event drill or choose "Ignore".`);
         setStep('review');

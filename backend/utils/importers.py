@@ -90,7 +90,15 @@ class DataImporter:
         
         # Basketball - check these before football to avoid conflicts
         if 'lane' in clean and 'agil' in clean: return 'lane_agility'
-        if ('3pt' in clean or '3_pt' in clean or 'three_point' in clean) and 'shoot' in clean: return 'three_point'
+        
+        # Robust 3-point matching (must come before fuzzy matching)
+        if clean in ("3_point", "3pt", "three_point", "3_point_made", "3pt_made", "three_point_made", "3_point_shooting"):
+            return "three_point"
+        if "3_point" in clean or "three_point" in clean or "3pt" in clean:
+            return "three_point"
+            
+        if ('3pt' in clean or '3_pt' in clean or 'three_point' in clean or '3_point' in clean) and 'shoot' in clean: return 'three_point'
+        if '3_point' in clean or 'three_point' in clean: return 'three_point' # Catch-all for "3 Point"
         if 'spot' in clean and 'shoot' in clean: return 'three_point'  # "Spot Shooting" -> three_point
         
         # Football

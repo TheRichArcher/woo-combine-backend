@@ -303,10 +303,27 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Handle 403 email verification errors gracefully
-    if (error.response?.status === 403 && error.response?.data?.detail?.includes('Email verification required')) {
-      console.warn('[API] Email verification required - redirecting to verification page');
-      // Don't log this as an error since it's expected behavior
+    // Handle 403 Forbidden errors (e.g. accessing resources from wrong league context)
+    if (error.response?.status === 403) {
+      const detail = error.response?.data?.detail || '';
+      
+      // Special case: Email verification required
+      if (detail.includes('Email verification required')) {
+        console.warn('[API] Email verification required - redirecting to verification page');
+        return Promise.reject(error);
+      }
+      
+      // General 403: Likely due to stale context (e.g. reading event from wrong league)
+      // Force clear selectedEvent to allow user to recover by selecting a valid event
+      console.warn('[API] 403 Forbidden - clearing potentially stale selection state');
+      try {
+        localStorage.removeItem('selectedEvent');
+        localStorage.removeItem('selectedEventId'); // Clean up potential legacy keys
+        localStorage.removeItem('selectedLeagueId'); // Force league re-selection to be safe
+        // Dispatch event to notify EventContext if needed, or just rely on reload/re-render
+      } catch {}
+      
+      // Continue to reject so UI can show error if needed
       return Promise.reject(error);
     }
     

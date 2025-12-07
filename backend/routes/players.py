@@ -281,9 +281,23 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         drill_fields = [d.key for d in schema.drills]
         
         # REQUESTED LOG: Server's drill_fields list
-        logging.info(f"[IMPORT_DEBUG] Server Drill Fields for Event {event_id}: {drill_fields}")
+        logging.warning(f"[IMPORT_DEBUG] Server Drill Fields for Event {event_id}: {drill_fields}")
         
         errors = []
+        
+        # REQUESTED LOG: Payload Shape Debugging (Force Visibility)
+        if players and isinstance(players, list) and len(players) > 0 and isinstance(players[0], dict):
+            p0 = players[0]
+            logging.warning(f"[IMPORT_DEBUG] first player top-level keys={sorted(list(p0.keys()))}")
+
+            scores = p0.get("scores")
+            if isinstance(scores, dict):
+                logging.warning(f"[IMPORT_DEBUG] first player scores keys={sorted(list(scores.keys()))}")
+                for k in ["lane_agility", "vertical_jump", "free_throws", "three_point"]:
+                    if k in scores:
+                        logging.warning(f"[IMPORT_DEBUG] scores[{k}]={scores.get(k)}")
+            else:
+                logging.warning(f"[IMPORT_DEBUG] first player has no 'scores' dict (type={type(scores)})")
         added = 0
         players_matched = 0
         scores_written_total = 0
@@ -340,10 +354,6 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         batch_count = 0
         
         for idx, player in enumerate(players):
-            # REQUESTED LOG: First player's payload keys
-            if idx == 0:
-                logging.info(f"[IMPORT_DEBUG] First Player Payload Keys: {list(player.keys())}")
-
             row_errors = []
             for field in required_fields:
                 if player.get(field) in (None, ""):
