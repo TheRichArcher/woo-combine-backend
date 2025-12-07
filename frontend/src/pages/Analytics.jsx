@@ -343,12 +343,33 @@ export default function Analytics() {
                     <ResponsiveContainer width="100%" height={300}>
                       <ScatterChart>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" name="Player" label={{ value: 'Player', position: 'bottom' }} />
+                        <XAxis dataKey="axisLabel" name="Player" label={{ value: 'Player', position: 'bottom' }} />
                         <YAxis dataKey="score" name="Score" domain={[0, 'dataMax + 5']} label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
-                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                        <Tooltip 
+                          cursor={{ strokeDasharray: '3 3' }}
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
+                                  <div className="font-bold text-gray-900">{data.name}</div>
+                                  <div className="text-gray-600 mb-1">{data.axisLabel}</div>
+                                  <div className="font-mono font-semibold text-brand-primary">
+                                    {data.score} {selectedDrill.unit}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
                         <Scatter 
                           name="Scores" 
-                          data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ name: e.player.name, score: e.value }))} 
+                          data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
+                            name: e.player.name, 
+                            axisLabel: e.displayLabel,
+                            score: e.value 
+                          }))} 
                           line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
                           lineType="joint" 
                           shape="circle" 
@@ -391,9 +412,9 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} at a glance</div>
                     <div className="grid grid-cols-1 gap-2">
                       <div className="bg-gray-50 rounded border p-3 text-sm">
-                        <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> (#{drillStats.bestEntry?.player?.number} {drillStats.bestEntry?.player?.name})</div>
+                        <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.bestEntry?.player?.jersey_number || drillStats.bestEntry?.player?.number ? `#${drillStats.bestEntry?.player?.jersey_number || drillStats.bestEntry?.player?.number}` : ''} {drillStats.bestEntry?.player?.name})</div>
                         <div>Typical range: <span className="font-semibold">{drillStats.p25?.toFixed(2)}–{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</span></div>
-                        <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> (#{drillStats.worstEntry?.player?.number} {drillStats.worstEntry?.player?.name})</div>
+                        <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.worstEntry?.player?.jersey_number || drillStats.worstEntry?.player?.number ? `#${drillStats.worstEntry?.player?.jersey_number || drillStats.worstEntry?.player?.number}` : ''} {drillStats.worstEntry?.player?.name})</div>
                       </div>
                       {/* Bucket bars */}
                       <div className="space-y-2">
