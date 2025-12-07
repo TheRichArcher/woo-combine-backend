@@ -133,14 +133,28 @@ export default function Analytics() {
       const min = values[0];
       const max = values[values.length - 1];
 
-      const orderedForBars = drill.lowerIsBetter
+      // Helper to resolve display label (Number > Initials > ?)
+      const getAxisLabel = (p) => {
+        const num = p.jersey_number || p.number;
+        if (num !== undefined && num !== null && num !== '') return `#${num}`;
+        if (p.name) {
+          const parts = p.name.trim().split(/\s+/);
+          if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+          return p.name.substring(0, 3).toUpperCase();
+        }
+        return '?';
+      };
+
+      const orderedForBars = (drill.lowerIsBetter
         ? [...inRange].sort((a, b) => a.value - b.value)
-        : [...inRange].sort((a, b) => b.value - a.value);
+        : [...inRange].sort((a, b) => b.value - a.value)
+      ).map(e => ({ ...e, displayLabel: getAxisLabel(e.player) }));
 
       // Compute simple top5 list used by the sidebar
       const top5 = orderedForBars.slice(0, 5).map(e => ({
         name: e.player?.name,
-        number: e.player?.number,
+        number: e.player?.jersey_number || e.player?.number,
+        displayLabel: e.displayLabel,
         value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
       }));
 
@@ -290,7 +304,7 @@ export default function Analytics() {
                       <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number || '?',
-                        axisLabel: `#${e.player.jersey_number || e.player.number || '?'}`,
+                        axisLabel: e.displayLabel,
                         score: Number(e.value.toFixed(2)) 
                       }))}>
                         <XAxis dataKey="axisLabel" label={{ value: 'Player Number', position: 'bottom' }} />
@@ -454,7 +468,7 @@ export default function Analytics() {
                         <div key={idx} className="flex items-center justify-between text-sm bg-white rounded border p-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-semantic-success':idx<3?'bg-semantic-warning':'bg-gray-500'}`}>{idx+1}</div>
-                            <div className="text-gray-900">#{t.number} {t.name}</div>
+                            <div className="text-gray-900">{t.number ? `#${t.number}` : ''} {t.name}</div>
                           </div>
                           <div className="font-mono text-brand-primary">{t.value} {selectedDrill.unit}</div>
                         </div>
