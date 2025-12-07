@@ -1009,7 +1009,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                           <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                           <div className="text-sm text-amber-800">
                               <p className="font-bold mb-1">No drill scores were saved.</p>
-                              <p>This usually means the column headers in your CSV didn't match the drill names in the system.</p>
+                              <p className="mb-1">Common causes:</p>
+                              <ul className="list-disc pl-4 space-y-1 text-xs">
+                                  <li>This event’s schema doesn’t include the drills you mapped (custom drills not loaded)</li>
+                                  <li>The CSV columns weren’t mapped to drill keys</li>
+                                  <li>You imported into a different event than you’re viewing</li>
+                              </ul>
+                              <p className="mt-2 text-xs italic">Check the schema and event selection.</p>
                           </div>
                       </div>
                   </div>
