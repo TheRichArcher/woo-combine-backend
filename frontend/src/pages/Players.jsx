@@ -77,6 +77,7 @@ export default function Players() {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
     const actionParam = urlParams.get('action');
+    const playerIdParam = urlParams.get('playerId');
 
     if (tabParam === 'analyze') {
       setShowRankings(true);
@@ -91,7 +92,14 @@ export default function Players() {
     if (actionParam === 'import') {
       setShowImportModal(true);
     }
-  }, [location.search]);
+
+    if (playerIdParam && players.length > 0) {
+      const playerToSelect = players.find(p => p.id === playerIdParam);
+      if (playerToSelect) {
+        setSelectedPlayer(playerToSelect);
+      }
+    }
+  }, [location.search, players]);
 
   // Fetch backend rankings (Schema-driven engine)
   const fetchRankings = useCallback(async (weights, ageGroup) => {

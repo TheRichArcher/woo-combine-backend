@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 7, 2025_
+_Last updated: December 8, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -13,7 +13,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Stability**: Critical infinite loops, race conditions, and temporal dead zones have been definitively resolved.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
 - **Import Reliability**: Robust CSV/Excel import engine now handles flat vs. nested data structures seamlessly, with optional jersey numbers and clear success stats.
-- **Analytics**: Full data pipeline verified. Analytics charts now correctly read normalized scores from `player.scores` and handle all edge cases (null bounds, missing data).
+- **Analytics**: Full data pipeline verified. Drill Explorer now supports deep analysis with scrollable vertical rankings for unlimited athletes, handling "All" view cleanly.
 - **Security**: Phone authentication and reCAPTCHA have been **completely removed** in favor of a robust, verified Email/Password flow.
 - **UX**: Onboarding flows (Organizer & Invited Users) are fully guided with "What's Next" steps and no dead ends.
 
@@ -81,9 +81,10 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 - **Success Stats**: Import success modal now displays exact counts: "Players Added | Scores Written".
 
 ### 📊 Analytics & Data Integrity
+- **Drill Explorer UX**: Replaced unstable layout switching with a **unified vertical scroll view**. "All" filter now efficiently renders 100+ athletes in a fixed-height container without page blanking or layout shifting.
+- **Chart Stability**: Enforced strict numeric domains and unique keys to eliminate Recharts rendering errors during data updates.
 - **Data Sourcing**: Fixed Analytics page to correctly read drill scores from the `player.scores` object instead of legacy flat paths.
 - **Robust Calculations**: Implemented bounds checking that handles `null` or missing schema min/max values (`-Infinity`/`Infinity` fallback) to prevent valid data from being filtered out.
-- **Drill Explorer**: Charts now reliably populate with player performance data.
 
 ### 🔐 Authentication & Security
 - **Removed Phone Auth & reCAPTCHA**: Eliminated complexity, costs, and configuration issues. Simplified to standard Email/Password.

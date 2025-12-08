@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -11,7 +11,7 @@ import {
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
 import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 
@@ -19,6 +19,7 @@ const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
   const { showError } = useToast();
+  const navigate = useNavigate();
   
   // Unified Drills Hook
   const { drills: currentDrills, loading: drillsLoading } = useDrills(selectedEvent);
@@ -28,6 +29,13 @@ const ScorecardsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const generatorRef = useRef(null);
+
+  useEffect(() => {
+    if (selectedPlayer && generatorRef.current) {
+      generatorRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [selectedPlayer]);
   
   // Get drill template and weights from event
   const drillTemplate = selectedEvent?.drillTemplate;
@@ -47,10 +55,12 @@ const ScorecardsPage = () => {
       const res = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(res.data);
       
-      // Auto-select first player if none selected (only check current state, not dependency)
+      // Auto-select removed per requirements - user must explicitly select player for scorecard
+      /* 
       if (res.data.length > 0) {
         setSelectedPlayer(prev => prev || res.data[0]);
       }
+      */
     } catch (err) {
       if (err.response?.status === 422) {
         setError("Players may not be set up yet for this event");
@@ -218,20 +228,30 @@ const ScorecardsPage = () => {
               </div>
               <div className="space-y-1 max-h-[28rem] overflow-y-auto">
                 {playersWithScores.map((player) => (
-                  <button
+                  <div
                     key={player.id}
-                    onClick={() => setSelectedPlayer(player)}
-                    className={`w-full text-left p-2 rounded-md border transition-colors text-sm ${selectedPlayer?.id === player.id ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}
-                    aria-pressed={selectedPlayer?.id === player.id}
+                    onClick={() => navigate(`/players?playerId=${player.id}`)}
+                    className={`w-full text-left p-2 rounded-md border transition-colors text-sm cursor-pointer ${selectedPlayer?.id === player.id ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-medium text-gray-900 text-sm">{player.name}</div>
                         <div className="text-xs text-gray-600">#{player.number} • {player.age_group}</div>
                       </div>
-                      <FileText className="w-3 h-3 text-gray-400 hidden md:block" />
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPlayer(player);
+                          }}
+                          className="px-2 py-1 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition z-10"
+                        >
+                          Scorecard
+                        </button>
+                        <Users className="w-3 h-3 text-gray-400 hidden md:block" />
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 ))}
               </div>
               {filteredPlayers.length !== playersWithScores.length && (
@@ -242,13 +262,15 @@ const ScorecardsPage = () => {
             </div>
 
             {/* Generator */}
-            <PlayerScorecardGenerator
-              player={selectedPlayer}
-              allPlayers={players}
-              weights={weights}
-              selectedDrillTemplate={drillTemplate}
-              drills={currentDrills}
-            />
+            <div ref={generatorRef}>
+              <PlayerScorecardGenerator
+                player={selectedPlayer}
+                allPlayers={players}
+                weights={weights}
+                selectedDrillTemplate={drillTemplate}
+                drills={currentDrills}
+              />
+            </div>
           </>
         )}
       </div>
