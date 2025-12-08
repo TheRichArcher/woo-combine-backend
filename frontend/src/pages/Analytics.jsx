@@ -96,179 +96,179 @@ export default function Analytics() {
     return selectedAgeGroup === 'ALL' ? players : players.filter(p => p.age_group === selectedAgeGroup);
   }, [players, selectedAgeGroup]);
 
-  // Reusable stats computer for any drill
+      // Reusable stats computer for any drill
   const computeStatsFor = useMemo(() => {
     return (drill) => {
-      try {
       if (!drill) return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
 
-      const entries = filteredPlayers
-        .map(p => {
-          // Use player.scores to access drill data
-          const raw = p.scores?.[drill.key];
-          const value = raw === '' || raw == null ? NaN : Number(raw);
-          return Number.isFinite(value) ? { player: p, value } : null;
-        })
-        .filter(Boolean);
-
-      if (entries.length === 0) {
-        return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
-      }
-
-      const bounds = {
-        min: (drill.min_value !== undefined && drill.min_value !== null) ? Number(drill.min_value) : -Infinity, 
-        max: (drill.max_value !== undefined && drill.max_value !== null) ? Number(drill.max_value) : Infinity
-      };
-      const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
-
-      if (inRange.length === 0) {
-        return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], outliers: entries.length };
-      }
-
-      const values = inRange.map(e => e.value).sort((a, b) => a - b);
-
-      const quantile = (arr, q) => {
-        if (arr.length === 0) return 0;
-        const pos = (arr.length - 1) * q;
-        const base = Math.floor(pos);
-        const rest = pos - base;
-        return (arr[base] + ((arr[base + 1] ?? arr[base]) - arr[base]) * rest) || arr[base] || 0;
-      };
-
-      const min = values[0];
-      const max = values[values.length - 1];
-
-      // Helper to resolve stable participant identifier (always visible)
-      const getParticipantId = (p) => {
-        const num = p.jersey_number || p.number;
-        const hasNum = num !== undefined && num !== null && num !== '';
-        
-        // 1. External ID (Preferred if present for Combines)
-        if (p.external_id) {
-            const ext = String(p.external_id);
-            // If it's a short alphanumeric (e.g. BB2003), show it all.
-            // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
-            return ext; 
-        }
-
-        // 2. Jersey Number (Secondary priority)
-        if (hasNum) return `#${num}`;
-
-        // 3. Fallback to Player ID (Shortened)
-        if (p.id) {
-            const pid = String(p.id);
-            return `…${pid.slice(-4)}`;
-        }
-        
-        return 'N/A';
-      };
-
-      // Helper to resolve display label for Axis
-      const getAxisLabel = (p) => {
-        // Mode: Names
-        if (labelMode === 'name') {
-            if (p.name) {
-                const parts = p.name.trim().split(/\s+/);
-                if (p.name.length < 10) return p.name;
-                return parts.length > 1 ? parts[parts.length-1] : p.name;
-            }
-        }
-        
-        // Mode: Number (or default) -> Use Participant ID
-        const id = getParticipantId(p);
-        // Truncate if extremely long for axis? 
-        if (id.length > 10) return `…${id.slice(-8)}`;
-        return id;
-      };
-
-      // Filter by search query if present
-      const searchFiltered = searchQuery 
-        ? inRange.filter(e => {
-            const pid = getParticipantId(e.player)?.toLowerCase() ?? '';
-            const name = (e.player.name || '').toLowerCase();
-            const q = (searchQuery || '').toLowerCase();
-            return pid.includes(q) || name.includes(q);
+      try {
+        const entries = filteredPlayers
+          .map(p => {
+            // Use player.scores to access drill data
+            const raw = p.scores?.[drill.key];
+            const value = raw === '' || raw == null ? NaN : Number(raw);
+            return Number.isFinite(value) ? { player: p, value } : null;
           })
-        : inRange;
+          .filter(Boolean);
 
-      const orderedForBars = (drill.lowerIsBetter
-        ? [...searchFiltered].sort((a, b) => a.value - b.value)
-        : [...searchFiltered].sort((a, b) => b.value - a.value)
-      ).map(e => ({ 
-          ...e, 
-          displayLabel: getAxisLabel(e.player),
-          participantId: getParticipantId(e.player)
-      }));
+        if (entries.length === 0) {
+          return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
+        }
 
-      // DEBUG: Log players missing external_id to help trace import issues
-      const missingExternalId = orderedForBars.filter(e => !e.player.external_id);
-      if (missingExternalId.length > 0) {
-        console.warn(`[Analytics] ${missingExternalId.length} players missing external_id (Bib):`, 
-          missingExternalId.map(e => ({ name: e.player.name, id: e.player.id }))
-        );
-      }
+        const bounds = {
+          min: (drill.min_value !== undefined && drill.min_value !== null) ? Number(drill.min_value) : -Infinity, 
+          max: (drill.max_value !== undefined && drill.max_value !== null) ? Number(drill.max_value) : Infinity
+        };
+        const inRange = entries.filter(e => e.value >= bounds.min && e.value <= bounds.max);
 
-      // Compute simple top5 list used by the sidebar
-      const top5 = orderedForBars.slice(0, 5).map(e => ({
-        name: e.player?.name,
-        participantId: e.participantId,
-        displayLabel: e.displayLabel,
-        value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
-      }));
+        if (inRange.length === 0) {
+          return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], outliers: entries.length };
+        }
 
-      // Histogram bins for 'histogram' view with adaptive bucket count (4–10 bins)
-      const spanValue = Math.max(0.0001, max - min);
-      const targetBins = Math.min(10, Math.max(4, Math.round(Math.sqrt(inRange.length) * 2)));
-      const numBins = targetBins;
-      const bins = new Array(numBins).fill(0);
-      const edges = [];
-      inRange.forEach(e => {
-        const idx = Math.min(numBins - 1, Math.floor(((e.value - min) / spanValue) * numBins));
-        bins[idx] += 1;
-      });
-      for (let i = 0; i < numBins; i += 1) {
-        const start = min + (i * spanValue) / numBins;
-        const end = min + ((i + 1) * spanValue) / numBins;
-        edges.push({ start, end, count: bins[i] });
-      }
-      const minValue = min;
-      const maxValue = max;
+        const values = inRange.map(e => e.value).sort((a, b) => a - b);
 
-      const p10 = quantile(values, 0.10);
-      const p25 = quantile(values, 0.25);
-      const p50 = quantile(values, 0.5);
-      const p75 = quantile(values, 0.75);
-      const p90 = quantile(values, 0.9);
+        const quantile = (arr, q) => {
+          if (arr.length === 0) return 0;
+          const pos = (arr.length - 1) * q;
+          const base = Math.floor(pos);
+          const rest = pos - base;
+          return (arr[base] + ((arr[base + 1] ?? arr[base]) - arr[base]) * rest) || arr[base] || 0;
+        };
 
-      const bestEntry = orderedForBars[0] || null;
-      const worstEntry = orderedForBars[orderedForBars.length - 1] || null;
+        const min = values[0];
+        const max = values[values.length - 1];
 
-      // Simple bucketization for 'simple' view
-      const bestCount = orderedForBars.slice(0, Math.max(1, Math.floor(inRange.length * 0.2))).length;
-      const typicalCount = Math.max(0, inRange.length - bestCount - Math.max(1, Math.floor(inRange.length * 0.2)));
-      const needsWorkCount = inRange.length - bestCount - typicalCount;
+        // Helper to resolve stable participant identifier (always visible)
+        const getParticipantId = (p) => {
+          const num = p.jersey_number || p.number;
+          const hasNum = num !== undefined && num !== null && num !== '';
+          
+          // 1. External ID (Preferred if present for Combines)
+          if (p.external_id) {
+              const ext = String(p.external_id);
+              // If it's a short alphanumeric (e.g. BB2003), show it all.
+              // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
+              return ext; 
+          }
 
-      return {
-        count: values.length,
-        min,
-        max,
-        p10,
-        p25,
-        p50,
-        p75,
-        p90,
-        orderedForBars,
-        top5,
-        bestEntry,
-        worstEntry,
-        bestCount,
-        typicalCount,
-        needsWorkCount,
-        bins,
-        edges,
-        minValue,
-        maxValue,
-      };
+          // 2. Jersey Number (Secondary priority)
+          if (hasNum) return `#${num}`;
+
+          // 3. Fallback to Player ID (Shortened)
+          if (p.id) {
+              const pid = String(p.id);
+              return `…${pid.slice(-4)}`;
+          }
+          
+          return 'N/A';
+        };
+
+        // Helper to resolve display label for Axis
+        const getAxisLabel = (p) => {
+          // Mode: Names
+          if (labelMode === 'name') {
+              if (p.name) {
+                  const parts = p.name.trim().split(/\s+/);
+                  if (p.name.length < 10) return p.name;
+                  return parts.length > 1 ? parts[parts.length-1] : p.name;
+              }
+          }
+          
+          // Mode: Number (or default) -> Use Participant ID
+          const id = getParticipantId(p);
+          // Truncate if extremely long for axis? 
+          if (id.length > 10) return `…${id.slice(-8)}`;
+          return id;
+        };
+
+        // Filter by search query if present
+        const searchFiltered = searchQuery 
+          ? inRange.filter(e => {
+              const pid = getParticipantId(e.player)?.toLowerCase() ?? '';
+              const name = (e.player.name || '').toLowerCase();
+              const q = (searchQuery || '').toLowerCase();
+              return pid.includes(q) || name.includes(q);
+            })
+          : inRange;
+
+        const orderedForBars = (drill.lowerIsBetter
+          ? [...searchFiltered].sort((a, b) => a.value - b.value)
+          : [...searchFiltered].sort((a, b) => b.value - a.value)
+        ).map(e => ({ 
+            ...e, 
+            displayLabel: getAxisLabel(e.player),
+            participantId: getParticipantId(e.player)
+        }));
+
+        // DEBUG: Log players missing external_id to help trace import issues
+        const missingExternalId = orderedForBars.filter(e => !e.player.external_id);
+        if (missingExternalId.length > 0) {
+          console.warn(`[Analytics] ${missingExternalId.length} players missing external_id (Bib):`, 
+            missingExternalId.map(e => ({ name: e.player.name, id: e.player.id }))
+          );
+        }
+
+        // Compute simple top5 list used by the sidebar
+        const top5 = orderedForBars.slice(0, 5).map(e => ({
+          name: e.player?.name,
+          participantId: e.participantId,
+          displayLabel: e.displayLabel,
+          value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
+        }));
+
+        // Histogram bins for 'histogram' view with adaptive bucket count (4–10 bins)
+        const spanValue = Math.max(0.0001, max - min);
+        const targetBins = Math.min(10, Math.max(4, Math.round(Math.sqrt(inRange.length) * 2)));
+        const numBins = targetBins;
+        const bins = new Array(numBins).fill(0);
+        const edges = [];
+        inRange.forEach(e => {
+          const idx = Math.min(numBins - 1, Math.floor(((e.value - min) / spanValue) * numBins));
+          bins[idx] += 1;
+        });
+        for (let i = 0; i < numBins; i += 1) {
+          const start = min + (i * spanValue) / numBins;
+          const end = min + ((i + 1) * spanValue) / numBins;
+          edges.push({ start, end, count: bins[i] });
+        }
+        const minValue = min;
+        const maxValue = max;
+
+        const p10 = quantile(values, 0.10);
+        const p25 = quantile(values, 0.25);
+        const p50 = quantile(values, 0.5);
+        const p75 = quantile(values, 0.75);
+        const p90 = quantile(values, 0.9);
+
+        const bestEntry = orderedForBars[0] || null;
+        const worstEntry = orderedForBars[orderedForBars.length - 1] || null;
+
+        // Simple bucketization for 'simple' view
+        const bestCount = orderedForBars.slice(0, Math.max(1, Math.floor(inRange.length * 0.2))).length;
+        const typicalCount = Math.max(0, inRange.length - bestCount - Math.max(1, Math.floor(inRange.length * 0.2)));
+        const needsWorkCount = inRange.length - bestCount - typicalCount;
+
+        return {
+          count: values.length,
+          min,
+          max,
+          p10,
+          p25,
+          p50,
+          p75,
+          p90,
+          orderedForBars,
+          top5,
+          bestEntry,
+          worstEntry,
+          bestCount,
+          typicalCount,
+          needsWorkCount,
+          bins,
+          edges,
+          minValue,
+          maxValue,
+        };
       } catch (err) {
         console.error("Analytics Chart Computation Failed:", err);
         return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], error: err.message };
@@ -412,7 +412,7 @@ export default function Analytics() {
                                     tick={{ fontSize: 12 }}
                                     label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: 0 }} 
                                 />
-                                <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
+                        <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                             </>
                         )}
                         <Tooltip 
