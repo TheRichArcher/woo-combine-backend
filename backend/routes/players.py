@@ -834,6 +834,7 @@ def get_rankings(
                 "player_id": player.id,
                 "name": player_data.get("name"),
                 "number": player_data.get("number"),
+                "external_id": player_data.get("external_id"), # Added for combine analytics
                 "composite_score": composite_score,
                 # Scores map takes precedence
                 "scores": scores_map

@@ -14,6 +14,7 @@ class PlayerSchema(BaseModel):
     photo_url: Optional[str] = None
     event_id: Optional[str] = None
     created_at: Optional[str] = None
+    external_id: Optional[str] = None # Added explicit field for combine bibs/ids
     
     # Dynamic Scores Map (Phase 2)
     # This replaces the fixed fields below for all new sports/drills

@@ -139,16 +139,16 @@ export default function Analytics() {
         const num = p.jersey_number || p.number;
         const hasNum = num !== undefined && num !== null && num !== '';
         
-        // 1. Jersey Number (Preferred if present)
-        if (hasNum) return `#${num}`;
-        
-        // 2. External ID (Full or Shortened)
+        // 1. External ID (Preferred if present for Combines)
         if (p.external_id) {
             const ext = String(p.external_id);
             // If it's a short alphanumeric (e.g. BB2003), show it all.
             // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
             return ext; 
         }
+
+        // 2. Jersey Number (Secondary priority)
+        if (hasNum) return `#${num}`;
 
         // 3. Fallback to Player ID (Shortened)
         if (p.id) {
@@ -382,6 +382,10 @@ export default function Analytics() {
                                   <div className="font-bold text-gray-900">{data.name}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
                                     <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
+                                    {/* Optional: Show jersey # if available and different from ID */}
+                                    {data.number && data.participantId !== `#${data.number}` && (
+                                       <span className="text-gray-400 text-xs">(#{data.number})</span>
+                                    )}
                                   </div>
                                   <div className="font-mono font-semibold text-brand-primary mt-1">
                                     {data.score} {selectedDrill.unit}
@@ -418,7 +422,13 @@ export default function Analytics() {
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
-                                  <div className="text-gray-600 mb-1">{data.participantId}</div>
+                                  <div className="text-gray-600 mb-1 flex items-center gap-1">
+                                    <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
+                                    {/* Optional: Show jersey # if available and different from ID */}
+                                    {data.number && data.participantId !== `#${data.number}` && (
+                                       <span className="text-gray-400 text-xs">(#{data.number})</span>
+                                    )}
+                                  </div>
                                   <div className="font-mono font-semibold text-brand-primary">
                                     {data.score} {selectedDrill.unit}
                                   </div>
