@@ -45,6 +45,10 @@ class DataImporter:
         'division': 'age_group',
         'pos': 'position',
         'bib': 'external_id',
+        'bib_number': 'external_id',
+        'bib_no': 'external_id',
+        'bib_#': 'external_id',
+        'bibno': 'external_id',
         'external_id': 'external_id',
         'athlete_id': 'external_id'
     }
