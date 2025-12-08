@@ -281,6 +281,31 @@ export default function Analytics() {
   // Drill stats for currently selected drill (computed via reusable function)
   const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
 
+  // Use min/max from stats to compute a safe domain for vertical chart
+  // This avoids Recharts crashing or producing NaN widths when min === max
+  const verticalXDomain = useMemo(() => {
+    if (!drillStats || !Number.isFinite(drillStats.min) || !Number.isFinite(drillStats.max)) {
+      return [0, 'auto'];
+    }
+    let min = drillStats.min;
+    let max = drillStats.max;
+    // If range is zero (single value or all identical), pad it so we have a valid axis
+    if (min === max) {
+      if (min === 0) {
+        max = 10; // arbitrary positive range
+      } else {
+        // Pad around the value
+        min = Math.floor(min * 0.9);
+        max = Math.ceil(max * 1.1);
+      }
+    }
+    // For "lower is better" drills, we might want to invert or just let Recharts handle direction via data sorting
+    // But for the domain itself, we just need a valid numeric range.
+    // Recharts expects [min, max].
+    return [0, 'auto']; // Defaulting to 0-based for now as that's safest for bar charts
+    // If we want zoom-in effect: return [Math.floor(min*0.9), Math.ceil(max*1.1)];
+  }, [drillStats]);
+
   // DEBUG: Inspect chart data integrity
   if (selectedDrill && drillStats.orderedForBars.length > 0) {
       const dataSample = drillStats.orderedForBars.slice(0, barLimit).map(e => ({
@@ -295,6 +320,7 @@ export default function Analytics() {
           max: drillStats.max,
           barLimit,
           layout: (barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal',
+          domain: verticalXDomain,
           sample: dataSample.slice(0, 3)
       });
   }
@@ -415,7 +441,7 @@ export default function Analytics() {
                       }))}>
                         {barLimit > 15 && drillStats.orderedForBars.length > 0 ? (
                             <>
-                                <XAxis type="number" hide />
+                                <XAxis type="number" hide domain={[0, 'dataMax']} />
                                 <YAxis 
                                     dataKey="axisLabel" 
                                     type="category" 
