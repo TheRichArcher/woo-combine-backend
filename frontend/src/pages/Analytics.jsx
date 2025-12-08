@@ -142,7 +142,12 @@ export default function Analytics() {
         // Mode: Numbers (Default)
         if (labelMode === 'number') {
             if (hasNum) return `#${num}`;
-            return '—';
+            // Fallback to External ID if available (last 4 chars)
+            if (p.external_id) {
+                const ext = String(p.external_id);
+                return `…${ext.slice(-4)}`;
+            }
+            return 'N/A';
         }
         
         // Mode: Names
@@ -163,6 +168,12 @@ export default function Analytics() {
         ? [...inRange].sort((a, b) => a.value - b.value)
         : [...inRange].sort((a, b) => b.value - a.value)
       ).map(e => ({ ...e, displayLabel: getAxisLabel(e.player) }));
+
+      // DEBUG: Log sample data for verification
+      if (orderedForBars.length > 0) {
+        console.log("Analytics: Sample Player", orderedForBars[0].player);
+        console.log("Analytics: Sample Chart Data", orderedForBars[0]);
+      }
 
       // Compute simple top5 list used by the sidebar
       const top5 = orderedForBars.slice(0, 5).map(e => ({
