@@ -307,21 +307,15 @@ export default function Analytics() {
     // Recharts can fail if domain is [10, 10] -> range 0 -> division by zero
     if (min === max) {
       if (min === 0) {
-        // All zeros -> Force 0-10 scale
         return [0, 10];
       } else {
-        // Pad around the value to create a valid range
         return [0, Math.ceil(max * 1.1) + 1];
       }
     }
     
-    // Default: use 0 to dataMax (letting Recharts auto-scale the top)
-    // Avoid 'auto' for the lower bound to ensure 0-based bars in vertical mode
-    if (max <= 0) return ['auto', 'auto'];
-    
-    // Ensure we strictly return numeric or 'auto', not mixed if possible to reduce edge cases
-    // For vertical bar charts, [0, 'auto'] is usually fine, but if 'auto' resolves to NaN inside Recharts...
-    return [0, 'auto']; 
+    // Force strict numeric domain for vertical charts to avoid [0, 'auto'] collapse
+    const safeMax = Math.ceil(max * 1.1);
+    return [0, safeMax > 0 ? safeMax : 10]; 
   }, [drillStats]);
 
   // DEBUG: Inspect chart data integrity
