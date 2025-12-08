@@ -10,7 +10,11 @@ import { useDrills } from '../hooks/useDrills';
 import { 
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
-import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2 } from 'lucide-react';
+import { 
+  calculateOptimizedRankings,
+  calculateDrillRankings 
+} from '../utils/optimizedScoring';
+import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -29,11 +33,14 @@ const ScorecardsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const generatorRef = useRef(null);
+  const [showGenerator, setShowGenerator] = useState(false);
+  
+  // Ref for auto-scrolling to stats
+  const statsRef = useRef(null);
 
   useEffect(() => {
-    if (selectedPlayer && generatorRef.current) {
-      generatorRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (selectedPlayer && statsRef.current) {
+      statsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }, [selectedPlayer]);
   
@@ -41,6 +48,42 @@ const ScorecardsPage = () => {
   const drillTemplate = selectedEvent?.drillTemplate;
   const weights = getDefaultWeightsFromTemplate(drillTemplate);
   
+  // Calculate player stats for immediate display
+  const playerStats = React.useMemo(() => {
+    if (!selectedPlayer || !players.length || !currentDrills.length) return null;
+    
+    // Convert decimal weights to percentage for the utility functions
+    const percentageWeights = {};
+    Object.entries(weights).forEach(([key, value]) => {
+      percentageWeights[key] = value * 100;
+    });
+    
+    // Rank in age group
+    const ageGroupPlayers = players.filter(p => p.age_group === selectedPlayer.age_group);
+    
+    // Get rankings (includes composite scores)
+    const rankedPlayers = calculateOptimizedRankings(ageGroupPlayers, percentageWeights, currentDrills);
+    const rankData = rankedPlayers.find(p => p.id === selectedPlayer.id);
+    
+    const rank = rankData ? rankData.rank : '-';
+    const compositeScore = rankData ? rankData.compositeScore : 0;
+    const totalInAgeGroup = rankedPlayers.length;
+    const percentile = totalInAgeGroup > 0 && typeof rank === 'number' 
+      ? Math.round(((totalInAgeGroup - rank + 1) / totalInAgeGroup) * 100) 
+      : 0;
+    
+    // Drill specific rankings
+    const drillRankings = calculateDrillRankings(selectedPlayer, players, currentDrills);
+    
+    return {
+      rank,
+      compositeScore,
+      totalInAgeGroup,
+      percentile,
+      drillRankings
+    };
+  }, [selectedPlayer, players, weights, currentDrills]);
+
   // Fetch players for the selected event
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
@@ -54,13 +97,6 @@ const ScorecardsPage = () => {
       setError(null);
       const res = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayers(res.data);
-      
-      // Auto-select removed per requirements - user must explicitly select player for scorecard
-      /* 
-      if (res.data.length > 0) {
-        setSelectedPlayer(prev => prev || res.data[0]);
-      }
-      */
     } catch (err) {
       if (err.response?.status === 422) {
         setError("Players may not be set up yet for this event");
@@ -106,6 +142,12 @@ const ScorecardsPage = () => {
       return false;
     }
   });
+
+  const handlePlayerSelect = (player) => {
+    setSelectedPlayer(player);
+    // Hide generator by default when switching players to keep view clean
+    setShowGenerator(false);
+  };
 
   if (loading || drillsLoading) {
     return (
@@ -226,12 +268,12 @@ const ScorecardsPage = () => {
                   aria-label="Search players by name, number, or age group"
                 />
               </div>
-              <div className="space-y-1 max-h-[28rem] overflow-y-auto">
+              <div className="space-y-1 max-h-[20rem] overflow-y-auto">
                 {playersWithScores.map((player) => (
                   <div
                     key={player.id}
-                    onClick={() => navigate(`/players?playerId=${player.id}`)}
-                    className={`w-full text-left p-2 rounded-md border transition-colors text-sm cursor-pointer ${selectedPlayer?.id === player.id ? 'bg-blue-50 border-blue-200 ring-2 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}
+                    onClick={() => handlePlayerSelect(player)}
+                    className={`w-full text-left p-3 rounded-md border transition-colors text-sm cursor-pointer ${selectedPlayer?.id === player.id ? 'bg-blue-50 border-blue-200 ring-1 ring-blue-500' : 'border-gray-200 hover:bg-gray-50'}`}
                   >
                     <div className="flex items-center justify-between">
                       <div>
@@ -239,16 +281,10 @@ const ScorecardsPage = () => {
                         <div className="text-xs text-gray-600">#{player.number} • {player.age_group}</div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPlayer(player);
-                          }}
-                          className="px-2 py-1 text-xs bg-white border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition z-10"
-                        >
-                          Scorecard
-                        </button>
-                        <Users className="w-3 h-3 text-gray-400 hidden md:block" />
+                         {selectedPlayer?.id === player.id && (
+                           <div className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">Viewing</div>
+                         )}
+                        <Users className="w-4 h-4 text-gray-300" />
                       </div>
                     </div>
                   </div>
@@ -261,16 +297,88 @@ const ScorecardsPage = () => {
               )}
             </div>
 
-            {/* Generator */}
-            <div ref={generatorRef}>
-              <PlayerScorecardGenerator
-                player={selectedPlayer}
-                allPlayers={players}
-                weights={weights}
-                selectedDrillTemplate={drillTemplate}
-                drills={currentDrills}
-              />
-            </div>
+            {/* Player Stats View */}
+            {selectedPlayer && playerStats && (
+              <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-blue-600 px-6 py-4 text-white">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h2 className="text-2xl font-bold">{selectedPlayer.name}</h2>
+                      <p className="text-blue-100 text-sm">#{selectedPlayer.number} • {selectedPlayer.age_group}</p>
+                    </div>
+                    <div className="text-right">
+                       <div className="text-3xl font-bold">{playerStats.compositeScore.toFixed(1)}</div>
+                       <div className="text-xs text-blue-100">Composite</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  {/* Summary Stats */}
+                  <div className="grid grid-cols-3 gap-4 mb-8 text-center">
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div className="text-xl font-bold text-gray-900">#{playerStats.rank}</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Rank</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div className="text-xl font-bold text-gray-900">{playerStats.percentile}%</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Percentile</div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                      <div className="text-xl font-bold text-gray-900">{playerStats.totalInAgeGroup}</div>
+                      <div className="text-xs text-gray-500 uppercase tracking-wide">Players</div>
+                    </div>
+                  </div>
+                  
+                  {/* Drill Breakdown */}
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Drill Results</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {currentDrills.map(drill => {
+                      const score = selectedPlayer[drill.key];
+                      const drillRank = playerStats.drillRankings[drill.key];
+                      
+                      return (
+                        <div key={drill.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-blue-100 hover:bg-blue-50/30 transition-colors">
+                          <span className="text-sm font-medium text-gray-700">{drill.label}</span>
+                          <div className="text-right">
+                            <div className="font-bold text-gray-900">
+                              {score !== null && score !== undefined ? `${score} ${drill.unit}` : '-'}
+                            </div>
+                            {score !== null && score !== undefined && drillRank && (
+                              <div className="text-xs text-gray-500">Rank: #{drillRank}</div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer / Actions */}
+                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-between items-center">
+                   <button 
+                     onClick={() => setShowGenerator(!showGenerator)}
+                     className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                   >
+                     {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                     {showGenerator ? 'Hide Report Generator' : 'Create PDF / Email Report'}
+                   </button>
+                </div>
+              </div>
+            )}
+
+            {/* Scorecard Generator (Secondary) */}
+            {selectedPlayer && showGenerator && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-300">
+                <PlayerScorecardGenerator
+                  player={selectedPlayer}
+                  allPlayers={players}
+                  weights={weights}
+                  selectedDrillTemplate={drillTemplate}
+                  drills={currentDrills}
+                />
+              </div>
+            )}
           </>
         )}
       </div>
