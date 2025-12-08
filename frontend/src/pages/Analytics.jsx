@@ -431,7 +431,7 @@ export default function Analytics() {
                           {barLimit <= 30 && (
                               <LabelList 
                                 dataKey="score" 
-                                position={barLimit > 15 ? "right" : "top"} 
+                                position={(barLimit > 15 && drillStats.orderedForBars.length > 0) ? "right" : "top"} 
                                 formatter={(v) => `${v}`} 
                                 fill="#111827" 
                                 fontSize={10}
