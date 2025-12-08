@@ -323,6 +323,7 @@ export default function Analytics() {
 
   // DEBUG: Inspect chart data integrity
   // Ensure this runs on every render to catch state updates
+  /*
   if (selectedDrill && drillStats.orderedForBars.length > 0) {
       const dataSample = drillStats.orderedForBars.slice(0, barLimit).map(e => ({
           name: e.player.name,
@@ -342,9 +343,10 @@ export default function Analytics() {
           sample: dataSample.slice(0, 3)
       });
   }
+  */
 
   // Verify render cycle
-  console.log('[Analytics] render cycle barLimit:', barLimit);
+  // console.log('[Analytics] render cycle barLimit:', barLimit);
 
   // Safe Opacity Helper: Force opacity=1 if large list to avoid "stuck highlight" issues in prod
   const getBarOpacity = (playerId) => {
@@ -425,23 +427,10 @@ export default function Analytics() {
                     </div>
                   )}
 
-                  {/* DEBUG: Force State Buttons */}
-                  <div className="flex gap-1 border border-red-300 p-1 rounded z-50 relative bg-white">
-                      <button onClick={() => { console.log('[Analytics] Force 10'); setBarLimit(10); }} className="text-xs bg-red-100 px-2 py-1 rounded hover:bg-red-200">Set 10</button>
-                      <button onClick={() => { console.log('[Analytics] Force ALL'); setBarLimit(9999); }} className="text-xs bg-red-100 px-2 py-1 rounded hover:bg-red-200">Set ALL</button>
-                  </div>
-
                   <div className="relative z-50">
                       <select
                         value={String(barLimit)}
-                        onClick={() => console.log('[Analytics] barLimit select clicked')}
-                        onInput={() => console.log('[Analytics] barLimit select input')}
-                        onChange={(e) => {
-                            console.log('[Analytics] barLimit change raw:', e.target.value);
-                            const val = Number(e.target.value);
-                            console.log('[Analytics] barLimit change num:', val);
-                            setBarLimit(val);
-                        }}
+                        onChange={(e) => setBarLimit(Number(e.target.value))}
                         className="border border-gray-300 rounded px-2 py-1 text-sm cursor-pointer"
                         style={{ pointerEvents: 'auto' }}
                       >
@@ -452,6 +441,8 @@ export default function Analytics() {
                         <option value="9999">ALL</option>
                       </select>
                   </div>
+
+                  <div className="h-4 w-px bg-gray-300 hidden sm:block mx-1"></div>
 
                   <select
                     value={selectedAgeGroup}
