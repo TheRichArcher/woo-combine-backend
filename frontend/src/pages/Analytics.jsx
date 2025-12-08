@@ -134,40 +134,57 @@ export default function Analytics() {
       const min = values[0];
       const max = values[values.length - 1];
 
-      // Helper to resolve display label (Number > Initials > ?)
-      const getAxisLabel = (p) => {
+      // Helper to resolve stable participant identifier (always visible)
+      const getParticipantId = (p) => {
         const num = p.jersey_number || p.number;
         const hasNum = num !== undefined && num !== null && num !== '';
         
-        // Mode: Numbers (Default)
-        if (labelMode === 'number') {
-            if (hasNum) return `#${num}`;
-            // Fallback to External ID if available (last 4 chars)
-            if (p.external_id) {
-                const ext = String(p.external_id);
-                return `…${ext.slice(-4)}`;
-            }
-            return 'N/A';
+        // 1. Jersey Number (Preferred if present)
+        if (hasNum) return `#${num}`;
+        
+        // 2. External ID (Full or Shortened)
+        if (p.external_id) {
+            const ext = String(p.external_id);
+            // If it's a short alphanumeric (e.g. BB2003), show it all.
+            // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
+            return ext; 
+        }
+
+        // 3. Fallback to Player ID (Shortened)
+        if (p.id) {
+            const pid = String(p.id);
+            return `…${pid.slice(-4)}`;
         }
         
+        return 'N/A';
+      };
+
+      // Helper to resolve display label for Axis (might need truncation if too long)
+      const getAxisLabel = (p) => {
         // Mode: Names
         if (labelMode === 'name') {
             if (p.name) {
                 const parts = p.name.trim().split(/\s+/);
-                // Return Last Name for readability on axis, unless full name is short
                 if (p.name.length < 10) return p.name;
                 return parts.length > 1 ? parts[parts.length-1] : p.name;
             }
-            if (hasNum) return `#${num}`;
         }
-
-        return '?';
+        
+        // Mode: Number (or default) -> Use Participant ID
+        const id = getParticipantId(p);
+        // Truncate if extremely long for axis? 
+        if (id.length > 10) return `…${id.slice(-8)}`;
+        return id;
       };
 
       const orderedForBars = (drill.lowerIsBetter
         ? [...inRange].sort((a, b) => a.value - b.value)
         : [...inRange].sort((a, b) => b.value - a.value)
-      ).map(e => ({ ...e, displayLabel: getAxisLabel(e.player) }));
+      ).map(e => ({ 
+          ...e, 
+          displayLabel: getAxisLabel(e.player),
+          participantId: getParticipantId(e.player)
+      }));
 
       // DEBUG: Log sample data for verification
       if (orderedForBars.length > 0) {
@@ -178,7 +195,7 @@ export default function Analytics() {
       // Compute simple top5 list used by the sidebar
       const top5 = orderedForBars.slice(0, 5).map(e => ({
         name: e.player?.name,
-        number: e.player?.jersey_number || e.player?.number,
+        participantId: e.participantId,
         displayLabel: e.displayLabel,
         value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
       }));
@@ -241,6 +258,19 @@ export default function Analytics() {
 
   // Drill stats for currently selected drill (computed via reusable function)
   const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
+
+  // DEBUG: Log sample data for verification
+  console.log("[Analytics] drill:", selectedDrillKey);
+  console.log("[Analytics] first bar datum:", drillStats?.orderedForBars?.[0]);
+  console.log("[Analytics] first bar axisLabel:", drillStats?.orderedForBars?.[0]?.displayLabel);
+  console.log("[Analytics] first bar player fields:", {
+    number: drillStats?.orderedForBars?.[0]?.player?.number,
+    jersey_number: drillStats?.orderedForBars?.[0]?.player?.jersey_number,
+    external_id: drillStats?.orderedForBars?.[0]?.player?.external_id,
+    playerId: drillStats?.orderedForBars?.[0]?.player?.id,
+    name: drillStats?.orderedForBars?.[0]?.player?.name,
+  });
+  console.log("[Analytics] unique axis labels sample:", Array.from(new Set((drillStats?.orderedForBars||[]).slice(0,30).map(d => d.displayLabel))));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -350,6 +380,7 @@ export default function Analytics() {
                         number: e.player.jersey_number || e.player.number || '?',
                         external_id: e.player.external_id,
                         axisLabel: e.displayLabel,
+                        participantId: e.participantId,
                         score: Number(e.value.toFixed(2)) 
                       }))}>
                         <XAxis dataKey="axisLabel" label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom' }} />
@@ -363,7 +394,7 @@ export default function Analytics() {
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
-                                    <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">#{data.number}</span>
+                                    <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
                                   </div>
                                   <div className="font-mono font-semibold text-brand-primary mt-1">
                                     {data.score} {selectedDrill.unit}
@@ -400,7 +431,7 @@ export default function Analytics() {
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
-                                  <div className="text-gray-600 mb-1">{data.axisLabel}</div>
+                                  <div className="text-gray-600 mb-1">{data.participantId}</div>
                                   <div className="font-mono font-semibold text-brand-primary">
                                     {data.score} {selectedDrill.unit}
                                   </div>
@@ -414,6 +445,7 @@ export default function Analytics() {
                           name="Scores" 
                           data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
                             name: e.player.name, 
+                            participantId: e.participantId,
                             axisLabel: e.displayLabel,
                             score: e.value 
                           }))} 
@@ -459,9 +491,9 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} at a glance</div>
                     <div className="grid grid-cols-1 gap-2">
                       <div className="bg-gray-50 rounded border p-3 text-sm">
-                        <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.bestEntry?.player?.jersey_number || drillStats.bestEntry?.player?.number ? `#${drillStats.bestEntry?.player?.jersey_number || drillStats.bestEntry?.player?.number}` : ''} {drillStats.bestEntry?.player?.name})</div>
+                        <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.bestEntry?.participantId} {drillStats.bestEntry?.player?.name})</div>
                         <div>Typical range: <span className="font-semibold">{drillStats.p25?.toFixed(2)}–{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</span></div>
-                        <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.worstEntry?.player?.jersey_number || drillStats.worstEntry?.player?.number ? `#${drillStats.worstEntry?.player?.jersey_number || drillStats.worstEntry?.player?.number}` : ''} {drillStats.worstEntry?.player?.name})</div>
+                        <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.worstEntry?.participantId} {drillStats.worstEntry?.player?.name})</div>
                       </div>
                       {/* Bucket bars */}
                       <div className="space-y-2">
@@ -530,13 +562,13 @@ export default function Analytics() {
                       <HelpCircle className="w-3 h-3" />
                       <span>{selectedDrill.lowerIsBetter ? 'We show P50 (middle), plus P25 and P10 to mark the top 25% and top 10% performers (lower is better).' : 'We show P50 (middle), plus P75 and P90 to mark the top 25% and top 10% performers (higher is better).'}</span>
                     </div>
-                    <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
+                      <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {drillStats.top5.map((t, idx) => (
                         <div key={idx} className="flex items-center justify-between text-sm bg-white rounded border p-2">
                           <div className="flex items-center gap-2">
                             <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-semantic-success':idx<3?'bg-semantic-warning':'bg-gray-500'}`}>{idx+1}</div>
-                            <div className="text-gray-900">{t.number ? `#${t.number}` : ''} {t.name}</div>
+                            <div className="text-gray-900"><span className="font-mono text-gray-600 bg-gray-50 px-1 rounded mr-1 text-xs">{t.participantId}</span> {t.name}</div>
                           </div>
                           <div className="font-mono text-brand-primary">{t.value} {selectedDrill.unit}</div>
                         </div>
