@@ -99,6 +99,51 @@ export default function Analytics() {
       // Reusable stats computer for any drill
   const computeStatsFor = useMemo(() => {
     return (drill) => {
+      // Helper to resolve stable participant identifier (always visible)
+      // Defined early to prevent ReferenceError
+      const getParticipantId = (p) => {
+        const num = p.jersey_number || p.number;
+        const hasNum = num !== undefined && num !== null && num !== '';
+        
+        // 1. External ID (Preferred if present for Combines)
+        if (p.external_id) {
+            const ext = String(p.external_id);
+            // If it's a short alphanumeric (e.g. BB2003), show it all.
+            // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
+            return ext; 
+        }
+
+        // 2. Jersey Number (Secondary priority)
+        if (hasNum) return `#${num}`;
+
+        // 3. Fallback to Player ID (Shortened)
+        if (p.id) {
+            const pid = String(p.id);
+            return `…${pid.slice(-4)}`;
+        }
+        
+        return 'N/A';
+      };
+
+      // Helper to resolve display label for Axis
+      // Defined early to prevent ReferenceError
+      const getAxisLabel = (p) => {
+        // Mode: Names
+        if (labelMode === 'name') {
+            if (p.name) {
+                const parts = p.name.trim().split(/\s+/);
+                if (p.name.length < 10) return p.name;
+                return parts.length > 1 ? parts[parts.length-1] : p.name;
+            }
+        }
+        
+        // Mode: Number (or default) -> Use Participant ID
+        const id = getParticipantId(p);
+        // Truncate if extremely long for axis? 
+        if (id.length > 10) return `…${id.slice(-8)}`;
+        return id;
+      };
+
       if (!drill) return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
 
       try {
@@ -137,49 +182,6 @@ export default function Analytics() {
 
         const min = values[0];
         const max = values[values.length - 1];
-
-        // Helper to resolve stable participant identifier (always visible)
-        const getParticipantId = (p) => {
-          const num = p.jersey_number || p.number;
-          const hasNum = num !== undefined && num !== null && num !== '';
-          
-          // 1. External ID (Preferred if present for Combines)
-          if (p.external_id) {
-              const ext = String(p.external_id);
-              // If it's a short alphanumeric (e.g. BB2003), show it all.
-              // If it's very long, maybe truncate? User said: "BB2003, not ...2003"
-              return ext; 
-          }
-
-          // 2. Jersey Number (Secondary priority)
-          if (hasNum) return `#${num}`;
-
-          // 3. Fallback to Player ID (Shortened)
-          if (p.id) {
-              const pid = String(p.id);
-              return `…${pid.slice(-4)}`;
-          }
-          
-          return 'N/A';
-        };
-
-        // Helper to resolve display label for Axis
-        const getAxisLabel = (p) => {
-          // Mode: Names
-          if (labelMode === 'name') {
-              if (p.name) {
-                  const parts = p.name.trim().split(/\s+/);
-                  if (p.name.length < 10) return p.name;
-                  return parts.length > 1 ? parts[parts.length-1] : p.name;
-              }
-          }
-          
-          // Mode: Number (or default) -> Use Participant ID
-          const id = getParticipantId(p);
-          // Truncate if extremely long for axis? 
-          if (id.length > 10) return `…${id.slice(-8)}`;
-          return id;
-        };
 
         // Filter by search query if present
         const searchFiltered = searchQuery 
@@ -451,10 +453,10 @@ export default function Analytics() {
                                 opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
                             />
                           ))}
-                          {barLimit <= 30 && (
+                          {barLimit <= 15 && (
                               <LabelList 
                                 dataKey="score" 
-                                position={(barLimit > 15 && drillStats.orderedForBars.length > 0) ? "right" : "top"} 
+                                position="top" 
                                 formatter={(v) => `${v}`} 
                                 fill="#111827" 
                                 fontSize={10}
