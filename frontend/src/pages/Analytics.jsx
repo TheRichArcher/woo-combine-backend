@@ -364,7 +364,7 @@ export default function Analytics() {
                     <ResponsiveContainer width="100%" height={300}>
                       <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
                         name: e.player.name, 
-                        number: e.player.jersey_number || e.player.number || '?',
+                        number: e.player.jersey_number || e.player.number,
                         external_id: e.player.external_id,
                         axisLabel: e.displayLabel,
                         participantId: e.participantId,
@@ -444,7 +444,8 @@ export default function Analytics() {
                             name: e.player.name, 
                             participantId: e.participantId,
                             axisLabel: e.displayLabel,
-                            score: e.value 
+                            score: e.value,
+                            number: e.player.jersey_number || e.player.number
                           }))} 
                           line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
                           lineType="joint" 
