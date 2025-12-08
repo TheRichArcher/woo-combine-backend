@@ -204,6 +204,9 @@ export default function Analytics() {
         ).map(e => ({ 
             ...e, 
             displayLabel: getAxisLabel(e.player),
+            // Combine display label with ID to ensure uniqueness for Recharts categorical axis
+            // otherwise duplicate labels will merge bars and look blank
+            uniqueLabel: `${getAxisLabel(e.player)}__${e.player.id}`,
             participantId: getParticipantId(e.player)
         })).filter(e => {
             const valid = Number.isFinite(e.value);
@@ -492,13 +495,23 @@ export default function Analytics() {
                                     const isVertical = barLimit > 15 && drillStats.orderedForBars.length > 0;
                                     // Enhanced debug log right before render
                                     if (isVertical) {
+                                        // DEBUG: Check for duplicate labels
+                                        const labels = drillStats.orderedForBars.slice(0, barLimit).map(d => d.displayLabel);
+                                        const uniqueLabels = new Set(labels);
+                                        console.log('[Analytics Debug] Label Uniqueness Check:', {
+                                            total: labels.length,
+                                            unique: uniqueLabels.size,
+                                            duplicates: labels.length - uniqueLabels.size,
+                                            sample: labels.slice(0, 10)
+                                        });
+
                                         console.log('[Analytics Debug] Vertical Branch Render:', {
                                             layout: 'vertical',
                                             height: Math.max(300, (barLimit === 9999 ? drillStats.count : barLimit) * 30),
                                             dataLength: drillStats.orderedForBars.slice(0, barLimit).length,
                                             domain: verticalXDomain,
                                             xAxisProps: { type: 'number', hide: true, domain: verticalXDomain, dataKey: 'score' },
-                                            yAxisProps: { type: 'category', dataKey: 'axisLabel' }
+                                            yAxisProps: { type: 'category', dataKey: 'uniqueLabel' }
                                         });
                                     }
                                     return (
@@ -509,6 +522,7 @@ export default function Analytics() {
                                         number: e.player.jersey_number || e.player.number,
                                         external_id: e.player.external_id,
                                         axisLabel: e.displayLabel,
+                                        uniqueLabel: e.uniqueLabel, // Use this for YAxis key
                                         participantId: e.participantId,
                                         score: Number.isFinite(e.value) ? Number(e.value.toFixed(2)) : 0,
                                         playerId: e.player.id
@@ -517,11 +531,12 @@ export default function Analytics() {
                                             <>
                                                 <XAxis type="number" hide domain={verticalXDomain} dataKey="score" />
                                                 <YAxis 
-                                                    dataKey="axisLabel" 
+                                                    dataKey="uniqueLabel" 
                                                     type="category" 
                                                     width={labelMode === 'name' ? 100 : 60} 
                                                     tick={{ fontSize: 11 }}
                                                     interval={0}
+                                                    tickFormatter={(val) => val ? val.split('__')[0] : ''}
                                                 />
                                             </>
                                         ) : (
