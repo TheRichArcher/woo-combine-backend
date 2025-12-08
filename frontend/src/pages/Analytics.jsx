@@ -377,13 +377,17 @@ export default function Analytics() {
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
+                              // Determine if we should show jersey # (only if present and numeric)
+                              const showJersey = data.number !== undefined && data.number !== null && data.number !== '' && data.number !== '?' && Number.isFinite(Number(data.number));
+                              const isJerseyRedundant = showJersey && data.participantId === `#${data.number}`;
+
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
                                     <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
                                     {/* Optional: Show jersey # if available and different from ID */}
-                                    {data.number && data.participantId !== `#${data.number}` && (
+                                    {showJersey && !isJerseyRedundant && (
                                        <span className="text-gray-400 text-xs">(#{data.number})</span>
                                     )}
                                   </div>
@@ -419,13 +423,17 @@ export default function Analytics() {
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               const data = payload[0].payload;
+                              // Determine if we should show jersey # (only if present and numeric)
+                              const showJersey = data.number !== undefined && data.number !== null && data.number !== '' && data.number !== '?' && Number.isFinite(Number(data.number));
+                              const isJerseyRedundant = showJersey && data.participantId === `#${data.number}`;
+
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
                                   <div className="font-bold text-gray-900">{data.name}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
                                     <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
                                     {/* Optional: Show jersey # if available and different from ID */}
-                                    {data.number && data.participantId !== `#${data.number}` && (
+                                    {showJersey && !isJerseyRedundant && (
                                        <span className="text-gray-400 text-xs">(#{data.number})</span>
                                     )}
                                   </div>
