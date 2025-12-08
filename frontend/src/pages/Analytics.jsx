@@ -21,6 +21,7 @@ export default function Analytics() {
   const [labelMode, setLabelMode] = useState('number'); // 'number' | 'name'
   const [barLimit, setBarLimit] = useState(30); // 10 | 20 | 30 | 50 | 100 (All)
   const [highlightedPlayerId, setHighlightedPlayerId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // High-contrast palette (no bright yellows)
   const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
@@ -161,27 +162,19 @@ export default function Analytics() {
         return 'N/A';
       };
 
-      // Helper to resolve display label for Axis (might need truncation if too long)
-      const getAxisLabel = (p) => {
-        // Mode: Names
-        if (labelMode === 'name') {
-            if (p.name) {
-                const parts = p.name.trim().split(/\s+/);
-                if (p.name.length < 10) return p.name;
-                return parts.length > 1 ? parts[parts.length-1] : p.name;
-            }
-        }
-        
-        // Mode: Number (or default) -> Use Participant ID
-        const id = getParticipantId(p);
-        // Truncate if extremely long for axis? 
-        if (id.length > 10) return `…${id.slice(-8)}`;
-        return id;
-      };
+      // Filter by search query if present
+      const searchFiltered = searchQuery 
+        ? inRange.filter(e => {
+            const pid = getParticipantId(e.player).toLowerCase();
+            const name = (e.player.name || '').toLowerCase();
+            const q = searchQuery.toLowerCase();
+            return pid.includes(q) || name.includes(q);
+          })
+        : inRange;
 
       const orderedForBars = (drill.lowerIsBetter
-        ? [...inRange].sort((a, b) => a.value - b.value)
-        : [...inRange].sort((a, b) => b.value - a.value)
+        ? [...searchFiltered].sort((a, b) => a.value - b.value)
+        : [...searchFiltered].sort((a, b) => b.value - a.value)
       ).map(e => ({ 
           ...e, 
           displayLabel: getAxisLabel(e.player),
@@ -366,7 +359,9 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, barLimit === 9999 ? 500 : barLimit * 20))}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
+                      <BarChart 
+                        layout={barLimit > 15 ? 'vertical' : 'horizontal'}
+                        data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number,
                         external_id: e.player.external_id,
@@ -375,16 +370,28 @@ export default function Analytics() {
                         score: Number(e.value.toFixed(2)),
                         playerId: e.player.id
                       }))}>
-                        <XAxis 
-                            dataKey="axisLabel" 
-                            interval={barLimit > 40 ? 0 : 'preserveEnd'} 
-                            angle={barLimit > 20 ? -45 : 0}
-                            textAnchor={barLimit > 20 ? 'end' : 'middle'}
-                            height={barLimit > 20 ? 60 : 30}
-                            label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: barLimit > 20 ? 10 : 0 }} 
-                            tick={{ fontSize: barLimit > 50 ? 10 : 12 }}
-                        />
-                        <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
+                        {barLimit > 15 ? (
+                            <>
+                                <XAxis type="number" domain={['dataMin', 'dataMax']} hide />
+                                <YAxis 
+                                    dataKey="axisLabel" 
+                                    type="category" 
+                                    width={labelMode === 'name' ? 100 : 60} 
+                                    tick={{ fontSize: 11 }}
+                                    interval={0}
+                                />
+                            </>
+                        ) : (
+                            <>
+                                <XAxis 
+                                    dataKey="axisLabel" 
+                                    interval={0} 
+                                    tick={{ fontSize: 12 }}
+                                    label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: 0 }} 
+                                />
+                                <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
+                            </>
+                        )}
                         <Tooltip 
                           cursor={{ fill: 'transparent' }}
                           content={({ active, payload, label }) => {
@@ -413,7 +420,7 @@ export default function Analytics() {
                             return null;
                           }}
                         />
-                        <Bar dataKey="score">
+                        <Bar dataKey="score" barSize={barLimit > 15 ? 15 : undefined}>
                           {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
                             <Cell 
                                 key={`bar-${idx}`} 
@@ -421,7 +428,15 @@ export default function Analytics() {
                                 opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
                             />
                           ))}
-                          <LabelList dataKey="score" position="top" formatter={(v) => `${v} ${selectedDrill.unit}`} fill="#111827" />
+                          {barLimit <= 30 && (
+                              <LabelList 
+                                dataKey="score" 
+                                position={barLimit > 15 ? "right" : "top"} 
+                                formatter={(v) => `${v}`} 
+                                fill="#111827" 
+                                fontSize={10}
+                              />
+                          )}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
