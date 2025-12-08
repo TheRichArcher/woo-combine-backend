@@ -165,9 +165,9 @@ export default function Analytics() {
       // Filter by search query if present
       const searchFiltered = searchQuery 
         ? inRange.filter(e => {
-            const pid = getParticipantId(e.player).toLowerCase();
+            const pid = getParticipantId(e.player)?.toLowerCase() ?? '';
             const name = (e.player.name || '').toLowerCase();
-            const q = searchQuery.toLowerCase();
+            const q = (searchQuery || '').toLowerCase();
             return pid.includes(q) || name.includes(q);
           })
         : inRange;
@@ -358,7 +358,7 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
-                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, barLimit === 9999 ? 500 : barLimit * 20))}>
+                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, (barLimit === 9999 ? drillStats.count : barLimit) * 20))}>
                       <BarChart 
                         layout={barLimit > 15 ? 'vertical' : 'horizontal'}
                         data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
@@ -370,7 +370,7 @@ export default function Analytics() {
                         score: Number(e.value.toFixed(2)),
                         playerId: e.player.id
                       }))}>
-                        {barLimit > 15 ? (
+                        {barLimit > 15 && drillStats.orderedForBars.length > 0 ? (
                             <>
                                 <XAxis type="number" domain={['dataMin', 'dataMax']} hide />
                                 <YAxis 
@@ -445,7 +445,7 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores (Lollipop Chart)</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
-                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, barLimit === 9999 ? 500 : barLimit * 20))}>
+                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, (barLimit === 9999 ? drillStats.count : barLimit) * 20))}>
                       <ScatterChart>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis 
