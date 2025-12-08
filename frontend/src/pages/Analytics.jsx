@@ -430,9 +430,12 @@ export default function Analytics() {
 
                   <select
                     value={barLimit}
+                    onClick={() => console.log('[Analytics] barLimit select clicked')}
+                    onInput={() => console.log('[Analytics] barLimit select input')}
                     onChange={(e) => {
+                        console.log('[Analytics] barLimit change raw:', e.target.value);
                         const val = Number(e.target.value);
-                        console.log('[Analytics] barLimit change', e.target.value, val);
+                        console.log('[Analytics] barLimit change num:', val);
                         setBarLimit(val);
                     }}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
@@ -445,6 +448,10 @@ export default function Analytics() {
                   </select>
 
                   <div className="h-4 w-px bg-gray-300 hidden sm:block mx-1"></div>
+
+                  {/* DEBUG: Force State Buttons */}
+                  <button onClick={() => setBarLimit(10)} className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300">Set 10</button>
+                  <button onClick={() => setBarLimit(9999)} className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300">Set ALL</button>
 
                   <select
                     value={selectedAgeGroup}
