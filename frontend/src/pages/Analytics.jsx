@@ -365,16 +365,25 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, barLimit === 9999 ? 500 : barLimit * 20))}>
                       <BarChart data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number,
                         external_id: e.player.external_id,
                         axisLabel: e.displayLabel,
                         participantId: e.participantId,
-                        score: Number(e.value.toFixed(2)) 
+                        score: Number(e.value.toFixed(2)),
+                        playerId: e.player.id
                       }))}>
-                        <XAxis dataKey="axisLabel" label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom' }} />
+                        <XAxis 
+                            dataKey="axisLabel" 
+                            interval={barLimit > 40 ? 0 : 'preserveEnd'} 
+                            angle={barLimit > 20 ? -45 : 0}
+                            textAnchor={barLimit > 20 ? 'end' : 'middle'}
+                            height={barLimit > 20 ? 60 : 30}
+                            label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: barLimit > 20 ? 10 : 0 }} 
+                            tick={{ fontSize: barLimit > 50 ? 10 : 12 }}
+                        />
                         <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip 
                           cursor={{ fill: 'transparent' }}
@@ -421,10 +430,19 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores (Lollipop Chart)</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, barLimit === 9999 ? 500 : barLimit * 20))}>
                       <ScatterChart>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="axisLabel" name="Player" label={{ value: 'Player', position: 'bottom' }} />
+                        <XAxis 
+                            dataKey="axisLabel" 
+                            name="Player" 
+                            interval={barLimit > 40 ? 0 : 'preserveEnd'}
+                            angle={barLimit > 20 ? -45 : 0}
+                            textAnchor={barLimit > 20 ? 'end' : 'middle'}
+                            height={barLimit > 20 ? 60 : 30}
+                            label={{ value: 'Player', position: 'bottom', offset: barLimit > 20 ? 10 : 0 }} 
+                            tick={{ fontSize: barLimit > 50 ? 10 : 12 }}
+                        />
                         <YAxis dataKey="score" name="Score" domain={[0, 'dataMax + 5']} label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
                         <Tooltip 
                           cursor={{ strokeDasharray: '3 3' }}
@@ -462,15 +480,21 @@ export default function Analytics() {
                             axisLabel: e.displayLabel,
                             score: e.value,
                             external_id: e.player.external_id,
-                            number: e.player.jersey_number || e.player.number
+                            number: e.player.jersey_number || e.player.number,
+                            playerId: e.player.id
                           }))} 
                           line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
                           lineType="joint" 
                           shape="circle" 
                           shapeProps={{ r: 6 }} 
                         >
-                          {drillStats.orderedForBars.slice(0, barLimit).map((_, idx) => (
-                            <Cell key={`pt-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} stroke="#111827" />
+                          {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
+                            <Cell 
+                                key={`pt-${idx}`} 
+                                fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
+                                stroke="#111827" 
+                                opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
+                            />
                           ))}
                         </Scatter>
                       </ScatterChart>

@@ -46,8 +46,7 @@ class DataImporter:
         'pos': 'position',
         'bib': 'external_id',
         'external_id': 'external_id',
-        'athlete_id': 'external_id',
-        'id': 'external_id'
+        'athlete_id': 'external_id'
     }
 
     @staticmethod
