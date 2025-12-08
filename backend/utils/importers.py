@@ -43,7 +43,11 @@ class DataImporter:
         'age': 'age_group',
         'group': 'age_group',
         'division': 'age_group',
-        'pos': 'position'
+        'pos': 'position',
+        'bib': 'external_id',
+        'external_id': 'external_id',
+        'athlete_id': 'external_id',
+        'id': 'external_id'
     }
 
     @staticmethod

@@ -19,6 +19,8 @@ export default function Analytics() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
   const [labelMode, setLabelMode] = useState('number'); // 'number' | 'name'
+  const [barLimit, setBarLimit] = useState(30); // 10 | 20 | 30 | 50 | 100 (All)
+  const [highlightedPlayerId, setHighlightedPlayerId] = useState(null);
   
   // High-contrast palette (no bright yellows)
   const CHART_COLORS = ['#2563eb', '#16a34a', '#ef4444', '#9333ea', '#0ea5e9', '#f59e0b', '#22c55e', '#3b82f6', '#ea580c', '#1d4ed8'];
@@ -186,11 +188,13 @@ export default function Analytics() {
           participantId: getParticipantId(e.player)
       }));
 
-      // DEBUG: Log sample data for verification
-      // if (orderedForBars.length > 0) {
-      //   console.log("Analytics: Sample Player", orderedForBars[0].player);
-      //   console.log("Analytics: Sample Chart Data", orderedForBars[0]);
-      // }
+      // DEBUG: Log players missing external_id to help trace import issues
+      const missingExternalId = orderedForBars.filter(e => !e.player.external_id);
+      if (missingExternalId.length > 0) {
+        console.warn(`[Analytics] ${missingExternalId.length} players missing external_id (Bib):`, 
+          missingExternalId.map(e => ({ name: e.player.name, id: e.player.id }))
+        );
+      }
 
       // Compute simple top5 list used by the sidebar
       const top5 = orderedForBars.slice(0, 5).map(e => ({
@@ -362,7 +366,7 @@ export default function Analytics() {
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
+                      <BarChart data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number,
                         external_id: e.player.external_id,
@@ -383,7 +387,7 @@ export default function Analytics() {
 
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
-                                  <div className="font-bold text-gray-900">{data.name}</div>
+                                  <div className="font-bold text-gray-900">{data.name} {data.external_id ? '' : <span className="text-red-500" title="Missing Bib/External ID">(!)</span>}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
                                     <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
                                     {/* Optional: Show jersey # if available and different from ID */}
@@ -401,8 +405,12 @@ export default function Analytics() {
                           }}
                         />
                         <Bar dataKey="score">
-                          {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
-                            <Cell key={`bar-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                          {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
+                            <Cell 
+                                key={`bar-${idx}`} 
+                                fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
+                                opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
+                            />
                           ))}
                           <LabelList dataKey="score" position="top" formatter={(v) => `${v} ${selectedDrill.unit}`} fill="#111827" />
                         </Bar>
@@ -429,7 +437,7 @@ export default function Analytics() {
 
                               return (
                                 <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
-                                  <div className="font-bold text-gray-900">{data.name}</div>
+                                  <div className="font-bold text-gray-900">{data.name} {data.external_id ? '' : <span className="text-red-500" title="Missing Bib/External ID">(!)</span>}</div>
                                   <div className="text-gray-600 mb-1 flex items-center gap-1">
                                     <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
                                     {/* Optional: Show jersey # if available and different from ID */}
@@ -448,11 +456,12 @@ export default function Analytics() {
                         />
                         <Scatter 
                           name="Scores" 
-                          data={drillStats.orderedForBars.slice(0, 10).map((e) => ({ 
+                          data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
                             name: e.player.name, 
                             participantId: e.participantId,
                             axisLabel: e.displayLabel,
                             score: e.value,
+                            external_id: e.player.external_id,
                             number: e.player.jersey_number || e.player.number
                           }))} 
                           line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
@@ -460,7 +469,7 @@ export default function Analytics() {
                           shape="circle" 
                           shapeProps={{ r: 6 }} 
                         >
-                          {drillStats.orderedForBars.slice(0, 10).map((_, idx) => (
+                          {drillStats.orderedForBars.slice(0, barLimit).map((_, idx) => (
                             <Cell key={`pt-${idx}`} fill={CHART_COLORS[idx % CHART_COLORS.length]} stroke="#111827" />
                           ))}
                         </Scatter>
@@ -571,7 +580,11 @@ export default function Analytics() {
                       <div className="text-sm font-medium text-gray-700 mb-1">Top Performers · {selectedDrill.lowerIsBetter ? 'best (lowest)' : 'best (highest)'} values</div>
                     <div className="space-y-1 max-h-40 overflow-y-auto">
                       {drillStats.top5.map((t, idx) => (
-                        <div key={idx} className="flex items-center justify-between text-sm bg-white rounded border p-2">
+                        <div 
+                            key={idx} 
+                            className={`flex items-center justify-between text-sm bg-white rounded border p-2 cursor-pointer transition-colors ${highlightedPlayerId === t.id ? 'ring-2 ring-brand-primary bg-blue-50' : 'hover:bg-gray-50'}`}
+                            onClick={() => setHighlightedPlayerId(highlightedPlayerId === t.id ? null : t.id)}
+                        >
                           <div className="flex items-center gap-2">
                             <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-semantic-success':idx<3?'bg-semantic-warning':'bg-gray-500'}`}>{idx+1}</div>
                             <div className="text-gray-900"><span className="font-mono text-gray-600 bg-gray-50 px-1 rounded mr-1 text-xs">{t.participantId}</span> {t.name}</div>

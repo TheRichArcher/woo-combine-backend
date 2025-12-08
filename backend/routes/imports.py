@@ -203,6 +203,13 @@ def get_import_schema(
         "aliases": ["jersey", "number", "no", "#"]
     })
     schema.append({
+        "key": "external_id",
+        "label": "Bib / External ID",
+        "required": False,
+        "type": "string",
+        "aliases": ["bib", "id", "athlete_id", "external_id"]
+    })
+    schema.append({
         "key": "age_group",
         "label": "Age Group",
         "required": False,
@@ -244,7 +251,7 @@ def get_import_template(
         schema = get_event_schema(event_id)
         
         # Define headers
-        identity_headers = ["First Name", "Last Name", "Jersey Number", "Age Group"]
+        identity_headers = ["First Name", "Last Name", "Jersey Number", "Bib / External ID", "Age Group"]
         drill_headers = [d.label for d in schema.drills]
         all_headers = identity_headers + drill_headers
         
@@ -270,6 +277,7 @@ def get_import_template(
                 p.get('first', ''),
                 p.get('last', ''),
                 p.get('number', ''),
+                p.get('external_id', ''),
                 p.get('age_group', '')
             ]
             # Empty drill columns
