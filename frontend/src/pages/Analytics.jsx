@@ -281,6 +281,24 @@ export default function Analytics() {
   // Drill stats for currently selected drill (computed via reusable function)
   const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
 
+  // DEBUG: Inspect chart data integrity
+  if (selectedDrill && drillStats.orderedForBars.length > 0) {
+      const dataSample = drillStats.orderedForBars.slice(0, barLimit).map(e => ({
+          name: e.player.name,
+          val: e.value,
+          score: Number.isFinite(e.value) ? Number(e.value.toFixed(2)) : 'NaN/Inf'
+      }));
+      console.log('[Analytics Debug] Chart Data:', {
+          drill: selectedDrill.label,
+          count: drillStats.count,
+          min: drillStats.min,
+          max: drillStats.max,
+          barLimit,
+          layout: (barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal',
+          sample: dataSample.slice(0, 3)
+      });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
@@ -392,12 +410,12 @@ export default function Analytics() {
                         external_id: e.player.external_id,
                         axisLabel: e.displayLabel,
                         participantId: e.participantId,
-                        score: Number(e.value.toFixed(2)),
+                        score: Number.isFinite(e.value) ? Number(e.value.toFixed(2)) : 0,
                         playerId: e.player.id
                       }))}>
                         {barLimit > 15 && drillStats.orderedForBars.length > 0 ? (
                             <>
-                                <XAxis type="number" domain={['dataMin', 'dataMax']} hide />
+                                <XAxis type="number" hide />
                                 <YAxis 
                                     dataKey="axisLabel" 
                                     type="category" 
