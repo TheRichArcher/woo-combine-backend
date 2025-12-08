@@ -200,7 +200,7 @@ export default function Analytics() {
             ...e, 
             displayLabel: getAxisLabel(e.player),
             participantId: getParticipantId(e.player)
-        }));
+        })).filter(e => Number.isFinite(e.value)); // Explicitly filter out non-finite scores for chart safety
 
         // DEBUG: Log players missing external_id to help trace import issues
         const missingExternalId = orderedForBars.filter(e => !e.player.external_id);
@@ -441,7 +441,7 @@ export default function Analytics() {
                       }))}>
                         {barLimit > 15 && drillStats.orderedForBars.length > 0 ? (
                             <>
-                                <XAxis type="number" hide domain={[0, 'dataMax']} />
+                                <XAxis type="number" hide domain={verticalXDomain} />
                                 <YAxis 
                                     dataKey="axisLabel" 
                                     type="category" 
