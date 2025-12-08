@@ -90,6 +90,11 @@ export default function Analytics() {
     }
   }, [drills, selectedDrillKey]);
 
+  // Clear highlight when context changes to prevent "stuck" invisible bars
+  useEffect(() => {
+    setHighlightedPlayerId(null);
+  }, [selectedDrillKey, barLimit, selectedAgeGroup, searchQuery]);
+
   const selectedDrill = useMemo(() => drills.find(d => d.key === selectedDrillKey), [drills, selectedDrillKey]);
 
   const filteredPlayers = useMemo(() => {
@@ -334,9 +339,17 @@ export default function Analytics() {
           barLimit,
           layout: (barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal',
           domain: verticalXDomain,
+          filteredRows: drillStats.orderedForBars.length - drillStats.count, // crude approx
           sample: dataSample.slice(0, 3)
       });
   }
+
+  // Safe Opacity Helper: Force opacity=1 if large list to avoid "stuck highlight" issues in prod
+  const getBarOpacity = (playerId) => {
+    if (barLimit > 15) return 1; // "Safe Mode" for large lists
+    if (!highlightedPlayerId) return 1;
+    return highlightedPlayerId === playerId ? 1 : 0.3;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -507,7 +520,7 @@ export default function Analytics() {
                             <Cell 
                                 key={`bar-${idx}`} 
                                 fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
-                                opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
+                                opacity={getBarOpacity(entry.player.id)}
                             />
                           ))}
                           {barLimit <= 15 && (
@@ -590,7 +603,7 @@ export default function Analytics() {
                                 key={`pt-${idx}`} 
                                 fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
                                 stroke="#111827" 
-                                opacity={highlightedPlayerId && highlightedPlayerId !== entry.player.id ? 0.3 : 1}
+                                opacity={getBarOpacity(entry.player.id)}
                             />
                           ))}
                         </Scatter>
