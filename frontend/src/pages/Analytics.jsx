@@ -187,10 +187,10 @@ export default function Analytics() {
       }));
 
       // DEBUG: Log sample data for verification
-      if (orderedForBars.length > 0) {
-        console.log("Analytics: Sample Player", orderedForBars[0].player);
-        console.log("Analytics: Sample Chart Data", orderedForBars[0]);
-      }
+      // if (orderedForBars.length > 0) {
+      //   console.log("Analytics: Sample Player", orderedForBars[0].player);
+      //   console.log("Analytics: Sample Chart Data", orderedForBars[0]);
+      // }
 
       // Compute simple top5 list used by the sidebar
       const top5 = orderedForBars.slice(0, 5).map(e => ({
@@ -258,19 +258,6 @@ export default function Analytics() {
 
   // Drill stats for currently selected drill (computed via reusable function)
   const drillStats = useMemo(() => computeStatsFor(selectedDrill), [computeStatsFor, selectedDrill]);
-
-  // DEBUG: Log sample data for verification
-  console.log("[Analytics] drill:", selectedDrillKey);
-  console.log("[Analytics] first bar datum:", drillStats?.orderedForBars?.[0]);
-  console.log("[Analytics] first bar axisLabel:", drillStats?.orderedForBars?.[0]?.displayLabel);
-  console.log("[Analytics] first bar player fields:", {
-    number: drillStats?.orderedForBars?.[0]?.player?.number,
-    jersey_number: drillStats?.orderedForBars?.[0]?.player?.jersey_number,
-    external_id: drillStats?.orderedForBars?.[0]?.player?.external_id,
-    playerId: drillStats?.orderedForBars?.[0]?.player?.id,
-    name: drillStats?.orderedForBars?.[0]?.player?.name,
-  });
-  console.log("[Analytics] unique axis labels sample:", Array.from(new Set((drillStats?.orderedForBars||[]).slice(0,30).map(d => d.displayLabel))));
 
   return (
     <div className="min-h-screen bg-gray-50">
