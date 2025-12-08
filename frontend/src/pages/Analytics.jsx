@@ -99,6 +99,7 @@ export default function Analytics() {
   // Reusable stats computer for any drill
   const computeStatsFor = useMemo(() => {
     return (drill) => {
+      try {
       if (!drill) return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [] };
 
       const entries = filteredPlayers
@@ -160,6 +161,24 @@ export default function Analytics() {
         }
         
         return 'N/A';
+      };
+
+      // Helper to resolve display label for Axis
+      const getAxisLabel = (p) => {
+        // Mode: Names
+        if (labelMode === 'name') {
+            if (p.name) {
+                const parts = p.name.trim().split(/\s+/);
+                if (p.name.length < 10) return p.name;
+                return parts.length > 1 ? parts[parts.length-1] : p.name;
+            }
+        }
+        
+        // Mode: Number (or default) -> Use Participant ID
+        const id = getParticipantId(p);
+        // Truncate if extremely long for axis? 
+        if (id.length > 10) return `…${id.slice(-8)}`;
+        return id;
       };
 
       // Filter by search query if present
@@ -250,6 +269,10 @@ export default function Analytics() {
         minValue,
         maxValue,
       };
+      } catch (err) {
+        console.error("Analytics Chart Computation Failed:", err);
+        return { count: 0, orderedForBars: [], top5: [], bins: [], edges: [], error: err.message };
+      }
     };
   }, [filteredPlayers, labelMode]);
 
