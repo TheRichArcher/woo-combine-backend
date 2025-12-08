@@ -492,7 +492,7 @@ export default function Analytics() {
                     {/* Force container height for vertical mode to prevent Recharts collapse */}
                     <div style={{ width: '100%', height: Math.max(300, (barLimit === 9999 ? drillStats.count : barLimit) * 30) }}>
                         {/* Debug Wrapper to catch render errors */}
-                        <div style={{ width: '100%', height: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
                             {(() => {
                                 try {
                                     const isVertical = barLimit > 15 && drillStats.orderedForBars.length > 0;
@@ -594,7 +594,6 @@ export default function Analytics() {
                                     return <div className="text-red-500 text-xs p-4">Chart Error: {e.message}</div>;
                                 }
                             })()}
-                        </div>
                         </ResponsiveContainer>
                     </div>
                   </div>
