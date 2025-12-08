@@ -298,8 +298,14 @@ const ScorecardsPage = () => {
             </div>
 
             {/* Player Stats View */}
-            {selectedPlayer && playerStats && (
-              <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {!selectedPlayer ? (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-gray-900 mb-1">No Player Selected</h3>
+                <p className="text-gray-500">Select a player from the list above to view their stats and rankings.</p>
+              </div>
+            ) : selectedPlayer && playerStats && (
+              <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
                 <div className="bg-blue-600 px-6 py-4 text-white">
                   <div className="flex justify-between items-start">
                     <div>
@@ -345,7 +351,12 @@ const ScorecardsPage = () => {
                               {score !== null && score !== undefined ? `${score} ${drill.unit}` : '-'}
                             </div>
                             {score !== null && score !== undefined && drillRank && (
-                              <div className="text-xs text-gray-500">Rank: #{drillRank}</div>
+                              <div className="flex flex-col items-end">
+                                <div className="text-xs text-gray-500">Rank: #{drillRank}</div>
+                                <div className="text-[10px] text-gray-400">
+                                  {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
