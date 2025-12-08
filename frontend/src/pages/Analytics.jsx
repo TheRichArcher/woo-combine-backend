@@ -428,30 +428,33 @@ export default function Analytics() {
                     </div>
                   )}
 
-                  <select
-                    value={barLimit}
-                    onClick={() => console.log('[Analytics] barLimit select clicked')}
-                    onInput={() => console.log('[Analytics] barLimit select input')}
-                    onChange={(e) => {
-                        console.log('[Analytics] barLimit change raw:', e.target.value);
-                        const val = Number(e.target.value);
-                        console.log('[Analytics] barLimit change num:', val);
-                        setBarLimit(val);
-                    }}
-                    className="border border-gray-300 rounded px-2 py-1 text-sm"
-                  >
-                    <option value={10}>Top 10</option>
-                    <option value={20}>Top 20</option>
-                    <option value={30}>Top 30</option>
-                    <option value={50}>Top 50</option>
-                    <option value={9999}>ALL</option>
-                  </select>
-
-                  <div className="h-4 w-px bg-gray-300 hidden sm:block mx-1"></div>
-
                   {/* DEBUG: Force State Buttons */}
-                  <button onClick={() => setBarLimit(10)} className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300">Set 10</button>
-                  <button onClick={() => setBarLimit(9999)} className="text-xs bg-gray-200 px-1 rounded hover:bg-gray-300">Set ALL</button>
+                  <div className="flex gap-1 border border-red-300 p-1 rounded z-50 relative bg-white">
+                      <button onClick={() => { console.log('[Analytics] Force 10'); setBarLimit(10); }} className="text-xs bg-red-100 px-2 py-1 rounded hover:bg-red-200">Set 10</button>
+                      <button onClick={() => { console.log('[Analytics] Force ALL'); setBarLimit(9999); }} className="text-xs bg-red-100 px-2 py-1 rounded hover:bg-red-200">Set ALL</button>
+                  </div>
+
+                  <div className="relative z-50">
+                      <select
+                        value={String(barLimit)}
+                        onClick={() => console.log('[Analytics] barLimit select clicked')}
+                        onInput={() => console.log('[Analytics] barLimit select input')}
+                        onChange={(e) => {
+                            console.log('[Analytics] barLimit change raw:', e.target.value);
+                            const val = Number(e.target.value);
+                            console.log('[Analytics] barLimit change num:', val);
+                            setBarLimit(val);
+                        }}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm cursor-pointer"
+                        style={{ pointerEvents: 'auto' }}
+                      >
+                        <option value="10">Top 10</option>
+                        <option value="20">Top 20</option>
+                        <option value="30">Top 30</option>
+                        <option value="50">Top 50</option>
+                        <option value="9999">ALL</option>
+                      </select>
+                  </div>
 
                   <select
                     value={selectedAgeGroup}
