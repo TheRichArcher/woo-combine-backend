@@ -325,6 +325,7 @@ export default function Analytics() {
   }, [drillStats]);
 
   // DEBUG: Inspect chart data integrity
+  // Ensure this runs on every render to catch state updates
   if (selectedDrill && drillStats.orderedForBars.length > 0) {
       const dataSample = drillStats.orderedForBars.slice(0, barLimit).map(e => ({
           name: e.player.name,
@@ -337,12 +338,16 @@ export default function Analytics() {
           min: drillStats.min,
           max: drillStats.max,
           barLimit,
+          barLimitType: typeof barLimit,
           layout: (barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal',
           domain: verticalXDomain,
           filteredRows: drillStats.orderedForBars.length - drillStats.count, // crude approx
           sample: dataSample.slice(0, 3)
       });
   }
+
+  // Verify render cycle
+  console.log('[Analytics] render cycle barLimit:', barLimit);
 
   // Safe Opacity Helper: Force opacity=1 if large list to avoid "stuck highlight" issues in prod
   const getBarOpacity = (playerId) => {
