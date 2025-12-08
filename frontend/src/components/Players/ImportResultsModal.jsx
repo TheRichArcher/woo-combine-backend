@@ -4,7 +4,7 @@ import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping } from '../../utils/csvUtils';
 
-export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update' }) {
+export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true }) {
   const { selectedEvent } = useEvent();
   const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
   
@@ -140,10 +140,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       { key: 'notes', label: 'Notes' }
   ];
 
-  const MAPPING_OPTIONS = [
-      { label: "Player Fields", options: STANDARD_FIELDS },
-      ...drillMappingOptions
-  ];
+  const MAPPING_OPTIONS = useMemo(() => {
+      const baseOptions = [{ label: "Player Fields", options: STANDARD_FIELDS }];
+      
+      // If intent is roster_only, do NOT show drill options
+      if (intent === 'roster_only') {
+          return baseOptions;
+      }
+      
+      return [...baseOptions, ...drillMappingOptions];
+  }, [intent, drillMappingOptions]);
 
   const handleFileChange = (e) => {
     if (e.target.files && e.target.files[0]) {
@@ -224,6 +230,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           // Apply suggested mappings
           Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {
               if (sourceHeader) {
+                  // If roster_only, ensure we don't map to a drill key (unless it's standard field?)
+                  // effectiveDrills contains the drill keys.
+                  const isDrillKey = effectiveDrills.some(d => d.key === targetKey);
+                  
+                  if (intent === 'roster_only' && isDrillKey) {
+                      // Skip mapping this drill
+                      return;
+                  }
+                  
                   initialMapping[sourceHeader] = targetKey;
               }
           });
@@ -233,7 +248,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               if (!initialMapping[key]) {
                   // If the key itself matches a drill key exactly, map it
                   if (effectiveDrills.some(d => d.key === key)) {
-                      initialMapping[key] = key;
+                       if (intent !== 'roster_only') {
+                           initialMapping[key] = key;
+                       }
                   } else {
                       // Fallback: Use identity mapping (key -> key)
                       // This allows backend fuzzy matching to handle it if frontend normalization wasn't perfect
@@ -271,7 +288,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     // Validate that all mapped columns correspond to valid schema fields
     const validKeys = new Set([
         ...STANDARD_FIELDS.map(f => f.key),
-        ...effectiveDrills.map(d => d.key)
+        ...(intent === 'roster_only' ? [] : effectiveDrills.map(d => d.key))
     ]);
 
     const activeMappings = Object.entries(keyMapping)
@@ -352,7 +369,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           const mappedData = {};
           Object.keys(mergedData).forEach(k => {
               const targetKey = keyMapping[k] || k;
-              if (targetKey !== '__ignore__') {
+              // Strict Filtering: Only include keys that are in validKeys (respects intent)
+              if (targetKey !== '__ignore__' && validKeys.has(targetKey)) {
                   mappedData[targetKey] = mergedData[k];
               }
           });
@@ -397,6 +415,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       if (response.data) {
           setImportSummary({
               players: response.data.added || 0,
+              created: response.data.created_players, // Capture new fields
+              updated: response.data.updated_players, // Capture new fields
               scores: response.data.scores_written_total || 0,
               errors: response.data.errors || []
           });
@@ -475,6 +495,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   const renderInputStep = () => (
     <div className="space-y-6">
       {/* Import Mode Selection */}
+      {showModeSwitch && (
       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
         <label className="block text-sm font-medium text-gray-700 mb-2">Import Goal</label>
         <div className="flex gap-4">
@@ -519,6 +540,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             </button>
         </div>
       </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         {/* SCORES ONLY WARNING - Placed above actions */}
@@ -793,6 +815,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 <span>Draft saved automatically</span>
             </div>
         </div>
+
+        {/* Create/Update Mode Tip */}
+        {importMode === 'create_or_update' && intent === 'roster_and_scores' && (
+            <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-lg p-3 flex items-start gap-2">
+                <div className="bg-brand-primary/10 rounded-full p-1 mt-0.5">
+                    <Info className="w-3 h-3 text-brand-primary" />
+                </div>
+                <div className="text-sm text-gray-700">
+                    <span className="font-semibold text-brand-primary">Tip:</span> You can map roster fields (Name, Jersey #) and drill columns in the same upload.
+                </div>
+            </div>
+        )}
 
         <div className="flex gap-4">
           <button 
@@ -1141,14 +1175,28 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               {importSummary && (
                   <div className="mb-4 text-gray-600 font-medium bg-gray-50 p-3 rounded-lg border border-gray-200">
                       <div className="flex justify-center gap-6">
-                          <div className="text-center">
-                              <div className="text-2xl font-bold text-gray-800">{importSummary.players}</div>
-                              <div className="text-xs uppercase tracking-wide text-gray-500">Players Added</div>
-                          </div>
+                          {importSummary.created !== undefined ? (
+                              <>
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold text-gray-800">{importSummary.created}</div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-500">New</div>
+                                </div>
+                                <div className="w-px bg-gray-300"></div>
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold text-blue-600">{importSummary.updated}</div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-500">Updated</div>
+                                </div>
+                              </>
+                          ) : (
+                              <div className="text-center">
+                                  <div className="text-2xl font-bold text-gray-800">{importSummary.players}</div>
+                                  <div className="text-xs uppercase tracking-wide text-gray-500">Players Added</div>
+                              </div>
+                          )}
                           <div className="w-px bg-gray-300"></div>
                           <div className="text-center">
                               <div className="text-2xl font-bold text-cmf-primary">{importSummary.scores}</div>
-                              <div className="text-xs uppercase tracking-wide text-gray-500">Scores Written</div>
+                              <div className="text-xs uppercase tracking-wide text-gray-500">Scores</div>
                           </div>
                       </div>
                   </div>

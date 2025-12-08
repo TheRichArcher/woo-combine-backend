@@ -9,7 +9,7 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import OnboardingCard from "../components/OnboardingCard";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
-import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Upload, UserPlus, Users, ArrowRight, ArrowLeft, CheckCircle, Info } from 'lucide-react';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
@@ -91,6 +91,8 @@ export default function OnboardingEvent() {
   const [manualMsg, setManualMsg] = useState('');
   
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importModalMode, setImportModalMode] = useState('create_or_update');
+  const [importIntent, setImportIntent] = useState('roster_and_scores');
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const { drills: allDrills } = useDrills(createdEvent, drillRefreshTrigger);
 
@@ -478,310 +480,142 @@ export default function OnboardingEvent() {
 
             <StepIndicator activeStep={3} />
 
-            {/* CSV Upload Section */}
-            <div className="space-y-4 mb-6">
-              
-              {/* Updated Import Goal Guidance */}
-              <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                  <h3 className="font-semibold text-gray-900 mb-3 text-center">What are you uploading?</h3>
-                  <p className="text-xs text-gray-500 text-center -mt-2 mb-3">Roster creates players. Scores only adds results to existing players.</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Option A: Roster */}
-                      <div className="border-2 border-blue-100 bg-blue-50/50 rounded-lg p-3 flex flex-col h-full">
-                          <div className="flex-1">
-                              <div className="font-bold text-brand-primary text-sm mb-1">Upload roster (names + jersey #)</div>
-                              <p className="text-xs text-gray-600 mb-3">Creates new players or updates existing details.</p>
-                          </div>
-                          <Button 
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                            className="w-full mt-auto text-xs py-2"
-                          >
-                            <Upload className="w-3 h-3 mr-1" />
-                            Upload Roster CSV
-                          </Button>
-                      </div>
-
-                      {/* Option B: Scores Only */}
-                      <div className="border-2 border-green-100 bg-green-50/50 rounded-lg p-3 flex flex-col h-full">
-                          <div className="flex-1">
-                              <div className="font-bold text-semantic-success text-sm mb-1">Upload scores (existing roster)</div>
-                              <p className="text-xs text-gray-600 mb-3">Matches existing players only. Never creates players.</p>
-                          </div>
-                          <Button 
-                            size="sm"
-                            variant="outline"
-                            disabled={playerCount === 0}
-                            onClick={() => {
-                                if (playerCount === 0) return; // Disabled means dead
-                                setDrillRefreshTrigger(t => t + 1);
-                                setShowImportModal(true);
-                            }}
-                            className={`w-full mt-auto text-xs py-2 border-semantic-success text-semantic-success hover:bg-green-50 ${playerCount === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                          >
-                            Upload Scores
-                          </Button>
-                          {playerCount === 0 && <p className="text-xs text-red-500 mt-1 text-center">Upload a roster first.</p>}
-                      </div>
-                  </div>
-              </div>
-
-              {/* Step 1: Upload File (Hidden if no file selected yet, to reduce clutter since we have the buttons above) */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleCsv}
-                className="hidden"
-              />
-
-              {csvFileName && (
-              <div className={`border border-gray-200 rounded-lg transition-all duration-300 overflow-hidden bg-gray-50 p-3`}>
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className={`font-semibold text-gray-900 flex items-center gap-2 text-sm`}>
-                    <div className={`flex items-center justify-center rounded-full bg-brand-primary text-white font-bold w-6 h-6 text-xs`}>1</div>
-                    Upload CSV File
-                  </h3>
-                  <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()} className="text-xs h-8 px-2">
-                    Change File
-                  </Button>
-                </div>
-                
-                <div className="ml-8 flex items-center gap-2 text-sm text-semantic-success font-medium">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>{csvFileName} loaded ({csvRows.length} rows)</span>
-                </div>
-              </div>
-              )}
-
-              {/* Step 2: Import Players */}
-              {csvFileName && uploadStatus !== 'success' && (
-                <div className="border-2 border-brand-primary/20 bg-white rounded-lg p-4 shadow-lg animate-in fade-in slide-in-from-top-4 relative ring-4 ring-brand-primary/5">
-                  <div className="absolute -left-3 top-4 w-8 h-8 rounded-full bg-brand-primary text-white flex items-center justify-center font-bold shadow-sm z-10">
-                    2
-                  </div>
-                  
-                  <div className="pl-6">
-                    <h3 className="font-bold text-gray-900 text-lg mb-3">Import Players</h3>
-                    
-                    {/* Mandatory Banner */}
-                    <div className="bg-blue-50 border-l-4 border-brand-secondary p-4 mb-5 rounded-r-md">
-                      <p className="font-bold text-gray-800 text-base">
-                        CSV uploaded. Now import your players to complete the process.
-                      </p>
-                    </div>
-                    
-                    {/* Instructional Banner for Mapping */}
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-5">
-                        <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span className="text-amber-600 text-sm font-bold">!</span>
-                            </div>
-                            <div>
-                                <p className="text-amber-800 font-bold text-sm mb-1">Only map roster information here.</p>
-                                <p className="text-amber-700 text-sm">
-                                    Drill scores will be imported separately on the Players page. 
-                                    All score columns should be set to <strong>"Ignore / Don't Import."</strong>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {!mappingApplied ? (
-                      <>
-                        <div className="mb-4">
-                          <p className="text-sm text-gray-600 mb-3">Match your CSV columns to our fields.</p>
-                          <Button onClick={() => setShowMapping(true)} variant="outline" className="w-full">
-                            Review Field Mapping
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        {hasValidPlayers && (
-                          <Button 
-                            onClick={() => handleUpload()} 
-                            disabled={uploadStatus === "uploading"} 
-                            className="w-full py-4 text-lg font-bold shadow-md hover:shadow-lg transition-all transform active:scale-[0.98]"
-                          >
-                            {uploadStatus === "uploading" ? (
-                              "Importing..."
-                            ) : (
-                              `Import ${csvRows.filter(r => r.name && r.name.trim() !== "").length} Players`
-                            )}
-                          </Button>
-                        )}
-                        <p className="text-xs text-gray-500 mt-3 text-center">
-                          Rows without names will be automatically skipped.
-                        </p>
-                      </>
-                    )}
-                    
-                    {uploadMsg && (
-                      <div className={`text-sm mt-3 font-medium p-2 rounded ${uploadStatus === "error" ? "bg-semantic-error/10 text-semantic-error" : "text-brand-primary"}`}>
-                        {uploadMsg}
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Mapping UI Modal/Expandable */}
-                  {showMapping && (
-                    <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 mt-4 text-left animate-in zoom-in-95">
-                      <h4 className="font-semibold text-gray-900 mb-2">Match Column Headers</h4>
-                      <p className="text-sm text-gray-600 mb-3">Match our fields to the headers in your CSV.</p>
-                      <div className="grid grid-cols-1 gap-3">
-                        {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => {
-                          const selectedHeader = fieldMapping[fieldKey] || '';
-                          const isForcedIgnore = forcedIgnoreFields.includes(fieldKey);
-                          
-                          const sampleValue = selectedHeader && selectedHeader !== '__ignore__'
-                            ? (originalCsvRows.find(row => (row?.[selectedHeader] || '').trim() !== '')?.[selectedHeader] || '')
-                            : '';
-                          return (
-                            <div key={fieldKey} className="flex flex-col gap-1">
-                              <div className="flex items-center gap-3">
-                                <div className="w-40 text-sm text-gray-700 font-medium">
-                                  <div className="flex items-center">
-                                    {fieldKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                    {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-semantic-error ml-1">*</span>}
-                                  </div>
-                                  {/* Show Review warning if confidence is low OR if unmapped */}
-                                  {((fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high') || (!selectedHeader && !isForcedIgnore)) && (
-                                    <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review Required</div>
-                                  )}
-                                </div>
-                                <div className="flex-1 relative">
-                                    <select
-                                    value={selectedHeader}
-                                    onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                    disabled={isForcedIgnore}
-                                    className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
-                                        (!selectedHeader && !isForcedIgnore) || (selectedHeader && selectedHeader !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high')
-                                        ? 'border-amber-300 bg-amber-50' 
-                                        : 'border-gray-300'
-                                    } ${isForcedIgnore ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
-                                    >
-                                    <option value="">Select Column...</option>
-                                    <option value="__ignore__">Ignore (Don't Import)</option>
-                                    {csvHeaders.map(h => (
-                                        <option key={h} value={h}>{h}</option>
-                                    ))}
-                                    </select>
-                                    {isForcedIgnore && (
-                                        <div className="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
-                                            🔒
-                                        </div>
-                                    )}
-                                </div>
-                              </div>
-                              <div className="pl-40 text-xs text-gray-500">
-                                {isForcedIgnore && (
-                                    <span className="text-amber-600 font-medium">Auto-ignored (Numeric column detected)</span>
-                                )}
-                                {!isForcedIgnore && selectedHeader === '__ignore__' && 'Ignored for this import'}
-                                {!selectedHeader && !isForcedIgnore && <span className="text-amber-600 font-medium">Please select a column or choose Ignore</span>}
-                                {selectedHeader && selectedHeader !== '__ignore__' && (
-                                  <>
-                                    Mapped to “{selectedHeader}”
-                                    {sampleValue && ` (e.g., ${sampleValue})`}
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <div className="flex gap-3 mt-4">
-                        <Button
-                          onClick={() => {
-                            const mapped = applyMapping(originalCsvRows, fieldMapping);
-                            const validated = mapped.map(row => validateRow(row));
-                            setCsvRows(validated);
-                            setCsvErrors([]);
-                            setShowMapping(false);
-                            setMappingApplied(true);
-                            // Auto-start import not requested, but "Import X Players" button will now show
-                          }}
-                          className="flex-1"
-                        >
-                          Save Mapping
-                        </Button>
-                        <Button variant="subtle" onClick={() => setShowMapping(false)}>Cancel</Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {uploadStatus === 'error' && backendErrors.length > 0 && (
-                    <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-3 mt-3">
-                      <div className="text-sm text-semantic-error font-medium mb-1">Row Errors</div>
-                      <div className="overflow-x-auto max-h-40">
-                        <table className="min-w-full text-sm">
-                          <thead>
-                            <tr className="bg-semantic-error/10">
-                              <th className="px-2 py-1 text-left">Row</th>
-                              <th className="px-2 py-1 text-left">Message</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {backendErrors.map((err, idx) => (
-                              <tr key={idx} className="border-t border-semantic-error/20">
-                                <td className="px-2 py-1">{err.row}</td>
-                                <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Success Message */}
-              {uploadStatus === 'success' && (
-                <div className="bg-semantic-success/10 border border-semantic-success/20 rounded-lg p-4 flex items-center gap-3 animate-in fade-in zoom-in">
-                  <CheckCircle className="w-6 h-6 text-semantic-success" />
-                  <div>
-                    <h3 className="font-bold text-semantic-success">Import Complete!</h3>
-                    <p className="text-sm text-gray-600">Successfully imported {csvRows.length} players.</p>
-                  </div>
-                </div>
-              )}
+            {/* Header Copy */}
+            <div className="text-sm text-gray-600 mb-6 bg-blue-50 p-3 rounded-lg border border-blue-100 flex items-start gap-2 text-left">
+                <Info className="w-4 h-4 text-brand-primary mt-0.5 flex-shrink-0" />
+                <span>Roster creates players. Scores-only updates existing players.</span>
             </div>
 
-              {/* Manual Add Section */}
-              <div className="border border-gray-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-semantic-success" />
-                  Add Players Manually
-                </h3>
-                <p className="text-sm text-gray-600 mb-3">
-                  Add players one by one if you have a small group
-                </p>
-                
-                <Button variant="subtle" onClick={() => setShowManualForm(!showManualForm)} className="w-full">
-                  {showManualForm ? "Hide Form" : "Show Manual Entry"}
-                </Button>
-                
-                {showManualForm && (
-                  <div className="mt-3 space-y-3">
-                    <Input type="text" placeholder="First Name *" value={manualPlayer.first_name} onChange={(e) => setManualPlayer(prev => ({...prev, first_name: e.target.value}))} />
-                    <Input type="text" placeholder="Last Name *" value={manualPlayer.last_name} onChange={(e) => setManualPlayer(prev => ({...prev, last_name: e.target.value}))} />
-                    <Input type="text" placeholder="Player Number (optional)" value={manualPlayer.number} onChange={(e) => setManualPlayer(prev => ({...prev, number: e.target.value}))} />
-                    <Input type="text" placeholder="Age Group (e.g., A, B, C, U12, 9-10)" value={manualPlayer.age_group} onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))} />
-                    <Button onClick={handleAddPlayer} disabled={manualStatus === 'adding'} className="w-full">
-                      {manualStatus === 'adding' ? 'Adding...' : 'Add Player'}
-                    </Button>
-                    
-                    {manualMsg && (
-                      <div className={`text-sm ${manualStatus === 'error' ? 'text-semantic-error' : manualStatus === 'success' ? 'text-semantic-success' : 'text-brand-primary'}`}>
-                        {manualMsg}
+            {/* CSV Upload Section */}
+            <div className="space-y-4 mb-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Option 1: Roster Only */}
+                      <div className="bg-white border-2 border-brand-primary/20 rounded-xl p-4 shadow-sm hover:border-brand-primary/50 transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full"
+                           onClick={() => {
+                               setDrillRefreshTrigger(t => t + 1);
+                               setImportModalMode('create_or_update');
+                               setImportIntent('roster_only');
+                               setShowImportModal(true);
+                           }}
+                      >
+                          <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                  <div className="bg-brand-primary/10 p-1.5 rounded-lg">
+                                      <UserPlus className="w-5 h-5 text-brand-primary" />
+                                  </div>
+                                  <h3 className="font-bold text-gray-900 text-md">Upload Roster</h3>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                                  Names + Jersey Numbers only.
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">
+                                  Just players (no results).
+                              </p>
+                          </div>
+                          <div className="mt-auto pt-2">
+                              <span className="text-xs font-semibold text-brand-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                  Upload CSV <ArrowRight className="w-3 h-3" />
+                              </span>
+                          </div>
                       </div>
-                    )}
+
+                      {/* Option 2: Roster + Scores */}
+                      <div className="bg-white border-2 border-brand-primary/20 rounded-xl p-4 shadow-sm hover:border-brand-primary/50 transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full"
+                           onClick={() => {
+                               setDrillRefreshTrigger(t => t + 1);
+                               setImportModalMode('create_or_update');
+                               setImportIntent('roster_and_scores');
+                               setShowImportModal(true);
+                           }}
+                      >
+                          <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                  <div className="bg-brand-primary/10 p-1.5 rounded-lg">
+                                      <Upload className="w-5 h-5 text-brand-primary" />
+                                  </div>
+                                  <h3 className="font-bold text-gray-900 text-md">Roster + Scores</h3>
+                              </div>
+                              <p className="text-xs text-gray-500 mb-2 leading-relaxed">
+                                  One upload for everything.
+                              </p>
+                              <p className="text-[10px] text-brand-secondary font-medium">
+                                  (Recommended)
+                              </p>
+                              <p className="text-[10px] text-gray-400 font-medium">
+                                  Players + results in one upload.
+                              </p>
+                          </div>
+                          <div className="mt-auto pt-2">
+                              <span className="text-xs font-semibold text-brand-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+                                  Upload CSV <ArrowRight className="w-3 h-3" />
+                              </span>
+                          </div>
+                      </div>
                   </div>
-                )}
-              </div>
+
+                  {/* Manual Add Link */}
+                  <div className="text-center py-1">
+                      <button 
+                        onClick={() => setShowManualForm(!showManualForm)}
+                        className="text-xs text-gray-500 underline hover:text-brand-primary transition-colors"
+                      >
+                        Don’t have a spreadsheet? Add players manually
+                      </button>
+                  </div>
+
+                  {/* Manual Add Section */}
+                  {showManualForm && (
+                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-left animate-in fade-in slide-in-from-top-2">
+                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                        <UserPlus className="w-4 h-4 text-gray-600" />
+                        Add Single Player
+                        </h3>
+                        <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input type="text" placeholder="First Name *" value={manualPlayer.first_name} onChange={(e) => setManualPlayer(prev => ({...prev, first_name: e.target.value}))} className="text-sm" />
+                                <Input type="text" placeholder="Last Name *" value={manualPlayer.last_name} onChange={(e) => setManualPlayer(prev => ({...prev, last_name: e.target.value}))} className="text-sm" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <Input type="text" placeholder="Number" value={manualPlayer.number} onChange={(e) => setManualPlayer(prev => ({...prev, number: e.target.value}))} className="text-sm" />
+                                <Input type="text" placeholder="Age Group" value={manualPlayer.age_group} onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))} className="text-sm" />
+                            </div>
+                            <Button onClick={handleAddPlayer} disabled={manualStatus === 'adding'} className="w-full text-sm py-2">
+                            {manualStatus === 'adding' ? 'Adding...' : 'Add Player'}
+                            </Button>
+                            
+                            {manualMsg && (
+                            <div className={`text-xs ${manualStatus === 'error' ? 'text-semantic-error' : manualStatus === 'success' ? 'text-semantic-success' : 'text-brand-primary'}`}>
+                                {manualMsg}
+                            </div>
+                            )}
+                        </div>
+                    </div>
+                  )}
+
+                  {/* Secondary CTA: Scores Only */}
+                  <div className={`border border-gray-200 rounded-xl p-3 text-left flex items-center justify-between transition-all ${playerCount === 0 ? 'opacity-60 bg-gray-50' : 'hover:border-gray-300 bg-white'}`}>
+                      <div>
+                          <h3 className="font-semibold text-gray-700 text-sm">Upload scores only</h3>
+                          <p className="text-[10px] text-gray-500">Results only. Must match roster.</p>
+                      </div>
+                      <Button 
+                        size="sm"
+                        variant="outline"
+                        disabled={playerCount === 0}
+                        onClick={() => {
+                            if (playerCount === 0) return;
+                            setDrillRefreshTrigger(t => t + 1);
+                            setImportModalMode('scores_only');
+                            setImportIntent('scores_only');
+                            setShowImportModal(true);
+                        }}
+                        className="text-xs h-7 px-3"
+                      >
+                        Upload Scores
+                      </Button>
+                  </div>
+                  {playerCount === 0 && <p className="text-xs text-gray-400 text-center -mt-2">Add players to enable scores upload</p>}
+            </div>
 
             {/* Current Player Count */}
             {playerCount > 0 && (
@@ -796,25 +630,38 @@ export default function OnboardingEvent() {
             )}
 
             {/* Navigation */}
-            <div className="space-y-3">
+            <div className="space-y-3 mt-6">
               <Button 
                 onClick={() => handleStepNavigation(4)} 
-                disabled={!!csvFileName && uploadStatus !== 'success'}
                 className="w-full flex items-center justify-center gap-2"
               >
                 Continue
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              {!!csvFileName && uploadStatus !== 'success' && (
-                <p className="text-xs text-center text-gray-500 -mt-1">
-                  Finish importing players to continue.
-                </p>
-              )}
               <Button variant="subtle" onClick={() => handleStepNavigation(2)} className="w-full flex items-center justify-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
                 Back
               </Button>
             </div>
+            
+            {/* Import Modal */}
+            {showImportModal && (
+              <ImportResultsModal
+                onClose={() => setShowImportModal(false)}
+                initialMode={importModalMode}
+                intent={importIntent}
+                showModeSwitch={false}
+                onSuccess={async (isRevert) => {
+                  await fetchEventData();
+                  if (!isRevert) {
+                    setShowImportModal(false);
+                    showSuccess(`Successfully imported players/scores!`);
+                  }
+                }}
+                availableDrills={allDrills}
+              />
+            )}
+
           </OnboardingCard>
         </div>
       </WelcomeLayout>
