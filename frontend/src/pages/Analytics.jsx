@@ -311,17 +311,17 @@ export default function Analytics() {
         return [0, 10];
       } else {
         // Pad around the value to create a valid range
-        // e.g. 10 -> [0, 11] or similar
-        // We typically want 0-based for bars, so just ensuring max > min is enough
         return [0, Math.ceil(max * 1.1) + 1];
       }
     }
     
     // Default: use 0 to dataMax (letting Recharts auto-scale the top)
-    // But explicitly checking if max <= 0 to avoid inverted scales if we ever have negative scores
+    // Avoid 'auto' for the lower bound to ensure 0-based bars in vertical mode
     if (max <= 0) return ['auto', 'auto'];
     
-    return [0, 'auto'];
+    // Ensure we strictly return numeric or 'auto', not mixed if possible to reduce edge cases
+    // For vertical bar charts, [0, 'auto'] is usually fine, but if 'auto' resolves to NaN inside Recharts...
+    return [0, 'auto']; 
   }, [drillStats]);
 
   // DEBUG: Inspect chart data integrity
@@ -491,87 +491,110 @@ export default function Analytics() {
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
                     {/* Force container height for vertical mode to prevent Recharts collapse */}
                     <div style={{ width: '100%', height: Math.max(300, (barLimit === 9999 ? drillStats.count : barLimit) * 30) }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                        <BarChart 
-                            layout={(barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal'}
-                            data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
-                            name: e.player.name, 
-                            number: e.player.jersey_number || e.player.number,
-                            external_id: e.player.external_id,
-                            axisLabel: e.displayLabel,
-                            participantId: e.participantId,
-                            score: Number.isFinite(e.value) ? Number(e.value.toFixed(2)) : 0,
-                            playerId: e.player.id
-                        }))}>
-                            {barLimit > 15 && drillStats.orderedForBars.length > 0 ? (
-                                <>
-                                    <XAxis type="number" hide domain={verticalXDomain} dataKey="score" />
-                                    <YAxis 
-                                        dataKey="axisLabel" 
-                                        type="category" 
-                                        width={labelMode === 'name' ? 100 : 60} 
-                                        tick={{ fontSize: 11 }}
-                                        interval={0}
-                                    />
-                                </>
-                            ) : (
-                                <>
-                                    <XAxis 
-                                        dataKey="axisLabel" 
-                                        interval={0} 
-                                        tick={{ fontSize: 12 }}
-                                        label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: 0 }} 
-                                    />
-                            <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
-                                </>
-                            )}
-                            <Tooltip 
-                            cursor={{ fill: 'transparent' }}
-                            content={({ active, payload, label }) => {
-                                if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                // Determine if we should show jersey # (only if present and numeric)
-                                const showJersey = data.number !== undefined && data.number !== null && data.number !== '' && data.number !== '?' && Number.isFinite(Number(data.number));
-                                const isJerseyRedundant = showJersey && data.participantId === `#${data.number}`;
-
-                                return (
-                                    <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
-                                    <div className="font-bold text-gray-900">{data.name} {data.external_id ? '' : <span className="text-red-500" title="Missing Bib/External ID">(!)</span>}</div>
-                                    <div className="text-gray-600 mb-1 flex items-center gap-1">
-                                        <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
-                                        {/* Optional: Show jersey # if available and different from ID */}
-                                        {showJersey && !isJerseyRedundant && (
-                                        <span className="text-gray-400 text-xs">(#{data.number})</span>
+                        {/* Debug Wrapper to catch render errors */}
+                        <div style={{ width: '100%', height: '100%' }}>
+                            {(() => {
+                                try {
+                                    const isVertical = barLimit > 15 && drillStats.orderedForBars.length > 0;
+                                    // Enhanced debug log right before render
+                                    if (isVertical) {
+                                        console.log('[Analytics Debug] Vertical Branch Render:', {
+                                            layout: 'vertical',
+                                            height: Math.max(300, (barLimit === 9999 ? drillStats.count : barLimit) * 30),
+                                            dataLength: drillStats.orderedForBars.slice(0, barLimit).length,
+                                            domain: verticalXDomain,
+                                            xAxisProps: { type: 'number', hide: true, domain: verticalXDomain, dataKey: 'score' },
+                                            yAxisProps: { type: 'category', dataKey: 'axisLabel' }
+                                        });
+                                    }
+                                    return (
+                                    <BarChart 
+                                        layout={isVertical ? 'vertical' : 'horizontal'}
+                                        data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
+                                        name: e.player.name, 
+                                        number: e.player.jersey_number || e.player.number,
+                                        external_id: e.player.external_id,
+                                        axisLabel: e.displayLabel,
+                                        participantId: e.participantId,
+                                        score: Number.isFinite(e.value) ? Number(e.value.toFixed(2)) : 0,
+                                        playerId: e.player.id
+                                    }))}>
+                                        {isVertical ? (
+                                            <>
+                                                <XAxis type="number" hide domain={verticalXDomain} dataKey="score" />
+                                                <YAxis 
+                                                    dataKey="axisLabel" 
+                                                    type="category" 
+                                                    width={labelMode === 'name' ? 100 : 60} 
+                                                    tick={{ fontSize: 11 }}
+                                                    interval={0}
+                                                />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <XAxis 
+                                                    dataKey="axisLabel" 
+                                                    interval={0} 
+                                                    tick={{ fontSize: 12 }}
+                                                    label={{ value: labelMode === 'number' ? 'Player Number' : 'Player Name', position: 'bottom', offset: 0 }} 
+                                                />
+                                        <YAxis label={{ value: `Score (${selectedDrill.unit})`, angle: -90, position: 'insideLeft' }} />
+                                            </>
                                         )}
-                                    </div>
-                                    <div className="font-mono font-semibold text-brand-primary mt-1">
-                                        {data.score} {selectedDrill.unit}
-                                    </div>
-                                    </div>
-                                );
+                                        <Tooltip 
+                                        cursor={{ fill: 'transparent' }}
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                            const data = payload[0].payload;
+                                            // Determine if we should show jersey # (only if present and numeric)
+                                            const showJersey = data.number !== undefined && data.number !== null && data.number !== '' && data.number !== '?' && Number.isFinite(Number(data.number));
+                                            const isJerseyRedundant = showJersey && data.participantId === `#${data.number}`;
+
+                                            return (
+                                                <div className="bg-white p-2 border border-gray-200 shadow-sm rounded text-sm">
+                                                <div className="font-bold text-gray-900">{data.name} {data.external_id ? '' : <span className="text-red-500" title="Missing Bib/External ID">(!)</span>}</div>
+                                                <div className="text-gray-600 mb-1 flex items-center gap-1">
+                                                    <span className="bg-gray-100 text-gray-700 px-1.5 rounded text-xs font-mono">{data.participantId}</span>
+                                                    {/* Optional: Show jersey # if available and different from ID */}
+                                                    {showJersey && !isJerseyRedundant && (
+                                                    <span className="text-gray-400 text-xs">(#{data.number})</span>
+                                                    )}
+                                                </div>
+                                                <div className="font-mono font-semibold text-brand-primary mt-1">
+                                                    {data.score} {selectedDrill.unit}
+                                                </div>
+                                                </div>
+                                            );
+                                            }
+                                            return null;
+                                        }}
+                                        />
+                                        <Bar dataKey="score" barSize={barLimit > 15 ? 15 : undefined}>
+                                        {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
+                                            <Cell 
+                                                key={`bar-${idx}`} 
+                                                fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
+                                                opacity={getBarOpacity(entry.player.id)}
+                                            />
+                                        ))}
+                                        {barLimit <= 15 && (
+                                            <LabelList 
+                                                dataKey="score" 
+                                                position="top" 
+                                                formatter={(v) => `${v}`} 
+                                                fill="#111827" 
+                                                fontSize={10}
+                                            />
+                                        )}
+                                        </Bar>
+                                    </BarChart>
+                                    );
+                                } catch (e) {
+                                    console.error("[Analytics] Chart Render Crash:", e);
+                                    return <div className="text-red-500 text-xs p-4">Chart Error: {e.message}</div>;
                                 }
-                                return null;
-                            }}
-                            />
-                            <Bar dataKey="score" barSize={barLimit > 15 ? 15 : undefined}>
-                            {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
-                                <Cell 
-                                    key={`bar-${idx}`} 
-                                    fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
-                                    opacity={getBarOpacity(entry.player.id)}
-                                />
-                            ))}
-                            {barLimit <= 15 && (
-                                <LabelList 
-                                    dataKey="score" 
-                                    position="top" 
-                                    formatter={(v) => `${v}`} 
-                                    fill="#111827" 
-                                    fontSize={10}
-                                />
-                            )}
-                            </Bar>
-                        </BarChart>
+                            })()}
+                        </div>
                         </ResponsiveContainer>
                     </div>
                   </div>
