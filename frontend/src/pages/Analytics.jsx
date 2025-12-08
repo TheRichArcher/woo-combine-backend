@@ -425,7 +425,11 @@ export default function Analytics() {
 
                   <select
                     value={barLimit}
-                    onChange={(e) => setBarLimit(Number(e.target.value))}
+                    onChange={(e) => {
+                        const val = Number(e.target.value);
+                        console.log('[Analytics] barLimit change', e.target.value, val);
+                        setBarLimit(val);
+                    }}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
                     <option value={10}>Top 10</option>
