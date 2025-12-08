@@ -358,9 +358,9 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium">{selectedDrill.label} Scores</div>
                     <div className="text-xs text-gray-500 mb-2">{selectedDrill.lowerIsBetter ? 'lower is better' : 'higher is better'}</div>
-                    <ResponsiveContainer width="100%" height={Math.max(300, Math.min(800, (barLimit === 9999 ? drillStats.count : barLimit) * 20))}>
+                    <ResponsiveContainer width="100%" height={Math.max(300, (barLimit === 9999 ? drillStats.count : barLimit) * 30)}>
                       <BarChart 
-                        layout={barLimit > 15 ? 'vertical' : 'horizontal'}
+                        layout={(barLimit > 15 && drillStats.orderedForBars.length > 0) ? 'vertical' : 'horizontal'}
                         data={drillStats.orderedForBars.slice(0, barLimit).map((e) => ({ 
                         name: e.player.name, 
                         number: e.player.jersey_number || e.player.number,
