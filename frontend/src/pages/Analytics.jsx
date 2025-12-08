@@ -200,7 +200,11 @@ export default function Analytics() {
             ...e, 
             displayLabel: getAxisLabel(e.player),
             participantId: getParticipantId(e.player)
-        })).filter(e => Number.isFinite(e.value)); // Explicitly filter out non-finite scores for chart safety
+        })).filter(e => {
+            const valid = Number.isFinite(e.value);
+            if (!valid) console.warn('[Analytics] Filtered invalid row:', e);
+            return valid;
+        });
 
         // DEBUG: Log players missing external_id to help trace import issues
         const missingExternalId = orderedForBars.filter(e => !e.player.external_id);
@@ -284,26 +288,35 @@ export default function Analytics() {
   // Use min/max from stats to compute a safe domain for vertical chart
   // This avoids Recharts crashing or producing NaN widths when min === max
   const verticalXDomain = useMemo(() => {
+    // Default safe fallback
+    const FALLBACK = [0, 'auto'];
+
     if (!drillStats || !Number.isFinite(drillStats.min) || !Number.isFinite(drillStats.max)) {
-      return [0, 'auto'];
+      return FALLBACK;
     }
+    
     let min = drillStats.min;
     let max = drillStats.max;
+    
     // If range is zero (single value or all identical), pad it so we have a valid axis
+    // Recharts can fail if domain is [10, 10] -> range 0 -> division by zero
     if (min === max) {
       if (min === 0) {
-        max = 10; // arbitrary positive range
+        // All zeros -> Force 0-10 scale
+        return [0, 10];
       } else {
-        // Pad around the value
-        min = Math.floor(min * 0.9);
-        max = Math.ceil(max * 1.1);
+        // Pad around the value to create a valid range
+        // e.g. 10 -> [0, 11] or similar
+        // We typically want 0-based for bars, so just ensuring max > min is enough
+        return [0, Math.ceil(max * 1.1) + 1];
       }
     }
-    // For "lower is better" drills, we might want to invert or just let Recharts handle direction via data sorting
-    // But for the domain itself, we just need a valid numeric range.
-    // Recharts expects [min, max].
-    return [0, 'auto']; // Defaulting to 0-based for now as that's safest for bar charts
-    // If we want zoom-in effect: return [Math.floor(min*0.9), Math.ceil(max*1.1)];
+    
+    // Default: use 0 to dataMax (letting Recharts auto-scale the top)
+    // But explicitly checking if max <= 0 to avoid inverted scales if we ever have negative scores
+    if (max <= 0) return ['auto', 'auto'];
+    
+    return [0, 'auto'];
   }, [drillStats]);
 
   // DEBUG: Inspect chart data integrity
