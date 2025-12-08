@@ -423,10 +423,17 @@ export default function Analytics() {
                     </div>
                   )}
 
-                  <div className="h-4 w-px bg-gray-300 hidden sm:block mx-1"></div>
-
                   <select
-                    value={selectedAgeGroup}
+                    value={barLimit}
+                    onChange={(e) => setBarLimit(Number(e.target.value))}
+                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                  >
+                    <option value={10}>Top 10</option>
+                    <option value={20}>Top 20</option>
+                    <option value={30}>Top 30</option>
+                    <option value={50}>Top 50</option>
+                    <option value={9999}>ALL</option>
+                  </select>
                     onChange={(e) => setSelectedAgeGroup(e.target.value)}
                     className="border border-gray-300 rounded px-2 py-1 text-sm"
                   >
