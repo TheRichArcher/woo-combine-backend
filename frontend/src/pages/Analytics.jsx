@@ -52,26 +52,6 @@ export default function Analytics() {
     run();
   }, [selectedEvent]);
 
-  const totals = useMemo(() => {
-    // Use player.scores for all calculations (replaces legacy flattened access)
-    const sum = (arr, key) => arr.reduce((acc, p) => acc + (Number(p.scores?.[key]) || 0), 0);
-    const countWith = (key) => players.filter(p => p.scores?.[key] != null && p.scores?.[key] !== '').length;
-    
-    // Dynamically find top 2 drills to display in summary cards
-    const topDrills = drills.slice(0, 2);
-    
-    const drillStats = topDrills.map(d => ({
-      label: d.label,
-      unit: d.unit,
-      avg: players.length ? (sum(players, d.key) / Math.max(1, countWith(d.key))) : 0
-    }));
-
-    return {
-      count: players.length,
-      withAnyScore: players.filter(p => drills.some(d => p.scores?.[d.key] != null && p.scores?.[d.key] !== '')).length,
-      drillStats
-    };
-  }, [players, drills]);
 
   // Age groups for filter
   const ageGroups = useMemo(() => {
@@ -321,6 +301,52 @@ export default function Analytics() {
     return [0, safeMax > 0 ? safeMax : 10]; 
   }, [drillStats]);
 
+  // Dynamic Summary Tiles based on Drill Selection
+  const summaryTiles = useMemo(() => {
+    if (!selectedDrill || !drillStats) return [];
+
+    // 1. Players (Filtered by Age Group)
+    const playersCount = filteredPlayers.length;
+
+    // 2. With Scores (Filtered by Age Group + Drill participation)
+    const withScoresCount = drillStats.count;
+
+    // 3. Avg (Respects Age Group + Top X Limit)
+    // orderedForBars contains the filtered list sorted by performance
+    const limit = barLimit === 9999 ? drillStats.orderedForBars.length : barLimit;
+    const viewEntries = drillStats.orderedForBars.slice(0, limit);
+    const sum = viewEntries.reduce((acc, curr) => acc + curr.value, 0);
+    const avg = viewEntries.length ? (sum / viewEntries.length) : 0;
+
+    // 4. Best Score (Respects Age Group)
+    const bestVal = drillStats.bestEntry?.value;
+
+    return [
+        {
+            title: 'Players',
+            value: playersCount,
+            sub: selectedAgeGroup !== 'ALL' ? selectedAgeGroup : null
+        },
+        {
+            title: 'With Scores',
+            value: withScoresCount,
+            sub: selectedDrill.label
+        },
+        {
+            title: `Avg ${selectedDrill.label}`,
+            value: avg ? avg.toFixed(2) : '-',
+            unit: selectedDrill.unit,
+            sub: barLimit !== 9999 ? `Top ${barLimit}` : 'All'
+        },
+        {
+            title: `Best ${selectedDrill.label}`,
+            value: (bestVal !== undefined && bestVal !== null) ? bestVal : '-',
+            unit: selectedDrill.unit,
+            sub: 'Overall'
+        }
+    ];
+  }, [selectedDrill, drillStats, filteredPlayers.length, barLimit, selectedAgeGroup]);
+
   // DEBUG: Inspect chart data integrity
   // Ensure this runs on every render to catch state updates
   /*
@@ -383,19 +409,15 @@ export default function Analytics() {
         ) : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                <div className="text-xs text-gray-500">Players</div>
-                <div className="text-2xl font-bold text-gray-900">{totals.count}</div>
-              </div>
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                <div className="text-xs text-gray-500">With Scores</div>
-                <div className="text-2xl font-bold text-gray-900">{totals.withAnyScore}</div>
-              </div>
-              {totals.drillStats.map((stat, idx) => (
-                <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                  <div className="text-xs text-gray-500">Avg {stat.label} ({stat.unit})</div>
-                  <div className="text-2xl font-bold text-brand-primary">{stat.avg ? stat.avg.toFixed(2) : '—'}</div>
-                </div>
+              {summaryTiles.map((tile, idx) => (
+                  <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center flex flex-col items-center justify-center">
+                    <div className="text-xs text-gray-500 mb-1">{tile.title}</div>
+                    <div className="text-2xl font-bold text-gray-900 flex items-baseline gap-1">
+                        {tile.value}
+                        {tile.unit && <span className="text-sm font-normal text-gray-500">{tile.unit}</span>}
+                    </div>
+                    {tile.sub && <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mt-1">{tile.sub}</div>}
+                  </div>
               ))}
             </div>
 
