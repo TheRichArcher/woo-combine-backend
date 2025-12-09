@@ -134,6 +134,21 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       const result = createSkillBasedTeams(players, numTeams, currentDrills);
       newTeams = result.teams;
       newStats = result.stats;
+    } else if (formationMethod === 'ranked_split') {
+      // Ranked split: Team 1 gets top slice, Team 2 next slice, etc.
+      // This is for Varsity/JV type splitting
+      const totalPlayers = rankedPlayers.length;
+      const baseSize = Math.floor(totalPlayers / numTeams);
+      const remainder = totalPlayers % numTeams;
+      
+      let startIndex = 0;
+      
+      for (let i = 0; i < numTeams; i++) {
+        // Distribute remainder one by one to first teams
+        const size = baseSize + (i < remainder ? 1 : 0);
+        newTeams[i] = rankedPlayers.slice(startIndex, startIndex + size);
+        startIndex += size;
+      }
     }
     
     setTeams(newTeams);
@@ -319,9 +334,10 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
             onChange={(e) => setFormationMethod(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="balanced">Balanced Distribution</option>
+            <option value="balanced">Overall Skill Balance (Round Robin)</option>
             <option value="snake_draft">Snake Draft</option>
-            <option value="skill_based">Skill-Based Balance</option>
+            <option value="skill_based">Category Balance (Advanced)</option>
+            <option value="ranked_split">Ranked Split (Varsity/JV)</option>
           </select>
         </div>
 
