@@ -57,7 +57,7 @@ function getDrillRangeCacheKey(players, ageGroup, drillList) {
  * @param {Array<Object>} drillList - List of drills to calculate ranges for
  * @returns {Object<string, {min: number, max: number}>} Drill ranges by drill key
  */
-function getCachedDrillRanges(players, ageGroup, drillList = []) {
+export function getCachedDrillRanges(players, ageGroup, drillList = []) {
   const cacheKey = getDrillRangeCacheKey(players, ageGroup, drillList);
   const cache = getDrillRangeCache();
 
@@ -117,7 +117,7 @@ function getCachedDrillRanges(players, ageGroup, drillList = []) {
  * @param {boolean} lowerIsBetter - Whether lower scores are better (optional override)
  * @returns {number} Normalized score (0-100)
  */
-function calculateNormalizedDrillScore(rawScore, range, drillKey, lowerIsBetter) {
+export function calculateNormalizedDrillScore(rawScore, range, drillKey, lowerIsBetter) {
   if (!range || rawScore == null) return 0;
   
   if (range.max === range.min) {

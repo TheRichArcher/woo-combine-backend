@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore } from '../utils/optimizedScoring';
+import { createSkillBasedTeams } from '../utils/skillBasedFormation';
 
 const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { showSuccess, showError } = useToast();
@@ -25,6 +26,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   const [teamNames, setTeamNames] = useState([]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [skillWeightings, setSkillWeightings] = useState({});
+  const [formationStats, setFormationStats] = useState(null);
   
   // Get current drill template
   const currentDrills = getDrillsFromTemplate(selectedDrillTemplate);
@@ -71,7 +73,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   const calculateTeamBalance = (team) => {
     if (!team || team.length === 0) return { avgScore: 0, skillBreakdown: {} };
     
-    const totalScore = team.reduce((sum, player) => sum + player.compositeScore, 0);
+    const totalScore = team.reduce((sum, player) => sum + (player.compositeScore || 0), 0);
     const avgScore = totalScore / team.length;
     
     const skillBreakdown = {};
@@ -92,12 +94,18 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   };
 
   const createBalancedTeams = () => {
-    if (rankedPlayers.length === 0) {
+    if (formationMethod !== 'skill_based' && rankedPlayers.length === 0) {
       showError('No players with scores available for team formation');
       return;
     }
+    
+    if (formationMethod === 'skill_based' && players.length === 0) {
+      showError('No players available for team formation');
+      return;
+    }
 
-    const newTeams = Array.from({ length: numTeams }, () => []);
+    let newTeams = Array.from({ length: numTeams }, () => []);
+    let newStats = null;
     
     if (formationMethod === 'balanced') {
       // Distribute players in round-robin fashion to balance overall talent
@@ -122,27 +130,15 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
         }
       });
     } else if (formationMethod === 'skill_based') {
-      // Distribute based on individual skill requirements per team
-      // This is a more complex algorithm that tries to balance specific skills
-      const playersBySkill = {};
-      
-      currentDrills.forEach(drill => {
-        playersBySkill[drill.key] = [...rankedPlayers].sort((a, b) => {
-          const aScore = a[drill.key] || 0;
-          const bScore = b[drill.key] || 0;
-          return drill.lowerIsBetter ? aScore - bScore : bScore - aScore;
-        });
-      });
-      
-      // Start with balanced distribution, then optimize
-      rankedPlayers.forEach((player, index) => {
-        const teamIndex = index % numTeams;
-        newTeams[teamIndex].push(player);
-      });
+      // Use the advanced skill-based formation algorithm
+      const result = createSkillBasedTeams(players, numTeams, currentDrills);
+      newTeams = result.teams;
+      newStats = result.stats;
     }
     
     setTeams(newTeams);
-    showSuccess(`Successfully created ${numTeams} balanced teams!`);
+    setFormationStats(newStats);
+    showSuccess(`Successfully created ${numTeams} ${formationMethod === 'skill_based' ? 'skill-optimized' : 'balanced'} teams!`);
   };
 
   const movePlayerToTeam = (playerId, fromTeamIndex, toTeamIndex) => {
@@ -153,6 +149,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       const [player] = newTeams[fromTeamIndex].splice(playerIndex, 1);
       newTeams[toTeamIndex].push(player);
       setTeams(newTeams);
+      // Note: formationStats will act as a snapshot of the initial generation
     }
   };
 
@@ -221,6 +218,61 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     return { color: 'text-red-600', label: 'Needs Balancing' };
   };
 
+  // Helper to get category averages for a team if in skill-based mode
+  const getTeamCategoryStats = (team) => {
+    if (!formationStats || !formationStats.categories) return null;
+    
+    const { categories, processedPlayers } = formationStats;
+    const teamPlayerIds = new Set(team.map(p => p.id));
+    const teamProcessedPlayers = processedPlayers.filter(p => teamPlayerIds.has(p.id));
+    
+    if (teamProcessedPlayers.length === 0) return null;
+
+    const stats = {};
+    categories.forEach(cat => {
+      const sum = teamProcessedPlayers.reduce((acc, p) => acc + p.scores[cat], 0);
+      stats[cat] = sum / teamProcessedPlayers.length;
+    });
+    
+    return stats;
+  };
+  
+  const renderTeamStats = (team, index) => {
+    if (formationMethod === 'skill_based' && formationStats) {
+      const catStats = getTeamCategoryStats(team);
+      if (catStats) {
+         return (
+           <div className="mb-3 p-2 bg-gray-50 rounded">
+             <div className="text-sm text-gray-600 mb-2">
+               <span className="font-medium">Players:</span> {team.length}
+             </div>
+             <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs">
+               {Object.entries(catStats).map(([cat, val]) => (
+                 <div key={cat} className="flex justify-between">
+                   <span className="text-gray-500 capitalize">{cat}:</span>
+                   <span className="font-medium">{val.toFixed(1)}</span>
+                 </div>
+               ))}
+             </div>
+           </div>
+         );
+      }
+    }
+    
+    // Default stats view
+    const teamBalance = calculateTeamBalance(team);
+    return (
+      <div className="mb-3 p-2 bg-gray-50 rounded">
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">Players:</span> {team.length}
+        </div>
+        <div className="text-sm text-gray-600">
+          <span className="font-medium">Avg Score:</span> {teamBalance.avgScore.toFixed(2)}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
       <div className="flex items-center gap-3 mb-6">
@@ -228,7 +280,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
         <div>
           <h2 className="text-xl font-bold text-gray-900">Team Formation Tool</h2>
           <p className="text-sm text-gray-600">
-            Create balanced teams from {rankedPlayers.length} ranked players
+            Create balanced teams from {formationMethod === 'skill_based' ? players.length : rankedPlayers.length} players
           </p>
         </div>
       </div>
@@ -276,7 +328,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
         <div className="flex items-end gap-2">
           <button
             onClick={createBalancedTeams}
-            disabled={rankedPlayers.length === 0}
+            disabled={formationMethod !== 'skill_based' && rankedPlayers.length === 0}
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-2 rounded-lg transition-colors"
           >
             <Shuffle className="w-4 h-4" />
@@ -347,7 +399,6 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {teams.map((team, teamIndex) => {
-              const teamBalance = calculateTeamBalance(team);
               const balanceIndicator = getTeamBalanceIndicator(team);
               
               return (
@@ -371,14 +422,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
                     </div>
                   </div>
 
-                  <div className="mb-3 p-2 bg-gray-50 rounded">
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Players:</span> {team.length}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Avg Score:</span> {teamBalance.avgScore.toFixed(2)}
-                    </div>
-                  </div>
+                  {renderTeamStats(team, teamIndex)}
 
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {team.map((player) => (
@@ -391,7 +435,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
                         </div>
                         <div className="text-right">
                           <div className="font-bold text-blue-600">
-                            {player.compositeScore.toFixed(1)}
+                            {(player.compositeScore || 0).toFixed(1)}
                           </div>
                           <div className="flex gap-1">
                             {teams.map((_, otherTeamIndex) => (
@@ -415,6 +459,14 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
               );
             })}
           </div>
+
+          {/* Missing Data Warning */}
+          {formationMethod === 'skill_based' && formationStats?.processedPlayers?.filter(p => p.missingData).length > 0 && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              {formationStats.processedPlayers.filter(p => p.missingData).length} players missing some scores; neutral values used for balancing.
+            </div>
+          )}
 
           {/* Team Balance Summary */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -447,7 +499,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       )}
 
       {/* Help Text */}
-      {rankedPlayers.length === 0 && (
+      {rankedPlayers.length === 0 && formationMethod !== 'skill_based' && (
         <div className="text-center py-8">
           <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-gray-900 mb-1">No Players Available</h3>
@@ -457,15 +509,25 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
           </p>
         </div>
       )}
+      
+      {formationMethod === 'skill_based' && players.length === 0 && (
+        <div className="text-center py-8">
+          <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-gray-900 mb-1">No Players</h3>
+          <p className="text-gray-600">
+            Add players to the event to form teams.
+          </p>
+        </div>
+      )}
 
-      {teams.length === 0 && rankedPlayers.length > 0 && (
+      {teams.length === 0 && (rankedPlayers.length > 0 || (formationMethod === 'skill_based' && players.length > 0)) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>
               <h4 className="font-medium text-yellow-900 mb-1">Ready to Create Teams</h4>
               <p className="text-sm text-yellow-800">
-                You have {rankedPlayers.length} players with scores ready for team formation. 
+                You have {formationMethod === 'skill_based' ? players.length : rankedPlayers.length} players ready for team formation. 
                 Choose your formation method and click "Create Teams" to get started.
               </p>
             </div>
