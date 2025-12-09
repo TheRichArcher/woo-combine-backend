@@ -33,26 +33,41 @@ export function createSkillBasedTeams(players, numTeams, drills) {
     });
   });
 
-  // Sort players by "impact" (deviation from global average across all categories)
+  // 36. Sort players by "impact" (deviation from global average across all categories)
   // This helps place the most "extreme" players first when teams are empty/flexible.
   const sortedPlayers = [...processedPlayers].sort((a, b) => b.impactScore - a.impactScore);
 
-  // Assign players
-  sortedPlayers.forEach(player => {
+  // SEED PHASE: Distribute first N players one-per-team to avoid empty team traps
+  // This ensures no team starts empty, avoiding the "Team 2 gets 0 players" issue
+  // caused by greedy cost functions preferring to stack players on the "best" mean.
+  let seedIndex = 0;
+  for (let i = 0; i < numTeams && seedIndex < sortedPlayers.length; i++) {
+    addPlayerToTeam(teams[i], sortedPlayers[seedIndex], categories);
+    seedIndex++;
+  }
+  
+  // Assign remaining players
+  for (let i = seedIndex; i < sortedPlayers.length; i++) {
+    const player = sortedPlayers[i];
     let bestTeamIndex = -1;
     let minCostIncrease = Infinity;
 
-    for (let i = 0; i < numTeams; i++) {
-      const costIncrease = calculateAssignmentCost(teams[i], player, globalStats, categories);
+    for (let j = 0; j < numTeams; j++) {
+      const costIncrease = calculateAssignmentCost(teams[j], player, globalStats, categories);
       if (costIncrease < minCostIncrease) {
         minCostIncrease = costIncrease;
-        bestTeamIndex = i;
+        bestTeamIndex = j;
       }
     }
 
     // Add to best team
-    addPlayerToTeam(teams[bestTeamIndex], player, categories);
-  });
+    if (bestTeamIndex !== -1) {
+      addPlayerToTeam(teams[bestTeamIndex], player, categories);
+    } else {
+      // Fallback (should ideally never happen with valid costs)
+      addPlayerToTeam(teams[0], player, categories);
+    }
+  }
 
   // 3. Optimization Phase (Swapping)
   // Run a fixed number of improvement iterations
@@ -241,8 +256,9 @@ function calculateAssignmentCost(team, player, globalStats, categories) {
   // Size penalty (soft constraint to keep teams balanced in size)
   // We want to discourage teams from getting too big relative to others.
   // In the greedy phase, this just helps fill teams evenly.
-  // Using a small multiplier.
-  cost += currentSize * 0.1;
+  // Using a larger multiplier to enforce size balance more strictly
+  // Square the size to make the penalty grow non-linearly
+  cost += Math.pow(newSize, 2) * 5.0;
 
   return cost;
 }
