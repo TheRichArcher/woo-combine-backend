@@ -263,6 +263,21 @@ export default function Navigation() {
   // Detect if we are in an onboarding flow
   const isOnboarding = location.pathname.startsWith('/onboarding') || location.pathname === '/create-league';
 
+  // Action to guide user back to setup
+  const handleContinueSetup = () => {
+    // Navigate to the current onboarding path to ensure they are on the right route
+    // This handles cases where they might be "lost" or just want to reset focus
+    const target = location.pathname === '/create-league' ? '/create-league' : '/onboarding/event';
+    
+    navigate(target);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    closeMobile();
+    
+    // Dismiss toast programmatically
+    const toastCloseBtn = document.querySelector('.toast-close-button');
+    if (toastCloseBtn) toastCloseBtn.click();
+  };
+
   // Handle restricted navigation
   const handleRestrictedNav = (e, path, label) => {
     if (isOnboarding) {
@@ -273,11 +288,7 @@ export default function Navigation() {
         <div className="flex flex-col gap-2">
           <span className="font-semibold">Finish setup to unlock {label}</span>
           <button 
-            onClick={() => {
-                // Just close the toast since we are already on the setup screen
-                const toastCloseBtn = document.querySelector('.toast-close-button');
-                if (toastCloseBtn) toastCloseBtn.click();
-            }}
+            onClick={handleContinueSetup}
             className="text-xs bg-white text-gray-800 px-2 py-1 rounded border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center justify-center gap-1 w-full"
           >
             Continue Setup <ArrowRight className="w-3 h-3" />
@@ -364,10 +375,7 @@ export default function Navigation() {
           {/* Onboarding Progress Indicator (Desktop) - Now Clickable as Escape Hatch */}
           {isOnboarding && (
              <button 
-                onClick={() => {
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  // Optionally re-focus the main content if needed
-                }}
+                onClick={handleContinueSetup}
                 className="hidden md:flex items-center gap-3 bg-brand-primary/10 px-3 py-1.5 rounded-full border border-brand-primary/20 mr-2 animate-in fade-in slide-in-from-top-2 hover:bg-brand-primary/20 transition-colors"
                 title="Click to continue setup"
              >
@@ -528,10 +536,7 @@ export default function Navigation() {
             {/* Onboarding Indicator (Mobile) */}
             {isOnboarding && (
                  <button 
-                    onClick={() => {
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                      closeMobile();
-                    }}
+                    onClick={handleContinueSetup}
                     className="mx-4 mb-4 flex items-center gap-2 bg-brand-primary/10 px-3 py-2 rounded-lg border border-brand-primary/20 text-left hover:bg-brand-primary/20 transition-colors"
                  >
                     <Wrench className="w-4 h-4 text-brand-primary" />
