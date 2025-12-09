@@ -30,9 +30,6 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   
   // Persist weights function for modal
   const persistModalWeights = useCallback(() => {
-    // If handleWeightChange is provided (from useOptimizedWeights context), use it for persistence too if needed
-    // But usually persistSliderWeights is separate. 
-    // Wait, useOptimizedWeights exports persistSliderWeights which calls debouncedPersistWeights.
     persistSliderWeights(modalLocalWeights);
   }, [modalLocalWeights, persistSliderWeights]);
 
@@ -41,7 +38,6 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     const newWeights = { ...modalLocalWeights, [drillKey]: value };
     setModalLocalWeights(newWeights);
     
-    // If a live handler is provided (e.g. from useOptimizedWeights), call it
     if (handleWeightChange) {
        handleWeightChange(drillKey, value);
     }
@@ -121,17 +117,13 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
           let normalizedScore = 0;
           
           if (range.max === range.min) {
-            // All players have same score, give them all 50 (middle score)
             normalizedScore = 50;
           } else if (drill.lowerIsBetter) {
-            // For lower-is-better drills (like times): lower value = higher score
             normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
           } else {
-            // For other drills: higher value = better score
             normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
           }
           
-          // Apply weight as percentage to normalized score
           weightedScore = normalizedScore * (weight / 100);
         }
         
@@ -154,7 +146,6 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     });
   }, [drillRankings, player, weights, allPlayers, drills]);
 
-  // Return null after all hooks if conditions aren't met
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
@@ -229,44 +220,53 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     <div className="flex-1 overflow-hidden h-full">
       <div className="h-full flex flex-col lg:flex-row">
         {/* Main Content - Weight Controls */}
-        <div className="flex-1 p-4 min-h-0">
+        <div className="flex-1 p-3 min-h-0">
           <div className="h-full flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-brand-primary" />
+            
+            {/* Total Score Header (moved to top of main column for hierarchy) */}
+            <div className="mb-3 p-3 bg-blue-50 rounded-lg border-2 border-blue-200 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <span className="font-semibold text-gray-900 text-sm">Total Composite Score</span>
+                <span className="text-lg font-bold text-brand-primary">
+                  {totalWeightedScore.toFixed(2)} pts <span className="text-sm font-normal text-gray-600">(Rank #{currentRank})</span>
+                </span>
+              </div>
+            </div>
+
+            <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-brand-primary" />
               Ranking Weight Controls
             </h3>
-            <p className="text-sm text-gray-600 mb-4">
-              Set drill priorities for ranking calculations. Higher values = more important to you.
-            </p>
-      
-            <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto">
+            
+            <div className="grid grid-cols-1 gap-2 flex-1 overflow-y-auto pr-1">
               {weightedBreakdown.map(drill => (
-                <div key={drill.key} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={drill.key} className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+                  <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <div className="min-w-0 flex-1">
-                        <h4 className="font-semibold text-gray-900 text-sm">{drill.label}</h4>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-base font-bold text-brand-primary">
+                        <div className="flex justify-between items-baseline">
+                            <h4 className="font-semibold text-gray-900 text-sm truncate pr-2">{drill.label}</h4>
+                            <div className="text-xs text-gray-600 whitespace-nowrap">
+                                Contribution: <span className="font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-sm font-bold text-brand-primary">
                             {drill.rawScore != null ? drill.rawScore + ' ' + drill.unit : 'No score'}
                           </span>
                           {drill.rank && (
-                            <span className="bg-brand-primary text-white px-1.5 py-0.5 rounded-full text-xs font-medium">
+                            <span className="bg-brand-primary text-white px-1.5 rounded text-[10px] font-medium">
                               #{drill.rank}
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="text-right ml-2">
-                      <div className="text-xs text-gray-600">Contribution</div>
-                      <div className="text-base font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)} pts</div>
-                    </div>
                   </div>
             
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium text-gray-600 hidden sm:block" style={{minWidth: '64px'}}>
-                      Less important
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] font-medium text-gray-500 hidden sm:block w-12">
+                      Less
                     </span>
                     <div className="touch-none flex-1">
                       <input
@@ -282,36 +282,27 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                         }}
                         onPointerUp={persistModalWeights}
                         name={drill.key}
-                        className="w-full h-8 rounded-lg cursor-pointer accent-brand-primary"
+                        className="w-full h-1.5 rounded-lg cursor-pointer accent-brand-primary"
                       />
                     </div>
-                    <span className="text-xs font-medium text-gray-600 text-right hidden sm:block" style={{minWidth: '64px'}}>
-                      More important
+                    <span className="text-[10px] font-medium text-gray-500 text-right hidden sm:block w-12">
+                      More
                     </span>
-                    <div className="text-sm font-bold text-brand-primary min-w-[40px] text-center">
+                    <div className="text-xs font-bold text-brand-primary min-w-[32px] text-center">
                       {(modalLocalWeights[drill.key] || 0).toFixed(0)}%
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-      
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg border-2 border-blue-200 flex-shrink-0">
-              <div className="text-center sm:text-left">
-                <span className="font-semibold text-gray-900 text-sm block sm:inline">Total Composite Score: </span>
-                <span className="text-lg font-bold text-brand-primary block sm:inline">
-                  {totalWeightedScore.toFixed(2)} pts (Rank #{currentRank})
-                </span>
-              </div>
-            </div>
           </div>
         </div>
 
         {/* Sidebar - Weight Scenarios and Analysis */}
-        <div className="w-full lg:w-80 bg-gray-50 p-4 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-96 lg:max-h-full overflow-y-auto">
+        <div className="w-full lg:w-72 bg-gray-50 p-3 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-64 lg:max-h-full overflow-y-auto">
           <div className="h-full flex flex-col">
             <div className="mb-4">
-              <h3 className="text-base font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                 <Settings className="w-4 h-4 text-brand-primary" />
                 Weight Scenarios
               </h3>
@@ -321,26 +312,26 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 <button
                   key={key}
                   onClick={() => applyPreset(key)}
-                    className={`p-2 text-left rounded-lg border-2 transition-all ${
+                    className={`p-2 text-left rounded-lg border transition-all ${
                       activePreset === key 
                         ? 'border-brand-primary bg-brand-primary bg-opacity-5 text-brand-primary' 
                         : 'border-gray-200 hover:border-gray-300 text-gray-700'
                     }`}
                   >
-                    <div className="font-medium text-sm">{preset.name}</div>
-                    <div className="text-xs text-gray-500">{preset.description}</div>
+                    <div className="font-medium text-xs">{preset.name}</div>
+                    <div className="text-[10px] text-gray-500 truncate">{preset.description}</div>
                   </button>
                 ))}
               </div>
             </div>
             
             <div className="bg-white rounded-lg p-3 border border-gray-200 flex-1 min-h-0">
-              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2 text-sm">
                 <Award className="w-4 h-4 text-yellow-500" />
                 Ranking Analysis
               </h4>
               
-              <div className="space-y-2 text-sm overflow-y-auto">
+              <div className="space-y-2 text-xs overflow-y-auto">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Age Group Rank:</span>
                   <span className="font-bold text-brand-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -352,25 +343,21 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 </div>
                 
                 <div className="pt-2 border-t border-gray-200">
-                  <div className="text-xs text-gray-500 mb-2">Score Breakdown:</div>
+                  <div className="text-[10px] text-gray-500 mb-1">Score Breakdown:</div>
                   {weightedBreakdown.map(drill => (
-                    <div key={drill.key} className="flex justify-between text-xs">
-                      <span className="text-gray-600">{drill.label}:</span>
+                    <div key={drill.key} className="flex justify-between text-[10px]">
+                      <span className="text-gray-600 truncate pr-2">{drill.label}:</span>
                       <span className="font-mono">{drill.weightedScore.toFixed(2)} pts</span>
                     </div>
                   ))}
                 </div>
                 
                 <div className="pt-2 border-t border-gray-200">
-                  <div className="text-xs text-gray-500">
+                  <div className="text-[10px] text-gray-500">
                     {activePreset && presets[activePreset] ? 'Using ' + presets[activePreset].name : 'Custom weights'}
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="mt-2 text-xs text-gray-500 text-center flex-shrink-0">
-              💡 Adjust sliders for real-time changes
             </div>
           </div>
         </div>
