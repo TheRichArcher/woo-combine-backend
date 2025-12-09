@@ -94,12 +94,12 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   };
 
   const createBalancedTeams = () => {
-    if (formationMethod !== 'skill_based' && rankedPlayers.length === 0) {
+    if (formationMethod !== 'skill_based' && formationMethod !== 'ranked_split' && rankedPlayers.length === 0) {
       showError('No players with scores available for team formation');
       return;
     }
     
-    if (formationMethod === 'skill_based' && players.length === 0) {
+    if ((formationMethod === 'skill_based' || formationMethod === 'ranked_split') && players.length === 0) {
       showError('No players available for team formation');
       return;
     }
@@ -158,7 +158,16 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     } else if (formationMethod === 'ranked_split') {
       // Ranked split: Team 1 gets top slice, Team 2 next slice, etc.
       // This is for Varsity/JV type splitting
-      const totalPlayers = rankedPlayers.length;
+      
+      // Calculate scores for ALL players first to ensure we include everyone, even those with 0 scores (who go to bottom tier)
+      // Note: rankedPlayers excludes players with 0 scores, but for Varsity/JV split we need to place everyone.
+      const allScoredPlayers = players.map(player => ({
+        ...player,
+        compositeScore: calculateOptimizedCompositeScore(player, players, percentageWeights, currentDrills)
+      }))
+      .sort((a, b) => b.compositeScore - a.compositeScore); // Sort descending
+
+      const totalPlayers = allScoredPlayers.length;
       const baseSize = Math.floor(totalPlayers / numTeams);
       const remainder = totalPlayers % numTeams;
       
@@ -167,7 +176,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       for (let i = 0; i < numTeams; i++) {
         // Distribute remainder one by one to first teams
         const size = baseSize + (i < remainder ? 1 : 0);
-        newTeams[i] = rankedPlayers.slice(startIndex, startIndex + size);
+        newTeams[i] = allScoredPlayers.slice(startIndex, startIndex + size);
         startIndex += size;
       }
     }
@@ -360,6 +369,12 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
             <option value="skill_based">Category Balance (Advanced)</option>
             <option value="ranked_split">Ranked Split (Varsity/JV)</option>
           </select>
+          <div className="mt-2 text-xs text-gray-500">
+            {formationMethod === 'balanced' && 'Distributes players evenly by overall score (1, 2, 3... 1, 2, 3...)'}
+            {formationMethod === 'snake_draft' && 'Distributes players back-and-forth (1, 2, 3... 3, 2, 1...) to balance top picks'}
+            {formationMethod === 'skill_based' && 'Balances teams across specific skill categories (Speed, Power, etc.)'}
+            {formationMethod === 'ranked_split' && 'Creates A-team/B-team by ranking (not balanced). Team 1 gets top ranked players, Team 2 gets next tier, etc.'}
+          </div>
         </div>
 
         <div className="flex items-end gap-2">
