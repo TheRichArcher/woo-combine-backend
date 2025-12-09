@@ -3,7 +3,7 @@ import Skeleton from '../components/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
-import { ArrowLeft, Users, Target, Settings, Plus, BarChart3 } from 'lucide-react';
+import { ArrowLeft, Users, Target, Settings, Plus, BarChart3, TrendingUp } from 'lucide-react';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
@@ -11,12 +11,22 @@ import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 import PlayerDetailsModal from '../components/Players/PlayerDetailsModal';
+import PlayerDetailsPanel from '../components/Players/PlayerDetailsPanel';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
   const { userRole } = useAuth();
   const navigate = useNavigate();
   const [activeSchema, setActiveSchema] = useState(null);
+  
+  // Responsive layout state
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const check = () => setIsDesktop(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Fetch schema for active event
   useEffect(() => {
@@ -219,7 +229,10 @@ export default function LiveStandings() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Main Content Column */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
         
         {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -439,11 +452,52 @@ export default function LiveStandings() {
             </div>
           </div>
         )}
+        </div>
 
+        {/* Sidebar Column (Desktop Only) */}
+        <div className="hidden lg:block lg:col-span-5 xl:col-span-4">
+           <div className="sticky top-6">
+              {selectedPlayer ? (
+                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden h-[calc(100vh-8rem)]">
+                    <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                       <div>
+                          <h3 className="font-bold text-gray-900">{selectedPlayer.name}</h3>
+                          <p className="text-xs text-gray-500">#{selectedPlayer.number}</p>
+                       </div>
+                       <div className="text-right">
+                          <div className="text-sm font-bold text-brand-primary">
+                             {(selectedPlayer.compositeScore || 0).toFixed(1)} pts
+                          </div>
+                       </div>
+                    </div>
+                    <div className="h-full overflow-y-auto">
+                      <PlayerDetailsPanel 
+                        player={selectedPlayer} 
+                        allPlayers={players} 
+                        persistedWeights={weights}
+                        sliderWeights={weights}
+                        persistSliderWeights={setWeights}
+                        handleWeightChange={handleWeightChange}
+                        activePreset={activePreset}
+                        applyPreset={applyPreset}
+                        drills={allDrills}
+                        presets={currentPresets}
+                      />
+                    </div>
+                 </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center h-64 flex flex-col items-center justify-center text-gray-400">
+                   <TrendingUp className="w-12 h-12 mb-3 opacity-20" />
+                   <p className="font-medium">Select a player to view detailed stats</p>
+                   <p className="text-sm mt-1 opacity-70">Click on any player in the rankings list</p>
+                </div>
+              )}
+           </div>
+        </div>
       </div>
 
-      {/* Player Details Modal */}
-      {selectedPlayer && (
+      {/* Player Details Modal (Mobile Only) */}
+      {selectedPlayer && !isDesktop && (
         <PlayerDetailsModal 
           player={selectedPlayer} 
           allPlayers={players} 
