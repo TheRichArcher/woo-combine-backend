@@ -9,11 +9,11 @@
 // Any changes to nav logic, layout, or visibility must go through checkpoint approval.
 
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench } from 'lucide-react';
+import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench, ArrowRight } from 'lucide-react';
 
 // Notification settings helper
 const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
@@ -255,8 +255,42 @@ export default function Navigation() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const logout = useLogout();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { showInfo } = useToast();
 
   const closeMobile = () => setMobileOpen(false);
+
+  // Detect if we are in an onboarding flow
+  const isOnboarding = location.pathname.startsWith('/onboarding') || location.pathname === '/create-league';
+
+  // Handle restricted navigation
+  const handleRestrictedNav = (e, path, label) => {
+    if (isOnboarding) {
+      e.preventDefault();
+      // Don't block logout or settings (though settings path is usually handled by internal links)
+      
+      showInfo(
+        <div className="flex flex-col gap-2">
+          <span className="font-semibold">Finish setup to unlock {label}</span>
+          <button 
+            onClick={() => {
+                // Just close the toast since we are already on the setup screen
+                const toastCloseBtn = document.querySelector('.toast-close-button');
+                if (toastCloseBtn) toastCloseBtn.click();
+            }}
+            className="text-xs bg-white text-gray-800 px-2 py-1 rounded border border-gray-200 shadow-sm hover:bg-gray-50 flex items-center justify-center gap-1 w-full"
+          >
+            Continue Setup <ArrowRight className="w-3 h-3" />
+          </button>
+        </div>,
+        { duration: 4000 }
+      );
+      if (mobileOpen) closeMobile();
+    } else {
+      // Normal navigation
+      if (mobileOpen) closeMobile();
+    }
+  };
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -286,7 +320,7 @@ export default function Navigation() {
   return (
     <>
       {/* Mojo Sports Style Header */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
+      <nav className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 relative z-30">
         <div className="flex items-center max-w-7xl mx-auto gap-4">
           {/* Left: Avatar */}
           <div className="flex items-center">
@@ -299,7 +333,7 @@ export default function Navigation() {
           </div>
 
           {/* Brand Logo */}
-          <Link to="/dashboard" className="flex items-center" aria-label="WooCombine Home">
+          <Link to="/dashboard" onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Dashboard')} className="flex items-center" aria-label="WooCombine Home">
             <img
               src="/favicon/woocombine-logo.png"
               alt="WooCombine Logo"
@@ -326,17 +360,35 @@ export default function Navigation() {
               <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0" />
             </button>
           </div>
+          
+          {/* Onboarding Progress Indicator (Desktop) - Now Clickable as Escape Hatch */}
+          {isOnboarding && (
+             <button 
+                onClick={() => {
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  // Optionally re-focus the main content if needed
+                }}
+                className="hidden md:flex items-center gap-3 bg-brand-primary/10 px-3 py-1.5 rounded-full border border-brand-primary/20 mr-2 animate-in fade-in slide-in-from-top-2 hover:bg-brand-primary/20 transition-colors"
+                title="Click to continue setup"
+             >
+                <div className="text-xs font-semibold text-brand-primary whitespace-nowrap flex items-center gap-1">
+                   <Wrench className="w-3 h-3" /> Event Setup In Progress
+                </div>
+             </button>
+          )}
 
           {/* Center-Right: Main Navigation Links - Hidden on small mobile, shown on larger screens */}
           <div className="hidden sm:flex items-center gap-2 md:gap-4">
             <Link 
               to="/dashboard" 
+              onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Home')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Home
             </Link>
             <Link 
               to="/players?tab=manage" 
+              onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
               title="Manage your event’s player list and scores"
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
@@ -344,6 +396,7 @@ export default function Navigation() {
             </Link>
             <Link 
               to="/players?tab=analyze" 
+              onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
               title="View and analyze rankings by age group"
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
@@ -351,6 +404,7 @@ export default function Navigation() {
             </Link>
             <Link 
               to="/schedule" 
+              onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Schedule
@@ -359,6 +413,7 @@ export default function Navigation() {
             {/* Make advanced tools first-class: Scorecards for all, Teams for staff */}
             <Link 
               to="/scorecards" 
+              onClick={(e) => handleRestrictedNav(e, '/scorecards', 'Scorecards')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Scorecards
@@ -366,6 +421,7 @@ export default function Navigation() {
             {(userRole === 'organizer' || userRole === 'coach') && (
               <Link 
                 to="/team-formation" 
+                onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
                 className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
               >
                 Teams
@@ -375,6 +431,7 @@ export default function Navigation() {
             {userRole === 'organizer' && (
               <Link 
                 to="/admin" 
+                onClick={(e) => handleRestrictedNav(e, '/admin', 'Admin')}
                 className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
               >
                 Admin
@@ -395,17 +452,17 @@ export default function Navigation() {
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50" role="menu">
-                  <Link to="/live-standings" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                  <Link to="/live-standings" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/live-standings', 'Live Standings'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                     Live Standings
                   </Link>
-                  <Link to="/sport-templates" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                  <Link to="/sport-templates" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/sport-templates', 'Sport Templates'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                     Sport Templates
                   </Link>
-                  <Link to="/evaluators" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                  <Link to="/evaluators" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/evaluators', 'Evaluators'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                     Team Evaluations
                   </Link>
                   {userRole === 'organizer' && (
-                    <Link to="/event-sharing" className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem" onClick={() => setToolsOpen(false)}>
+                    <Link to="/event-sharing" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/event-sharing', 'Event Sharing'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                       Event Sharing
                     </Link>
                   )}
@@ -467,18 +524,35 @@ export default function Navigation() {
       {mobileOpen && (
         <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col py-4">
+            
+            {/* Onboarding Indicator (Mobile) */}
+            {isOnboarding && (
+                 <button 
+                    onClick={() => {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      closeMobile();
+                    }}
+                    className="mx-4 mb-4 flex items-center gap-2 bg-brand-primary/10 px-3 py-2 rounded-lg border border-brand-primary/20 text-left hover:bg-brand-primary/20 transition-colors"
+                 >
+                    <Wrench className="w-4 h-4 text-brand-primary" />
+                    <div className="text-sm font-semibold text-brand-primary">
+                       Event Setup In Progress
+                    </div>
+                 </button>
+            )}
+
             {/* Navigation Links on Mobile */}
             <Link 
               to="/dashboard" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Home')}
             >
               Home
             </Link>
             <Link 
               to="/players?tab=manage" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
               title="Manage your event’s player list and scores"
             >
               <Users className="w-4 h-4 inline-block mr-1" /> Players
@@ -486,7 +560,7 @@ export default function Navigation() {
             <Link 
               to="/players?tab=analyze" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
               title="View and analyze rankings by age group"
             >
               📊 Rankings
@@ -494,14 +568,14 @@ export default function Navigation() {
             <Link 
               to="/schedule" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
             >
               Schedule
             </Link>
             <Link 
               to="/scorecards" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/scorecards', 'Scorecards')}
             >
               Scorecards
             </Link>
@@ -509,7 +583,7 @@ export default function Navigation() {
               <Link 
                 to="/team-formation" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={closeMobile}
+                onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
               >
                 Teams
               </Link>
@@ -518,7 +592,7 @@ export default function Navigation() {
               <Link 
                 to="/admin" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={closeMobile}
+                onClick={(e) => handleRestrictedNav(e, '/admin', 'Admin')}
               >
                 Admin
               </Link>
@@ -535,21 +609,21 @@ export default function Navigation() {
             <Link 
               to="/live-standings" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/live-standings', 'Live Standings')}
             >
               Live Standings
             </Link>
             <Link 
               to="/sport-templates" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/sport-templates', 'Sport Templates')}
             >
               Sport Templates
             </Link>
             <Link 
               to="/evaluators" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
+              onClick={(e) => handleRestrictedNav(e, '/evaluators', 'Evaluators')}
             >
               Team Evaluations
             </Link>
@@ -557,7 +631,7 @@ export default function Navigation() {
               <Link 
                 to="/event-sharing" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={closeMobile}
+                onClick={(e) => handleRestrictedNav(e, '/event-sharing', 'Event Sharing')}
               >
                 Event Sharing
               </Link>
@@ -586,4 +660,4 @@ export default function Navigation() {
       />
     </>
   );
-} 
+}

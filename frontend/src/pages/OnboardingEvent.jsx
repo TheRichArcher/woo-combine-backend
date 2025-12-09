@@ -5,7 +5,7 @@ import EventJoinCode from "../components/EventJoinCode";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
-import WelcomeLayout from "../components/layouts/WelcomeLayout";
+// WelcomeLayout removed to support persistent navigation
 import OnboardingCard from "../components/OnboardingCard";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -396,10 +396,17 @@ export default function OnboardingEvent() {
 
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
 
+  // Common wrapper style for persistent navigation support
+  const OnboardingWrapper = ({ children }) => (
+    <div className="min-h-[calc(100vh-64px)] bg-surface-subtle flex flex-col items-center justify-start pt-8 pb-8 px-4">
+      {children}
+    </div>
+  );
+
   // STEP 1: Event Creation
   if (currentStep === 1) {
     return (
-      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+      <OnboardingWrapper>
         <div className="w-full max-w-md text-center">
           <OnboardingCard title="🏆 Create Your Event" subtitle="Set up your combine event and start timing athletes">
 
@@ -418,14 +425,14 @@ export default function OnboardingEvent() {
             )}
           </OnboardingCard>
         </div>
-      </WelcomeLayout>
+      </OnboardingWrapper>
     );
   }
 
   // STEP 2: Configure Drills
   if (currentStep === 2) {
     return (
-        <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+        <OnboardingWrapper>
             <div className="w-full max-w-md text-center">
                 <OnboardingCard 
                     title="⚙️ Configure Drills" 
@@ -459,14 +466,14 @@ export default function OnboardingEvent() {
                     </div>
                 </OnboardingCard>
             </div>
-        </WelcomeLayout>
+        </OnboardingWrapper>
     );
   }
 
   // STEP 3: Player Import
   if (currentStep === 3) {
     return (
-      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+      <OnboardingWrapper>
         <div className="w-full max-w-md text-center">
           <OnboardingCard
             title="📋 Add Players"
@@ -664,14 +671,14 @@ export default function OnboardingEvent() {
 
           </OnboardingCard>
         </div>
-      </WelcomeLayout>
+      </OnboardingWrapper>
     );
   }
 
   // STEP 4: Share event with staff
   if (currentStep === 4) {
     return (
-      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+      <OnboardingWrapper>
         <div className="w-full max-w-lg text-center space-y-4">
           <StepIndicator activeStep={4} />
           {createdEvent && selectedLeague ? (
@@ -701,14 +708,14 @@ export default function OnboardingEvent() {
             </Button>
           </div>
         </div>
-      </WelcomeLayout>
+      </OnboardingWrapper>
     );
   }
 
   // STEP 5: Completion and next steps
   if (currentStep === 5) {
     return (
-      <WelcomeLayout showOverlay={false} backgroundColor="bg-surface-subtle">
+      <OnboardingWrapper>
         <div className="w-full max-w-md text-center">
           <OnboardingCard title={"🎉 You're All Set!"} subtitle={`${createdEvent?.name || 'Your event'} is ready with ${playerCount} players`}>
             <StepIndicator activeStep={5} />
@@ -836,7 +843,7 @@ export default function OnboardingEvent() {
             )}
           </OnboardingCard>
         </div>
-      </WelcomeLayout>
+      </OnboardingWrapper>
     );
   }
 
