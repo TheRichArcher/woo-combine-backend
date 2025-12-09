@@ -157,7 +157,7 @@ function preprocessPlayerData(players, drills) {
   });
 
   // Second pass: Build player vectors
-  const processedPlayers = players.map(player => {
+  const processedPlayers = players.map((player, idx) => {
     const age = player.age_group || 'ALL';
     const range = rangesByAge[age];
     const categoryScores = {};
@@ -172,6 +172,7 @@ function preprocessPlayerData(players, drills) {
 
     drills.forEach(d => {
       const cat = categoryMap[d.key];
+      // Handle both flat structure and nested scores object
       const raw = player.scores?.[d.key] ?? player[d.key];
       let normScore;
 
@@ -200,6 +201,15 @@ function preprocessPlayerData(players, drills) {
       totalScore += finalCategoryScores[c];
       catCount++;
     });
+
+    // DEBUG: Inspect computed scores for first 3 players
+    if (idx < 3) {
+       console.log(`[SkillBased] Player ${player.name} (${player.id}):`, {
+         raw: player.scores || player,
+         finalCategoryScores,
+         missingData
+       });
+    }
 
     const avgScore = catCount > 0 ? totalScore / catCount : 0;
     

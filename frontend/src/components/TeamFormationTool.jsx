@@ -107,6 +107,12 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     let newTeams = Array.from({ length: numTeams }, () => []);
     let newStats = null;
     
+    // Helper to get percentage weights for scoring
+    const percentageWeights = {};
+    Object.entries(weights).forEach(([key, value]) => {
+      percentageWeights[key] = value * 100;
+    });
+    
     if (formationMethod === 'balanced') {
       // Distribute players in round-robin fashion to balance overall talent
       rankedPlayers.forEach((player, index) => {
@@ -131,7 +137,22 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       });
     } else if (formationMethod === 'skill_based') {
       // Use the advanced skill-based formation algorithm
-      const result = createSkillBasedTeams(players, numTeams, currentDrills);
+      // Note: We need to pass players that have compositeScore if possible, but createSkillBasedTeams calculates its own category scores.
+      // However, for the UI to display the overall composite score correctly in the list, we need to ensure the returned objects have it.
+      
+      // Calculate scores for ALL players first (since rankedPlayers filters out 0 scores, but we want to include everyone for skill based)
+      const allScoredPlayers = players.map(player => ({
+        ...player,
+        compositeScore: calculateOptimizedCompositeScore(player, players, percentageWeights, currentDrills)
+      }));
+
+      const result = createSkillBasedTeams(allScoredPlayers, numTeams, currentDrills);
+      
+      // The result.teams contains objects with 'scores' (category scores).
+      // We need to ensure they also preserve the 'compositeScore' we calculated above.
+      // skillBasedFormation returns the original player object in .originalPlayer, 
+      // so passing allScoredPlayers means .originalPlayer will have compositeScore.
+      
       newTeams = result.teams;
       newStats = result.stats;
     } else if (formationMethod === 'ranked_split') {
