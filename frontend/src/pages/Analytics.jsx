@@ -18,7 +18,7 @@ export default function Analytics() {
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [viewMode, setViewMode] = useState('bar'); // 'bar' | 'simple' | 'histogram'
-  const [labelMode, setLabelMode] = useState('number'); // 'number' | 'name'
+  const [labelMode, setLabelMode] = useState('name'); // 'number' | 'name'
   const [barLimit, setBarLimit] = useState(30); // 10 | 20 | 30 | 50 | 100 (All)
   const [highlightedPlayerId, setHighlightedPlayerId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
