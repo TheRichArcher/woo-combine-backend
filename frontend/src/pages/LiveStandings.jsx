@@ -10,6 +10,7 @@ import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
+import PlayerDetailsModal from '../components/Players/PlayerDetailsModal';
 
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
@@ -86,6 +87,7 @@ export default function LiveStandings() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
   const [displayCount, setDisplayCount] = useState(3); // number of players to show in list (default 3; -1 means All)
+  const [selectedPlayer, setSelectedPlayer] = useState(null);
 
   // Initialize weights when drills change
   useEffect(() => {
@@ -355,7 +357,8 @@ export default function LiveStandings() {
               {liveRankings.slice(0, displayLimit).map((player, index) => (
                 <div 
                   key={player.id} 
-                  className={`flex items-center justify-between p-3 rounded-lg border ${
+                  onClick={() => setSelectedPlayer(player)}
+                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
                     index === 0 ? 'bg-semantic-success/10 border-semantic-success/20' :
                     index < 3 ? 'bg-yellow-50 border-yellow-200' :
                     'bg-gray-50 border-gray-200'
@@ -373,12 +376,15 @@ export default function LiveStandings() {
                       <div className="font-medium text-gray-900">{player.name}</div>
                       <div className="text-sm text-gray-600">#{player.number}</div>
                       <div className="text-xs mt-1">
-                        <Link
-                          to={`/live-entry?player=${encodeURIComponent(player.number || '')}`}
-                          className="text-brand-primary hover:text-brand-secondary underline"
+                        <span
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/live-entry?player=${encodeURIComponent(player.number || '')}`);
+                          }}
+                          className="text-brand-primary hover:text-brand-secondary underline cursor-pointer"
                         >
                           Record this player
-                        </Link>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -435,6 +441,23 @@ export default function LiveStandings() {
         )}
 
       </div>
+
+      {/* Player Details Modal */}
+      {selectedPlayer && (
+        <PlayerDetailsModal 
+          player={selectedPlayer} 
+          allPlayers={players} 
+          onClose={() => setSelectedPlayer(null)}
+          persistedWeights={weights}
+          sliderWeights={weights}
+          persistSliderWeights={setWeights}
+          handleWeightChange={handleWeightChange}
+          activePreset={activePreset}
+          applyPreset={applyPreset}
+          drills={allDrills}
+          presets={currentPresets}
+        />
+      )}
     </div>
   );
 }
