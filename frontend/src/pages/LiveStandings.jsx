@@ -3,6 +3,7 @@ import Skeleton from '../components/Skeleton';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
+import { usePlayerDetails } from '../context/PlayerDetailsContext';
 import { ArrowLeft, Users, Target, Settings, Plus, BarChart3, TrendingUp } from 'lucide-react';
 import api from '../lib/api';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
@@ -97,7 +98,8 @@ export default function LiveStandings() {
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
   const [normalizeAcrossAll, setNormalizeAcrossAll] = useState(true);
   const [displayCount, setDisplayCount] = useState(3); // number of players to show in list (default 3; -1 means All)
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  // const [selectedPlayer, setSelectedPlayer] = useState(null);
+  const { selectedPlayer, openDetails, closeDetails } = usePlayerDetails();
 
   // Initialize weights when drills change
   useEffect(() => {
@@ -370,7 +372,7 @@ export default function LiveStandings() {
               {liveRankings.slice(0, displayLimit).map((player, index) => (
                 <div 
                   key={player.id} 
-                  onClick={() => setSelectedPlayer(player)}
+                  onClick={() => openDetails(player, { suppressGlobalModal: isDesktop })}
                   className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
                     index === 0 ? 'bg-semantic-success/10 border-semantic-success/20' :
                     index < 3 ? 'bg-yellow-50 border-yellow-200' :
@@ -496,22 +498,7 @@ export default function LiveStandings() {
         </div>
       </div>
 
-      {/* Player Details Modal (Mobile Only) */}
-      {selectedPlayer && !isDesktop && (
-        <PlayerDetailsModal 
-          player={selectedPlayer} 
-          allPlayers={players} 
-          onClose={() => setSelectedPlayer(null)}
-          persistedWeights={weights}
-          sliderWeights={weights}
-          persistSliderWeights={setWeights}
-          handleWeightChange={handleWeightChange}
-          activePreset={activePreset}
-          applyPreset={applyPreset}
-          drills={allDrills}
-          presets={currentPresets}
-        />
-      )}
+      {/* Player Details Modal logic is now handled by Global Context (for mobile) */}
     </div>
   );
 }

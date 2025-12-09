@@ -8,7 +8,8 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   onClose, 
   persistedWeights, 
   sliderWeights, 
-  persistSliderWeights, 
+  persistSliderWeights,
+  handleWeightChange, 
   activePreset, 
   applyPreset,
   drills = [],
@@ -48,6 +49,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               persistedWeights={persistedWeights}
               sliderWeights={sliderWeights}
               persistSliderWeights={persistSliderWeights}
+              handleWeightChange={handleWeightChange}
               activePreset={activePreset}
               applyPreset={applyPreset}
               drills={drills}

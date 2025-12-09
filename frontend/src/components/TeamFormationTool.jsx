@@ -17,7 +17,7 @@ import { getDrillsFromTemplate } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore } from '../utils/optimizedScoring';
 import { createSkillBasedTeams } from '../utils/skillBasedFormation';
 
-const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate = 'football' }) => {
+const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate = 'football', onPlayerClick }) => {
   const { showSuccess, showError } = useToast();
   
   const [numTeams, setNumTeams] = useState(2);
@@ -478,9 +478,13 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
 
                   <div className="space-y-2 max-h-60 overflow-y-auto">
                     {team.map((player) => (
-                      <div key={player.id} className="flex items-center justify-between p-2 bg-white rounded border text-sm">
+                      <div 
+                        key={player.id} 
+                        className="flex items-center justify-between p-2 bg-white rounded border text-sm hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => onPlayerClick && onPlayerClick(player)}
+                      >
                         <div>
-                          <div className="font-medium">{player.name}</div>
+                          <div className="font-medium text-gray-900">{player.name}</div>
                           <div className="text-xs text-gray-500">
                             #{player.number} - {player.age_group}
                           </div>
@@ -494,7 +498,10 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
                               otherTeamIndex !== teamIndex && (
                                 <button
                                   key={otherTeamIndex}
-                                  onClick={() => movePlayerToTeam(player.id, teamIndex, otherTeamIndex)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    movePlayerToTeam(player.id, teamIndex, otherTeamIndex);
+                                  }}
                                   className="text-xs text-blue-600 hover:text-blue-800"
                                   title={`Move to ${teamNames[otherTeamIndex] || `Team ${otherTeamIndex + 1}`}`}
                                 >

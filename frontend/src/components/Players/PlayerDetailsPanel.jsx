@@ -6,7 +6,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   allPlayers, 
   persistedWeights, 
   sliderWeights, 
-  persistSliderWeights, 
+  persistSliderWeights,
+  handleWeightChange, 
   activePreset, 
   applyPreset,
   drills = [],
@@ -29,8 +30,22 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   
   // Persist weights function for modal
   const persistModalWeights = useCallback(() => {
+    // If handleWeightChange is provided (from useOptimizedWeights context), use it for persistence too if needed
+    // But usually persistSliderWeights is separate. 
+    // Wait, useOptimizedWeights exports persistSliderWeights which calls debouncedPersistWeights.
     persistSliderWeights(modalLocalWeights);
   }, [modalLocalWeights, persistSliderWeights]);
+
+  // Handle live slider changes
+  const onSliderChange = useCallback((drillKey, value) => {
+    const newWeights = { ...modalLocalWeights, [drillKey]: value };
+    setModalLocalWeights(newWeights);
+    
+    // If a live handler is provided (e.g. from useOptimizedWeights), call it
+    if (handleWeightChange) {
+       handleWeightChange(drillKey, value);
+    }
+  }, [modalLocalWeights, handleWeightChange]);
   
   // Use persisted weights for calculations
   const weights = persistedWeights;
@@ -263,7 +278,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                         step={0.1}
                         onInput={(e) => {
                           const newWeight = parseFloat(e.target.value);
-                          setModalLocalWeights((prev) => ({ ...prev, [drill.key]: newWeight }));
+                          onSliderChange(drill.key, newWeight);
                         }}
                         onPointerUp={persistModalWeights}
                         name={drill.key}

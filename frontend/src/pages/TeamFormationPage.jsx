@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePlayerDetails } from '../context/PlayerDetailsContext';
 import TeamFormationTool from '../components/TeamFormationTool';
 import EventSelector from '../components/EventSelector';
 import LoadingScreen from '../components/LoadingScreen';
@@ -19,6 +20,7 @@ const TeamFormationPage = () => {
   const { selectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
   const { showError, showSuccess } = useToast();
+  const { openDetails } = usePlayerDetails();
   
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -334,6 +336,17 @@ const TeamFormationPage = () => {
           weights={normalizedWeights}
           selectedDrillTemplate={drillTemplate}
           drills={currentDrills}
+          onPlayerClick={(player) => openDetails(player, {
+              allPlayers: playersWithScores,
+              persistedWeights: weights, // Need to verify if weights here match expected format for context
+              // TeamFormationPage uses percentageWeights (0-100) for internal state but normalizedWeights (0-1) for Tool
+              // The context expects 0-100 for persistedWeights (from useOptimizedWeights)
+              // Let's check `weights` state in this file.
+              // Line 44: percentageWeights[drill.key] = (drill.defaultWeight || 0.2) * 100;
+              // So `weights` is already 0-100. Correct.
+              sliderWeights: weights,
+              drills: currentDrills
+          })}
         />
         
         {/* Continue Your Event Actions */}

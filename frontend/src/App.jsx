@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
+import { PlayerDetailsProvider } from "./context/PlayerDetailsContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
@@ -55,7 +56,8 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <EventProvider>
-            <div className="min-h-screen bg-gray-50">
+            <PlayerDetailsProvider>
+              <div className="min-h-screen bg-gray-50">
               <SessionExpiredGate />
               <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
@@ -413,7 +415,8 @@ function App() {
                   </WelcomeLayout>
                 } />
               </Routes>
-            </div>
+              </div>
+            </PlayerDetailsProvider>
           </EventProvider>
         </AuthProvider>
       </ToastProvider>

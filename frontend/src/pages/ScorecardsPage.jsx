@@ -2,19 +2,18 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { usePlayerDetails } from '../context/PlayerDetailsContext'; // Keep for handleWeightChange context if needed
 import PlayerScorecardGenerator from '../components/PlayerScorecardGenerator';
+import PlayerDetailsPanel from '../components/Players/PlayerDetailsPanel'; // Import Panel
 import EventSelector from '../components/EventSelector';
 import LoadingScreen from '../components/LoadingScreen';
 import ErrorDisplay from '../components/ErrorDisplay';
 import { useDrills } from '../hooks/useDrills';
+import { useOptimizedWeights } from '../hooks/useOptimizedWeights'; // Import optimized weights
 import { 
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
-import { 
-  calculateOptimizedRankings,
-  calculateDrillRankings 
-} from '../utils/optimizedScoring';
-import { FileText, Users, Search, Award, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -24,17 +23,29 @@ const ScorecardsPage = () => {
   const { user, selectedLeagueId, userRole } = useAuth();
   const { showError } = useToast();
   const navigate = useNavigate();
+  const { openDetails, selectedPlayer: contextSelectedPlayer, closeDetails } = usePlayerDetails();
   
   // Unified Drills Hook
-  const { drills: currentDrills, loading: drillsLoading } = useDrills(selectedEvent);
+  const { drills: currentDrills, loading: drillsLoading, presets } = useDrills(selectedEvent);
 
   const [players, setPlayers] = useState([]);
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  // Use context selected player
+  const selectedPlayer = contextSelectedPlayer;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showGenerator, setShowGenerator] = useState(false);
   
+  // Use optimized weights hook
+  const { 
+    persistedWeights, 
+    sliderWeights, 
+    handleWeightChange, 
+    persistSliderWeights,
+    activePreset, 
+    applyPreset 
+  } = useOptimizedWeights([], currentDrills, presets); // We can pass empty players if we don't need rankings here (Panel handles it)
+
   // Ref for auto-scrolling to stats
   const statsRef = useRef(null);
 
@@ -46,45 +57,10 @@ const ScorecardsPage = () => {
   
   // Get drill template and weights from event
   const drillTemplate = selectedEvent?.drillTemplate;
-  const weights = getDefaultWeightsFromTemplate(drillTemplate);
-  
-  // Calculate player stats for immediate display
-  const playerStats = React.useMemo(() => {
-    if (!selectedPlayer || !players.length || !currentDrills.length) return null;
-    
-    // Convert decimal weights to percentage for the utility functions
-    const percentageWeights = {};
-    Object.entries(weights).forEach(([key, value]) => {
-      percentageWeights[key] = value * 100;
-    });
-    
-    // Rank in age group
-    const ageGroupPlayers = players.filter(p => p.age_group === selectedPlayer.age_group);
-    
-    // Get rankings (includes composite scores)
-    const rankedPlayers = calculateOptimizedRankings(ageGroupPlayers, percentageWeights, currentDrills);
-    const rankData = rankedPlayers.find(p => p.id === selectedPlayer.id);
-    
-    const rank = rankData ? rankData.rank : '-';
-    const compositeScore = rankData ? rankData.compositeScore : 0;
-    const totalInAgeGroup = rankedPlayers.length;
-    const percentile = totalInAgeGroup > 0 && typeof rank === 'number' 
-      ? Math.round(((totalInAgeGroup - rank + 1) / totalInAgeGroup) * 100) 
-      : 0;
-    
-    // Drill specific rankings
-    const drillRankings = calculateDrillRankings(selectedPlayer, players, currentDrills);
-    
-    return {
-      rank,
-      compositeScore,
-      totalInAgeGroup,
-      percentile,
-      drillRankings
-    };
-  }, [selectedPlayer, players, weights, currentDrills]);
+  // const weights = getDefaultWeightsFromTemplate(drillTemplate); // Replaced by useOptimizedWeights
 
-  // Fetch players for the selected event
+  
+  // Filter players based on search term with safe string handling
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
       setPlayers([]);
@@ -144,9 +120,22 @@ const ScorecardsPage = () => {
   });
 
   const handlePlayerSelect = (player) => {
-    setSelectedPlayer(player);
     // Hide generator by default when switching players to keep view clean
     setShowGenerator(false);
+    
+    // Open the global modal context but suppressed (so we use inline panel)
+    openDetails(player, {
+        allPlayers: players,
+        persistedWeights, 
+        sliderWeights,
+        persistSliderWeights,
+        handleWeightChange,
+        activePreset,
+        applyPreset,
+        drills: currentDrills,
+        presets,
+        suppressGlobalModal: true // Keep inline for this page
+    });
   };
 
   if (loading || drillsLoading) {
@@ -304,65 +293,31 @@ const ScorecardsPage = () => {
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Player Selected</h3>
                 <p className="text-gray-500">Select a player from the list above to view their stats and rankings.</p>
               </div>
-            ) : selectedPlayer && playerStats && (
+            ) : (
               <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-                <div className="bg-blue-600 px-6 py-4 text-white">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-2xl font-bold">{selectedPlayer.name}</h2>
+                <div className="bg-blue-600 px-6 py-4 text-white flex justify-between items-center">
+                   <div>
+                      <h2 className="text-xl font-bold">{selectedPlayer.name}</h2>
                       <p className="text-blue-100 text-sm">#{selectedPlayer.number} • {selectedPlayer.age_group}</p>
-                    </div>
-                    <div className="text-right">
-                       <div className="text-3xl font-bold">{playerStats.compositeScore.toFixed(1)}</div>
-                       <div className="text-xs text-blue-100">Composite</div>
-                    </div>
-                  </div>
+                   </div>
+                   <div className="text-right">
+                      {/* Controls embedded in panel */}
+                   </div>
                 </div>
                 
-                <div className="p-6">
-                  {/* Summary Stats */}
-                  <div className="grid grid-cols-3 gap-4 mb-8 text-center">
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                      <div className="text-xl font-bold text-gray-900">#{playerStats.rank}</div>
-                      <div className="text-xs text-gray-500 uppercase tracking-wide">Rank</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                      <div className="text-xl font-bold text-gray-900">{playerStats.percentile}%</div>
-                      <div className="text-xs text-gray-500 uppercase tracking-wide">Percentile</div>
-                    </div>
-                    <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
-                      <div className="text-xl font-bold text-gray-900">{playerStats.totalInAgeGroup}</div>
-                      <div className="text-xs text-gray-500 uppercase tracking-wide">Players</div>
-                    </div>
-                  </div>
-                  
-                  {/* Drill Breakdown */}
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Drill Results</h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {currentDrills.map(drill => {
-                      const score = selectedPlayer[drill.key];
-                      const drillRank = playerStats.drillRankings[drill.key];
-                      
-                      return (
-                        <div key={drill.key} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-blue-100 hover:bg-blue-50/30 transition-colors">
-                          <span className="text-sm font-medium text-gray-700">{drill.label}</span>
-                          <div className="text-right">
-                            <div className="font-bold text-gray-900">
-                              {score !== null && score !== undefined ? `${score} ${drill.unit}` : '-'}
-                            </div>
-                            {score !== null && score !== undefined && drillRank && (
-                              <div className="flex flex-col items-end">
-                                <div className="text-xs text-gray-500">Rank: #{drillRank}</div>
-                                <div className="text-[10px] text-gray-400">
-                                  {drill.lowerIsBetter ? 'Lower is better' : 'Higher is better'}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="h-[600px] overflow-y-auto bg-white">
+                   <PlayerDetailsPanel 
+                      player={selectedPlayer}
+                      allPlayers={players}
+                      persistedWeights={persistedWeights}
+                      sliderWeights={sliderWeights}
+                      persistSliderWeights={persistSliderWeights}
+                      handleWeightChange={handleWeightChange}
+                      activePreset={activePreset}
+                      applyPreset={applyPreset}
+                      drills={currentDrills}
+                      presets={presets}
+                   />
                 </div>
 
                 {/* Footer / Actions */}
@@ -384,7 +339,7 @@ const ScorecardsPage = () => {
                 <PlayerScorecardGenerator
                   player={selectedPlayer}
                   allPlayers={players}
-                  weights={weights}
+                  weights={persistedWeights}
                   selectedDrillTemplate={drillTemplate}
                   drills={currentDrills}
                 />

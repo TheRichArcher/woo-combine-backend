@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { Link } from 'react-router-dom';
-import { BarChart3, ArrowLeft, HelpCircle } from 'lucide-react';
+import { BarChart3, ArrowLeft, HelpCircle, ExternalLink } from 'lucide-react';
 import api from '../lib/api';
 import { useDrills } from '../hooks/useDrills';
+import { usePlayerDetails } from '../context/PlayerDetailsContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ScatterChart, Scatter, CartesianGrid, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 export default function Analytics() {
@@ -14,6 +15,7 @@ export default function Analytics() {
   
   // Unified Drills Hook
   const { drills } = useDrills(selectedEvent);
+  const { openDetails } = usePlayerDetails();
 
   const [selectedDrillKey, setSelectedDrillKey] = useState('');
   const [selectedAgeGroup, setSelectedAgeGroup] = useState('ALL');
@@ -207,7 +209,9 @@ export default function Analytics() {
           name: e.player?.name,
           participantId: e.participantId,
           displayLabel: e.displayLabel,
-          value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2))
+          value: drill.lowerIsBetter ? Number(e.value.toFixed(2)) : Number(e.value.toFixed(2)),
+          id: e.player.id,
+          player: e.player
         }));
 
         // Histogram bins for 'histogram' view with adaptive bucket count (4–10 bins)
@@ -552,8 +556,16 @@ export default function Analytics() {
                                         {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
                                             <Cell 
                                                 key={`bar-${idx}`} 
+                                                cursor="pointer"
                                                 fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
                                                 opacity={getBarOpacity(entry.player.id)}
+                                                onClick={() => {
+                                                    setHighlightedPlayerId(entry.player.id);
+                                                    openDetails(entry.player, {
+                                                        allPlayers: players,
+                                                        drills: drills
+                                                    });
+                                                }}
                                             />
                                         ))}
                                         <LabelList 
@@ -624,7 +636,8 @@ export default function Analytics() {
                             score: e.value,
                             external_id: e.player.external_id,
                             number: e.player.jersey_number || e.player.number,
-                            playerId: e.player.id
+                            playerId: e.player.id,
+                            player: e.player
                           }))} 
                           line={{ stroke: '#64748b', strokeWidth: 1.5 }} 
                           lineType="joint" 
@@ -634,9 +647,17 @@ export default function Analytics() {
                           {drillStats.orderedForBars.slice(0, barLimit).map((entry, idx) => (
                             <Cell 
                                 key={`pt-${idx}`} 
+                                cursor="pointer"
                                 fill={highlightedPlayerId === entry.player.id ? '#111827' : CHART_COLORS[idx % CHART_COLORS.length]} 
                                 stroke="#111827" 
                                 opacity={getBarOpacity(entry.player.id)}
+                                onClick={() => {
+                                    setHighlightedPlayerId(entry.player.id);
+                                    openDetails(entry.player, {
+                                        allPlayers: players,
+                                        drills: drills
+                                    });
+                                }}
                             />
                           ))}
                         </Scatter>
@@ -750,13 +771,21 @@ export default function Analytics() {
                         <div 
                             key={idx} 
                             className={`flex items-center justify-between text-sm bg-white rounded border p-2 cursor-pointer transition-colors ${highlightedPlayerId === t.id ? 'ring-2 ring-brand-primary bg-blue-50' : 'hover:bg-gray-50'}`}
-                            onClick={() => setHighlightedPlayerId(highlightedPlayerId === t.id ? null : t.id)}
+                            onClick={() => {
+                                setHighlightedPlayerId(t.id);
+                                openDetails(t.player, {
+                                    allPlayers: players,
+                                    drills: drills
+                                });
+                            }}
                         >
                           <div className="flex items-center gap-2">
                             <div className={`w-6 h-6 rounded-full text-white text-xs font-bold flex items-center justify-center ${idx===0?'bg-semantic-success':idx<3?'bg-semantic-warning':'bg-gray-500'}`}>{idx+1}</div>
                             <div className="text-gray-900"><span className="font-mono text-gray-600 bg-gray-50 px-1 rounded mr-1 text-xs">{t.participantId}</span> {t.name}</div>
                           </div>
-                          <div className="font-mono text-brand-primary">{t.value} {selectedDrill.unit}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-mono text-brand-primary">{t.value} {selectedDrill.unit}</div>
+                          </div>
                         </div>
                       ))}
                     </div>

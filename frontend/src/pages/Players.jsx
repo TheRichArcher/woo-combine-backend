@@ -9,6 +9,7 @@ import ImportResultsModal from "../components/Players/ImportResultsModal";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import api from '../lib/api';
 import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -48,11 +49,12 @@ const cachedFetchPlayers = withCache(
 export default function Players() {
   const { selectedEvent, setSelectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
+  const { openDetails, selectedPlayer: contextSelectedPlayer } = usePlayerDetails();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedPlayerIds, setExpandedPlayerIds] = useState({});
-  const [selectedPlayer, setSelectedPlayer] = useState(null);
+  // const [selectedPlayer, setSelectedPlayer] = useState(null); // Managed by PlayerDetailsContext
   const [editingPlayer, setEditingPlayer] = useState(null);
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -96,7 +98,16 @@ export default function Players() {
     if (playerIdParam && players.length > 0) {
       const playerToSelect = players.find(p => p.id === playerIdParam);
       if (playerToSelect) {
-        setSelectedPlayer(playerToSelect);
+        openDetails(playerToSelect, {
+            allPlayers: players,
+            persistedWeights,
+            sliderWeights,
+            persistSliderWeights,
+            activePreset,
+            applyPreset,
+            drills: allDrills,
+            presets: currentPresets
+        });
       }
     }
   }, [location.search, players]);
@@ -247,9 +258,25 @@ export default function Players() {
       const playersData = await cachedFetchPlayers(selectedEvent.id);
       setPlayers(playersData);
       
-      if (selectedPlayer) {
-        const updatedPlayer = playersData.find(p => p.id === selectedPlayer.id);
-        setSelectedPlayer(updatedPlayer || null);
+      if (contextSelectedPlayer) {
+        const updatedPlayer = playersData.find(p => p.id === contextSelectedPlayer.id);
+        if (updatedPlayer) {
+           openDetails(updatedPlayer, {
+              allPlayers: playersData,
+              persistedWeights,
+              sliderWeights,
+              persistSliderWeights,
+              activePreset,
+              applyPreset,
+              drills: allDrills,
+              presets: currentPresets
+           });
+        } else {
+           // Player no longer exists or not found in list (maybe filtered?)
+           // If we want to close, call closeDetails(). 
+           // But openDetails(null) also works if updatedPlayer is null.
+           openDetails(null); 
+        }
       }
     } catch (err) {
       if (err.response?.status === 422) {
@@ -568,7 +595,16 @@ export default function Players() {
                       
                       <div className="flex flex-wrap gap-2">
                         <button
-                          onClick={() => setSelectedPlayer(player)}
+                          onClick={() => openDetails(player, {
+                              allPlayers: players,
+                              persistedWeights,
+                              sliderWeights,
+                              persistSliderWeights,
+                              activePreset,
+                              applyPreset,
+                              drills: allDrills,
+                              presets: currentPresets
+                          })}
                           className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
                         >
                           View Stats & Weights
@@ -700,7 +736,23 @@ export default function Players() {
                     {/* Rankings List */}
                     <div className="p-3 space-y-1">
                       {backendRankings.slice(0, 5).map((player, index) => (
-                        <div key={player.player_id || player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
+                        <div 
+                          key={player.player_id || player.id} 
+                          className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors rounded text-sm"
+                          onClick={() => {
+                            const fullPlayer = players.find(p => p.id === (player.player_id || player.id)) || player;
+                            openDetails(fullPlayer, {
+                                allPlayers: players,
+                                persistedWeights,
+                                sliderWeights,
+                                persistSliderWeights,
+                                activePreset,
+                                applyPreset,
+                                drills: allDrills,
+                                presets: currentPresets
+                            });
+                          }}
+                        >
                           <div className={`font-bold w-6 text-center ${
                             index === 0 ? "text-yellow-500" : 
                             index === 1 ? "text-gray-500" : 
@@ -745,22 +797,8 @@ export default function Players() {
       </div>
 
       {/* MODALS */}
-      {selectedPlayer && (
-        <PlayerDetailsModal 
-          player={selectedPlayer} 
-          allPlayers={players} 
-          onClose={() => setSelectedPlayer(null)}
-          persistedWeights={persistedWeights}
-          sliderWeights={sliderWeights}
-          setSliderWeights={setSliderWeights}
-          persistSliderWeights={persistSliderWeights}
-          handleWeightChange={handleWeightChange}
-          activePreset={activePreset}
-          applyPreset={applyPreset}
-          drills={allDrills}
-          presets={currentPresets}
-        />
-      )}
+      {/* PlayerDetailsModal is now managed globally by PlayerDetailsContext */}
+      
       {editingPlayer && (
         <EditPlayerModal
           player={editingPlayer}
