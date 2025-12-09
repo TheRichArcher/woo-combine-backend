@@ -330,7 +330,7 @@ export default function Analytics() {
         {
             title: 'With Scores',
             value: withScoresCount,
-            sub: selectedDrill.label
+            sub: 'All with scores'
         },
         {
             title: `Avg ${selectedDrill.label}`,
@@ -340,7 +340,7 @@ export default function Analytics() {
         },
         {
             title: `Best ${selectedDrill.label}`,
-            value: (bestVal !== undefined && bestVal !== null) ? bestVal : '-',
+            value: (bestVal !== undefined && bestVal !== null) ? Number(bestVal).toFixed(2) : '-',
             unit: selectedDrill.unit,
             sub: 'Overall'
         }
