@@ -26,12 +26,9 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
 
   const compositeScore = useMemo(() => {
     if (!player || !allPlayers || !drills.length) return 0;
-    // Use persisted weights for the main score display to match rankings
-    // Or sliderWeights for live feedback? 
-    // Usually header score should reflect "current status". 
-    // PlayerDetailsPanel shows live score. Let's match that.
-    return calculateOptimizedCompositeScore(player, allPlayers, sliderWeights || persistedWeights, drills);
-  }, [player, allPlayers, sliderWeights, persistedWeights, drills]);
+    // Use sliderWeights for immediate feedback when sliders are moved
+    return calculateOptimizedCompositeScore(player, allPlayers, sliderWeights, drills);
+  }, [player, allPlayers, sliderWeights, drills]);
 
   if (!player) return null;
 

@@ -35,16 +35,18 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
 
   // Handle live slider changes
   const onSliderChange = useCallback((drillKey, value) => {
+    // Immediate local update for smooth UI
     const newWeights = { ...modalLocalWeights, [drillKey]: value };
     setModalLocalWeights(newWeights);
     
+    // Propagate change to parent (which updates sliderWeights)
     if (handleWeightChange) {
        handleWeightChange(drillKey, value);
     }
   }, [modalLocalWeights, handleWeightChange]);
   
-  // Use persisted weights for calculations
-  const weights = persistedWeights;
+  // Use slider weights for live calculations inside the panel
+  const weights = sliderWeights;
 
   const drillRankings = useMemo(() => {
     if (!player || !allPlayers || allPlayers.length === 0) return {};
@@ -373,7 +375,9 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     prevProps.player?.updated_at === nextProps.player?.updated_at &&
     prevProps.allPlayers?.length === nextProps.allPlayers?.length &&
     JSON.stringify(prevProps.persistedWeights) === JSON.stringify(nextProps.persistedWeights) &&
-    prevProps.activePreset === nextProps.activePreset
+    prevProps.activePreset === nextProps.activePreset &&
+    // Add check for sliderWeights to trigger re-renders on slider movement
+    JSON.stringify(prevProps.sliderWeights) === JSON.stringify(nextProps.sliderWeights)
   );
 });
 
