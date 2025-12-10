@@ -57,7 +57,7 @@ function App() {
         <AuthProvider>
           <EventProvider>
             <PlayerDetailsProvider>
-              <div className="min-h-screen bg-gray-50">
+            <div className="min-h-screen bg-gray-50">
               <SessionExpiredGate />
               <Routes>
                 <Route path="/" element={<Navigate to="/welcome" replace />} />
@@ -415,7 +415,7 @@ function App() {
                   </WelcomeLayout>
                 } />
               </Routes>
-              </div>
+            </div>
             </PlayerDetailsProvider>
           </EventProvider>
         </AuthProvider>

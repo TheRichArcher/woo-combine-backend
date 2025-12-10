@@ -37,7 +37,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
         <div className="wc-card w-full max-w-xl max-h-[85vh] flex flex-col bg-white rounded-xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center flex-shrink-0 bg-white">
           <div className="flex items-center gap-3">
-            <div>
+          <div>
               <h2 className="text-lg font-bold leading-tight text-gray-900">{player.name}</h2>
               <p className="text-brand-light text-xs">#{player.number} • {player.age_group}</p>
             </div>
