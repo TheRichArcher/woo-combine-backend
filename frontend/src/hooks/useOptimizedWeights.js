@@ -268,6 +268,9 @@ export function useOptimizedWeights(players = [], drills, presets = {}) {
     groupedRankings,
     
     // Utility functions
-    isUpdating: isUpdating.current
+    isUpdating: isUpdating.current,
+    setSliderWeights,
+    setPersistedWeights,
+    setActivePreset
   };
 }

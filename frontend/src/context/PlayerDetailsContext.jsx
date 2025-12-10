@@ -24,8 +24,11 @@ export function PlayerDetailsProvider({ children }) {
   const {
     persistedWeights,
     sliderWeights,
+    setSliderWeights, // Need this to initialize state from page
+    setPersistedWeights, // Need this too
     persistSliderWeights,
     activePreset,
+    setActivePreset, // Need this
     applyPreset,
     handleWeightChange
   } = useOptimizedWeights([], drills, presets);
@@ -37,7 +40,19 @@ export function PlayerDetailsProvider({ children }) {
     setSelectedPlayer(player);
     // contextData can override weights if provided by the calling page
     setContextData(data);
-  }, []);
+    
+    // Initialize internal state from passed data if available
+    if (data.sliderWeights) {
+        setSliderWeights(data.sliderWeights);
+    }
+    if (data.persistedWeights) {
+        // If strict sync needed (but persistedWeights usually come from persistence)
+        // setPersistedWeights(data.persistedWeights); 
+    }
+    if (data.activePreset) {
+        setActivePreset(data.activePreset);
+    }
+  }, [setSliderWeights, setActivePreset]);
 
   const closeDetails = useCallback(() => {
     setSelectedPlayer(null);
@@ -48,17 +63,29 @@ export function PlayerDetailsProvider({ children }) {
   const modalProps = useMemo(() => {
     // If the caller provided weights/presets, use them. Otherwise use our local ones.
     const effectivePersistedWeights = contextData.persistedWeights || persistedWeights;
-    const effectiveSliderWeights = contextData.sliderWeights || sliderWeights;
+    
+    // Crucial: Use internal sliderWeights (reactive) instead of contextData snapshot
+    // But initialize it from contextData in openDetails
+    const effectiveSliderWeights = sliderWeights; 
+    
     const effectivePersistSliderWeights = contextData.persistSliderWeights || persistSliderWeights;
-    const effectiveActivePreset = contextData.activePreset !== undefined ? contextData.activePreset : activePreset;
-    const effectiveApplyPreset = contextData.applyPreset || applyPreset;
+    // Use internal activePreset to reflect changes
+    const effectiveActivePreset = activePreset; 
+    
+    // Wrapper for applyPreset to update internal state
+    const effectiveApplyPreset = applyPreset; 
+    
     const effectiveDrills = contextData.drills || drills;
     const effectivePresets = contextData.presets || presets;
     const effectiveAllPlayers = contextData.allPlayers || (selectedPlayer ? [selectedPlayer] : []);
     
-    // For handleWeightChange, if provided by context use it, otherwise use local
-    // Note: PlayerDetailsModal passes handleWeightChange to PlayerDetailsPanel if we add it to props
-    const effectiveHandleWeightChange = contextData.handleWeightChange || handleWeightChange;
+    // Wrapper for handleWeightChange: update internal state + call page handler
+    const effectiveHandleWeightChange = (key, value) => {
+        handleWeightChange(key, value); // Updates internal state
+        if (contextData.handleWeightChange) {
+            contextData.handleWeightChange(key, value); // Updates page state
+        }
+    };
     
     return {
       player: selectedPlayer,
