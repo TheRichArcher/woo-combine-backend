@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 8, 2025_
+_Last updated: December 10, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -96,6 +96,15 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 - **React Hooks Ordering**: Fixed "Minified React error #310" by enforcing strict Hook ordering at component top-levels.
 - **Temporal Dead Zones**: Resolved circular dependency and variable initialization issues in production builds.
 - **Cold Starts**: Implemented "Toast" notifications to warn users of Render cold starts (15-45s delays) without blocking UI.
+
+### 🧠 Player Details & Ranking Logic
+- **Transparency**: Added explicit badges ("No impact", "Not included") to drill rows to explain exactly why a score contributes 0 points (e.g., being the lowest rank or missing data).
+- **Interactivity**: Fixed "live" weight slider updates to ensure instant visual feedback without modal lag.
+- **Density**: Optimized the "Player Details" layout for better information density on smaller screens.
+
+### 🏗 Data Structure Standardization
+- **Nested Scores**: Completed the codebase-wide migration to accessing drill scores via the `player.scores` object.
+- **Unified Access**: Patched `Scorecards`, `TeamFormation`, and `LiveStandings` to consistently use this nested structure, eliminating "missing data" bugs in those views.
 
 ### 🎨 UX & Polish
 - **Onboarding**: Transformed passive bullet points into actionable buttons (e.g., "Start Live Entry").
