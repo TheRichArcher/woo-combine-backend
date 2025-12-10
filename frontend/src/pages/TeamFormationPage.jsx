@@ -90,7 +90,7 @@ const TeamFormationPage = () => {
   const playersWithScores = useMemo(() => {
     if (!currentDrills.length) return [];
     return players.filter(player => 
-      currentDrills.some(drill => player[drill.key] != null && typeof player[drill.key] === 'number')
+      currentDrills.some(drill => (player.scores?.[drill.key] ?? player[drill.key]) != null && typeof (player.scores?.[drill.key] ?? player[drill.key]) === 'number')
     );
   }, [players, currentDrills]);
 

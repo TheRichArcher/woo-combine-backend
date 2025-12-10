@@ -107,7 +107,7 @@ const ScorecardsPage = () => {
     try {
       if (!currentDrills.length) return false;
       return currentDrills.some(drill => {
-        const value = player[drill.key];
+        const value = player.scores?.[drill.key] ?? player[drill.key];
         return value != null && 
                typeof value === 'number' && 
                !isNaN(value) && 
