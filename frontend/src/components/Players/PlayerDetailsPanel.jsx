@@ -49,11 +49,11 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   const weights = modalLocalWeights;
 
   // DEBUG: Log weights and score calculation for QA
-  if (player && player.name === 'Evan Echevarria') {
-     const sumWeights = Object.values(weights).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
-     const drillKeys = drills.map(d => d.key);
-     console.log('[PlayerDetails] weights', weights, 'sum', sumWeights);
-     console.log('[PlayerDetails] drillKeys', drillKeys);
+  if (player) {
+     // const sumWeights = Object.values(weights).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+     // const drillKeys = drills.map(d => d.key);
+     // console.log('[PlayerDetails] weights', weights, 'sum', sumWeights);
+     // console.log('[PlayerDetails] drillKeys', drillKeys);
   }
 
   const drillRankings = useMemo(() => {
@@ -161,9 +161,9 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
 
   // DEBUG: Log calculated values
-  if (player && player.name === 'Evan Echevarria') {
-      console.log('[PlayerDetails] composite', totalWeightedScore);
-      console.log('[PlayerDetails] contribs', weightedBreakdown.map(d => ({ label: d.label, contrib: d.weightedScore })));
+  if (player) {
+      // console.log('[PlayerDetails] composite', totalWeightedScore);
+      // console.log('[PlayerDetails] contribs', weightedBreakdown.map(d => ({ label: d.label, contrib: d.weightedScore })));
   }
 
   let currentRank = 1;
@@ -253,7 +253,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
               <TrendingUp className="w-3 h-3 text-brand-primary" />
               Ranking Weight Controls
             </h3>
-            
+      
             <div className="grid grid-cols-1 gap-1 flex-1 min-h-0">
               {weightedBreakdown.map(drill => (
                 <div key={drill.key} className="bg-gray-50 rounded p-1.5 border border-gray-200">
