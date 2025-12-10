@@ -66,8 +66,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
           p && 
           p.id && 
           p.age_group === player.age_group && 
-          p[drill.key] != null && 
-          typeof p[drill.key] === 'number'
+          (p.scores?.[drill.key] ?? p[drill.key]) != null && 
+          typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number'
         );
         
         if (validPlayers.length === 0) {
@@ -76,10 +76,13 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
         }
         
         const sortedPlayers = validPlayers.sort((a, b) => {
+          const valA = a.scores?.[drill.key] ?? a[drill.key];
+          const valB = b.scores?.[drill.key] ?? b[drill.key];
+          
           if (drill.lowerIsBetter) {
-            return a[drill.key] - b[drill.key];
+            return valA - valB;
           }
-          return b[drill.key] - a[drill.key];
+          return valB - valA;
         });
         
         const rank = sortedPlayers.findIndex(p => p.id === player.id) + 1;
@@ -97,13 +100,13 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     // Calculate drill ranges for normalization (same age group only)
     const ageGroupPlayers = allPlayers.filter(p => 
       p && p.age_group === player.age_group && 
-      drills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+      drills.some(drill => (p.scores?.[drill.key] ?? p[drill.key]) != null && typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number')
     );
     
     const drillRanges = {};
     drills.forEach(drill => {
       const values = ageGroupPlayers
-        .map(p => p[drill.key])
+        .map(p => p.scores?.[drill.key] ?? p[drill.key])
         .filter(val => val != null && typeof val === 'number');
       
       if (values.length > 0) {
@@ -116,15 +119,17 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     
     return drills.map(drill => {
       try {
-        const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
-          ? player[drill.key] 
+        const rawScoreValue = player.scores?.[drill.key] ?? player[drill.key];
+        const rawScore = rawScoreValue != null && typeof rawScoreValue === 'number' 
+          ? rawScoreValue 
           : null;
         const weight = weights[drill.key] || 0;
         let weightedScore = 0;
+        let normalizedScore = 0;
+        let debugInfo = {};
         
         if (rawScore != null && drillRanges[drill.key]) {
           const range = drillRanges[drill.key];
-          let normalizedScore = 0;
           
           if (range.max === range.min) {
             normalizedScore = 50;
@@ -135,6 +140,20 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
           }
           
           weightedScore = normalizedScore * (weight / 100);
+
+          if (player.name === 'Evan Echevarria') {
+             debugInfo = {
+                drillKey: drill.key,
+                raw: rawScore,
+                min: range.min,
+                max: range.max,
+                lowerIsBetter: drill.lowerIsBetter,
+                normalized: normalizedScore,
+                weight: weight,
+                contrib: weightedScore
+             };
+             // console.log('[PlayerDetails] Drill Calc:', debugInfo);
+          }
         }
         
         return {
@@ -179,13 +198,13 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     if (ageGroupPlayers.length > 0) {
       // Calculate drill ranges for normalized scoring
       const playersWithAnyScore = ageGroupPlayers.filter(p => 
-        drills.some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
+        drills.some(drill => (p.scores?.[drill.key] ?? p[drill.key]) != null && typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number')
       );
       
       const drillRanges = {};
       drills.forEach(drill => {
         const values = playersWithAnyScore
-          .map(p => p[drill.key])
+          .map(p => p.scores?.[drill.key] ?? p[drill.key])
           .filter(val => val != null && typeof val === 'number');
         
         if (values.length > 0) {
@@ -199,7 +218,9 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
       const playersWithScores = ageGroupPlayers.map(p => {
         try {
           const score = drills.reduce((sum, drill) => {
-            const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
+            const drillScore = p.scores?.[drill.key] ?? p[drill.key];
+            if (drillScore == null || typeof drillScore !== 'number') return sum;
+            
             const weight = weights[drill.key] || 0;
             const range = drillRanges[drill.key];
             
