@@ -495,7 +495,6 @@ export default function LiveStandings() {
                 </div>
               )}
            </div>
-           </div>
         </div>
       </div>
 
