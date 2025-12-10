@@ -161,6 +161,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
           rawScore,
           weight,
           weightedScore,
+          normalizedScore,
           rank: drillRankings[drill.key]
         };
       } catch {
@@ -169,6 +170,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
           rawScore: null,
           weight: weights[drill.key] || 0,
           weightedScore: 0,
+          normalizedScore: 0,
           rank: null
         };
       }
@@ -276,26 +278,55 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
             </h3>
       
             <div className="grid grid-cols-1 gap-1 flex-1 min-h-0">
-              {weightedBreakdown.map(drill => (
+              {weightedBreakdown.map(drill => {
+                const isMissing = drill.rawScore == null || Number.isNaN(drill.rawScore);
+                const isZeroImpact = !isMissing && drill.normalizedScore === 0;
+
+                return (
                 <div key={drill.key} className="bg-gray-50 rounded p-1.5 border border-gray-200">
                   <div className="flex items-center justify-between mb-0.5">
                     <div className="flex items-center gap-1 min-w-0 flex-1">
                       <div className="min-w-0 flex-1">
                         <div className="flex justify-between items-baseline">
                             <h4 className="font-semibold text-gray-900 text-xs truncate pr-1">{drill.label}</h4>
-                            <div className="text-[10px] text-gray-600 whitespace-nowrap">
-                                Contrib: <span className="font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)}</span>
-                                {(drill.rawScore === null) && <span className="text-gray-400 italic ml-1">(no data)</span>}
-                                {(drill.rawScore !== null && drill.weightedScore === 0 && drill.weight > 0) && <span className="text-gray-400 italic ml-1">(lowest)</span>}
+                            <div className="text-[10px] text-gray-600 whitespace-nowrap flex items-center">
+                                <span className="mr-1">Contrib:</span>
+                                <span className="font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)}</span>
+                                
+                                {isMissing && (
+                                  <span 
+                                    className="ml-1 text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 cursor-help"
+                                    title="No result recorded for this drill, so it isn’t included in the composite score."
+                                  >
+                                    No score · Not included
+                                  </span>
+                                )}
+
+                                {isZeroImpact && (
+                                  <span 
+                                    className="ml-1 text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-600 cursor-help"
+                                    title="This player is currently the lowest on this drill for the selected group, so it contributes 0 points to their total at any weight. Changing this weight can still affect rankings vs other players."
+                                  >
+                                    No impact
+                                  </span>
+                                )}
                             </div>
                         </div>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-xs font-bold text-brand-primary">
-                            {drill.rawScore != null ? drill.rawScore + ' ' + drill.unit : 'No score'}
-                          </span>
-                          {drill.rank && (
-                            <span className="bg-brand-primary text-white px-1 rounded-[3px] text-[9px] font-medium leading-none py-0.5">
-                              #{drill.rank}
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs font-bold text-brand-primary">
+                              {drill.rawScore != null ? drill.rawScore + ' ' + drill.unit : 'No score'}
+                            </span>
+                            {drill.rank && (
+                              <span className="bg-brand-primary text-white px-1 rounded-[3px] text-[9px] font-medium leading-none py-0.5">
+                                #{drill.rank}
+                              </span>
+                            )}
+                          </div>
+                          
+                          {!isMissing && drill.normalizedScore != null && (
+                            <span className="text-[10px] text-gray-400">
+                              Score: {drill.normalizedScore.toFixed(0)}/100
                             </span>
                           )}
                         </div>
@@ -332,7 +363,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
         </div>
