@@ -45,8 +45,16 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     }
   }, [modalLocalWeights, handleWeightChange]);
   
-  // Use slider weights for live calculations inside the panel
-  const weights = sliderWeights;
+  // Use local weights for calculation to ensure immediate responsiveness during drag
+  const weights = modalLocalWeights;
+
+  // DEBUG: Log weights and score calculation for QA
+  if (player && player.name === 'Evan Echevarria') {
+     const sumWeights = Object.values(weights).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
+     const drillKeys = drills.map(d => d.key);
+     console.log('[PlayerDetails] weights', weights, 'sum', sumWeights);
+     console.log('[PlayerDetails] drillKeys', drillKeys);
+  }
 
   const drillRankings = useMemo(() => {
     if (!player || !allPlayers || allPlayers.length === 0) return {};
@@ -151,6 +159,12 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
   const totalWeightedScore = weightedBreakdown.reduce((sum, item) => sum + (item.weightedScore || 0), 0);
+
+  // DEBUG: Log calculated values
+  if (player && player.name === 'Evan Echevarria') {
+      console.log('[PlayerDetails] composite', totalWeightedScore);
+      console.log('[PlayerDetails] contribs', weightedBreakdown.map(d => ({ label: d.label, contrib: d.weightedScore })));
+  }
 
   let currentRank = 1;
   let ageGroupPlayers = [];
