@@ -497,6 +497,7 @@ export default function LiveStandings() {
            </div>
         </div>
       </div>
+      </div>
 
       {/* Player Details Modal logic is now handled by Global Context (for mobile) */}
     </div>
