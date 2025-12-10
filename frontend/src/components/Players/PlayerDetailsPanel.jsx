@@ -285,6 +285,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                             <h4 className="font-semibold text-gray-900 text-xs truncate pr-1">{drill.label}</h4>
                             <div className="text-[10px] text-gray-600 whitespace-nowrap">
                                 Contrib: <span className="font-bold text-brand-secondary">{drill.weightedScore.toFixed(2)}</span>
+                                {(drill.rawScore === null) && <span className="text-gray-400 italic ml-1">(no data)</span>}
+                                {(drill.rawScore !== null && drill.weightedScore === 0 && drill.weight > 0) && <span className="text-gray-400 italic ml-1">(lowest)</span>}
                             </div>
                         </div>
                         <div className="flex items-center gap-1 mt-0.5">
