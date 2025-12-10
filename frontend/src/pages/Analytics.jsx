@@ -137,7 +137,7 @@ export default function Analytics() {
         const entries = filteredPlayers
           .map(p => {
             // Use player.scores to access drill data
-            const raw = p.scores?.[drill.key];
+            const raw = p.scores?.[drill.key] ?? p[drill.key];
             const value = raw === '' || raw == null ? NaN : Number(raw);
             return Number.isFinite(value) ? { player: p, value } : null;
           })

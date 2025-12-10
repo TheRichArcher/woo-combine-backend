@@ -79,7 +79,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     const skillBreakdown = {};
     currentDrills.forEach(drill => {
       const skillScores = team
-        .map(player => player[drill.key])
+        .map(player => player.scores?.[drill.key] ?? player[drill.key])
         .filter(score => score != null && typeof score === 'number');
       
       if (skillScores.length > 0) {

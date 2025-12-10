@@ -68,7 +68,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     if (!player || !playerStats) return [];
     
     return drills.map(drill => {
-      const playerScore = player[drill.key];
+      const playerScore = player.scores?.[drill.key] ?? player[drill.key];
       if (playerScore === null || playerScore === undefined) {
         return {
           ...drill,
@@ -81,14 +81,17 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
       
       // Calculate rank for this specific drill
       const ageGroupPlayers = allPlayers.filter(p => 
-        p.age_group === player.age_group && p[drill.key] !== null && p[drill.key] !== undefined
+        p.age_group === player.age_group && (p.scores?.[drill.key] ?? p[drill.key]) !== null && (p.scores?.[drill.key] ?? p[drill.key]) !== undefined
       );
       
       const sortedByDrill = ageGroupPlayers.sort((a, b) => {
+        const valA = a.scores?.[drill.key] ?? a[drill.key];
+        const valB = b.scores?.[drill.key] ?? b[drill.key];
+        
         if (drill.lowerIsBetter) {
-          return a[drill.key] - b[drill.key];
+          return valA - valB;
         } else {
-          return b[drill.key] - a[drill.key];
+          return valB - valA;
         }
       });
       
