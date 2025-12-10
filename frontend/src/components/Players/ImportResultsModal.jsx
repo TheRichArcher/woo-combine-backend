@@ -352,6 +352,29 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           }
         }
 
+        // --- NEW: PREVENT SILENT FAILURE (0 SCORES) ---
+        // Calculate how many columns are mapped to actual drill keys
+        const mappedDrillCount = activeMappings.filter(([_, targetKey]) => {
+            return effectiveDrills.some(d => d.key === targetKey);
+        }).length;
+
+        // Strict Block for Scores Only Mode
+        if (importMode === 'scores_only' && mappedDrillCount === 0) {
+            alert("❌ Import Blocked\n\nYou selected 'Upload Drill Scores' but no columns are mapped to valid drill results.\n\nPlease map your columns to the event's drills (check dropdowns) or switch to 'Add & Update Players' if you only have roster data.");
+            setStep('review');
+            return;
+        }
+
+        // Warning for Roster+Scores Intent
+        if (intent !== 'roster_only' && mappedDrillCount === 0) {
+             if (!window.confirm(
+                 `⚠️ NO SCORES DETECTED\n\nYou are about to import a roster but NO columns are mapped to drill results.\n\n- If you expected scores, please cancel and check your column mappings (e.g. 'Lane Agility' vs 'lane_agility').\n- If you only want to add players, click OK to proceed with 0 scores.`
+             )) {
+                 setStep('review');
+                 return;
+             }
+        }
+
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
         // If we reached here, the unmapped columns have no data OR the user confirmed they accept data loss

@@ -281,28 +281,39 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         # DYNAMIC DRILL FIELDS FROM SCHEMA
         drill_fields = [d.key for d in schema.drills]
         
-        # REQUESTED LOG: Server's drill_fields list
-        logging.warning(f"[IMPORT_DEBUG] Server Drill Fields for Event {event_id}: {drill_fields}")
-        
+        # --- PRE-FLIGHT GUARD: PREVENT SILENT FAILURE ---
+        # If mode is 'scores_only', strictly require that the payload contains at least one drill key.
+        # This prevents the "Success (0 scores)" bug where users map to the wrong template.
+        if req.mode == 'scores_only' and len(players) > 0:
+            p0 = players[0]
+            has_potential_scores = False
+            
+            # 1. Check nested scores
+            if p0.get("scores") and isinstance(p0.get("scores"), dict) and len(p0.get("scores")) > 0:
+                has_potential_scores = True
+            
+            # 2. Check flat keys against schema
+            if not has_potential_scores:
+                for k in p0.keys():
+                    if k in drill_fields:
+                        has_potential_scores = True
+                        break
+            
+            if not has_potential_scores:
+                logging.warning(f"[IMPORT_GUARD] Blocked import. Mode={req.mode}, Payload Keys={list(p0.keys())}, Schema Keys={drill_fields}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Import blocked: No valid drill scores found. Your column mappings do not match this event's schema ({len(drill_fields)} drills). Please check that you are importing into the correct Event Type (e.g. Basketball vs Football)."
+                )
+
         errors = []
         
-        # REQUESTED LOG: Payload Shape Debugging (Force Visibility)
         if players and isinstance(players, list) and len(players) > 0 and isinstance(players[0], dict):
-            p0 = players[0]
-            logging.warning(f"[IMPORT_DEBUG] first player top-level keys={sorted(list(p0.keys()))}")
-
-            scores = p0.get("scores")
-            if isinstance(scores, dict):
-                logging.warning(f"[IMPORT_DEBUG] first player scores keys={sorted(list(scores.keys()))}")
-                for k in ["lane_agility", "vertical_jump", "free_throws", "three_point"]:
-                    if k in scores:
-                        logging.warning(f"[IMPORT_DEBUG] scores[{k}]={scores.get(k)}")
-            else:
-                # Log specific drill keys if found at top level (flat structure)
-                flat_drills = [k for k in p0.keys() if k in drill_fields or k in ["lane_agility", "vertical_jump", "free_throws", "three_point"]]
-                if flat_drills:
-                     logging.warning(f"[IMPORT_DEBUG] first player flat drill keys found: {flat_drills}")
-                logging.warning(f"[IMPORT_DEBUG] first player has no 'scores' dict (type={type(scores)})")
+            # Log minimal debug info for support (schema mismatch diagnosis) without flooding logs
+             p0 = players[0]
+             # Only log if we suspect an issue (e.g. no scores found in a roster+scores import)
+             # or just log the keys once per batch for traceability
+             logging.info(f"[IMPORT_START] Event={event_id}, Mode={req.mode}, Rows={len(players)}, Schema={drill_fields}, Row1_Keys={list(p0.keys())}")
         added = 0
         created_players = 0
         updated_players = 0
@@ -354,16 +365,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         existing_docs_map = {}
         external_id_map = {}
 
-        # 1. Fetch by External ID (Priority Match)
+            # 1. Fetch by External ID (Priority Match)
         if external_ids_to_fetch:
             unique_exts = list(set(external_ids_to_fetch))
-            logging.warning(f"[IMPORT_DEBUG] Fetching {len(unique_exts)} potential existing players by External ID: {unique_exts}")
             
             # Firestore 'in' query limit is 10
             for i in range(0, len(unique_exts), 10):
                 chunk = unique_exts[i:i+10]
                 try:
-                    logging.warning(f"[IMPORT_DEBUG] Querying chunk: {chunk}")
                     q = db.collection("events").document(event_id).collection("players").where("external_id", "in", chunk)
                     docs = q.stream()
                     for doc in docs:
@@ -372,17 +381,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         ext_key = str(data.get('external_id')).strip()
                         external_id_map[ext_key] = data
                         existing_docs_map[doc.id] = data # Also populate ID map
-                        logging.warning(f"[IMPORT_DEBUG] Found by external_id: {ext_key} -> {doc.id}")
                 except Exception as e:
-                    logging.warning(f"[IMPORT_DEBUG] Failed to fetch by external_id chunk: {e}")
+                    logging.warning(f"Failed to fetch by external_id chunk: {e}")
 
         # 2. Fetch by Generated ID (Name+Number Fallback)
         if ids_to_fetch:
             # Unique IDs only
             unique_ids = list(set(ids_to_fetch))
             
-            logging.info(f"[IMPORT_DEBUG] Fetching {len(unique_ids)} potential existing players for duplicate check.")
-
             # Fetch in chunks of 100
             for i in range(0, len(unique_ids), 100):
                 chunk = unique_ids[i:i+100]
@@ -438,7 +444,6 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             if incoming_ext_id and incoming_ext_id in external_id_map:
                 previous_state = external_id_map[incoming_ext_id]
                 player_id = previous_state['id']
-                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: MATCHED BY EXTERNAL_ID -> {incoming_ext_id} -> {player_id}")
             else:
                 # Priority 2: Name + Number Match (Deterministic ID)
                 player_id = generate_player_id(event_id, first_name, last_name, num)
@@ -453,10 +458,6 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                 continue
             seen_keys.add(key)
 
-            # DEBUG LOGGING FOR DUPLICATION DIAGNOSIS
-            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Incoming Identity -> First='{first_name}', Last='{last_name}', Num={num}")
-            logging.info(f"[IMPORT_DEBUG] Row {idx+1}: Resolved ID -> {player_id}")
-
             # Record Undo State
             # previous_state is already set above
             
@@ -469,13 +470,11 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             if previous_state:
                 players_matched += 1
                 updated_players += 1
-                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: FOUND EXISTING PLAYER -> ID={player_id}, Name='{previous_state.get('name')}'")
             else:
                 created_players += 1
-                logging.info(f"[IMPORT_DEBUG] Row {idx+1}: NO MATCH FOUND -> Will create new document {player_id}")
                 # Also log why it might have failed - check if we tried to fetch it?
                 if player_id not in ids_to_fetch and not incoming_ext_id:
-                     logging.info(f"[IMPORT_DEBUG] Row {idx+1}: WARNING - ID {player_id} was NOT in pre-fetch list.")
+                     pass
 
             undo_log.append({
                 "player_id": player_id,
@@ -526,8 +525,9 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         incoming_scores[drill_key] = val
             
             # Debug log for first player to diagnose why scores might be dropped
-            if idx == 0:
-                 logging.warning(f"[IMPORT_DEBUG] Row 1 incoming_scores (unified): {incoming_scores}")
+            if idx == 0 and len(incoming_scores) == 0 and len(drill_fields) > 0:
+                 # Only warn if we expected scores but found none
+                 pass
 
             # 3. Process and validate all incoming scores
             for drill_key, raw_val in incoming_scores.items():
@@ -541,20 +541,13 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                         scores_written_total += 1
                         scores_written_by_drill[drill_key] += 1
                         
-                        if idx == 0:
-                            logging.warning(f"[IMPORT_DEBUG] Row 1 processed {drill_key}: raw='{raw_val}' -> float={val_float}")
-
                         # Also set legacy field for football compatibility if it matches
                         if drill_key in ["40m_dash", "vertical_jump", "catching", "throwing", "agility"]:
                             player_data[drill_key] = val_float
                     except (ValueError, TypeError):
-                        if idx == 0:
-                            logging.warning(f"[IMPORT_DEBUG] Row 1 failed to parse {drill_key}: raw='{raw_val}'")
                         pass
             
             player_data["scores"] = scores
-            if idx == 0:
-                logging.warning(f"[IMPORT_DEBUG] Row 1 final scores to write: {scores}")
             
             # --- IMPROVED DUPLICATE HANDLING (MERGE LOGIC) ---
             # Strategy: 'overwrite' (default) or 'merge'

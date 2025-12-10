@@ -1,3 +1,5 @@
+import * as Sentry from "@sentry/react";
+
 /**
  * Centralized logging utility for WooCombine App
  * Provides environment-aware logging with consistent formatting
@@ -96,15 +98,14 @@ class Logger {
 
   // Placeholder for production error service integration
   sendToErrorService(context, message, error) {
-    // Implementation would depend on chosen service (Sentry, LogRocket, etc.)
-    // For now, just ensure errors are logged
-    console.error(`[PRODUCTION-ERROR] [${context}] ${message}`, {
-      error: error.message || error,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-      userAgent: navigator.userAgent,
-      url: window.location.href
+    // Sentry Integration
+    Sentry.captureException(error, {
+        tags: { context },
+        extra: { message, context, originalError: error }
     });
+    
+    // Fallback log for local dev visibility even if Sentry fails/is disabled
+    console.error(`[SENTRY] [${context}] ${message}`, error);
   }
 }
 
