@@ -217,10 +217,10 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   }
 
   return (
-    <div className="flex-1 overflow-hidden h-full">
-      <div className="h-full flex flex-col lg:flex-row">
+    <div className="flex-1 h-full min-h-0">
+      <div className="flex flex-col lg:flex-row h-full">
         {/* Main Content - Weight Controls */}
-        <div className="flex-1 p-2 min-h-0">
+        <div className="flex-1 p-3 min-h-0">
           <div className="h-full flex flex-col">
             
             {/* Total Score Header (moved to top of main column for hierarchy) */}
@@ -238,7 +238,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
               Ranking Weight Controls
             </h3>
             
-            <div className="grid grid-cols-1 gap-1 flex-1 overflow-y-auto pr-1">
+            <div className="grid grid-cols-1 gap-1 flex-1 min-h-0">
               {weightedBreakdown.map(drill => (
                 <div key={drill.key} className="bg-gray-50 rounded p-1.5 border border-gray-200">
                   <div className="flex items-center justify-between mb-0.5">
@@ -299,9 +299,9 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
         </div>
 
         {/* Sidebar - Weight Scenarios and Analysis */}
-        <div className="w-full lg:w-56 bg-gray-50 p-2 border-t lg:border-t-0 lg:border-l border-gray-200 max-h-48 lg:max-h-full overflow-y-auto">
-          <div className="h-full flex flex-col">
-            <div className="mb-2">
+        <div className="w-full lg:w-56 bg-gray-50 p-2 border-t lg:border-t-0 lg:border-l border-gray-200 flex-shrink-0 lg:h-full overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <div>
               <h3 className="text-xs font-semibold text-gray-900 mb-1.5 flex items-center gap-1">
                 <Settings className="w-3 h-3 text-brand-primary" />
                 Weight Scenarios
@@ -331,7 +331,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 Ranking Analysis
               </h4>
               
-              <div className="space-y-1.5 text-[10px] overflow-y-auto">
+              <div className="space-y-1.5 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Age Rank:</span>
                   <span className="font-bold text-brand-primary">#{currentRank} of {ageGroupPlayers.length}</span>
@@ -344,12 +344,14 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 
                 <div className="pt-1.5 border-t border-gray-100 mt-1">
                   <div className="text-[9px] text-gray-400 mb-0.5">Breakdown:</div>
+                  <div className="max-h-24 overflow-y-auto pr-1">
                   {weightedBreakdown.map(drill => (
                     <div key={drill.key} className="flex justify-between text-[9px]">
                       <span className="text-gray-500 truncate pr-1">{drill.label}:</span>
                       <span className="font-mono">{drill.weightedScore.toFixed(1)}</span>
                     </div>
                   ))}
+                  </div>
                 </div>
                 
                 <div className="pt-1.5 border-t border-gray-100 mt-1">
