@@ -46,18 +46,10 @@ class Logger {
     }
     
     // In production, send to error tracking service
-    // Only attempt external reporting in production
-    const isProd = (() => {
-      if (typeof process !== 'undefined' && process.env) return process.env.NODE_ENV === 'production';
-      try {
-        // eslint-disable-next-line no-new-func
-        const env = new Function('try { return import.meta && import.meta.env && import.meta.env.PROD } catch (e) { return false }')();
-        return !!env;
-      } catch { return false; }
-    })();
+    // Use Vite's standard import.meta.env.PROD
+    const isProd = import.meta.env.PROD;
 
     if (isProd && error) {
-      // NOTE: Ready for error tracking service integration (Sentry, LogRocket, etc.)
       this.sendToErrorService(context, message, error);
     }
   }
@@ -111,6 +103,16 @@ class Logger {
 
 // Export singleton instance
 export const logger = new Logger();
+
+// DEBUG: Global helper to verify Sentry integration in Prod
+if (typeof window !== 'undefined') {
+  window.testSentry = () => {
+    console.log("🧪 Triggering Sentry Test Error...");
+    const err = new Error("Manual Sentry Test Error (via window.testSentry)");
+    logger.error("TEST", "Manually triggered test error", err);
+    throw err; // Ensure it also hits global handler
+  };
+}
 
 // Export context-specific loggers for common modules
 export const authLogger = {
