@@ -162,15 +162,9 @@ export function AuthProvider({ children }) {
     };
 
     try {
-      // Avoid fetching leagues on onboarding routes to prevent 401 spam when session is refreshing
-      const path = window.location?.pathname || '';
-      // Do not skip fetching on /welcome - authenticated users landing there need leagues
-      const onboarding = ['/login','/signup','/verify-email','/'];
-      if (onboarding.includes(path)) {
-        authLogger.debug('Skipping leagues fetch on onboarding route', path);
-        setLeagueFetchInProgress(false);
-        return;
-      }
+      // CRITICAL FIX: Removed onboarding route check.
+      // We must fetch leagues immediately after login, even if the URL is still /login or /welcome.
+      // The hot path trigger in onAuthStateChanged depends on this function executing.
       
       while (attempts < maxAttempts) {
         const success = await tryFetch();

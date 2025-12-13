@@ -154,7 +154,7 @@ def get_current_user(
         # Verification with configurable revocation enforcement and optional fallback
         try:
             decoded_token = _verify_id_token(token, check_revoked=AUTH_CHECK_REVOKED)
-            logging.info("[AUTH] Token verification completed successfully")
+            logging.info(f"[AUTH] Token verification successful for uid: {decoded_token.get('uid')}")
         except getattr(auth, "RevokedIdTokenError", Exception) as revoked_err:
             logging.warning(f"[AUTH] Token has been revoked: {type(revoked_err).__name__}")
             raise HTTPException(
@@ -179,6 +179,7 @@ def get_current_user(
                         detail="Invalid authentication token"
                     )
             else:
+                logging.error(f"[AUTH] Token verification error: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="Invalid authentication token"
@@ -188,7 +189,7 @@ def get_current_user(
         _enforce_session_max_age(decoded_token)
         # Optionally require verified email globally
         _ensure_verified(decoded_token)
-        logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}")
+        logging.info(f"[AUTH] Decoded Firebase token for UID: {decoded_token.get('uid')}, email: {decoded_token.get('email')}")
         
         # Note: Do not block unverified emails here. Verification is enforced on role-gated routes.
         email_verified = decoded_token.get("email_verified", False)
