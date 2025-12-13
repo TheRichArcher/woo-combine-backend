@@ -31,6 +31,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Data Access**: All data operations go through the backend API (`/api/v1`). **No direct Firestore writes from the frontend.**
 - **Key Components**:
   - `Players.jsx`: The core workspace. Features tabbed interface, real-time weight sliders, and normalized ranking calculations.
+  - `CoachDashboard.jsx`: **(New)** Central command center for organizers/coaches. Features "Events in this League" card for multi-event management and quick access to analytics/tools.
   - `TeamFormation.jsx`: **(New)** Advanced algorithmic team generation (Snake Draft vs. Balanced) based on weighted rankings.
   - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
@@ -159,6 +160,7 @@ frontend/src/
 │   └── ToastContext.jsx         # UX notifications
 ├── pages/
 │   ├── Home.jsx                 # Dashboard routing
+│   ├── CoachDashboard.jsx       # Main organizer/coach view
 │   ├── Players.jsx              # Core workspace
 │   ├── TeamFormation.jsx        # Team generation algorithms
 │   ├── Analytics.jsx            # Charts & Data Visualization
