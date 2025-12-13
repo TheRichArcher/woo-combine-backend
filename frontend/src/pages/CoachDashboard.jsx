@@ -29,6 +29,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [players, setPlayers] = useState([]); // for age group list only
   const [showCreateModal, setShowCreateModal] = useState(false);
   
+  const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
+  
   // Track if user has dismissed the helper (one-time per session)
   const [helperDismissed, setHelperDismissed] = useState(false);
 
@@ -50,7 +52,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     }
   }, [selectedEvent?.id]);
   
-  // Check if exactly one event exists for micro-coach helper
   const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
   
   const handleEventCreated = (newEvent) => {
