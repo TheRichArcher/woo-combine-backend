@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { X, Plus, UserPlus } from "lucide-react";
 
 export default function SelectLeague() {
-  const { user, setSelectedLeagueId, leagues: contextLeagues } = useAuth();
+  const { user, setSelectedLeagueId, leagues: contextLeagues, leaguesLoading } = useAuth();
   const logout = useLogout();
   const [leagues, setLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,12 +12,27 @@ export default function SelectLeague() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (contextLeagues && contextLeagues.length >= 0) {
+    // If we have leagues, show them immediately
+    if (contextLeagues && contextLeagues.length > 0) {
+      setLeagues(contextLeagues);
+      setLoading(false);
+      setFetchError(null);
+      return;
+    }
+    
+    // If loading from context, keep local loading state
+    if (leaguesLoading) {
+        setLoading(true);
+        return;
+    }
+    
+    // If done loading and still empty, show empty state
+    if (contextLeagues && contextLeagues.length >= 0 && !leaguesLoading) {
       setLeagues(contextLeagues);
       setLoading(false);
       setFetchError(null);
     }
-  }, [contextLeagues]);
+  }, [contextLeagues, leaguesLoading]);
 
   const handleSelect = (league) => {
     localStorage.setItem('selectedLeagueId', league.id);

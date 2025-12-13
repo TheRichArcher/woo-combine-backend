@@ -7,9 +7,25 @@ import { logger } from '../utils/logger';
 
 export default function LeagueFallback() {
   const navigate = useNavigate();
-  const { user, userRole } = useAuth();
+  const { user, userRole, leaguesLoading } = useAuth();
   const logout = useLogout();
   const [feedback, setFeedback] = useState("");
+  
+  if (leaguesLoading) {
+    return (
+      <WelcomeLayout
+        contentClassName="min-h-screen"
+        hideHeader={true}
+        showOverlay={false}
+      >
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8 mx-4 text-center">
+            <div className="animate-spin inline-block w-8 h-8 border-3 border-gray-300 border-t-cmf-primary rounded-full mb-4"></div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Loading Profile...</h2>
+            <p className="text-gray-500 text-sm">Syncing your leagues and events</p>
+        </div>
+      </WelcomeLayout>
+    );
+  }
   
   const handleCreateLeague = async () => {
     // GUIDED SETUP FIX: Create league first, then proceed to event creation

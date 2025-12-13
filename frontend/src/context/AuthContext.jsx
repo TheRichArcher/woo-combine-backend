@@ -116,34 +116,65 @@ export function AuthProvider({ children }) {
     if (!safeRole) localStorage.removeItem('userRole');
   }, []);
 
-  // PERFORMANCE: Concurrent league fetching to reduce wait time
+  // PERFORMANCE: Concurrent league fetching with retry logic for cold starts
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
     if (leagueFetchInProgress) return;
     
     setLeagueFetchInProgress(true);
     authLogger.debug('Starting concurrent league fetch');
     
-    try {
-      const token = await firebaseUser.getIdToken(false);
-      // Allow api default timeout (45s) to handle cold start rather than a 5s abort
-      const response = await api.get(`/leagues/me`).catch((e) => { throw e; });
+    let attempts = 0;
+    const maxAttempts = 3;
+    
+    const tryFetch = async () => {
+      try {
+        const token = await firebaseUser.getIdToken(attempts > 0); // Force refresh on retries
+        // Allow api default timeout (45s) to handle cold start rather than a 5s abort
+        const response = await api.get(`/leagues/me`).catch((e) => { throw e; });
 
-      if (response?.data) {
-        const leagueData = response.data;
-        // Normalize to array shape for state to avoid runtime errors
-        const leagueArray = Array.isArray(leagueData)
-          ? leagueData
-          : (Array.isArray(leagueData?.leagues) ? leagueData.leagues : []);
-        setLeagues(leagueArray);
-        authLogger.debug('Leagues loaded concurrently', leagueArray.length);
+        if (response?.data) {
+          const leagueData = response.data;
+          // Normalize to array shape for state to avoid runtime errors
+          const leagueArray = Array.isArray(leagueData)
+            ? leagueData
+            : (Array.isArray(leagueData?.leagues) ? leagueData.leagues : []);
+          setLeagues(leagueArray);
+          authLogger.debug('Leagues loaded concurrently', leagueArray.length);
+          
+          // Set selection if needed
+          const rawStored = localStorage.getItem('selectedLeagueId');
+          const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
+          
+          if (leagueArray.length > 0 && (!currentSelectedLeagueId || !leagueArray.some(l => l.id === currentSelectedLeagueId))) {
+             const targetLeagueId = leagueArray[0].id;
+             setSelectedLeagueIdState(targetLeagueId);
+             localStorage.setItem('selectedLeagueId', targetLeagueId);
+             setRole(leagueArray[0].role);
+          }
+          return true; // Success
+        }
+        return false;
+      } catch (error) {
+        authLogger.warn(`Concurrent league fetch failed (attempt ${attempts + 1}/${maxAttempts})`, error.message);
+        return false;
       }
-    } catch (error) {
-      authLogger.warn('Concurrent league fetch failed', error.message);
-      // Don't block UI for failed league fetch
+    };
+
+    try {
+      while (attempts < maxAttempts) {
+        const success = await tryFetch();
+        if (success) break;
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+          // Exponential backoff: 500ms, 1500ms, 3000ms
+          await new Promise(r => setTimeout(r, attempts * 500 + 500)); 
+        }
+      }
     } finally {
       setLeagueFetchInProgress(false);
     }
-  }, []);
+  }, [leagueFetchInProgress]);
 
 
 
@@ -684,6 +715,7 @@ export function AuthProvider({ children }) {
     role,
       initializing,
     leagues,
+    leaguesLoading: leagueFetchInProgress,
     selectedLeagueId,
     setSelectedLeagueId: useCallback((id) => {
       const sanitized = (id === undefined || id === null) ? '' : String(id).trim();
