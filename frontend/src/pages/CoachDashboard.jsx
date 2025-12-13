@@ -15,7 +15,14 @@ import { useDrills } from '../hooks/useDrills';
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  
+  // Initialize with 'ALL' or persisted value for this event
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState(() => {
+    if (!selectedEvent?.id) return "ALL";
+    const saved = localStorage.getItem(`coach_dashboard_age_group_${selectedEvent.id}`);
+    return saved || "ALL";
+  });
+
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -27,6 +34,21 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   // Derive current league for display
   const currentLeague = leagues.find(l => l.id === selectedLeagueId);
+  
+  // Update local storage when selection changes
+  useEffect(() => {
+    if (selectedEvent?.id && selectedAgeGroup) {
+      localStorage.setItem(`coach_dashboard_age_group_${selectedEvent.id}`, selectedAgeGroup);
+    }
+  }, [selectedAgeGroup, selectedEvent?.id]);
+
+  // Reset to saved preference or ALL when event changes
+  useEffect(() => {
+    if (selectedEvent?.id) {
+      const saved = localStorage.getItem(`coach_dashboard_age_group_${selectedEvent.id}`);
+      setSelectedAgeGroup(saved || "ALL");
+    }
+  }, [selectedEvent?.id]);
   
   // Check if exactly one event exists for micro-coach helper
   const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
@@ -128,7 +150,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   }, [selectedEvent, user, selectedLeagueId]);
 
   // Get unique age groups from players
-  const ageGroups = [...new Set(players.map(p => p.age_group))].sort();
+  const ageGroups = useMemo(() => {
+    const groups = [...new Set(players.map(p => p.age_group))].filter(Boolean).sort();
+    return [
+      { id: "ALL", label: "All Players" },
+      ...groups.map(g => ({ id: g, label: g }))
+    ];
+  }, [players]);
 
   // Auto-update rankings when weights or age group changes
   useEffect(() => {
@@ -142,7 +170,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     );
 
     const updateRankings = async () => {
-      if (!selectedAgeGroup || !user || !selectedLeagueId || !selectedEvent) {
+      if (!user || !selectedLeagueId || !selectedEvent) {
         setRankings([]);
         return;
       }
@@ -152,9 +180,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
       
       try {
         const params = new URLSearchParams({ 
-          age_group: selectedAgeGroup, 
           event_id: selectedEvent.id 
         });
+        
+        // Add age group filter if not ALL
+        if (selectedAgeGroup && selectedAgeGroup !== "ALL") {
+          params.append("age_group", selectedAgeGroup);
+        }
         
         // Add weight parameters
         params.append("weight_40m_dash", weights["40m_dash"]);
@@ -186,13 +218,15 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   // CSV Export logic
   const handleExportCsv = () => {
-    if (!selectedAgeGroup || rankings.length === 0) return;
-    let csv = 'Rank,Name,Player Number,Composite Score\n';
+    if (rankings.length === 0) return;
+    let csv = 'Rank,Name,Player Number,Age Group,Composite Score\n';
     rankings.forEach(player => {
-      csv += `${player.rank},"${player.name}",${player.number},${player.composite_score.toFixed(2)}\n`;
+      const ageGroup = players.find(p => p.id === player.player_id)?.age_group || '';
+      csv += `${player.rank},"${player.name}",${player.number},"${ageGroup}",${player.composite_score.toFixed(2)}\n`;
     });
     const eventDate = selectedEvent ? new Date(selectedEvent.date).toISOString().slice(0,10) : 'event';
-    const filename = `rankings_${selectedAgeGroup}_${eventDate}.csv`;
+    const groupLabel = selectedAgeGroup === "ALL" ? "All_Players" : selectedAgeGroup;
+    const filename = `rankings_${groupLabel}_${eventDate}.csv`;
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -536,22 +570,20 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             <div className="animate-spin inline-block w-6 h-6 border-2 border-gray-300 border-t-cmf-primary rounded-full mb-2"></div>
             <div className="text-gray-500">Updating rankings...</div>
           </div>
-        ) : error ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
-            <strong>Error:</strong> {error}
-          </div>
         ) : selectedAgeGroup === "" ? (
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center text-gray-500">
-            Please select an age group to view rankings.
+            Please select an age group or choose 'All Players' to view rankings.
           </div>
         ) : rankings.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
-            No players found for this age group.
+            No players found for this selection.
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-              <h2 className="text-xl font-semibold">Rankings ({selectedAgeGroup})</h2>
+              <h2 className="text-xl font-semibold">
+                Rankings ({selectedAgeGroup === "ALL" ? "All Players" : selectedAgeGroup})
+              </h2>
               <button
                 onClick={handleExportCsv}
                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-700 text-sm"
@@ -573,6 +605,11 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                   const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
                   drillRankings[drill.key] = rank > 0 ? rank : null;
                 });
+                
+                // Get player age group for display if "All" is selected
+                const playerAgeGroup = selectedAgeGroup === "ALL" 
+                  ? players.find(p => p.id === player.player_id)?.age_group 
+                  : null;
 
                 return (
                   <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 mb-3 border">
@@ -585,7 +622,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           </span>
                           <span className="font-semibold">{player.name}</span>
                         </div>
-                        <div className="text-sm text-gray-600">Player #{player.number}</div>
+                        <div className="text-sm text-gray-600">
+                          Player #{player.number}
+                          {playerAgeGroup && <span className="ml-2 text-xs bg-gray-200 px-1.5 py-0.5 rounded">{playerAgeGroup}</span>}
+                        </div>
                       </div>
                       <div className="text-right">
                         <div className="text-xs text-gray-500">Overall Score</div>
@@ -622,6 +662,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     <th className="py-3 px-2">Rank</th>
                     <th className="py-3 px-2">Name</th>
                     <th className="py-3 px-2">Player #</th>
+                    {selectedAgeGroup === "ALL" && <th className="py-3 px-2">Age Group</th>}
                     <th className="py-3 px-2">Overall Score</th>
                     {allDrills.map(drill => (
                       <th key={drill.key} className="py-3 px-2 text-center">{drill.label}</th>
@@ -640,6 +681,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                       const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
                       drillRankings[drill.key] = rank > 0 ? rank : null;
                     });
+                    
+                    const playerAgeGroup = players.find(p => p.id === player.player_id)?.age_group;
 
                     return (
                       <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
@@ -648,6 +691,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                         </td>
                         <td className="py-3 px-2">{player.name}</td>
                         <td className="py-3 px-2">{player.number}</td>
+                        {selectedAgeGroup === "ALL" && <td className="py-3 px-2">{playerAgeGroup || '-'}</td>}
                         <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
                         {allDrills.map(drill => (
                           <td key={drill.key} className="py-3 px-2 text-center">
