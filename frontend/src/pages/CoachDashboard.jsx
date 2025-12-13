@@ -13,7 +13,7 @@ import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
 
 const CoachDashboard = React.memo(function CoachDashboard() {
-  const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent } = useEvent();
+  const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
@@ -21,9 +21,15 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
   const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  // Track if user has dismissed the helper (one-time per session)
+  const [helperDismissed, setHelperDismissed] = useState(false);
 
   // Derive current league for display
   const currentLeague = leagues.find(l => l.id === selectedLeagueId);
+  
+  // Check if exactly one event exists for micro-coach helper
+  const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
   
   const handleEventCreated = (newEvent) => {
     setEvents(prev => [newEvent, ...prev]);
@@ -267,22 +273,52 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         {/* Events Card */}
         {currentLeague && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
-                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Events</h2>
-                <div className="flex items-center gap-2 text-gray-900">
+                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Events in this League</h2>
+                <div className="text-gray-600 text-sm mb-2">
+                  Use events for each camp, tryout, or combine you run under this league.
+                </div>
+                
+                <div className="flex items-center gap-2 text-gray-900 mt-2">
                   <span className="text-cmf-primary">•</span>
                   <span className="font-medium">Current Event:</span>
                   <span className="font-bold">{selectedEvent?.name || 'None Selected'}</span>
                 </div>
+                
+                {/* Empty state context for single event */}
+                {hasExactlyOneEvent && (
+                  <div className="mt-2 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded inline-block">
+                    You currently have 1 event. Create another when you run your next camp or tryout.
+                  </div>
+                )}
               </div>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm text-sm"
-              >
-                <Plus className="w-4 h-4" />
-                Create New Event
-              </button>
+              
+              <div className="flex flex-col items-end gap-2">
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm text-sm whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  Create New Event
+                </button>
+                
+                {/* First-time micro-coach helper */}
+                {hasExactlyOneEvent && !helperDismissed && (
+                  <div className="relative bg-indigo-600 text-white text-xs px-3 py-2 rounded-lg shadow-lg max-w-xs animate-pulse">
+                    <div className="absolute -top-1 right-4 w-2 h-2 bg-indigo-600 transform rotate-45"></div>
+                    <div className="flex justify-between items-start gap-2">
+                      <span>Need to run another camp under this league? Click 'Create New Event' to start a new one.</span>
+                      <button 
+                        onClick={() => setHelperDismissed(true)}
+                        className="text-indigo-200 hover:text-white font-bold"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
