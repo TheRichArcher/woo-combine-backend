@@ -62,8 +62,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     }
   }, [selectedEvent?.id]);
   
-  const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
-  
   const handleEventCreated = (newEvent) => {
     setEvents(prev => [newEvent, ...prev]);
     setSelectedEvent(newEvent);
