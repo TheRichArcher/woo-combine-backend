@@ -66,7 +66,7 @@ function App() {
                 
                 {/* New Feature Routes */}
                 <Route 
-                  path="/coach-dashboard" 
+                  path="/coach" 
                   element={
                     <RequireAuth>
                       <AuthenticatedLayout>

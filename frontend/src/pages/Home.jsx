@@ -32,12 +32,19 @@ export default function Home() {
     }, 0);
   };
 
+  // Redirect organizers and coaches to the new Coach Dashboard
+  React.useEffect(() => {
+    if (userRole === 'organizer' || userRole === 'coach') {
+      navigate('/coach', { replace: true });
+    }
+  }, [userRole, navigate]);
+
   // Don't render anything if we're navigating (prevents flash)
-  if (isNavigating) {
+  if (isNavigating || userRole === 'organizer' || userRole === 'coach') {
     return (
       <LoadingScreen 
-        title="Navigating..."
-        subtitle="Taking you to your destination"
+        title="Loading Dashboard..."
+        subtitle="Taking you to your command center"
         size="medium"
       />
     );
