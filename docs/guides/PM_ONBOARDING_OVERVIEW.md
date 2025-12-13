@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 10, 2025_
+_Last updated: December 13, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -10,12 +10,13 @@ This guide serves as the primary source of truth for the WooCombine product stat
 
 The application has graduated from "debugging/crisis" mode to a stable product.
 
-- **Stability**: Critical infinite loops, race conditions, and temporal dead zones have been definitively resolved.
+- **Stability**: Critical infinite loops, race conditions (including login/league fetching), and temporal dead zones have been definitively resolved.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
+- **Observability**: Full Sentry integration (Frontend & Backend) for real-time error tracking and performance monitoring.
 - **Import Reliability**: Robust CSV/Excel import engine now handles flat vs. nested data structures seamlessly, with optional jersey numbers and clear success stats.
-- **Analytics**: Full data pipeline verified. Drill Explorer now supports deep analysis with scrollable vertical rankings for unlimited athletes, handling "All" view cleanly.
+- **Analytics**: Full data pipeline verified. Drill Explorer now supports deep analysis with scrollable vertical rankings for unlimited athletes.
 - **Security**: Phone authentication and reCAPTCHA have been **completely removed** in favor of a robust, verified Email/Password flow.
-- **UX**: Onboarding flows (Organizer & Invited Users) are fully guided with "What's Next" steps and no dead ends.
+- **UX**: Onboarding flows are fully guided. Team Formation and Live Standings now use advanced schema-driven logic.
 
 ---
 
@@ -29,10 +30,10 @@ The application has graduated from "debugging/crisis" mode to a stable product.
   - `EventContext`: Minimalist context to avoid initialization race conditions.
 - **Data Access**: All data operations go through the backend API (`/api/v1`). **No direct Firestore writes from the frontend.**
 - **Key Components**:
-  - `Players.jsx`: The core workspace. Features tabbed interface (Management vs. Exports), real-time weight sliders, and normalized ranking calculations.
+  - `Players.jsx`: The core workspace. Features tabbed interface, real-time weight sliders, and normalized ranking calculations.
+  - `TeamFormation.jsx`: **(New)** Advanced algorithmic team generation (Snake Draft vs. Balanced) based on weighted rankings.
   - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
-  - `AdminTools.jsx`: QR code generation, roster uploads, and event settings.
   - `ImportResultsModal.jsx`: The unified import interface with 2-step validation, schema mapping, and stats reporting.
 
 ### Backend (Server)
@@ -66,6 +67,8 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Switching**: Header dropdowns allow instant context switching.
 - **Scoring**: "Live Entry" mode for rapid data input.
 - **Analysis**: `Players` page with real-time weight sliders (Speed vs. Skills vs. Balanced).
+- **Team Formation**: Generate balanced teams automatically using the new "Balanced" or "Ranked Split" algorithms.
+- **Reporting**: Export professional PDF rankings and scorecards directly from the Players page.
 - **Import**: Robust bulk import for offline results (CSV/Excel/Paste) with smart mapping and validation.
 
 ---
@@ -74,43 +77,41 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
 
+### 🧩 Team Formation & Algorithms
+- **Skill-Based Generation**: Added a sophisticated Team Formation engine that uses player rankings to create balanced teams.
+- **Ranked Split**: New mode to split the cohort by skill level (e.g., "Top 20" vs "Next 20") rather than balancing them mixed together.
+- **Validation**: Added "Category Balance" checks to ensure teams aren't just score-balanced but also role-balanced (e.g., Guard/Forward distribution).
+
+### 🏆 Live Standings & Rankings
+- **Schema-Driven Engine**: Completely refactored Live Standings to use a dynamic backend schema engine. This fixes the "3 of 0 players" bug by ensuring all eligible players are counted, even those with partial data.
+- **Dynamic Drills**: The standings table now adapts columns automatically based on the event's configured drills.
+- **PDF Export**: Added one-click PDF generation for rankings and individual scorecards, replacing the need for external tools.
+
+### 🛠 Custom Drill Builder
+- **Full Customization**: Organizers can now create custom drills with specific types (Time, Count, Checkbox) and validation rules.
+- **Event Scoping**: Custom drills are securely scoped to specific events to prevent library pollution.
+- **Import Support**: The import engine automatically detects and maps custom drill headers.
+
+### 🧠 Player Details UX
+- **Universal Clickable Modals**: Clicking any player row (in Rankings, Team Formation, or Scorecards) now opens a consistent "Player Details" modal.
+- **Inline Desktop Panel**: On large screens, player details open in a side panel for seamless browsing without losing context.
+- **Zero-Impact Clarity**: Added explicit badges ("No impact", "Not included") to explain why a score contributes 0 points.
+
+### 🔐 Authentication & Stability
+- **Login Race Conditions**: Fixed a critical race condition where fetching leagues would fail on login, causing a false "No Leagues Found" state.
+- **Sentry Integration**: Fully enabled Sentry for frontend and backend error tracking.
+- **Removed Phone Auth & reCAPTCHA**: Simplified to standard Email/Password.
+- **Role Security**: Fixed vulnerability where invited users could escalate privileges.
+
 ### 📥 Import Engine Overhaul
-- **Score Extraction**: Fixed "0 scores imported" bug. Backend now robustly merges flat CSV keys (e.g., "Lane Agility") with nested data structures.
-- **Flexible Validation**: Made `jersey_number` optional (allowing "Ignore Column") and added smart synonym detection (`#`, `No`, `Jersey`).
-- **Smart Mapping**: Frontend now warns (non-blocking) if data-bearing columns are ignored, preventing accidental data loss while preserving user control.
-- **Success Stats**: Import success modal now displays exact counts: "Players Added | Scores Written".
+- **Score Extraction**: Fixed "0 scores imported" bug. Backend now robustly merges flat CSV keys with nested data structures.
+- **Flexible Validation**: Made `jersey_number` optional and added smart synonym detection (`#`, `No`, `Jersey`).
+- **Smart Mapping**: Frontend now warns (non-blocking) if data-bearing columns are ignored.
 
 ### 📊 Analytics & Data Integrity
-- **Drill Explorer UX**: Replaced unstable layout switching with a **unified vertical scroll view**. "All" filter now efficiently renders 100+ athletes in a fixed-height container without page blanking or layout shifting.
-- **Chart Stability**: Enforced strict numeric domains and unique keys to eliminate Recharts rendering errors during data updates.
-- **Data Sourcing**: Fixed Analytics page to correctly read drill scores from the `player.scores` object instead of legacy flat paths.
-- **Robust Calculations**: Implemented bounds checking that handles `null` or missing schema min/max values (`-Infinity`/`Infinity` fallback) to prevent valid data from being filtered out.
-
-### 🔐 Authentication & Security
-- **Removed Phone Auth & reCAPTCHA**: Eliminated complexity, costs, and configuration issues. Simplified to standard Email/Password.
-- **Role Security**: Fixed vulnerability where invited users could escalate privileges. QR codes now strictly enforce roles.
-- **Firebase Optimization**: Removed all direct client-side Firestore access. All permissions are now managed by the backend.
-
-### ⚡ Performance & Stability
-- **Infinite Loops Fixed**: Resolved `useEffect` dependency loops in `AuthContext` and `Players.jsx` that caused API flooding.
-- **React Hooks Ordering**: Fixed "Minified React error #310" by enforcing strict Hook ordering at component top-levels.
-- **Temporal Dead Zones**: Resolved circular dependency and variable initialization issues in production builds.
-- **Cold Starts**: Implemented "Toast" notifications to warn users of Render cold starts (15-45s delays) without blocking UI.
-
-### 🧠 Player Details & Ranking Logic
-- **Transparency**: Added explicit badges ("No impact", "Not included") to drill rows to explain exactly why a score contributes 0 points (e.g., being the lowest rank or missing data).
-- **Interactivity**: Fixed "live" weight slider updates to ensure instant visual feedback without modal lag.
-- **Density**: Optimized the "Player Details" layout for better information density on smaller screens.
-
-### 🏗 Data Structure Standardization
-- **Nested Scores**: Completed the codebase-wide migration to accessing drill scores via the `player.scores` object.
-- **Unified Access**: Patched `Scorecards`, `TeamFormation`, and `LiveStandings` to consistently use this nested structure, eliminating "missing data" bugs in those views.
-
-### 🎨 UX & Polish
-- **Onboarding**: Transformed passive bullet points into actionable buttons (e.g., "Start Live Entry").
-- **Notifications**: Removed annoying/redundant popup spam (toasts) during normal workflows.
-- **Player Numbering**: Fixed bug where CSV uploads caused duplicate jersey numbers.
-- **Navigation**: Fixed "No League Context" flashes and loading screen jitters.
+- **Drill Explorer**: "All" view now supports unlimited athletes via virtualized scrolling.
+- **Chart Stability**: Enforced strict numeric domains to eliminate rendering errors.
+- **Data Sourcing**: Fixed Analytics to correctly read from `player.scores`.
 
 ---
 
@@ -121,21 +122,23 @@ The frontend is a Static Site on Render. **Strict adherence to these settings is
 
 - **Repository**: `woo-combine-backend` (Monorepo)
 - **Root Directory**: `frontend`
-- **Build Command**: `npm run build` (or `VITE_API_BASE=... npm run build`)
+- **Build Command**: `npm run build`
 - **Publish Directory**: `dist`
-  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist` or `frontend/ dist`. Since the Root Directory is already `frontend`, Render looks for the Publish Directory *relative* to that. Setting it incorrectly causes Render to silently serve stale cached builds because it cannot find the new files.
+  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist`. Since the Root Directory is already `frontend`, Render looks for the Publish Directory *relative* to that.
 
 ### Caching Strategy
 - **Vite Configuration**: `vite.config.js` is configured to append timestamps to output filenames (e.g., `assets/index-HASH-TIMESTAMP.js`).
-- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render. It ensures that every deployment serves fresh code with a unique filename, preventing the "stale bundle" issue that plagued the Analytics rollout.
+- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render.
 
 ### Monitoring
-- **Logs**: Check Render Dashboard for backend logs.
-- **Client Errors**: Currently rely on user reports. **Recommended**: Add Sentry or LogRocket.
+- **Sentry**: Active in both Production and Staging.
+  - **Frontend**: Captures React boundary errors and network failures.
+  - **Backend**: Captures FastAPI exceptions and 500s.
+- **Logs**: Check Render Dashboard for raw backend logs if Sentry detail is insufficient.
 
 ### Known Limitations
 - **Render Cold Starts**: Free tier backend sleeps after 15m inactivity. First request takes ~45s.
-  - *Mitigation*: Frontend shows "Server is starting..." toast. API client retries with exponential backoff.
+  - *Mitigation*: Frontend shows "Server is starting..." toast.
 - **Mobile Layout**: Optimized for standard phones, but complex tables (Rankings) are dense on small screens.
 
 ---
@@ -144,7 +147,7 @@ The frontend is a Static Site on Render. **Strict adherence to these settings is
 
 ### Immediate Priorities
 1. **Documentation**: Maintain this guide as the primary reference.
-2. **Analytics**: Implement basic tracking (PostHog/Google Analytics) to measure Onboarding completion rates.
+2. **Analytics**: Monitor Sentry for any new regression patterns.
 3. **Scale**: Monitor Firestore read/write costs as user base grows.
 
 ### Key Files & Directories
@@ -156,8 +159,8 @@ frontend/src/
 │   └── ToastContext.jsx         # UX notifications
 ├── pages/
 │   ├── Home.jsx                 # Dashboard routing
-│   ├── OnboardingEvent.jsx      # Guided setup wizard
 │   ├── Players.jsx              # Core workspace
+│   ├── TeamFormation.jsx        # Team generation algorithms
 │   ├── Analytics.jsx            # Charts & Data Visualization
 │   └── AdminTools.jsx           # Admin settings
 └── components/
@@ -169,7 +172,7 @@ backend/
 │   ├── users.py                 # User management
 │   ├── leagues.py               # League logic
 │   ├── events.py                # Event logic
-│   ├── players.py               # Player & Scoring logic (Import logic here)
+│   ├── players.py               # Player & Scoring logic
 │   └── imports.py               # Import parsing & schema mapping
 └── main.py                      # App entry point
 ```

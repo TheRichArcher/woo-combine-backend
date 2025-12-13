@@ -2,23 +2,34 @@ import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import EventSelector from "../components/EventSelector";
+import CreateEventModal from "../components/CreateEventModal";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
-import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
 
 const CoachDashboard = React.memo(function CoachDashboard() {
-  const { selectedEvent, noLeague, LeagueFallback } = useEvent();
+  const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Derive current league for display
+  const currentLeague = leagues.find(l => l.id === selectedLeagueId);
+  
+  const handleEventCreated = (newEvent) => {
+    setEvents(prev => [newEvent, ...prev]);
+    setSelectedEvent(newEvent);
+    setShowCreateModal(false);
+  };
   
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets, loading: drillsLoading } = useDrills(selectedEvent);
@@ -245,6 +256,37 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
       <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
+        
+        {/* League Header */}
+        {currentLeague && (
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-gray-900">{currentLeague.name}</h1>
+          </div>
+        )}
+
+        {/* Events Card */}
+        {currentLeague && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 mb-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Events</h2>
+                <div className="flex items-center gap-2 text-gray-900">
+                  <span className="text-cmf-primary">•</span>
+                  <span className="font-medium">Current Event:</span>
+                  <span className="font-bold">{selectedEvent?.name || 'None Selected'}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Create New Event
+              </button>
+            </div>
+          </div>
+        )}
+
         <EventSelector />
         {/* Quick link to Analytics */}
         <div className="flex justify-end mb-3">
@@ -594,6 +636,12 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           </div>
         )}
       </div>
+      {/* Create Event Modal */}
+      <CreateEventModal 
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreated={handleEventCreated}
+      />
     </div>
   );
 });
