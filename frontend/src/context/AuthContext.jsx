@@ -128,7 +128,8 @@ export function AuthProvider({ children }) {
     
     const tryFetch = async () => {
       try {
-        const token = await firebaseUser.getIdToken(attempts > 0); // Force refresh on retries
+        // Force refresh on retries OR first attempt to ensure fresh token for cold start
+        const token = await firebaseUser.getIdToken(true); 
         // Allow api default timeout (45s) to handle cold start rather than a 5s abort
         const response = await api.get(`/leagues/me`).catch((e) => { throw e; });
 
@@ -161,6 +162,15 @@ export function AuthProvider({ children }) {
     };
 
     try {
+      // Avoid fetching leagues on onboarding routes to prevent 401 spam when session is refreshing
+      const path = window.location?.pathname || '';
+      const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+      if (onboarding.includes(path)) {
+        authLogger.debug('Skipping leagues fetch on onboarding route', path);
+        setLeagueFetchInProgress(false);
+        return;
+      }
+      
       while (attempts < maxAttempts) {
         const success = await tryFetch();
         if (success) break;
@@ -288,11 +298,12 @@ export function AuthProvider({ children }) {
           setRoleChecked(true);
           setInitializing(false); // Don't wait for API verification
           
-          // Start league fetch immediately if we have a role and we're not on onboarding routes
+          // CRITICAL FIX: Always fetch leagues after login, even with cache
           try {
             const path = window.location?.pathname || '';
             const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
             if (cachedRole !== null && !onboarding.includes(path)) {
+              console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
               fetchLeaguesConcurrently(firebaseUser, cachedRole);
             }
           } catch {
@@ -457,80 +468,13 @@ export function AuthProvider({ children }) {
               authLogger.warn('AUTO-LEAGUE', `Auto-create on ultra-fast path failed: ${autoLeagueErr.message}`);
             }
           }
-        } else if (!leagueFetchInProgress) {
-          // Normal path for existing users not on select-role
-          setLeagueFetchInProgress(true);
+        } else {
+          // CRITICAL FIX: Always fetch leagues if not in new organizer flow
+          // Check if we already triggered it in the cached path above to avoid double-fetch?
+          // The concurrency guard inside fetchLeaguesConcurrently handles that.
           
-          try {
-            // Avoid fetching leagues on onboarding routes to prevent 401 spam when session is refreshing
-            try {
-              const path = window.location?.pathname || '';
-              const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
-              if (onboarding.includes(path)) {
-                authLogger.debug('Skipping leagues fetch on onboarding route', path);
-                setLeagueFetchInProgress(false);
-                return;
-              }
-            } catch {}
-            const leagueResponse = await api.get(`/leagues/me`);
-            
-            // Normalize possible shapes: array or { leagues: [...] }
-            const userLeagues = Array.isArray(leagueResponse.data)
-              ? leagueResponse.data
-              : (Array.isArray(leagueResponse.data?.leagues) ? leagueResponse.data.leagues : []);
-            setLeagues(userLeagues);
-            
-            const rawStored = localStorage.getItem('selectedLeagueId');
-            const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
-            let targetLeagueId = currentSelectedLeagueId;
-            
-            if (userLeagues.length > 0) {
-              if (!targetLeagueId || !userLeagues.some(l => l.id === targetLeagueId)) {
-                targetLeagueId = userLeagues[0].id;
-              }
-              
-              setSelectedLeagueIdState(targetLeagueId);
-              localStorage.setItem('selectedLeagueId', targetLeagueId);
-              
-              const selectedLeague = userLeagues.find(l => l.id === targetLeagueId);
-              setRole(selectedLeague?.role || null);
-            } else {
-              // No leagues found for organizer
-              // Optional: auto-create for smoother onboarding
-              if (AUTO_CREATE_DEFAULT_LEAGUE) {
-                await createDefaultLeagueIfNeeded(firebaseUser, userRole);
-              }
-              // RACE CONDITION FIX:
-              // Do not clear an explicitly selected league that might have just been set
-              // by the Create League flow or another tab. Respect any existing selection
-              // in localStorage and only clear if none exists.
-              const persistedSelectedRaw = localStorage.getItem('selectedLeagueId');
-              const persistedSelected = (persistedSelectedRaw && persistedSelectedRaw !== 'null' && persistedSelectedRaw !== 'undefined' && persistedSelectedRaw.trim() !== '') ? persistedSelectedRaw : '';
-              if (!persistedSelected || persistedSelected.trim() === '') {
-                setSelectedLeagueIdState('');
-                setRole(null);
-                // Do not remove key unnecessarily to avoid thrashing between tabs/routes
-              } else {
-                // If there is a persisted selection, reflect it in state
-                setSelectedLeagueIdState(persistedSelected);
-              }
-            }
-            
-          } catch (leagueError) {
-            // Preserve any previously selected league on transient errors
-            setLeagues([]);
-            const persistedSelectedRaw = localStorage.getItem('selectedLeagueId');
-            const persistedSelected = (persistedSelectedRaw && persistedSelectedRaw !== 'null' && persistedSelectedRaw !== 'undefined' && persistedSelectedRaw.trim() !== '') ? persistedSelectedRaw : '';
-            if (persistedSelected) {
-              setSelectedLeagueIdState(persistedSelected);
-            } else {
-              setSelectedLeagueIdState('');
-            }
-            setRole(null);
-            // Do not remove from localStorage here to avoid wiping user context on intermittent failures
-          } finally {
-            setLeagueFetchInProgress(false);
-          }
+          console.debug("[AUTH] Calling fetchLeagues() after login (standard path)");
+          fetchLeaguesConcurrently(firebaseUser, userRole);
         }
 
         setRoleChecked(true);
