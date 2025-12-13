@@ -582,7 +582,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
               <h2 className="text-xl font-semibold">
-                Rankings ({selectedAgeGroup === "ALL" ? "All Players" : selectedAgeGroup})
+                Rankings ({selectedAgeGroup === "ALL" ? "All Players" : (typeof selectedAgeGroup === 'string' ? selectedAgeGroup : '')})
               </h2>
               <button
                 onClick={handleExportCsv}
