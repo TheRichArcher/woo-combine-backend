@@ -164,7 +164,8 @@ export function AuthProvider({ children }) {
     try {
       // Avoid fetching leagues on onboarding routes to prevent 401 spam when session is refreshing
       const path = window.location?.pathname || '';
-      const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+      // Do not skip fetching on /welcome - authenticated users landing there need leagues
+      const onboarding = ['/login','/signup','/verify-email','/'];
       if (onboarding.includes(path)) {
         authLogger.debug('Skipping leagues fetch on onboarding route', path);
         setLeagueFetchInProgress(false);
@@ -298,10 +299,11 @@ export function AuthProvider({ children }) {
           setRoleChecked(true);
           setInitializing(false); // Don't wait for API verification
           
-          // CRITICAL FIX: Always fetch leagues after login, even with cache
+            // CRITICAL FIX: Always fetch leagues after login, even with cache
           try {
             const path = window.location?.pathname || '';
-            const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
+            // Do not skip fetching on /welcome - authenticated users landing there need leagues
+            const onboarding = ['/login','/signup','/verify-email','/'];
             if (cachedRole !== null && !onboarding.includes(path)) {
               console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
               fetchLeaguesConcurrently(firebaseUser, cachedRole);
