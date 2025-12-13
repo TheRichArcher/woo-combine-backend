@@ -228,6 +228,11 @@ export function AuthProvider({ children }) {
       // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
       warmupBackend();
 
+      // CRITICAL FIX: Always fetch leagues after login (hot path)
+      // This is the primary fetch trigger that must run regardless of cached state or routes
+      console.debug("[AUTH] Calling fetchLeagues() after login (hot path)");
+      fetchLeaguesConcurrently(firebaseUser, null);
+
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
         if (initialPath === '/login') {
@@ -300,13 +305,15 @@ export function AuthProvider({ children }) {
           setInitializing(false); // Don't wait for API verification
           
             // CRITICAL FIX: Always fetch leagues after login, even with cache
+          // (We already called fetchLeaguesConcurrently in the hot path above, but we keep this as a fallback/verification if needed,
+          // though technically redundant if the hot path works. Leaving it for safety but logging it differently.)
           try {
             const path = window.location?.pathname || '';
             // Do not skip fetching on /welcome - authenticated users landing there need leagues
             const onboarding = ['/login','/signup','/verify-email','/'];
             if (cachedRole !== null && !onboarding.includes(path)) {
-              console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
-              fetchLeaguesConcurrently(firebaseUser, cachedRole);
+              // console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
+              // fetchLeaguesConcurrently(firebaseUser, cachedRole);
             }
           } catch {
             // Do not fetch while on onboarding routes
@@ -475,8 +482,8 @@ export function AuthProvider({ children }) {
           // Check if we already triggered it in the cached path above to avoid double-fetch?
           // The concurrency guard inside fetchLeaguesConcurrently handles that.
           
-          console.debug("[AUTH] Calling fetchLeagues() after login (standard path)");
-          fetchLeaguesConcurrently(firebaseUser, userRole);
+          // console.debug("[AUTH] Calling fetchLeagues() after login (standard path)");
+          // fetchLeaguesConcurrently(firebaseUser, userRole);
         }
 
         setRoleChecked(true);
