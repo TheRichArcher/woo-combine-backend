@@ -193,7 +193,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     const debounced = debounce(updateRankings, 250);
     debounced();
     return () => {};
-  }, [selectedAgeGroupId, weights, user, selectedLeagueId, selectedEvent]);
+  }, [selectedAgeGroupId, sliderWeights, user, selectedLeagueId, selectedEvent]);
 
   // CSV Export logic
   const handleExportCsv = () => {
