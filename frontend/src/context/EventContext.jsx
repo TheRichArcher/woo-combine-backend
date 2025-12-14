@@ -24,6 +24,17 @@ export function EventProvider({ children }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // STRICT VALIDATION: Check for stale event on every render or context update
+  // If we have a selectedLeagueId and a selectedEvent, they MUST match.
+  // This derived check prevents "render flashes" of stale data before effects run.
+  useEffect(() => {
+    if (selectedLeagueId && selectedEvent && selectedEvent.league_id && selectedEvent.league_id !== selectedLeagueId) {
+        logger.warn('EVENT-CONTEXT', `Mismatch detected: Event ${selectedEvent.id} (League ${selectedEvent.league_id}) != Active League ${selectedLeagueId}. Clearing.`);
+        localStorage.removeItem('selectedEvent');
+        setSelectedEvent(null);
+    }
+  }, [selectedLeagueId, selectedEvent]);
+
   // Cached events fetcher: TTL 120s per requirements
   const cachedFetchEvents = useCallback(
     withCache(

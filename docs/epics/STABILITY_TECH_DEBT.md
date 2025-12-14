@@ -14,6 +14,11 @@ This epic tracks technical debt cleanup and stability improvements identified du
   - Update `EventContext.jsx` to validate `selectedEvent` against `selectedLeagueId` on initialization.
   - Clear `selectedEvent` if it doesn't belong to the current league.
   - Refactor `useDrills` to avoid fetching if context is mismatched.
+- **Implementation Specs**:
+  - **Validation**: In `EventContext.jsx`, inside the `useEffect` dependent on `selectedLeagueId`, add a check: `if (selectedEvent && selectedEvent.league_id !== selectedLeagueId)`.
+  - **Action**: If mismatch found, `localStorage.removeItem('selectedEvent')` and `setSelectedEvent(null)`.
+  - **UX**: If cleared, the Dashboard will naturally fall back to the "Select an Event" state (or auto-select the first valid event if available).
+- **Estimate**: 2-3 hours (includes testing cold-start scenarios).
 - **Reference**: `docs/reports/SCHEMA_401_INVESTIGATION.md`
 
 ### 2. Sentry Monitoring & Auth Hardening
