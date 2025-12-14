@@ -280,6 +280,16 @@ A "white screen" crash was identified in the "Create New Event" flow due to unde
 ### ⚠️ Auth Context & Schema 401s
 The app occasionally logs 401 Unauthorized errors on the `/schema` endpoint. This is due to `selectedEvent` persisting in local storage across league switches. It is benign (fallback exists) but is tracked as technical debt.
 
+### ✅ Stable Features (Dec 2025)
+- **Create New Event**: Fixed white screen crash.
+- **Import Mapping**: Added column synonyms and strict validation.
+- **Balanced Team Formation**: New robust algorithm handles scored/unscored players fairly.
+- **Player Edit**: API-first optimistic updates ensure data consistency without refresh.
+
+### 🔮 Upcoming Stability Sprint
+- **AuthContext Refactor (Milestone 2)**: Migrating auth logic to a deterministic State Machine to prevent race conditions.
+- **Cross-View Consistency**: Ensuring player edits reflect instantly across all dashboard views.
+
 ---
 
 ## 9. 💡 Recommendations for Incoming PM
