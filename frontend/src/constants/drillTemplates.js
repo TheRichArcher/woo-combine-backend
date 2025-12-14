@@ -222,6 +222,10 @@ function ensureSchemaCache() {
 // API Function to fetch schemas from backend
 export const fetchSchemas = async () => {
   try {
+    // Add public=true query param if this endpoint is meant to be public, 
+    // or ensure auth token is attached if protected.
+    // Assuming schemas should be public-read or auth-protected based on user state.
+    // If backend requires auth, AuthContext's warmupBackend needs to ensure token is ready.
     const response = await api.get('/schemas');
     if (response.data) {
       const cache = ensureSchemaCache();

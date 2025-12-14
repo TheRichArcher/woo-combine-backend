@@ -84,10 +84,16 @@ export function AuthProvider({ children }) {
       
       // Parallel warmup requests for maximum efficiency
       // ALSO FETCH SCHEMAS HERE to preload the Multi-Sport Engine
+      // Schemas might require auth, so we should ensure we have a token if possible,
+      // but apiWarmup and apiHealth are public. fetchSchemas might be protected.
+      // If fetchSchemas is protected, it will use the interceptor to get the token.
       const warmupPromises = [
         apiWarmup().catch(() => null), 
         apiHealth().catch(() => null),
-        fetchSchemas().catch(() => null)
+        fetchSchemas().catch((err) => {
+            authLogger.warn('Schema pre-fetch failed (possibly 401)', err.message);
+            return null;
+        })
       ];
       
       await Promise.race([
