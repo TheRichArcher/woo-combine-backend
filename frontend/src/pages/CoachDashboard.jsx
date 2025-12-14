@@ -76,6 +76,17 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets, loading: drillsLoading } = useDrills(selectedEvent);
+  
+  // Debug drills to ensure they are loaded
+  useEffect(() => {
+    if (allDrills.length > 0) {
+      console.log("[CoachDashboard] Loaded drills:", allDrills.map(d => d.key));
+    } else if (drillsLoading) {
+      console.log("[CoachDashboard] Loading drills...");
+    } else {
+      console.warn("[CoachDashboard] No drills loaded (or empty). Schema fetch might have failed.");
+    }
+  }, [allDrills, drillsLoading]);
 
   // Initialize weights from default preset or first available preset
   const [weights, setWeights] = useState({});
@@ -221,6 +232,9 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         console.log("API rankings raw:", data);
         const rankingsArray = Array.isArray(data) ? data : (data?.rankings || []);
         console.log("Rankings to store:", rankingsArray);
+        if (rankingsArray.length > 0) {
+            console.log("First ranking item structure:", rankingsArray[0]);
+        }
         
         // Ensure data is always an array
         setRankings(rankingsArray);
@@ -709,25 +723,27 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                 </thead>
                 <tbody>
                   {rankings.map((player) => {
+                    const playerId = player.player_id || player.id;
+                    
                     // Calculate individual drill rankings
                     const drillRankings = {};
                     allDrills.forEach(drill => {
                       const drillRanks = rankings
                         .filter(p => p[drill.key] != null)
-                        .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
+                        .map(p => ({ player_id: p.player_id || p.id, score: p[drill.key] }))
                         .sort((a, b) => b.score - a.score);
-                      const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
+                      const rank = drillRanks.findIndex(p => p.player_id === playerId) + 1;
                       drillRankings[drill.key] = rank > 0 ? rank : null;
                     });
                     
-                    const playerAgeGroup = players.find(p => p.id === player.player_id)?.age_group;
+                    const playerAgeGroup = players.find(p => p.id === playerId)?.age_group;
 
                     return (
                       <tr 
-                        key={player.player_id} 
+                        key={playerId} 
                         className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                         onClick={() => {
-                          const fullPlayer = players.find(p => p.id === (player.player_id || player.id)) || player;
+                          const fullPlayer = players.find(p => p.id === playerId) || player;
                           openDetails(fullPlayer, {
                               allPlayers: players,
                               sliderWeights: percentages, // Pass percentages (0-100) as sliderWeights
