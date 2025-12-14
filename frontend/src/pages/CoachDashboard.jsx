@@ -31,10 +31,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   });
 
   const [rankings, setRankings] = useState([]);
-  // Debug effect
-  useEffect(() => {
-    console.log("Rankings state updated:", rankings);
-  }, [rankings]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
@@ -77,10 +73,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets, loading: drillsLoading } = useDrills(selectedEvent);
   
-  // Debug drills to ensure they are loaded
-  useEffect(() => {
-    // console.log("[CoachDashboard] Drills state:", { count: allDrills.length, loading: drillsLoading });
-  }, [allDrills, drillsLoading]);
 
   // Initialize weights from default preset or first available preset
   const [weights, setWeights] = useState({});
@@ -616,8 +608,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           </div>
         ) : rankings.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
-            {/* Debug info */}
-            <div className="text-xs text-gray-400 mb-2">DEBUG: rankings.length = {rankings.length}</div>
             No players found for this selection.
           </div>
         ) : (
@@ -635,26 +625,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </button>
             </div>
             
-            {/* Debugging: explicit count and raw list check */}
-            <div className="mb-4 p-2 bg-gray-100 rounded text-xs font-mono">
-              <div>DEBUG INFO:</div>
-              <div>Rankings Count: {rankings.length}</div>
-              <div>Drills Count: {allDrills.length}</div>
-              <div>First ID: {rankings[0]?.player_id || rankings[0]?.id || 'missing'}</div>
-            </div>
-
-            {/* TEMP: debug rendering */}
-            <div style={{ padding: '8px', background: '#fffbe6', border: '1px solid #f0c36d', marginTop: '8px', marginBottom: '16px' }}>
-              <div style={{fontWeight: 'bold'}}>RAW RENDER TEST:</div>
-              <ul style={{listStyle: 'disc', paddingLeft: '20px'}}>
-                {rankings.map((player, idx) => (
-                  <li key={player.player_id || player.id || idx}>
-                    {idx + 1}. {player.name} – Score: {player.composite_score}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
             {/* Mobile-First Card Layout */}
             <div className="sm:hidden">
               {rankings.map((player) => {
