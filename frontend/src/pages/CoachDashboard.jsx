@@ -270,7 +270,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   if (noLeague) return <LeagueFallback />;
 
-  const percentages = getPercentages();
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
