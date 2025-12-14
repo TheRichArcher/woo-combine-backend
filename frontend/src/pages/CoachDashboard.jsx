@@ -635,12 +635,25 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </button>
             </div>
             
-            {/* Debugging: If logic thinks rankings > 0 but JSX renders nothing, let's output count */}
-            <div className="text-xs text-gray-400">Total ranked players: {rankings.length}</div>
-            
-            <pre style={{ fontSize: 10, maxHeight: 100, overflow: 'auto', background: '#f5f5f5', padding: 5 }}>
-              {JSON.stringify(rankings.slice(0, 3), null, 2)}
-            </pre>
+            {/* Debugging: explicit count and raw list check */}
+            <div className="mb-4 p-2 bg-gray-100 rounded text-xs font-mono">
+              <div>DEBUG INFO:</div>
+              <div>Rankings Count: {rankings.length}</div>
+              <div>Drills Count: {allDrills.length}</div>
+              <div>First ID: {rankings[0]?.player_id || rankings[0]?.id || 'missing'}</div>
+            </div>
+
+            {/* TEMP: debug rendering */}
+            <div style={{ padding: '8px', background: '#fffbe6', border: '1px solid #f0c36d', marginTop: '8px', marginBottom: '16px' }}>
+              <div style={{fontWeight: 'bold'}}>RAW RENDER TEST:</div>
+              <ul style={{listStyle: 'disc', paddingLeft: '20px'}}>
+                {rankings.map((player, idx) => (
+                  <li key={player.player_id || player.id || idx}>
+                    {idx + 1}. {player.name} – Score: {player.composite_score}
+                  </li>
+                ))}
+              </ul>
+            </div>
 
             {/* Mobile-First Card Layout */}
             <div className="sm:hidden">
@@ -723,16 +736,25 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                   {rankings.map((player) => {
                     const playerId = player.player_id || player.id;
                     
-                    // Calculate individual drill rankings
+                    // Calculate individual drill rankings safely
                     const drillRankings = {};
-                    allDrills.forEach(drill => {
-                      const drillRanks = rankings
-                        .filter(p => p[drill.key] != null)
-                        .map(p => ({ player_id: p.player_id || p.id, score: p[drill.key] }))
-                        .sort((a, b) => b.score - a.score);
-                      const rank = drillRanks.findIndex(p => p.player_id === playerId) + 1;
-                      drillRankings[drill.key] = rank > 0 ? rank : null;
-                    });
+                    if (allDrills && allDrills.length > 0) {
+                      allDrills.forEach(drill => {
+                        try {
+                          const drillRanks = rankings
+                            .filter(p => p && p[drill.key] != null)
+                            .map(p => ({ 
+                              player_id: p.player_id || p.id, 
+                              score: Number(p[drill.key] || 0) 
+                            }))
+                            .sort((a, b) => b.score - a.score);
+                          const rank = drillRanks.findIndex(p => p.player_id === playerId) + 1;
+                          drillRankings[drill.key] = rank > 0 ? rank : null;
+                        } catch (e) {
+                          console.warn("Error calculating rank for drill:", drill.key, e);
+                        }
+                      });
+                    }
                     
                     const playerAgeGroup = players.find(p => p.id === playerId)?.age_group;
 
