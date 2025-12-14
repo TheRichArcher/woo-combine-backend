@@ -156,13 +156,11 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           params.append("age_group", selectedAgeGroupId);
         }
         
-        // Add weight parameters - use sliderWeights (0-100) directly
+        // Add weight parameters - use dynamic keys from sliderWeights
         if (Object.keys(sliderWeights).length > 0) {
-          params.append("weight_40m_dash", sliderWeights["40m_dash"] || 0);
-          params.append("weight_vertical_jump", sliderWeights["vertical_jump"] || 0);
-          params.append("weight_catching", sliderWeights["catching"] || 0);
-          params.append("weight_throwing", sliderWeights["throwing"] || 0);
-          params.append("weight_agility", sliderWeights["agility"] || 0);
+          Object.entries(sliderWeights).forEach(([key, val]) => {
+             params.append(`weight_${key}`, val);
+          });
         }
 
         const data = await cachedFetchRankings(params.toString());
