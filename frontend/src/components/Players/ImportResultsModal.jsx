@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link } from 'lucide-react';
+import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link, Wand } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
-import { generateDefaultMapping } from '../../utils/csvUtils';
+import { generateDefaultMapping, REQUIRED_HEADERS } from '../../utils/csvUtils';
 
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true }) {
   const { selectedEvent } = useEvent();
@@ -48,6 +48,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   
   // Column Mapping State
   const [keyMapping, setKeyMapping] = useState({}); // { originalKey: targetKey }
+  const [autoMappedKeys, setAutoMappedKeys] = useState({}); // { originalKey: confidence }
 
   // Multi-sheet support
   const [sheets, setSheets] = useState([]);
@@ -225,7 +226,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       if (sourceKeys.length > 0) {
           // generateDefaultMapping returns { targetKey: sourceKey }
           // We need { sourceKey: targetKey } for our state
-          const { mapping: suggestedMapping } = generateDefaultMapping(sourceKeys, effectiveDrills);
+          const { mapping: suggestedMapping, confidence: mappingConfidence } = generateDefaultMapping(sourceKeys, effectiveDrills);
+          const initialAutoMapped = {};
           
           // Apply suggested mappings
           Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {
@@ -240,6 +242,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   }
                   
                   initialMapping[sourceHeader] = targetKey;
+                  if (mappingConfidence[targetKey]) {
+                      initialAutoMapped[sourceHeader] = mappingConfidence[targetKey];
+                  }
               }
           });
           
@@ -250,6 +255,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   if (effectiveDrills.some(d => d.key === key)) {
                        if (intent !== 'roster_only') {
                            initialMapping[key] = key;
+                           initialAutoMapped[key] = 'high'; // Exact match
                        }
                   } else {
                       // Fallback: Use identity mapping (key -> key)
@@ -261,6 +267,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       }
       
       setKeyMapping(initialMapping);
+      setAutoMappedKeys(initialAutoMapped);
       
       setStep('review');
     } catch (err) {
@@ -298,6 +305,28 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         // If mapped to identity (Original) and that key isn't in schema
         return !validKeys.has(targetKey);
     });
+
+    // NEW: Check for Missing Required Fields (Roster Mode)
+    if (importMode === 'create_or_update') {
+        const effectiveTargets = new Set();
+        const sourceKeys = Object.keys(allRows?.[0]?.data || {});
+        
+        sourceKeys.forEach(sourceKey => {
+            const target = keyMapping[sourceKey] || sourceKey;
+            if (target !== '__ignore__') {
+                effectiveTargets.add(target);
+            }
+        });
+
+        const missing = REQUIRED_HEADERS.filter(req => !effectiveTargets.has(req));
+        
+        if (missing.length > 0) {
+             const missingLabels = missing.map(m => STANDARD_FIELDS.find(f => f.key === m)?.label || m);
+             alert(`❌ Missing Required Mappings\n\nTo add or update players, you must map columns to:\n\n- ${missingLabels.join('\n- ')}\n\nPlease map the correct columns in the dropdowns.`);
+             setStep('review');
+             return;
+        }
+    }
 
         // HARD STOP: Block import if there are unmapped columns that contain data
         // This prevents the "silent failure" scenario where users import but lose scores
@@ -961,8 +990,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                             <option value={key}>{key.replace('_', ' ')} (Original)</option>
                         )}
                       </select>
-                      <div className="text-xs text-gray-400 font-normal mt-0.5 truncate max-w-[140px]">
+                      <div className="text-xs text-gray-400 font-normal mt-0.5 truncate max-w-[140px] flex items-center gap-1">
                         Src: {key}
+                        {autoMappedKeys[key] && (
+                            <div className="group relative">
+                                <Wand className={`w-3 h-3 ${autoMappedKeys[key] === 'high' ? 'text-purple-500' : 'text-purple-300'}`} />
+                                <div className="hidden group-hover:block absolute left-0 bottom-full mb-1 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50">
+                                    Auto-mapped from "{key}"
+                                </div>
+                            </div>
+                        )}
                       </div>
                     </th>
                   ))}

@@ -30,17 +30,17 @@ let headerSynonymsCache = null;
 function getHeaderSynonyms() {
   if (!headerSynonymsCache) {
     headerSynonymsCache = {
-      first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name'],
-      last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name'],
-      age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp'],
-      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #'],
+      first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'given name'],
+      last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'family name', 'last name'],
+      age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp', 'class', 'squad'],
+      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'no', 'no.', 'uniform #', 'num'],
       external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
       team_name: ['team_name', 'team', 'squad', 'club'],
       position: ['position', 'pos'],
       notes: ['notes', 'note', 'comments', 'comment', 'remarks'],
       // Common drill synonyms - these will be extended based on schema
-      '40m_dash': ['40m_dash', '40m dash', '40 yard dash', '40-yard dash', '40yd dash', '40-dash', '40dash', 'sprint', 'speed'],
-      'vertical_jump': ['vertical_jump', 'vertical jump', 'vert jump', 'vj', 'jump', 'vertical'],
+      '40m_dash': ['40m_dash', '40m dash', '40 yard dash', '40-yard dash', '40yd dash', '40-dash', '40dash', 'sprint', 'speed', '40yd', '40 yard', '40 dash', '40'],
+      'vertical_jump': ['vertical_jump', 'vertical jump', 'vert jump', 'vj', 'jump', 'vertical', 'vert'],
       'catching': ['catching', 'catch', 'reception', 'receiving', 'hands'],
       'throwing': ['throwing', 'throw', 'passing', 'pass'],
       'agility': ['agility', 'agile', 'cone drill', 'cones', 'weave', 'ladder'],

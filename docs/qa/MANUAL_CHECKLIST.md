@@ -33,6 +33,8 @@
 - [ ] **Error Scenarios**
     - [ ] Upload a file with missing headers.
     - [ ] **Verify**: "Mapping" step warns about missing required fields.
+    - [ ] Upload a file with common synonym headers (e.g. "Jersey #", "Division").
+    - [ ] **Verify**: System auto-maps "Jersey #" to "Number" and "Division" to "Age Group".
     - [ ] Upload a file with duplicate players (same name/number).
     - [ ] **Verify**: System handles duplicates (updates or skips, based on logic) without crashing.
     - [ ] **Verify**: App displays a readable error message, not a raw 500/stack trace.

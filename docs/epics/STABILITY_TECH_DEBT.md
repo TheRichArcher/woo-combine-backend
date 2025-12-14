@@ -21,6 +21,12 @@ This epic tracks technical debt cleanup and stability improvements identified du
 - **Estimate**: 2-3 hours (includes testing cold-start scenarios).
 - **Reference**: `docs/reports/SCHEMA_401_INVESTIGATION.md`
 
+### 4. Create Event / Schema Follow-ups (Monitoring)
+**Status**: Monitoring
+- **Check**: Monitor Sentry for any remaining `/schema` 401 errors.
+- **Criteria**: If 401s persist *outside* of the known "stale local storage" pattern (which is now fixed), investigate potentially expired Firebase tokens being sent to the backend.
+- **Action**: If a spike occurs, log specific browser/user context here.
+
 ### 2. Sentry Monitoring & Auth Hardening
 - **Problem**: Need to ensure we distinguish between "expected" 401s and real auth failures.
 - **Task**:
