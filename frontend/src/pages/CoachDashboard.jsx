@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
+import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
@@ -73,62 +74,17 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets, loading: drillsLoading } = useDrills(selectedEvent);
   
-
-  // Initialize weights from default preset or first available preset
-  const [weights, setWeights] = useState({});
-  const [activePreset, setActivePreset] = useState(""); 
-
-  // Initialize weights when presets load
-  useEffect(() => {
-    if (Object.keys(currentPresets).length > 0 && Object.keys(weights).length === 0) {
-        // Default to 'balanced' or first available
-        const defaultPresetKey = currentPresets.balanced ? 'balanced' : Object.keys(currentPresets)[0];
-        if (defaultPresetKey) {
-            setWeights(currentPresets[defaultPresetKey].weights);
-            setActivePreset(defaultPresetKey);
-        }
-    } else if (allDrills.length > 0 && Object.keys(weights).length === 0) {
-        // If no presets but drills exist, init equal weights? Or wait.
-        // Actually useDrills filters disabled ones, so we can just init.
-    }
-  }, [currentPresets, allDrills, weights]);
+  // Use shared optimized weights hook (handles 0-100 scale, persistence, and presets)
+  const {
+    sliderWeights, // 0-100 scale
+    activePreset,
+    handleWeightChange,
+    applyPreset
+  } = useOptimizedWeights(players, allDrills, currentPresets);
 
   const navigate = useNavigate();
 
-  // Convert weights to percentages for display
-  const getPercentages = () => {
-    const total = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-    const percentages = {};
-    allDrills.forEach(drill => {
-      percentages[drill.key] = total > 0 ? Math.round((weights[drill.key] / total) * 100) : 0;
-    });
-    return percentages;
-  };
-
-  // Convert percentage back to normalized weights
-  const updateWeightsFromPercentage = (drillKey, percentage) => {
-    const newPercentages = { ...getPercentages(), [drillKey]: percentage };
-    const total = Object.values(newPercentages).reduce((sum, pct) => sum + pct, 0);
-    
-    if (total === 0) return; // Prevent division by zero
-    
-    // Normalize to sum to 1.0
-    const newWeights = {};
-    allDrills.forEach(drill => {
-      newWeights[drill.key] = newPercentages[drill.key] / total;
-    });
-    
-    setWeights(newWeights);
-    setActivePreset(null); // Clear preset when manually adjusted
-  };
-
-  // Apply a preset
-  const applyPreset = (presetKey) => {
-    if (currentPresets[presetKey]) {
-        setWeights({ ...currentPresets[presetKey].weights });
-    setActivePreset(presetKey);
-    }
-  };
+  // Convert percentages logic removed - use sliderWeights directly
 
   // Cached players fetcher for dashboard (TTL 60s)
   const cachedFetchPlayers = useMemo(() => withCache(
@@ -204,13 +160,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           params.append("age_group", selectedAgeGroupId);
         }
         
-        // Add weight parameters
-        if (Object.keys(weights).length > 0) {
-          params.append("weight_40m_dash", weights["40m_dash"] || 0);
-          params.append("weight_vertical_jump", weights["vertical_jump"] || 0);
-          params.append("weight_catching", weights["catching"] || 0);
-          params.append("weight_throwing", weights["throwing"] || 0);
-          params.append("weight_agility", weights["agility"] || 0);
+        // Add weight parameters - use sliderWeights (0-100) directly
+        if (Object.keys(sliderWeights).length > 0) {
+          params.append("weight_40m_dash", sliderWeights["40m_dash"] || 0);
+          params.append("weight_vertical_jump", sliderWeights["vertical_jump"] || 0);
+          params.append("weight_catching", sliderWeights["catching"] || 0);
+          params.append("weight_throwing", sliderWeights["throwing"] || 0);
+          params.append("weight_agility", sliderWeights["agility"] || 0);
         }
 
         const data = await cachedFetchRankings(params.toString());
@@ -573,14 +529,14 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           type="range"
                           min={0}
                           max={100}
-                          value={percentages[drill.key] || 0}
-                          onInput={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
-                          onChange={e => updateWeightsFromPercentage(drill.key, parseFloat(e.target.value))}
+                          value={sliderWeights[drill.key] ?? 0}
+                          onInput={e => handleWeightChange(drill.key, parseFloat(e.target.value))}
+                          onChange={e => handleWeightChange(drill.key, parseFloat(e.target.value))}
                           className="flex-1 accent-cmf-primary h-2 rounded-lg bg-gray-100"
                         />
                         <div className="w-12 text-right">
                           <span className="text-sm font-mono text-cmf-primary">
-                            {percentages[drill.key] || 0}%
+                            {Math.round(sliderWeights[drill.key] || 0)}%
                           </span>
                         </div>
                       </div>
@@ -643,8 +599,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                       const fullPlayer = players.find(p => p.id === playerId) || player;
                       openDetails(fullPlayer, {
                           allPlayers: players,
-                          sliderWeights: percentages, 
-                          handleWeightChange: updateWeightsFromPercentage,
+                          sliderWeights: sliderWeights, // Pass weights directly
+                          handleWeightChange: handleWeightChange,
                           activePreset,
                           applyPreset,
                           drills: allDrills,
