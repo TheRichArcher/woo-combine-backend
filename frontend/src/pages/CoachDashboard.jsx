@@ -31,6 +31,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   });
 
   const [rankings, setRankings] = useState([]);
+  // Debug effect
+  useEffect(() => {
+    console.log("Rankings state updated:", rankings);
+  }, [rankings]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
@@ -189,10 +193,11 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         return;
       }
       
-      setLoading(true);
-      setError(null);
-      
       try {
+        // Clear previous error and loading state
+        setLoading(true);
+        setError(null);
+        
         const params = new URLSearchParams({ 
           event_id: selectedEvent.id 
         });
@@ -212,8 +217,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         }
 
         const data = await cachedFetchRankings(params.toString());
+        // Debugging logs
+        console.log("API rankings raw:", data);
+        const rankingsArray = Array.isArray(data) ? data : (data?.rankings || []);
+        console.log("Rankings to store:", rankingsArray);
+        
         // Ensure data is always an array
-        setRankings(Array.isArray(data) ? data : []);
+        setRankings(rankingsArray);
       } catch (err) {
         if (err.response?.status === 404) {
           setError(null);
@@ -598,6 +608,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           </div>
         ) : rankings.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6 text-center text-yellow-700">
+            {/* Debug info */}
+            <div className="text-xs text-gray-400 mb-2">DEBUG: rankings.length = {rankings.length}</div>
             No players found for this selection.
           </div>
         ) : (
