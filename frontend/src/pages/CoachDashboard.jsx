@@ -8,7 +8,7 @@ import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
 import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
@@ -36,6 +36,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const navigate = useNavigate(); // ADDED: Hook for navigation
   
   const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
   
@@ -256,7 +257,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
             {userRole === 'organizer' ? (
-              <button onClick={handleImport} className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs">📥 Import Players</button>
+              <Link to="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs text-center">📥 Import Players</Link>
             ) : (
               <span className="text-gray-500">Waiting for organizer to import players.</span>
             )}
@@ -336,14 +337,14 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         <EventSelector />
         {/* Quick link to Analytics */}
         <div className="flex justify-end mb-3">
-          <button
-            onClick={() => navigate('/analytics')}
+          <Link
+            to="/analytics"
             className="inline-flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50"
             aria-label="Open Analytics"
           >
             <BarChart3 className="w-4 h-4 text-cmf-primary" />
             Analytics
-          </button>
+          </Link>
         </div>
 
 
