@@ -203,14 +203,17 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         }
         
         // Add weight parameters
-        params.append("weight_40m_dash", weights["40m_dash"]);
-        params.append("weight_vertical_jump", weights["vertical_jump"]);
-        params.append("weight_catching", weights["catching"]);
-        params.append("weight_throwing", weights["throwing"]);
-        params.append("weight_agility", weights["agility"]);
-        
+        if (Object.keys(weights).length > 0) {
+          params.append("weight_40m_dash", weights["40m_dash"] || 0);
+          params.append("weight_vertical_jump", weights["vertical_jump"] || 0);
+          params.append("weight_catching", weights["catching"] || 0);
+          params.append("weight_throwing", weights["throwing"] || 0);
+          params.append("weight_agility", weights["agility"] || 0);
+        }
+
         const data = await cachedFetchRankings(params.toString());
-        setRankings(data);
+        // Ensure data is always an array
+        setRankings(Array.isArray(data) ? data : []);
       } catch (err) {
         if (err.response?.status === 404) {
           setError(null);
@@ -611,6 +614,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                 Export as CSV
               </button>
             </div>
+            
+            {/* Debugging: If logic thinks rankings > 0 but JSX renders nothing, let's output count */}
+            {/* <div className="text-xs text-gray-400">Total ranked players: {rankings.length}</div> */}
+
             {/* Mobile-First Card Layout */}
             <div className="sm:hidden">
               {rankings.map((player) => {
