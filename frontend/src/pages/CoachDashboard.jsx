@@ -79,13 +79,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   
   // Debug drills to ensure they are loaded
   useEffect(() => {
-    if (allDrills.length > 0) {
-      console.log("[CoachDashboard] Loaded drills:", allDrills.map(d => d.key));
-    } else if (drillsLoading) {
-      console.log("[CoachDashboard] Loading drills...");
-    } else {
-      console.warn("[CoachDashboard] No drills loaded (or empty). Schema fetch might have failed.");
-    }
+    // console.log("[CoachDashboard] Drills state:", { count: allDrills.length, loading: drillsLoading });
   }, [allDrills, drillsLoading]);
 
   // Initialize weights from default preset or first available preset
@@ -642,7 +636,11 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             </div>
             
             {/* Debugging: If logic thinks rankings > 0 but JSX renders nothing, let's output count */}
-            {/* <div className="text-xs text-gray-400">Total ranked players: {rankings.length}</div> */}
+            <div className="text-xs text-gray-400">Total ranked players: {rankings.length}</div>
+            
+            <pre style={{ fontSize: 10, maxHeight: 100, overflow: 'auto', background: '#f5f5f5', padding: 5 }}>
+              {JSON.stringify(rankings.slice(0, 3), null, 2)}
+            </pre>
 
             {/* Mobile-First Card Layout */}
             <div className="sm:hidden">
