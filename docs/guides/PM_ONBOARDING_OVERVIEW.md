@@ -28,11 +28,12 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **State Management**:
   - `AuthContext`: Handles user session, role checks, and league context. *Refactored to remove circular dependencies and infinite loops.*
   - `EventContext`: Minimalist context to avoid initialization race conditions.
+  - `useOptimizedWeights`: **(New)** Centralized hook for weight management, ensuring 0-100 scale consistency across all views.
 - **Data Access**: All data operations go through the backend API (`/api/v1`). **No direct Firestore writes from the frontend.**
 - **Key Components**:
   - `Players.jsx`: The core workspace. Features tabbed interface, real-time weight sliders, and normalized ranking calculations.
-  - `CoachDashboard.jsx`: **(New)** Central command center for organizers/coaches. Features "Events in this League" card for multi-event management and quick access to analytics/tools.
-  - `TeamFormation.jsx`: **(New)** Advanced algorithmic team generation (Snake Draft vs. Balanced) based on weighted rankings.
+  - `CoachDashboard.jsx`: **(Refactored)** Central command center. Now shares the **exact same ranking engine** as the Players page, supporting dynamic drill weights for any sport (not just Football). Includes "Events in this League" card.
+  - `TeamFormation.jsx`: Advanced algorithmic team generation (Snake Draft vs. Balanced) based on weighted rankings.
   - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
   - `ImportResultsModal.jsx`: The unified import interface with 2-step validation, schema mapping, and stats reporting.
@@ -77,6 +78,11 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 ## 4. 🛠 Recent Major Upgrades (Dec 2025)
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
+
+### ⚖️ Ranking Consistency & Schema Support (New!)
+- **Unified Ranking Engine**: Fixed a discrepancy where Coach Dashboard and Players page showed different scores. Both now utilize the same dynamic weight logic via `useOptimizedWeights`.
+- **Dynamic Sport Support**: The Coach Dashboard no longer relies on hardcoded Football weights. It dynamically adapts to ANY sport schema (Basketball, Baseball, etc.) by reading the active event's drill configuration.
+- **Weight Scaling**: Standardized all weight inputs to a 0-100 scale across the application to prevent calculation errors.
 
 ### 🧩 Team Formation & Algorithms
 - **Skill-Based Generation**: Added a sophisticated Team Formation engine that uses player rankings to create balanced teams.
@@ -158,6 +164,9 @@ frontend/src/
 │   ├── AuthContext.jsx          # Auth + league/event state
 │   ├── EventContext.jsx         # Minimal event state
 │   └── ToastContext.jsx         # UX notifications
+├── hooks/
+│   ├── useOptimizedWeights.js   # ⚖️ Central Ranking Engine (Scale 0-100)
+│   └── useDrills.js             # 🛠 Drill Schema Fetching
 ├── pages/
 │   ├── Home.jsx                 # Dashboard routing
 │   ├── CoachDashboard.jsx       # Main organizer/coach view
