@@ -196,7 +196,7 @@ export default function LiveStandings() {
         {/* Header Card */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 border-2 border-blue-200">
           <div className="flex items-center justify-between mb-4">
-             <Link to="/live-entry" className="text-gray-500 hover:text-gray-700">
+             <Link to="/dashboard" className="text-gray-500 hover:text-gray-700">
                <ArrowLeft className="w-6 h-6" />
              </Link>
              <div className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium">
@@ -210,16 +210,18 @@ export default function LiveStandings() {
           <p className="text-gray-600 mb-4">{selectedEvent.name}</p>
           
           <div className="grid grid-cols-2 gap-2">
-            <Link
-              to="/live-entry"
-              className="flex items-center justify-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-xl border border-semantic-success/20 transition text-semantic-success font-medium"
-            >
-              <Target className="w-4 h-4" />
-              <span>Record</span>
-            </Link>
+            {userRole !== 'viewer' && (
+              <Link
+                to="/live-entry"
+                className="flex items-center justify-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-xl border border-semantic-success/20 transition text-semantic-success font-medium"
+              >
+                <Target className="w-4 h-4" />
+                <span>Record</span>
+              </Link>
+            )}
             <Link
               to="/players/rankings"
-              className="flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium"
+              className={`flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium ${userRole === 'viewer' ? 'col-span-2' : ''}`}
             >
               <Users className="w-4 h-4 text-brand-primary" />
               <span>Players</span>

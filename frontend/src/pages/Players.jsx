@@ -5,6 +5,7 @@ import EditPlayerModal from "../components/Players/EditPlayerModal";
 import PlayerDetailsModal from "../components/Players/PlayerDetailsModal";
 import AddPlayerModal from "../components/Players/AddPlayerModal";
 import ImportResultsModal from "../components/Players/ImportResultsModal";
+import EventSelector from "../components/EventSelector"; // Import EventSelector
 
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -372,7 +373,10 @@ export default function Players() {
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-blue-200">
            <h2 className="text-2xl font-bold text-cmf-primary mb-4">No Event Selected</h2>
-           <button onClick={() => navigate('/select-league')} className="bg-cmf-primary text-white px-6 py-3 rounded-lg">Select Event</button>
+           <p className="text-gray-600 mb-6">
+             Please select or create an event to manage players.
+           </p>
+           <EventSelector />
         </div>
       </div>
     </div>
