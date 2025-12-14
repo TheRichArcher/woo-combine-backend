@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
+import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import EventSelector from "../components/EventSelector";
 import CreateEventModal from "../components/CreateEventModal";
 import api from '../lib/api';
@@ -15,6 +16,7 @@ import { useDrills } from '../hooks/useDrills';
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
+  const { openDetails } = usePlayerDetails();
   
   // Define constant for 'All Players'
   const AGE_GROUP_ALL = { id: "ALL", label: "All Players" };
@@ -702,7 +704,22 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     const playerAgeGroup = players.find(p => p.id === player.player_id)?.age_group;
 
                     return (
-                      <tr key={player.player_id} className="border-t border-gray-100 hover:bg-gray-50">
+                      <tr 
+                        key={player.player_id} 
+                        className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                        onClick={() => {
+                          const fullPlayer = players.find(p => p.id === (player.player_id || player.id)) || player;
+                          openDetails(fullPlayer, {
+                              allPlayers: players,
+                              sliderWeights: percentages, // Pass percentages (0-100) as sliderWeights
+                              handleWeightChange: updateWeightsFromPercentage,
+                              activePreset,
+                              applyPreset,
+                              drills: allDrills,
+                              presets: currentPresets
+                          });
+                        }}
+                      >
                         <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
                           {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
                         </td>
