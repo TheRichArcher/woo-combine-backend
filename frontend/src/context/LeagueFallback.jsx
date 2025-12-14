@@ -214,25 +214,16 @@ export default function LeagueFallback() {
               </div>
             </div>
           ) : (
-            <div className="border border-gray-200 rounded-xl p-3 hover:border-semantic-success/30 transition">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 bg-semantic-success/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Plus className="w-4 h-4 text-semantic-success" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Create New League</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    Start your own league and invite players to join
-                  </p>
-                  <button
-                    onClick={handleCreateLeague}
-                    className="bg-semantic-success hover:bg-green-700 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition-all duration-200 transform hover:scale-[1.02] flex items-center gap-2 text-sm"
-                  >
-                    <Plus className="w-3 h-3" />
-                    Create League
-                  </button>
-                </div>
-              </div>
+            <div className="text-center pt-2">
+               <p className="text-sm text-gray-500">
+                 Are you an event organizer?{' '}
+                 <button 
+                   onClick={handleCreateLeague}
+                   className="text-brand-primary hover:text-brand-secondary font-semibold hover:underline"
+                 >
+                   Create a League
+                 </button>
+               </p>
             </div>
           )}
         </div>

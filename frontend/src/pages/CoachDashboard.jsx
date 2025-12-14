@@ -348,7 +348,9 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
 
         {/* Header & Title Block */}
-        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">Coach Dashboard</div>
+        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">
+          {userRole === 'organizer' ? 'Event Dashboard' : 'Coach Dashboard'}
+        </div>
         <h1 className="text-lg font-semibold text-gray-900 mb-4">
           {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
         </h1>

@@ -397,10 +397,10 @@ export default function Navigation() {
             <Link 
               to="/players?tab=manage" 
               onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-              title="Manage your event’s player list and scores"
+              title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              <Users className="w-4 h-4 inline-block mr-1" /> Players
+              <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
             </Link>
             <Link 
               to="/players?tab=analyze" 
@@ -446,6 +446,17 @@ export default function Navigation() {
               </Link>
             )}
 
+            {/* Promote Live Standings for Viewers */}
+            {userRole === 'viewer' && (
+              <Link 
+                to="/live-standings" 
+                onClick={(e) => handleRestrictedNav(e, '/live-standings', 'Live Standings')}
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                Live Standings
+              </Link>
+            )}
+
             {/* Tools dropdown */}
             <div className="relative">
               <button
@@ -460,9 +471,12 @@ export default function Navigation() {
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50" role="menu">
-                  <Link to="/live-standings" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/live-standings', 'Live Standings'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
-                    Live Standings
-                  </Link>
+                  {/* Hide Live Standings from Tools if it's already in the main nav for viewers */}
+                  {userRole !== 'viewer' && (
+                    <Link to="/live-standings" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/live-standings', 'Live Standings'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Live Standings
+                    </Link>
+                  )}
                   <Link to="/sport-templates" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/sport-templates', 'Sport Templates'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                     Sport Templates
                   </Link>
@@ -500,6 +514,13 @@ export default function Navigation() {
                     onClick={() => setMobileOpen(false)}
                   >
                     Switch Event
+                  </Link>
+                  <Link 
+                    to="/join" 
+                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    Join Event
                   </Link>
                   <hr className="my-2" />
                   <button
@@ -558,9 +579,9 @@ export default function Navigation() {
               to="/players?tab=manage" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
               onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-              title="Manage your event’s player list and scores"
+              title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
             >
-              <Users className="w-4 h-4 inline-block mr-1" /> Players
+              <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
             </Link>
             <Link 
               to="/players?tab=analyze" 
@@ -602,6 +623,17 @@ export default function Navigation() {
                 Admin
               </Link>
             )}
+            {/* Promote Live Standings for Viewers on Mobile */}
+            {userRole === 'viewer' && (
+              <Link 
+                to="/live-standings" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/live-standings', 'Live Standings')}
+              >
+                Live Standings
+              </Link>
+            )}
+
             <Link 
               to="/select-league" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -609,15 +641,25 @@ export default function Navigation() {
             >
               Switch Event
             </Link>
+            <Link 
+              to="/join" 
+              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+              onClick={closeMobile}
+            >
+              Join Event
+            </Link>
             {/* Tools group on mobile */}
             <div className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase">Tools</div>
-            <Link 
-              to="/live-standings" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/live-standings', 'Live Standings')}
-            >
-              Live Standings
-            </Link>
+            {/* Hide Live Standings from Tools if it's already in the main nav for viewers */}
+            {userRole !== 'viewer' && (
+              <Link 
+                to="/live-standings" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/live-standings', 'Live Standings')}
+              >
+                Live Standings
+              </Link>
+            )}
             <Link 
               to="/sport-templates" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
