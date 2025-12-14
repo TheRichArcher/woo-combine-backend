@@ -35,6 +35,7 @@ export default function EventSwitcher({ isOpen, onClose }) {
   };
 
   if (!isOpen) return null;
+  if (!events || !Array.isArray(events)) return null;
 
   return (
     <>

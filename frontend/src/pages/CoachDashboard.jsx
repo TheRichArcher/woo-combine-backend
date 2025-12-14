@@ -272,7 +272,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 text-cmf-contrast font-sans">
-      <div className="max-w-lg mx-auto px-4 sm:px-6 mt-20">
+      <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
         {/* League Header */}
         {currentLeague && (
