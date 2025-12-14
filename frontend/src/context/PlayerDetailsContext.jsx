@@ -36,6 +36,12 @@ export function PlayerDetailsProvider({ children }) {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [contextData, setContextData] = useState({});
 
+  // Allow updating the selected player optimistically (or after API success)
+  // This updates the local state so the modal reflects changes immediately without re-fetching
+  const updateSelectedPlayer = useCallback((partialData) => {
+    setSelectedPlayer(prev => prev ? { ...prev, ...partialData } : null);
+  }, []);
+
   const openDetails = useCallback((player, data = {}) => {
     setSelectedPlayer(player);
     // contextData can override weights if provided by the calling page
@@ -107,7 +113,7 @@ export function PlayerDetailsProvider({ children }) {
   ]);
 
   return (
-    <PlayerDetailsContext.Provider value={{ selectedPlayer, openDetails, closeDetails }}>
+    <PlayerDetailsContext.Provider value={{ selectedPlayer, openDetails, closeDetails, updateSelectedPlayer }}>
       {children}
       {selectedPlayer && !contextData.suppressGlobalModal && (
         <PlayerDetailsModal {...modalProps} />

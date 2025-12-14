@@ -38,3 +38,28 @@ This epic tracks technical debt cleanup and stability improvements identified du
 - **Task**:
   - Periodically review "At-Risk Components" listed in `docs/qa/MANUAL_CHECKLIST.md`.
   - Enforce ESLint rules for undefined variables if possible.
+
+## 🚀 Next Sprint Plan (High Priority)
+
+### 1. AuthContext Refactor - Milestone 2
+**Goal**: Migrate core auth logic to the new State Machine (`STATUS` enum) to enforce deterministic startup sequences.
+- **Reference**: `docs/epics/AUTH_CONTEXT_REFACTOR.md`
+- **Scope**:
+  - Rewrite `useEffect` to drive off `STATUS` transitions.
+  - Implement the "READY Contract" for `ProtectedRoute`.
+  - Ensure Deep Links handle the "Cached Role -> Fetching Context" transition safely.
+- **Risk**: High (Core logic).
+- **Estimate**: 8-12 hours.
+
+### 2. Player Edit Cross-View Consistency
+**Goal**: Ensure edits made in the modal reflect *everywhere* without refresh.
+- **Scope**:
+  - Extend `updateSelectedPlayer` pattern to trigger a global refresh or cache invalidation for:
+    - Team Formation screens (if score changed).
+    - Rankings / Dashboard lists.
+  - Currently, `PlayerDetailsContext` updates the modal, but we need to ensure parent lists (managed by `Players.jsx` local state) also update.
+- **Estimate**: 3-5 hours.
+
+### 3. Minor Cleanup
+- **Import Mapping**: Polish synonym list based on user feedback.
+- **Team Formation**: Add tooltip for "Unscored Players" handling.

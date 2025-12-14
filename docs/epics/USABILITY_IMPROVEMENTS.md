@@ -61,8 +61,12 @@ The "Balanced" algorithm attempts to equalize the *average composite score* of t
    - Distribute "Unscored" players across teams to fill remaining slots (or just balance count).
 3. **QA Check**: Create a cohort with 5 elites (Score 90+) and 20 zeros. Generate 2 teams. Verify elites are split 3 vs 2 (or similar), not 5 vs 0. Verify total roster size is 12 vs 13.
 4. **Deterministic**: Verify that clicking "Generate" multiple times with the same inputs produces the same teams.
+5. **Known Limitations**:
+   - Balanced mode assumes composite scores reflect actual player strength.
+   - If elite players are left unscored, they will be treated like any other unscored player.
 
 **Priority**: High (Event Day Critical).
+**Status**: Implemented & QA'd.
 **Estimate**: 3-5 hours.
 **Estimate**: 3-5 hours.
 
@@ -82,7 +86,13 @@ When a coach edits a player's details (e.g., correcting a typo in name or jersey
 1. **Context Update**: `PlayerDetailsContext` must expose an `updateSelectedPlayer(partialData)` method to allow in-place updates without closing the modal.
 2. **Optimistic UI**: `EditPlayerModal` should call this method on success.
 3. **List Refresh**: The parent `onSave` callback must effectively trigger a re-fetch of the main list (this already exists but needs verification).
-4. **QA Check**: Open player -> Edit Name -> Save. Verify name changes in list instantly AND modal title updates instantly.
-5. **Rapid Edits**: Edit Name -> Save -> Edit Number -> Save. Verify both stick without lag/reverts.
+4. **Failure Model**: 
+   - We will use **Option B**: Keep the local change but warn on failure.
+   - If the API call fails, the optimistic update is NOT applied (because we await the API before calling `updateSelectedPlayer`).
+   - If the API succeeds but the parent refresh fails/lags, the local `selectedPlayer` is still updated so the modal looks correct.
+5. **QA Check**: 
+   - **Edit Name**: Open player -> Edit Name -> Save. Verify name changes in list instantly.
+   - **Failure**: Simulate offline/API error. Verify modal stays open, error is shown, and name does NOT change in list.
+   - **Rapid Edits**: Edit Name -> Save -> Edit Number -> Save. Verify both stick without lag/reverts.
 **Priority**: Medium (Polishing).
 **Estimate**: 2-3 hours.

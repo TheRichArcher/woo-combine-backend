@@ -55,6 +55,7 @@ It should **NOT** manage:
 Refactor the boolean flags (`loading`, `authChecked`, `roleChecked`) into a single explicit status enum:
 ```javascript
 const STATUS = {
+  IDLE: 'IDLE',
   INITIALIZING: 'INITIALIZING', // Checking Firebase
   AUTHENTICATING: 'AUTHENTICATING', // Fetching DB Profile
   FETCHING_CONTEXT: 'FETCHING_CONTEXT', // Loading Leagues
@@ -62,6 +63,27 @@ const STATUS = {
   UNAUTHENTICATED: 'UNAUTHENTICATED' // Guest mode
 };
 ```
+
+## 📜 READY Contract
+This defines what consumers can expect when `status === STATUS.READY`.
+
+**Guarantees:**
+1. **User Identity**: `user` object is fully hydrated (email, uid).
+2. **Role Confirmed**: `userRole` is set and valid (or null if guest).
+3. **Leagues Loaded (Best Effort)**: 
+   - For `organizer`/`coach`: `leagues` array is populated (if they have any).
+   - If `leagues` is empty, it means they genuinely have none OR the fetch failed (handled by UI error state).
+   - **Exception**: In "Cached Role" fast startup, `leagues` might be empty initially while `leaguesLoading` is true.
+
+**Does NOT Guarantee:**
+- **Selected Event**: `EventContext` handles event selection. `READY` does *not* mean an event is selected.
+- **Drill Schemas**: Loaded lazily or in parallel.
+- **Rankings/Players**: Loaded by page components.
+
+**ProtectedRoute Requirements:**
+- Must wait for `READY`.
+- Checks `userRole` against `allowedRoles`.
+- Does *not* need to wait for `leagues` unless the specific route requires it (e.g. `/dashboard` handles empty leagues gracefully).
 
 ## ✅ Test Matrix
 
@@ -106,6 +128,10 @@ To ensure we don't regress "Time to Dashboard", we will measure:
 
 ### Milestone 2: Migration & Deterministic Flow
 **Goal**: Move the actual logic to drive off `STATUS` instead of loose `useEffect`s.
+- **Target Sequences**:
+  - **Normal Login**: `IDLE` -> `INITIALIZING` -> `AUTHENTICATING` -> `FETCHING_CONTEXT` -> `READY`.
+  - **Deep Link / Hot Path**: `IDLE` -> `INITIALIZING` -> `READY` (Cached) -> `FETCHING_CONTEXT` (Background).
+    - *Risk*: Consumers relying on full context in `READY` might fail if `leagues` array is empty during the "Cached" phase.
 - **Tasks**:
   - Rewrite the main effect to strictly follow the state machine.
   - Remove circular dependencies (e.g., `roleChecked` waiting on `authChecked` waiting on `user`).

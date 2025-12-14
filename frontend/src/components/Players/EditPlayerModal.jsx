@@ -4,9 +4,11 @@ import api from '../../lib/api';
 import { AGE_GROUP_OPTIONS } from '../../constants/app';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { useToast } from '../../context/ToastContext';
+import { usePlayerDetails } from '../../context/PlayerDetailsContext'; // Import context
 import ErrorDisplay from '../ErrorDisplay';
 
 const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers, onClose, onSave }) {
+  const { updateSelectedPlayer } = usePlayerDetails(); // Get update function
   const [formData, setFormData] = useState({
     name: player?.name || '',
     number: player?.number || '',
@@ -52,9 +54,14 @@ const EditPlayerModal = React.memo(function EditPlayerModal({ player, allPlayers
     const apiUrl = `/players/${player.id}?event_id=${player.event_id}`;
     
     await executeUpdate(async () => {
-      return await api.put(apiUrl, updateData);
+      const response = await api.put(apiUrl, updateData);
+      // API-First Update: Only update local state if API call succeeds
+      if (updateSelectedPlayer) {
+        updateSelectedPlayer(response.data);
+      }
+      return response;
     });
-  }, [formData, player, executeUpdate, showError]);
+  }, [formData, player, executeUpdate, showError, updateSelectedPlayer]);
 
   if (!player) return null;
 
