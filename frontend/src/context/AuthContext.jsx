@@ -43,6 +43,27 @@ export function AuthProvider({ children }) {
   const navigate = useNavigate();
   const { showColdStartNotification, isColdStartActive, showWarning } = useToast();
   
+  // STATUS ENUM - State Machine Foundation (Milestone 1)
+  const STATUS = {
+    IDLE: 'IDLE',
+    INITIALIZING: 'INITIALIZING', // Checking Firebase
+    AUTHENTICATING: 'AUTHENTICATING', // Fetching DB Profile
+    FETCHING_CONTEXT: 'FETCHING_CONTEXT', // Loading Leagues
+    READY: 'READY', // App is usable
+    UNAUTHENTICATED: 'UNAUTHENTICATED' // Guest mode
+  };
+  const [status, setStatus] = useState(STATUS.IDLE);
+
+  // Helper to log state transitions
+  const transitionTo = useCallback((newStatus, reason = '') => {
+    setStatus(prev => {
+        if (prev !== newStatus) {
+            authLogger.debug(`[AuthContext] State Transition: ${prev} -> ${newStatus} ${reason ? `(${reason})` : ''}`);
+        }
+        return newStatus;
+    });
+  }, []);
+
   // CRITICAL FIX: Prevent concurrent league fetches during cold start
   const [leagueFetchInProgress, setLeagueFetchInProgress] = useState(false);
   const [creatingDefaultLeague, setCreatingDefaultLeague] = useState(false);
@@ -195,6 +216,9 @@ export function AuthProvider({ children }) {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       authLogger.debug('Auth state change', firebaseUser ? 'User logged in' : 'User logged out');
       
+      // State Machine: Start Initialization
+      transitionTo(STATUS.INITIALIZING, 'onAuthStateChanged');
+
       let initialPath = '/';
       let initialSearch = '';
       try {
@@ -217,6 +241,8 @@ export function AuthProvider({ children }) {
         setInitializing(false);
         setError(null);
         localStorage.removeItem('selectedLeagueId');
+        
+        transitionTo(STATUS.UNAUTHENTICATED, 'Logged out');
         return;
       }
 
@@ -225,12 +251,15 @@ export function AuthProvider({ children }) {
       setUser(firebaseUser);
       setAuthChecked(true);
       
+      transitionTo(STATUS.AUTHENTICATING, 'User detected');
+      
       // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
       warmupBackend();
 
       // CRITICAL FIX: Always fetch leagues after login (hot path)
       // This is the primary fetch trigger that must run regardless of cached state or routes
       console.debug("[AUTH] Calling fetchLeagues() after login (hot path)");
+      transitionTo(STATUS.FETCHING_CONTEXT, 'Starting league fetch');
       fetchLeaguesConcurrently(firebaseUser, null);
 
       // FAST EXIT: If we're on the login page, immediately send the user back
@@ -303,6 +332,8 @@ export function AuthProvider({ children }) {
           setRole(cachedRole);
           setRoleChecked(true);
           setInitializing(false); // Don't wait for API verification
+          
+          transitionTo(STATUS.READY, 'Cached role used');
           
             // CRITICAL FIX: Always fetch leagues after login, even with cache
           // (We already called fetchLeaguesConcurrently in the hot path above, but we keep this as a fallback/verification if needed,
@@ -497,6 +528,8 @@ export function AuthProvider({ children }) {
           selectedLeagueId: localStorage.getItem('selectedLeagueId'),
           leaguesLoaded: leagues?.length || 0
         });
+        
+        transitionTo(STATUS.READY, 'Initialization complete');
         
         if (onboardingRoutes.includes(currentPath)) {
           // If we were redirected here due to session expiry, send user back
@@ -698,7 +731,8 @@ export function AuthProvider({ children }) {
     setAuthChecked,
     setRoleChecked,
     refreshUserRole,
-    logout
+    logout,
+    status // Expose status for debugging/monitoring
   };
 
   return (

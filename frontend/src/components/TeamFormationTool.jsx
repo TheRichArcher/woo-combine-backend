@@ -32,7 +32,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   const currentDrills = getDrillsFromTemplate(selectedDrillTemplate);
 
   // Calculate composite scores for all players using normalized scoring
-  const rankedPlayers = useMemo(() => {
+  const allPlayersWithScores = useMemo(() => {
     if (!players || players.length === 0) return [];
     
     // Convert decimal weights to percentage format expected by normalized scoring
@@ -42,15 +42,22 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     });
     
     // Use optimized scoring instead of normalized scoring to avoid legacy dependencies
-    const scoredPlayers = players.map(player => ({
+    // Sort deterministically by ID as a secondary tie-breaker initially
+    return players.map(player => ({
       ...player,
       compositeScore: calculateOptimizedCompositeScore(player, players, percentageWeights, currentDrills)
-    }));
+    })).sort((a, b) => {
+        if (a.id < b.id) return -1;
+        if (a.id > b.id) return 1;
+        return 0;
+    });
+  }, [players, weights, currentDrills]);
 
-    return scoredPlayers
+  const rankedPlayers = useMemo(() => {
+    return allPlayersWithScores
       .filter(player => player.compositeScore > 0) // Only include players with scores
       .sort((a, b) => b.compositeScore - a.compositeScore);
-  }, [players, weights, currentDrills]);
+  }, [allPlayersWithScores]);
 
   // Initialize team names
   useEffect(() => {
@@ -94,8 +101,8 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
   };
 
   const createBalancedTeams = () => {
-    if (formationMethod !== 'skill_based' && formationMethod !== 'ranked_split' && rankedPlayers.length === 0) {
-      showError('No players with scores available for team formation');
+    if (formationMethod !== 'skill_based' && formationMethod !== 'ranked_split' && allPlayersWithScores.length === 0) {
+      showError('No players available for team formation');
       return;
     }
     
@@ -114,11 +121,44 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
     });
     
     if (formationMethod === 'balanced') {
-      // Distribute players in round-robin fashion to balance overall talent
-      rankedPlayers.forEach((player, index) => {
-        const teamIndex = index % numTeams;
-        newTeams[teamIndex].push(player);
+      // Robust Balanced: Split scored/unscored, Snake Draft scored, then fill with unscored
+      const scored = allPlayersWithScores
+        .filter(p => p.compositeScore > 0)
+        .sort((a, b) => b.compositeScore - a.compositeScore || a.name.localeCompare(b.name));
+      
+      const unscored = allPlayersWithScores
+        .filter(p => !p.compositeScore || p.compositeScore === 0)
+        .sort((a, b) => a.name.localeCompare(b.name)); // Sort by name deterministic
+
+      let currentTeam = 0;
+      let direction = 1;
+
+      // 1. Distribute Scored Players (Snake)
+      scored.forEach(player => {
+        newTeams[currentTeam].push(player);
+        
+        if (direction === 1 && currentTeam === numTeams - 1) {
+          direction = -1;
+        } else if (direction === -1 && currentTeam === 0) {
+          direction = 1;
+        } else {
+          currentTeam += direction;
+        }
       });
+
+      // 2. Distribute Unscored Players (Continue Snake to balance count)
+      // Note: We continue currentTeam/direction to ensure we don't stack the "first" team with the first unscored player
+      // if they just got the last high-scorer.
+      unscored.forEach(player => {
+        // Simple fill strategy: Find first team with minSize to ensure even counts
+        const targetTeamIndex = newTeams.reduce((bestIdx, team, idx) => {
+            if (team.length < newTeams[bestIdx].length) return idx;
+            return bestIdx;
+        }, 0);
+        
+        newTeams[targetTeamIndex].push(player);
+      });
+
     } else if (formationMethod === 'snake_draft') {
       // Snake draft: 1->2->3->3->2->1->1->2->3...
       let currentTeam = 0;
@@ -325,7 +365,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
         <div>
           <h2 className="text-xl font-bold text-gray-900">Team Formation Tool</h2>
           <p className="text-sm text-gray-600">
-            Create balanced teams from {formationMethod === 'skill_based' ? players.length : rankedPlayers.length} players
+            Create balanced teams from {formationMethod === 'skill_based' ? players.length : allPlayersWithScores.length} players
           </p>
         </div>
       </div>
@@ -558,7 +598,7 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
       )}
 
       {/* Help Text */}
-      {rankedPlayers.length === 0 && formationMethod !== 'skill_based' && (
+      {allPlayersWithScores.length === 0 && formationMethod !== 'skill_based' && (
         <div className="text-center py-8">
           <Target className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <h3 className="text-lg font-medium text-gray-900 mb-1">No Players Available</h3>
@@ -579,14 +619,14 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
         </div>
       )}
 
-      {teams.length === 0 && (rankedPlayers.length > 0 || (formationMethod === 'skill_based' && players.length > 0)) && (
+      {teams.length === 0 && (allPlayersWithScores.length > 0 || (formationMethod === 'skill_based' && players.length > 0)) && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
             <div>
               <h4 className="font-medium text-yellow-900 mb-1">Ready to Create Teams</h4>
               <p className="text-sm text-yellow-800">
-                You have {formationMethod === 'skill_based' ? players.length : rankedPlayers.length} players ready for team formation. 
+                You have {formationMethod === 'skill_based' ? players.length : allPlayersWithScores.length} players ready for team formation. 
                 Choose your formation method and click "Create Teams" to get started.
               </p>
             </div>

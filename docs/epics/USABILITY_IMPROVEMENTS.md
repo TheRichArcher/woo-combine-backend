@@ -39,12 +39,50 @@ The "Balanced" algorithm attempts to equalize the *average composite score* of t
   - Distribute the *scored* players evenly first (Snake Draft style by score).
   - Then distribute the *unscored* players evenly.
 
+**Current Failure Modes**:
+- **Zero-Score Skew**: If many players have 0 scores (or null), the average is heavily dragged down. If the algorithm naively balances averages, it might put all 5 high-scoring players on Team A (Avg 80) and 20 zero-score players on Team B (Avg 0), thinking "Team A needs more points".
+- **Unbalanced Tiers**: It doesn't distinguish between "Unscored" (0 points) and "Low Skill" (10 points).
+
+**Balanced Definition**:
+- **Primary**: Roughly equal "Total Composite Score" per team.
+- **Secondary**: Roughly equal number of "Scored Players" per team (to ensure competitive balance).
+- **Tertiary**: Roughly equal number of "Unscored Players" per team (to ensure roster size balance).
+
+**Edge Case Behaviors**:
+- **Mixed Scored/Unscored**: Split the pool. Distribute scored players first (Snake Draft by score). Then distribute unscored players (Snake Draft by random or ID).
+- **All Zeros**: Fallback to random distribution or Snake Draft by Name/Number to ensure even count.
+- **Odd Numbers**: Teams may differ by at most 1 player.
+
 **Acceptance Criteria**:
 1. Update `frontend/src/utils/teamFormation.js`.
 2. Logic:
-   - Split pool into "Scored" and "Unscored".
-   - Distribute "Scored" players across teams to balance total points.
-   - Distribute "Unscored" players across teams to balance count.
-3. **QA Check**: Create a cohort with 5 elites and 20 zeros. Generate 2 teams. Verify elites are split 3 vs 2 (or similar), not 5 vs 0.
+   - Split pool into "Scored" (>0) and "Unscored" (0/null).
+   - Distribute "Scored" players across teams using Snake Draft (High->Low).
+   - Distribute "Unscored" players across teams to fill remaining slots (or just balance count).
+3. **QA Check**: Create a cohort with 5 elites (Score 90+) and 20 zeros. Generate 2 teams. Verify elites are split 3 vs 2 (or similar), not 5 vs 0. Verify total roster size is 12 vs 13.
+4. **Deterministic**: Verify that clicking "Generate" multiple times with the same inputs produces the same teams.
 
-**Priority**: Medium (Critical for event day, but less blocking than import).
+**Priority**: High (Event Day Critical).
+**Estimate**: 3-5 hours.
+**Estimate**: 3-5 hours.
+
+---
+
+## 🎫 Ticket 3: Player Details "Edit" Resilience
+**Context**:
+When a coach edits a player's details (e.g., correcting a typo in name or jersey number) via the Player Details modal, the change sometimes doesn't reflect immediately in the parent list, requiring a manual page refresh.
+- **Current Issues**:
+  - `PlayerDetailsModal` updates the player via API but the parent `Players.jsx` list relies on `useEvent` or internal state that isn't triggered to re-fetch.
+  - Users have to hit F5 to see the corrected name or number.
+- **Expected Behavior**:
+  - On "Save", the modal should trigger a context update or callback that forces the parent list to update optimistically or re-fetch.
+- **Weak Point**: The data flow between `PlayerDetailsContext` (where the modal lives) and `Players.jsx` (where the list lives) is loosely coupled. `EditPlayerModal` calls `onSave` prop, which triggers `fetchPlayers` in the parent, but `PlayerDetailsContext` might be holding onto a stale `selectedPlayer` object if it's not explicitly updated.
+
+**Acceptance Criteria**:
+1. **Context Update**: `PlayerDetailsContext` must expose an `updateSelectedPlayer(partialData)` method to allow in-place updates without closing the modal.
+2. **Optimistic UI**: `EditPlayerModal` should call this method on success.
+3. **List Refresh**: The parent `onSave` callback must effectively trigger a re-fetch of the main list (this already exists but needs verification).
+4. **QA Check**: Open player -> Edit Name -> Save. Verify name changes in list instantly AND modal title updates instantly.
+5. **Rapid Edits**: Edit Name -> Save -> Edit Number -> Save. Verify both stick without lag/reverts.
+**Priority**: Medium (Polishing).
+**Estimate**: 2-3 hours.
