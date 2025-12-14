@@ -82,10 +82,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     applyPreset
   } = useOptimizedWeights(players, allDrills, currentPresets);
 
-  const navigate = useNavigate();
-
-  // Convert percentages logic removed - use sliderWeights directly
-
   // Cached players fetcher for dashboard (TTL 60s)
   const cachedFetchPlayers = useMemo(() => withCache(
     async (eventId) => {
