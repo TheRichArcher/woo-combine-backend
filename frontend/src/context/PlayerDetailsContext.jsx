@@ -35,11 +35,14 @@ export function PlayerDetailsProvider({ children }) {
 
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [contextData, setContextData] = useState({});
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Allow updating the selected player optimistically (or after API success)
   // This updates the local state so the modal reflects changes immediately without re-fetching
   const updateSelectedPlayer = useCallback((partialData) => {
     setSelectedPlayer(prev => prev ? { ...prev, ...partialData } : null);
+    // Trigger global refresh for list views
+    setRefreshTrigger(prev => prev + 1);
   }, []);
 
   const openDetails = useCallback((player, data = {}) => {
@@ -113,7 +116,7 @@ export function PlayerDetailsProvider({ children }) {
   ]);
 
   return (
-    <PlayerDetailsContext.Provider value={{ selectedPlayer, openDetails, closeDetails, updateSelectedPlayer }}>
+    <PlayerDetailsContext.Provider value={{ selectedPlayer, openDetails, closeDetails, updateSelectedPlayer, refreshTrigger }}>
       {children}
       {selectedPlayer && !contextData.suppressGlobalModal && (
         <PlayerDetailsModal {...modalProps} />

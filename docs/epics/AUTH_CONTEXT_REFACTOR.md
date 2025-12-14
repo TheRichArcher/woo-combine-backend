@@ -51,6 +51,20 @@ It should **NOT** manage:
 - **Deep Linking**: `/join-event/:code` relies on Auth initializing *fast* so it can capture the URL code before a redirect (or persist it).
 - **Cold Start**: If `STATUS` hangs on `FETCHING_CONTEXT` (leagues), the app will look broken. We need a fallback/timeout.
 
+
+## 🔒 Deep Link Guardrails (Milestone 2)
+Deep linking (e.g., `/join-event/:code`) is the riskiest flow. It relies on the auth context to be "Ready enough" to process the intent but not so strict that it redirects valid users away.
+
+**Requirements**:
+1. **Never redirect valid users**: If `user` is present, `ProtectedRoute` must wait for `leaguesLoading` to complete before deciding to redirect to `/onboarding`.
+2. **Fast Cached Entry**: If `userRole` is cached, we enter `READY` state quickly. `ProtectedRoute` must treat this as "Valid" but potentially "Incomplete".
+3. **League Array**: Components rendering league data (Dashboard) must handle `leagues=[]` gracefully while `status === READY` if `leaguesLoading` is still true.
+
+**Risk Assessment**:
+- **High**: `ProtectedRoute` seeing `leagues.length === 0` and redirecting to `/create-league` before the fetch completes.
+- **Medium**: `EventContext` trying to validate `selectedEvent` against an empty `leagues` list and clearing it prematurely.
+- **Mitigation**: Introduce a derived `contextReady` flag or check `status === READY && !leaguesLoading` for critical logic.
+
 ### 3. State Machine Approach
 Refactor the boolean flags (`loading`, `authChecked`, `roleChecked`) into a single explicit status enum:
 ```javascript

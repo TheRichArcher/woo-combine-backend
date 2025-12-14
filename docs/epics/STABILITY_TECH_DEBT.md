@@ -60,6 +60,16 @@ This epic tracks technical debt cleanup and stability improvements identified du
   - Currently, `PlayerDetailsContext` updates the modal, but we need to ensure parent lists (managed by `Players.jsx` local state) also update.
 - **Estimate**: 3-5 hours.
 
+### 4. Risk Assessment & Rollback (Sprint 2)
+**Rollback Plan**:
+- **AuthContext**: The refactor is contained in one file. Reverting `AuthContext.jsx` to the previous commit (tagged `pre-refactor`) is the primary escape hatch.
+- **Flags**: We will NOT use a feature flag for AuthContext as it is too foundational. We will rely on Staging QA.
+
+**Impact Analysis**:
+- **Broken Auth**: Blocks everyone.
+- **Broken Deep Link**: Blocks new users joining events (Viral loop).
+- **Broken Player Edit**: Annoyance (requires refresh), but data is saved.
+
 ### 3. Minor Cleanup
 - **Import Mapping**: Polish synonym list based on user feedback.
 - **Team Formation**: Add tooltip for "Unscored Players" handling.

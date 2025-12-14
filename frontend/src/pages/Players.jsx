@@ -49,7 +49,7 @@ const cachedFetchPlayers = withCache(
 export default function Players() {
   const { selectedEvent, setSelectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
-  const { openDetails, selectedPlayer: contextSelectedPlayer } = usePlayerDetails();
+  const { openDetails, selectedPlayer: contextSelectedPlayer, refreshTrigger } = usePlayerDetails();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -291,7 +291,7 @@ export default function Players() {
 
   useEffect(() => {
     fetchPlayers();
-  }, [fetchPlayers]);
+  }, [fetchPlayers, refreshTrigger]); // Add refreshTrigger to re-fetch when edits happen
 
   // Auto-select "all" age group
   useEffect(() => {
