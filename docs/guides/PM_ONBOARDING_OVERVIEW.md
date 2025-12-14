@@ -189,3 +189,82 @@ backend/
 ```
 
 ---
+
+## 7. ❓ Product Context & FAQ
+
+This section answers common PM questions based on the current codebase state.
+
+### 💼 Business & Pricing
+- **Single Product**: WooCombine is a **single product** with "Dynamic Sport Support". It adapts to any sport schema (Basketball, Baseball, etc.) without needing separate SKUs.
+- **Pricing Model**: There is currently **no code-level enforcement** of pricing, subscriptions, or "Pro" tiers. All features appear available to all users.
+- **Billing**: No integration with Stripe or other payment providers exists in the repo.
+
+### 🚀 Environments & Release
+- **Environments**:
+  - **Dev**: Auto-deploys from `main` on every push.
+  - **Staging**: Manual deploy from protected branch. Requires QA sign-off.
+  - **Prod**: Deployed via git tags (`vX.Y.Z`).
+- **Release Process**: Fully documented in `docs/RELEASE_FLOW.md`. Requires changelog updates and health checks.
+
+### 💾 Data & Models
+- **Legacy Fields**: Fields like `drill_40m_dash` are deprecated but automatically synced to the new dynamic `scores` map for backward compatibility.
+- **Multi-sport Athletes**: Players are scoped to an **Event** (`event_id`), meaning a player participating in multiple events will have duplicated records.
+- **Deletion**: Hard deletes are supported; no soft-delete (`deleted_at`) column exists in core schemas.
+
+### 🛠 Tech & Tooling
+- **Design System**: Built on **Tailwind CSS**. No external UI component library.
+- **Import Engine**: Supports CSV/Excel. Handles flat vs. nested JSON structures and includes "smart synonym" matching for headers (e.g., `#` = `Jersey`).
+- **CI/CD**: Enforces Linting (Ruff/ESLint), Formatting (Black), Security Audits (pip-audit), and Tests (pytest/jest) on every PR.
+- **Shared Accounts**: The team shares access to **Render** (Hosting), **Sentry** (Observability), and **Firebase** (Auth/DB).
+
+---
+
+## 8. 🗣️ PM FAQ (Follow-Up)
+
+Answers to the specific process & business questions from the incoming PM.
+
+### 1) Product Vision & Roadmap
+- **Goals/Vision**: No formal "vision statement" or written roadmap exists in the codebase.
+- **Dates**: No hard dates (tournaments, pilots) are hardcoded or documented.
+- **Seasonality**: No seasonal logic found.
+
+### 2) Customers & Usage
+- **Active Users**: Customer counts and specific "flagship" names are not in the repo (check production DB/Analytics).
+- **Patterns**: No specific usage patterns documented.
+
+### 3) Pricing & Entitlements
+- **Current State**: **Zero enforcement** in code. No Stripe, no subscription checks, no "Pro" gates.
+- **Plan**: No upcoming pricing changes reflected in current architectural decisions.
+
+### 4) Data Lifecycle
+- **Retention**:
+  - **Leagues/Events**: Retained indefinitely until user deletion request; inactive projects purged after 24 months (configurable).
+  - **Player Data**: Retained 24 months after event end.
+- **Recoverability**: JSON exports are available upon verified request (DSR process).
+- **Ref**: `docs/legal/data-retention-and-dsr.md`
+
+### 5) Permissions & Security
+- **Super Admin**: **None**. The role matrix (`backend/security/access_matrix.py`) only defines `organizer`, `coach`, and `viewer`. There is no "god mode" role in the backend code.
+- **Security Gaps**: No critical `FIXME` or `TODO` markers related to security were found.
+
+### 6) Testing & QA
+- **Confidence**: Automated tests exist but the workflow relies heavily on **manual testing**, specifically for UI interactions like Sliders (`docs/guides/DEBUG_TESTING_GUIDE.md`).
+- **QA Process**: "QA sign-off" on Staging is a required step in the release flow, but appears to be a manual team process, not an automated gate.
+
+### 7) Observability
+- **Sentry**: Primary tool for errors.
+- **Playbook**: Runbooks exist for `Firestore-Quota-Exceeded` and `Credential-Outage` in `docs/runbooks/`.
+
+### 8) Tech Debt & "Sharp Edges"
+- **AuthContext.jsx**: ⚠️ **High Risk**. This file (`frontend/src/context/AuthContext.jsx`) contains multiple "CRITICAL FIX" patches for race conditions, infinite loops, and cold starts. Touch with extreme caution.
+- **Render Cold Starts**: The backend's lazy initialization pattern (`backend/main.py`) is optimized but adds complexity to the startup flow.
+
+### 9) Design & UX
+- **Design System**: Strict **Tailwind CSS**. No other component library.
+- **Decisions**: UX decisions seem engineering-driven based on the "functional" nature of the docs.
+
+### 10) Feedback & Access
+- **Feedback**: No in-app feedback collection code found.
+- **Access**: PMs need access to **Render**, **Sentry**, and **Firebase Console**.
+
+---
