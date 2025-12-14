@@ -269,6 +269,19 @@ Answers to the specific process & business questions from the incoming PM.
 
 ---
 
+### 10. Known Issues & Guardrails
+
+### ⚠️ Event Creation Stability
+A "white screen" crash was identified in the "Create New Event" flow due to undeclared `loading`/`error` states in the component. This has been fixed, but serves as a reminder to check all form components for robust state handling.
+
+- **Incident Report**: `docs/reports/SCHEMA_401_INVESTIGATION.md`
+- **Manual QA Checklist**: `docs/qa/MANUAL_CHECKLIST.md`
+
+### ⚠️ Auth Context & Schema 401s
+The app occasionally logs 401 Unauthorized errors on the `/schema` endpoint. This is due to `selectedEvent` persisting in local storage across league switches. It is benign (fallback exists) but is tracked as technical debt.
+
+---
+
 ## 9. 💡 Recommendations for Incoming PM
 
 Based on the current codebase state, here are the recommended "Day 1" priorities:

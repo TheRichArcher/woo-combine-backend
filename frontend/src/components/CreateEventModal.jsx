@@ -22,6 +22,8 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
   const [location, setLocation] = useState("");
   const templates = getAllTemplates();
   const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || "football");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   if (!open) return null;
 

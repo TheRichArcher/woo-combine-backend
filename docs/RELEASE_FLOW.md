@@ -34,11 +34,13 @@ This document defines the end-to-end release process across Dev, Staging, and Pr
 ## Release Steps
 1) Merge to `main` to auto-deploy Dev.
 2) Cherry-pick or merge into `staging` (protected) for Staging deploy and QA sign-off.
-3) Create a tag `vX.Y.Z` on the approved commit and push tag to trigger Prod deploy.
+3) Execute QA using [docs/qa/MANUAL_CHECKLIST.md](docs/qa/MANUAL_CHECKLIST.md) (required before Prod).
+4) Create a tag `vX.Y.Z` on the approved commit and push tag to trigger Prod deploy.
 4) Update `CHANGELOG.md` with highlights, fixes, and any migration notes.
 5) Monitor health dashboards; verify warmup and login flows.
 
 ## Compliance Checklist
+- [ ] QA Checklist completed (`docs/qa/MANUAL_CHECKLIST.md`)
 - [ ] Changelog updated
 - [ ] Health check green
 - [ ] Login triggers warmup without errors
