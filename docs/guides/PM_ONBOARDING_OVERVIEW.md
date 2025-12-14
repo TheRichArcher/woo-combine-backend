@@ -268,3 +268,31 @@ Answers to the specific process & business questions from the incoming PM.
 - **Access**: PMs need access to **Render**, **Sentry**, and **Firebase Console**.
 
 ---
+
+## 9. 💡 Recommendations for Incoming PM
+
+Based on the current codebase state, here are the recommended "Day 1" priorities:
+
+### 1. 🗺️ Lock in a "Critical Areas" Map
+- **Status**: `AuthContext.jsx` is the first confirmed high-risk module.
+- **Action**: Treat any ticket touching auth, loading states, or session persistence as high-risk. Require a scoped plan before coding begins.
+
+### 2. ✅ Establish a Lightweight QA Checklist
+- **Context**: Automated tests are thin for UI flows.
+- **Action**: Create a manual regression checklist for Staging covering:
+  - Login/Auth flows (including "Cold Start" delays)
+  - Player Import (CSV/Excel)
+  - Live Standings & Scoring
+  - Event Creation & Sharing
+
+### 3. 📜 Formalize Data Retention Messaging
+- **Context**: Policy exists (24 months) but is not visible to users.
+- **Action**: Add a "Data Expiry" note in Settings or Help to manage expectations.
+
+### 4. 💰 Define Monetization Before Roadmap
+- **Context**: No billing infra exists. Adding it is net-new work, not a toggle.
+- **Action**: Decide if WooCombine is free for now. If paid features are planned, prioritize billing infrastructure early to avoid architectural dead-ends.
+
+### 5. 🏗️ Evaluate AuthContext Refactor
+- **Context**: The file is fragile (`CRITICAL FIX` comments).
+- **Action**: Either schedule a dedicated refactor sprint in Q1 or strictly freeze changes to this module until unavoidable.
