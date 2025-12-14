@@ -7,7 +7,7 @@ import CreateEventModal from "../components/CreateEventModal";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
-import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight } from 'lucide-react';
 import { useNavigate } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
@@ -611,7 +611,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             No players found for this selection.
           </div>
         ) : (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-x-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
             <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
               <h2 className="text-xl font-semibold">
                 Rankings ({selectedLabel})
@@ -625,152 +625,62 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </button>
             </div>
             
-            {/* Mobile-First Card Layout */}
-            <div className="sm:hidden">
-              {rankings.map((player) => {
-                // Calculate individual drill rankings
-                const drillRankings = {};
-                allDrills.forEach(drill => {
-                  const drillRanks = rankings
-                    .filter(p => p[drill.key] != null)
-                    .map(p => ({ player_id: p.player_id, score: p[drill.key] }))
-                    .sort((a, b) => b.score - a.score);
-                  const rank = drillRanks.findIndex(p => p.player_id === player.player_id) + 1;
-                  drillRankings[drill.key] = rank > 0 ? rank : null;
-                });
+            {/* Rankings List - Reusing style from Players.jsx */}
+            <div className="space-y-1">
+              {rankings.map((player, index) => {
+                const playerId = player.player_id || player.id;
+                // Calculate individual drill rankings safely
+                // (Optional: if we want to show drill details in tooltip or extended view later)
                 
-                // Get player age group for display if "All" is selected
-                const playerAgeGroup = selectedAgeGroupId === "ALL" 
-                  ? players.find(p => p.id === player.player_id)?.age_group 
-                  : null;
-
+                const playerAgeGroup = players.find(p => p.id === playerId)?.age_group;
+                const score = (player.composite_score || 0).toFixed(1);
+                
                 return (
-                  <div key={player.player_id} className="bg-gray-50 rounded-lg p-4 mb-3 border">
-                    {/* Player Header */}
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className={`font-bold text-lg ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                            {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : `#${player.rank}`}
-                          </span>
-                          <span className="font-semibold">{player.name}</span>
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Player #{player.number}
-                          {playerAgeGroup && <span className="ml-2 text-xs bg-gray-200 px-1.5 py-0.5 rounded">{playerAgeGroup}</span>}
-                        </div>
+                  <div 
+                    key={playerId} 
+                    className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors rounded text-sm border border-transparent hover:border-gray-200"
+                    onClick={() => {
+                      const fullPlayer = players.find(p => p.id === playerId) || player;
+                      openDetails(fullPlayer, {
+                          allPlayers: players,
+                          sliderWeights: percentages, 
+                          handleWeightChange: updateWeightsFromPercentage,
+                          activePreset,
+                          applyPreset,
+                          drills: allDrills,
+                          presets: currentPresets
+                      });
+                    }}
+                  >
+                    <div className={`font-bold w-8 text-center text-lg ${
+                      index === 0 ? "text-yellow-500" : 
+                      index === 1 ? "text-gray-500" : 
+                      index === 2 ? "text-orange-500" : "text-gray-400"
+                    }`}>
+                      {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-semibold text-gray-900 truncate text-base">{player.name}</span>
                       </div>
-                      <div className="text-right">
-                        <div className="text-xs text-gray-500">Overall Score</div>
-                        <div className="font-mono font-bold text-lg text-cmf-primary">{player.composite_score.toFixed(2)}</div>
+                      <div className="text-xs text-gray-500 flex items-center gap-2">
+                         <span className="bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 font-medium">#{player.number || '-'}</span>
+                         {selectedAgeGroupId === "ALL" && playerAgeGroup && (
+                           <span>• {playerAgeGroup}</span>
+                         )}
                       </div>
                     </div>
                     
-                    {/* Drill Results Grid */}
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      {allDrills.map(drill => (
-                        <div key={drill.key} className="bg-white rounded p-2">
-                          <div className="font-medium text-gray-700">{drill.label}</div>
-                          {player[drill.key] != null ? (
-                            <div>
-                              <span className="font-mono">{player[drill.key]}</span>
-                              <span className="text-gray-500 ml-1">#{drillRankings[drill.key] || '-'}</span>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400">No score</span>
-                          )}
-                        </div>
-                      ))}
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-xl text-cmf-primary">{score}</div>
+                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Score</div>
                     </div>
+                    
+                    <ChevronRight className="w-4 h-4 text-gray-300 ml-2" />
                   </div>
                 );
               })}
-            </div>
-
-            {/* Desktop Table Layout */}
-            <div className="hidden sm:block overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="py-3 px-2">Rank</th>
-                    <th className="py-3 px-2">Name</th>
-                    <th className="py-3 px-2">Player #</th>
-                    {selectedAgeGroupId === "ALL" && <th className="py-3 px-2">Age Group</th>}
-                    <th className="py-3 px-2">Overall Score</th>
-                    {allDrills.map(drill => (
-                      <th key={drill.key} className="py-3 px-2 text-center">{drill.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rankings.map((player) => {
-                    const playerId = player.player_id || player.id;
-                    
-                    // Calculate individual drill rankings safely
-                    const drillRankings = {};
-                    if (allDrills && allDrills.length > 0) {
-                      allDrills.forEach(drill => {
-                        try {
-                          const drillRanks = rankings
-                            .filter(p => p && p[drill.key] != null)
-                            .map(p => ({ 
-                              player_id: p.player_id || p.id, 
-                              score: Number(p[drill.key] || 0) 
-                            }))
-                            .sort((a, b) => b.score - a.score);
-                          const rank = drillRanks.findIndex(p => p.player_id === playerId) + 1;
-                          drillRankings[drill.key] = rank > 0 ? rank : null;
-                        } catch (e) {
-                          console.warn("Error calculating rank for drill:", drill.key, e);
-                        }
-                      });
-                    }
-                    
-                    const playerAgeGroup = players.find(p => p.id === playerId)?.age_group;
-
-                    return (
-                      <tr 
-                        key={playerId} 
-                        className="border-t border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
-                        onClick={() => {
-                          const fullPlayer = players.find(p => p.id === playerId) || player;
-                          openDetails(fullPlayer, {
-                              allPlayers: players,
-                              sliderWeights: percentages, // Pass percentages (0-100) as sliderWeights
-                              handleWeightChange: updateWeightsFromPercentage,
-                              activePreset,
-                              applyPreset,
-                              drills: allDrills,
-                              presets: currentPresets
-                          });
-                        }}
-                      >
-                        <td className={`py-3 px-2 font-bold ${player.rank === 1 ? "text-yellow-500" : player.rank === 2 ? "text-gray-500" : player.rank === 3 ? "text-orange-500" : ""}`}>
-                          {player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : player.rank === 3 ? "🥉" : player.rank}
-                        </td>
-                        <td className="py-3 px-2">{player.name}</td>
-                        <td className="py-3 px-2">{player.number}</td>
-                        {selectedAgeGroupId === "ALL" && <td className="py-3 px-2">{playerAgeGroup || '-'}</td>}
-                        <td className="py-3 px-2 font-mono font-bold">{player.composite_score.toFixed(2)}</td>
-                        {allDrills.map(drill => (
-                          <td key={drill.key} className="py-3 px-2 text-center">
-                            {player[drill.key] != null ? (
-                              <div className="flex flex-col">
-                                <span className="font-mono text-sm">{player[drill.key]}</span>
-                                <span className="text-xs text-gray-500">
-                                  #{drillRankings[drill.key] || '-'}
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
