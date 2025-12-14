@@ -14,6 +14,7 @@ import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
 import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench, ArrowRight } from 'lucide-react';
+import EventSwitcher from './EventSwitcher';
 
 // Notification settings helper
 const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
@@ -250,7 +251,7 @@ export default function Navigation() {
   const { user, userRole } = useAuth();
   const { selectedEvent } = useEvent();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [eventDropdownOpen, setEventDropdownOpen] = useState(false);
+  const [eventSwitcherOpen, setEventSwitcherOpen] = useState(false);
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const logout = useLogout();
@@ -315,8 +316,7 @@ export default function Navigation() {
   };
 
   const handleEventDropdownClick = () => {
-    setEventDropdownOpen(!eventDropdownOpen);
-    navigate('/select-league'); // Navigate to league/event selection
+    setEventSwitcherOpen(!eventSwitcherOpen);
   };
 
   const handleLogout = async () => {
@@ -353,7 +353,7 @@ export default function Navigation() {
           </Link>
 
           {/* Center-Left: Event Name with Dropdown */}
-          <div className="flex-1 flex justify-start min-w-0 mr-2">
+          <div className="flex-1 flex justify-start min-w-0 mr-2 relative">
             <button
               onClick={handleEventDropdownClick}
               className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-50 transition min-w-0 max-w-full"
@@ -368,8 +368,14 @@ export default function Navigation() {
                   </div>
                 )}
               </div>
-              <ChevronDown className="w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0" />
+              <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0 transition-transform ${eventSwitcherOpen ? 'rotate-180' : ''}`} />
             </button>
+            
+            {/* Event Switcher Dropdown */}
+            <EventSwitcher 
+              isOpen={eventSwitcherOpen} 
+              onClose={() => setEventSwitcherOpen(false)} 
+            />
           </div>
           
           {/* Onboarding Progress Indicator (Desktop) - Now Clickable as Escape Hatch */}
