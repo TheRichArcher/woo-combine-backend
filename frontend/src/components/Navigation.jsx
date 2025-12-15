@@ -372,10 +372,12 @@ export default function Navigation() {
             </button>
             
             {/* Event Switcher Dropdown */}
-            <EventSwitcher 
-              isOpen={eventSwitcherOpen} 
-              onClose={() => setEventSwitcherOpen(false)} 
-            />
+            {eventSwitcherOpen && (
+              <EventSwitcher 
+                isOpen={eventSwitcherOpen} 
+                onClose={() => setEventSwitcherOpen(false)} 
+              />
+            )}
           </div>
           
           {/* Onboarding Progress Indicator (Desktop) - Now Clickable as Escape Hatch */}
