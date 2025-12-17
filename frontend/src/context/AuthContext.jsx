@@ -157,7 +157,10 @@ export function AuthProvider({ children }) {
         // Force refresh on retries OR first attempt to ensure fresh token for cold start
         const token = await firebaseUser.getIdToken(true); 
         // Allow api default timeout (45s) to handle cold start rather than a 5s abort
-        const response = await api.get(`/leagues/me`).catch((e) => { throw e; });
+        // Explicitly pass token to avoid interceptor race conditions during boot
+        const response = await api.get(`/leagues/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }).catch((e) => { throw e; });
 
         if (response?.data) {
           const leagueData = response.data;

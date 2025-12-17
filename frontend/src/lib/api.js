@@ -210,6 +210,11 @@ api.interceptors.request.use(async (config) => {
   
   if (user) {
     try {
+      // Respect existing Authorization header if provided (e.g. by AuthContext)
+      if (config.headers?.['Authorization']) {
+        return config;
+      }
+
       const token = await ensureFreshToken(isAuthCriticalPath);
       if (token) {
         config.headers = config.headers || {};
