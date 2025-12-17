@@ -12,7 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import api from '../lib/api';
-import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText } from 'lucide-react';
+import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
@@ -493,6 +493,19 @@ export default function Players() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
+        {/* Navigation Affordance */}
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <ArrowLeft className="w-5 h-5 mr-1" />
+            <span className="font-medium">Back to Dashboard</span>
+          </Link>
+          <div className="flex gap-2">
+             <Link to="/schedule" className="text-xs font-medium text-gray-500 hover:text-gray-900 px-2 py-1">
+               View Schedule
+             </Link>
+          </div>
+        </div>
+
         {/* SECTION 1: Primary Actions (Always Visible) */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 border-2 border-blue-200">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-4">

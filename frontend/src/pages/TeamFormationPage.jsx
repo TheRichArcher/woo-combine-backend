@@ -13,7 +13,7 @@ import {
   getDefaultWeightsFromTemplate,
   getTemplateById 
 } from '../constants/drillTemplates';
-import { Settings, Users, Target, AlertTriangle, BarChart3, Grid2x2, QrCode, Wrench, FileText } from 'lucide-react';
+import { Settings, Users, Target, AlertTriangle, BarChart3, Grid2x2, QrCode, Wrench, FileText, ArrowLeft } from 'lucide-react';
 import api from '../lib/api';
 
 const TeamFormationPage = () => {
@@ -175,6 +175,9 @@ const TeamFormationPage = () => {
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <ArrowLeft className="w-6 h-6" />
+            </Link>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Team Formation</h1>
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>

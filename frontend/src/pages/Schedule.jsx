@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
-import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { logger } from '../utils/logger';
 import EventSelector from '../components/EventSelector';
 
@@ -121,6 +121,22 @@ export default function Schedule() {
     <div className="min-h-screen bg-gray-50">
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 mt-0">
+        {/* Navigation Affordance */}
+        <div className="flex items-center justify-between mb-6">
+          <Link to="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
+            <ArrowLeft className="w-5 h-5 mr-1" />
+            <span className="font-medium">Back to Dashboard</span>
+          </Link>
+          <div className="flex gap-3">
+            <Link to="/players" className="text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
+              Manage Players
+            </Link>
+            <Link to="/live-entry" className="text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
+              Live Entry
+            </Link>
+          </div>
+        </div>
+
         {/* Page Header */}
           <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">

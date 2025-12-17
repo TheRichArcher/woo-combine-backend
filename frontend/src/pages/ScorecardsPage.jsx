@@ -13,7 +13,7 @@ import { useOptimizedWeights } from '../hooks/useOptimizedWeights'; // Import op
 import { 
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
-import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
@@ -187,6 +187,9 @@ const ScorecardsPage = () => {
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <ArrowLeft className="w-6 h-6" />
+            </Link>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Player Scorecards</h1>
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>
