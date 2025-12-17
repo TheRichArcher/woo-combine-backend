@@ -96,6 +96,19 @@ export function AuthProvider({ children }) {
     }
   }, [creatingDefaultLeague, leagues, role, userRole]);
 
+  // WATCHDOG: Safety net to prevent getting stuck in FETCHING_CONTEXT if leagues are loaded
+  useEffect(() => {
+    let timer;
+    if (status === STATUS.FETCHING_CONTEXT && leagues.length > 0 && user) {
+      timer = setTimeout(() => {
+        authLogger.warn('Watchdog: Force transitioning to READY (leagues loaded but state stuck)');
+        transitionTo(STATUS.READY, 'Watchdog rescue');
+        setInitializing(false); // Ensure loading screen is dismissed
+      }, 2000);
+    }
+    return () => clearTimeout(timer);
+  }, [status, leagues, user, transitionTo]);
+
   // PERFORMANCE: Enhanced backend warmup with parallel health checks
   const warmupBackend = useCallback(async () => {
     try {
@@ -287,6 +300,7 @@ export function AuthProvider({ children }) {
             setRole(cachedRoleQuick);
           }
           setRoleChecked(true);
+          transitionTo(STATUS.READY, 'Fast exit from login');
           navigate(target, { replace: true });
           setInitializing(false);
           return;
