@@ -331,7 +331,7 @@ export default function Navigation() {
   return (
     <>
       {/* Mojo Sports Style Header */}
-      <nav className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 relative z-50">
+      <nav className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-50">
         <div className="flex items-center max-w-7xl mx-auto gap-4">
           {/* Left: Avatar */}
           <div className="flex items-center">
