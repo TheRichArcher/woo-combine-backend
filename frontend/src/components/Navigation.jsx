@@ -344,7 +344,7 @@ export default function Navigation() {
           </div>
 
           {/* Brand Logo */}
-          <Link to="/dashboard" onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Dashboard')} className="flex items-center" aria-label="WooCombine Home">
+          <Link to="/dashboard" onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Dashboard')} className="flex items-center flex-shrink-0" aria-label="WooCombine Home">
             <img
               src="/favicon/woocombine-logo.png"
               alt="WooCombine Logo"
@@ -394,7 +394,7 @@ export default function Navigation() {
           )}
 
           {/* Center-Right: Main Navigation Links - Hidden on small mobile, shown on larger screens */}
-          <div className="hidden sm:flex items-center gap-2 md:gap-4">
+          <div className="hidden sm:flex items-center gap-2 md:gap-4 flex-shrink-0">
             <Link 
               to="/dashboard" 
               onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Home')}
