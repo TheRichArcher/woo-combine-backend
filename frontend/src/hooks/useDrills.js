@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { DRILL_TEMPLATES } from '../constants/drillTemplates';
 
 /**
@@ -14,12 +15,19 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
   const [schema, setSchema] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { authChecked, user, leaguesLoading } = useAuth();
 
   useEffect(() => {
     // If no event, or no ID, reset
     if (!selectedEvent?.id) {
       setSchema(null);
       return;
+    }
+
+    // Gate fetch until auth is checked and leagues are loaded to prevent 401 races during boot
+    // If user is present but auth not checked OR leagues are still loading, wait.
+    if ((!authChecked && user) || leaguesLoading) {
+        return;
     }
 
     let isMounted = true;
@@ -114,7 +122,10 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
     // Deep compare disabled/custom lengths to trigger refetch if they change locally
     selectedEvent?.disabled_drills?.length,
     selectedEvent?.custom_drills?.length,
-    refreshTrigger
+    refreshTrigger,
+    authChecked,
+    user,
+    leaguesLoading
   ]);
 
   // Memoized derived state
