@@ -41,7 +41,7 @@ const INVITED_ROLE_OPTIONS = [
 ];
 
 export default function SelectRole() {
-  const { user, refreshUserRole, setUserRole } = useAuth();
+  const { user, refreshUserRole, setUserRole, userRole } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,6 +51,15 @@ export default function SelectRole() {
   const navigate = useNavigate();
   const logout = useLogout();
   const { showInfo } = useToast();
+  
+  // CRITICAL FIX P0: If user already has a role (restored from server or cache),
+  // immediately redirect to dashboard and do not show picker.
+  useEffect(() => {
+    if (userRole) {
+      console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
+      navigate('/dashboard', { replace: true });
+    }
+  }, [userRole, navigate]);
   
   // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
@@ -112,11 +121,11 @@ export default function SelectRole() {
     checkServerForInvite();
   }, [user, pendingEventJoin, selectedRole, refreshUserRole, navigate]);
 
-  if (!user) {
+  if (!user || userRole) {
     return (
       <LoadingScreen 
-        title="Preparing role selection..."
-        subtitle="Setting up your account"
+        title={userRole ? "Redirecting..." : "Preparing role selection..."}
+        subtitle={userRole ? "Role verified" : "Setting up your account"}
         size="large"
       />
     );
