@@ -269,7 +269,7 @@ Answers to the specific process & business questions from the incoming PM.
 
 ---
 
-### 10. Known Issues & Guardrails
+## 9. 🚧 Known Issues & Guardrails
 
 ### ⚠️ Event Creation Stability
 A "white screen" crash was identified in the "Create New Event" flow due to undeclared `loading`/`error` states in the component. This has been fixed, but serves as a reminder to check all form components for robust state handling.
@@ -292,7 +292,7 @@ The app occasionally logs 401 Unauthorized errors on the `/schema` endpoint. Thi
 
 ---
 
-## 9. 💡 Recommendations for Incoming PM
+## 10. 💡 Recommendations for Incoming PM
 
 Based on the current codebase state, here are the recommended "Day 1" priorities:
 
