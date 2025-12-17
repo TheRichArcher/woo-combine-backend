@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 13, 2025_
+_Last updated: December 17, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -11,6 +11,7 @@ This guide serves as the primary source of truth for the WooCombine product stat
 The application has graduated from "debugging/crisis" mode to a stable product.
 
 - **Stability**: Critical infinite loops, race conditions (including login/league fetching), and temporal dead zones have been definitively resolved.
+- **Boot Experience**: Multi-route flicker on login has been eliminated via a new `BootGate` architecture. Auth/context hydration is now smooth and deterministic.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
 - **Observability**: Full Sentry integration (Frontend & Backend) for real-time error tracking and performance monitoring.
 - **Import Reliability**: Robust CSV/Excel import engine now handles flat vs. nested data structures seamlessly, with optional jersey numbers and clear success stats.
@@ -29,10 +30,13 @@ The application has graduated from "debugging/crisis" mode to a stable product.
   - `AuthContext`: Handles user session, role checks, and league context. *Refactored to remove circular dependencies and infinite loops.*
   - `EventContext`: Minimalist context to avoid initialization race conditions.
   - `useOptimizedWeights`: **(New)** Centralized hook for weight management, ensuring 0-100 scale consistency across all views.
+- **Boot Process**:
+  - `BootGate.jsx`: **(New)** A gating component that blocks the router from rendering until Auth, Role, League, and Event contexts are fully resolved. Eliminates "flash of unstyled content" and multi-page flicker.
+  - `LoadingScreen.jsx`: Standardized loading component used globally.
 - **Data Access**: All data operations go through the backend API (`/api/v1`). **No direct Firestore writes from the frontend.**
 - **Key Components**:
   - `Players.jsx`: The core workspace. Features tabbed interface, real-time weight sliders, and normalized ranking calculations.
-  - `CoachDashboard.jsx`: **(Refactored)** Central command center. Now shares the **exact same ranking engine** as the Players page, supporting dynamic drill weights for any sport (not just Football). Includes "Events in this League" card.
+  - `CoachDashboard.jsx`: **(Refactored)** Central command center. Uses a `playersLoading` gate to prevent the "Import Players" empty state from flashing during data fetch.
   - `TeamFormation.jsx`: Advanced algorithmic team generation (Snake Draft vs. Balanced) based on weighted rankings.
   - `Analytics.jsx`: Visual data analysis with "Drill Explorer" charts. Reads from `player.scores` map.
   - `OnboardingEvent.jsx`: The "Wizard" for new organizers.
@@ -79,7 +83,13 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
 
-### ⚖️ Ranking Consistency & Schema Support (New!)
+### 🚦 Boot & Navigation Stability (New!)
+- **BootGate Implementation**: Added a global `BootGate` component to `App.jsx`. This acts as a circuit breaker, preventing the router from loading ANY page (Login, Dashboard, etc.) until the application state (`IDLE`, `INITIALIZING`, `AUTHENTICATING`, `READY`) is stable.
+- **Flicker Elimination**: This solves the issue where users saw a flash of the "Login" screen or "No Leagues" error before their actual dashboard loaded.
+- **Smart Redirects**: Users landing on `/select-role` who already have a role are now automatically bounced to the correct dashboard, preventing "dead end" states.
+- **Coach Dashboard Loading**: Added a specific loading gate to `CoachDashboard.jsx` to prevent the "Import Players" button from flashing before the player list is actually fetched.
+
+### ⚖️ Ranking Consistency & Schema Support
 - **Unified Ranking Engine**: Fixed a discrepancy where Coach Dashboard and Players page showed different scores. Both now utilize the same dynamic weight logic via `useOptimizedWeights`.
 - **Dynamic Sport Support**: The Coach Dashboard no longer relies on hardcoded Football weights. It dynamically adapts to ANY sport schema (Basketball, Baseball, etc.) by reading the active event's drill configuration.
 - **Weight Scaling**: Standardized all weight inputs to a 0-100 scale across the application to prevent calculation errors.
@@ -98,11 +108,6 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 - **Full Customization**: Organizers can now create custom drills with specific types (Time, Count, Checkbox) and validation rules.
 - **Event Scoping**: Custom drills are securely scoped to specific events to prevent library pollution.
 - **Import Support**: The import engine automatically detects and maps custom drill headers.
-
-### 🧠 Player Details UX
-- **Universal Clickable Modals**: Clicking any player row (in Rankings, Team Formation, or Scorecards) now opens a consistent "Player Details" modal.
-- **Inline Desktop Panel**: On large screens, player details open in a side panel for seamless browsing without losing context.
-- **Zero-Impact Clarity**: Added explicit badges ("No impact", "Not included") to explain why a score contributes 0 points.
 
 ### 🔐 Authentication & Stability
 - **Login Race Conditions**: Fixed a critical race condition where fetching leagues would fail on login, causing a false "No Leagues Found" state.
@@ -164,6 +169,8 @@ frontend/src/
 │   ├── AuthContext.jsx          # Auth + league/event state
 │   ├── EventContext.jsx         # Minimal event state
 │   └── ToastContext.jsx         # UX notifications
+├── components/
+│   └── BootGate.jsx             # 🚪 App Startup/Route Guarding
 ├── hooks/
 │   ├── useOptimizedWeights.js   # ⚖️ Central Ranking Engine (Scale 0-100)
 │   └── useDrills.js             # 🛠 Drill Schema Fetching
@@ -281,7 +288,7 @@ A "white screen" crash was identified in the "Create New Event" flow due to unde
 The app occasionally logs 401 Unauthorized errors on the `/schema` endpoint. This is due to `selectedEvent` persisting in local storage across league switches. It is benign (fallback exists) but is tracked as technical debt.
 
 ### ✅ Stable Features (Dec 2025)
-- **Create New Event**: Fixed white screen crash.
+- **BootGate**: Application startup is now fully gated, preventing multi-route flicker and context race conditions.
 - **Import Mapping**: Added column synonyms and strict validation.
 - **Balanced Team Formation**: New robust algorithm handles scored/unscored players fairly.
 - **Player Edit**: API-first optimistic updates ensure data consistency without refresh.
