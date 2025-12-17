@@ -7,7 +7,7 @@ import CreateEventModal from "../components/CreateEventModal";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
-import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2 } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
 import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
@@ -335,6 +335,50 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         )}
 
         <EventSelector />
+        
+        {/* Primary Navigation Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <button
+            onClick={() => navigate('/players')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
+          >
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg group-hover:bg-blue-100 transition-colors">
+              <Users className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Players</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/schedule')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
+          >
+            <div className="p-2 bg-green-50 text-green-600 rounded-lg group-hover:bg-green-100 transition-colors">
+              <Calendar className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Schedule</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/team-formation')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
+          >
+            <div className="p-2 bg-purple-50 text-purple-600 rounded-lg group-hover:bg-purple-100 transition-colors">
+              <Shield className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Teams</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/scorecards')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
+          >
+            <div className="p-2 bg-orange-50 text-orange-600 rounded-lg group-hover:bg-orange-100 transition-colors">
+              <ClipboardList className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Scorecards</span>
+          </button>
+        </div>
+
         {/* Quick link to Analytics */}
         <div className="flex justify-end mb-3">
           <Link
