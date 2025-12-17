@@ -5,7 +5,6 @@ import api, { apiHealth, apiWarmup } from '../lib/api';
 import { useNavigate } from "react-router-dom";
 
 import { useToast } from './ToastContext';
-import LoadingScreen from '../components/LoadingScreen';
 import { authLogger } from '../utils/logger';
 import { cacheInvalidation } from '../utils/dataCache';
 import { fetchSchemas } from '../constants/drillTemplates';
@@ -738,7 +737,6 @@ export function AuthProvider({ children }) {
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
-      {initializing && <LoadingScreen size="large" />}
     </AuthContext.Provider>
   );
 }
