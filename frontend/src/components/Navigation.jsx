@@ -108,13 +108,13 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
 
         {/* Menu Items */}
         <div className="p-4 space-y-2">
-          {/* My Events */}
+          {/* My Events -> Switch Event */}
           <button
             onClick={() => handleNavigation('/select-league')}
             className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
           >
             <Users className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-900">My Events</span>
+            <span className="font-medium text-gray-900">Switch Event</span>
           </button>
 
           {/* Create an Event */}
@@ -344,7 +344,12 @@ export default function Navigation() {
           </div>
 
           {/* Brand Logo */}
-          <Link to="/dashboard" onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Dashboard')} className="flex items-center flex-shrink-0" aria-label="WooCombine Home">
+          <Link 
+            to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'} 
+            onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')} 
+            className="flex items-center flex-shrink-0" 
+            aria-label="WooCombine Home"
+          >
             <img
               src="/favicon/woocombine-logo.png"
               alt="WooCombine Logo"
@@ -396,8 +401,8 @@ export default function Navigation() {
           {/* Center-Right: Main Navigation Links - Hidden on small mobile, shown on larger screens */}
           <div className="hidden sm:flex items-center gap-2 md:gap-4 flex-shrink-0">
             <Link 
-              to="/dashboard" 
-              onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Home')}
+              to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'}
+              onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
               Home
