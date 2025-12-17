@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
+import { isExpectedAuthError } from "../../utils/authErrorHandler";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -38,11 +39,22 @@ export default function LoginForm() {
         navigate('/dashboard', { replace: true });
       }
     } catch (err) {
-      authLogger.error("Email sign-in error", err);
+      // Handle expected credential errors without Sentry logging
+      if (!isExpectedAuthError(err.code)) {
+        authLogger.error("Email sign-in error", err);
+      }
+
       if (err.code === "auth/user-not-found") {
         setFormError("No account found with that email address.");
-      } else if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        setFormError("Incorrect email or password. Please try again.");
+      } else if (err.code === "auth/wrong-password" || err.code === "auth/invalid-credential" || err.code === "auth/invalid-login-credentials") {
+        setFormError(
+          <span>
+            Incorrect email or password.{" "}
+            <Link to="/forgot-password" className="underline font-bold hover:text-red-700">
+              Reset password
+            </Link>
+          </span>
+        );
       } else if (err.code === "auth/invalid-email") {
         setFormError("Please enter a valid email address.");
       } else if (err.code === "auth/user-disabled") {
@@ -50,7 +62,7 @@ export default function LoginForm() {
       } else if (err.code === "auth/too-many-requests") {
         setFormError("Too many failed attempts. Please try again later.");
       } else {
-        setFormError("Failed to sign in. Please check your credentials and try again.");
+        setFormError("Something went wrong. Please try again.");
       }
     } finally {
       setSubmitting(false);

@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
+import { isExpectedAuthError } from "../../utils/authErrorHandler";
 import api from "../../lib/api";
 
 export default function SignupForm() {
@@ -102,7 +103,11 @@ export default function SignupForm() {
         navigate("/verify-email");
       }, 800); // Reduced from 1500ms to 800ms
     } catch (err) {
-      authLogger.error("Email sign-up error", err);
+      // Handle expected credential errors without Sentry logging
+      if (!isExpectedAuthError(err.code)) {
+        authLogger.error("Email sign-up error", err);
+      }
+
       if (err.code === "auth/email-already-in-use") {
         setFormError("An account with this email already exists. Try signing in instead.");
       } else if (err.code === "auth/invalid-email") {

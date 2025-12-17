@@ -91,8 +91,16 @@ class Logger {
   // Placeholder for production error service integration
   sendToErrorService(context, message, error) {
     // Sentry Integration
+    const tags = { context };
+    
+    // Check if we should tag rate limit errors
+    if (error && error.code === 'auth/too-many-requests') {
+      tags.auth_expected = true;
+      tags.auth_rate_limited = true;
+    }
+
     Sentry.captureException(error, {
-        tags: { context },
+        tags,
         extra: { message, context, originalError: error }
     });
     
