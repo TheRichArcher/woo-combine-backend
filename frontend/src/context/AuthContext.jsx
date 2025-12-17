@@ -340,6 +340,7 @@ export function AuthProvider({ children }) {
           try {
             const path = window.location?.pathname || '';
             // Do not skip fetching on /welcome - authenticated users landing there need leagues
+            // Also include /select-role here to ensure we fetch context before redirecting
             const onboarding = ['/login','/signup','/verify-email','/'];
             if (cachedRole !== null && !onboarding.includes(path)) {
               // console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
@@ -519,8 +520,8 @@ export function AuthProvider({ children }) {
         setRoleChecked(true);
         
         // Navigation logic (reuse currentPath from above)
-        // Include '/welcome' so authenticated users land on the dashboard automatically
-        const onboardingRoutes = ["/login", "/signup", "/", "/welcome"];
+        // Include '/welcome' and '/select-role' so authenticated users land on the dashboard automatically
+        const onboardingRoutes = ["/login", "/signup", "/", "/welcome", "/select-role"];
         authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
         authLogger.debug('Auth state after role check', {
           userRole,
