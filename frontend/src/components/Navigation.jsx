@@ -484,6 +484,12 @@ export default function Navigation() {
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50" role="menu">
+                  {/* Analytics - Organizers & Coaches */}
+                  {(userRole === 'organizer' || userRole === 'coach') && (
+                    <Link to="/analytics" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/analytics', 'Analytics'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Analytics Explorer
+                    </Link>
+                  )}
                   {/* Hide Live Standings from Tools if it's already in the main nav for viewers */}
                   {userRole !== 'viewer' && (
                     <Link to="/live-standings" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/live-standings', 'Live Standings'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
@@ -663,6 +669,16 @@ export default function Navigation() {
             </Link>
             {/* Tools group on mobile */}
             <div className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase">Tools</div>
+            {/* Analytics - Organizers & Coaches */}
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/analytics" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/analytics', 'Analytics')}
+              >
+                Analytics Explorer
+              </Link>
+            )}
             {/* Hide Live Standings from Tools if it's already in the main nav for viewers */}
             {userRole !== 'viewer' && (
               <Link 
