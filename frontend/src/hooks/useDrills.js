@@ -30,6 +30,12 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
         return;
     }
 
+    // Gate fetch on user presence to prevent 401s during logout (endpoint is protected)
+    if (!user) {
+      setSchema(null);
+      return;
+    }
+
     let isMounted = true;
     
     const fetchSchema = async () => {
