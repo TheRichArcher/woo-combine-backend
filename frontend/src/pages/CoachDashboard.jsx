@@ -13,6 +13,7 @@ import { CreateLeagueForm } from './CreateLeague';
 import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
+import LoadingScreen from "../components/LoadingScreen";
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
@@ -33,6 +34,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [playersLoading, setPlayersLoading] = useState(true); // Gating state
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -96,8 +98,12 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   // Fetch all players to get available age groups
   useEffect(() => {
     async function fetchPlayers() {
-      if (!selectedEvent || !user || !selectedLeagueId) return;
+      if (!selectedEvent || !user || !selectedLeagueId) {
+        setPlayersLoading(false);
+        return;
+      }
       try {
+        setPlayersLoading(true);
         const data = await cachedFetchPlayers(selectedEvent.id);
         setPlayers(data);
       } catch (error) {
@@ -109,6 +115,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           playerLogger.error('Players fetch error', error);
           setPlayers([]);
         }
+      } finally {
+        setPlayersLoading(false);
       }
     }
     fetchPlayers();
@@ -222,13 +230,26 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   // Scroll to import section if hash is present
   useEffect(() => {
     const anchor = window.location.hash;
-    if (anchor) {
+    if (anchor && !playersLoading) {
       const el = document.querySelector(anchor);
       if (el) {
         el.scrollIntoView({ behavior: 'smooth' });
       }
     }
-  }, []);
+  }, [playersLoading]);
+
+  if (noLeague) return <LeagueFallback />;
+
+  // Boot Gate: Show loading while fetching players to prevent empty state flash
+  if (playersLoading) {
+    return (
+      <LoadingScreen 
+        title="Loading Dashboard..." 
+        subtitle="Analyzing player data" 
+        size="medium" 
+      />
+    );
+  }
 
   // If no players, show onboarding/fallback actions
   if (players.length === 0) {
