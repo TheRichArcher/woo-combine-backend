@@ -31,27 +31,21 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
   // Validation Warnings
   const [showRangeWarning, setShowRangeWarning] = useState(false);
   const [warningConfirmed, setWarningConfirmed] = useState(false);
-  const [nameError, setNameError] = useState(null);
+
+  // Derived State for validation
+  const templateDrills = getDrillsFromTemplate(drillTemplate);
+  const collision = templateDrills.find(d => d.label.toLowerCase() === formData.name.trim().toLowerCase());
+  const nameError = collision ? `"${collision.label}" is already a standard drill in this event.` : null;
 
   // Handlers
   const updateField = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (field === 'name') setNameError(null);
   };
 
   const validateStep = () => {
     if (step === 1) {
       if (formData.name.trim().length < 3) return false;
-      
-      // Check for collision with template drills
-      const templateDrills = getDrillsFromTemplate(drillTemplate);
-      const collision = templateDrills.find(d => d.label.toLowerCase() === formData.name.trim().toLowerCase());
-      
-      if (collision) {
-        setNameError(`"${collision.label}" is already a standard drill in this event.`);
-        return false;
-      }
-      
+      if (nameError) return false;
       return !!formData.category;
     }
     if (step === 2) {
