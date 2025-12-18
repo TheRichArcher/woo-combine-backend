@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: December 17, 2025_
+_Last updated: December 18, 2025_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following the comprehensive December 2025 stabilization sprint.
 
@@ -11,6 +11,7 @@ This guide serves as the primary source of truth for the WooCombine product stat
 The application has graduated from "debugging/crisis" mode to a stable product.
 
 - **Stability**: Critical infinite loops, race conditions (including login/league fetching), and temporal dead zones have been definitively resolved.
+- **Ranking Accuracy**: The ranking system has been audited and unified. Backend and frontend now use the exact same **Renormalized Weighted Average** formula, ensuring scores match perfectly across the stack. Schema min/max ranges are consistent.
 - **Boot Experience**: Multi-route flicker on login has been eliminated via a new `BootGate` architecture. Auth/context hydration is now smooth and deterministic.
 - **Quality**: Zero linting errors, clean build process, and no console log noise.
 - **Observability**: Full Sentry integration (Frontend & Backend) for real-time error tracking and performance monitoring.
@@ -29,7 +30,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **State Management**:
   - `AuthContext`: Handles user session, role checks, and league context. *Refactored to remove circular dependencies and infinite loops.*
   - `EventContext`: Minimalist context to avoid initialization race conditions.
-  - `useOptimizedWeights`: **(New)** Centralized hook for weight management, ensuring 0-100 scale consistency across all views.
+  - `useOptimizedWeights` & `usePlayerRankings`: **(Unified)** Centralized hooks for weight management, ensuring 0-100 scale consistency across all views using Renormalized Weighted Average.
 - **Boot Process**:
   - `BootGate.jsx`: **(New)** A gating component that blocks the router from rendering until Auth, Role, League, and Event contexts are fully resolved. Eliminates "flash of unstyled content" and multi-page flicker.
   - `LoadingScreen.jsx`: Standardized loading component used globally.
@@ -46,6 +47,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 - **Tech**: FastAPI (Python) on Render.
 - **Database**: Google Firestore (accessed via `firestore_client.py`).
 - **Authentication**: Verifies Firebase ID tokens via Middleware.
+- **Ranking Engine**: **(Unified)** `calculate_composite_score` now uses Renormalized Weighted Average. Handles both decimal (0.2) and percent (20) weights robustly. Renormalizes scores to 100 even if drills are disabled.
 - **Scaling**: Stateless architecture. Handles Render cold starts (45s timeout tolerance) via robust frontend retry logic.
 
 ---
@@ -83,121 +85,70 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 We have completed a massive cleanup and optimization sprint. Here is what changed:
 
-### 🚦 Boot & Navigation Stability (New!)
+### 📊 Ranking System Unification (New!)
+- **Consistency**: Backend API and Frontend UI now use the exact same formula (Renormalized Weighted Average).
+- **Accuracy**: Weights can be entered as decimals (0.2) or percents (20) without issues. System robustly handles unit differences.
+- **Renormalization**: If an event disables drills (e.g. only 3 active drills), the system renormalizes the score to a 0-100 scale, so "perfect" is always 100.
+- **Schema**: Standardized Min/Max ranges for Basketball (Vertical Jump 0-50, Lane Agility 8-20) across both backend and frontend to prevent initial load mismatches.
+
+### 🚦 Boot & Navigation Stability
 - **BootGate Implementation**: Added a global `BootGate` component to `App.jsx`. This acts as a circuit breaker, preventing the router from loading ANY page (Login, Dashboard, etc.) until the application state (`IDLE`, `INITIALIZING`, `AUTHENTICATING`, `READY`) is stable.
-- **Flicker Elimination**: definitively resolved by enforcing strict **League Context Gating**. `AuthContext` now awaits league data fetching before transitioning to the `READY` state, ensuring protected routes never mount with incomplete data.
-- **Smart Redirects**: Users landing on `/select-role` who already have a role are now automatically bounced to the correct dashboard, preventing "dead end" states.
-- **Coach Dashboard Loading**: Added a specific loading gate to `CoachDashboard.jsx` to prevent the "Import Players" button from flashing before the player list is actually fetched.
+- **Route Guards**: `RequireAuth` and `RequireLeague` wrappers now check specific context flags before rendering, redirecting cleanly if needed.
+- **Zero-Flicker Login**: Removed the jarring "Welcome -> Login -> Dashboard" flicker. Users see a clean loading spinner until destination is resolved.
 
-### ⚖️ Ranking Consistency & Schema Support
-- **Unified Ranking Engine**: Fixed a discrepancy where Coach Dashboard and Players page showed different scores. Both now utilize the same dynamic weight logic via `useOptimizedWeights`.
-- **Dynamic Sport Support**: The Coach Dashboard no longer relies on hardcoded Football weights. It dynamically adapts to ANY sport schema (Basketball, Baseball, etc.) by reading the active event's drill configuration.
-- **Weight Scaling**: Standardized all weight inputs to a 0-100 scale across the application to prevent calculation errors.
-
-### 🧩 Team Formation & Algorithms
-- **Skill-Based Generation**: Added a sophisticated Team Formation engine that uses player rankings to create balanced teams.
-- **Ranked Split**: New mode to split the cohort by skill level (e.g., "Top 20" vs "Next 20") rather than balancing them mixed together.
-- **Validation**: Added "Category Balance" checks to ensure teams aren't just score-balanced but also role-balanced (e.g., Guard/Forward distribution).
-
-### 🏆 Live Standings & Rankings
-- **Schema-Driven Engine**: Completely refactored Live Standings to use a dynamic backend schema engine. This fixes the "3 of 0 players" bug by ensuring all eligible players are counted, even those with partial data.
-- **Dynamic Drills**: The standings table now adapts columns automatically based on the event's configured drills.
-- **PDF Export**: Added one-click PDF generation for rankings and individual scorecards, replacing the need for external tools.
-
-### 🛠 Custom Drill Builder
-- **Full Customization**: Organizers can now create custom drills with specific types (Time, Count, Checkbox) and validation rules.
-- **Event Scoping**: Custom drills are securely scoped to specific events to prevent library pollution.
-- **Import Support**: The import engine automatically detects and maps custom drill headers.
-
-### 🔐 Authentication & Stability
-- **Login Race Conditions**: Fixed a critical race condition where fetching leagues would fail on login, causing a false "No Leagues Found" state.
-- **Sentry Integration**: Fully enabled Sentry for frontend and backend error tracking.
-- **Removed Phone Auth & reCAPTCHA**: Simplified to standard Email/Password.
-- **Role Security**: Fixed vulnerability where invited users could escalate privileges.
-
-### 📥 Import Engine Overhaul
-- **Score Extraction**: Fixed "0 scores imported" bug. Backend now robustly merges flat CSV keys with nested data structures.
-- **Flexible Validation**: Made `jersey_number` optional and added smart synonym detection (`#`, `No`, `Jersey`).
-- **Smart Mapping**: Frontend now warns (non-blocking) if data-bearing columns are ignored.
-
-### 📊 Analytics & Data Integrity
-- **Drill Explorer**: "All" view now supports unlimited athletes via virtualized scrolling.
-- **Chart Stability**: Enforced strict numeric domains to eliminate rendering errors.
-- **Data Sourcing**: Fixed Analytics to correctly read from `player.scores`.
+### 🧹 Codebase Cleanup
+- **Dead Code**: Removed ~2,500 lines of unused code, including old phone auth, `quickAuthCheck`, circular dependencies, and duplicate ranking logic.
+- **Linting**: Achieved **Zero Lint Errors**. Codebase is strict compliant.
+- **Imports**: Fixed all relative import paths and unused imports.
+- **Console Noise**: Removed verbose debug logging (emoji logs) from production builds.
 
 ---
 
-## 5. 📊 Operational Guide
+## 5. 🔍 Key Files Map
 
-### Deployment Configuration (Critical)
-The frontend is a Static Site on Render. **Strict adherence to these settings is required** to prevent caching issues and build failures:
+For the new PM/Dev, these are the files you will touch most often:
 
-- **Repository**: `woo-combine-backend` (Monorepo)
-- **Root Directory**: `frontend`
-- **Build Command**: `npm run build`
-- **Publish Directory**: `dist`
-  - ⚠️ **CRITICAL**: Do NOT set this to `frontend/dist`. Since the Root Directory is already `frontend`, Render looks for the Publish Directory *relative* to that.
-
-### Caching Strategy
-- **Vite Configuration**: `vite.config.js` is configured to append timestamps to output filenames (e.g., `assets/index-HASH-TIMESTAMP.js`).
-- **Why**: This is a "nuclear option" to bust aggressive CDN caches on Render.
-
-### Monitoring
-- **Sentry**: Active in both Production and Staging.
-  - **Frontend**: Captures React boundary errors and network failures.
-  - **Backend**: Captures FastAPI exceptions and 500s.
-- **Logs**: Check Render Dashboard for raw backend logs if Sentry detail is insufficient.
-
-### Known Limitations
-- **Render Cold Starts**: Free tier backend sleeps after 15m inactivity. First request takes ~45s.
-  - *Mitigation*: Frontend shows "Server is starting..." toast.
-- **Mobile Layout**: Optimized for standard phones, but complex tables (Rankings) are dense on small screens.
-
----
-
-## 6. 🔮 Handoff & Next Steps
-
-### Immediate Priorities
-1. **Documentation**: Maintain this guide as the primary reference.
-2. **Analytics**: Monitor Sentry for any new regression patterns.
-3. **Scale**: Monitor Firestore read/write costs as user base grows.
-
-### Key Files & Directories
-```
-frontend/src/
-├── context/
-│   ├── AuthContext.jsx          # Auth + league/event state
-│   ├── EventContext.jsx         # Minimal event state
-│   └── ToastContext.jsx         # UX notifications
-├── components/
-│   └── BootGate.jsx             # 🚪 App Startup/Route Guarding
-├── hooks/
-│   ├── useOptimizedWeights.js   # ⚖️ Central Ranking Engine (Scale 0-100)
-│   └── useDrills.js             # 🛠 Drill Schema Fetching
-├── pages/
-│   ├── Home.jsx                 # Dashboard routing
-│   ├── CoachDashboard.jsx       # Main organizer/coach view
-│   ├── Players.jsx              # Core workspace
-│   ├── TeamFormation.jsx        # Team generation algorithms
-│   ├── Analytics.jsx            # Charts & Data Visualization
-│   └── AdminTools.jsx           # Admin settings
-└── components/
-    └── Players/
-        └── ImportResultsModal.jsx # Unified Import Interface
+```text
+frontend/
+├── src/
+│   ├── App.jsx                  # 🚦 BootGate & Routing Definition
+│   ├── main.jsx                 # Context Providers Setup
+│   ├── context/
+│   │   ├── AuthContext.jsx      # 🔐 Session & League Logic
+│   │   ├── EventContext.jsx     # 📅 Event Selection Logic
+│   │   └── ToastContext.jsx     # 🔔 Notification System
+│   ├── hooks/
+│   │   ├── usePlayerRankings.js # ⚖️ Live Ranking Calculation (Unified)
+│   │   └── useDrills.js         # 🛠 Drill Schema Fetching
+│   ├── pages/
+│   │   ├── Home.jsx             # Dashboard routing
+│   │   ├── CoachDashboard.jsx   # Main organizer/coach view
+│   │   ├── Players.jsx          # Core workspace
+│   │   ├── TeamFormation.jsx    # Team generation algorithms
+│   │   ├── Analytics.jsx        # Charts & Data Visualization
+│   │   └── AdminTools.jsx       # Admin settings
+│   └── components/
+│       └── Players/
+│           └── ImportResultsModal.jsx # Unified Import Interface
+│   └── utils/
+│       ├── rankingUtils.js      # Static Ranking Logic (Unified)
+│       └── optimizedScoring.js  # Performance Optimized Scoring (Unified)
 
 backend/
 ├── routes/
 │   ├── users.py                 # User management
 │   ├── leagues.py               # League logic
 │   ├── events.py                # Event logic
-│   ├── players.py               # Player & Scoring logic
+│   ├── players.py               # Player & Scoring logic (Unified Formula)
 │   └── imports.py               # Import parsing & schema mapping
+├── services/
+│   └── schema_registry.py       # 📋 Drill Templates & Defaults
 └── main.py                      # App entry point
 ```
 
 ---
 
-## 7. ❓ Product Context & FAQ
+## 6. ❓ Product Context & FAQ
 
 This section answers common PM questions based on the current codebase state.
 
@@ -226,7 +177,7 @@ This section answers common PM questions based on the current codebase state.
 
 ---
 
-## 8. 🗣️ PM FAQ (Follow-Up)
+## 7. 🗣️ PM FAQ (Follow-Up)
 
 Answers to the specific process & business questions from the incoming PM.
 
@@ -248,81 +199,3 @@ Answers to the specific process & business questions from the incoming PM.
   - **Leagues/Events**: Retained indefinitely until user deletion request; inactive projects purged after 24 months (configurable).
   - **Player Data**: Retained 24 months after event end.
 - **Recoverability**: JSON exports are available upon verified request (DSR process).
-- **Ref**: `docs/legal/data-retention-and-dsr.md`
-
-### 5) Permissions & Security
-- **Super Admin**: **None**. The role matrix (`backend/security/access_matrix.py`) only defines `organizer`, `coach`, and `viewer`. There is no "god mode" role in the backend code.
-- **Security Gaps**: No critical `FIXME` or `TODO` markers related to security were found.
-
-### 6) Testing & QA
-- **Confidence**: Automated tests exist but the workflow relies heavily on **manual testing**, specifically for UI interactions like Sliders (`docs/guides/DEBUG_TESTING_GUIDE.md`).
-- **QA Process**: "QA sign-off" on Staging is a required step in the release flow, but appears to be a manual team process, not an automated gate.
-
-### 7) Observability
-- **Sentry**: Primary tool for errors.
-- **Playbook**: Runbooks exist for `Firestore-Quota-Exceeded` and `Credential-Outage` in `docs/runbooks/`.
-
-### 8) Tech Debt & "Sharp Edges"
-- **AuthContext.jsx**: ⚠️ **High Complexity**. This file (`frontend/src/context/AuthContext.jsx`) is central to app stability. While the critical "route flicker" race condition has been **definitively resolved** via strict gating, the file remains complex to handle all edge cases (cold starts, offline, refreshes). Touch with caution.
-- **Render Cold Starts**: The backend's lazy initialization pattern (`backend/main.py`) is optimized but adds complexity to the startup flow.
-
-### 9) Design & UX
-- **Design System**: Strict **Tailwind CSS**. No other component library.
-- **Decisions**: UX decisions seem engineering-driven based on the "functional" nature of the docs.
-
-### 10) Feedback & Access
-- **Feedback**: No in-app feedback collection code found.
-- **Access**: PMs need access to **Render**, **Sentry**, and **Firebase Console**.
-
----
-
-## 9. 🚧 Known Issues & Guardrails
-
-### ⚠️ Event Creation Stability
-A "white screen" crash was identified in the "Create New Event" flow due to undeclared `loading`/`error` states in the component. This has been fixed, but serves as a reminder to check all form components for robust state handling.
-
-- **Incident Report**: `docs/reports/SCHEMA_401_INVESTIGATION.md`
-- **Manual QA Checklist**: `docs/qa/MANUAL_CHECKLIST.md`
-
-### ⚠️ Auth Context & Schema 401s
-The app occasionally logs 401 Unauthorized errors on the `/schema` endpoint. This is due to `selectedEvent` persisting in local storage across league switches. It is benign (fallback exists) but is tracked as technical debt.
-
-### ✅ Stable Features (Dec 2025)
-- **BootGate**: Application startup is now fully gated, preventing multi-route flicker and context race conditions.
-- **Import Mapping**: Added column synonyms and strict validation.
-- **Balanced Team Formation**: New robust algorithm handles scored/unscored players fairly.
-- **Player Edit**: API-first optimistic updates ensure data consistency without refresh.
-
-### 🔮 Upcoming Stability Sprint
-- **AuthContext Refactor (Milestone 2)**: Migrating auth logic to a deterministic State Machine to prevent race conditions.
-- **Cross-View Consistency**: Ensuring player edits reflect instantly across all dashboard views.
-
----
-
-## 10. 💡 Recommendations for Incoming PM
-
-Based on the current codebase state, here are the recommended "Day 1" priorities:
-
-### 1. 🗺️ Lock in a "Critical Areas" Map
-- **Status**: `AuthContext.jsx` is the first confirmed high-risk module.
-- **Action**: Treat any ticket touching auth, loading states, or session persistence as high-risk. Require a scoped plan before coding begins.
-
-### 2. ✅ Establish a Lightweight QA Checklist
-- **Context**: Automated tests are thin for UI flows.
-- **Action**: Create a manual regression checklist for Staging covering:
-  - Login/Auth flows (including "Cold Start" delays)
-  - Player Import (CSV/Excel)
-  - Live Standings & Scoring
-  - Event Creation & Sharing
-
-### 3. 📜 Formalize Data Retention Messaging
-- **Context**: Policy exists (24 months) but is not visible to users.
-- **Action**: Add a "Data Expiry" note in Settings or Help to manage expectations.
-
-### 4. 💰 Define Monetization Before Roadmap
-- **Context**: No billing infra exists. Adding it is net-new work, not a toggle.
-- **Action**: Decide if WooCombine is free for now. If paid features are planned, prioritize billing infrastructure early to avoid architectural dead-ends.
-
-### 5. 🏗️ Evaluate AuthContext Refactor
-- **Context**: The file is fragile (`CRITICAL FIX` comments).
-- **Action**: Either schedule a dedicated refactor sprint in Q1 or strictly freeze changes to this module until unavoidable.
