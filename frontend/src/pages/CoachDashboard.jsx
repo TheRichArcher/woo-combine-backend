@@ -9,11 +9,19 @@ import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
 import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2 } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
-import { CreateLeagueForm } from './CreateLeague';
+import CreateLeagueForm from '../components/CreateLeagueForm';
 import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import LoadingScreen from "../components/LoadingScreen";
+
+// Debug Log for troubleshooting production undefined component error
+console.debug('[CoachDashboard] Component Check:', { 
+  CreateLeagueForm, 
+  EventSelector, 
+  CreateEventModal,
+  LoadingScreen 
+});
 
 const CoachDashboard = React.memo(function CoachDashboard() {
   const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
