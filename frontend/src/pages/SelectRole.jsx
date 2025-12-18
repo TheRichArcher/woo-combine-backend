@@ -41,7 +41,7 @@ const INVITED_ROLE_OPTIONS = [
 ];
 
 export default function SelectRole() {
-  const { user, refreshUserRole, setUserRole, userRole } = useAuth();
+  const { user, refreshUserRole, setUserRole, userRole, roleChecked } = useAuth();
   const [selectedRole, setSelectedRole] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -126,6 +126,25 @@ export default function SelectRole() {
   }, [autoProceedTimer]);
 
   // Conditional early return logic - MUST be after all hooks
+  
+  // Guard 1: Wait for role check to complete
+  // This prevents the UI from flashing if the user actually has a role but we're just waiting for the check
+  if (!roleChecked) {
+    return (
+      <LoadingScreen 
+        title="Checking account status..."
+        subtitle="Please wait"
+        size="large"
+      />
+    );
+  }
+
+  // Guard 2: Redirect if role is already present
+  if (userRole) {
+    console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (!user) {
     return (
       <LoadingScreen 
@@ -134,12 +153,6 @@ export default function SelectRole() {
         size="large"
       />
     );
-  }
-
-  // Redirect if role is already present - render-time redirection is safer than useEffect
-  if (userRole) {
-    console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
-    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSelectRole = (roleKey) => {

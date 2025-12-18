@@ -9,19 +9,10 @@ export default function RequireAuth({ children }) {
 
   const isSelectRole = location.pathname === '/select-role';
 
-  // Allow the role selection page to render as soon as auth is checked,
-  // without waiting on roleChecked (which would be false for new users).
-  if (!isSelectRole && (initializing || !authChecked || !roleChecked)) {
-    return (
-      <LoadingScreen 
-        title="Setting up your account..."
-        subtitle="Almost there..."
-        size="large"
-        showProgress={true}
-      />
-    );
-  }
-  if (isSelectRole && (initializing || !authChecked)) {
+  // CRITICAL FIX: Always wait for roleChecked, even for SelectRole page.
+  // This prevents the SelectRole UI from flashing briefly for users who already have a role
+  // but whose role check hasn't finished yet.
+  if (initializing || !authChecked || !roleChecked) {
     return (
       <LoadingScreen 
         title="Setting up your account..."
