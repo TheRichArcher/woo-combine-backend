@@ -84,14 +84,16 @@ export default function VerifyEmail() {
   );
 
   const routeAfterVerification = useCallback(() => {
+    // CRITICAL: Force full page reload to ensure AuthContext runs complete initialization
+    // (fetching leagues, checking roles) which was skipped during unverified state.
     const pendingEventJoin = localStorage.getItem('pendingEventJoin');
     if (pendingEventJoin) {
       const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-      navigate(`/join-event/${safePath}`, { replace: true });
+      window.location.href = `/join-event/${safePath}`;
     } else {
-      navigate("/select-role");
+      window.location.href = "/select-role";
     }
-  }, [navigate]);
+  }, []);
 
   // Since we're using Firebase's default verification flow,
   // users will need to manually check verification status
@@ -345,7 +347,7 @@ export default function VerifyEmail() {
                 </button>
               ) : (
                 <button
-                  onClick={() => navigate("/select-role")}
+                  onClick={routeAfterVerification}
                   className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-4 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02]"
                 >
                   Continue to App

@@ -267,6 +267,22 @@ export function AuthProvider({ children }) {
       setAuthChecked(true);
       
       transitionTo(STATUS.AUTHENTICATING, 'User detected');
+
+      // CRITICAL FIX: Check email verification BEFORE any backend calls
+      // This prevents "Server waking up" / "Loading leagues" messages on the verify-email page
+      if (!firebaseUser.emailVerified) {
+        authLogger.debug('User email not verified - skipping backend initialization');
+        setInitializing(false);
+        // Ensure roleChecked is true so guards don't hang, but leave userRole null
+        setRoleChecked(true); 
+        
+        transitionTo(STATUS.READY, 'Waiting for email verification');
+        
+        if (!isVerificationBridgeRoute && initialPath !== '/verify-email') {
+          navigate('/verify-email');
+        }
+        return;
+      }
       
       // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
       warmupBackend();
@@ -312,15 +328,8 @@ export function AuthProvider({ children }) {
         }
       } catch {}
       
-      if (!firebaseUser.emailVerified) {
-        // User needs to verify email - redirect immediately to avoid being stuck on login
-        setInitializing(false);
-        if (!isVerificationBridgeRoute) {
-          navigate('/verify-email');
-        }
-        return;
-      }
-
+      // (Moved email verification check to top of flow)
+      
       // MFA GUARD for admins (env-gated): require enrolled factor when admin claim is present
       try {
         const idt = await getIdTokenResult(firebaseUser, true);
