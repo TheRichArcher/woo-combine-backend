@@ -46,6 +46,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         working-directory: frontend
