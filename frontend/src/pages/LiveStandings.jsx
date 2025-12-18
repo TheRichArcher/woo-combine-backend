@@ -114,19 +114,24 @@ export default function LiveStandings() {
     15 * 1000 // 15s cache for live rankings data
   );
 
+  const isFetchingRef = React.useRef(false);
+
   // Fetch players
-  const fetchPlayers = useCallback(async () => {
+  const fetchPlayers = useCallback(async (isBackground = false) => {
     if (!selectedEvent) return;
+    if (isBackground && isFetchingRef.current) return; // Prevent stacking
     
     try {
-      setLoading(true);
+      isFetchingRef.current = true;
+      if (!isBackground) setLoading(true); // Only show skeleton on first load/manual refresh
       const playersData = await cachedFetchPlayersLive(selectedEvent.id);
       setPlayers(playersData);
     } catch (error) {
       logger.error('LIVE_STANDINGS', 'Failed to fetch players', error);
-      setPlayers([]);
+      if (!isBackground) setPlayers([]);
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
   }, [selectedEvent]);
 
@@ -135,7 +140,7 @@ export default function LiveStandings() {
 
     // Auto-refresh every 30 seconds to keep standings live
     const intervalId = setInterval(() => {
-      fetchPlayers();
+      fetchPlayers(true);
     }, 30000);
 
     return () => clearInterval(intervalId);
