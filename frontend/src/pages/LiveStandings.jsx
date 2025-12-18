@@ -132,6 +132,13 @@ export default function LiveStandings() {
 
   useEffect(() => {
     fetchPlayers();
+
+    // Auto-refresh every 30 seconds to keep standings live
+    const intervalId = setInterval(() => {
+      fetchPlayers();
+    }, 30000);
+
+    return () => clearInterval(intervalId);
   }, [fetchPlayers]);
 
   // PERFORMANCE OPTIMIZATION: Use optimized rankings calculation
@@ -199,7 +206,10 @@ export default function LiveStandings() {
              <Link to="/dashboard" className="text-gray-500 hover:text-gray-700">
                <ArrowLeft className="w-6 h-6" />
              </Link>
-             <div className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium">
+             <div 
+               className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium cursor-help"
+               title="Standings auto-refresh every 30 seconds"
+             >
                ✨ Live Updates
              </div>
           </div>
