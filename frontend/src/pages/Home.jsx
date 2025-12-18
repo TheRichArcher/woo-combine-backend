@@ -8,7 +8,7 @@ import EventSelector from '../components/EventSelector';
 import LeagueFallback from '../context/LeagueFallback';
 
 export default function Home() {
-  const { user: _user, userRole, selectedLeagueId, leagues } = useAuth();
+  const { user: _user, userRole, selectedLeagueId, leagues, leaguesLoading } = useAuth();
   const { selectedEvent, noLeague } = useEvent();
   const navigate = useNavigate();
   const [isNavigating, setIsNavigating] = React.useState(false);
@@ -40,12 +40,13 @@ export default function Home() {
   }, [userRole, navigate]);
 
   // Don't render anything if we're navigating (prevents flash)
-  if (isNavigating || userRole === 'organizer' || userRole === 'coach') {
+  if (isNavigating || userRole === 'organizer' || userRole === 'coach' || leaguesLoading) {
     return (
       <LoadingScreen 
         title="Loading Dashboard..."
         subtitle="Taking you to your command center"
         size="medium"
+        showLoading={true}
       />
     );
   }

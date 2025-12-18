@@ -40,6 +40,16 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
     score = 0.0
     
     # 3. Iterate Drills defined in Schema
+    # Calculate total weight first for renormalization (only active drills)
+    total_weight = 0.0
+    for drill in schema.drills:
+        w = use_weights.get(drill.key, 0.0)
+        if w > 0:
+            total_weight += w
+            
+    # 4. Score Calculation
+    weighted_sum = 0.0
+    
     for drill in schema.drills:
         key = drill.key
         weight = use_weights.get(key, 0.0)
@@ -47,7 +57,7 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
         if weight <= 0:
             continue
             
-        # 4. Get Value (Check 'scores' map first, then legacy fields)
+        # Get Value (Check 'scores' map first, then legacy fields)
         scores_map = player_data.get("scores", {})
         raw_val = scores_map.get(key)
         
@@ -55,11 +65,11 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
         if raw_val is None:
             raw_val = player_data.get(key) or player_data.get(f"drill_{key}")
             
-        if raw_val is not None and raw_val != "":
+        if raw_val is not None and str(raw_val).strip() != "":
             try:
                 val = float(raw_val)
                 
-                # 5. Normalize Score (0-100 scale) based on Schema Min/Max
+                # Normalize Score (0-100 scale) based on Schema Min/Max
                 # Use schema min/max if defined, otherwise sensible defaults or raw
                 min_v = drill.min_value if drill.min_value is not None else 0.0
                 max_v = drill.max_value if drill.max_value is not None else 100.0
@@ -76,12 +86,15 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
                     clamped = max(min_v, min(max_v, val))
                     normalized = ((clamped - min_v) / (max_v - min_v)) * 100
                 
-                # Treat weight as percentage (0-100) to prevent inflation
-                score += normalized * (weight / 100.0)
+                # Add to weighted sum (using raw weight, will normalize total at end)
+                weighted_sum += normalized * weight
             except (ValueError, TypeError):
                 pass
                 
-    return round(score, 2)
+    # Final Renormalization: Weighted Sum / Total Weight
+    if total_weight > 0:
+        return round(weighted_sum / total_weight, 2)
+    return 0.0
 
 @router.get("/players", response_model=List[PlayerSchema])
 @read_rate_limit()

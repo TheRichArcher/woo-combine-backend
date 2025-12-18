@@ -124,12 +124,12 @@ BASKETBALL_DEFAULT = SportSchema(
     name="Basketball Combine",
     description="Basketball skills and athleticism evaluation",
     drills=[
-        DrillDefinition(key="lane_agility", label="Lane Agility", unit="sec", lower_is_better=True, category="agility", default_weight=0.15),
-        DrillDefinition(key="vertical_jump", label="Vertical Jump", unit="in", lower_is_better=False, category="power", default_weight=0.2),
-        DrillDefinition(key="free_throws", label="Free Throw %", unit="%", lower_is_better=False, category="shooting", default_weight=0.2),
-        DrillDefinition(key="three_point", label="3-Point Shooting %", unit="%", lower_is_better=False, category="shooting", default_weight=0.2),
-        DrillDefinition(key="dribbling", label="Ball Handling", unit="pts", lower_is_better=False, category="skills", default_weight=0.15),
-        DrillDefinition(key="defensive_slide", label="Defensive Slides", unit="sec", lower_is_better=True, category="defense", default_weight=0.1),
+        DrillDefinition(key="lane_agility", label="Lane Agility", unit="sec", lower_is_better=True, category="agility", default_weight=0.15, min_value=8.0, max_value=20.0),
+        DrillDefinition(key="vertical_jump", label="Vertical Jump", unit="in", lower_is_better=False, category="power", default_weight=0.2, min_value=0.0, max_value=50.0),
+        DrillDefinition(key="free_throws", label="Free Throw %", unit="%", lower_is_better=False, category="shooting", default_weight=0.2, min_value=0.0, max_value=100.0),
+        DrillDefinition(key="three_point", label="3-Point Shooting %", unit="%", lower_is_better=False, category="shooting", default_weight=0.2, min_value=0.0, max_value=100.0),
+        DrillDefinition(key="dribbling", label="Ball Handling", unit="pts", lower_is_better=False, category="skills", default_weight=0.15, min_value=0.0, max_value=100.0),
+        DrillDefinition(key="defensive_slide", label="Defensive Slides", unit="sec", lower_is_better=True, category="defense", default_weight=0.1, min_value=8.0, max_value=20.0),
     ],
     presets=[
         PresetDefinition(

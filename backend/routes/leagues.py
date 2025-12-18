@@ -11,11 +11,11 @@ from ..utils.authorization import ensure_league_access
 
 # Fixed: Removed FieldPath import to resolve deployment issues
 
-router = APIRouter()
+router = APIRouter(prefix="/leagues")
 
 
 
-@router.get('/leagues/me')
+@router.get('/me')
 @read_rate_limit()
 def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
@@ -133,7 +133,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
         else:
             raise HTTPException(status_code=500, detail="Failed to retrieve leagues due to server initialization")
 
-@router.post('/leagues')
+@router.post('/')
 @write_rate_limit()
 def create_league(request: Request, req: dict, current_user=Depends(require_role("organizer"))):
     logging.info(f"[POST] /leagues called by user: {current_user} with req: {req}")
@@ -194,7 +194,7 @@ def create_league(request: Request, req: dict, current_user=Depends(require_role
         logging.error(f"Error creating league: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to create league")
 
-@router.post('/leagues/join/{code}')
+@router.post('/join/{code}')
 @write_rate_limit()
 def join_league(
     request: Request,
@@ -323,7 +323,7 @@ def join_league(
         logging.error(f"Error joining league: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to join league")
 
-@router.get('/leagues/{league_id}/teams')
+@router.get('/{league_id}/teams')
 @read_rate_limit()
 @require_permission("teams", "list", target="league", target_param="league_id")
 def list_teams(
@@ -353,7 +353,7 @@ def list_teams(
         logging.error(f"Error retrieving teams: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve teams")
 
-@router.get('/leagues/{league_id}/invitations')
+@router.get('/{league_id}/invitations')
 @read_rate_limit()
 @require_permission("invitations", "list", target="league", target_param="league_id")
 def list_invitations(
@@ -382,7 +382,7 @@ def list_invitations(
         logging.error(f"Error retrieving invitations: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to retrieve invitations")
 
-@router.get('/leagues/{league_id}/members')
+@router.get('/{league_id}/members')
 @read_rate_limit()
 @require_permission("league_members", "list", target="league", target_param="league_id")
 def list_league_members(
@@ -410,7 +410,7 @@ def list_league_members(
         logging.error(f"Error listing league members: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to list league members")
 
-@router.patch('/leagues/{league_id}/members/{member_id}/status')
+@router.patch('/{league_id}/members/{member_id}/status')
 @write_rate_limit()
 @require_permission("league_members", "update", target="league", target_param="league_id")
 def update_member_status(
