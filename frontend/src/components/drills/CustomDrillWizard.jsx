@@ -24,7 +24,7 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
     unit: initialData?.unit === 'Other' ? 'Other' : (SCORING_UNITS.includes(initialData?.unit) ? initialData?.unit : 'Other'),
     customUnit: (!SCORING_UNITS.includes(initialData?.unit) ? initialData?.unit : '') || '',
     direction: initialData?.lower_is_better ? 'lower' : 'higher',
-    minVal: initialData?.min_val !== undefined ? initialData.min_val : '0',
+    minVal: initialData?.min_val !== undefined ? initialData.min_val : '',
     maxVal: initialData?.max_val !== undefined ? initialData.max_val : '',
   });
 
@@ -64,14 +64,7 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
       if (isNaN(min) || isNaN(max)) return false;
       if (min >= max) return false;
       
-      // Trigger warnings if needed (only once per navigation attempt)
-      if (!warningConfirmed && !showRangeWarning) {
-        const isTime = formData.unit === 'Seconds';
-        if (isTime && max > 300) { // > 5 mins seems wrong for typical drills
-            setShowRangeWarning(true);
-            return false;
-        }
-      }
+      // Side effect logic moved to handleNext to prevent render loop
       return true;
     }
     return true;
@@ -79,6 +72,19 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
 
   const handleNext = () => {
     if (validateStep()) {
+        // Step 3 warning logic
+        if (step === 3) {
+            const max = parseFloat(formData.maxVal);
+            // Trigger warnings if needed (only once per navigation attempt)
+            if (!warningConfirmed && !showRangeWarning) {
+                const isTime = formData.unit === 'Seconds';
+                if (isTime && max > 300) { // > 5 mins seems wrong for typical drills
+                    setShowRangeWarning(true);
+                    return;
+                }
+            }
+        }
+
         if (showRangeWarning && !warningConfirmed) return; // Block if warning shown and not confirmed
         setStep(prev => prev + 1);
         setShowRangeWarning(false);
@@ -441,4 +447,3 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
     </Modal>
   );
 }
-

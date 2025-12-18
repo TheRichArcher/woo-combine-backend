@@ -21,6 +21,13 @@ import { useDrills } from "../hooks/useDrills";
 // CSV processing utilities
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, OPTIONAL_HEADERS, detectColumnTypes } from '../utils/csvUtils';
 
+// Common wrapper style for persistent navigation support
+const OnboardingWrapper = ({ children }) => (
+  <div className="min-h-[calc(100vh-64px)] bg-surface-subtle flex flex-col items-center justify-start pt-8 pb-8 px-4">
+    {children}
+  </div>
+);
+
 export default function OnboardingEvent() {
   const navigate = useNavigate();
   const { selectedEvent } = useEvent();
@@ -395,13 +402,6 @@ export default function OnboardingEvent() {
   };
 
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
-
-  // Common wrapper style for persistent navigation support
-  const OnboardingWrapper = ({ children }) => (
-    <div className="min-h-[calc(100vh-64px)] bg-surface-subtle flex flex-col items-center justify-start pt-8 pb-8 px-4">
-      {children}
-    </div>
-  );
 
   // STEP 1: Event Creation
   if (currentStep === 1) {
