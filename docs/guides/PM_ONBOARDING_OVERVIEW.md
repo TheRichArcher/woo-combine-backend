@@ -85,7 +85,7 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 
 ### 🚦 Boot & Navigation Stability (New!)
 - **BootGate Implementation**: Added a global `BootGate` component to `App.jsx`. This acts as a circuit breaker, preventing the router from loading ANY page (Login, Dashboard, etc.) until the application state (`IDLE`, `INITIALIZING`, `AUTHENTICATING`, `READY`) is stable.
-- **Flicker Elimination**: This solves the issue where users saw a flash of the "Login" screen or "No Leagues" error before their actual dashboard loaded.
+- **Flicker Elimination**: definitively resolved by enforcing strict **League Context Gating**. `AuthContext` now awaits league data fetching before transitioning to the `READY` state, ensuring protected routes never mount with incomplete data.
 - **Smart Redirects**: Users landing on `/select-role` who already have a role are now automatically bounced to the correct dashboard, preventing "dead end" states.
 - **Coach Dashboard Loading**: Added a specific loading gate to `CoachDashboard.jsx` to prevent the "Import Players" button from flashing before the player list is actually fetched.
 
@@ -263,7 +263,7 @@ Answers to the specific process & business questions from the incoming PM.
 - **Playbook**: Runbooks exist for `Firestore-Quota-Exceeded` and `Credential-Outage` in `docs/runbooks/`.
 
 ### 8) Tech Debt & "Sharp Edges"
-- **AuthContext.jsx**: ⚠️ **High Risk**. This file (`frontend/src/context/AuthContext.jsx`) contains multiple "CRITICAL FIX" patches for race conditions, infinite loops, and cold starts. Touch with extreme caution.
+- **AuthContext.jsx**: ⚠️ **High Complexity**. This file (`frontend/src/context/AuthContext.jsx`) is central to app stability. While the critical "route flicker" race condition has been **definitively resolved** via strict gating, the file remains complex to handle all edge cases (cold starts, offline, refreshes). Touch with caution.
 - **Render Cold Starts**: The backend's lazy initialization pattern (`backend/main.py`) is optimized but adds complexity to the startup flow.
 
 ### 9) Design & UX
