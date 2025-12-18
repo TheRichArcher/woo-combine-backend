@@ -58,9 +58,18 @@ export async function calculateCompositeScore(player, weights = null, event = nu
 
   const weightsToUse = weights || (event ? getWeightsForEvent(event) : {});
   
+  // Calculate total active weight for renormalization
+  let totalWeight = 0;
+  drillsToUse.forEach(drill => {
+    const w = weightsToUse[drill.key] || 0;
+    if (w > 0) totalWeight += w;
+  });
+  
   drillsToUse.forEach(drill => {
     const value = player[drill.key];
-    if (value !== null && value !== undefined && value !== '') {
+    const weight = weightsToUse[drill.key] || 0;
+    
+    if (weight > 0 && value !== null && value !== undefined && value !== '') {
       let drillScore = parseFloat(value);
       
       // Handle lower-is-better drills (like times)
@@ -70,10 +79,15 @@ export async function calculateCompositeScore(player, weights = null, event = nu
         drillScore = Math.max(0, maxVal - drillScore);
       }
       
-      score += drillScore * (weightsToUse[drill.key] || 0);
+      score += drillScore * weight;
       hasAnyScore = true;
     }
   });
+  
+  // Normalize by total weight
+  if (totalWeight > 0) {
+    score = score / totalWeight;
+  }
   
   return hasAnyScore ? Math.round(score * 100) / 100 : 0;
 }

@@ -22,17 +22,27 @@ export function usePlayerRankings() {
         getDrills().some(drill => p[drill.key] != null && typeof p[drill.key] === 'number')
       );
       
+      // Calculate drill ranges for normalization
       const drillRanges = {};
       getDrills().forEach(drill => {
-        const values = ageGroupPlayers
-          .map(p => p[drill.key])
-          .filter(val => val != null && typeof val === 'number');
-        
-        if (values.length > 0) {
+        // Use schema-defined ranges if available (Static Normalization)
+        if (drill.min != null && drill.max != null && drill.min !== undefined && drill.max !== undefined) {
           drillRanges[drill.key] = {
-            min: Math.min(...values),
-            max: Math.max(...values)
+            min: Number(drill.min),
+            max: Number(drill.max)
           };
+        } else {
+          // Fallback to Dynamic Normalization
+          const values = ageGroupPlayers
+            .map(p => p[drill.key])
+            .filter(val => val != null && typeof val === 'number');
+          
+          if (values.length > 0) {
+            drillRanges[drill.key] = {
+              min: Math.min(...values),
+              max: Math.max(...values)
+            };
+          }
         }
       });
       
@@ -70,6 +80,9 @@ export function usePlayerRankings() {
         }
       });
       
+      // Calculate total weight for renormalization
+      const totalWeight = getDrills().reduce((sum, drill) => sum + (currentWeights[drill.key] || 0), 0);
+      
       return getDrills().map(drill => {
         try {
           const rawScore = player[drill.key] != null && typeof player[drill.key] === 'number' 
@@ -93,8 +106,10 @@ export function usePlayerRankings() {
               normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
             }
             
-            // Apply weight as percentage to normalized score
-            weightedScore = normalizedScore * (weight / 100);
+            // Apply weight to normalized score (renormalized by total weight)
+            if (totalWeight > 0) {
+              weightedScore = normalizedScore * (weight / totalWeight);
+            }
           }
           
           return {
@@ -136,19 +151,31 @@ export function usePlayerRankings() {
     // Calculate min/max for each drill for normalization
     const drillRanges = {};
     getDrills().forEach(drill => {
-      const values = playersWithScores
-        .map(p => p[drill.key])
-        .filter(val => val != null && typeof val === 'number');
-      
-      if (values.length > 0) {
+      // Use schema-defined ranges if available (Static Normalization)
+      if (drill.min != null && drill.max != null && drill.min !== undefined && drill.max !== undefined) {
         drillRanges[drill.key] = {
-          min: Math.min(...values),
-          max: Math.max(...values)
+          min: Number(drill.min),
+          max: Number(drill.max)
         };
+      } else {
+        // Fallback to Dynamic Normalization (from data) if schema ranges missing
+        const values = playersWithScores
+          .map(p => p[drill.key])
+          .filter(val => val != null && typeof val === 'number');
+        
+        if (values.length > 0) {
+          drillRanges[drill.key] = {
+            min: Math.min(...values),
+            max: Math.max(...values)
+          };
+        }
       }
     });
 
     // Calculate normalized weighted scores for each player
+    // First calculate total weight for renormalization
+    const totalWeight = getDrills().reduce((sum, drill) => sum + (currentWeights[drill.key] || 0), 0);
+
     const rankedPlayers = playersWithScores.map(player => {
       let totalWeightedScore = 0;
       
@@ -171,8 +198,10 @@ export function usePlayerRankings() {
             normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
           }
           
-          // Apply weight to normalized score
-          totalWeightedScore += normalizedScore * (weight / 100);
+          // Apply weight to normalized score (renormalized)
+          if (totalWeight > 0) {
+            totalWeightedScore += normalizedScore * (weight / totalWeight);
+          }
         }
       });
       
@@ -214,41 +243,55 @@ export function usePlayerRankings() {
         
         const drillRanges = {};
         getDrills().forEach(drill => {
-          const values = playersWithAnyScore
-            .map(p => p[drill.key])
-            .filter(val => val != null && typeof val === 'number');
-          
-          if (values.length > 0) {
+          // Use schema-defined ranges if available (Static Normalization)
+          if (drill.min != null && drill.max != null && drill.min !== undefined && drill.max !== undefined) {
             drillRanges[drill.key] = {
-              min: Math.min(...values),
-              max: Math.max(...values)
+              min: Number(drill.min),
+              max: Number(drill.max)
             };
+          } else {
+            // Fallback to Dynamic Normalization
+            const values = playersWithAnyScore
+              .map(p => p[drill.key])
+              .filter(val => val != null && typeof val === 'number');
+            
+            if (values.length > 0) {
+              drillRanges[drill.key] = {
+                min: Math.min(...values),
+                max: Math.max(...values)
+              };
+            }
           }
         });
         
-        const playersWithScores = ageGroupPlayers.map(p => {
-          try {
-            const score = getDrills().reduce((sum, drill) => {
-              const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
-              const weight = currentWeights[drill.key] || 0;
-              const range = drillRanges[drill.key];
+      // Calculate total weight for renormalization
+      const totalWeight = getDrills().reduce((sum, drill) => sum + (currentWeights[drill.key] || 0), 0);
+      
+      const playersWithScores = ageGroupPlayers.map(p => {
+        try {
+          const score = getDrills().reduce((sum, drill) => {
+            const drillScore = p[drill.key] != null && typeof p[drill.key] === 'number' ? p[drill.key] : null;
+            const weight = currentWeights[drill.key] || 0;
+            const range = drillRanges[drill.key];
+            
+            if (drillScore != null && range) {
+              let normalizedScore = 0;
               
-              if (drillScore != null && range) {
-                let normalizedScore = 0;
-                
-                if (range.max === range.min) {
-                  normalizedScore = 50;
-                } else if (drill.key === "40m_dash") {
-                  normalizedScore = ((range.max - drillScore) / (range.max - range.min)) * 100;
-                } else {
-                  normalizedScore = ((drillScore - range.min) / (range.max - range.min)) * 100;
-                }
-                
-                return sum + (normalizedScore * (weight / 100));
+              if (range.max === range.min) {
+                normalizedScore = 50;
+              } else if (drill.key === "40m_dash") {
+                normalizedScore = ((range.max - drillScore) / (range.max - range.min)) * 100;
+              } else {
+                normalizedScore = ((drillScore - range.min) / (range.max - range.min)) * 100;
               }
-              return sum;
-            }, 0);
-            return { ...p, currentScore: score };
+              
+              if (totalWeight > 0) {
+                return sum + (normalizedScore * (weight / totalWeight));
+              }
+            }
+            return sum;
+          }, 0);
+          return { ...p, currentScore: score };
           } catch (error) {
             if (import.meta.env.DEV) {
               logger.warn('RANKING', 'Player score calculation failed', error);

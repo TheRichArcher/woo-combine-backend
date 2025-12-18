@@ -153,6 +153,13 @@ export function calculateOptimizedCompositeScore(player, allPlayers, weights, dr
   const drillRanges = getCachedDrillRanges(allPlayers, player.age_group, currentDrills);
   let totalWeightedScore = 0;
   
+  // Calculate total weight for renormalization
+  let totalWeight = 0;
+  currentDrills.forEach(drill => {
+    const w = weights[drill.key] || 0;
+    if (w > 0) totalWeight += w;
+  });
+  
   currentDrills.forEach(drill => {
     const rawScore = player.scores?.[drill.key] ?? player[drill.key];
     const weight = weights[drill.key] || 0;
@@ -160,7 +167,9 @@ export function calculateOptimizedCompositeScore(player, allPlayers, weights, dr
     
     if (rawScore != null && typeof rawScore === 'number' && range) {
       const normalizedScore = calculateNormalizedDrillScore(rawScore, range, drill.key, drill.lowerIsBetter);
-      totalWeightedScore += normalizedScore * (weight / 100);
+      if (totalWeight > 0) {
+        totalWeightedScore += normalizedScore * (weight / totalWeight);
+      }
     }
   });
   
@@ -205,6 +214,13 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
     // Get cached drill ranges for this age group
     const drillRanges = getCachedDrillRanges(players, ageGroup, currentDrills);
     
+    // Calculate total weight for renormalization
+    let totalWeight = 0;
+    currentDrills.forEach(drill => {
+      const w = weights[drill.key] || 0;
+      if (w > 0) totalWeight += w;
+    });
+    
     // Calculate scores in a single pass
     const playersWithCompositeScores = playersWithScores.map(player => {
       let totalWeightedScore = 0;
@@ -216,7 +232,9 @@ export function calculateOptimizedRankings(players, weights, drillList = []) {
         
         if (rawScore != null && typeof rawScore === 'number' && range) {
           const normalizedScore = calculateNormalizedDrillScore(rawScore, range, drill.key, drill.lowerIsBetter);
-          totalWeightedScore += normalizedScore * (weight / 100);
+          if (totalWeight > 0) {
+            totalWeightedScore += normalizedScore * (weight / totalWeight);
+          }
         }
       });
       
@@ -266,6 +284,13 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
 
   const drillRanges = getCachedDrillRanges(playersWithScores, 'ALL', currentDrills);
 
+  // Calculate total weight for renormalization
+  let totalWeight = 0;
+  currentDrills.forEach(drill => {
+    const w = weights[drill.key] || 0;
+    if (w > 0) totalWeight += w;
+  });
+
   const scored = playersWithScores.map(player => {
     let totalWeightedScore = 0;
     currentDrills.forEach(drill => {
@@ -275,7 +300,9 @@ export function calculateOptimizedRankingsAcrossAll(players, weights, drillList 
       
       if (rawScore != null && typeof rawScore === 'number' && range) {
         const normalizedScore = calculateNormalizedDrillScore(rawScore, range, drill.key, drill.lowerIsBetter);
-        totalWeightedScore += normalizedScore * (weight / 100);
+        if (totalWeight > 0) {
+          totalWeightedScore += normalizedScore * (weight / totalWeight);
+        }
       }
     });
     return { ...player, compositeScore: totalWeightedScore };

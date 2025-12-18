@@ -93,12 +93,12 @@ export const DRILL_TEMPLATES = {
     description: 'Basketball skills and athleticism evaluation', 
     sport: 'Basketball',
     drills: [
-      { key: "lane_agility", label: "Lane Agility", unit: "sec", lowerIsBetter: true, category: "agility" },
-      { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false, category: "power" },
-      { key: "free_throws", label: "Free Throw %", unit: "%", lowerIsBetter: false, category: "shooting" },
-      { key: "three_point", label: "3-Point Shooting %", unit: "%", lowerIsBetter: false, category: "shooting" },
-      { key: "dribbling", label: "Ball Handling", unit: "pts", lowerIsBetter: false, category: "skills" },
-      { key: "defensive_slide", label: "Defensive Slides", unit: "sec", lowerIsBetter: true, category: "defense" },
+      { key: "lane_agility", label: "Lane Agility", unit: "sec", lowerIsBetter: true, category: "agility", min: 8, max: 20 },
+      { key: "vertical_jump", label: "Vertical Jump", unit: "in", lowerIsBetter: false, category: "power", min: 0, max: 50 },
+      { key: "free_throws", label: "Free Throw %", unit: "%", lowerIsBetter: false, category: "shooting", min: 0, max: 100 },
+      { key: "three_point", label: "3-Point Shooting %", unit: "%", lowerIsBetter: false, category: "shooting", min: 0, max: 100 },
+      { key: "dribbling", label: "Ball Handling", unit: "pts", lowerIsBetter: false, category: "skills", min: 0, max: 100 },
+      { key: "defensive_slide", label: "Defensive Slides", unit: "sec", lowerIsBetter: true, category: "defense", min: 8, max: 20 },
     ],
     defaultWeights: {
       "lane_agility": 0.15,
