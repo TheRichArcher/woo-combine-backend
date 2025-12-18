@@ -266,6 +266,8 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
           onClose={() => setIsWizardOpen(false)}
           eventId={event?.id}
           leagueId={leagueId}
+          drillTemplate={templateId}
+          disabledDrills={disabledDrills}
           initialData={editingDrill}
           onDrillCreated={async () => {
             await fetchCustomDrills();

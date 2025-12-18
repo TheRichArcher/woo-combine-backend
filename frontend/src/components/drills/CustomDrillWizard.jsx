@@ -11,7 +11,7 @@ import { getDrillsFromTemplate } from '../../constants/drillTemplates';
 const DRILL_CATEGORIES = ["Speed", "Agility", "Power", "Strength", "Skill", "Conditioning", "Physical"];
 const SCORING_UNITS = ["Seconds", "Inches", "Reps", "MPH", "Percent", "Other"];
 
-export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, onDrillCreated, initialData = null, drillTemplate = 'football' }) {
+export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, onDrillCreated, initialData = null, drillTemplate, disabledDrills = [] }) {
   const { showSuccess, showError } = useToast();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,8 +33,10 @@ export default function CustomDrillWizard({ isOpen, onClose, eventId, leagueId, 
   const [warningConfirmed, setWarningConfirmed] = useState(false);
 
   // Derived State for validation
+  // Only check against active (enabled) template drills to allow reusing names of disabled drills
   const templateDrills = getDrillsFromTemplate(drillTemplate);
-  const collision = templateDrills.find(d => d.label.toLowerCase() === formData.name.trim().toLowerCase());
+  const activeTemplateDrills = templateDrills.filter(d => !disabledDrills.includes(d.key));
+  const collision = activeTemplateDrills.find(d => d.label.toLowerCase() === formData.name.trim().toLowerCase());
   const nameError = collision ? `"${collision.label}" is already a standard drill in this event.` : null;
 
   // Handlers
