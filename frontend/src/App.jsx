@@ -424,7 +424,8 @@ function App() {
             </PlayerDetailsProvider>
           </EventProvider>
         </AuthProvider>
-      </ToastProvider>
+        </ToastProvider>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }
