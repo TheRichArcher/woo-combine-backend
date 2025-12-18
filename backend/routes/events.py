@@ -65,6 +65,7 @@ class EventCreateRequest(BaseModel):
     name: str
     date: str | None = None
     location: str | None = None
+    notes: str | None = None
     drillTemplate: str | None = "football"
     disabledDrills: List[str] = []
 
@@ -81,6 +82,7 @@ def create_event(
         name = req.name if req else None
         date = req.date if req else None
         location = req.location if req else None
+        notes = req.notes if req else None
         drill_template = req.drillTemplate if req and req.drillTemplate else "football"
         disabled_drills = req.disabledDrills if req else []
         
@@ -125,6 +127,7 @@ def create_event(
             "name": name,
             "date": date,
             "location": location or "",
+            "notes": notes or "",
             "league_id": league_id,  # Add league_id reference
             "drillTemplate": drill_template,
             "disabled_drills": disabled_drills,
@@ -213,6 +216,7 @@ class EventUpdateRequest(BaseModel):
     name: str
     date: str | None = None
     location: str | None = None
+    notes: str | None = None
     drillTemplate: str | None = None
     live_entry_active: bool | None = None
     disabledDrills: List[str] | None = None
@@ -231,6 +235,7 @@ def update_event(
         name = req.name if req else None
         date = req.date if req else None
         location = req.location if req else None
+        notes = req.notes if req else None
         
         if not name:
             raise HTTPException(status_code=400, detail="Event name is required")
@@ -244,6 +249,7 @@ def update_event(
             "name": name,
             "date": date,
             "location": location or "",
+            "notes": notes or "",
             "updated_at": datetime.utcnow().isoformat(),
         }
         

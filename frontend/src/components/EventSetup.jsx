@@ -506,6 +506,7 @@ export default function EventSetup({ onBack }) {
               <p><strong>Name:</strong> {selectedEvent.name}</p>
               <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</p>
               <p><strong>Location:</strong> {selectedEvent.location || 'Location TBD'}</p>
+              {selectedEvent.notes && <p><strong>Notes:</strong> {selectedEvent.notes}</p>}
             </div>
           </div>
           

@@ -22,6 +22,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
+  const [notes, setNotes] = useState("");
   const [drillTemplate, setDrillTemplate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -34,6 +35,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
       setName(event.name || "");
       setDate(event.date || "");
       setLocation(event.location || "");
+      setNotes(event.notes || "");
       setDrillTemplate(event.drillTemplate || "football");
     }
   }, [event]);
@@ -51,6 +53,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
         name,
         date: isoDate,
         location,
+        notes,
         drillTemplate
       });
       
@@ -59,6 +62,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
         name: name,
         date: isoDate,
         location: location,
+        notes: notes,
         drillTemplate: drillTemplate,
         updated_at: new Date().toISOString()
       };
@@ -128,8 +132,17 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
             placeholder="e.g., Event Location"
             className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
           />
+
+          <label className="block mb-2 font-semibold">Notes</label>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Additional notes about this event..."
+            className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary h-24 resize-none"
+          />
+
           <small className="text-gray-500 text-xs mb-4 block">
-            Leave location blank if not determined yet
+            Leave location/notes blank if not determined yet
           </small>
           {error && <div className="text-red-500 mb-2 text-sm">{error}</div>}
           <div className="flex gap-2">
