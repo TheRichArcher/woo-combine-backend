@@ -121,6 +121,16 @@ export default function SelectRole() {
     checkServerForInvite();
   }, [user, pendingEventJoin, selectedRole, refreshUserRole, navigate]);
 
+  // Clear any pending auto-advance on unmount
+  useEffect(() => {
+    return () => {
+      if (autoProceedTimer) {
+        clearTimeout(autoProceedTimer);
+      }
+    };
+  }, [autoProceedTimer]);
+
+  // Conditional early return logic - MUST be after all hooks
   if (!user || userRole) {
     return (
       <LoadingScreen 
@@ -130,15 +140,6 @@ export default function SelectRole() {
       />
     );
   }
-
-  // Clear any pending auto-advance on unmount
-  useEffect(() => {
-    return () => {
-      if (autoProceedTimer) {
-        clearTimeout(autoProceedTimer);
-      }
-    };
-  }, [autoProceedTimer]);
 
   const handleSelectRole = (roleKey) => {
     if (loading) return;
