@@ -275,7 +275,7 @@ export function AuthProvider({ children }) {
       // This is the primary fetch trigger that must run regardless of cached state or routes
       console.debug("[AUTH] Calling fetchLeagues() after login (hot path)");
       transitionTo(STATUS.FETCHING_CONTEXT, 'Starting league fetch');
-      fetchLeaguesConcurrently(firebaseUser, null);
+      const leagueLoadPromise = fetchLeaguesConcurrently(firebaseUser, null);
 
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
@@ -300,6 +300,11 @@ export function AuthProvider({ children }) {
             setRole(cachedRoleQuick);
           }
           setRoleChecked(true);
+          
+          // CRITICAL FIX: Wait for leagues to load before declaring READY
+          // This prevents "No League" flash on dashboard
+          await leagueLoadPromise;
+          
           transitionTo(STATUS.READY, 'Fast exit from login');
           navigate(target, { replace: true });
           setInitializing(false);
@@ -540,6 +545,13 @@ export function AuthProvider({ children }) {
         // Include '/welcome' and '/select-role' so authenticated users land on the dashboard automatically
         const onboardingRoutes = ["/login", "/signup", "/", "/welcome", "/select-role"];
         authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
+        
+        // CRITICAL FIX: Ensure leagues are loaded before final READY state
+        // This prevents flicker on dashboard where leagues are required
+        if (leagueLoadPromise) {
+            await leagueLoadPromise;
+        }
+
         authLogger.debug('Auth state after role check', {
           userRole,
           selectedLeagueId: localStorage.getItem('selectedLeagueId'),
