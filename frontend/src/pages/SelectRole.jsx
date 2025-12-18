@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth, useLogout } from "../context/AuthContext";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import LoadingScreen from '../components/LoadingScreen';
 import api from '../lib/api';
@@ -53,13 +53,8 @@ export default function SelectRole() {
   const { showInfo } = useToast();
   
   // CRITICAL FIX P0: If user already has a role (restored from server or cache),
-  // immediately redirect to dashboard and do not show picker.
-  useEffect(() => {
-    if (userRole) {
-      console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
-      navigate('/dashboard', { replace: true });
-    }
-  }, [userRole, navigate]);
+  // immediately redirect to dashboard using <Navigate /> for cleaner flow
+  // useEffect logic removed to prevent double navigation race conditions
   
   // Parse pending event invitation for role enforcement
   const pendingEventJoin = localStorage.getItem('pendingEventJoin');
@@ -131,14 +126,20 @@ export default function SelectRole() {
   }, [autoProceedTimer]);
 
   // Conditional early return logic - MUST be after all hooks
-  if (!user || userRole) {
+  if (!user) {
     return (
       <LoadingScreen 
-        title={userRole ? "Redirecting..." : "Preparing role selection..."}
-        subtitle={userRole ? "Role verified" : "Setting up your account"}
+        title="Preparing role selection..."
+        subtitle="Setting up your account"
         size="large"
       />
     );
+  }
+
+  // Redirect if role is already present - render-time redirection is safer than useEffect
+  if (userRole) {
+    console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
+    return <Navigate to="/dashboard" replace />;
   }
 
   const handleSelectRole = (roleKey) => {
