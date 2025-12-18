@@ -72,6 +72,7 @@ The application has graduated from "debugging/crisis" mode to a stable product.
 
 ### C. Daily Operations (The "Power User")
 - **Dashboard**: Smart routing checks `selectedLeagueId` and `selectedEvent`.
+- **Management**: **(New)** Full event editing capabilities (Name, Date, Location, Notes) without data loss or ranking disruption.
 - **Switching**: Header dropdowns allow instant context switching.
 - **Scoring**: "Live Entry" mode for rapid data input.
 - **Analysis**: `Players` page with real-time weight sliders (Speed vs. Skills vs. Balanced).
@@ -101,6 +102,11 @@ We have completed a massive cleanup and optimization sprint. Here is what change
 - **Linting**: Achieved **Zero Lint Errors**. Codebase is strict compliant.
 - **Imports**: Fixed all relative import paths and unused imports.
 - **Console Noise**: Removed verbose debug logging (emoji logs) from production builds.
+
+### 📝 Event Management (New!)
+- **Full Editing**: Organizers can now edit Event Name, Date, Location, and Notes after creation.
+- **Safety**: Updates rely on immutable IDs, ensuring QR codes, player data, and rankings remain intact.
+- **UX**: Added "Notes" field to both setup and edit screens for better event context.
 
 ---
 
