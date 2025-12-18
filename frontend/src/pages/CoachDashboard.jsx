@@ -467,7 +467,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                   : players.filter(p => p.age_group === selectedAgeGroupId);
                 const completedPlayers = groupPlayers.filter(p => p.composite_score > 0);
                 const completionRate = groupPlayers.length > 0 ? (completedPlayers.length / groupPlayers.length * 100) : 0;
-                const avgScore = completedPlayers.length > 0 ? (completedPlayers.reduce((sum, p) => sum + p.composite_score, 0) / completedPlayers.length) : 0;
+                // Fix: Normalize score display to 0-100 scale (data comes as 0-1)
+                const avgScore = completedPlayers.length > 0 ? (completedPlayers.reduce((sum, p) => sum + p.composite_score, 0) / completedPlayers.length * 100) : 0;
                 
                 return (
                   <>
@@ -517,7 +518,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           </div>
                           <div className="text-xs text-brand-primary">
                             Range: <span className="font-medium">
-                              {Math.min(...completedPlayers.map(p => p.composite_score)).toFixed(1)} - {Math.max(...completedPlayers.map(p => p.composite_score)).toFixed(1)}
+                              {(Math.min(...completedPlayers.map(p => p.composite_score)) * 100).toFixed(1)} - {(Math.max(...completedPlayers.map(p => p.composite_score)) * 100).toFixed(1)}
                             </span>
                           </div>
                         </div>
