@@ -27,7 +27,7 @@ export default defineConfig({
     // Enable minification
     minify: 'esbuild',
     // Source maps for production debugging
-    sourcemap: false
+    sourcemap: true
   },
   server: {
     port: 5173,

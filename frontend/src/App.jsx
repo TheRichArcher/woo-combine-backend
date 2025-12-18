@@ -5,6 +5,7 @@ import { PlayerDetailsProvider } from "./context/PlayerDetailsContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Home from "./pages/Home";
 import Players from "./pages/Players";
 import AdminTools from "./components/AdminTools";
@@ -44,17 +45,18 @@ import BootGate from "./components/BootGate";
 // Authenticated Layout Component
 function AuthenticatedLayout({ children }) {
   return (
-    <>
+    <ErrorBoundary>
       <Navigation />
       {children}
-    </>
+    </ErrorBoundary>
   );
 }
 
 function App() {
   return (
     <BrowserRouter>
-      <ToastProvider>
+      <ErrorBoundary>
+        <ToastProvider>
         <AuthProvider>
           <EventProvider>
             <PlayerDetailsProvider>
