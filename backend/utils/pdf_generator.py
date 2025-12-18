@@ -1,21 +1,36 @@
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.lib.enums import TA_CENTER
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.enums import TA_CENTER
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
+    # Mock for type hints or simple fallbacks if needed
+    colors = None
+    SimpleDocTemplate = None
+
 from io import BytesIO
 from typing import Dict, List, Any
 from datetime import datetime
 
 # WooCombine Brand Colors
-TEAL_PRIMARY = colors.HexColor("#0D9488") # teal-600
-TEAL_LIGHT = colors.HexColor("#F0FDFA")   # teal-50
+if REPORTLAB_AVAILABLE:
+    TEAL_PRIMARY = colors.HexColor("#0D9488") # teal-600
+    TEAL_LIGHT = colors.HexColor("#F0FDFA")   # teal-50
+else:
+    TEAL_PRIMARY = None
+    TEAL_LIGHT = None
 
 def generate_event_pdf(event_data: Dict[str, Any], stats: Dict[str, Any], players: List[Dict[str, Any]]) -> BytesIO:
     """
     Generate a PDF report for the event.
     """
+    if not REPORTLAB_AVAILABLE:
+        raise ImportError("ReportLab is not installed. PDF generation is disabled.")
+        
     buffer = BytesIO()
     # Use landscape for better table fit
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter))
