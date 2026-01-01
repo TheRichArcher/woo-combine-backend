@@ -57,7 +57,9 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
                         user_leagues.append(league_data)
                         logging.info(f"  ✅ League {league_doc.id} ({league_data.get('name', 'Unknown')}) with role: {role}")
                 
-                if user_leagues:
+                # CRITICAL: Protect against None or empty
+                # Ensure we always return a list, never None
+                if user_leagues and len(user_leagues) > 0:
                     # Sort by creation date (newest first)
                     user_leagues.sort(key=lambda x: x.get("created_at", ""), reverse=True)
                     logging.info(f"🚀 Fast path: returned {len(user_leagues)} leagues for user {user_id}")
@@ -105,10 +107,13 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
                 logging.warning(f"Error checking legacy membership in league {league_id}: {str(e)}")
                 continue
         
-        if not user_leagues:
-            # CRITICAL FIX: Return 200 with empty array, not 404
-            # 404 should mean "route not found", not "no data"
-            # This prevents retry cascades when new users have no leagues yet
+        # CRITICAL: Protect against None or non-list types
+        # Ensure we always work with a valid list
+        if not isinstance(user_leagues, list):
+            user_leagues = []
+        
+        if not user_leagues or len(user_leagues) == 0:
+            # INFO level (not WARN/ERROR) - empty state is valid for new users
             logging.info(f"No leagues found for user {user_id} - returning empty array (new user)")
             return {"leagues": []}
         

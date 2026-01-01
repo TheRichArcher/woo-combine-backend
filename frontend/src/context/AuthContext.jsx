@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
 import api, { apiHealth, apiWarmup } from '../lib/api';
+import { getMyLeagues } from '../lib/leagues';
 import { useNavigate } from "react-router-dom";
 
 import { useToast } from './ToastContext';
@@ -158,6 +159,8 @@ export function AuthProvider({ children }) {
   // In-flight request tracking to prevent double calls
   const leagueFetchPromiseRef = useRef(null);
   const lastFetchKeyRef = useRef(null);
+  const abortControllerRef = useRef(null);
+  const tokenVersionRef = useRef(null);
 
   // PERFORMANCE: Concurrent league fetching with retry logic for cold starts
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
@@ -184,9 +187,30 @@ export function AuthProvider({ children }) {
       return;
     }
     
+    // Get fresh token and cache version for de-duplication
+    let token;
+    try {
+      token = await firebaseUser.getIdToken(false);
+      if (!token) {
+        authLogger.warn('Skipping league fetch - no token available');
+        return;
+      }
+    } catch (err) {
+      authLogger.warn('Failed to get token for league fetch', err);
+      return;
+    }
+    
+    // Extract token issued-at time for cache key (prevents reusing stale token promises)
+    const tokenPayload = parseJwtPayload(token);
+    const tokenIssuedAt = tokenPayload?.iat || Date.now();
+    tokenVersionRef.current = tokenIssuedAt;
+    
     // DE-DUPLICATION: Prevent double calls with in-flight promise cache
-    // Key by userId + role to ensure we refetch if role changes
-    const fetchKey = `${firebaseUser.uid}:${userRole}`;
+    // Key by userId + role + tokenIssuedAt to ensure we refetch if:
+    // - User changes
+    // - Role changes
+    // - Token refreshes (prevents reusing promises with expired tokens)
+    const fetchKey = `${firebaseUser.uid}:${userRole}:${tokenIssuedAt}`;
     
     // If same fetch is already in progress, return that promise
     if (leagueFetchInProgress && lastFetchKeyRef.current === fetchKey && leagueFetchPromiseRef.current) {
@@ -194,8 +218,17 @@ export function AuthProvider({ children }) {
       return leagueFetchPromiseRef.current;
     }
     
-    // If fetch key changed (different user or role), clear old promise
+    // If fetch key changed (different user/role/token), abort old request and clear cache
     if (lastFetchKeyRef.current !== fetchKey) {
+      // Abort previous in-flight request if it exists
+      if (abortControllerRef.current) {
+        authLogger.debug('Aborting previous league fetch (key changed)', {
+          old: lastFetchKeyRef.current,
+          new: fetchKey
+        });
+        abortControllerRef.current.abort();
+      }
+      
       leagueFetchPromiseRef.current = null;
       lastFetchKeyRef.current = fetchKey;
     }
@@ -203,75 +236,71 @@ export function AuthProvider({ children }) {
     setLeagueFetchInProgress(true);
     authLogger.debug('Starting concurrent league fetch', { userRole, status, fetchKey });
     
+    // Create new AbortController for this fetch
+    abortControllerRef.current = new AbortController();
+    const currentAbortController = abortControllerRef.current;
+    
     // Create and cache the promise
     const fetchPromise = (async () => {
-      let attempts = 0;
-      const maxAttempts = 1; // Single attempt - retry logic in api.js handles 502/503/504
-      
-      const tryFetch = async () => {
-        try {
-          // Force refresh on retries OR first attempt to ensure fresh token for cold start
-          const token = await firebaseUser.getIdToken(true);
-          
-          if (!token) {
-            authLogger.warn('Skipping league fetch - no token available');
-            return false;
-          }
-          
-          // Allow api default timeout (45s) to handle cold start rather than a 5s abort
-          // Explicitly pass token to avoid interceptor race conditions during boot
-          const response = await api.get(`/leagues/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }).catch((e) => { throw e; });
-
-          if (response?.data) {
-            const leagueData = response.data;
-            // Normalize to array shape for state to avoid runtime errors
-            const leagueArray = Array.isArray(leagueData)
-              ? leagueData
-              : (Array.isArray(leagueData?.leagues) ? leagueData.leagues : []);
-            setLeagues(leagueArray);
-            authLogger.debug('Leagues loaded concurrently', leagueArray.length);
-            
-            // Set selection if needed
-            const rawStored = localStorage.getItem('selectedLeagueId');
-            const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
-            
-            if (leagueArray.length > 0 && (!currentSelectedLeagueId || !leagueArray.some(l => l.id === currentSelectedLeagueId))) {
-               const targetLeagueId = leagueArray[0].id;
-               setSelectedLeagueIdState(targetLeagueId);
-               localStorage.setItem('selectedLeagueId', targetLeagueId);
-               setRole(leagueArray[0].role);
-            }
-            return true; // Success
-          }
-          return false;
-        } catch (error) {
-          authLogger.warn(`Concurrent league fetch failed (attempt ${attempts + 1}/${maxAttempts})`, error.message);
-          return false;
-        }
-      };
-
       try {
-        // CRITICAL FIX: Removed onboarding route check.
-        // We must fetch leagues immediately after login, even if the URL is still /login or /welcome.
-        // The hot path trigger in onAuthStateChanged depends on this function executing.
+        // Force refresh token to ensure fresh auth for cold start
+        const freshToken = await firebaseUser.getIdToken(true);
         
-        while (attempts < maxAttempts) {
-          const success = await tryFetch();
-          if (success) break;
-          
-          attempts++;
-          if (attempts < maxAttempts) {
-            // Exponential backoff: 500ms, 1500ms, 3000ms
-            await new Promise(r => setTimeout(r, attempts * 500 + 500)); 
-          }
+        if (!freshToken) {
+          authLogger.warn('Skipping league fetch - no fresh token available');
+          return;
         }
+        
+        // Use centralized getMyLeagues() that normalizes response
+        // This returns a plain array always (never object, never null)
+        const leagueArray = await getMyLeagues();
+        
+        // CRITICAL: Check if fetch is still valid before committing state
+        // Prevents stale responses from winning if role changed mid-flight
+        if (lastFetchKeyRef.current !== fetchKey) {
+          authLogger.debug('Discarding stale league fetch response (key changed)');
+          return;
+        }
+        
+        // Verify we weren't aborted
+        if (currentAbortController.signal.aborted) {
+          authLogger.debug('League fetch was aborted');
+          return;
+        }
+        
+        setLeagues(leagueArray);
+        authLogger.debug('Leagues loaded concurrently', leagueArray.length);
+        
+        // Set selection if needed
+        const rawStored = localStorage.getItem('selectedLeagueId');
+        const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
+        
+        if (leagueArray.length > 0 && (!currentSelectedLeagueId || !leagueArray.some(l => l.id === currentSelectedLeagueId))) {
+           const targetLeagueId = leagueArray[0].id;
+           setSelectedLeagueIdState(targetLeagueId);
+           localStorage.setItem('selectedLeagueId', targetLeagueId);
+           setRole(leagueArray[0].role);
+        }
+      } catch (error) {
+        // Don't log aborted requests as errors
+        if (error.name === 'AbortError' || error.message.includes('abort')) {
+          authLogger.debug('League fetch aborted (expected)');
+          return;
+        }
+        
+        authLogger.warn('Concurrent league fetch failed', error.message);
+        throw error;
       } finally {
         setLeagueFetchInProgress(false);
+        
         // Clear promise cache after completion
         if (leagueFetchPromiseRef.current === fetchPromise) {
           leagueFetchPromiseRef.current = null;
+        }
+        
+        // Clear abort controller if it's still ours
+        if (abortControllerRef.current === currentAbortController) {
+          abortControllerRef.current = null;
         }
       }
     })();
@@ -280,6 +309,19 @@ export function AuthProvider({ children }) {
     leagueFetchPromiseRef.current = fetchPromise;
     return fetchPromise;
   }, [leagueFetchInProgress, status]);
+
+// Helper to parse JWT payload (extracted for reuse)
+function parseJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
+  const parts = token.split('.');
+  if (parts.length < 2) return null;
+  try {
+    const payload = JSON.parse(atob(parts[1]));
+    return payload;
+  } catch {
+    return null;
+  }
+}
 
 
 
