@@ -159,23 +159,45 @@ export function AuthProvider({ children }) {
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
     if (leagueFetchInProgress) return;
     
-    // CRITICAL GUARD: Do not fetch leagues if user has no role yet
-    // This prevents hitting /leagues/me endpoint before role selection is complete
+    // COMPREHENSIVE AUTH READINESS GUARD
+    // Only fetch leagues when ALL conditions are met:
+    // 1. Firebase user exists
+    // 2. User has a valid role (not null/undefined)
+    // 3. Token is available
+    // 4. Not in auth initialization states
+    
+    if (!firebaseUser) {
+      authLogger.debug('Skipping league fetch - no Firebase user');
+      return;
+    }
+    
     if (!userRole) {
       authLogger.debug('Skipping league fetch - user has no role yet (awaiting /select-role)');
       return;
     }
     
+    // Check auth state machine - only fetch in READY state or when explicitly transitioning to FETCHING_CONTEXT
+    if (status !== STATUS.READY && status !== STATUS.FETCHING_CONTEXT) {
+      authLogger.debug(`Skipping league fetch - auth not ready (status: ${status})`);
+      return;
+    }
+    
     setLeagueFetchInProgress(true);
-    authLogger.debug('Starting concurrent league fetch', { userRole });
+    authLogger.debug('Starting concurrent league fetch', { userRole, status });
     
     let attempts = 0;
-    const maxAttempts = 1; // REDUCED: Only 1 attempt to avoid timeout cascade on cold start
+    const maxAttempts = 1; // Single attempt - retry logic in api.js handles 502/503/504
     
     const tryFetch = async () => {
       try {
         // Force refresh on retries OR first attempt to ensure fresh token for cold start
-        const token = await firebaseUser.getIdToken(true); 
+        const token = await firebaseUser.getIdToken(true);
+        
+        if (!token) {
+          authLogger.warn('Skipping league fetch - no token available');
+          return false;
+        }
+        
         // Allow api default timeout (45s) to handle cold start rather than a 5s abort
         // Explicitly pass token to avoid interceptor race conditions during boot
         const response = await api.get(`/leagues/me`, {
@@ -228,7 +250,7 @@ export function AuthProvider({ children }) {
     } finally {
       setLeagueFetchInProgress(false);
     }
-  }, [leagueFetchInProgress]);
+  }, [leagueFetchInProgress, status]);
 
 
 

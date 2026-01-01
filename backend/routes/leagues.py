@@ -106,8 +106,11 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
                 continue
         
         if not user_leagues:
-            logging.warning(f"No leagues found for user {user_id} in either system")
-            raise HTTPException(status_code=404, detail="No leagues found for this user.")
+            # CRITICAL FIX: Return 200 with empty array, not 404
+            # 404 should mean "route not found", not "no data"
+            # This prevents retry cascades when new users have no leagues yet
+            logging.info(f"No leagues found for user {user_id} - returning empty array (new user)")
+            return {"leagues": []}
         
         # MIGRATE: Create user_memberships document for future speed (async to not block response)
         if migration_data:

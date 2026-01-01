@@ -157,33 +157,42 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     
-    // Initialize retry count and enable retries for ALL requests
+    // Initialize retry count
     if (typeof config._retryCount !== 'number') {
       config._retryCount = 0;
     }
     
-    // Avoid retries for auth-critical endpoints to prevent cascades
     const url = String(error.config?.url || '');
-    const isAuthCritical = url.includes('/users/me') || url.includes('/leagues/me');
-    
-    // Check for non-idempotent methods (POST, PUT, PATCH, DELETE)
     const method = (error.config?.method || 'get').toLowerCase();
     const isIdempotent = ['get', 'head', 'options'].includes(method) || !!error.config?.idempotent;
+    const statusCode = error.response?.status;
     
-    // COLD START handling: limited retry for generic timeouts, none for auth-critical endpoints
-    // CRITICAL FIX: Do not retry non-idempotent requests (POST/PUT/DELETE) on timeout to prevent duplicate data
-    const maxRetries = url.includes('/warmup') ? 0
-                      : isAuthCritical ? 0
-                      : !isIdempotent ? 0  // Disable retry for non-idempotent methods
-                      : (error.code === 'ECONNABORTED' || error.message.includes('timeout')) ? 2
-                      : (error.response?.status >= 500 ? 2 : 0);
-    const shouldRetry = config._retryCount < maxRetries && (
-      error.code === 'ECONNABORTED' ||           // Timeout
-      error.message.includes('timeout') ||        // Timeout variations
-      error.message.includes('Network Error') ||  // Network failures
-      error.response?.status >= 500 ||            // Server errors
-      !error.response                            // No response (hibernation)
-    );
+    // CRITICAL FIX: Only retry on real server/network errors
+    // DO NOT retry on client errors (4xx) - those are deterministic
+    const isRetryableError = 
+      error.code === 'ECONNABORTED' ||                    // Timeout
+      error.message.includes('timeout') ||                 // Timeout variations
+      error.message.includes('Network Error') ||           // Network failures
+      !error.response ||                                   // No response (hibernation)
+      statusCode === 502 ||                               // Bad Gateway (cold start)
+      statusCode === 503 ||                               // Service Unavailable
+      statusCode === 504;                                 // Gateway Timeout
+    
+    // Never retry 4xx errors (401, 403, 404, etc.) - they won't succeed on retry
+    if (statusCode >= 400 && statusCode < 500) {
+      return Promise.reject(error);
+    }
+    
+    // Check for non-idempotent methods (POST, PUT, PATCH, DELETE)
+    // Only retry idempotent requests to prevent duplicate data
+    if (!isIdempotent) {
+      return Promise.reject(error);
+    }
+    
+    // Max retries: 2 for cold starts, 0 for warmup endpoint
+    const maxRetries = url.includes('/warmup') ? 0 : 2;
+    
+    const shouldRetry = config._retryCount < maxRetries && isRetryableError;
     
     if (!shouldRetry) {
       return Promise.reject(error);
@@ -191,17 +200,19 @@ api.interceptors.response.use(
     
     config._retryCount += 1;
     
-    // Progressive backoff (up to ~3s)
+    // Progressive backoff: 1s, 2s, 4s (capped at 3s)
     let delay = Math.min(Math.pow(2, config._retryCount) * 1000, 3000);
     
     // Optimized delays for different error types
     if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
-      delay = Math.min(delay * 1.2, 2000);
+      delay = Math.min(delay * 1.2, 2000); // Slightly longer for timeouts
     } else if (!error.response) {
-      delay = Math.min(delay * 1.1, 2000);
-    } else if (error.response?.status >= 500) {
-      delay = Math.min(delay, 1500);
+      delay = Math.min(delay * 1.1, 2000); // Network failures
+    } else if (statusCode === 502 || statusCode === 503 || statusCode === 504) {
+      delay = Math.min(delay * 1.5, 3000); // Cold start recovery needs more time
     }
+    
+    apiLogger.info(`Retrying request (attempt ${config._retryCount}/${maxRetries}) after ${delay}ms: ${url}`);
     
     await new Promise(resolve => setTimeout(resolve, delay));
     return api(config);
