@@ -219,6 +219,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       // We use generateDefaultMapping to match the incoming keys (from backend parsing)
       // to our target schema (availableDrills)
       const initialMapping = {};
+      const initialAutoMapped = {}; // Declare at top level to avoid TDZ
       const sourceKeys = (response.data.valid_rows.length > 0 || response.data.errors.length > 0)
           ? Object.keys((response.data.valid_rows[0] || response.data.errors[0]).data)
           : [];
@@ -227,7 +228,6 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           // generateDefaultMapping returns { targetKey: sourceKey }
           // We need { sourceKey: targetKey } for our state
           const { mapping: suggestedMapping, confidence: mappingConfidence } = generateDefaultMapping(sourceKeys, effectiveDrills);
-          const initialAutoMapped = {};
           
           // Apply suggested mappings
           Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {
@@ -274,20 +274,30 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       console.error("Parse error:", err);
       setError(err.response?.data?.detail || "Failed to parse import data");
       setStep('input');
+      // Clear file to prevent re-trigger of auto-parse on error
+      setFile(null);
     }
   };
   
   // If a file was dropped, auto-parse it after modal opens
+  // Ref to track if we've already auto-parsed this file to prevent loops
+  const hasAutoParseRef = useRef(false);
+  
   useEffect(() => {
-    if (droppedFile && step === 'input' && file) {
+    if (droppedFile && step === 'input' && file && !hasAutoParseRef.current) {
+      hasAutoParseRef.current = true; // Mark as triggered
       // Small delay to allow modal animation to complete
       const timer = setTimeout(() => {
         handleParse();
       }, 300);
       return () => clearTimeout(timer);
     }
+    // Reset flag when file changes to allow new files to be auto-parsed
+    if (!file) {
+      hasAutoParseRef.current = false;
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droppedFile, step]); // Only run when droppedFile or step changes
+  }, [droppedFile, step, file]); // Track file changes to reset flag
 
     const [importSummary, setImportSummary] = useState(null);
 
