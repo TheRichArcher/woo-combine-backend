@@ -225,9 +225,24 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           : [];
           
       if (sourceKeys.length > 0) {
+          // DEBUG: Log what we're working with for custom drill troubleshooting
+          console.log("[ImportResultsModal] Generating mappings from:", {
+              sourceKeys,
+              effectiveDrills: effectiveDrills.map(d => ({ 
+                  id: d.id, 
+                  key: d.key, 
+                  label: d.label || d.name 
+              }))
+          });
+          
           // generateDefaultMapping returns { targetKey: sourceKey }
           // We need { sourceKey: targetKey } for our state
           const { mapping: suggestedMapping, confidence: mappingConfidence } = generateDefaultMapping(sourceKeys, effectiveDrills);
+          
+          console.log("[ImportResultsModal] Generated mapping:", {
+              suggestedMapping,
+              confidence: mappingConfidence
+          });
           
           // Apply suggested mappings
           Object.entries(suggestedMapping).forEach(([targetKey, sourceHeader]) => {

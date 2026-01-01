@@ -80,6 +80,20 @@ function normalizeHeader(header) {
     .trim();
 }
 
+// Additional normalization for more aggressive matching of custom drills
+// This version collapses more variations: "3-Cone" = "3 cone" = "3cone"
+function normalizeHeaderAggressive(header) {
+  return String(header || '')
+    .toLowerCase()
+    // Remove units
+    .replace(/\s*\([^)]*\)\s*/g, '')
+    // Remove common words that don't affect meaning
+    .replace(/\b(drill|test|score)\b/g, '')
+    // Replace all non-alphanumeric with nothing (more aggressive)
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
 // Check if headers indicate header-based format
 function hasValidHeaders(headers) {
   const normalizedHeaders = headers.map((h) => normalizeHeader(h));
@@ -266,23 +280,35 @@ export function getMappingDescription(mappingType) {
 
 function calculateMatchScore(header, key, synonyms) {
   const normHeader = normalizeHeader(header);
+  const normHeaderAggressive = normalizeHeaderAggressive(header);
   
   // 1. Exact Key Match (Highest confidence)
   if (normHeader === normalizeHeader(key)) return 100;
+  if (normHeaderAggressive === normalizeHeaderAggressive(key)) return 95;
   
   // 2. Synonym Matches
   for (const syn of synonyms) {
     const normSyn = normalizeHeader(syn);
+    const normSynAggressive = normalizeHeaderAggressive(syn);
     
     // Exact synonym match
     if (normHeader === normSyn) return 90;
     
+    // Aggressive match (handles "3-Cone" = "3 Cone" = "3cone")
+    if (normHeaderAggressive === normSynAggressive && normSynAggressive.length > 2) return 85;
+    
     // Header contains synonym (Partial match)
     // We prioritize longer synonyms to avoid "Throw" matching "Free Throw"
-    if (normHeader.includes(normSyn)) {
+    if (normHeader.includes(normSyn) && normSyn.length > 2) {
       // Score based on specificity (length of synonym relative to header)
       const specificity = normSyn.length / normHeader.length;
       return 50 + (specificity * 30); // 50-80 range
+    }
+    
+    // Aggressive partial match as last resort
+    if (normHeaderAggressive.includes(normSynAggressive) && normSynAggressive.length > 3) {
+      const specificity = normSynAggressive.length / normHeaderAggressive.length;
+      return 40 + (specificity * 20); // 40-60 range
     }
   }
   
@@ -299,6 +325,13 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   const drillKeys = drillDefinitions.map(drill => drill.key);
   allKeys.push(...drillKeys);
   
+  console.log("[csvUtils] generateDefaultMapping called with:", {
+    headers,
+    drillCount: drillDefinitions.length,
+    drillKeys,
+    drillLabels: drillDefinitions.map(d => d.label || d.name)
+  });
+  
   const synonyms = getHeaderSynonyms();
   
   // CRITICAL FIX: Add drill labels as synonyms for each drill key
@@ -307,18 +340,63 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
     if (!synonyms[drill.key]) {
       synonyms[drill.key] = [];
     }
-    // Add the label as a synonym (if it's different from the key)
-    const normalizedKey = normalizeHeader(drill.key);
-    const normalizedLabel = normalizeHeader(drill.label);
     
-    if (normalizedKey !== normalizedLabel && !synonyms[drill.key].includes(drill.label)) {
-      synonyms[drill.key].push(drill.label);
+    // Add the drill label as primary synonym
+    const label = drill.label || drill.name;
+    if (label) {
+      synonyms[drill.key].push(label);
+      
+      // Generate common variations of the label for better matching
+      const variations = [];
+      
+      // Add version without spaces: "Three Cone" -> "ThreeCone"
+      variations.push(label.replace(/\s+/g, ''));
+      
+      // Add version with underscores: "Three Cone" -> "three_cone"
+      variations.push(label.toLowerCase().replace(/\s+/g, '_'));
+      
+      // Add version with hyphens: "Three Cone" -> "three-cone"
+      variations.push(label.toLowerCase().replace(/\s+/g, '-'));
+      
+      // Add version with just spaces collapsed: "Three  Cone" -> "Three Cone"
+      variations.push(label.replace(/\s+/g, ' ').trim());
+      
+      // Add version without punctuation: "3-Cone Drill" -> "3 Cone Drill"
+      variations.push(label.replace(/[^\w\s]/g, ' ').replace(/\s+/g, ' ').trim());
+      
+      // Add lowercase versions of all variations
+      variations.forEach(v => {
+        const lower = v.toLowerCase();
+        if (!synonyms[drill.key].includes(v)) {
+          synonyms[drill.key].push(v);
+        }
+        if (!synonyms[drill.key].includes(lower)) {
+          synonyms[drill.key].push(lower);
+        }
+      });
     }
-    // Also ensure the key itself is in the synonyms
+    
+    // Ensure the key itself is in the synonyms
     if (!synonyms[drill.key].includes(drill.key)) {
       synonyms[drill.key].push(drill.key);
     }
+    
+    // Add any explicitly defined aliases if they exist
+    if (drill.aliases && Array.isArray(drill.aliases)) {
+      drill.aliases.forEach(alias => {
+        if (alias && !synonyms[drill.key].includes(alias)) {
+          synonyms[drill.key].push(alias);
+        }
+      });
+    }
   });
+  
+  // DEBUG: Log synonyms for custom drills to verify they were added
+  console.log("[csvUtils] Generated synonyms for drills:", 
+    Object.fromEntries(
+      drillKeys.map(key => [key, synonyms[key] || []])
+    )
+  );
   
   const usedHeaders = new Set();
   
@@ -335,6 +413,18 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
     });
   });
   
+  // DEBUG: Log top matches for each header
+  console.log("[csvUtils] Match scores:", 
+    headers.map(header => ({
+      header,
+      matches: allMatches
+        .filter(m => m.header === header)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 3)
+        .map(m => ({ key: m.key, score: m.score }))
+    }))
+  );
+  
   // Sort matches by score (descending) to prioritize best matches
   allMatches.sort((a, b) => b.score - a.score);
   
@@ -350,6 +440,14 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
       else if (score >= 60) confidence[key] = 'medium';
       else confidence[key] = 'low';
     }
+  });
+  
+  // DEBUG: Log final mapping results
+  console.log("[csvUtils] Final mapping:", {
+    mapping,
+    confidence,
+    unmappedHeaders: headers.filter(h => !usedHeaders.has(h)),
+    unmappedDrills: drillKeys.filter(k => !mapping[k])
   });
   
   return { mapping, confidence };
