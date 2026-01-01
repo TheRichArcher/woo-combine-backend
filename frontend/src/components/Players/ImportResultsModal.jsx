@@ -4,7 +4,7 @@ import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping, REQUIRED_HEADERS } from '../../utils/csvUtils';
 
-export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true }) {
+export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true, droppedFile = null }) {
   const { selectedEvent } = useEvent();
   const [step, setStep] = useState('input'); // input, parsing, sheet_selection, review, submitting, success, history
   
@@ -35,7 +35,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   const [method, setMethod] = useState('file'); // file, text
   const [importMode, setImportMode] = useState(initialMode); // create_or_update, scores_only
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState(droppedFile); // Initialize with droppedFile if provided
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
   const [parseResult, setParseResult] = useState(null);
@@ -276,6 +276,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       setStep('input');
     }
   };
+  
+  // If a file was dropped, auto-parse it after modal opens
+  useEffect(() => {
+    if (droppedFile && step === 'input' && file) {
+      // Small delay to allow modal animation to complete
+      const timer = setTimeout(() => {
+        handleParse();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [droppedFile, step]); // Only run when droppedFile or step changes
 
     const [importSummary, setImportSummary] = useState(null);
 

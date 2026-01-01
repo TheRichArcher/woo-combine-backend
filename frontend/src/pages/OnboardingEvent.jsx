@@ -102,9 +102,16 @@ export default function OnboardingEvent() {
   const [importIntent, setImportIntent] = useState('roster_and_scores');
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const { drills: allDrills } = useDrills(createdEvent, drillRefreshTrigger);
+  const [droppedFileForImport, setDroppedFileForImport] = useState(null);
 
   const fileInputRef = useRef();
   const selectedLeague = leagues?.find(l => l.id === selectedLeagueId);
+  
+  // Drag and drop state
+  const [isDraggingRoster, setIsDraggingRoster] = useState(false);
+  const [isDraggingScores, setIsDraggingScores] = useState(false);
+  const dragCounterRoster = useRef(0);
+  const dragCounterScores = useRef(0);
 
   const StepIndicator = ({ activeStep }) => {
     const steps = [1, 2, 3, 4, 5];
@@ -403,6 +410,88 @@ export default function OnboardingEvent() {
 
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
 
+  // Drag and drop handlers
+  const handleDragEnter = (e, cardType) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (cardType === 'roster') {
+      dragCounterRoster.current++;
+      if (dragCounterRoster.current === 1) {
+        setIsDraggingRoster(true);
+      }
+    } else if (cardType === 'scores') {
+      dragCounterScores.current++;
+      if (dragCounterScores.current === 1) {
+        setIsDraggingScores(true);
+      }
+    }
+  };
+
+  const handleDragLeave = (e, cardType) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (cardType === 'roster') {
+      dragCounterRoster.current--;
+      if (dragCounterRoster.current === 0) {
+        setIsDraggingRoster(false);
+      }
+    } else if (cardType === 'scores') {
+      dragCounterScores.current--;
+      if (dragCounterScores.current === 0) {
+        setIsDraggingScores(false);
+      }
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e, cardType, modalMode, intent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Reset drag state
+    if (cardType === 'roster') {
+      dragCounterRoster.current = 0;
+      setIsDraggingRoster(false);
+    } else if (cardType === 'scores') {
+      dragCounterScores.current = 0;
+      setIsDraggingScores(false);
+    }
+    
+    // Check if files were dropped
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) {
+      showError("No file detected. Please try again.");
+      return;
+    }
+    
+    const file = files[0];
+    const validExtensions = ['.csv', '.xlsx', '.xls'];
+    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+    
+    if (!validExtensions.includes(fileExtension)) {
+      showError(`Invalid file type. Please upload a CSV or Excel file (${validExtensions.join(', ')})`);
+      return;
+    }
+    
+    // Show success feedback
+    showSuccess(`File "${file.name}" ready to import`);
+    
+    // Store file in state so ImportResultsModal can access it
+    setDroppedFileForImport(file);
+    
+    // Trigger the modal with the appropriate mode and intent
+    setDrillRefreshTrigger(t => t + 1);
+    setImportModalMode(modalMode);
+    setImportIntent(intent);
+    setShowImportModal(true);
+  };
+
   // STEP 1: Event Creation
   if (currentStep === 1) {
     return (
@@ -497,14 +586,43 @@ export default function OnboardingEvent() {
             <div className="space-y-4 mb-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {/* Option 1: Roster Only */}
-                      <div className="bg-white border-2 border-brand-primary/20 rounded-xl p-4 shadow-sm hover:border-brand-primary/50 transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full"
+                      <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Upload roster CSV or Excel file - Names and Jersey Numbers only"
+                           className={`bg-white border-2 rounded-xl p-4 shadow-sm transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${
+                             isDraggingRoster 
+                               ? 'border-brand-primary bg-brand-primary/5 scale-105' 
+                               : 'border-brand-primary/20 hover:border-brand-primary/50'
+                           }`}
                            onClick={() => {
                                setDrillRefreshTrigger(t => t + 1);
                                setImportModalMode('create_or_update');
                                setImportIntent('roster_only');
                                setShowImportModal(true);
                            }}
+                           onKeyDown={(e) => {
+                               if (e.key === 'Enter' || e.key === ' ') {
+                                   e.preventDefault();
+                                   setDrillRefreshTrigger(t => t + 1);
+                                   setImportModalMode('create_or_update');
+                                   setImportIntent('roster_only');
+                                   setShowImportModal(true);
+                               }
+                           }}
+                           onDragEnter={(e) => handleDragEnter(e, 'roster')}
+                           onDragLeave={(e) => handleDragLeave(e, 'roster')}
+                           onDragOver={handleDragOver}
+                           onDrop={(e) => handleDrop(e, 'roster', 'create_or_update', 'roster_only')}
                       >
+                          {isDraggingRoster && (
+                            <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl border-2 border-dashed border-brand-primary">
+                              <div className="text-center">
+                                <Upload className="w-8 h-8 text-brand-primary mx-auto mb-2 animate-bounce" />
+                                <p className="text-sm font-semibold text-brand-primary">Drop to upload roster</p>
+                              </div>
+                            </div>
+                          )}
                           <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                   <div className="bg-brand-primary/10 p-1.5 rounded-lg">
@@ -521,20 +639,49 @@ export default function OnboardingEvent() {
                           </div>
                           <div className="mt-auto pt-2">
                               <span className="text-xs font-semibold text-brand-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                  Upload CSV <ArrowRight className="w-3 h-3" />
+                                  {isDraggingRoster ? 'Drop file here' : 'Click or drag CSV'} <ArrowRight className="w-3 h-3" />
                               </span>
                           </div>
                       </div>
 
                       {/* Option 2: Roster + Scores */}
-                      <div className="bg-white border-2 border-brand-primary/20 rounded-xl p-4 shadow-sm hover:border-brand-primary/50 transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full"
+                      <div 
+                           role="button"
+                           tabIndex={0}
+                           aria-label="Upload roster and scores CSV or Excel file - One upload for everything (Recommended)"
+                           className={`bg-white border-2 rounded-xl p-4 shadow-sm transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${
+                             isDraggingScores 
+                               ? 'border-brand-primary bg-brand-primary/5 scale-105' 
+                               : 'border-brand-primary/20 hover:border-brand-primary/50'
+                           }`}
                            onClick={() => {
                                setDrillRefreshTrigger(t => t + 1);
                                setImportModalMode('create_or_update');
                                setImportIntent('roster_and_scores');
                                setShowImportModal(true);
                            }}
+                           onKeyDown={(e) => {
+                               if (e.key === 'Enter' || e.key === ' ') {
+                                   e.preventDefault();
+                                   setDrillRefreshTrigger(t => t + 1);
+                                   setImportModalMode('create_or_update');
+                                   setImportIntent('roster_and_scores');
+                                   setShowImportModal(true);
+                               }
+                           }}
+                           onDragEnter={(e) => handleDragEnter(e, 'scores')}
+                           onDragLeave={(e) => handleDragLeave(e, 'scores')}
+                           onDragOver={handleDragOver}
+                           onDrop={(e) => handleDrop(e, 'scores', 'create_or_update', 'roster_and_scores')}
                       >
+                          {isDraggingScores && (
+                            <div className="absolute inset-0 bg-brand-primary/10 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl border-2 border-dashed border-brand-primary">
+                              <div className="text-center">
+                                <Upload className="w-8 h-8 text-brand-primary mx-auto mb-2 animate-bounce" />
+                                <p className="text-sm font-semibold text-brand-primary">Drop to upload roster + scores</p>
+                              </div>
+                            </div>
+                          )}
                           <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
                                   <div className="bg-brand-primary/10 p-1.5 rounded-lg">
@@ -554,7 +701,7 @@ export default function OnboardingEvent() {
                           </div>
                           <div className="mt-auto pt-2">
                               <span className="text-xs font-semibold text-brand-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                                  Upload CSV <ArrowRight className="w-3 h-3" />
+                                  {isDraggingScores ? 'Drop file here' : 'Click or drag CSV'} <ArrowRight className="w-3 h-3" />
                               </span>
                           </div>
                       </div>
@@ -654,7 +801,10 @@ export default function OnboardingEvent() {
             {/* Import Modal */}
             {showImportModal && (
               <ImportResultsModal
-                onClose={() => setShowImportModal(false)}
+                onClose={() => {
+                  setShowImportModal(false);
+                  setDroppedFileForImport(null);
+                }}
                 initialMode={importModalMode}
                 intent={importIntent}
                 showModeSwitch={false}
@@ -662,10 +812,12 @@ export default function OnboardingEvent() {
                   await fetchEventData();
                   if (!isRevert) {
                     setShowImportModal(false);
+                    setDroppedFileForImport(null);
                     showSuccess(`Successfully imported players/scores!`);
                   }
                 }}
                 availableDrills={allDrills}
+                droppedFile={droppedFileForImport}
               />
             )}
 
@@ -823,7 +975,10 @@ export default function OnboardingEvent() {
 
             {showImportModal && (
               <ImportResultsModal
-                onClose={() => setShowImportModal(false)}
+                onClose={() => {
+                  setShowImportModal(false);
+                  setDroppedFileForImport(null);
+                }}
                 // Pre-select correct mode if opened from "Skip Roster"
                 initialMode="scores_only"
                 onSuccess={async (isRevert) => {
@@ -834,11 +989,13 @@ export default function OnboardingEvent() {
                   // This exits the onboarding flow since the user has successfully imported data
                   if (!isRevert) {
                     setShowImportModal(false);
+                    setDroppedFileForImport(null);
                     showSuccess("Drill scores imported successfully!");
                     navigate('/players');
                   }
                 }}
                 availableDrills={allDrills} // REQUIRED: Pass event-specific drills
+                droppedFile={droppedFileForImport}
               />
             )}
           </OnboardingCard>
