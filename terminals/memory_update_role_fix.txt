@@ -1,0 +1,7 @@
+- ELIMINATED SelectRole page flash during login flow. ROOT CAUSE: /select-role route could mount briefly while userRole was still resolving, causing a visual flash of the role selection UI before the dashboard redirect occurred. SOLUTION: 1) Updated RequireAuth.jsx to strictly wait for `roleChecked` before rendering ANY route (including /select-role). 2) Updated SelectRole.jsx to add a component-level guard that renders a LoadingScreen if `roleChecked` is false, and immediately redirects if `userRole` exists. RESULT: Users with roles never see the selection screen; smooth transition directly to dashboard. Committed as a23cb37. (ID: 723728)
+
+
+
+
+
+

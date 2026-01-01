@@ -1,0 +1,7 @@
+- RESOLVED route flicker and race conditions during login/navigation by enforcing strict initialization gating. ROOT CAUSE: AuthContext was transitioning to READY state (especially in "fast exit" path) before league context was fully loaded, causing protected routes to mount with incomplete data and trigger immediate redirects/flashing. SOLUTION: 1) Updated AuthContext.jsx to await the `fetchLeaguesConcurrently` promise in both the fast-exit and main initialization flows, preventing the READY transition until both role and league data are resolved. 2) Enhanced BootGate.jsx to explicitly check `leaguesLoading` and ensure leagues are "settled" (loaded or cached) before rendering children. RESULT: Stable routing context is guaranteed before UI mounts, eliminating flicker and empty states. Committed as 1f02492 and pushed to production. (ID: 723727)
+
+
+
+
+
+

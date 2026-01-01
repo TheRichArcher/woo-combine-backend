@@ -159,11 +159,18 @@ export function AuthProvider({ children }) {
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
     if (leagueFetchInProgress) return;
     
+    // CRITICAL GUARD: Do not fetch leagues if user has no role yet
+    // This prevents hitting /leagues/me endpoint before role selection is complete
+    if (!userRole) {
+      authLogger.debug('Skipping league fetch - user has no role yet (awaiting /select-role)');
+      return;
+    }
+    
     setLeagueFetchInProgress(true);
-    authLogger.debug('Starting concurrent league fetch');
+    authLogger.debug('Starting concurrent league fetch', { userRole });
     
     let attempts = 0;
-    const maxAttempts = 3;
+    const maxAttempts = 1; // REDUCED: Only 1 attempt to avoid timeout cascade on cold start
     
     const tryFetch = async () => {
       try {
@@ -287,11 +294,10 @@ export function AuthProvider({ children }) {
       // PERFORMANCE: Start backend warmup immediately to reduce cold start impact
       warmupBackend();
 
-      // CRITICAL FIX: Always fetch leagues after login (hot path)
-      // This is the primary fetch trigger that must run regardless of cached state or routes
-      console.debug("[AUTH] Calling fetchLeagues() after login (hot path)");
-      transitionTo(STATUS.FETCHING_CONTEXT, 'Starting league fetch');
-      const leagueLoadPromise = fetchLeaguesConcurrently(firebaseUser, null);
+      // CRITICAL FIX: Do NOT fetch leagues before role check
+      // The old "hot path" was calling fetchLeagues with null role, causing 404s
+      // Instead, we wait for role check to complete below, THEN fetch leagues
+      console.debug("[AUTH] Skipping hot path league fetch - will fetch after role check");
 
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
@@ -317,9 +323,9 @@ export function AuthProvider({ children }) {
           }
           setRoleChecked(true);
           
-          // CRITICAL FIX: Wait for leagues to load before declaring READY
-          // This prevents "No League" flash on dashboard
-          await leagueLoadPromise;
+          // CRITICAL FIX: Fetch leagues AFTER role is confirmed (not before)
+          // Start league fetch with known role to prevent 404 cascade
+          const leagueLoadPromise = fetchLeaguesConcurrently(firebaseUser, cachedRoleQuick);
           
           transitionTo(STATUS.READY, 'Fast exit from login');
           navigate(target, { replace: true });
@@ -365,17 +371,16 @@ export function AuthProvider({ children }) {
           
           transitionTo(STATUS.READY, 'Cached role used');
           
-            // CRITICAL FIX: Always fetch leagues after login, even with cache
-          // (We already called fetchLeaguesConcurrently in the hot path above, but we keep this as a fallback/verification if needed,
-          // though technically redundant if the hot path works. Leaving it for safety but logging it differently.)
+          // CRITICAL FIX: Fetch leagues with known role (not null)
+          // Only fetch if we have a valid role to prevent 404 cascade
           try {
             const path = window.location?.pathname || '';
             // Do not skip fetching on /welcome - authenticated users landing there need leagues
             // Also include /select-role here to ensure we fetch context before redirecting
             const onboarding = ['/login','/signup','/verify-email','/'];
             if (cachedRole !== null && !onboarding.includes(path)) {
-              // console.debug("[AUTH] Calling fetchLeagues() after login (cached path)");
-              // fetchLeaguesConcurrently(firebaseUser, cachedRole);
+              console.debug("[AUTH] Calling fetchLeagues() after cached role confirmation");
+              fetchLeaguesConcurrently(firebaseUser, cachedRole);
             }
           } catch {
             // Do not fetch while on onboarding routes
@@ -540,12 +545,10 @@ export function AuthProvider({ children }) {
             }
           }
         } else {
-          // CRITICAL FIX: Always fetch leagues if not in new organizer flow
-          // Check if we already triggered it in the cached path above to avoid double-fetch?
-          // The concurrency guard inside fetchLeaguesConcurrently handles that.
-          
-          // console.debug("[AUTH] Calling fetchLeagues() after login (standard path)");
-          // fetchLeaguesConcurrently(firebaseUser, userRole);
+          // CRITICAL FIX: Fetch leagues with known role (not in new organizer flow)
+          // The concurrency guard inside fetchLeaguesConcurrently handles duplicate calls
+          console.debug("[AUTH] Calling fetchLeagues() after role verification (standard path)");
+          fetchLeaguesConcurrently(firebaseUser, userRole);
         }
 
         setRoleChecked(true);
@@ -555,10 +558,12 @@ export function AuthProvider({ children }) {
         const onboardingRoutes = ["/login", "/signup", "/", "/welcome", "/select-role"];
         authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
         
-        // CRITICAL FIX: Ensure leagues are loaded before final READY state
-        // This prevents flicker on dashboard where leagues are required
-        if (leagueLoadPromise) {
-            await leagueLoadPromise;
+        // CRITICAL FIX: Wait for leagues to load if we started a fetch
+        // Only wait if we're not in the new organizer flow (where leagues = [])
+        if (!isNewOrganizerFlow && userRole) {
+          authLogger.debug('Waiting for league load to complete before READY state');
+          // Give it a moment to start and complete
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
 
         authLogger.debug('Auth state after role check', {

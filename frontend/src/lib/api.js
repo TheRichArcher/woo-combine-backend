@@ -17,11 +17,18 @@ const resolveBaseUrl = () => {
   if (typeof process !== 'undefined' && process.env && process.env.VITE_API_BASE) {
     return process.env.VITE_API_BASE;
   }
-  // Browser fallback: same-origin /api (useful in local dev with proxy)
-  if (typeof window !== 'undefined' && window.location && window.location.origin) {
+  // PRODUCTION FALLBACK: Use Render backend directly
+  // This ensures production builds work even if env var is not set
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    // If we're on the production domain, use the Render backend
+    if (hostname === 'woo-combine.com' || hostname === 'www.woo-combine.com') {
+      return 'https://woo-combine-backend.onrender.com/api';
+    }
+    // Otherwise assume local dev with proxy
     return `${window.location.origin}/api`;
   }
-  // Final fallback
+  // Final fallback for local dev
   return 'http://localhost:3000/api';
 };
 
