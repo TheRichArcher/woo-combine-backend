@@ -2,6 +2,50 @@
 
 After deploying these fixes, verify the following in production:
 
+## 🔍 The 3-Network-Call Fingerprint (CRITICAL TEST)
+
+This is the **definitive test** that proves everything works correctly.
+
+### For a Brand-New User (After Login):
+
+Open Chrome DevTools → Network tab, filter for "Fetch/XHR", then log in as a new user:
+
+```
+✅ CORRECT FLOW:
+1. GET /api/users/me → 200 OK, {"role": null, ...}
+2. [User redirected to /select-role page]
+3. [NO /api/leagues/me call visible yet] ← CRITICAL
+4. [User selects role, e.g., "League Operator"]
+5. GET /api/leagues/me → 200 OK, {"leagues": []}
+6. [User proceeds to dashboard/guided setup]
+
+❌ WRONG FLOW (Guard not working):
+1. GET /api/users/me → 200 OK, {"role": null, ...}
+2. GET /api/leagues/me → ??? ← SHOULD NOT HAPPEN
+   ^ If you see this before role selection, guard is broken
+```
+
+### What This Proves:
+
+- ✅ `/api/users/me` happens first (role check)
+- ✅ NO `/leagues/me` before role selection (guard works)
+- ✅ `/api/leagues/me` happens AFTER role (proper gating)
+- ✅ Response is 200 with `{"leagues": []}` (not 404)
+- ✅ No retry attempts (single clean call)
+
+### For an Existing User (With Leagues):
+
+```
+✅ CORRECT FLOW:
+1. GET /api/users/me → 200 OK, {"role": "organizer", ...}
+2. GET /api/leagues/me → 200 OK, {"leagues": [{...}, {...}]}
+3. [Dashboard loads with leagues]
+
+Total: 2 API calls
+```
+
+---
+
 ## 1. New User Flow (Brand New Signup)
 
 ### Expected Behavior:
@@ -159,22 +203,41 @@ No leagues found for user abc123 - returning empty array (new user)
 
 ## 7. Network Tab Analysis (Chrome DevTools)
 
-### New User:
-1. Open DevTools → Network tab
-2. Sign up → verify email → select role
-3. Check requests:
-   - [ ] `/api/users/me` → 200 (returns role: null initially)
-   - [ ] NO `/api/leagues/me` calls before role selection
-   - [ ] After role: `/api/leagues/me` → 200 with `{"leagues": []}`
-   - [ ] Timing shows single request (no retries)
+### The 3-Call Fingerprint Test (Most Important)
+
+**New User - Step by Step**:
+1. Open DevTools → Network tab → Filter: Fetch/XHR
+2. Clear network log (🚫 icon)
+3. Sign up → verify email → wait for redirect
+4. **Check**: Should see ONLY `GET /api/users/me` → 200
+5. **Check**: Should see NO `/api/leagues/me` calls yet
+6. **Verify**: Page shows role selection UI
+7. Select a role (e.g., "League Operator")
+8. **Check**: NOW see `GET /api/leagues/me` → 200 with `{"leagues": []}`
+9. **Verify**: Single request, no retries visible in timing
+
+**What to Check**:
+- [ ] Call #1: `/api/users/me` → 200 (role: null)
+- [ ] NO `/api/leagues/me` before role selection
+- [ ] Call #2: `/api/leagues/me` → 200 after role selection
+- [ ] Response body: `{"leagues": []}`
+- [ ] Timing shows single request (no retry attempts)
+- [ ] Total network calls: 2 (not 3, not 5, not 10+)
 
 ### Existing User:
-1. Log in with existing account
-2. Check requests:
-   - [ ] `/api/users/me` → 200 (returns role)
-   - [ ] `/api/leagues/me` → 200 with leagues array
-   - [ ] Single request (no duplicates)
-   - [ ] Fast response (<1s typically, <45s worst-case cold start)
+### Existing User (With Leagues):
+1. Clear network log  
+2. Log in with existing account
+3. **Check**: See `/api/users/me` → 200 (role present)
+4. **Check**: See `/api/leagues/me` → 200 with leagues array
+5. **Verify**: Single request (no duplicates)
+6. **Verify**: Fast response (<1s typically, <45s worst-case cold start)
+
+**What to Check**:
+- [ ] Call #1: `/api/users/me` → 200 (role: "organizer" or similar)
+- [ ] Call #2: `/api/leagues/me` → 200 with `{"leagues": [...]}`
+- [ ] No duplicate `/api/leagues/me` calls (de-duplication works)
+- [ ] Dashboard loads with league data
 
 ---
 

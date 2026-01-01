@@ -167,19 +167,25 @@ api.interceptors.response.use(
     const isIdempotent = ['get', 'head', 'options'].includes(method) || !!error.config?.idempotent;
     const statusCode = error.response?.status;
     
-    // CRITICAL FIX: Only retry on real server/network errors
-    // DO NOT retry on client errors (4xx) - those are deterministic
+    // CRITICAL FIX: Only retry on real infrastructure errors
+    // DO NOT retry on client errors (4xx) OR application errors (500/501)
     const isRetryableError = 
       error.code === 'ECONNABORTED' ||                    // Timeout
       error.message.includes('timeout') ||                 // Timeout variations
       error.message.includes('Network Error') ||           // Network failures
       !error.response ||                                   // No response (hibernation)
-      statusCode === 502 ||                               // Bad Gateway (cold start)
-      statusCode === 503 ||                               // Service Unavailable
-      statusCode === 504;                                 // Gateway Timeout
+      statusCode === 502 ||                               // Bad Gateway (cold start/proxy)
+      statusCode === 503 ||                               // Service Unavailable (hibernation)
+      statusCode === 504;                                 // Gateway Timeout (cold start)
     
     // Never retry 4xx errors (401, 403, 404, etc.) - they won't succeed on retry
-    if (statusCode >= 400 && statusCode < 500) {
+    // Never retry 500/501 - those are application errors, not infrastructure issues
+    if (statusCode >= 400 && statusCode < 502) {
+      return Promise.reject(error);
+    }
+    
+    // Never retry 500 Internal Server Error or 501 Not Implemented
+    if (statusCode === 500 || statusCode === 501) {
       return Promise.reject(error);
     }
     
