@@ -14,17 +14,19 @@ import { playerLogger, rankingLogger } from '../utils/logger';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import LoadingScreen from "../components/LoadingScreen";
+import LeagueFallback from "../context/LeagueFallback"; // CRITICAL FIX: Import LeagueFallback directly
 
 // Debug Log for troubleshooting production undefined component error
 console.debug('[CoachDashboard] Component Check:', { 
   CreateLeagueForm, 
   EventSelector, 
   CreateEventModal,
-  LoadingScreen 
+  LoadingScreen,
+  LeagueFallback // Add to debug check
 });
 
 const CoachDashboard = React.memo(function CoachDashboard() {
-  const { selectedEvent, noLeague, LeagueFallback, setEvents, setSelectedEvent, events } = useEvent();
+  const { selectedEvent, noLeague, setEvents, setSelectedEvent, events } = useEvent();
   const { user, selectedLeagueId, userRole, leagues } = useAuth();
   const { openDetails } = usePlayerDetails();
   

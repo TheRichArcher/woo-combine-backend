@@ -33,11 +33,13 @@ export default function Home() {
   };
 
   // Redirect organizers and coaches to the new Coach Dashboard
+  // CRITICAL FIX: Only redirect if we're NOT currently loading leagues
+  // This prevents navigation before auth state is fully ready
   React.useEffect(() => {
-    if (userRole === 'organizer' || userRole === 'coach') {
+    if ((userRole === 'organizer' || userRole === 'coach') && !leaguesLoading && selectedLeagueId) {
       navigate('/coach', { replace: true });
     }
-  }, [userRole, navigate]);
+  }, [userRole, navigate, leaguesLoading, selectedLeagueId]);
 
   // Don't render anything if we're navigating (prevents flash)
   if (isNavigating || userRole === 'organizer' || userRole === 'coach' || leaguesLoading) {
