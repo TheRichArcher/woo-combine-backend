@@ -160,7 +160,7 @@ export function AuthProvider({ children }) {
   const leagueFetchPromiseRef = useRef(null);
   const lastFetchKeyRef = useRef(null);
   const abortControllerRef = useRef(null);
-  const tokenVersionRef = useRef(null);
+  const tokenVersionCounterRef = useRef(0); // Monotonic counter, always present
 
   // PERFORMANCE: Concurrent league fetching with retry logic for cold starts
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, userRole) => {
@@ -187,30 +187,42 @@ export function AuthProvider({ children }) {
       return;
     }
     
-    // Get fresh token and cache version for de-duplication
-    let token;
+    // Get token version for cache key
+    // Use Firebase's stsTokenManager for reliable token versioning
+    let tokenVersion;
     try {
-      token = await firebaseUser.getIdToken(false);
-      if (!token) {
-        authLogger.warn('Skipping league fetch - no token available');
-        return;
+      // OPTION 1: Use Firebase's expirationTime (milliseconds, always present)
+      if (firebaseUser.stsTokenManager?.expirationTime) {
+        tokenVersion = firebaseUser.stsTokenManager.expirationTime;
+      } 
+      // OPTION 2: Parse iat from JWT (may not always be present)
+      else {
+        const token = await firebaseUser.getIdToken(false);
+        if (!token) {
+          authLogger.warn('Skipping league fetch - no token available');
+          return;
+        }
+        const tokenPayload = parseJwtPayload(token);
+        tokenVersion = tokenPayload?.iat;
+        
+        // FALLBACK: If iat not present, use monotonic counter
+        if (!tokenVersion) {
+          tokenVersionCounterRef.current += 1;
+          tokenVersion = tokenVersionCounterRef.current;
+          authLogger.debug('Token iat missing, using counter', tokenVersion);
+        }
       }
     } catch (err) {
-      authLogger.warn('Failed to get token for league fetch', err);
+      authLogger.warn('Failed to get token version for league fetch', err);
       return;
     }
     
-    // Extract token issued-at time for cache key (prevents reusing stale token promises)
-    const tokenPayload = parseJwtPayload(token);
-    const tokenIssuedAt = tokenPayload?.iat || Date.now();
-    tokenVersionRef.current = tokenIssuedAt;
-    
     // DE-DUPLICATION: Prevent double calls with in-flight promise cache
-    // Key by userId + role + tokenIssuedAt to ensure we refetch if:
+    // Key by userId + role + tokenVersion to ensure we refetch if:
     // - User changes
     // - Role changes
-    // - Token refreshes (prevents reusing promises with expired tokens)
-    const fetchKey = `${firebaseUser.uid}:${userRole}:${tokenIssuedAt}`;
+    // - Token refreshes (expirationTime changes on refresh)
+    const fetchKey = `${firebaseUser.uid}:${userRole}:${tokenVersion}`;
     
     // If same fetch is already in progress, return that promise
     if (leagueFetchInProgress && lastFetchKeyRef.current === fetchKey && leagueFetchPromiseRef.current) {
@@ -252,11 +264,14 @@ export function AuthProvider({ children }) {
         }
         
         // Use centralized getMyLeagues() that normalizes response
-        // This returns a plain array always (never object, never null)
-        const leagueArray = await getMyLeagues();
+        // Pass abort signal so axios can actually cancel the request
+        const leagueArray = await getMyLeagues({ 
+          signal: currentAbortController.signal 
+        });
         
         // CRITICAL: Check if fetch is still valid before committing state
         // Prevents stale responses from winning if role changed mid-flight
+        // This check is REQUIRED even with AbortController (defense in depth)
         if (lastFetchKeyRef.current !== fetchKey) {
           authLogger.debug('Discarding stale league fetch response (key changed)');
           return;
@@ -282,8 +297,8 @@ export function AuthProvider({ children }) {
            setRole(leagueArray[0].role);
         }
       } catch (error) {
-        // Don't log aborted requests as errors
-        if (error.name === 'AbortError' || error.message.includes('abort')) {
+        // Don't log aborted requests as errors (axios throws CanceledError)
+        if (error.name === 'AbortError' || error.name === 'CanceledError' || error.message?.includes('abort')) {
           authLogger.debug('League fetch aborted (expected)');
           return;
         }

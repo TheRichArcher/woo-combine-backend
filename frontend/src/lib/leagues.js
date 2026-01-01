@@ -11,6 +11,8 @@ import api from './api';
 /**
  * Get leagues for the current user
  * 
+ * @param {Object} options - Optional configuration
+ * @param {AbortSignal} options.signal - AbortController signal for request cancellation
  * @returns {Promise<Array>} Always returns a plain array of leagues
  * @throws {Error} Re-throws API errors for caller to handle
  * 
@@ -19,9 +21,12 @@ import api from './api';
  * - This function returns: [...] or []
  * - NEVER returns: undefined, null, or object with leagues key
  */
-export async function getMyLeagues() {
+export async function getMyLeagues(options = {}) {
   try {
-    const response = await api.get('/leagues/me');
+    // Pass signal to axios for abort support
+    const response = await api.get('/leagues/me', {
+      signal: options.signal
+    });
     
     // Normalize response to plain array
     const data = response?.data;
@@ -59,6 +64,10 @@ export async function getMyLeagues() {
     console.warn('[API] Unexpected response shape from /leagues/me:', data);
     return [];
   } catch (error) {
+    // Don't log AbortError as actual error
+    if (error.name === 'AbortError' || error.name === 'CanceledError') {
+      throw error; // Re-throw but caller knows it's expected
+    }
     // Re-throw for caller to handle
     throw error;
   }
