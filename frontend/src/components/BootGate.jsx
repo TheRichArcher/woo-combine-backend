@@ -13,17 +13,20 @@ export default function BootGate({ children }) {
   const { loading: eventsLoading } = useEvent();
   const [longBoot, setLongBoot] = useState(false);
 
-  // STATUS flow: IDLE -> INITIALIZING -> AUTHENTICATING -> FETCHING_CONTEXT -> READY (or UNAUTHENTICATED)
-  const isAuthSettled = status === 'READY' || status === 'UNAUTHENTICATED';
+  // STATUS flow: IDLE -> INITIALIZING -> AUTHENTICATING -> ROLE_REQUIRED (if no role) -> FETCHING_CONTEXT -> READY (or UNAUTHENTICATED)
+  // CRITICAL FIX: Allow ROLE_REQUIRED to pass through BootGate so SelectRole UI can render
+  const isAuthSettled = status === 'READY' || status === 'UNAUTHENTICATED' || status === 'ROLE_REQUIRED';
   
   // Safety net: Even if status is READY, ensure leagues are loaded if we are authenticated
   // We allow rendering if we have cached leagues (leagues.length > 0) to prevent blocking
-  const isLeaguesSettled = !user || (!leaguesLoading || (leagues && leagues.length > 0));
+  // Skip league check if status is ROLE_REQUIRED (user hasn't selected role yet, won't have leagues)
+  const isLeaguesSettled = status === 'ROLE_REQUIRED' || !user || (!leaguesLoading || (leagues && leagues.length > 0));
 
   // If authenticated, we also want to wait for the initial event load to complete
   // so the dashboard doesn't flash "No Events" before loading them.
   // We only block on eventsLoading if we are actually logged in (status === READY).
-  const isEventSettled = !user || !eventsLoading;
+  // Skip event check if status is ROLE_REQUIRED
+  const isEventSettled = status === 'ROLE_REQUIRED' || !user || !eventsLoading;
 
   const isBooting = !isAuthSettled || (status === 'READY' && (!isLeaguesSettled || !isEventSettled));
 

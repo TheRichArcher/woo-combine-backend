@@ -49,6 +49,7 @@ export function AuthProvider({ children }) {
     IDLE: 'IDLE',
     INITIALIZING: 'INITIALIZING', // Checking Firebase
     AUTHENTICATING: 'AUTHENTICATING', // Fetching DB Profile
+    ROLE_REQUIRED: 'ROLE_REQUIRED', // User needs to select role
     FETCHING_CONTEXT: 'FETCHING_CONTEXT', // Loading Leagues
     READY: 'READY', // App is usable
     UNAUTHENTICATED: 'UNAUTHENTICATED' // Guest mode
@@ -631,6 +632,10 @@ function parseJwtPayload(token) {
           setRole(null);
           setRoleChecked(true);
           
+          // CRITICAL FIX: Transition to ROLE_REQUIRED state instead of READY
+          // This allows BootGate to pass through and render SelectRole UI
+          transitionTo(STATUS.ROLE_REQUIRED, 'User needs to select role');
+          
           const currentPath = window.location.pathname;
           authLogger.debug('Current path', currentPath);
           if (currentPath.startsWith('/join-event/')) {
@@ -861,16 +866,20 @@ function parseJwtPayload(token) {
         // Persist role to localStorage for browser refresh resilience
         localStorage.setItem('userRole', newRole);
         
-        // FIXED: Don't reload page - let the auth flow handle navigation naturally
-        if (newRole && !userRole) {
-          authLogger.debug('First-time role detected, allowing natural navigation');
-          // Natural navigation will happen via SelectRole component
+        // CRITICAL FIX: Transition from ROLE_REQUIRED to READY after role is set
+        if (newRole && status === STATUS.ROLE_REQUIRED) {
+          authLogger.debug('Role selected, transitioning to READY state');
+          transitionTo(STATUS.READY, 'Role selected');
+          
+          // Now that we have a role, fetch leagues
+          authLogger.debug('Fetching leagues after role selection');
+          await fetchLeaguesConcurrently(user, newRole);
         }
       }
     } catch (error) {
       authLogger.error('Failed to refresh user role', error);
     }
-  }, [user, userRole]);
+  }, [user, status, fetchLeaguesConcurrently, transitionTo]);
 
   // Expose state setters for logout functionality
   const contextValue = {

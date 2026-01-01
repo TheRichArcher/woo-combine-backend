@@ -217,11 +217,9 @@ export default function SelectRole() {
         throw primaryError;
       }
       
-      // PERFORMANCE: Skip redundant role refresh - AuthContext will handle this automatically
-      // Just update local state for immediate navigation and persist to localStorage
-      setUserRole(roleToSave);
-      localStorage.setItem('userRole', roleToSave);
-      localStorage.setItem('userEmail', user.email);
+      // CRITICAL FIX: Call refreshUserRole to transition from ROLE_REQUIRED to READY
+      // This ensures proper state machine progression and triggers league fetch
+      await refreshUserRole();
       
       // Informational hint on next screen
       showInfo('Not the right role? You can change it later in Settings.', 6000);
