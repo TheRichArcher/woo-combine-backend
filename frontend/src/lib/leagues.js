@@ -1,4 +1,5 @@
 import api from './api';
+import axios from 'axios';
 
 /**
  * Centralized API client for league operations
@@ -7,6 +8,34 @@ import api from './api';
  * ALL league fetching should go through these functions to ensure consistent
  * response shape handling.
  */
+
+/**
+ * Check if error is from request cancellation
+ * Robust check for all axios cancel patterns
+ */
+function isCancelError(error) {
+  // Modern axios (1.x): axios.isCancel() utility
+  if (axios.isCancel && axios.isCancel(error)) {
+    return true;
+  }
+  
+  // Axios 1.x: ERR_CANCELED code
+  if (error.code === 'ERR_CANCELED') {
+    return true;
+  }
+  
+  // Axios 1.x: CanceledError name
+  if (error.name === 'CanceledError') {
+    return true;
+  }
+  
+  // Standard AbortError (fetch API)
+  if (error.name === 'AbortError') {
+    return true;
+  }
+  
+  return false;
+}
 
 /**
  * Get leagues for the current user
@@ -64,11 +93,13 @@ export async function getMyLeagues(options = {}) {
     console.warn('[API] Unexpected response shape from /leagues/me:', data);
     return [];
   } catch (error) {
-    // Don't log AbortError as actual error
-    if (error.name === 'AbortError' || error.name === 'CanceledError') {
-      throw error; // Re-throw but caller knows it's expected
+    // Robust cancel detection - don't log as error
+    if (isCancelError(error)) {
+      // Expected cancellation, re-throw silently
+      throw error;
     }
-    // Re-throw for caller to handle
+    
+    // Real error - re-throw for caller to handle
     throw error;
   }
 }

@@ -3,6 +3,7 @@ import { auth } from "../firebase";
 import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
 import api, { apiHealth, apiWarmup } from '../lib/api';
 import { getMyLeagues } from '../lib/leagues';
+import axios from 'axios';
 import { useNavigate } from "react-router-dom";
 
 import { useToast } from './ToastContext';
@@ -190,10 +191,20 @@ export function AuthProvider({ children }) {
     // Get token version for cache key
     // Use Firebase's stsTokenManager for reliable token versioning
     let tokenVersion;
+    let tokenSource = 'unknown';
     try {
       // OPTION 1: Use Firebase's expirationTime (milliseconds, always present)
       if (firebaseUser.stsTokenManager?.expirationTime) {
         tokenVersion = firebaseUser.stsTokenManager.expirationTime;
+        tokenSource = 'expirationTime';
+        
+        // PRODUCTION VERIFICATION: Log token version to confirm it changes on refresh
+        if (process.env.NODE_ENV === 'development' || true) {
+          authLogger.debug('Token version from expirationTime', {
+            expirationTime: tokenVersion,
+            expiresIn: Math.round((tokenVersion - Date.now()) / 1000 / 60) + ' minutes'
+          });
+        }
       } 
       // OPTION 2: Parse iat from JWT (may not always be present)
       else {
@@ -209,7 +220,10 @@ export function AuthProvider({ children }) {
         if (!tokenVersion) {
           tokenVersionCounterRef.current += 1;
           tokenVersion = tokenVersionCounterRef.current;
+          tokenSource = 'counter';
           authLogger.debug('Token iat missing, using counter', tokenVersion);
+        } else {
+          tokenSource = 'iat';
         }
       }
     } catch (err) {
@@ -246,7 +260,13 @@ export function AuthProvider({ children }) {
     }
     
     setLeagueFetchInProgress(true);
-    authLogger.debug('Starting concurrent league fetch', { userRole, status, fetchKey });
+    authLogger.debug('Starting concurrent league fetch', { 
+      userRole, 
+      status, 
+      fetchKey,
+      tokenSource,
+      tokenVersion 
+    });
     
     // Create new AbortController for this fetch
     abortControllerRef.current = new AbortController();
@@ -297,8 +317,15 @@ export function AuthProvider({ children }) {
            setRole(leagueArray[0].role);
         }
       } catch (error) {
-        // Don't log aborted requests as errors (axios throws CanceledError)
-        if (error.name === 'AbortError' || error.name === 'CanceledError' || error.message?.includes('abort')) {
+        // Robust cancel detection - use multiple checks
+        const isCancel = 
+          (typeof axios !== 'undefined' && axios.isCancel && axios.isCancel(error)) ||
+          error.code === 'ERR_CANCELED' ||
+          error.name === 'CanceledError' ||
+          error.name === 'AbortError' ||
+          error.message?.includes('abort');
+        
+        if (isCancel) {
           authLogger.debug('League fetch aborted (expected)');
           return;
         }
