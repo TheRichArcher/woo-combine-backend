@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
 import api, { apiHealth, apiWarmup } from '../lib/api';
