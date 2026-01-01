@@ -46,6 +46,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   const [undoTimer, setUndoTimer] = useState(30);
   const fileInputRef = useRef(null);
   
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
+  
   // Column Mapping State
   const [keyMapping, setKeyMapping] = useState({}); // { originalKey: targetKey }
   const [autoMappedKeys, setAutoMappedKeys] = useState({}); // { originalKey: confidence }
@@ -157,6 +161,73 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       setFile(e.target.files[0]);
       setError(null);
     }
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounter.current++;
+    if (dragCounter.current === 1) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Reset drag state
+    dragCounter.current = 0;
+    setIsDragging(false);
+    
+    // Check if files were dropped
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) {
+      setError("No file detected. Please try again.");
+      return;
+    }
+    
+    const droppedFile = files[0];
+    
+    // Validate file type based on current method
+    if (method === 'photo') {
+      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
+      if (!validImageTypes.includes(droppedFile.type.toLowerCase()) && 
+          !droppedFile.name.toLowerCase().match(/\.(jpg|jpeg|png|heic)$/)) {
+        setError('Invalid file type. Please upload an image file (JPG, PNG, HEIC).');
+        return;
+      }
+    } else {
+      // For file method, validate CSV/Excel
+      const validExtensions = ['.csv', '.xlsx', '.xls'];
+      const fileExtension = droppedFile.name.toLowerCase().substring(droppedFile.name.lastIndexOf('.'));
+      
+      if (!validExtensions.includes(fileExtension)) {
+        setError(`Invalid file type. Please upload a CSV or Excel file (${validExtensions.join(', ')})`);
+        return;
+      }
+    }
+    
+    // File is valid, set it and clear any previous errors
+    setFile(droppedFile);
+    setError(null);
   };
 
   const handleDownloadTemplate = () => {
@@ -691,8 +762,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
       {method === 'file' || method === 'photo' ? (
         <div 
-          className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer"
+          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
+            isDragging 
+              ? 'border-cmf-primary bg-blue-50 scale-[1.02]' 
+              : 'border-gray-300 hover:bg-gray-50'
+          }`}
           onClick={() => fileInputRef.current?.click()}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
         >
           <input
             type="file"
@@ -714,10 +793,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           ) : (
             <div>
               <p className="font-medium text-gray-700">
-                {method === 'photo' ? "Click to take/upload photo" : "Click to select file"}
+                {isDragging 
+                  ? "Drop to upload" 
+                  : method === 'photo' 
+                    ? "Click to take/upload photo" 
+                    : "Click to select file"}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {method === 'photo' ? "Supports JPG, PNG, HEIC" : "Supports CSV, Excel (.xlsx)"}
+                {isDragging 
+                  ? "Release to upload your file" 
+                  : method === 'photo' 
+                    ? "Supports JPG, PNG, HEIC" 
+                    : "Supports CSV, Excel (.xlsx)"}
               </p>
             </div>
           )}
