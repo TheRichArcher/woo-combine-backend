@@ -1007,20 +1007,22 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
     return (
       <div className="space-y-4">
-        {/* Detected Sport Banner */}
-        <div className="flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
-            <div className="flex items-center gap-2">
-                <Info className="w-4 h-4" />
-                <span>
-                    Detected Sport: <strong>{detected_sport || 'Unknown'}</strong> 
-                    {confidence && <span className="opacity-75 text-xs ml-1">({confidence} confidence)</span>}
-                </span>
-            </div>
-            <div className="flex items-center gap-1 text-xs text-blue-600">
-                <Save className="w-3 h-3" />
-                <span>Draft saved automatically</span>
-            </div>
-        </div>
+        {/* Detected Sport Banner - Only show if sport was actually detected (not from event) */}
+        {detected_sport && confidence !== 'event' && (
+          <div className="flex items-center justify-between p-3 bg-blue-50 text-blue-700 rounded-lg text-sm border border-blue-100">
+              <div className="flex items-center gap-2">
+                  <Info className="w-4 h-4" />
+                  <span>
+                      Detected Sport: <strong>{detected_sport || 'Unknown'}</strong> 
+                      {confidence && <span className="opacity-75 text-xs ml-1">({confidence} confidence)</span>}
+                  </span>
+              </div>
+              <div className="flex items-center gap-1 text-xs text-blue-600">
+                  <Save className="w-3 h-3" />
+                  <span>Draft saved automatically</span>
+              </div>
+          </div>
+        )}
 
         {/* Create/Update Mode Tip */}
         {importMode === 'create_or_update' && intent === 'roster_and_scores' && (

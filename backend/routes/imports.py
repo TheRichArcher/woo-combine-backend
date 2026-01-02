@@ -57,15 +57,20 @@ def parse_import_file(
         
         result = None
         
-        # Fetch disabled drills from event configuration
+        # Fetch event configuration (disabled drills + actual sport)
         disabled_drills = []
+        event_sport = None
         try:
             event_ref = db.collection("events").document(event_id)
             event_doc = execute_with_timeout(lambda: event_ref.get(), timeout=5)
             if event_doc.exists:
-                disabled_drills = event_doc.to_dict().get("disabled_drills", [])
-        except Exception:
+                event_data = event_doc.to_dict()
+                disabled_drills = event_data.get("disabled_drills", [])
+                event_sport = event_data.get("drillTemplate") or event_data.get("sport")  # Use actual event sport
+                logging.info(f"[IMPORT] Event {event_id} has sport: {event_sport}")
+        except Exception as e:
             # Fallback if fetch fails, proceed with full schema
+            logging.warning(f"[IMPORT] Failed to fetch event config: {e}")
             pass
         
         if file:
@@ -153,8 +158,10 @@ def parse_import_file(
                 "valid_count": len(result.valid_rows),
                 "error_count": len(result.errors)
             },
-            "detected_sport": result.detected_sport,
-            "confidence": result.confidence,
+            # CRITICAL FIX: If event has a defined sport, use it instead of auto-detection
+            # This prevents "Detected Sport: football" appearing on Soccer events
+            "detected_sport": event_sport if event_sport else result.detected_sport,
+            "confidence": "event" if event_sport else result.confidence,  # "event" = known, not detected
             "sheets": []
         }
         
