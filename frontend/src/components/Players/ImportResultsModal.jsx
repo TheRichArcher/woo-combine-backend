@@ -344,19 +344,23 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           
           // For any unmapped keys, default to identity if it matches a known drill key directly
           sourceKeys.forEach(key => {
-              if (!initialMapping[key]) {
-                  // If the key itself matches a drill key exactly, map it
-                  if (effectiveDrills.some(d => d.key === key)) {
-                       if (intent !== 'roster_only') {
-                           initialMapping[key] = key;
-                           initialAutoMapped[key] = 'high'; // Exact match
-                       }
-                  } else {
-                      // Fallback: Use identity mapping (key -> key)
-                      // This allows backend fuzzy matching to handle it if frontend normalization wasn't perfect
-                      initialMapping[key] = key; 
+              // Skip keys that are already mapped by generateDefaultMapping
+              if (initialMapping[key]) {
+                  console.log("[ImportResultsModal] Skipping already mapped key:", key, "→", initialMapping[key]);
+                  return;
+              }
+              
+              // Only map if the key itself matches a drill key exactly
+              if (effectiveDrills.some(d => d.key === key)) {
+                  if (intent !== 'roster_only') {
+                      initialMapping[key] = key;
+                      initialAutoMapped[key] = 'high'; // Exact match
+                      console.log("[ImportResultsModal] Identity mapping for exact drill key:", key);
                   }
               }
+              // NOTE: We intentionally DO NOT create identity mappings for unrecognized keys
+              // This prevents "Vertical Jump (cm)" → "Vertical Jump (cm)" which would fail validation
+              // Unmapped keys will be left empty and user can manually map them via dropdowns
           });
       }
       
