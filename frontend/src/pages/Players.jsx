@@ -780,7 +780,7 @@ export default function Players() {
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 truncate">{player.name}</div>
                             <div className="text-xs text-gray-500">
-                               #{player.number || '-'} {selectedAgeGroup === 'all' && `• ${player.age_group}`}
+                               #{player.number || '-'} {selectedAgeGroup === 'all' && player.age_group && `• ${player.age_group}`}
                             </div>
                           </div>
                           <div className="text-right">

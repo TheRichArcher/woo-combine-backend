@@ -840,6 +840,7 @@ def get_rankings(
                 "player_id": player.id,
                 "name": player_data.get("name"),
                 "number": player_data.get("number"),
+                "age_group": player_data.get("age_group"), # Added for UI consistency with Live Standings
                 "external_id": player_data.get("external_id"), # Added for combine analytics
                 "composite_score": composite_score,
                 # Scores map takes precedence
