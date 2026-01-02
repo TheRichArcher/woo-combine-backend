@@ -41,8 +41,9 @@ export default function Home() {
     }
   }, [userRole, navigate, leaguesLoading, selectedLeagueId]);
 
-  // Don't render anything if we're navigating (prevents flash)
-  if (isNavigating || userRole === 'organizer' || userRole === 'coach' || leaguesLoading) {
+  // Show loading spinner ONLY while leagues are actually loading
+  // NOT just because user is organizer/coach (that was the bug!)
+  if (isNavigating || leaguesLoading) {
     return (
       <LoadingScreen 
         title="Loading Dashboard..."

@@ -259,7 +259,7 @@ export function AuthProvider({ children }) {
     }
     
     setLeagueFetchInProgress(true);
-    authLogger.debug('Starting concurrent league fetch', { 
+    authLogger.info(`[League Fetch] STARTED - leagueFetchInProgress: true`, { 
       userRole, 
       status, 
       fetchKey,
@@ -303,7 +303,7 @@ export function AuthProvider({ children }) {
         }
         
         setLeagues(leagueArray);
-        authLogger.debug('Leagues loaded concurrently', leagueArray.length);
+        authLogger.info(`[League Fetch] COMPLETED - ${leagueArray.length} leagues loaded`);
         
         // Set selection if needed
         const rawStored = localStorage.getItem('selectedLeagueId');
@@ -333,6 +333,7 @@ export function AuthProvider({ children }) {
         throw error;
       } finally {
         setLeagueFetchInProgress(false);
+        authLogger.info(`[League Fetch] FINISHED - leagueFetchInProgress: false`);
         
         // Clear promise cache after completion
         if (leagueFetchPromiseRef.current === fetchPromise) {
@@ -374,16 +375,20 @@ function parseJwtPayload(token) {
     const currentPath = location.pathname || '/';
     
     // Calculate fetch key for this potential fetch
-    // If uid/role/tokenVersion changes, we need to allow a new fetch
+    // IMPORTANT: Only uid + role matter for run-once semantics
+    // Token refreshes should NOT trigger refetch (they happen automatically every hour)
     const fetchKey = user && userRole ? `${user.uid}:${userRole}` : null;
     
     // CRITICAL: Reset trigger flag when fetch key changes
-    // This allows legitimate refetches after token refresh, role change, or user switch
+    // This allows legitimate refetches after role change or user switch (NOT token refresh)
     if (fetchKey && fetchKey !== lastFetchKeyForTriggerRef.current) {
       authLogger.debug(`[League Fetch Trigger] Fetch key changed (${lastFetchKeyForTriggerRef.current} → ${fetchKey}), resetting trigger`);
       leagueFetchTriggeredRef.current = false;
       lastFetchKeyForTriggerRef.current = fetchKey;
     }
+    
+    // DIAGNOSTIC: Log ref state
+    authLogger.debug(`[League Fetch Trigger] Ref state - triggered: ${leagueFetchTriggeredRef.current}, fetchKey: ${fetchKey}, lastKey: ${lastFetchKeyForTriggerRef.current}`);
     
     // GUARD 1: Only fetch when we have user + role
     if (!user || !userRole) {
@@ -710,33 +715,9 @@ function parseJwtPayload(token) {
         }
         localStorage.setItem('userEmail', firebaseUser.email);
 
-        // STEP 2: INTELLIGENT LEAGUE LOADING - Skip only for new organizers
-        const currentPath = window.location.pathname;
-        authLogger.debug('Current path (with role)', currentPath);
-        const isNewOrganizerFlow = userRole === 'organizer' && (currentPath === '/select-role' || currentPath === '/create-league');
-        
-        if (isNewOrganizerFlow) {
-          // ULTRA-FAST PATH: New organizers get immediate state setup and navigation
-          setLeagues([]);
-          setSelectedLeagueIdState('');
-          setRole(userRole);
-          localStorage.removeItem('selectedLeagueId');
-          setRoleChecked(true);
-          setInitializing(false);
-          authLogger.info('PERFORMANCE: New organizer ultra-fast path - immediate navigation ready');
-
-          // Optional: auto-create a default league
-          if (AUTO_CREATE_DEFAULT_LEAGUE) {
-            try {
-              await createDefaultLeagueIfNeeded(firebaseUser, userRole);
-            } catch (autoLeagueErr) {
-              authLogger.warn('AUTO-LEAGUE', `Auto-create on ultra-fast path failed: ${autoLeagueErr.message}`);
-            }
-          }
-        } else {
-          // League fetch will be triggered by useEffect watching state transitions
-          authLogger.debug('Standard path - league fetch will be triggered by state machine');
-        }
+        // STEP 2: League fetch will be triggered by state machine useEffect
+        // No special paths - all users go through same flow for consistency
+        authLogger.debug('Role confirmed - league fetch will be triggered by state machine');
 
         setRoleChecked(true);
         
