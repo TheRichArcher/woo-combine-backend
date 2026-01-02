@@ -4,7 +4,7 @@ import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
 import api, { apiHealth, apiWarmup } from '../lib/api';
 import { getMyLeagues } from '../lib/leagues';
 import axios from 'axios';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 import { useToast } from './ToastContext';
 import { authLogger } from '../utils/logger';
@@ -42,6 +42,7 @@ export function AuthProvider({ children }) {
     return sanitizeRole(localStorage.getItem('userRole'));
   });
   const navigate = useNavigate();
+  const location = useLocation();
   const { showColdStartNotification, isColdStartActive, showWarning } = useToast();
   
   // STATUS ENUM - State Machine Foundation (Milestone 1)
@@ -366,15 +367,28 @@ function parseJwtPayload(token) {
   // STATE MACHINE: Trigger league fetch when conditions are met
   // This replaces imperative calls with declarative state-driven fetching
   const leagueFetchTriggeredRef = useRef(false); // Prevent double-trigger during rapid state changes
+  const lastFetchKeyForTriggerRef = useRef(null); // Track fetch key to reset trigger on changes
   
   useEffect(() => {
-    // Reset trigger flag when key dependencies change
-    const currentPath = window.location?.pathname || '';
-    const onboardingRoutes = ['/login', '/signup', '/verify-email', '/', '/welcome', '/select-role', '/create-league'];
+    // Use reactive location from useLocation hook (not window.location)
+    const currentPath = location.pathname || '/';
+    
+    // Calculate fetch key for this potential fetch
+    // If uid/role/tokenVersion changes, we need to allow a new fetch
+    const fetchKey = user && userRole ? `${user.uid}:${userRole}` : null;
+    
+    // CRITICAL: Reset trigger flag when fetch key changes
+    // This allows legitimate refetches after token refresh, role change, or user switch
+    if (fetchKey && fetchKey !== lastFetchKeyForTriggerRef.current) {
+      authLogger.debug(`[League Fetch Trigger] Fetch key changed (${lastFetchKeyForTriggerRef.current} → ${fetchKey}), resetting trigger`);
+      leagueFetchTriggeredRef.current = false;
+      lastFetchKeyForTriggerRef.current = fetchKey;
+    }
     
     // GUARD 1: Only fetch when we have user + role
     if (!user || !userRole) {
       leagueFetchTriggeredRef.current = false;
+      lastFetchKeyForTriggerRef.current = null;
       return;
     }
     
@@ -383,21 +397,22 @@ function parseJwtPayload(token) {
     const readyStatuses = [STATUS.READY, STATUS.FETCHING_CONTEXT, STATUS.ROLE_REQUIRED];
     if (!readyStatuses.includes(status)) {
       authLogger.debug(`[League Fetch Trigger] Not ready - status: ${status}`);
-      leagueFetchTriggeredRef.current = false;
+      // Don't reset flag here - keep it for when status becomes ready
       return;
     }
     
-    // GUARD 3: Skip fetch on onboarding routes (except /welcome and /select-role where we need context)
+    // GUARD 3: Skip fetch on onboarding routes where user hasn't reached app yet
+    // NOTE: /dashboard, /coach, /players, /admin, etc. are NOT in this list
     const skipFetchRoutes = ['/login', '/signup', '/verify-email', '/'];
     if (skipFetchRoutes.includes(currentPath)) {
       authLogger.debug(`[League Fetch Trigger] Skipping on onboarding route: ${currentPath}`);
-      leagueFetchTriggeredRef.current = false;
+      // Don't reset flag - might navigate away soon
       return;
     }
     
     // GUARD 4: Prevent double-trigger (useEffect can fire multiple times during state transitions)
     if (leagueFetchTriggeredRef.current) {
-      authLogger.debug('[League Fetch Trigger] Already triggered for this state');
+      authLogger.debug('[League Fetch Trigger] Already triggered for this fetch key');
       return;
     }
     
@@ -408,11 +423,11 @@ function parseJwtPayload(token) {
     }
     
     // All conditions met - trigger the fetch
-    authLogger.info(`[League Fetch Trigger] Conditions met - triggering fetch (user: ${user.uid}, role: ${userRole}, status: ${status})`);
+    authLogger.info(`[League Fetch Trigger] Conditions met - triggering fetch (user: ${user.uid}, role: ${userRole}, status: ${status}, path: ${currentPath})`);
     leagueFetchTriggeredRef.current = true;
     fetchLeaguesConcurrently(user, userRole);
     
-  }, [user, userRole, status, leagueFetchInProgress, fetchLeaguesConcurrently]);
+  }, [user, userRole, status, leagueFetchInProgress, fetchLeaguesConcurrently, location]);
 
 
   // CRITICAL FIX: Firebase auth state change handler with stable dependencies
@@ -445,6 +460,10 @@ function parseJwtPayload(token) {
         setInitializing(false);
         setError(null);
         localStorage.removeItem('selectedLeagueId');
+        
+        // Reset league fetch trigger refs to allow fresh fetch on next login
+        leagueFetchTriggeredRef.current = false;
+        lastFetchKeyForTriggerRef.current = null;
         
         transitionTo(STATUS.UNAUTHENTICATED, 'Logged out');
         return;
@@ -848,6 +867,9 @@ function parseJwtPayload(token) {
       localStorage.removeItem('pendingEventJoin');
       localStorage.removeItem('userRole');
       cacheInvalidation.userLoggedOut();
+      // Reset league fetch trigger refs to allow fresh fetch on next login
+      leagueFetchTriggeredRef.current = false;
+      lastFetchKeyForTriggerRef.current = null;
     } catch {
       // Logout error handled internally
       // Still clear state even if signOut fails
@@ -861,6 +883,9 @@ function parseJwtPayload(token) {
       localStorage.removeItem('pendingEventJoin');
       localStorage.removeItem('userRole');
       cacheInvalidation.userLoggedOut();
+      // Reset league fetch trigger refs to allow fresh fetch on next login
+      leagueFetchTriggeredRef.current = false;
+      lastFetchKeyForTriggerRef.current = null;
     }
   }, []);
 
