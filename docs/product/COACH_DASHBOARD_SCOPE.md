@@ -313,12 +313,59 @@ Track these to validate `/coach` effectiveness:
 
 ---
 
+## Navigation Architecture (Validated)
+
+### Status: **LOCKED** ✅ (Jan 2, 2025)
+
+After comprehensive review with strict 10-second rule application, the current navigation structure is confirmed as **optimal and complete**. 
+
+**Do not add new persistent navigation items** unless they clearly pass:
+- ✅ Needed during live event execution
+- ✅ Actionable in under 10 seconds
+- ✅ Cannot be better served by contextual CTA
+
+### Current Navigation (5 Persistent Items)
+1. **Players** - Roster operations, imports, rankings, exports
+2. **Schedule** - Event timing & logistics  
+3. **Teams** - Post-evaluation team formation
+4. **Scorecards** - Individual player reports
+5. **Analytics** - Deep analysis & weight tuning
+
+**Rationale:** These 5 answer "I need to act now" or "I need to go deeper" - the only valid reasons to leave `/coach`.
+
+### Contextual Navigation (CTA-Driven)
+- Live Entry / Scoring
+- Import Results
+- Export Rankings
+- Admin / Setup tools
+
+**Rationale:** Powerful actions that appear when relevant, avoiding permanent clutter.
+
+### Modal-Only (No Nav Links)
+- Create Event
+- Edit Event  
+- Player Details
+
+**Rationale:** Tools, not destinations. Keep nav focused.
+
+### Intentionally Excluded
+- Historical reports → `/analytics` or `/reports`
+- Deep configuration → `/admin`
+- Season analysis → `/analytics`
+- User management → `/settings`
+- League settings → `/admin`
+
+**Rationale:** All fail 10-second test. Require focused attention, not quick decisions.
+
+---
+
 ## Version History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | Jan 2, 2025 | Initial scope definition, 10-second rule established |
 | 1.1 | Jan 2, 2025 | Added Contextual Next Action CTA |
+| 1.2 | Jan 2, 2025 | Navigation architecture validated & locked |
 
 ---
 
