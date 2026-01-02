@@ -405,7 +405,7 @@ export default function Navigation() {
               onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              Home
+              {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
             </Link>
             <Link 
               to="/players?tab=manage" 
@@ -588,11 +588,11 @@ export default function Navigation() {
 
             {/* Navigation Links on Mobile */}
             <Link 
-              to="/dashboard" 
+              to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'}
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/dashboard', 'Home')}
+              onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')}
             >
-              Home
+              {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
             </Link>
             <Link 
               to="/players?tab=manage" 
