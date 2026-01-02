@@ -128,11 +128,15 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
         drillTemplate: selectedTemplate
       });
       
-      // Fix: Backend returns {event_id: ...}, so we need to create the full event object
-      const newEvent = {
+      // CRITICAL FIX: Use complete event object from backend response
+      // Backend now returns both event_id (legacy) and full event object
+      // This ensures league_id and all other fields are properly set
+      const newEvent = response.data.event || {
         id: response.data.event_id,
         name: name,
         date: isoDate,
+        location: location,
+        league_id: selectedLeagueId, // Ensure league_id is always set
         drillTemplate: selectedTemplate,
         created_at: new Date().toISOString()
       };

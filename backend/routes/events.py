@@ -152,7 +152,14 @@ def create_event(
         )
         
         logging.info(f"Created event {event_ref.id} in league {league_id}")
-        return {"event_id": event_ref.id}
+        # Return complete event object to prevent frontend data inconsistency
+        return {
+            "event_id": event_ref.id,
+            "event": {
+                **event_data,
+                "id": event_ref.id
+            }
+        }
     except HTTPException:
         raise
     except Exception as e:

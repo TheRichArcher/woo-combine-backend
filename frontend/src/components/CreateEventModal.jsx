@@ -41,10 +41,15 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
         drillTemplate: selectedTemplate
       });
       
-      const newEvent = {
+      // CRITICAL FIX: Use complete event object from backend response
+      // This ensures league_id and all other fields are properly set
+      const newEvent = response.data.event || {
         id: response.data.event_id,
         name: name,
         date: isoDate,
+        location: location,
+        league_id: selectedLeagueId, // Fallback: ensure league_id is set
+        drillTemplate: selectedTemplate,
         created_at: new Date().toISOString()
       };
       
