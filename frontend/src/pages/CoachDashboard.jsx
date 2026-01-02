@@ -4,10 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import EventSelector from "../components/EventSelector";
 import CreateEventModal from "../components/CreateEventModal";
+import EditEventModal from "../components/EditEventModal";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
-import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2 } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2, Edit } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
 import CreateLeagueForm from '../components/CreateLeagueForm';
 import { playerLogger, rankingLogger } from '../utils/logger';
@@ -48,6 +49,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [error, setError] = useState(null);
   const [players, setPlayers] = useState([]); // for age group list only
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditEventModal, setShowEditEventModal] = useState(false);
   const navigate = useNavigate(); // ADDED: Hook for navigation
   
   const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
@@ -424,12 +426,26 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
 
         {/* Header & Title Block */}
-        <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">
-          {userRole === 'organizer' ? 'Event Dashboard' : 'Coach Dashboard'}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex-1">
+            <div className="text-xs uppercase font-bold text-gray-500 tracking-wide mb-1">
+              {userRole === 'organizer' ? 'Event Dashboard' : 'Coach Dashboard'}
+            </div>
+            <h1 className="text-lg font-semibold text-gray-900">
+              {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
+            </h1>
+          </div>
+          {userRole === 'organizer' && selectedEvent && (
+            <button
+              onClick={() => setShowEditEventModal(true)}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              title="Edit event name, date, and location"
+            >
+              <Edit className="w-4 h-4" />
+              <span className="hidden sm:inline">Edit Event</span>
+            </button>
+          )}
         </div>
-        <h1 className="text-lg font-semibold text-gray-900 mb-4">
-          {selectedEvent ? `${selectedEvent.name} – ${formattedDate}` : "No event selected"}
-        </h1>
         {/* Enhanced Age Group Selector */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 shadow-sm">
           <div className="flex items-center gap-2 mb-3">
@@ -719,6 +735,22 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         onClose={() => setShowCreateModal(false)}
         onCreated={handleEventCreated}
       />
+      
+      {/* Edit Event Modal */}
+      {showEditEventModal && (
+        <EditEventModal
+          open={showEditEventModal}
+          event={selectedEvent}
+          onClose={() => setShowEditEventModal(false)}
+          onUpdated={(updatedEvent) => {
+            setShowEditEventModal(false);
+            // Update the events list
+            setEvents(prev => prev.map(e => e.id === updatedEvent.id ? updatedEvent : e));
+            // Update selected event
+            setSelectedEvent(updatedEvent);
+          }}
+        />
+      )}
     </div>
   );
 });
