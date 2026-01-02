@@ -339,6 +339,16 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </div>
               
               <div className="flex flex-col items-end gap-2">
+                {selectedEvent && (
+                  <button
+                    onClick={() => setShowEditEventModal(true)}
+                    className="bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm text-sm whitespace-nowrap"
+                  >
+                    <Edit className="w-4 h-4" />
+                    Edit Event Details
+                  </button>
+                )}
+                
                 <button
                   onClick={() => setShowCreateModal(true)}
                   className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm text-sm whitespace-nowrap"
