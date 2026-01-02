@@ -8,7 +8,7 @@ import EditEventModal from "../components/EditEventModal";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
-import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2, Edit } from 'lucide-react';
+import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, TrendingUp, Plus, ChevronRight, Calendar, ClipboardList, Shield, Share2, Edit, Upload, Activity, Trophy } from 'lucide-react';
 import { useNavigate, Link } from "react-router-dom";
 import CreateLeagueForm from '../components/CreateLeagueForm';
 import { playerLogger, rankingLogger } from '../utils/logger';
@@ -51,6 +51,16 @@ const CoachDashboard = React.memo(function CoachDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditEventModal, setShowEditEventModal] = useState(false);
   const navigate = useNavigate(); // ADDED: Hook for navigation
+  
+  // Calculate completion metrics for Next Action CTA
+  const totalScoresCount = useMemo(() => {
+    return players.reduce((sum, p) => sum + (p.composite_score > 0 ? 1 : 0), 0);
+  }, [players]);
+  
+  const completionRate = useMemo(() => {
+    if (players.length === 0) return 0;
+    return (totalScoresCount / players.length) * 100;
+  }, [players.length, totalScoresCount]);
   
   const hasExactlyOneEvent = Array.isArray(events) && events.length === 1;
   
@@ -378,6 +388,89 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         )}
 
         <EventSelector />
+        
+        {/* Contextual Next Action CTA */}
+        {selectedEvent && (() => {
+          // Determine next action based on event state
+          let action = null;
+          
+          if (players.length === 0) {
+            action = {
+              label: "Add Players",
+              sublabel: "Import your roster to get started",
+              icon: Users,
+              route: "/admin#player-upload",
+              color: "bg-blue-600 hover:bg-blue-700"
+            };
+          } else if (totalScoresCount === 0) {
+            action = {
+              label: "Import Results",
+              sublabel: `${players.length} players ready for scoring`,
+              icon: Upload,
+              route: "/players?action=import",
+              color: "bg-green-600 hover:bg-green-700",
+              secondary: {
+                label: "Start Live Entry",
+                route: "/live-entry"
+              }
+            };
+          } else if (completionRate < 100) {
+            action = {
+              label: "Continue Evaluations",
+              sublabel: `${Math.round(completionRate)}% complete (${totalScoresCount}/${players.length} players)`,
+              icon: Activity,
+              route: "/live-entry",
+              color: "bg-orange-600 hover:bg-orange-700"
+            };
+          } else {
+            action = {
+              label: "Review Full Rankings",
+              sublabel: "All players evaluated - analyze results",
+              icon: Trophy,
+              route: "/players?tab=rankings",
+              color: "bg-cmf-primary hover:bg-cmf-secondary",
+              secondary: {
+                label: "Export Results",
+                route: "/players?tab=export"
+              }
+            };
+          }
+          
+          if (!action) return null;
+          
+          const ActionIcon = action.icon;
+          
+          return (
+            <div className="mb-6 bg-gradient-to-r from-gray-50 to-white rounded-xl shadow-sm border-2 border-gray-200 p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Target className="w-5 h-5 text-cmf-primary" />
+                <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wide">Next Action</h3>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => navigate(action.route)}
+                  className={`flex-1 ${action.color} text-white font-semibold px-6 py-4 rounded-lg transition shadow-md hover:shadow-lg flex items-center justify-center gap-3 group`}
+                >
+                  <ActionIcon className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  <div className="text-left">
+                    <div className="text-base">{action.label}</div>
+                    <div className="text-xs opacity-90 font-normal">{action.sublabel}</div>
+                  </div>
+                </button>
+                
+                {action.secondary && (
+                  <button
+                    onClick={() => navigate(action.secondary.route)}
+                    className="sm:w-auto bg-white hover:bg-gray-50 border-2 border-gray-300 text-gray-700 font-medium px-4 py-2 rounded-lg transition flex items-center justify-center gap-2"
+                  >
+                    {action.secondary.label}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })()}
         
         {/* Primary Navigation Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
