@@ -32,7 +32,7 @@ export default function CreateEventModal({ open, onClose, onCreated }) {
     setLoading(true);
     setError("");
     try {
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : null;
       
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
         name,

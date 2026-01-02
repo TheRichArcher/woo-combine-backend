@@ -47,7 +47,7 @@ export default function EditEventModal({ open, onClose, event, onUpdated }) {
     setLoading(true);
     setError("");
     try {
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : null;
       
       await api.put(`/leagues/${selectedLeagueId}/events/${event.id}`, {
         name,

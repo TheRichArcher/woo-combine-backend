@@ -490,7 +490,7 @@ export default function EventSetup({ onBack }) {
              {selectedEvent.name}
           </h2>
           <p className="text-sm text-gray-600">
-             {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"} • {selectedEvent.location || 'Location TBD'}
+             {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Date not set"} • {selectedEvent.location || 'Location TBD'}
           </p>
         </div>
 
@@ -504,7 +504,7 @@ export default function EventSetup({ onBack }) {
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <div className="space-y-2 text-sm">
               <p><strong>Name:</strong> {selectedEvent.name}</p>
-              <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Invalid Date"}</p>
+              <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Date not set"}</p>
               <p><strong>Location:</strong> {selectedEvent.location || 'Location TBD'}</p>
               {selectedEvent.notes && <p><strong>Notes:</strong> {selectedEvent.notes}</p>}
             </div>

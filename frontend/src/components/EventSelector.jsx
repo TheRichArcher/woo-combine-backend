@@ -118,7 +118,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     }
     
     try {
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : "";
+      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : null;
       logger.info('EVENT-SELECTOR', `Creating event in league: ${selectedLeagueId}`);
       
       const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
@@ -258,7 +258,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
               >
                 <option value="">Select an event...</option>
                 {events.map(ev => {
-                  let dateLabel = "Invalid Date";
+                  let dateLabel = "Date not set";
                   if (ev.date && !isNaN(Date.parse(ev.date))) {
                     dateLabel = new Date(ev.date).toLocaleDateString();
                   }
