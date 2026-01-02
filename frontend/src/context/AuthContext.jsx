@@ -165,13 +165,10 @@ export function AuthProvider({ children }) {
   const tokenVersionCounterRef = useRef(0); // Monotonic counter, always present
 
   // PERFORMANCE: Concurrent league fetching with retry logic for cold starts
+  // NOTE: Status gate removed - fetch is now triggered by useEffect watching state machine
   const fetchLeaguesConcurrently = useCallback(async (firebaseUser, roleParam) => {
-    // COMPREHENSIVE AUTH READINESS GUARD
-    // Only fetch leagues when ALL conditions are met:
-    // 1. Firebase user exists
-    // 2. User has a valid role (not null/undefined)
-    // 3. Token is available
-    // 4. Not in auth initialization states
+    // MINIMAL GUARDS - Status checking is now done in the triggering useEffect
+    // This function focuses purely on fetching logic, not state machine validation
     
     if (!firebaseUser) {
       authLogger.debug('Skipping league fetch - no Firebase user');
@@ -183,23 +180,7 @@ export function AuthProvider({ children }) {
       return;
     }
     
-    // DEFENSIVE PATTERN: Allow league fetch during ROLE_REQUIRED and AUTHENTICATING states
-    // This is CRITICAL because React state updates are async/batched:
-    // - transitionTo(READY) calls setStatus(READY)
-    // - But the next line sees OLD status value (ROLE_REQUIRED or AUTHENTICATING)
-    // - By allowing these transitional states here, we don't rely on synchronous setState
-    // 
-    // AUTHENTICATING is allowed because the cached role path calls fetchLeagues immediately
-    // after transitionTo(READY), but React hasn't updated the status state yet.
-    // 
-    // Check auth state machine - only fetch in READY, FETCHING_CONTEXT, ROLE_REQUIRED, or AUTHENTICATING (when we have a role)
-    const allowedStatuses = [STATUS.READY, STATUS.FETCHING_CONTEXT, STATUS.ROLE_REQUIRED, STATUS.AUTHENTICATING];
-    if (!allowedStatuses.includes(status)) {
-      authLogger.debug(`Skipping league fetch - auth not ready (status: ${status})`);
-      return;
-    }
-    
-    authLogger.debug(`League fetch allowed with status: ${status} (role: ${roleParam})`);
+    authLogger.debug(`Starting league fetch (role: ${roleParam})`);
     
     // Get token version for cache key
     // Use Firebase's stsTokenManager for reliable token versioning
@@ -367,7 +348,7 @@ export function AuthProvider({ children }) {
     // Cache the promise
     leagueFetchPromiseRef.current = fetchPromise;
     return fetchPromise;
-  }, [leagueFetchInProgress, status]);
+  }, [leagueFetchInProgress]); // Removed status from deps - now triggered by useEffect
 
 // Helper to parse JWT payload (extracted for reuse)
 function parseJwtPayload(token) {
@@ -382,7 +363,56 @@ function parseJwtPayload(token) {
   }
 }
 
-
+  // STATE MACHINE: Trigger league fetch when conditions are met
+  // This replaces imperative calls with declarative state-driven fetching
+  const leagueFetchTriggeredRef = useRef(false); // Prevent double-trigger during rapid state changes
+  
+  useEffect(() => {
+    // Reset trigger flag when key dependencies change
+    const currentPath = window.location?.pathname || '';
+    const onboardingRoutes = ['/login', '/signup', '/verify-email', '/', '/welcome', '/select-role', '/create-league'];
+    
+    // GUARD 1: Only fetch when we have user + role
+    if (!user || !userRole) {
+      leagueFetchTriggeredRef.current = false;
+      return;
+    }
+    
+    // GUARD 2: Only fetch when status is ready for league operations
+    // READY = normal operation, FETCHING_CONTEXT = already fetching, ROLE_REQUIRED = just selected role
+    const readyStatuses = [STATUS.READY, STATUS.FETCHING_CONTEXT, STATUS.ROLE_REQUIRED];
+    if (!readyStatuses.includes(status)) {
+      authLogger.debug(`[League Fetch Trigger] Not ready - status: ${status}`);
+      leagueFetchTriggeredRef.current = false;
+      return;
+    }
+    
+    // GUARD 3: Skip fetch on onboarding routes (except /welcome and /select-role where we need context)
+    const skipFetchRoutes = ['/login', '/signup', '/verify-email', '/'];
+    if (skipFetchRoutes.includes(currentPath)) {
+      authLogger.debug(`[League Fetch Trigger] Skipping on onboarding route: ${currentPath}`);
+      leagueFetchTriggeredRef.current = false;
+      return;
+    }
+    
+    // GUARD 4: Prevent double-trigger (useEffect can fire multiple times during state transitions)
+    if (leagueFetchTriggeredRef.current) {
+      authLogger.debug('[League Fetch Trigger] Already triggered for this state');
+      return;
+    }
+    
+    // GUARD 5: Skip if already fetching
+    if (leagueFetchInProgress) {
+      authLogger.debug('[League Fetch Trigger] Fetch already in progress');
+      return;
+    }
+    
+    // All conditions met - trigger the fetch
+    authLogger.info(`[League Fetch Trigger] Conditions met - triggering fetch (user: ${user.uid}, role: ${userRole}, status: ${status})`);
+    leagueFetchTriggeredRef.current = true;
+    fetchLeaguesConcurrently(user, userRole);
+    
+  }, [user, userRole, status, leagueFetchInProgress, fetchLeaguesConcurrently]);
 
 
   // CRITICAL FIX: Firebase auth state change handler with stable dependencies
@@ -475,11 +505,9 @@ function parseJwtPayload(token) {
           }
           setRoleChecked(true);
           
-          // CRITICAL FIX: Fetch leagues AFTER role is confirmed (not before)
-          // Start league fetch with known role to prevent 404 cascade
-          const leagueLoadPromise = fetchLeaguesConcurrently(firebaseUser, cachedRoleQuick);
-          
           transitionTo(STATUS.READY, 'Fast exit from login');
+          // League fetch will be triggered by useEffect watching state
+          
           navigate(target, { replace: true });
           setInitializing(false);
           return;
@@ -522,21 +550,7 @@ function parseJwtPayload(token) {
           setInitializing(false); // Don't wait for API verification
           
           transitionTo(STATUS.READY, 'Cached role used');
-          
-          // CRITICAL FIX: Fetch leagues with known role (not null)
-          // Only fetch if we have a valid role to prevent 404 cascade
-          try {
-            const path = window.location?.pathname || '';
-            // Do not skip fetching on /welcome - authenticated users landing there need leagues
-            // Also include /select-role here to ensure we fetch context before redirecting
-            const onboarding = ['/login','/signup','/verify-email','/'];
-            if (cachedRole !== null && !onboarding.includes(path)) {
-              console.debug("[AUTH] Calling fetchLeagues() after cached role confirmation");
-              fetchLeaguesConcurrently(firebaseUser, cachedRole);
-            }
-          } catch {
-            // Do not fetch while on onboarding routes
-          }
+          // League fetch will be triggered by useEffect watching state transitions
           
           // Still verify role in background, but don't block UI
           setTimeout(async () => {
@@ -701,10 +715,8 @@ function parseJwtPayload(token) {
             }
           }
         } else {
-          // CRITICAL FIX: Fetch leagues with known role (not in new organizer flow)
-          // The concurrency guard inside fetchLeaguesConcurrently handles duplicate calls
-          console.debug("[AUTH] Calling fetchLeagues() after role verification (standard path)");
-          fetchLeaguesConcurrently(firebaseUser, userRole);
+          // League fetch will be triggered by useEffect watching state transitions
+          authLogger.debug('Standard path - league fetch will be triggered by state machine');
         }
 
         setRoleChecked(true);
@@ -882,12 +894,7 @@ function parseJwtPayload(token) {
         if (newRole && status === STATUS.ROLE_REQUIRED) {
           authLogger.debug('Role selected, transitioning to READY state');
           transitionTo(STATUS.READY, 'Role selected');
-          
-          // DEFENSIVE PATTERN: Don't rely on status transition being synchronous
-          // fetchLeaguesConcurrently allows ROLE_REQUIRED status, so this works
-          // even if React hasn't batched the status update yet
-          authLogger.debug('Fetching leagues after role selection (status may still be ROLE_REQUIRED due to async setState)');
-          await fetchLeaguesConcurrently(user, newRole);
+          // League fetch will be triggered by useEffect watching state transitions
         }
       }
     } catch (error) {
