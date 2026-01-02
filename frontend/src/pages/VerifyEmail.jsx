@@ -317,9 +317,16 @@ export default function VerifyEmail() {
               It might take a few minutes. If you don't see our email in your inbox, please check your spam or 
               promo folders. If you see multiple emails, make sure you're selecting the most recent verification email.
             </p>
-            <p className="text-gray-600 text-sm leading-relaxed mt-3">
-              After you click the link, a new tab may open. Use the <span className="font-medium">Continue</span> button there or simply return to this tab — we’ll detect the verification and continue automatically.
-            </p>
+            <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-left">
+              <p className="text-blue-900 text-sm leading-relaxed font-medium mb-1">
+                💡 What to expect:
+              </p>
+              <p className="text-blue-800 text-xs leading-relaxed">
+                When you click the verification link, a new tab will open to confirm your email. 
+                After verification completes, you can close that tab and return here — we'll automatically 
+                detect your verified status and continue to the app.
+              </p>
+            </div>
             {isVerified && fromFirebase && (
               <div className="mt-4 bg-semantic-success/10 border border-semantic-success/20 rounded-xl px-4 py-3 text-left text-semantic-success">
                 <p className="font-semibold text-base mb-1">Your account is verified!</p>

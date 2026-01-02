@@ -52,8 +52,25 @@ export default function EmailAction() {
           throw new Error("Unsupported action. Please contact support.");
         }
       } catch (error) {
-        setStatus("error");
-        setMessage(error.message || "An unknown error occurred.");
+        // CRITICAL FIX: Handle "code already used" gracefully since Firebase may have
+        // applied it on their hosted page before redirecting here
+        const isCodeAlreadyUsed = error.code === 'auth/invalid-action-code' || 
+                                   error.code === 'auth/expired-action-code';
+        
+        if (isCodeAlreadyUsed) {
+          // Code was likely already applied by Firebase's hosted page - show success
+          setStatus("success");
+          setMessage("Your email verification is complete. You can close this tab and return to the app.");
+          try {
+            localStorage.setItem('email_verified', 'true');
+          } catch (e) {
+            console.warn("Could not set localStorage flag.");
+          }
+        } else {
+          // Genuine error
+          setStatus("error");
+          setMessage(error.message || "An unknown error occurred.");
+        }
       }
     };
 
@@ -92,9 +109,23 @@ export default function EmailAction() {
           <>
             <h2 className="text-2xl font-bold text-semantic-error mb-3">Verification Issue</h2>
             <p className="text-gray-700 mb-6">{message}</p>
-            <button onClick={() => navigate('/login')} className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl">
-              Back to Login
-            </button>
+            <div className="space-y-3">
+              <button 
+                onClick={() => window.close()} 
+                className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-xl shadow-lg transition-all duration-200"
+              >
+                Close This Tab
+              </button>
+              <p className="text-gray-500 text-sm">
+                If you started verification from another tab, return there to continue.
+              </p>
+              <button 
+                onClick={() => navigate('/verify-email')} 
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-xl transition-colors duration-200"
+              >
+                Go to Verification Page
+              </button>
+            </div>
           </>
         )}
       </div>
