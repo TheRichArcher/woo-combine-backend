@@ -322,6 +322,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   // effectiveDrills contains the drill keys.
                   const isDrillKey = effectiveDrills.some(d => d.key === targetKey);
                   
+                  console.log("[ImportResultsModal] Processing mapping:", {
+                      targetKey,
+                      sourceHeader,
+                      isDrillKey,
+                      intent,
+                      willMap: !(intent === 'roster_only' && isDrillKey)
+                  });
+                  
                   if (intent === 'roster_only' && isDrillKey) {
                       // Skip mapping this drill
                       return;
@@ -406,12 +414,30 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         ...(intent === 'roster_only' ? [] : effectiveDrills.map(d => d.key))
     ]);
 
+    // DEBUG: Log validation setup to diagnose custom drill mapping issues
+    console.log("[ImportResultsModal] Validation Setup:", {
+        validKeysCount: validKeys.size,
+        validKeys: Array.from(validKeys),
+        effectiveDrillsCount: effectiveDrills.length,
+        effectiveDrills: effectiveDrills.map(d => ({ key: d.key, label: d.label })),
+        keyMappingEntries: Object.entries(keyMapping)
+    });
+
     const activeMappings = Object.entries(keyMapping)
         .filter(([_, targetKey]) => targetKey !== '__ignore__');
 
     const invalidMappings = activeMappings.filter(([sourceKey, targetKey]) => {
         // If mapped to identity (Original) and that key isn't in schema
-        return !validKeys.has(targetKey);
+        const isInvalid = !validKeys.has(targetKey);
+        if (isInvalid) {
+            console.log("[ImportResultsModal] Invalid mapping detected:", {
+                sourceKey,
+                targetKey,
+                validKeysHas: validKeys.has(targetKey),
+                matchingDrill: effectiveDrills.find(d => d.key === targetKey)
+            });
+        }
+        return isInvalid;
     });
 
     // NEW: Check for Missing Required Fields (Roster Mode)
