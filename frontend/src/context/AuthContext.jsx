@@ -183,13 +183,17 @@ export function AuthProvider({ children }) {
       return;
     }
     
-    // DEFENSIVE PATTERN: Allow league fetch during ROLE_REQUIRED state after role is confirmed
+    // DEFENSIVE PATTERN: Allow league fetch during ROLE_REQUIRED and AUTHENTICATING states
     // This is CRITICAL because React state updates are async/batched:
     // - transitionTo(READY) calls setStatus(READY)
-    // - But the next line sees OLD status value (ROLE_REQUIRED)
-    // - By allowing ROLE_REQUIRED here, we don't rely on synchronous setState
-    // Check auth state machine - only fetch in READY, FETCHING_CONTEXT, or ROLE_REQUIRED (when we have a role)
-    const allowedStatuses = [STATUS.READY, STATUS.FETCHING_CONTEXT, STATUS.ROLE_REQUIRED];
+    // - But the next line sees OLD status value (ROLE_REQUIRED or AUTHENTICATING)
+    // - By allowing these transitional states here, we don't rely on synchronous setState
+    // 
+    // AUTHENTICATING is allowed because the cached role path calls fetchLeagues immediately
+    // after transitionTo(READY), but React hasn't updated the status state yet.
+    // 
+    // Check auth state machine - only fetch in READY, FETCHING_CONTEXT, ROLE_REQUIRED, or AUTHENTICATING (when we have a role)
+    const allowedStatuses = [STATUS.READY, STATUS.FETCHING_CONTEXT, STATUS.ROLE_REQUIRED, STATUS.AUTHENTICATING];
     if (!allowedStatuses.includes(status)) {
       authLogger.debug(`Skipping league fetch - auth not ready (status: ${status})`);
       return;
