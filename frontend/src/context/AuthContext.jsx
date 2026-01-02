@@ -173,12 +173,12 @@ export function AuthProvider({ children }) {
     
     if (!firebaseUser) {
       authLogger.debug('Skipping league fetch - no Firebase user');
-      return;
+      return [];
     }
     
     if (!roleParam) {
       authLogger.debug('Skipping league fetch - user has no role yet (awaiting /select-role)');
-      return;
+      return [];
     }
     
     authLogger.debug(`Starting league fetch (role: ${roleParam})`);
@@ -223,7 +223,7 @@ export function AuthProvider({ children }) {
       }
     } catch (err) {
       authLogger.warn('Failed to get token version for league fetch', err);
-      return;
+      return [];
     }
     
     // DE-DUPLICATION: Prevent double calls with in-flight promise cache
@@ -279,7 +279,7 @@ export function AuthProvider({ children }) {
         
         if (!freshToken) {
           authLogger.warn('Skipping league fetch - no fresh token available');
-          return;
+          return [];
         }
         
         // Use centralized getMyLeagues() that normalizes response
@@ -293,13 +293,13 @@ export function AuthProvider({ children }) {
         // This check is REQUIRED even with AbortController (defense in depth)
         if (lastFetchKeyRef.current !== fetchKey) {
           authLogger.debug('Discarding stale league fetch response (key changed)');
-          return;
+          return [];
         }
         
         // Verify we weren't aborted
         if (currentAbortController.signal.aborted) {
           authLogger.debug('League fetch was aborted');
-          return;
+          return [];
         }
         
         setLeagues(leagueArray);
@@ -315,6 +315,10 @@ export function AuthProvider({ children }) {
            localStorage.setItem('selectedLeagueId', targetLeagueId);
            setRole(leagueArray[0].role);
         }
+        
+        // CRITICAL: Return the fetched array for consumers who need immediate access
+        // (e.g., JoinEvent needs to use returned value, not stale state)
+        return leagueArray;
       } catch (error) {
         // Robust cancel detection - use multiple checks
         const isCancel = 
@@ -326,11 +330,12 @@ export function AuthProvider({ children }) {
         
         if (isCancel) {
           authLogger.debug('League fetch aborted (expected)');
-          return;
+          return [];
         }
         
         authLogger.warn('Concurrent league fetch failed', error.message);
-        throw error;
+        // Return empty array on error so consumers can handle gracefully
+        return [];
       } finally {
         setLeagueFetchInProgress(false);
         authLogger.info(`[League Fetch] FINISHED - leagueFetchInProgress: false`);
@@ -831,6 +836,19 @@ function parseJwtPayload(token) {
     });
   }, []);
 
+  // Manual league refresh function for after joining via QR code
+  // CRITICAL: Returns the fetched leagues array so consumers can use fresh data
+  // immediately without waiting for React state to update
+  const refreshLeagues = useCallback(async () => {
+    if (!user || !userRole) {
+      authLogger.warn('Cannot refresh leagues - user or role not set');
+      return [];
+    }
+    authLogger.info('Manual league refresh requested');
+    const freshLeagues = await fetchLeaguesConcurrently(user, userRole);
+    return freshLeagues || [];
+  }, [user, userRole, fetchLeaguesConcurrently]);
+
   // Add logout function directly in AuthContext to avoid circular dependency
   const logout = useCallback(async () => {
     try {
@@ -934,6 +952,7 @@ function parseJwtPayload(token) {
       }
     }, [leagues]),
     addLeague,
+    refreshLeagues,
     authChecked,
     roleChecked,
     error,

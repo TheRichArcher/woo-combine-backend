@@ -10,7 +10,7 @@ import api from '../lib/api';
 export default function JoinEvent() {
   const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
-  const { user, leagues, addLeague, setSelectedLeagueId, userRole, initializing } = useAuth();
+  const { user, leagues, setSelectedLeagueId, userRole, initializing, refreshLeagues } = useAuth();
   const { setSelectedEvent } = useEvent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,14 +103,18 @@ export default function JoinEvent() {
             });
 
             const joinData = joinResponse.data;
-            targetLeague = { 
+            
+            // CRITICAL FIX: Refresh leagues from backend and USE RETURNED ARRAY
+            // Cannot rely on context leagues state because React state updates are async
+            // Using returned value ensures we have fresh data immediately
+            const refreshedLeagues = await refreshLeagues();
+            
+            // Find league in the RETURNED array (not stale context state)
+            targetLeague = refreshedLeagues.find(l => l.id === actualLeagueId) || { 
               id: actualLeagueId, 
               name: joinData.league_name || 'League', 
               role: intendedRole || userRole || 'coach' 
             };
-            
-            // Add to user context
-            if (addLeague) addLeague(targetLeague);
           } else {
             targetLeague = existingLeague;
           }
@@ -157,13 +161,16 @@ export default function JoinEvent() {
               throw new Error('Unable to resolve league for this event');
             }
 
-            targetLeague = {
+            // CRITICAL FIX: Refresh leagues and USE RETURNED ARRAY
+            // Cannot rely on context leagues state (React state updates are async)
+            const refreshedLeagues = await refreshLeagues();
+            
+            // Find league in the RETURNED array (not stale context state)
+            targetLeague = refreshedLeagues.find(l => l.id === resolvedLeagueId) || {
               id: resolvedLeagueId,
               name: joinResponse.data?.league_name || 'League',
               role: intendedRole || userRole || 'coach'
             };
-
-            if (addLeague) addLeague(targetLeague);
 
             const legacyEventResponse = await api.get(`/leagues/${resolvedLeagueId}/events/${actualEventId}`);
             targetEvent = legacyEventResponse.data;
