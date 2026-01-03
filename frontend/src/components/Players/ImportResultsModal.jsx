@@ -135,6 +135,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   }, [effectiveDrills]);
 
   const STANDARD_FIELDS = [
+      { key: 'name', label: 'Name (Full Name - will be split)' },
       { key: 'first_name', label: 'First Name' },
       { key: 'last_name', label: 'Last Name' },
       { key: 'jersey_number', label: 'Jersey Number' },
@@ -456,11 +457,17 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             }
         });
 
-        const missing = REQUIRED_HEADERS.filter(req => !effectiveTargets.has(req));
+        // CRITICAL FIX: Allow 'name' as alternative to first_name + last_name
+        // If user has 'name' mapped, they don't need first_name/last_name separately
+        const hasName = effectiveTargets.has('name');
+        const hasFirstName = effectiveTargets.has('first_name');
+        const hasLastName = effectiveTargets.has('last_name');
         
-        if (missing.length > 0) {
-             const missingLabels = missing.map(m => STANDARD_FIELDS.find(f => f.key === m)?.label || m);
-             alert(`❌ Missing Required Mappings\n\nTo add or update players, you must map columns to:\n\n- ${missingLabels.join('\n- ')}\n\nPlease map the correct columns in the dropdowns.`);
+        // Valid if either: (name) OR (first_name AND last_name)
+        const hasValidNameFields = hasName || (hasFirstName && hasLastName);
+        
+        if (!hasValidNameFields) {
+             alert(`❌ Missing Required Name Fields\n\nTo add or update players, you must map columns to either:\n\n- Name (will be split into First/Last)\n  OR\n- First Name AND Last Name\n\nPlease map the correct columns in the dropdowns.`);
              setStep('review');
              return;
         }
@@ -564,6 +571,23 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   mappedData[targetKey] = mergedData[k];
               }
           });
+
+          // CRITICAL FIX: Handle 'name' field by splitting into first_name/last_name
+          // If user mapped a column to 'name', split it and populate first_name/last_name
+          if (mappedData.name && !mappedData.first_name && !mappedData.last_name) {
+              const nameParts = String(mappedData.name).trim().split(/\s+/);
+              if (nameParts.length === 1) {
+                  // Single name - treat as last name
+                  mappedData.first_name = '';
+                  mappedData.last_name = nameParts[0];
+              } else if (nameParts.length >= 2) {
+                  // Multiple parts - first is first_name, rest is last_name
+                  mappedData.first_name = nameParts[0];
+                  mappedData.last_name = nameParts.slice(1).join(' ');
+              }
+              // Remove the 'name' field as backend expects first_name/last_name
+              delete mappedData.name;
+          }
 
           // Strategy: if it was an error row, default to overwrite (new insert attempt)
           // unless it matches a duplicate? Error rows usually don't have is_duplicate set by backend
@@ -995,8 +1019,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       ? Array.from(new Set(allRows.flatMap(r => Object.keys(r.data || {}))))
       : [];
     
+    // CRITICAL FIX: Always show ALL source columns for mapping, not just recognized ones
+    // The user needs to be able to map ANY CSV column to ANY target field
+    // Previous logic filtered out columns if they weren't in priorityKeys, preventing mapping of e.g. "player_name" → "first_name"
     const priorityKeys = ['first_name', 'last_name', 'jersey_number', 'age_group'];
     const drillKeys = allKeys.filter(k => !priorityKeys.includes(k) && !k.endsWith('_raw') && k !== 'merge_strategy');
+    
+    // Show priority keys that exist, then all other keys
+    // This ensures name fields appear first if present, but ALL columns are available for mapping
     const displayKeys = [...priorityKeys.filter(k => allKeys.includes(k)), ...drillKeys];
 
     const handleCellEdit = (rowId, key, value) => {
