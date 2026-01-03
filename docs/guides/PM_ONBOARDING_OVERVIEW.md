@@ -179,7 +179,7 @@ WooCombine App
    - Update name, date, location without data loss
 5. **Switching**: Header dropdowns allow instant context switching
 6. **Scoring**: "Live Entry" mode for rapid data input
-7. **Analysis**: Weight presets (Balanced/Speed/Skills/Athletic) for quick ranking adjustments
+7. **Analysis**: Weight presets for quick ranking adjustments (preset count varies by sport: Football/Basketball have 4, Baseball/Soccer have 2, Track/Volleyball have 1)
 8. **Team Formation**: Generate balanced teams automatically
 9. **Reporting**: Export CSV rankings directly from dashboard
 10. **Import**: Robust bulk import for offline results
@@ -187,6 +187,35 @@ WooCombine App
 ---
 
 ## 5. 🛠 Recent Major Changes (Jan 2026)
+
+### 🎯 Ranking Preset Model (Locked & Final)
+**What Changed:** (Jan 2, 2026)
+- Synced frontend presets with backend schema registry across all 6 sports
+- Basketball: Added 3 missing presets (Balanced, Athleticism, Skill Focus) - was 1, now 4
+- Baseball: Added missing Balanced preset - was 1, now 2
+- Created `PRESET_MODEL_FINAL.md` documenting intentional preset design philosophy
+- Locked preset model as "no new presets without product review"
+
+**Philosophy:**
+- Presets are fast operational shortcuts, not exhaustive tuning tools
+- Preset count varies by sport complexity:
+  - Football/Basketball → 4 presets (multi-position sports)
+  - Baseball/Soccer → 2 presets (clear role differentiation)
+  - Track/Volleyball → 1 preset (highly specialized)
+- Deep weight tuning belongs in `/analytics`, not preset buttons
+
+**Impact:**
+- ✅ All sports have consistent frontend ↔ backend preset exposure
+- ✅ Prevents preset bloat (max 4 even for complex sports)
+- ✅ Clear design rationale for "why this many presets?"
+- ✅ Basketball and Baseball users now see full preset options
+
+**Files:**
+- `PRESET_MODEL_FINAL.md` (Complete preset documentation)
+- `backend/services/schema_registry.py` (Source of truth)
+- `frontend/src/constants/drillTemplates.js` (Synced mirror)
+
+---
 
 ### 🎯 Product Scope Definition & Navigation Lock
 **What Changed:**
@@ -423,8 +452,14 @@ docs/
 - Status indicator (not started / in progress / complete)
 
 ✅ **Ranking Presets** (Organizers)
-- 4 quick buttons: Balanced / Speed / Skills / Athletic
+- 4 quick buttons for Football: Balanced / Speed / Skills / Athletic
+- Basketball: 4 presets (Balanced / Shooter / Athleticism / Skill Focus)
+- Baseball: 2 presets (Balanced / Hitter)
+- Soccer: 2 presets (Balanced / Technical)
+- Track: 1 preset (Sprinter Focus)
+- Volleyball: 1 preset (Hitter Focus)
 - Fast operational decision, not deep tuning
+- Preset count scales with sport complexity
 
 ✅ **Rankings Preview**
 - Top 8-10 players (at-a-glance signal)
@@ -509,9 +544,10 @@ When someone requests a new feature on `/coach`, ask:
 **Start Here (Read in Order):**
 1. This document (PM_ONBOARDING_OVERVIEW.md) - Overall product context
 2. `docs/product/COACH_DASHBOARD_SCOPE.md` - /coach feature decisions & 10-second rule
-3. `docs/README.md` - Technical architecture overview
-4. `docs/RELEASE_FLOW.md` - Deployment process
-5. `docs/Woo-Combine-Spec.md` - Original product specification
+3. `PRESET_MODEL_FINAL.md` - Ranking preset philosophy & locked model
+4. `docs/README.md` - Technical architecture overview
+5. `docs/RELEASE_FLOW.md` - Deployment process
+6. `docs/Woo-Combine-Spec.md` - Original product specification
 
 **Reference as Needed:**
 - `docs/API_REFERENCE.md` - Backend API documentation
@@ -521,6 +557,7 @@ When someone requests a new feature on `/coach`, ask:
 
 **Product Decisions:**
 - `docs/product/COACH_DASHBOARD_SCOPE.md` - Locked navigation architecture
+- `PRESET_MODEL_FINAL.md` - Locked ranking preset model
 - `docs/adr/` - Architecture decision records
 
 ---
@@ -607,6 +644,7 @@ WooCombine is a youth sports combine management platform where organizers run ev
 
 **Most Important Files:**
 - `docs/product/COACH_DASHBOARD_SCOPE.md` (product decisions arbiter)
+- `PRESET_MODEL_FINAL.md` (ranking preset model & philosophy)
 - `frontend/src/pages/CoachDashboard.jsx` (command center implementation)
 - `frontend/src/components/Navigation.jsx` (role-based nav labels)
 
