@@ -275,9 +275,6 @@ const CoachDashboard = React.memo(function CoachDashboard() {
 
   // If no players, show onboarding/fallback actions
   if (players.length === 0) {
-    const handleImport = () => {
-      navigate('/admin#player-upload-section');
-    };
     // If user has no leagues, show inline CreateLeagueForm
     if (!leagues || leagues.length === 0) {
       return (
@@ -300,7 +297,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           <p className="text-gray-700 mb-4">To get started, you can:</p>
           <div className="flex flex-col gap-3 items-center">
             {userRole === 'organizer' ? (
-              <Link to="/admin#player-upload-section" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs text-center">📥 Import Players</Link>
+              <Link to="/players?action=import" className="bg-cmf-secondary text-white font-bold px-4 py-2 rounded shadow hover:bg-cmf-primary transition w-full max-w-xs text-center">📥 Import Players</Link>
             ) : (
               <span className="text-gray-500">Waiting for organizer to import players.</span>
             )}
