@@ -109,10 +109,25 @@ export const DRILL_TEMPLATES = {
       "defensive_slide": 0.1,
     },
     presets: {
+      balanced: {
+        name: "Balanced",
+        description: "Balanced approach",
+        weights: { "lane_agility": 0.15, "vertical_jump": 0.15, "free_throws": 0.2, "three_point": 0.2, "dribbling": 0.15, "defensive_slide": 0.15 }
+      },
       shooter: {
         name: "Shooter Focus",
         description: "Emphasizes shooting abilities",
         weights: { "lane_agility": 0.1, "vertical_jump": 0.1, "free_throws": 0.35, "three_point": 0.35, "dribbling": 0.05, "defensive_slide": 0.05 }
+      },
+      athleticism: {
+        name: "Athleticism",
+        description: "Emphasizes physical attributes",
+        weights: { "lane_agility": 0.3, "vertical_jump": 0.3, "defensive_slide": 0.3, "dribbling": 0.05, "free_throws": 0.025, "three_point": 0.025 }
+      },
+      skill_focus: {
+        name: "Skill Focus",
+        description: "Emphasizes ball handling and shooting",
+        weights: { "dribbling": 0.5, "free_throws": 0.2, "three_point": 0.2, "lane_agility": 0.05, "vertical_jump": 0.025, "defensive_slide": 0.025 }
       }
     }
   },
@@ -138,6 +153,11 @@ export const DRILL_TEMPLATES = {
       "pop_time": 0.1,
     },
     presets: {
+      balanced: {
+        name: "Balanced",
+        description: "Balanced evaluation",
+        weights: { "sprint_60": 0.2, "exit_velocity": 0.2, "throwing_velocity": 0.2, "fielding_accuracy": 0.2, "pop_time": 0.2 }
+      },
       hitter: {
         name: "Hitter Focus",
         description: "Emphasizes hitting abilities",
