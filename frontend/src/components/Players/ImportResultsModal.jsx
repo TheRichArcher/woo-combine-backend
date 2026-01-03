@@ -688,6 +688,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       {showModeSwitch && (
       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
         <label className="block text-sm font-medium text-gray-700 mb-2">Import Goal</label>
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+            <p className="text-xs text-blue-800">
+              <strong>Two-step workflow:</strong> You can upload the same spreadsheet for both steps. Extra stat columns are ignored during roster import; extra roster columns are kept during results import.
+            </p>
+          </div>
+        </div>
         <div className="flex gap-4">
             <button
                 onClick={() => setImportMode('create_or_update')}
@@ -703,8 +711,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     {importMode === 'create_or_update' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
                 </div>
                 <div>
-                    <div className="font-semibold text-gray-900">Add & Update Players</div>
+                    <div className="font-semibold text-gray-900">Step 1 of 2: Import Roster</div>
                     <div className="text-xs text-gray-500 mt-1">Create new players or update existing ones. Best for rosters.</div>
+                    <div className="text-xs text-cmf-primary font-medium mt-1">
+                        You can upload the same spreadsheet later to import results.
+                    </div>
                 </div>
             </button>
             <button
@@ -721,10 +732,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     {importMode === 'scores_only' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
                 </div>
                 <div>
-                    <div className="font-semibold text-gray-900">Upload Drill Scores</div>
+                    <div className="font-semibold text-gray-900">Step 2 of 2: Import Results</div>
                     <div className="text-xs text-gray-500 mt-1">Match existing roster. Won't create new players.</div>
                     <div className="text-xs text-cmf-primary mt-1 font-medium">
-                        Tip: Include External ID for best matching.
+                        We'll match results to players by Name (and Jersey # if present).
                     </div>
                 </div>
             </button>

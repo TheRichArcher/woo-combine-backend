@@ -633,9 +633,14 @@ export default function OnboardingEvent() {
                               <p className="text-xs text-gray-500 mb-2 leading-relaxed">
                                   Names + Jersey Numbers only.
                               </p>
-                              <p className="text-[10px] text-gray-400 font-medium">
-                                  Just players (no results).
-                              </p>
+                              <div className="space-y-1">
+                                  <p className="text-[10px] text-brand-primary font-semibold">
+                                      Step 1 of 2: Import your roster
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 font-medium">
+                                      You'll import results after players are added.
+                                  </p>
+                              </div>
                           </div>
                           <div className="mt-auto pt-2">
                               <span className="text-xs font-semibold text-brand-primary flex items-center gap-1 group-hover:translate-x-1 transition-transform">
