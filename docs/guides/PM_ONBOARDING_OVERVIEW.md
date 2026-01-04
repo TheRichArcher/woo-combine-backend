@@ -332,20 +332,50 @@ Users uploading CSVs faced critical discoverability failures:
   - Default to "Not mapped" when jersey detection is uncertain
 - **Impact:** Eliminated import failures on CSVs with `player_name` + `player_number`
 
-**6. Player Number Synonym Fix (Commit bdbee6d) - False Duplicate Detection**
+**6. Player Number Synonym Fix (Commit bdbee6d) - False Duplicate Detection (Partial)**
 - **Problem:** CSVs with `player_number` (underscore) header showed false duplicate warnings with "(no jersey number)" even when valid numbers existed
 - **Root Cause:** `csvUtils.js` synonym list had `'player number'` (space) but not `'player_number'` (underscore), causing auto-mapper to fail. Frontend filtered unmapped columns, backend never received jersey numbers, duplicate detection compared names with `None` → false positives
 - **Example:** Two "Ethan Garcia" rows with numbers 1002 and 1010 flagged as duplicates because both had `num=None` in backend
 - **Solution:** Added `'player_number'` to jersey_number synonym array in `csvUtils.js` line 36
-- **Impact:** 
-  - ✅ Auto-detection now works for both `player_number` and `player number`
-  - ✅ Eliminated false duplicate warnings
-  - ✅ Accurate duplicate detection based on actual jersey numbers
-  - ✅ No more "(no jersey number)" errors when data exists
+- **Status:** ⚠️ Incomplete - This fixed synonym matching but didn't resolve the root cause (canonical field mismatch)
 - **Files:**
   - `frontend/src/utils/csvUtils.js` (1 line change)
   - `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Complete analysis)
   - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual flow diagram)
+
+**7. Canonical Field Alignment (Commit d01b787) - DEFINITIVE FIX**
+- **Problem:** Despite synonym fix, imports still failed with "(no jersey number)" duplicates. Payload had no number field even after mapping worked
+- **Root Cause - Canonical Field Mismatch:**
+  - **Backend canonical:** `"number"` (stored in Firestore, used in identity generation)
+  - **Frontend canonical:** `"jersey_number"` (mapping target, but not in backend schema)
+  - **Result:** Mapping created `player_number → jersey_number`, but backend expected `number` field
+- **Complete Data Flow Failure:**
+  1. CSV: `player_number` column with values 1000, 1001, 1002, ...
+  2. Auto-mapper: `player_number → jersey_number` ✓ (mapping worked)
+  3. Payload built: `{ first_name, last_name, age_group, sprint_60, ... }` ❌ (no number field!)
+  4. Backend received: No number → `num = None` → Duplicate key: `("ethan", "garcia", None)`
+  5. False duplicates: Any two players with same name flagged as duplicates
+- **Solution - Align Frontend with Backend:**
+  - Changed `OPTIONAL_HEADERS`: `jersey_number` → `number`
+  - Changed `STANDARD_FIELDS`: `jersey_number` → `number`
+  - Updated synonym dictionary: `number` is now canonical, `jersey_number` is alias
+  - Added comprehensive synonyms: `player_number`, `athlete_number`, `jersey_number`, etc.
+  - Updated all mapping references to use `'number'` (5 locations)
+- **Impact:**
+  - ✅ Mapping now produces: `player_number → number` (matches backend)
+  - ✅ Payload includes: `{"number": 1010}` (backend can use it)
+  - ✅ Backend duplicate detection uses actual numbers, not None
+  - ✅ No more "(no jersey number)" false positives
+  - ✅ All 50 players import successfully (0 skipped)
+- **Why Phases 5+6 Weren't Enough:**
+  - Phase 5: Prevented wrong mappings (e.g., `player_name → jersey`)
+  - Phase 6: Added missing synonyms (`player_number`)
+  - **Phase 7: Made mapping output match backend expectations** ← Root cause fix
+- **Files:**
+  - `frontend/src/utils/csvUtils.js` (+4, -3) - Canonical field + synonyms
+  - `frontend/src/components/Players/ImportResultsModal.jsx` (+4, -4) - UI mapping
+  - `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Complete analysis)
+- **Lesson:** Canonical field names must match across entire stack (frontend mapping → payload → backend storage → database schema). Mismatch anywhere breaks the chain.
 
 #### Current UX Flow
 
@@ -397,8 +427,9 @@ Users uploading CSVs faced critical discoverability failures:
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` (Ready state confidence)
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` (Workflow clarity)
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` (Auto-detection guards + name-split fix)
-- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (False duplicate detection fix)
+- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Synonym fix - incomplete)
 - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual data flow explanation)
+- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Definitive root cause fix)
 
 #### Success Metrics
 
@@ -697,6 +728,7 @@ When someone requests a new feature on `/coach`, ask:
 6. **Iterate on locked UX areas (importer, navigation) without PM approval** → See policy docs
 7. **Modify auto-detection logic without guards** → Can cause 50%+ failure rates (see Phase 5)
 8. **Remove jersey auto-mapping guards** → Prevents mapping to name columns (critical)
+9. **Misalign canonical field names** → Frontend `jersey_number` vs Backend `number` = data loss
 
 ### ✅ Do This Instead:
 1. **Check scope doc before adding to /coach** → `docs/product/COACH_DASHBOARD_SCOPE.md`
@@ -762,8 +794,9 @@ When someone requests a new feature on `/coach`, ask:
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` - Ready state confidence
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` - Workflow clarity
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` - Auto-detection guards
-- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` - False duplicate detection fix
+- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` - Synonym fix (incomplete)
 - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` - Visual data flow diagrams
+- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` - Definitive canonical field fix
 
 **QA & Testing:**
 - `docs/qa/IMPORTER_PRODUCTION_VERIFICATION.md` - Complete importer test suite
@@ -871,10 +904,11 @@ This document should be updated when:
 
 **Last Updated:** January 4, 2026  
 **Major Changes This Update:**
-- Added Phase 6: Player Number Synonym Fix (commit bdbee6d) - False duplicate detection resolution
-- Added documentation for `player_number` (underscore) vs `player number` (space) synonym issue
-- Updated essential reading list with player_number synonym hotfix docs
-- Previous update (Jan 3, 2026): Comprehensive Import UX Evolution section and locked importer policy
+- Added Phase 7: Canonical Field Alignment (commit d01b787) - Definitive fix for duplicate detection
+- Documented the jersey_number vs number mismatch that was root cause of import failures
+- Clarified that Phase 6 (synonym fix) was incomplete without Phase 7 (canonical alignment)
+- Added CANONICAL_FIELD_MISMATCH_FIX.md to documentation references
+- Previous update (Jan 4, 2026): Added Phase 6 player_number synonym fix
 
 **Next Review:** When next major feature sprint begins
 
