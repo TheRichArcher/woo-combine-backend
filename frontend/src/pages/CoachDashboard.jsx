@@ -16,6 +16,7 @@ import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import LoadingScreen from "../components/LoadingScreen";
 import LeagueFallback from "../context/LeagueFallback"; // CRITICAL FIX: Import LeagueFallback directly
+import * as Sentry from '@sentry/react';
 
 // Debug Log for troubleshooting production undefined component error
 console.debug('[CoachDashboard] Component Check:', { 
@@ -585,8 +586,44 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                   : players.filter(p => p.age_group === selectedAgeGroupId);
                 const completedPlayers = groupPlayers.filter(p => p.composite_score > 0);
                 const completionRate = groupPlayers.length > 0 ? (completedPlayers.length / groupPlayers.length * 100) : 0;
-                // Fix: Normalize score display to 0-100 scale (data comes as 0-1)
-                const avgScore = completedPlayers.length > 0 ? (completedPlayers.reduce((sum, p) => sum + p.composite_score, 0) / completedPlayers.length * 100) : 0;
+                // composite_score already comes normalized in 0-100 range from backend
+                const avgScore = completedPlayers.length > 0 ? (completedPlayers.reduce((sum, p) => sum + p.composite_score, 0) / completedPlayers.length) : 0;
+                
+                // REGRESSION GUARD: Detect if scores are unnormalized (>200 indicates *100 bug reintroduced)
+                if (avgScore > 200 && completedPlayers.length > 0) {
+                  const errorMsg = `[CoachDashboard] SCALE BUG DETECTED: avgScore=${avgScore.toFixed(1)} (expected 0-100). Check for erroneous *100 multiplication.`;
+                  console.error(errorMsg);
+                  
+                  // In development, throw to catch immediately
+                  if (process.env.NODE_ENV === 'development') {
+                    throw new Error(`Score scale bug: avgScore=${avgScore.toFixed(1)} exceeds expected 0-100 range`);
+                  } else {
+                    // In production, send to Sentry for monitoring (wrapped in try/catch to never crash UI)
+                    try {
+                      Sentry.captureMessage('CoachDashboard score scale regression detected', {
+                        level: 'error',
+                        extra: {
+                          avgScore,
+                          completedPlayersCount: completedPlayers.length,
+                          eventId: selectedEvent?.id,
+                          eventName: selectedEvent?.name,
+                          leagueId: selectedLeagueId,
+                          selectedAgeGroupId,
+                          minScore: Math.min(...completedPlayers.map(p => p.composite_score)),
+                          maxScore: Math.max(...completedPlayers.map(p => p.composite_score)),
+                        },
+                        tags: {
+                          component: 'CoachDashboard',
+                          bugType: 'score_scale_regression',
+                          userRole: userRole,
+                        }
+                      });
+                    } catch (sentryError) {
+                      // Failsafe: If Sentry fails, log to console but never crash the UI
+                      console.error('[CoachDashboard] Failed to send Sentry alert:', sentryError);
+                    }
+                  }
+                }
                 
                 return (
                   <>
@@ -636,7 +673,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                           </div>
                           <div className="text-xs text-brand-primary">
                             Range: <span className="font-medium">
-                              {(Math.min(...completedPlayers.map(p => p.composite_score)) * 100).toFixed(1)} - {(Math.max(...completedPlayers.map(p => p.composite_score)) * 100).toFixed(1)}
+                              {Math.min(...completedPlayers.map(p => p.composite_score)).toFixed(1)} - {Math.max(...completedPlayers.map(p => p.composite_score)).toFixed(1)}
                             </span>
                           </div>
                         </div>
