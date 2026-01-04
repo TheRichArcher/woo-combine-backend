@@ -147,7 +147,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       { key: 'name', label: 'Name (Full Name - will be split)' },
       { key: 'first_name', label: 'First Name' },
       { key: 'last_name', label: 'Last Name' },
-      { key: 'jersey_number', label: 'Jersey Number' },
+      { key: 'jersey_number', label: 'Player Number' },
       { key: 'age_group', label: 'Age Group' },
       { key: 'team_name', label: 'Team Name' },
       { key: 'position', label: 'Position' },
@@ -449,8 +449,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             }
         }
         
-        // CRITICAL FIX: Add guards for jersey number mapping
-        // Jersey should NEVER map to name columns and must be numeric-like
+        // CRITICAL FIX: Add guards for player number mapping
+        // Player number should NEVER map to name columns and must be numeric-like
         if (reverseMapping['jersey_number']) {
             const jerseySource = reverseMapping['jersey_number'];
             const lower = jerseySource.toLowerCase();
@@ -871,7 +871,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   const supportedColumnsText = useMemo(() => {
     const drillLabels = effectiveDrills.slice(0, 3).map(d => d.label).join(', ');
-    return `Supported columns: First Name, Last Name, Jersey Number, Age Group, Drill Names (${drillLabels || 'e.g. 40m Dash'}, etc.)`;
+    return `Supported columns: First Name, Last Name, Player Number, Age Group, Drill Names (${drillLabels || 'e.g. 40m Dash'}, etc.)`;
   }, [effectiveDrills]);
 
   const renderInputStep = () => (
@@ -1463,7 +1463,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
                         <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Jersey Number <span className="text-gray-400">(Optional)</span>
+                                Player Number <span className="text-gray-400">(Optional)</span>
                             </label>
                             <select
                                 value={jerseyColumn}
@@ -1541,10 +1541,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
                     <h4 className="font-semibold text-amber-900 mb-1">
-                        📊 Possible drill columns detected
+                        📊 Possible unmapped drill columns detected
                     </h4>
                     <p className="text-sm text-amber-800 mb-2">
-                        We found {unmappedDrillColumns.length} column(s) with numeric data that might be drill scores:
+                        We found {unmappedDrillColumns.length} numeric {unmappedDrillColumns.length === 1 ? 'column' : 'columns'} that {unmappedDrillColumns.length === 1 ? 'is' : 'are'} not yet mapped and could represent drill scores:
                     </p>
                     <div className="flex flex-wrap gap-1 mb-2">
                         {unmappedDrillColumns.slice(0, 5).map(col => (
@@ -1558,9 +1558,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                             </span>
                         )}
                     </div>
+                    <p className="text-sm text-amber-700 mb-2 italic">
+                        Numeric columns that are already mapped or recognized as player information are not shown here.
+                    </p>
                     <p className="text-sm text-amber-800">
-                        <strong>To import these as drill scores:</strong> Use the column header dropdowns in the table below to map each column to the correct drill. 
-                        If you don't map them, only player info will be imported.
+                        <strong>Use the column header dropdowns below to map these, or ignore them to import player info only.</strong>
                     </p>
                 </div>
             </div>

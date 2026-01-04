@@ -434,11 +434,11 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                             
                 num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
                 
-                # Validation: jersey_number is now OPTIONAL, but if present must be valid
+                # Validation: player_number is now OPTIONAL, but if present must be valid
                 if num is not None and (num < 0 or num > 9999):
-                    row_errors.append("jersey_number must be between 0 and 9999")
+                    row_errors.append("player_number must be between 0 and 9999")
             except Exception:
-                row_errors.append("Invalid jersey_number")
+                row_errors.append("Invalid player_number")
                 
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})

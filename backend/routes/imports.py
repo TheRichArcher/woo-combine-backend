@@ -131,7 +131,7 @@ def parse_import_file(
             first = data.get("first_name", "")
             last = data.get("last_name", "")
             
-            # Robust parsing for jersey number to match players.py logic
+            # Robust parsing for player number to match players.py logic
             try:
                 raw_num = data.get("jersey_number")
                 number = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
@@ -204,7 +204,7 @@ def get_import_schema(
     })
     schema.append({
         "key": "jersey_number",
-        "label": "Jersey Number",
+        "label": "Player Number",
         "required": False,
         "type": "number",
         "aliases": ["jersey", "number", "no", "#"]
@@ -258,7 +258,7 @@ def get_import_template(
         schema = get_event_schema(event_id)
         
         # Define headers
-        identity_headers = ["First Name", "Last Name", "Jersey Number", "Bib / External ID", "Age Group"]
+        identity_headers = ["First Name", "Last Name", "Player Number", "Bib / External ID", "Age Group"]
         drill_headers = [d.label for d in schema.drills]
         all_headers = identity_headers + drill_headers
         

@@ -300,7 +300,7 @@ export default function OnboardingEvent() {
     try {
       // Normalize for numbering: use `number` field expected by autoAssign
       const rowsForNumbering = validRows.map(r => ({ ...r, number: r.jersey_number ?? r.number }));
-      // Assign jersey numbers automatically if missing
+      // Assign player numbers automatically if missing
       const playersWithNumbers = autoAssignPlayerNumbers(rowsForNumbering).map(p => ({
         ...p,
         jersey_number: p.jersey_number || p.number
@@ -589,7 +589,7 @@ export default function OnboardingEvent() {
                       <div 
                            role="button"
                            tabIndex={0}
-                           aria-label="Upload roster CSV or Excel file - Names and Jersey Numbers only"
+                           aria-label="Upload roster CSV or Excel file - Names and Player Numbers only"
                            className={`bg-white border-2 rounded-xl p-4 shadow-sm transition-all cursor-pointer group text-left relative overflow-hidden flex flex-col h-full focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 ${
                              isDraggingRoster 
                                ? 'border-brand-primary bg-brand-primary/5 scale-105' 
@@ -631,7 +631,7 @@ export default function OnboardingEvent() {
                                   <h3 className="font-bold text-gray-900 text-md">Upload Roster</h3>
                               </div>
                               <p className="text-xs text-gray-500 mb-2 leading-relaxed">
-                                  Names + Jersey Numbers only.
+                                  Names + Player Numbers only.
                               </p>
                               <div className="space-y-1">
                                   <p className="text-[10px] text-brand-primary font-semibold">

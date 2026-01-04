@@ -161,7 +161,7 @@ export default function EventSetup({ onBack }) {
   const canonicalHeaderLabels = {
     first_name: 'First Name',
     last_name: 'Last Name',
-    jersey_number: 'Jersey #',
+    jersey_number: 'Player #',
     age_group: 'Age Group',
     external_id: 'External ID',
     team_name: 'Team Name',

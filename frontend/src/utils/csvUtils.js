@@ -33,7 +33,7 @@ function getHeaderSynonyms() {
       first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'given name'],
       last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'family name', 'last name'],
       age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp', 'class', 'squad'],
-      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'no', 'no.', 'uniform #', 'num'],
+      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'no', 'no.', 'uniform #', 'num'],
       external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
       team_name: ['team_name', 'team', 'squad', 'club'],
       position: ['position', 'pos'],
@@ -199,7 +199,7 @@ export function validateRow(row, drillDefinitions = []) {
 
   // Validate jersey number if provided (will be auto-assigned if blank before upload)
   if (row.jersey_number && row.jersey_number.trim() !== '' && isNaN(Number(row.jersey_number))) {
-    warnings.push('Invalid jersey_number (must be numeric)');
+    warnings.push('Invalid player_number (must be numeric)');
   }
 
   // Validate drill scores if provided
@@ -433,7 +433,7 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
     // If key is already mapped or header is already used, skip
     if (!mapping[key] && !usedHeaders.has(header)) {
       
-      // CRITICAL FIX: Add guards for jersey_number to prevent mapping to name columns
+      // CRITICAL FIX: Add guards for player number (jersey_number) to prevent mapping to name columns
       if (key === 'jersey_number') {
         const headerLower = normalizeHeader(header);
         // Guard 1: Exclude name columns

@@ -11,7 +11,7 @@ Import rules:
 - **Age group allowed values** (exact string, case-insensitive accepted on import, stored canonicalized):
   - Range forms: `5-6`, `7-8`, `9-10`, `11-12`, `13-14`, `15-16`, `17-18`
   - U-forms: `6U`, `8U`, `10U`, `12U`, `14U`, `16U`, `18U`
-- **Jersey number**: integer 1–9999
+- **Player number** (stored as `jersey_number`): integer 1–9999
 - **Name**: will be stored as both `first`, `last`, and `name = "first last"`
 - **Optional fields** are stored if present: `external_id`, `team_name`, `position`, `notes`
 - Frontend will auto-assign `jersey_number` if missing to satisfy the required column.
@@ -19,7 +19,7 @@ Import rules:
 Duplicate detection (per event):
 - Duplicate if same `external_id`
 - Duplicate if same `(first_name, last_name, jersey_number)`
-- Duplicate if same `(first_name, last_name, age_group)` when jersey numbers are missing/conflicting
+- Duplicate if same `(first_name, last_name, age_group)` when player numbers are missing/conflicting
 
 Response on upload returns `{"added": N, "errors": [{row, message}]}`; the frontend must show row-level errors.
 

@@ -516,7 +516,7 @@ class DataImporter:
                         num = int(float(clean_val)) # Handle "10.0" from Excel
                         processed_row[original_key] = num
                     except ValueError:
-                        row_errors.append(f"Invalid jersey number: {clean_val}")
+                        row_errors.append(f"Invalid player number: {clean_val}")
                         processed_row[original_key] = clean_val
                 
                 else:
