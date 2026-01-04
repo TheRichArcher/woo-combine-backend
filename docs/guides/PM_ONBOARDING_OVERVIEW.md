@@ -678,6 +678,8 @@ When someone requests a new feature on `/coach`, ask:
 4. **Build deep analysis on /coach** → Belongs in /analytics
 5. **Assume pricing/subscriptions exist** → No code enforcement currently
 6. **Iterate on locked UX areas (importer, navigation) without PM approval** → See policy docs
+7. **Modify auto-detection logic without guards** → Can cause 50%+ failure rates (see Phase 5)
+8. **Remove jersey auto-mapping guards** → Prevents mapping to name columns (critical)
 
 ### ✅ Do This Instead:
 1. **Check scope doc before adding to /coach** → `docs/product/COACH_DASHBOARD_SCOPE.md`
@@ -744,6 +746,10 @@ When someone requests a new feature on `/coach`, ask:
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` - Workflow clarity
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` - Auto-detection guards
 
+**QA & Testing:**
+- `docs/qa/IMPORTER_PRODUCTION_VERIFICATION.md` - Complete importer test suite
+- `docs/qa/JERSEY_AUTOMAP_REGRESSION_TEST.md` - Jersey auto-map regression tests
+
 ---
 
 ## 12. 🎓 Onboarding Checklist
@@ -759,7 +765,8 @@ When someone requests a new feature on `/coach`, ask:
 
 **Week 2: Hands-On**
 - [ ] Create a test league and event
-- [ ] Upload players via CSV
+- [ ] Upload players via CSV (test with `baseball_import_50_players_with_names.csv`)
+- [ ] Verify jersey auto-detection (should map to `player_number`, not `player_name`)
 - [ ] Try all ranking presets
 - [ ] Generate teams
 - [ ] Export rankings
@@ -776,6 +783,37 @@ When someone requests a new feature on `/coach`, ask:
 - [ ] Reference COACH_DASHBOARD_SCOPE.md for feature placement decisions
 - [ ] Update this doc when major changes occur
 - [ ] Keep product scope documents current
+
+---
+
+## 12.5. ⚡ Quick Validation Tests
+
+**Import System Health Check** (< 2 minutes):
+1. Go to `/players?action=import`
+2. Upload `baseball_import_50_players_with_names.csv` (test file)
+3. ✅ Verify Required Fields panel auto-detects:
+   - Full Name: `player_name`
+   - Jersey #: `player_number` (NOT `player_name` ← regression indicator)
+   - Age Group: `age_group`
+4. ✅ Panel should be **green** (valid mapping)
+5. ✅ Click "Import Data" → Should succeed with 50 players, 0 errors
+
+**If Jersey # shows `player_name`:**
+- 🚨 P0 regression detected
+- Run full test suite: `docs/qa/JERSEY_AUTOMAP_REGRESSION_TEST.md`
+- Check guards in `csvUtils.js` and `ImportResultsModal.jsx`
+
+**Ranking System Health Check** (< 1 minute):
+1. Go to `/coach` → View player rankings
+2. Adjust weight presets (Balanced → Speed Focused)
+3. ✅ Rankings should update immediately
+4. ✅ Scores should be in 0-500 range (not 0-9000)
+
+**Navigation Health Check** (< 1 minute):
+1. Create test account → Complete guided setup
+2. ✅ Dashboard → Players → Coach → Admin → Analytics (all accessible)
+3. ✅ No infinite redirects or loading screens
+4. ✅ Role-specific labels show correctly
 
 ---
 
@@ -856,6 +894,8 @@ WooCombine is a youth sports combine management platform where organizers run ev
 - Building analysis tools on command center
 - Assuming pricing enforcement exists in code
 - Modifying import UX without checking IMPORTER_UX_LOCKED.md
+- Changing auto-detection logic without testing regression suite
+- Removing type validation guards from jersey/name mapping
 
 **Success Metrics:**
 - Average time on /coach: <2 minutes (it's a hub, not a destination)
