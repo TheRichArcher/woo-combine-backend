@@ -278,7 +278,7 @@ WooCombine App
 **Status:** Production-ready and locked (Jan 3, 2026)  
 **Policy:** No UX changes without PM sign-off per `docs/product/IMPORTER_UX_LOCKED.md`
 
-**What Changed:** Complete resolution of P0 onboarding blocker through 4 major UX improvements
+**What Changed:** Complete resolution of P0 onboarding blocker through 5 major fixes
 
 #### Problem (Before Fix)
 Users uploading CSVs faced critical discoverability failures:
@@ -286,9 +286,10 @@ Users uploading CSVs faced critical discoverability failures:
 - "Missing First Name / Last Name" errors with no obvious fix location
 - Alarming "50 Errors" signals during legitimate configuration steps
 - Blocking "NO SCORES DETECTED" alerts when drill columns were visible in preview
+- **Regression:** Jersey auto-mapping to player_name columns causing 50% failure rate
 - **Result:** Users felt stuck, assumed import was broken, required hand-holding
 
-#### Solution (Progressive Disclosure Pattern)
+#### Solution (Progressive Disclosure Pattern + Auto-Detection Guards)
 
 **1. Required Fields Panel (Commit 80fb72c) - Structural Fix**
 - Added explicit "STEP 1: Map Required Fields" panel above data table
@@ -320,6 +321,16 @@ Users uploading CSVs faced critical discoverability failures:
 - Inline banner: "📊 Possible drill columns detected: 40m_dash, vertical_jump..."
 - Helpful confirm dialog with scroll-to-Step-2 action
 - **Impact:** Eliminated "1-step vs 2-step" workflow confusion
+
+**5. Jersey Auto-Map Guards (Commit 7452d05) - P0 Regression Fix**
+- **Problem:** Auto-detection was mapping `player_name` to `jersey_number` (50% failure rate)
+- **Root Cause:** Broad synonym matching + no type validation + name-splitting transform blocked
+- **Solution:**
+  - Added guards in `csvUtils.js` to exclude name columns from jersey matching
+  - Added validation in `ImportResultsModal.jsx` to reject name-to-jersey mappings
+  - Added `'name'` to validKeys to prevent filtering before name-splitting transform
+  - Default to "Not mapped" when jersey detection is uncertain
+- **Impact:** Eliminated import failures on CSVs with `player_name` + `player_number`
 
 #### Current UX Flow
 
@@ -370,6 +381,7 @@ Users uploading CSVs faced critical discoverability failures:
 - `docs/reports/IMPORT_ERROR_SIGNAL_POLISH.md` (Configuration state messaging)
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` (Ready state confidence)
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` (Workflow clarity)
+- `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` (Auto-detection guards + name-split fix)
 
 #### Success Metrics
 
@@ -730,6 +742,7 @@ When someone requests a new feature on `/coach`, ask:
 - `docs/reports/IMPORT_ERROR_SIGNAL_POLISH.md` - Configuration messaging
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` - Ready state confidence
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` - Workflow clarity
+- `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` - Auto-detection guards
 
 ---
 
@@ -803,8 +816,9 @@ This document should be updated when:
 **Major Changes This Update:**
 - Added comprehensive Import UX Evolution section (§5.1)
 - Documented locked importer policy
+- Added Phase 5: Jersey auto-map regression fix (commit 7452d05)
 - Added next high-leverage focus areas
-- Updated essential reading list with importer docs
+- Updated essential reading list with all 5 importer docs
 
 **Next Review:** When next major feature sprint begins
 
