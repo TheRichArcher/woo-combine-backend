@@ -53,6 +53,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   // Column Mapping State
   const [keyMapping, setKeyMapping] = useState({}); // { originalKey: targetKey }
   const [autoMappedKeys, setAutoMappedKeys] = useState({}); // { originalKey: confidence }
+  
+  // Required Fields Mapping State (Progressive Disclosure)
+  const [nameMappingMode, setNameMappingMode] = useState('separate'); // 'separate' | 'full'
+  const [firstNameColumn, setFirstNameColumn] = useState('');
+  const [lastNameColumn, setLastNameColumn] = useState('');
+  const [fullNameColumn, setFullNameColumn] = useState('');
+  const [jerseyColumn, setJerseyColumn] = useState('');
+  const [ageGroupColumn, setAgeGroupColumn] = useState('');
+  const [requiredFieldsError, setRequiredFieldsError] = useState('');
 
   // Multi-sheet support
   const [sheets, setSheets] = useState([]);
@@ -368,6 +377,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       setKeyMapping(initialMapping);
       setAutoMappedKeys(initialAutoMapped);
       
+      // Auto-detect required field mappings for progressive disclosure
+      initializeRequiredFieldMappings(initialMapping, sourceKeys);
+      
       setStep('review');
     } catch (err) {
       console.error("Parse error:", err);
@@ -399,9 +411,131 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   }, [droppedFile, step, file]); // Track file changes to reset flag
 
     const [importSummary, setImportSummary] = useState(null);
+    
+    // Initialize required field mappings from auto-detected mapping
+    const initializeRequiredFieldMappings = (mapping, sourceKeys) => {
+        // Find which source column maps to each target
+        const reverseMapping = {};
+        Object.entries(mapping).forEach(([source, target]) => {
+            reverseMapping[target] = source;
+        });
+        
+        // Check if we have first_name and last_name mapped
+        const hasFirstName = reverseMapping['first_name'];
+        const hasLastName = reverseMapping['last_name'];
+        const hasFullName = reverseMapping['name'];
+        
+        if (hasFirstName && hasLastName) {
+            setNameMappingMode('separate');
+            setFirstNameColumn(hasFirstName);
+            setLastNameColumn(hasLastName);
+        } else if (hasFullName) {
+            setNameMappingMode('full');
+            setFullNameColumn(hasFullName);
+        } else {
+            // No name mapping detected - try to find likely candidates
+            const nameLikeColumns = sourceKeys.filter(key => {
+                const lower = key.toLowerCase();
+                return lower.includes('name') || lower.includes('player');
+            });
+            
+            if (nameLikeColumns.length === 1) {
+                // Single name-like column, suggest full name mode
+                setNameMappingMode('full');
+                setFullNameColumn(nameLikeColumns[0]);
+            } else {
+                // Default to separate mode, user must select
+                setNameMappingMode('separate');
+            }
+        }
+        
+        // Map optional fields
+        if (reverseMapping['jersey_number']) {
+            setJerseyColumn(reverseMapping['jersey_number']);
+        }
+        if (reverseMapping['age_group']) {
+            setAgeGroupColumn(reverseMapping['age_group']);
+        }
+    };
+    
+    // Check if required fields are validly mapped
+    const getRequiredFieldsStatus = () => {
+        if (importMode === 'create_or_update') {
+            // Roster mode: must have name mapping
+            if (nameMappingMode === 'separate') {
+                const valid = firstNameColumn && lastNameColumn;
+                return {
+                    valid,
+                    error: valid ? '' : 'Please select both First Name and Last Name columns'
+                };
+            } else {
+                const valid = fullNameColumn;
+                return {
+                    valid,
+                    error: valid ? '' : 'Please select a Full Name column to split'
+                };
+            }
+        } else {
+            // Scores-only mode: also needs names for matching
+            if (nameMappingMode === 'separate') {
+                const valid = firstNameColumn && lastNameColumn;
+                return {
+                    valid,
+                    error: valid ? '' : 'Names required to match players in your roster'
+                };
+            } else {
+                const valid = fullNameColumn;
+                return {
+                    valid,
+                    error: valid ? '' : 'Full Name required to match players'
+                };
+            }
+        }
+    };
 
     const handleSubmit = async () => {
     if (!parseResult) return;
+    
+    // CRITICAL: Validate required fields FIRST before any other validation
+    const requiredStatus = getRequiredFieldsStatus();
+    if (!requiredStatus.valid) {
+        setRequiredFieldsError(requiredStatus.error);
+        // Scroll to required fields panel
+        document.getElementById('required-fields-panel')?.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+        return;
+    }
+    
+    // Clear any previous required field errors
+    setRequiredFieldsError('');
+    
+    // Sync required field selections into keyMapping before validation
+    const updatedMapping = { ...keyMapping };
+    
+    if (nameMappingMode === 'separate') {
+        if (firstNameColumn) updatedMapping[firstNameColumn] = 'first_name';
+        if (lastNameColumn) updatedMapping[lastNameColumn] = 'last_name';
+        // Remove any 'name' mapping if it exists
+        Object.keys(updatedMapping).forEach(key => {
+            if (updatedMapping[key] === 'name') delete updatedMapping[key];
+        });
+    } else {
+        if (fullNameColumn) updatedMapping[fullNameColumn] = 'name';
+        // Remove separate name mappings if they exist
+        Object.keys(updatedMapping).forEach(key => {
+            if (updatedMapping[key] === 'first_name' || updatedMapping[key] === 'last_name') {
+                delete updatedMapping[key];
+            }
+        });
+    }
+    
+    if (jerseyColumn) updatedMapping[jerseyColumn] = 'jersey_number';
+    if (ageGroupColumn) updatedMapping[ageGroupColumn] = 'age_group';
+    
+    // Update keyMapping state to reflect required field selections
+    setKeyMapping(updatedMapping);
 
     // Combine valid and errors to allow fixing - Construct EARLY to avoid TDZ
     const formattedErrors = parseResult.errors.map(e => ({
@@ -425,10 +559,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         validKeys: Array.from(validKeys),
         effectiveDrillsCount: effectiveDrills.length,
         effectiveDrills: effectiveDrills.map(d => ({ key: d.key, label: d.label })),
-        keyMappingEntries: Object.entries(keyMapping)
+        keyMappingEntries: Object.entries(updatedMapping)
     });
 
-    const activeMappings = Object.entries(keyMapping)
+    const activeMappings = Object.entries(updatedMapping)
         .filter(([_, targetKey]) => targetKey !== '__ignore__');
 
     const invalidMappings = activeMappings.filter(([sourceKey, targetKey]) => {
@@ -445,33 +579,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         return isInvalid;
     });
 
-    // NEW: Check for Missing Required Fields (Roster Mode)
-    if (importMode === 'create_or_update') {
-        const effectiveTargets = new Set();
-        const sourceKeys = Object.keys(allRows?.[0]?.data || {});
-        
-        sourceKeys.forEach(sourceKey => {
-            const target = keyMapping[sourceKey] || sourceKey;
-            if (target !== '__ignore__') {
-                effectiveTargets.add(target);
-            }
-        });
-
-        // CRITICAL FIX: Allow 'name' as alternative to first_name + last_name
-        // If user has 'name' mapped, they don't need first_name/last_name separately
-        const hasName = effectiveTargets.has('name');
-        const hasFirstName = effectiveTargets.has('first_name');
-        const hasLastName = effectiveTargets.has('last_name');
-        
-        // Valid if either: (name) OR (first_name AND last_name)
-        const hasValidNameFields = hasName || (hasFirstName && hasLastName);
-        
-        if (!hasValidNameFields) {
-             alert(`❌ Missing Required Name Fields\n\nTo add or update players, you must map columns to either:\n\n- Name (will be split into First/Last)\n  OR\n- First Name AND Last Name\n\nPlease map the correct columns in the dropdowns.`);
-             setStep('review');
-             return;
-        }
-    }
+    // NOTE: We removed the "Missing Required Fields" check here because it's now
+    // handled at the top of handleSubmit() via getRequiredFieldsStatus()
+    // This prevents duplicate validation and ensures required fields panel is the source of truth
 
         // HARD STOP: Block import if there are unmapped columns that contain data
         // This prevents the "silent failure" scenario where users import but lose scores
@@ -562,10 +672,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           const edited = editedRows[row.row_id] || {};
           const mergedData = { ...row.data, ...edited };
           
-          // Apply column mapping (rename keys)
+          // Apply column mapping (rename keys) - use updatedMapping which includes required field selections
           const mappedData = {};
           Object.keys(mergedData).forEach(k => {
-              const targetKey = keyMapping[k] || k;
+              const targetKey = updatedMapping[k] || k;
               // Strict Filtering: Only include keys that are in validKeys (respects intent)
               if (targetKey !== '__ignore__' && validKeys.has(targetKey)) {
                   mappedData[targetKey] = mergedData[k];
@@ -1040,6 +1150,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       ? Array.from(new Set(allRows.flatMap(r => Object.keys(r.data || {}))))
       : [];
     
+    // Get source columns (for required fields dropdowns)
+    const sourceColumns = allKeys.filter(k => !k.endsWith('_raw') && k !== 'merge_strategy');
+    
     // CRITICAL FIX: Always show ALL source columns for mapping, not just recognized ones
     // The user needs to be able to map ANY CSV column to ANY target field
     // Previous logic filtered out columns if they weren't in priorityKeys, preventing mapping of e.g. "player_name" → "first_name"
@@ -1049,6 +1162,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     // Show priority keys that exist, then all other keys
     // This ensures name fields appear first if present, but ALL columns are available for mapping
     const displayKeys = [...priorityKeys.filter(k => allKeys.includes(k)), ...drillKeys];
+    
+    // Check required field status
+    const requiredStatus = getRequiredFieldsStatus();
+    const requiredFieldsComplete = requiredStatus.valid;
 
     const handleCellEdit = (rowId, key, value) => {
         setEditedRows(prev => ({
@@ -1085,18 +1202,257 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               </div>
           </div>
         )}
-
-        {/* Create/Update Mode Tip */}
-        {importMode === 'create_or_update' && intent === 'roster_and_scores' && (
-            <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-lg p-3 flex items-start gap-2">
-                <div className="bg-brand-primary/10 rounded-full p-1 mt-0.5">
-                    <Info className="w-3 h-3 text-brand-primary" />
+        
+        {/* REQUIRED FIELDS PANEL - Progressive Disclosure */}
+        <div 
+            id="required-fields-panel"
+            className={`border-2 rounded-xl p-5 transition-all ${
+                requiredFieldsComplete 
+                ? 'bg-green-50 border-green-200' 
+                : requiredFieldsError 
+                ? 'bg-red-50 border-red-300 animate-pulse' 
+                : 'bg-amber-50 border-amber-300'
+            }`}
+        >
+            <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                    {requiredFieldsComplete ? (
+                        <div className="w-6 h-6 rounded-full bg-green-500 text-white flex items-center justify-center">
+                            <Check className="w-4 h-4" />
+                        </div>
+                    ) : (
+                        <div className="w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">
+                            !
+                        </div>
+                    )}
+                    <h3 className="font-bold text-gray-900">
+                        {requiredFieldsComplete ? '✅ Required Fields Mapped' : '📋 STEP 1: Map Required Fields'}
+                    </h3>
                 </div>
-                <div className="text-sm text-gray-700">
-                    <span className="font-semibold text-brand-primary">Tip:</span> You can map roster fields (Name, Jersey #) and drill columns in the same upload.
-                </div>
+                {requiredFieldsComplete && (
+                    <button 
+                        onClick={() => {
+                            // Allow user to edit even after validation passes
+                        }}
+                        className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
+                    >
+                        <Edit2 className="w-3 h-3" />
+                        Edit
+                    </button>
+                )}
             </div>
-        )}
+            
+            {requiredFieldsError && (
+                <div className="mb-3 p-2 bg-red-100 border border-red-200 rounded text-sm text-red-800 flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                    <span>{requiredFieldsError}</span>
+                </div>
+            )}
+            
+            {!requiredFieldsComplete && (
+                <p className="text-sm text-gray-700 mb-4">
+                    {importMode === 'scores_only' 
+                        ? 'Names are required to match players in your existing roster.' 
+                        : 'These fields are required to import players.'}
+                </p>
+            )}
+            
+            {requiredFieldsComplete ? (
+                // Collapsed view showing current mappings
+                <div className="space-y-1 text-sm text-gray-700">
+                    {nameMappingMode === 'separate' ? (
+                        <div>✓ Names: <strong>{firstNameColumn}</strong> + <strong>{lastNameColumn}</strong></div>
+                    ) : (
+                        <div>✓ Full Name: <strong>{fullNameColumn}</strong> → Auto-split into First/Last</div>
+                    )}
+                    {jerseyColumn && <div>✓ Jersey #: <strong>{jerseyColumn}</strong></div>}
+                    {ageGroupColumn && <div>✓ Age Group: <strong>{ageGroupColumn}</strong></div>}
+                </div>
+            ) : (
+                // Expanded view for mapping
+                <div className="space-y-4">
+                    {/* Name Mapping - First Class Treatment */}
+                    <div className="space-y-3">
+                        <label className="block font-semibold text-gray-900 text-sm">
+                            Player Names <span className="text-red-500">*</span>
+                        </label>
+                        
+                        <div className="space-y-2">
+                            <label 
+                                className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                    nameMappingMode === 'separate' 
+                                    ? 'border-cmf-primary bg-white ring-2 ring-cmf-primary/20' 
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}
+                            >
+                                <input 
+                                    type="radio" 
+                                    name="nameMode" 
+                                    value="separate"
+                                    checked={nameMappingMode === 'separate'}
+                                    onChange={(e) => setNameMappingMode(e.target.value)}
+                                    className="mt-0.5"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-medium text-gray-900">Separate First & Last Name columns</div>
+                                    <div className="text-xs text-gray-500 mt-0.5">Best for clean data</div>
+                                    {nameMappingMode === 'separate' && (
+                                        <div className="mt-3 grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">First Name</label>
+                                                <select
+                                                    value={firstNameColumn}
+                                                    onChange={(e) => {
+                                                        setFirstNameColumn(e.target.value);
+                                                        setRequiredFieldsError('');
+                                                    }}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+                                                >
+                                                    <option value="">Select column...</option>
+                                                    {sourceColumns.map(col => (
+                                                        <option key={col} value={col}>{col}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">Last Name</label>
+                                                <select
+                                                    value={lastNameColumn}
+                                                    onChange={(e) => {
+                                                        setLastNameColumn(e.target.value);
+                                                        setRequiredFieldsError('');
+                                                    }}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+                                                >
+                                                    <option value="">Select column...</option>
+                                                    {sourceColumns.map(col => (
+                                                        <option key={col} value={col}>{col}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </label>
+                            
+                            <label 
+                                className={`flex items-start gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                                    nameMappingMode === 'full' 
+                                    ? 'border-cmf-primary bg-white ring-2 ring-cmf-primary/20' 
+                                    : 'border-gray-200 bg-white hover:border-gray-300'
+                                }`}
+                            >
+                                <input 
+                                    type="radio" 
+                                    name="nameMode" 
+                                    value="full"
+                                    checked={nameMappingMode === 'full'}
+                                    onChange={(e) => setNameMappingMode(e.target.value)}
+                                    className="mt-0.5"
+                                />
+                                <div className="flex-1">
+                                    <div className="font-medium text-gray-900 flex items-center gap-2">
+                                        <Wand className="w-4 h-4 text-purple-500" />
+                                        Single Full Name column (auto-split)
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                        We'll split "John Smith" → First: John, Last: Smith
+                                    </div>
+                                    {nameMappingMode === 'full' && (
+                                        <div className="mt-3">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Full Name Column</label>
+                                            <select
+                                                value={fullNameColumn}
+                                                onChange={(e) => {
+                                                    setFullNameColumn(e.target.value);
+                                                    setRequiredFieldsError('');
+                                                }}
+                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+                                            >
+                                                <option value="">Select column...</option>
+                                                {sourceColumns.map(col => (
+                                                    <option key={col} value={col}>{col}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    {/* Optional Fields */}
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-200">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Jersey Number <span className="text-gray-400">(Optional)</span>
+                            </label>
+                            <select
+                                value={jerseyColumn}
+                                onChange={(e) => setJerseyColumn(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+                            >
+                                <option value="">Not mapped</option>
+                                {sourceColumns.map(col => (
+                                    <option key={col} value={col}>{col}</option>
+                                ))}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                Age Group <span className="text-gray-400">(Optional)</span>
+                            </label>
+                            <select
+                                value={ageGroupColumn}
+                                onChange={(e) => setAgeGroupColumn(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+                            >
+                                <option value="">Not mapped</option>
+                                {sourceColumns.map(col => (
+                                    <option key={col} value={col}>{col}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+
+        {/* Step 2: Drill Scores Mapping Header */}
+        <div className={`border-2 rounded-xl p-4 ${
+            requiredFieldsComplete 
+            ? 'bg-white border-gray-200' 
+            : 'bg-gray-50 border-gray-200 opacity-60'
+        }`}>
+            <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                    {requiredFieldsComplete ? (
+                        <div className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center font-bold text-sm">
+                            2
+                        </div>
+                    ) : (
+                        <div className="w-6 h-6 rounded-full bg-gray-300 text-white flex items-center justify-center font-bold text-sm">
+                            2
+                        </div>
+                    )}
+                    <h3 className="font-bold text-gray-900">
+                        {intent === 'roster_only' ? 'Review Roster Data' : 'Map Drill Scores (Optional)'}
+                    </h3>
+                </div>
+                {!requiredFieldsComplete && (
+                    <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <AlertCircle className="w-3 h-3" />
+                        Complete Step 1 first
+                    </div>
+                )}
+            </div>
+            {requiredFieldsComplete && intent !== 'roster_only' && (
+                <p className="text-sm text-gray-600">
+                    Use column header dropdowns below to map your drill score columns. Unmapped columns will be ignored.
+                </p>
+            )}
+        </div>
 
         <div className="flex gap-4">
           <button 
@@ -1175,7 +1531,31 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
              </div>
         )}
 
-        <div className="border rounded-xl overflow-hidden flex flex-col max-h-[50vh]">
+        <div className="border rounded-xl overflow-hidden flex flex-col max-h-[50vh] relative">
+          {/* Overlay when required fields incomplete */}
+          {!requiredFieldsComplete && (
+              <div className="absolute inset-0 bg-gray-100/80 backdrop-blur-[2px] z-20 flex items-center justify-center">
+                  <div className="bg-white rounded-xl shadow-lg p-6 max-w-sm text-center border-2 border-amber-300">
+                      <AlertCircle className="w-12 h-12 text-amber-500 mx-auto mb-3" />
+                      <h4 className="font-bold text-gray-900 mb-2">Complete Required Fields First</h4>
+                      <p className="text-sm text-gray-600 mb-4">
+                          Map player names in <strong>Step 1</strong> above to unlock the data table.
+                      </p>
+                      <button
+                          onClick={() => {
+                              document.getElementById('required-fields-panel')?.scrollIntoView({ 
+                                  behavior: 'smooth', 
+                                  block: 'start' 
+                              });
+                          }}
+                          className="px-4 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary"
+                      >
+                          Go to Step 1
+                      </button>
+                  </div>
+              </div>
+          )}
+          
           <div className="bg-gray-50 px-4 py-2 border-b font-medium text-gray-700 text-sm flex justify-between items-center sticky top-0 z-10">
             <span>Review Data ({rowsToDisplay.length} Rows)</span>
             <span className="text-xs text-gray-500">Click cells to edit</span>
@@ -1335,7 +1715,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           </button>
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary flex items-center gap-2"
+            disabled={!requiredFieldsComplete}
+            className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 ${
+                requiredFieldsComplete
+                ? 'bg-cmf-primary text-white hover:bg-cmf-secondary'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            title={!requiredFieldsComplete ? 'Complete required field mappings first' : ''}
           >
             Import Data
             <ChevronRight className="w-4 h-4" />
