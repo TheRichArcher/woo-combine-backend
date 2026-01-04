@@ -428,9 +428,10 @@ const TeamFormationTool = ({ players = [], weights = {}, selectedDrillTemplate =
           </button>
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <Settings className="w-4 h-4" />
+            <span className="text-sm font-medium">Advanced Options</span>
           </button>
         </div>
       </div>
