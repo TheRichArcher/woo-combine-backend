@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 3, 2026_
+_Last updated: January 4, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -332,6 +332,21 @@ Users uploading CSVs faced critical discoverability failures:
   - Default to "Not mapped" when jersey detection is uncertain
 - **Impact:** Eliminated import failures on CSVs with `player_name` + `player_number`
 
+**6. Player Number Synonym Fix (Commit bdbee6d) - False Duplicate Detection**
+- **Problem:** CSVs with `player_number` (underscore) header showed false duplicate warnings with "(no jersey number)" even when valid numbers existed
+- **Root Cause:** `csvUtils.js` synonym list had `'player number'` (space) but not `'player_number'` (underscore), causing auto-mapper to fail. Frontend filtered unmapped columns, backend never received jersey numbers, duplicate detection compared names with `None` → false positives
+- **Example:** Two "Ethan Garcia" rows with numbers 1002 and 1010 flagged as duplicates because both had `num=None` in backend
+- **Solution:** Added `'player_number'` to jersey_number synonym array in `csvUtils.js` line 36
+- **Impact:** 
+  - ✅ Auto-detection now works for both `player_number` and `player number`
+  - ✅ Eliminated false duplicate warnings
+  - ✅ Accurate duplicate detection based on actual jersey numbers
+  - ✅ No more "(no jersey number)" errors when data exists
+- **Files:**
+  - `frontend/src/utils/csvUtils.js` (1 line change)
+  - `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Complete analysis)
+  - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual flow diagram)
+
 #### Current UX Flow
 
 **Upload CSV with stats:**
@@ -382,6 +397,8 @@ Users uploading CSVs faced critical discoverability failures:
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` (Ready state confidence)
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` (Workflow clarity)
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` (Auto-detection guards + name-split fix)
+- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (False duplicate detection fix)
+- `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual data flow explanation)
 
 #### Success Metrics
 
@@ -745,6 +762,8 @@ When someone requests a new feature on `/coach`, ask:
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` - Ready state confidence
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` - Workflow clarity
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` - Auto-detection guards
+- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` - False duplicate detection fix
+- `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` - Visual data flow diagrams
 
 **QA & Testing:**
 - `docs/qa/IMPORTER_PRODUCTION_VERIFICATION.md` - Complete importer test suite
@@ -850,13 +869,12 @@ This document should be updated when:
 - ✅ UX areas become locked (like importer)
 - ✅ Development focus shifts (like post-import priorities)
 
-**Last Updated:** January 3, 2026  
+**Last Updated:** January 4, 2026  
 **Major Changes This Update:**
-- Added comprehensive Import UX Evolution section (§5.1)
-- Documented locked importer policy
-- Added Phase 5: Jersey auto-map regression fix (commit 7452d05)
-- Added next high-leverage focus areas
-- Updated essential reading list with all 5 importer docs
+- Added Phase 6: Player Number Synonym Fix (commit bdbee6d) - False duplicate detection resolution
+- Added documentation for `player_number` (underscore) vs `player number` (space) synonym issue
+- Updated essential reading list with player_number synonym hotfix docs
+- Previous update (Jan 3, 2026): Comprehensive Import UX Evolution section and locked importer policy
 
 **Next Review:** When next major feature sprint begins
 
