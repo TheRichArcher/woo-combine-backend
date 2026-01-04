@@ -48,6 +48,7 @@ function getHeaderSynonyms() {
       'free_throws': ['free_throws', 'free throws', 'ft', 'free throw %', 'free throw percentage', 'free_throw_pct', 'throwing'],
       'three_point': ['three_point', 'three point', '3pt', '3-point', '3 point', '3 pt', '3-pt', 'three pointer', 'three_pointer', '3pt shooting', '3pt spot shooting', 'spot shooting', '3 point made'],
       'dribbling': ['dribbling', 'dribble', 'ball handling', 'handles', 'dribbling skill'],
+      'sprint_60': ['sprint_60', '60 yard sprint', '60-yard sprint', '60 yd sprint', '60yd sprint', '60yard', '60 yard', '60-yd', '60yd', '60 sprint', 'sixty yard', 'sixty yard sprint', '60 yd dash', '60-yd dash', '60yd dash', '60 yard dash'],
       'exit_velocity': ['exit_velocity', 'exit velocity', 'bat speed', 'swing speed', 'exit velo'],
       'throwing_velocity': ['throwing_velocity', 'throwing velocity', 'arm strength', 'arm speed', 'throw velo'],
       'fielding_accuracy': ['fielding_accuracy', 'fielding accuracy', 'fielding', 'defense', 'fielding skill'],
@@ -397,6 +398,13 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
       drillKeys.map(key => [key, synonyms[key] || []])
     )
   );
+  
+  // DEBUG: Log all drills from definitions for verification
+  console.log("[csvUtils] Drill definitions:", drillDefinitions.map(d => ({
+    key: d.key,
+    label: d.label || d.name,
+    unit: d.unit
+  })));
   
   const usedHeaders = new Set();
   
