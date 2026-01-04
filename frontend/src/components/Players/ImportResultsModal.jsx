@@ -1250,11 +1250,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             )}
             
             {!requiredFieldsComplete && (
-                <p className="text-sm text-gray-700 mb-4">
-                    {importMode === 'scores_only' 
-                        ? 'Names are required to match players in your existing roster.' 
-                        : 'These fields are required to import players.'}
-                </p>
+                <div className="space-y-2 mb-4">
+                    <p className="text-sm text-gray-700">
+                        {importMode === 'scores_only' 
+                            ? 'Names are required to match players in your existing roster.' 
+                            : 'These fields are required to import players.'}
+                    </p>
+                    <p className="text-xs text-gray-500 italic">
+                        Until names are mapped, rows are marked as incomplete — this is expected.
+                    </p>
+                </div>
             )}
             
             {requiredFieldsComplete ? (
@@ -1461,17 +1466,29 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 reviewFilter === 'valid' ? 'ring-2 ring-green-500 border-transparent' : ''
             } bg-green-50 border-green-100`}
           >
-            <div className="text-2xl font-bold text-green-700">{summary.valid_count}</div>
-            <div className="text-sm text-green-600 font-medium">Valid Rows</div>
+            <div className="text-2xl font-bold text-green-700">
+                {requiredFieldsComplete ? summary.valid_count : '—'}
+            </div>
+            <div className="text-sm text-green-600 font-medium">
+                {requiredFieldsComplete ? 'Valid Rows' : 'Awaiting Mapping'}
+            </div>
           </button>
           <button 
             onClick={() => setReviewFilter('errors')}
             className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                reviewFilter === 'errors' ? 'ring-2 ring-red-500 border-transparent' : ''
-            } ${hasErrors ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}
+                reviewFilter === 'errors' ? 'ring-2 ring-amber-500 border-transparent' : ''
+            } ${requiredFieldsComplete && hasErrors ? 'bg-red-50 border-red-100' : 'bg-amber-50 border-amber-100'}`}
           >
-            <div className={`text-2xl font-bold ${hasErrors ? 'text-red-700' : 'text-gray-700'}`}>{summary.error_count}</div>
-            <div className={`text-sm font-medium ${hasErrors ? 'text-red-600' : 'text-gray-600'}`}>Errors</div>
+            <div className={`text-2xl font-bold ${
+                requiredFieldsComplete && hasErrors ? 'text-red-700' : 'text-amber-700'
+            }`}>
+                {requiredFieldsComplete ? summary.error_count : summary.total_rows}
+            </div>
+            <div className={`text-sm font-medium ${
+                requiredFieldsComplete && hasErrors ? 'text-red-600' : 'text-amber-600'
+            }`}>
+                {requiredFieldsComplete ? 'Errors' : 'Action Required'}
+            </div>
           </button>
           <button 
             onClick={() => setReviewFilter('all')}
@@ -1622,7 +1639,12 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     if (isIgnored) return null;
 
                     return (
-                      <tr key={i} className={`hover:bg-gray-50 group ${isSkipped ? 'opacity-40 bg-gray-50' : ''} ${isDup && !isSkipped ? 'bg-amber-50/30' : ''} ${isErr ? 'bg-red-50/30' : ''}`}>
+                      <tr key={i} className={`hover:bg-gray-50 group ${
+                          isSkipped ? 'opacity-40 bg-gray-50' : 
+                          !requiredFieldsComplete ? 'bg-gray-50' : // Neutral gray when waiting for mapping
+                          isDup && !isSkipped ? 'bg-amber-50/30' : 
+                          isErr ? 'bg-red-50/30' : ''
+                      }`}>
                         <td className="px-2 py-2 text-center">
                             {isDup ? (
                                 <div className="relative group-hover:visible">
@@ -1681,7 +1703,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                             );
                         })}
                         <td className="px-4 py-2">
-                            {isErr ? (
+                            {!requiredFieldsComplete ? (
+                                // Before required fields mapped, all rows show "waiting" state
+                                <div className="text-xs text-gray-500 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Waiting for name mapping
+                                </div>
+                            ) : isErr ? (
+                                // After mapping, show actual errors
                                 <div className="text-xs text-red-600 flex items-center gap-1">
                                     <AlertCircle className="w-3 h-3" />
                                     {row.errors[0]}
