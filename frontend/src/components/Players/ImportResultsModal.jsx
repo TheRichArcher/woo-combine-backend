@@ -1470,36 +1470,47 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 {requiredFieldsComplete ? summary.valid_count : '—'}
             </div>
             <div className="text-sm text-green-600 font-medium">
-                {requiredFieldsComplete ? 'Valid Rows' : 'Awaiting Mapping'}
+                {requiredFieldsComplete ? 'Ready to Import' : 'Awaiting Mapping'}
             </div>
           </button>
           <button 
             onClick={() => setReviewFilter('errors')}
             className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                reviewFilter === 'errors' ? 'ring-2 ring-amber-500 border-transparent' : ''
-            } ${requiredFieldsComplete && hasErrors ? 'bg-red-50 border-red-100' : 'bg-amber-50 border-amber-100'}`}
+                reviewFilter === 'errors' ? 'ring-2 ring-blue-500 border-transparent' : ''
+            } ${requiredFieldsComplete ? 'bg-blue-50 border-blue-100' : 'bg-amber-50 border-amber-100'}`}
           >
             <div className={`text-2xl font-bold ${
-                requiredFieldsComplete && hasErrors ? 'text-red-700' : 'text-amber-700'
+                requiredFieldsComplete ? 'text-blue-700' : 'text-amber-700'
             }`}>
                 {requiredFieldsComplete ? summary.error_count : summary.total_rows}
             </div>
             <div className={`text-sm font-medium ${
-                requiredFieldsComplete && hasErrors ? 'text-red-600' : 'text-amber-600'
+                requiredFieldsComplete ? 'text-blue-600' : 'text-amber-600'
             }`}>
-                {requiredFieldsComplete ? 'Errors' : 'Action Required'}
+                {requiredFieldsComplete ? 'Pending Review' : 'Action Required'}
             </div>
           </button>
           <button 
             onClick={() => setReviewFilter('all')}
             className={`flex-1 p-4 rounded-xl border text-left transition-all ${
-                reviewFilter === 'all' ? 'ring-2 ring-blue-500 border-transparent' : ''
+                reviewFilter === 'all' ? 'ring-2 ring-gray-500 border-transparent' : ''
             } bg-white border-gray-200`}
           >
             <div className="text-2xl font-bold text-gray-700">{summary.total_rows}</div>
             <div className="text-sm text-gray-500 font-medium">Total Rows</div>
           </button>
         </div>
+        
+        {/* Import Confidence Helper - Show when ready to import */}
+        {requiredFieldsComplete && (
+            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                    <strong>Ready to import:</strong> Final validation will run when you click Import Data. 
+                    Any issues will be reported before data is saved.
+                </div>
+            </div>
+        )}
 
         {hasDuplicates && (
              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
@@ -1643,7 +1654,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                           isSkipped ? 'opacity-40 bg-gray-50' : 
                           !requiredFieldsComplete ? 'bg-gray-50' : // Neutral gray when waiting for mapping
                           isDup && !isSkipped ? 'bg-amber-50/30' : 
-                          isErr ? 'bg-red-50/30' : ''
+                          isErr && !(row.errors[0]?.toLowerCase().includes('missing') || row.errors[0]?.toLowerCase().includes('name')) ? 'bg-red-50/30' : // Only red for non-name errors
+                          '' // Default white for ready rows
                       }`}>
                         <td className="px-2 py-2 text-center">
                             {isDup ? (
@@ -1710,15 +1722,28 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                                     Waiting for name mapping
                                 </div>
                             ) : isErr ? (
-                                // After mapping, show actual errors
-                                <div className="text-xs text-red-600 flex items-center gap-1">
-                                    <AlertCircle className="w-3 h-3" />
-                                    {row.errors[0]}
-                                </div>
+                                // After mapping, check if error is about missing names (now resolved)
+                                // If so, show as "Ready" instead of error
+                                row.errors[0]?.toLowerCase().includes('missing') || 
+                                row.errors[0]?.toLowerCase().includes('name') ? (
+                                    <div className="text-xs text-blue-600 flex items-center gap-1">
+                                        <Check className="w-3 h-3" />
+                                        Ready
+                                    </div>
+                                ) : (
+                                    // Other errors still show as errors
+                                    <div className="text-xs text-red-600 flex items-center gap-1">
+                                        <AlertCircle className="w-3 h-3" />
+                                        {row.errors[0]}
+                                    </div>
+                                )
                             ) : isDup ? (
                                 <span className="text-xs text-amber-600 font-medium">Duplicate</span>
                             ) : (
-                                <span className="text-xs text-green-600 font-medium">Valid</span>
+                                <div className="text-xs text-green-600 flex items-center gap-1">
+                                    <Check className="w-3 h-3" />
+                                    Ready
+                                </div>
                             )}
                         </td>
                       </tr>
