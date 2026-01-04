@@ -33,7 +33,7 @@ function getHeaderSynonyms() {
       first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'given name'],
       last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'family name', 'last name'],
       age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp', 'class', 'squad'],
-      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'no', 'no.', 'uniform #', 'num'],
+      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'player_number', 'no', 'no.', 'uniform #', 'num'],
       external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
       team_name: ['team_name', 'team', 'squad', 'club'],
       position: ['position', 'pos'],
