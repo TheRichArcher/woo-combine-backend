@@ -23,6 +23,10 @@ export function EventProvider({ children }) {
   const [noLeague, setNoLeague] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // CRITICAL FIX: Track whether initial events fetch has completed
+  // This prevents showing "create first event" modal before fetch finishes
+  const [eventsLoaded, setEventsLoaded] = useState(false);
 
   // STRICT VALIDATION: Check for stale event on every render or context update
   // If we have a selectedLeagueId and a selectedEvent, they MUST match.
@@ -64,6 +68,7 @@ export function EventProvider({ children }) {
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
       setNoLeague(true);
+      setEventsLoaded(true); // Mark as loaded even with no league
       return;
     }
 
@@ -107,6 +112,7 @@ export function EventProvider({ children }) {
       localStorage.removeItem('selectedEvent');
     } finally {
       setLoading(false);
+      setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure
     }
   }, []); // FIXED: Removed selectedEvent from dependencies to prevent circular dependency
 
@@ -225,6 +231,7 @@ export function EventProvider({ children }) {
     setEvents,
     noLeague,
     loading,
+    eventsLoaded, // CRITICAL: Expose to components to gate onboarding
     error,
     refreshEvents,
     updateEvent

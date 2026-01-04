@@ -20,16 +20,17 @@ const getSportIcon = (sport) => {
 };
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
-  const { events, selectedEvent, setSelectedEvent, setEvents, loading, error, refreshEvents } = useEvent();
+  const { events, selectedEvent, setSelectedEvent, setEvents, loading, eventsLoaded, error, refreshEvents } = useEvent();
   const { selectedLeagueId, user: _user, setSelectedLeagueId } = useAuth();
   const [showModal, setShowModal] = useState(false);
   
-  // Auto-show modal when no events exist (streamlined UX)
+  // CRITICAL FIX: Only auto-show modal when events fetch has completed AND no events exist
+  // This prevents the modal from showing during login before events are fetched
   useEffect(() => {
-    if (!loading && Array.isArray(events) && events.length === 0 && selectedLeagueId && selectedLeagueId.trim() !== '' && !showModal) {
+    if (eventsLoaded && !loading && Array.isArray(events) && events.length === 0 && selectedLeagueId && selectedLeagueId.trim() !== '' && !showModal) {
       setShowModal(true);
     }
-  }, [loading, events, selectedLeagueId, showModal]);
+  }, [eventsLoaded, loading, events, selectedLeagueId, showModal]);
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
   const [location, setLocation] = useState("");
