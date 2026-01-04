@@ -339,7 +339,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             raise HTTPException(status_code=400, detail=f"Too many rows: max {MAX_ROWS}")
 
         # Local duplicate detection within upload batch
-        seen_keys = set()
+        # Track first occurrence row number and player data for better error messages
+        seen_keys = {}  # Changed from set() to dict: key -> (row_number, player_data)
         
         # CAPTURE PREVIOUS STATE FOR UNDO
         undo_log = []
@@ -467,9 +468,42 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # Let's keep the name+number check for simplicity, or should we check ID?
             key = (first_name.lower(), last_name.lower(), num)
             if key in seen_keys:
-                errors.append({"row": idx + 1, "message": "Duplicate player in file"})
+                first_row_num, first_player = seen_keys[key]
+                
+                # Build detailed error message with context
+                age_group = (player.get("age_group") or "").strip()
+                jersey_display = f"#{num}" if num is not None else "(no jersey number)"
+                age_display = f"({age_group})" if age_group else ""
+                
+                error_msg = (
+                    f"Duplicate: {first_name} {last_name} {jersey_display} {age_display} "
+                    f"matches Row {first_row_num}. "
+                    f"Players are matched by name + jersey number (age group is ignored). "
+                )
+                
+                # Add contextual tip based on scenario
+                if num is None:
+                    error_msg += "TIP: Assign unique jersey numbers to differentiate players with the same name."
+                elif age_group and first_player.get('age_group') and age_group != first_player.get('age_group'):
+                    error_msg += f"TIP: Even though age groups differ ({first_player.get('age_group')} vs {age_group}), players with the same name and number are considered duplicates. Change the jersey number or merge into a single row."
+                else:
+                    error_msg += "TIP: Remove this duplicate row or assign a different jersey number."
+                
+                errors.append({
+                    "row": idx + 1, 
+                    "message": error_msg,
+                    "data": player,
+                    "duplicate_of_row": first_row_num,
+                    "identity_key": {
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "jersey_number": num
+                    }
+                })
                 continue
-            seen_keys.add(key)
+            
+            # Store first occurrence with player data for context
+            seen_keys[key] = (idx + 1, player)
 
             # Record Undo State
             # previous_state is already set above
@@ -648,7 +682,9 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             "added": added, 
             "created_players": created_players,
             "updated_players": updated_players,
-            "errors": errors, 
+            "rejected_count": len(errors),  # NEW: Count of rejected rows for UX clarity
+            "rejected_rows": errors,         # NEW: Full error details with row numbers and context
+            "errors": errors,                # Keep for backward compatibility
             "undo_log": undo_log,
             "players_received": len(players),
             "players_matched": players_matched,

@@ -800,6 +800,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               created: response.data.created_players, // Capture new fields
               updated: response.data.updated_players, // Capture new fields
               scores: response.data.scores_written_total || 0,
+              rejected: response.data.rejected_count || 0,  // NEW: Count of rejected rows
+              rejectedRows: response.data.rejected_rows || [],  // NEW: Full error details
               errors: response.data.errors || []
           });
       }
@@ -1620,6 +1622,54 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 </div>
             </div>
         )}
+        
+        {/* Within-File Duplicate Detection (from backend parse errors) */}
+        {hasErrors && (() => {
+            const duplicateErrors = errors.filter(e => e.message?.includes('Duplicate:'));
+            const otherErrors = errors.filter(e => !e.message?.includes('Duplicate:'));
+            
+            if (duplicateErrors.length === 0) return null;
+            
+            return (
+                <div className="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
+                    <h3 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span>Duplicate Players Detected ({duplicateErrors.length})</span>
+                    </h3>
+                    <p className="text-sm text-yellow-700 mb-3">
+                        The following rows match other entries in this file. 
+                        Players are matched by name + jersey number (age group is ignored).
+                    </p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                        {duplicateErrors.map((err, i) => (
+                            <div key={i} className="bg-white rounded p-3 border border-yellow-200">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-yellow-600 font-mono text-sm">
+                                        Row {err.row}
+                                    </span>
+                                    <div className="flex-1">
+                                        <div className="text-sm text-gray-800 font-medium mb-1">
+                                            {err.data?.first_name} {err.data?.last_name}
+                                            {err.data?.jersey_number && ` #${err.data.jersey_number}`}
+                                            {err.data?.age_group && ` (${err.data.age_group})`}
+                                        </div>
+                                        <div className="text-xs text-gray-600">
+                                            {err.message}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 pt-3 border-t border-yellow-200">
+                        <p className="text-xs text-yellow-700">
+                            <strong>How to fix:</strong> Assign different jersey numbers, 
+                            remove duplicate rows, or import age groups separately.
+                        </p>
+                    </div>
+                </div>
+            );
+        })()}
 
         {hasDuplicates && (
              <div className="bg-amber-50 rounded-xl p-4 border border-amber-100">
@@ -2025,6 +2075,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                               <div className="text-2xl font-bold text-cmf-primary">{importSummary.scores}</div>
                               <div className="text-xs uppercase tracking-wide text-gray-500">Scores</div>
                           </div>
+                          {importSummary.rejected !== undefined && importSummary.rejected > 0 && (
+                              <>
+                                <div className="w-px bg-gray-300"></div>
+                                <div className="text-center">
+                                    <div className="text-2xl font-bold text-yellow-600">{importSummary.rejected}</div>
+                                    <div className="text-xs uppercase tracking-wide text-gray-500">Skipped</div>
+                                </div>
+                              </>
+                          )}
                       </div>
                   </div>
               )}
@@ -2047,24 +2106,70 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   </div>
               )}
 
-              {importSummary?.errors?.length > 0 && (
-                  <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-4 mb-4 text-left">
-                      <div className="flex items-start gap-3">
-                          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-sm text-red-800">
-                              <p className="font-bold mb-1">Encountered {importSummary.errors.length} errors during import:</p>
-                              <ul className="list-disc pl-4 space-y-1 text-xs max-h-32 overflow-y-auto">
-                                  {importSummary.errors.slice(0, 10).map((e, idx) => (
-                                      <li key={idx}>Row {e.row}: {e.message}</li>
-                                  ))}
-                                  {importSummary.errors.length > 10 && (
-                                      <li>...and {importSummary.errors.length - 10} more.</li>
-                                  )}
-                              </ul>
-                          </div>
+              {importSummary?.errors?.length > 0 && (() => {
+                  const duplicateErrors = importSummary.errors.filter(e => e.message?.includes('Duplicate:'));
+                  const otherErrors = importSummary.errors.filter(e => !e.message?.includes('Duplicate:'));
+                  
+                  return (
+                      <div className="max-w-md mx-auto space-y-3 mb-4">
+                          {/* Duplicate Errors - Yellow (informational) */}
+                          {duplicateErrors.length > 0 && (
+                              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-left">
+                                  <div className="flex items-start gap-3">
+                                      <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                                      <div className="text-sm text-yellow-800 flex-1">
+                                          <p className="font-bold mb-1">
+                                              {duplicateErrors.length} row{duplicateErrors.length !== 1 ? 's' : ''} skipped (duplicates)
+                                          </p>
+                                          <details className="mt-2">
+                                              <summary className="text-xs text-yellow-700 cursor-pointer hover:text-yellow-900 font-medium">
+                                                  View details →
+                                              </summary>
+                                              <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                                                  {duplicateErrors.slice(0, 10).map((e, idx) => (
+                                                      <div key={idx} className="text-xs bg-white rounded p-2 border border-yellow-200">
+                                                          <span className="font-mono text-yellow-700">Row {e.row}:</span>
+                                                          <span className="text-gray-700 ml-1">
+                                                              {e.message?.split('→')[0]}
+                                                          </span>
+                                                      </div>
+                                                  ))}
+                                                  {duplicateErrors.length > 10 && (
+                                                      <div className="text-xs text-gray-500 text-center mt-1">
+                                                          ... and {duplicateErrors.length - 10} more
+                                                      </div>
+                                                  )}
+                                              </div>
+                                          </details>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+                          
+                          {/* Other Errors - Red (actual errors) */}
+                          {otherErrors.length > 0 && (
+                              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
+                                  <div className="flex items-start gap-3">
+                                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                      <div className="text-sm text-red-800">
+                                          <p className="font-bold mb-1">
+                                              Encountered {otherErrors.length} error{otherErrors.length !== 1 ? 's' : ''} during import:
+                                          </p>
+                                          <ul className="list-disc pl-4 space-y-1 text-xs max-h-32 overflow-y-auto">
+                                              {otherErrors.slice(0, 10).map((e, idx) => (
+                                                  <li key={idx}>Row {e.row}: {e.message}</li>
+                                              ))}
+                                              {otherErrors.length > 10 && (
+                                                  <li>...and {otherErrors.length - 10} more.</li>
+                                              )}
+                                          </ul>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
                       </div>
-                  </div>
-              )}
+                  );
+              })()}
 
               <p className="text-gray-500 mb-1">Results have been added to your event.</p>
               {selectedEvent?.name && (
