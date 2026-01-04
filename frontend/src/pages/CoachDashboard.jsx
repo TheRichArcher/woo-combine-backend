@@ -422,10 +422,10 @@ const CoachDashboard = React.memo(function CoachDashboard() {
             };
           } else {
             action = {
-              label: "Review Full Rankings",
+              label: "View Ranking Preview",
               sublabel: "All players evaluated - analyze results",
               icon: Trophy,
-              route: "/players?tab=rankings",
+              route: "/players?tab=analyze",
               color: "bg-cmf-primary hover:bg-cmf-secondary",
               secondary: {
                 label: "Export Results",

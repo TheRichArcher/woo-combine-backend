@@ -12,7 +12,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import api from '../lib/api';
-import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft } from 'lucide-react';
+import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft, Trophy, CheckCircle } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
@@ -66,7 +66,18 @@ export default function Players() {
   const [showRoster, setShowRoster] = useState(false);
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const rankingsRef = useRef(null);
+  
+  // Completion metrics for state-aware CTA
+  const totalScoresCount = useMemo(() => {
+    return players.reduce((sum, p) => sum + (p.composite_score > 0 ? 1 : 0), 0);
+  }, [players]);
+  
+  const completionRate = useMemo(() => {
+    if (players.length === 0) return 0;
+    return (totalScoresCount / players.length) * 100;
+  }, [players.length, totalScoresCount]);
   
   // Backend Rankings State (Fix for Analyze Rankings Widget)
   const [backendRankings, setBackendRankings] = useState([]);
@@ -506,31 +517,107 @@ export default function Players() {
           </div>
         </div>
 
-        {/* SECTION 1: Primary Actions (Always Visible) */}
+        {/* SECTION 1: Primary Actions (State-Aware) */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 border-2 border-blue-200">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-4">
             WooCombine: Players & Rankings
           </h1>
           
           <div className="space-y-4">
-            {/* Primary CTA */}
-            <Link
-              to="/live-entry"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
-            >
-              🚀 Start Recording Drill Results
-              <ArrowRight className="w-5 h-5" />
-            </Link>
+            {/* State-Aware Primary CTA */}
+            {(() => {
+              // State 1: No players
+              if (players.length === 0) {
+                return (
+                  <button
+                    onClick={() => setShowAddPlayerModal(true)}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+                  >
+                    <UserPlus className="w-5 h-5" />
+                    Add Players to Get Started
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                );
+              }
+              
+              // State 2: No scores yet
+              if (totalScoresCount === 0) {
+                return (
+                  <Link
+                    to="/live-entry"
+                    className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+                  >
+                    🚀 Start Recording Drill Results
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                );
+              }
+              
+              // State 3: In progress
+              if (completionRate < 100) {
+                return (
+                  <Link
+                    to="/live-entry"
+                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex flex-col items-center justify-center gap-2 text-lg"
+                  >
+                    <div className="flex items-center gap-3">
+                      <TrendingUp className="w-5 h-5" />
+                      Continue Recording Results
+                      <ArrowRight className="w-5 h-5" />
+                    </div>
+                    <div className="text-sm font-normal opacity-90">
+                      {Math.round(completionRate)}% complete ({totalScoresCount}/{players.length} players)
+                    </div>
+                  </Link>
+                );
+              }
+              
+              // State 4: Complete - show results-focused CTAs
+              return (
+                <div className="space-y-3">
+                  <button
+                    onClick={expandRankings}
+                    className="w-full bg-cmf-primary hover:bg-cmf-secondary text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
+                  >
+                    <Trophy className="w-5 h-5" />
+                    Review Rankings
+                    <ArrowRight className="w-5 h-5" />
+                  </button>
+                  
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    <span className="font-medium">All players evaluated ({players.length}/{players.length})</span>
+                  </div>
+                  
+                  {/* Demoted: Still accessible but not primary */}
+                  <details className="text-sm">
+                    <summary className="cursor-pointer text-gray-600 hover:text-gray-900 font-medium">
+                      Need to record more results?
+                    </summary>
+                    <div className="mt-2 pl-4">
+                      <Link 
+                        to="/live-entry"
+                        className="text-cmf-primary hover:text-cmf-secondary underline"
+                      >
+                        Open Live Entry Mode
+                      </Link>
+                    </div>
+                  </details>
+                </div>
+              );
+            })()}
 
-            {/* Secondary CTAs */}
+            {/* Secondary CTAs - Always Available */}
             <div className="grid grid-cols-3 gap-3">
-              <button
-                onClick={() => setShowAddPlayerModal(true)}
-                className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
-              >
-                <UserPlus className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Add Player</span>
-              </button>
+              {players.length > 0 && (
+                <button
+                  onClick={() => setShowAddPlayerModal(true)}
+                  className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
+                >
+                  <UserPlus className="w-5 h-5 mb-1" />
+                  <span className="text-xs font-medium">Add Player</span>
+                </button>
+              )}
               
               <button
                 onClick={() => {
@@ -553,7 +640,9 @@ export default function Players() {
             </div>
 
             <p className="text-sm text-gray-600 text-center">
-              Record 40-yard dash, vertical jump, and other drill results.
+              {completionRate === 100 
+                ? "Analyze rankings, export results, or continue adding scores."
+                : "Record 40-yard dash, vertical jump, and other drill results."}
             </p>
           </div>
         </div>
