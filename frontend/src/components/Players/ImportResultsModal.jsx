@@ -774,64 +774,87 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 Won't create players. Unmatched rows will error.
             </div>
         )}
-
-        <button
-          onClick={() => setMethod('file')}
-          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-            method === 'file' 
-              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
-              : 'border-gray-200 hover:border-gray-300 text-gray-600'
-          }`}
-        >
-          <Upload className="w-6 h-6" />
-          <span className="font-medium">Upload File</span>
-          <span className="text-xs text-gray-500">CSV or Excel</span>
-        </button>
-        <button
-          onClick={() => setMethod('photo')}
-          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-            method === 'photo' 
-              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
-              : 'border-gray-200 hover:border-gray-300 text-gray-600'
-          }`}
-        >
-          <Camera className="w-6 h-6" />
-          <span className="font-medium">Upload Photo</span>
-          <span className="text-xs text-gray-500">OCR Scan</span>
-        </button>
-        <button
-          onClick={() => setMethod('sheets')}
-          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-            method === 'sheets' 
-              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
-              : 'border-gray-200 hover:border-gray-300 text-gray-600'
-          }`}
-        >
-          <Link className="w-6 h-6" />
-          <span className="font-medium">Google Sheets</span>
-          <span className="text-xs text-gray-500">Public Link</span>
-        </button>
-        <button
-          onClick={() => setMethod('text')}
-          className={`flex-1 p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
-            method === 'text' 
-              ? 'border-cmf-primary bg-blue-50 text-cmf-primary' 
-              : 'border-gray-200 hover:border-gray-300 text-gray-600'
-          }`}
-        >
-          <FileText className="w-6 h-6" />
-          <span className="font-medium">Copy & Paste</span>
-          <span className="text-xs text-gray-500">From clipboard</span>
-        </button>
       </div>
 
-      {method === 'file' || method === 'photo' ? (
+      {/* PRIMARY DROPZONE - Always visible, large tile */}
+      <div 
+        className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-4 ${
+          isDragging 
+            ? 'border-cmf-primary bg-blue-50 scale-[1.02]' 
+            : 'border-gray-300 hover:bg-gray-50 hover:border-cmf-primary/50'
+        }`}
+        onClick={() => fileInputRef.current?.click()}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          className="hidden"
+          accept=".csv,.xlsx,.xls"
+        />
+        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        {file ? (
+          <div>
+            <p className="font-medium text-cmf-primary text-lg">{file.name}</p>
+            <p className="text-sm text-gray-500 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setFile(null);
+              }}
+              className="mt-3 text-xs text-gray-500 hover:text-gray-700 underline"
+            >
+              Choose different file
+            </button>
+          </div>
+        ) : (
+          <div>
+            <p className="font-semibold text-gray-900 text-lg mb-1">
+              {isDragging ? "Drop to upload" : "Click to choose a file or drag & drop"}
+            </p>
+            <p className="text-sm text-gray-500">
+              {isDragging ? "Release to upload your file" : "Supports CSV, Excel (.xlsx, .xls)"}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* ALTERNATIVE METHODS - Smaller secondary options */}
+      <div className="mb-4">
+        <p className="text-xs text-gray-500 mb-2 text-center">Or use alternative method:</p>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => setMethod('photo')}
+            className="p-2 rounded-lg border border-gray-200 hover:border-cmf-primary hover:bg-blue-50 transition-all flex flex-col items-center gap-1 text-gray-600 hover:text-cmf-primary"
+          >
+            <Camera className="w-4 h-4" />
+            <span className="text-xs font-medium">Photo OCR</span>
+          </button>
+          <button
+            onClick={() => setMethod('sheets')}
+            className="p-2 rounded-lg border border-gray-200 hover:border-cmf-primary hover:bg-blue-50 transition-all flex flex-col items-center gap-1 text-gray-600 hover:text-cmf-primary"
+          >
+            <Link className="w-4 h-4" />
+            <span className="text-xs font-medium">Google Sheets</span>
+          </button>
+          <button
+            onClick={() => setMethod('text')}
+            className="p-2 rounded-lg border border-gray-200 hover:border-cmf-primary hover:bg-blue-50 transition-all flex flex-col items-center gap-1 text-gray-600 hover:text-cmf-primary"
+          >
+            <FileText className="w-4 h-4" />
+            <span className="text-xs font-medium">Copy & Paste</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Show alternative method input if selected */}
+      {method === 'photo' && (
         <div 
-          className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer ${
-            isDragging 
-              ? 'border-cmf-primary bg-blue-50 scale-[1.02]' 
-              : 'border-gray-300 hover:bg-gray-50'
-          }`}
+          className="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-4 border-cmf-primary bg-blue-50"
           onClick={() => fileInputRef.current?.click()}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -843,13 +866,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
-            accept={method === 'photo' ? "image/*" : ".csv,.xlsx,.xls"}
+            accept="image/*"
           />
-          {method === 'photo' ? (
-             <Camera className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          ) : (
-             <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3" />
-          )}
+          <Camera className="w-10 h-10 text-cmf-primary mx-auto mb-3" />
           {file ? (
             <div>
               <p className="font-medium text-cmf-primary">{file.name}</p>
@@ -858,42 +877,38 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           ) : (
             <div>
               <p className="font-medium text-gray-700">
-                {isDragging 
-                  ? "Drop to upload" 
-                  : method === 'photo' 
-                    ? "Click to take/upload photo" 
-                    : "Click to select file"}
+                {isDragging ? "Drop to upload" : "Click to take/upload photo"}
               </p>
               <p className="text-sm text-gray-500 mt-1">
-                {isDragging 
-                  ? "Release to upload your file" 
-                  : method === 'photo' 
-                    ? "Supports JPG, PNG, HEIC" 
-                    : "Supports CSV, Excel (.xlsx)"}
+                {isDragging ? "Release to upload your file" : "Supports JPG, PNG, HEIC"}
               </p>
             </div>
           )}
         </div>
-      ) : method === 'sheets' ? (
-        <div>
+      )}
+      
+      {method === 'sheets' && (
+        <div className="mb-4">
           <input
             type="url"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://docs.google.com/spreadsheets/d/..."
-            className="w-full p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
+            className="w-full p-4 rounded-xl border-2 border-cmf-primary focus:ring-2 focus:ring-cmf-primary focus:border-transparent"
           />
           <p className="text-xs text-gray-500 mt-2">
             Paste a public Google Sheet link. Make sure "Anyone with the link" can view.
           </p>
         </div>
-      ) : (
-        <div>
+      )}
+      
+      {method === 'text' && (
+        <div className="mb-4">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={placeholderText}
-            className="w-full h-48 p-4 rounded-xl border border-gray-300 focus:ring-2 focus:ring-cmf-primary focus:border-transparent font-mono text-sm"
+            className="w-full h-48 p-4 rounded-xl border-2 border-cmf-primary focus:ring-2 focus:ring-cmf-primary focus:border-transparent font-mono text-sm"
           />
           <p className="text-xs text-gray-500 mt-2">
             {supportedColumnsText}
@@ -926,7 +941,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             </button>
             <button
             onClick={() => handleParse()}
-            disabled={(!file && !text) || !!schemaError}
+            disabled={
+              (method === 'file' && !file) || 
+              (method === 'photo' && !file) || 
+              (method === 'text' && !text.trim()) || 
+              (method === 'sheets' && !url.trim()) ||
+              !!schemaError
+            }
             className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
             Review Data <ChevronRight className="w-4 h-4" />
