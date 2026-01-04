@@ -642,6 +642,21 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             return effectiveDrills.some(d => d.key === targetKey);
         }).length;
 
+        // Detect if there are potential drill columns (non-identity fields with numeric data)
+        const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
+        const potentialDrillColumns = Object.keys(allRows?.[0]?.data || {}).filter(key => {
+            // Not an identity field
+            if (identityFields.some(id => key.toLowerCase().includes(id.toLowerCase()))) return false;
+            // Not already mapped to a drill
+            if (updatedMapping[key] && effectiveDrills.some(d => d.key === updatedMapping[key])) return false;
+            // Has numeric-looking data in first few rows
+            const hasNumericData = allRows.slice(0, 5).some(row => {
+                const val = row.data?.[key];
+                return val && !isNaN(parseFloat(val));
+            });
+            return hasNumericData;
+        });
+
         // Strict Block for Scores Only Mode
         if (importMode === 'scores_only' && mappedDrillCount === 0) {
             alert("❌ Import Blocked\n\nYou selected 'Upload Drill Scores' but no columns are mapped to valid drill results.\n\nPlease map your columns to the event's drills (check dropdowns) or switch to 'Add & Update Players' if you only have roster data.");
@@ -649,14 +664,35 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             return;
         }
 
-        // Warning for Roster+Scores Intent
-        if (intent !== 'roster_only' && mappedDrillCount === 0) {
-             if (!window.confirm(
-                 `⚠️ NO SCORES DETECTED\n\nYou are about to import a roster but NO columns are mapped to drill results.\n\n- If you expected scores, please cancel and check your column mappings (e.g. 'Lane Agility' vs 'lane_agility').\n- If you only want to add players, click OK to proceed with 0 scores.`
-             )) {
-                 setStep('review');
-                 return;
-             }
+        // Softer confirmation for Roster+Scores Intent with unmapped drill columns
+        if (intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length > 0) {
+            // Show custom confirm dialog with helpful options
+            const userChoice = window.confirm(
+                `📊 Unmapped Drill Columns Detected\n\n` +
+                `We found ${potentialDrillColumns.length} column(s) that look like drill scores:\n` +
+                `${potentialDrillColumns.slice(0, 3).join(', ')}${potentialDrillColumns.length > 3 ? '...' : ''}\n\n` +
+                `These aren't mapped yet, so no scores will be imported.\n\n` +
+                `• Click OK to import players only (you can add scores later)\n` +
+                `• Click Cancel to map drill columns now (scroll to Step 2)`
+            );
+            
+            if (!userChoice) {
+                // User wants to map drills - scroll to Step 2 header
+                document.getElementById('step-2-header')?.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+                setStep('review');
+                return;
+            }
+        } else if (intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length === 0) {
+            // No drill-like columns detected, proceed with simple confirmation
+            if (!window.confirm(
+                `Import roster only?\n\nNo drill score columns detected. Click OK to import player names and info only.`
+            )) {
+                setStep('review');
+                return;
+            }
         }
 
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
@@ -1166,6 +1202,21 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     // Check required field status
     const requiredStatus = getRequiredFieldsStatus();
     const requiredFieldsComplete = requiredStatus.valid;
+    
+    // Detect unmapped drill columns (potential scores user might have missed)
+    const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
+    const unmappedDrillColumns = requiredFieldsComplete && intent !== 'roster_only' ? sourceColumns.filter(key => {
+        // Not an identity field
+        if (identityFields.some(id => key.toLowerCase().includes(id.toLowerCase()))) return false;
+        // Not already mapped to a drill
+        if (keyMapping[key] && effectiveDrills.some(d => d.key === keyMapping[key])) return false;
+        // Has numeric-looking data in first few rows
+        const hasNumericData = allRows.slice(0, 5).some(row => {
+            const val = row.data?.[key];
+            return val && !isNaN(parseFloat(val));
+        });
+        return hasNumericData;
+    }) : [];
 
     const handleCellEdit = (rowId, key, value) => {
         setEditedRows(prev => ({
@@ -1425,11 +1476,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         </div>
 
         {/* Step 2: Drill Scores Mapping Header */}
-        <div className={`border-2 rounded-xl p-4 ${
-            requiredFieldsComplete 
-            ? 'bg-white border-gray-200' 
-            : 'bg-gray-50 border-gray-200 opacity-60'
-        }`}>
+        <div 
+            id="step-2-header"
+            className={`border-2 rounded-xl p-4 ${
+                requiredFieldsComplete 
+                ? 'bg-white border-gray-200' 
+                : 'bg-gray-50 border-gray-200 opacity-60'
+            }`}
+        >
             <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                     {requiredFieldsComplete ? (
@@ -1458,6 +1512,37 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 </p>
             )}
         </div>
+        
+        {/* Unmapped Drill Columns Banner - Show when potential scores detected */}
+        {unmappedDrillColumns.length > 0 && (
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4 flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div className="flex-1">
+                    <h4 className="font-semibold text-amber-900 mb-1">
+                        📊 Possible drill columns detected
+                    </h4>
+                    <p className="text-sm text-amber-800 mb-2">
+                        We found {unmappedDrillColumns.length} column(s) with numeric data that might be drill scores:
+                    </p>
+                    <div className="flex flex-wrap gap-1 mb-2">
+                        {unmappedDrillColumns.slice(0, 5).map(col => (
+                            <span key={col} className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs font-mono">
+                                {col}
+                            </span>
+                        ))}
+                        {unmappedDrillColumns.length > 5 && (
+                            <span className="px-2 py-0.5 bg-amber-100 text-amber-800 rounded text-xs">
+                                +{unmappedDrillColumns.length - 5} more
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-sm text-amber-800">
+                        <strong>To import these as drill scores:</strong> Use the column header dropdowns in the table below to map each column to the correct drill. 
+                        If you don't map them, only player info will be imported.
+                    </p>
+                </div>
+            </div>
+        )}
 
         <div className="flex gap-4">
           <button 
