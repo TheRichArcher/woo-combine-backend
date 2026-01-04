@@ -361,8 +361,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                      # Robust number parsing (handle "12.0", "12", 12, 12.0)
                      raw_num = p.get("jersey_number")
                      if raw_num is None:
-                         # Try common synonyms
-                         for alias in ["jersey", "number", "no", "No", "#", "Jersey #"]:
+                         # Try common synonyms (including player_number which is common in CSVs)
+                         for alias in ["player_number", "jersey", "number", "no", "No", "#", "Jersey #"]:
                              if p.get(alias) is not None:
                                  raw_num = p.get(alias)
                                  break
@@ -427,8 +427,8 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             try:
                 raw_num = player.get("jersey_number")
                 if raw_num is None:
-                    # Try common synonyms
-                    for alias in ["jersey", "number", "no", "No", "#", "Jersey #"]:
+                    # Try common synonyms (including player_number which is common in CSVs)
+                    for alias in ["player_number", "jersey", "number", "no", "No", "#", "Jersey #"]:
                         if player.get(alias) is not None:
                             raw_num = player.get(alias)
                             break
