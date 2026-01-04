@@ -4,8 +4,9 @@
 export const REQUIRED_HEADERS = ["first_name", "last_name"];
 
 // Optional columns supported by backend
-// Added age_group and jersey_number to ensure they appear in mapping UI
-export const OPTIONAL_HEADERS = ["age_group", "jersey_number", "external_id", "team_name", "position", "notes"];
+// CRITICAL: Backend canonical field is "number" (not "jersey_number")
+// Using "number" as canonical ensures payload matches backend storage
+export const OPTIONAL_HEADERS = ["age_group", "number", "external_id", "team_name", "position", "notes"];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 // Function to get drill headers from schema (called with event schema)
@@ -33,7 +34,7 @@ function getHeaderSynonyms() {
       first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'given name'],
       last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'family name', 'last name'],
       age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp', 'class', 'squad'],
-      jersey_number: ['jersey_number', 'number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'player_number', 'no', 'no.', 'uniform #', 'num'],
+      number: ['number', 'jersey_number', 'player_number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'no', 'no.', 'uniform #', 'num', 'athlete_number', 'athlete number', 'athlete #'],
       external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
       team_name: ['team_name', 'team', 'squad', 'club'],
       position: ['position', 'pos'],

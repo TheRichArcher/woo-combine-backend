@@ -147,7 +147,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       { key: 'name', label: 'Name (Full Name - will be split)' },
       { key: 'first_name', label: 'First Name' },
       { key: 'last_name', label: 'Last Name' },
-      { key: 'jersey_number', label: 'Player Number' },
+      { key: 'number', label: 'Player Number' },
       { key: 'age_group', label: 'Age Group' },
       { key: 'team_name', label: 'Team Name' },
       { key: 'position', label: 'Position' },
@@ -451,8 +451,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         
         // CRITICAL FIX: Add guards for player number mapping
         // Player number should NEVER map to name columns and must be numeric-like
-        if (reverseMapping['jersey_number']) {
-            const jerseySource = reverseMapping['jersey_number'];
+        if (reverseMapping['number']) {
+            const jerseySource = reverseMapping['number'];
             const lower = jerseySource.toLowerCase();
             
             // Guard: Exclude name columns (but allow player_number, player_no, etc.)
@@ -550,7 +550,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         });
     }
     
-    if (jerseyColumn) updatedMapping[jerseyColumn] = 'jersey_number';
+    if (jerseyColumn) updatedMapping[jerseyColumn] = 'number';
     if (ageGroupColumn) updatedMapping[ageGroupColumn] = 'age_group';
     
     // Update keyMapping state to reflect required field selections
