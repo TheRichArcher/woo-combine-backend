@@ -432,6 +432,19 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   allMatches.forEach(({ key, header, score }) => {
     // If key is already mapped or header is already used, skip
     if (!mapping[key] && !usedHeaders.has(header)) {
+      
+      // CRITICAL FIX: Add guards for jersey_number to prevent mapping to name columns
+      if (key === 'jersey_number') {
+        const headerLower = normalizeHeader(header);
+        // Guard 1: Exclude name columns
+        const isNameColumn = headerLower.includes('name') || headerLower.includes('player');
+        
+        if (isNameColumn) {
+          // Skip this mapping - jersey should never map to name columns
+          return;
+        }
+      }
+      
       mapping[key] = header;
       usedHeaders.add(header);
       

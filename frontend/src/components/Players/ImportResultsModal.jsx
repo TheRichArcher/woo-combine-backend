@@ -449,10 +449,31 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             }
         }
         
-        // Map optional fields
+        // CRITICAL FIX: Add guards for jersey number mapping
+        // Jersey should NEVER map to name columns and must be numeric-like
         if (reverseMapping['jersey_number']) {
-            setJerseyColumn(reverseMapping['jersey_number']);
+            const jerseySource = reverseMapping['jersey_number'];
+            const lower = jerseySource.toLowerCase();
+            
+            // Guard 1: Exclude name columns
+            const isNameColumn = lower.includes('name') || lower.includes('player');
+            
+            // Guard 2: Check if column contains numeric data
+            const hasNumericData = sourceKeys.includes(jerseySource); // Will validate in next step
+            
+            // Only set if it passes guards
+            if (!isNameColumn && hasNumericData) {
+                setJerseyColumn(jerseySource);
+            } else {
+                // Default to empty (Not mapped) when jersey detection is uncertain
+                setJerseyColumn('');
+            }
+        } else {
+            // No jersey detected, default to empty (Not mapped)
+            setJerseyColumn('');
         }
+        
+        // Map age_group
         if (reverseMapping['age_group']) {
             setAgeGroupColumn(reverseMapping['age_group']);
         }
@@ -550,6 +571,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     // Validate that all mapped columns correspond to valid schema fields
     const validKeys = new Set([
         ...STANDARD_FIELDS.map(f => f.key),
+        'name', // CRITICAL: Allow 'name' for full-name auto-split transform
         ...(intent === 'roster_only' ? [] : effectiveDrills.map(d => d.key))
     ]);
 
