@@ -642,7 +642,7 @@ export default function Players() {
             <p className="text-sm text-gray-600 text-center">
               {completionRate === 100 
                 ? "Analyze rankings, export results, or continue adding scores."
-                : "Record 40-yard dash, vertical jump, and other drill results."}
+                : "Record drill times, scores, and performance metrics."}
             </p>
           </div>
         </div>

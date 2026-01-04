@@ -379,7 +379,7 @@ const TeamFormationPage = () => {
                   <Target className="w-5 h-5 text-green-600" />
                   <div className="flex-1">
                     <span className="font-medium text-green-900">Record Drill Results</span>
-                    <div className="text-xs text-green-700">Time 40-yard dash, vertical jump, and more</div>
+                    <div className="text-xs text-green-700">Enter drill results and performance metrics</div>
                   </div>
                 </Link>
               </div>
