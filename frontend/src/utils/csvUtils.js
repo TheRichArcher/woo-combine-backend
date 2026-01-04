@@ -418,6 +418,13 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
       if (score > 0) {
         allMatches.push({ key, header, score });
       }
+      // DEBUG: Log player_number specifically
+      if (header === 'player_number' || key === 'jersey_number') {
+        console.log(`[csvUtils] Matching header="${header}" with key="${key}":`, {
+          score,
+          synonyms: keySynonyms.slice(0, 10) // Show first 10 synonyms
+        });
+      }
     });
   });
   
