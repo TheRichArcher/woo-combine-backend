@@ -665,12 +665,18 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         }).length;
 
         // Detect if there are potential drill columns (non-identity fields with numeric data)
-        const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
+        const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'player_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
         const potentialDrillColumns = Object.keys(allRows?.[0]?.data || {}).filter(key => {
-            // Not an identity field
-            if (identityFields.some(id => key.toLowerCase().includes(id.toLowerCase()))) return false;
-            // Not already mapped to a drill
-            if (updatedMapping[key] && effectiveDrills.some(d => d.key === updatedMapping[key])) return false;
+            // Not an identity field (check both exact match and substring)
+            if (identityFields.some(id => key.toLowerCase() === id.toLowerCase() || key.toLowerCase().includes(id.toLowerCase()))) return false;
+            
+            // Not already mapped to a drill (check if this source column is mapped to any valid drill)
+            const mappedTarget = updatedMapping[key];
+            if (mappedTarget && mappedTarget !== '__ignore__') {
+                // Check if the target is a valid drill key
+                if (effectiveDrills.some(d => d.key === mappedTarget)) return false;
+            }
+            
             // Has numeric-looking data in first few rows
             const hasNumericData = allRows.slice(0, 5).some(row => {
                 const val = row.data?.[key];
