@@ -306,7 +306,7 @@ export default function Players() {
     setExpandedPlayerIds(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // Helper to expand rankings
+  // Helper to expand and scroll to ranking preview section
   const expandRankings = () => {
     setShowRankings(true);
     setTimeout(() => {
@@ -590,9 +590,11 @@ export default function Players() {
                   onClick={expandRankings}
                   className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1"
                 >
-                  Analyze Rankings <ArrowRight className="w-3 h-3" />
+                  View Ranking Preview <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
+              
+              <p className="text-xs text-gray-500 mt-2 text-center">Quick in-page summary & adjustments</p>
 
               {/* Player List */}
               <div className="space-y-2 max-h-[60vh] overflow-y-auto">
@@ -670,7 +672,7 @@ export default function Players() {
           >
             <span className="font-semibold text-gray-900 flex items-center gap-2">
               {showRankings ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-              Analyze Rankings
+              Ranking Preview
             </span>
             {!showRankings && <span className="text-xs text-gray-500">Tap to expand</span>}
           </button>
