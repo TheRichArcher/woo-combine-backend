@@ -418,6 +418,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         batch_count = 0
         
         for idx, player in enumerate(players):
+            # CRITICAL: Normalize jersey_number to number (backward compatibility)
+            # Backend canonical is 'number' but accept legacy 'jersey_number' from older clients
+            if "jersey_number" in player and "number" not in player:
+                player["number"] = player["jersey_number"]
+            elif "jersey_number" in player and "number" in player:
+                # Both present - keep number as canonical, remove jersey_number
+                del player["jersey_number"]
+            
             row_errors = []
             for field in required_fields:
                 if player.get(field) in (None, ""):
@@ -425,21 +433,22 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
             num = None
             try:
-                raw_num = player.get("jersey_number")
+                # UPDATED: Check 'number' first (canonical field), then fall back to aliases
+                raw_num = player.get("number")
                 if raw_num is None:
-                    # Try common synonyms (including player_number which is common in CSVs)
-                    for alias in ["player_number", "jersey", "number", "no", "No", "#", "Jersey #"]:
+                    # Try common synonyms for backward compatibility
+                    for alias in ["player_number", "jersey", "jersey_number", "no", "No", "#", "Jersey #"]:
                         if player.get(alias) is not None:
                             raw_num = player.get(alias)
                             break
                             
                 num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
                 
-                # Validation: player_number is now OPTIONAL, but if present must be valid
+                # Validation: number is OPTIONAL, but if present must be valid
                 if num is not None and (num < 0 or num > 9999):
-                    row_errors.append("player_number must be between 0 and 9999")
+                    row_errors.append("number must be between 0 and 9999")
             except Exception:
-                row_errors.append("Invalid player_number")
+                row_errors.append("Invalid number")
                 
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})

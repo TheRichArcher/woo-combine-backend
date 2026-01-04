@@ -761,6 +761,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               delete mappedData.name;
           }
 
+          // CRITICAL FIX: Normalize jersey_number to number (backward compatibility)
+          // Frontend canonical is 'number' to match backend, but handle legacy jersey_number
+          if (mappedData.jersey_number && !mappedData.number) {
+              mappedData.number = mappedData.jersey_number;
+              delete mappedData.jersey_number;
+          } else if (mappedData.jersey_number && mappedData.number) {
+              // Both present - remove jersey_number, keep number as canonical
+              delete mappedData.jersey_number;
+          }
+
           // Strategy: if it was an error row, default to overwrite (new insert attempt)
           // unless it matches a duplicate? Error rows usually don't have is_duplicate set by backend
           const strategy = rowStrategies[row.row_id] || (row.is_duplicate ? conflictMode : 'overwrite');
