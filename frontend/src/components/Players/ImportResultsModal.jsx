@@ -892,7 +892,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           <div className="flex items-start gap-2">
             <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
             <p className="text-xs text-blue-800">
-              <strong>Two-step workflow:</strong> You can upload the same spreadsheet for both steps. Extra stat columns are ignored during roster import; extra roster columns are kept during results import.
+              <strong>Choose one mode for this import:</strong> Use the same CSV for both modes if needed. Roster mode creates/updates players; Results mode only updates scores for existing players.
             </p>
           </div>
         </div>
@@ -911,10 +911,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     {importMode === 'create_or_update' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
                 </div>
                 <div>
-                    <div className="font-semibold text-gray-900">Step 1 of 2: Import Roster</div>
-                    <div className="text-xs text-gray-500 mt-1">Create new players or update existing ones. Best for rosters.</div>
+                    <div className="font-semibold text-gray-900">Import Roster</div>
+                    <div className="text-xs text-gray-500 mt-1">Create new players or update existing ones. Best for first imports.</div>
                     <div className="text-xs text-cmf-primary font-medium mt-1">
-                        You can upload the same spreadsheet later to import results.
+                        Can also upload scores in the same file.
                     </div>
                 </div>
             </button>
@@ -932,10 +932,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     {importMode === 'scores_only' && <div className="w-2 h-2 rounded-full bg-cmf-primary" />}
                 </div>
                 <div>
-                    <div className="font-semibold text-gray-900">Step 2 of 2: Import Results</div>
+                    <div className="font-semibold text-gray-900">Import Results</div>
                     <div className="text-xs text-gray-500 mt-1">Match existing roster. Won't create new players.</div>
                     <div className="text-xs text-cmf-primary mt-1 font-medium">
-                        We'll match results to players by Name (and Jersey # if present).
+                        Only updates scores for players already in your event.
                     </div>
                 </div>
             </button>
