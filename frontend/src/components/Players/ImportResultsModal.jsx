@@ -455,17 +455,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             const jerseySource = reverseMapping['jersey_number'];
             const lower = jerseySource.toLowerCase();
             
-            // Guard 1: Exclude name columns
-            const isNameColumn = lower.includes('name') || lower.includes('player');
+            // Guard: Exclude name columns (but allow player_number, player_no, etc.)
+            // Only reject if it contains "name" specifically, not just "player"
+            const isNameColumn = lower.includes('name') && !lower.includes('number') && !lower.includes('num') && !lower.includes('no');
             
-            // Guard 2: Check if column contains numeric data
-            const hasNumericData = sourceKeys.includes(jerseySource); // Will validate in next step
-            
-            // Only set if it passes guards
-            if (!isNameColumn && hasNumericData) {
+            // Only set if it passes guard
+            if (!isNameColumn) {
                 setJerseyColumn(jerseySource);
             } else {
-                // Default to empty (Not mapped) when jersey detection is uncertain
+                // Default to empty (Not mapped) when it's actually a name column
                 setJerseyColumn('');
             }
         } else {
