@@ -1639,6 +1639,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                     <p className="text-sm text-yellow-700 mb-3">
                         The following rows match other entries in this file. 
                         Players are matched by name + jersey number (age group is ignored).
+                        If the same athlete plays in multiple age groups, use a different jersey number or add a suffix to the name.
                     </p>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                         {duplicateErrors.map((err, i) => (

@@ -479,13 +479,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     f"Duplicate: {first_name} {last_name} {jersey_display} {age_display} "
                     f"matches Row {first_row_num}. "
                     f"Players are matched by name + jersey number (age group is ignored). "
+                    f"If the same athlete plays in multiple age groups, use a different jersey number or add a suffix to the name. "
                 )
                 
                 # Add contextual tip based on scenario
                 if num is None:
                     error_msg += "TIP: Assign unique jersey numbers to differentiate players with the same name."
                 elif age_group and first_player.get('age_group') and age_group != first_player.get('age_group'):
-                    error_msg += f"TIP: Even though age groups differ ({first_player.get('age_group')} vs {age_group}), players with the same name and number are considered duplicates. Change the jersey number or merge into a single row."
+                    error_msg += f"TIP: Age groups differ ({first_player.get('age_group')} vs {age_group}) but same name+number still creates a duplicate. Change the jersey number or merge into a single row."
                 else:
                     error_msg += "TIP: Remove this duplicate row or assign a different jersey number."
                 
