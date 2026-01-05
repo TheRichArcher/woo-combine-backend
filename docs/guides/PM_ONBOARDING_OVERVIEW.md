@@ -606,6 +606,143 @@ Before deploying similar fuzzy matching changes:
 
 ---
 
+### 🔍 CSV Import Diagnostic Infrastructure (Jan 5, 2026)
+
+**Status:** ✅ DEPLOYED - Comprehensive tracing system (Commits: 91685b9, a37ecce)
+
+**Purpose:** End-to-end observability for CSV import pipeline to diagnose data loss, mapping failures, and duplicate detection issues.
+
+#### The Problem
+
+During the fuzzy matching bug investigation, we discovered that:
+1. Frontend logs used `console.log()` which truncated objects, making it appear identity fields were missing
+2. No visibility into backend receipt/extraction/storage pipeline
+3. Difficult to determine where data was lost (frontend mapping vs backend processing)
+
+#### The Solution: 5-Checkpoint Tracing System
+
+**Frontend Pipeline (ImportResultsModal.jsx):**
+
+1. **Name Split Transformation**
+```javascript
+[UPLOAD] Row 1 - Name split transformation: {
+    BEFORE: { keys: ['name', 'number', ...], name: 'Cole Anderson' }
+    AFTER: { keys: ['first_name', 'last_name', 'number', ...], 
+             first_name: 'Cole', last_name: 'Anderson' }
+}
+```
+
+2. **Return Object Inspection**
+```javascript
+[UPLOAD] Row 1 - RETURN OBJECT: {
+    keys: [...],
+    has_first_name: true, has_last_name: true, has_number: true,
+    first_name: 'Cole', last_name: 'Anderson', number: '1000'
+}
+```
+
+3. **Pre-POST Payload Audit**
+```javascript
+[UPLOAD] payload.players[0] keys: ['number', 'age_group', 'first_name', 'last_name', ...]
+[UPLOAD] payload.players[0] full object: {
+    "first_name": "Cole",
+    "last_name": "Anderson",
+    "number": "1000",
+    ...
+}
+```
+
+**Backend Pipeline (routes/players.py):**
+
+1. **Receipt Checkpoint** (`[UPLOAD_RECEIPT]`)
+```python
+[UPLOAD_RECEIPT] Received 50 players for event xxx
+[UPLOAD_RECEIPT] First player raw keys: ['number', 'age_group', 'sprint_60', ...]
+[UPLOAD_RECEIPT] First player identity fields: first_name=Cole, last_name=Anderson, number=1000
+```
+
+2. **Number Extraction** (`[NUMBER_EXTRACT]`)
+```python
+[NUMBER_EXTRACT] Row 1: Extracted 1000 from field 'number' (raw: 1000)
+# Shows which field (number, player_number, jersey_number, etc.) provided the value
+```
+
+3. **Identity Key Computation** (`[DEDUPE]`)
+```python
+[DEDUPE] Row 1: Identity key = ('cole', 'anderson', 1000)
+# Shows exact key used for duplicate detection
+```
+
+4. **Storage Checkpoint** (`[STORAGE]`)
+```python
+[STORAGE] Row 1 player_data being written:
+[STORAGE]   - player_id: a42b577cc4a3cd8d42cb
+[STORAGE]   - name: Cole Anderson
+[STORAGE]   - first: Cole, last: Anderson
+[STORAGE]   - number: 1000
+[STORAGE]   - scores keys: ['sprint_60', 'exit_velocity', ...]
+[STORAGE]   - operation: CREATE (new player) or UPDATE (merge with existing)
+```
+
+5. **Upload Complete** (`[UPLOAD_COMPLETE]`)
+```python
+[UPLOAD_COMPLETE] Event: xxx
+[UPLOAD_COMPLETE] Players received: 50
+[UPLOAD_COMPLETE] Created (new): 50
+[UPLOAD_COMPLETE] Updated (existing): 0
+[UPLOAD_COMPLETE] Errors/Rejected: 0
+[UPLOAD_COMPLETE] Total scores written: 250
+```
+
+#### Diagnostic Use Cases
+
+**Use Case 1: Identity Fields Missing**
+- Check `[UPLOAD] payload.players[0] full object` → Are fields in JSON?
+- Check `[UPLOAD_RECEIPT]` → Did backend receive them?
+- Check `[NUMBER_EXTRACT]` → Was number parsed correctly?
+- Check `[STORAGE]` → Are fields being written to Firestore?
+
+**Use Case 2: False Duplicate Errors**
+- Check `[DEDUPE]` → What identity key was computed?
+- Verify name + number match expected values
+- Check if multiple rows produce same key (true duplicate vs. mapping issue)
+
+**Use Case 3: Scores Not Saving**
+- Check `[STORAGE] scores keys` → Are drill keys present?
+- Check `[UPLOAD_COMPLETE] Total scores written` → Were scores processed?
+- Check drill key names match event schema
+
+**Use Case 4: Players Not Creating**
+- Check `[UPLOAD_COMPLETE]` → How many created vs. updated vs. errors?
+- Check validation errors in response
+- Verify required fields present in `[UPLOAD_RECEIPT]`
+
+#### Key Improvements
+
+1. **Eliminated Misleading Logs:** Removed `console.log()` truncation that made complete payloads appear incomplete
+2. **JSON Serialization:** Used `JSON.stringify()` for accurate object inspection
+3. **Explicit Checks:** Used `'field_name' in object` and `Object.keys()` instead of truthy checks
+4. **Pipeline Visibility:** Can now trace data from CSV parsing → mapping → POST → backend receipt → Firestore storage
+
+#### Files Modified
+
+**Frontend:**
+- `frontend/src/components/Players/ImportResultsModal.jsx` (+42 lines diagnostic logging, -5 misleading logs)
+
+**Backend:**
+- `backend/routes/players.py` (+37 lines diagnostic logging across 5 checkpoints)
+
+#### Operational Notes
+
+- Logs are INFO level (production-visible)
+- Only logs first player to avoid log spam on large imports
+- All logs use consistent prefixes (`[UPLOAD]`, `[STORAGE]`, etc.) for easy grep/filtering
+- Backend logs visible in Render dashboard or wherever Python logs are collected
+
+**This diagnostic infrastructure made the fuzzy matching bug discoverable and will prevent similar investigation delays in the future.**
+
+---
+
 ### 📅 Event Date Handling Fix
 **What Changed:**
 - Fixed "Invalid Date" display issue caused by empty string dates
