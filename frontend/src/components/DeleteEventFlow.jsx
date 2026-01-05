@@ -24,7 +24,7 @@ import { logger } from '../utils/logger';
  */
 export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess }) {
   const { selectedLeagueId, userRole } = useAuth();
-  const { refreshEvents, setSelectedEvent } = useEvent();
+  const { events, refreshEvents, setSelectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
@@ -74,8 +74,8 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
   // Check if typed name matches (case-insensitive)
   const isNameMatch = typedName.trim().toLowerCase() === event?.name?.toLowerCase();
 
-  // Handle layer 2 completion - show final modal
-  const handleLayer2Complete = () => {
+  // Handle layer 2 completion - switch context then show final modal
+  const handleLayer2Complete = async () => {
     if (!isNameMatch) {
       setTypedNameError(true);
       return;
@@ -87,10 +87,44 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       event_name: event?.name,
       player_count: eventStats?.player_count,
       has_scores: eventStats?.has_scores,
-      user_role: userRole
+      user_role: userRole,
+      is_currently_selected: isCurrentlySelected
     });
     
     setTypedNameError(false);
+    
+    // CRITICAL: If this is the currently selected event, switch context BEFORE showing final modal
+    // This prevents the paradox of deleting the active context
+    if (isCurrentlySelected) {
+      logger.info('DELETE_EVENT_CONTEXT_SWITCH', {
+        event_id: event?.id,
+        event_name: event?.name,
+        action: 'Switching context before deletion',
+        available_events: events.length
+      });
+      
+      // Find another event to switch to (from current events list)
+      const otherEvent = events.find(e => e.id !== event.id);
+      
+      if (otherEvent) {
+        // Switch to most recent other event
+        setSelectedEvent(otherEvent);
+        logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
+          from_event: event?.id,
+          to_event: otherEvent.id,
+          to_event_name: otherEvent.name
+        });
+      } else {
+        // No other events - switch to "no event selected" state
+        setSelectedEvent(null);
+        logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
+          from_event: event?.id,
+          reason: 'No other events available'
+        });
+      }
+    }
+    
+    // Now show final modal (context is safe)
     setShowFinalModal(true);
   };
 
@@ -217,31 +251,25 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
             </div>
           </div>
 
-          {/* CRITICAL SAFEGUARD: Cannot delete currently selected event */}
-          {isCurrentlySelected ? (
-            <div className="bg-orange-100 border border-orange-300 rounded-lg p-4 mb-4">
-              <p className="text-orange-800 font-semibold mb-2">
-                🛑 Cannot Delete Currently Selected Event
+          {/* Context Safety Note */}
+          {isCurrentlySelected && (
+            <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-4">
+              <p className="text-blue-800 font-semibold mb-2">
+                ℹ️ Context Safety
               </p>
-              <p className="text-sm text-orange-700 mb-3">
-                You must switch to a different event before deleting this one. This prevents context loss bugs.
+              <p className="text-sm text-blue-700">
+                You're currently viewing this event. Before final deletion, the system will automatically switch you to another event to prevent context loss.
               </p>
-              <button
-                onClick={() => navigate('/select-league')}
-                className="bg-orange-600 hover:bg-orange-700 text-white font-medium px-4 py-2 rounded-lg transition"
-              >
-                Switch to Different Event
-              </button>
             </div>
-          ) : (
-            <button
-              onClick={() => setLayer1Acknowledged(true)}
-              disabled={statsLoading}
-              className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
-            >
-              I Understand - Proceed to Delete
-            </button>
           )}
+          
+          <button
+            onClick={() => setLayer1Acknowledged(true)}
+            disabled={statsLoading}
+            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
+          >
+            I Understand - Proceed to Delete
+          </button>
         </div>
       )}
 
@@ -361,6 +389,19 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
             {/* Modal Body */}
             <div className="p-6 space-y-4">
+              {/* Context Switch Notice (only if was currently selected) */}
+              {isCurrentlySelected && (
+                <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4">
+                  <p className="text-blue-900 font-bold mb-2">
+                    ✓ Context Switched
+                  </p>
+                  <p className="text-sm text-blue-800">
+                    You are no longer in this event. The system has switched your context to keep you safe. 
+                    Deleting <strong>{event.name}</strong> will permanently remove it.
+                  </p>
+                </div>
+              )}
+              
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 space-y-3">
                 <div>
                   <p className="text-sm text-red-700 font-semibold mb-1">Event Name</p>

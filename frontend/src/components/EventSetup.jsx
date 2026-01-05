@@ -1086,7 +1086,7 @@ export default function EventSetup({ onBack }) {
               
               <DeleteEventFlow 
                 event={selectedEvent}
-                isCurrentlySelected={true}
+                isCurrentlySelected={true}  // Always true when in Event Setup
                 onSuccess={() => {
                   // Navigate away after successful deletion
                   if (onBack) onBack();
