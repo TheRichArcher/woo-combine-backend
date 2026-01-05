@@ -885,10 +885,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           console.log(`[ImportResultsModal] ✅ All ${playersToUpload.length} players have 'number' field`);
       }
 
-      if (playersToUpload.length > 0) {
-          console.log("[ImportResultsModal] Submitting first player:", playersToUpload[0]);
-          console.log("[ImportResultsModal] Final payload sample (first 3):", playersToUpload.slice(0, 3));
-      }
+      // NOTE: Detailed payload logging happens below in the "payload.players[0] keys" section
+      // Removed misleading "Submitting first player" log that used console.log() string truncation
 
       if (playersToUpload.length === 0) {
         setError("No players to import (all skipped).");

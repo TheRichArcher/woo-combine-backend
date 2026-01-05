@@ -414,6 +414,13 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     else:
                         existing_docs_map[doc.id] = None # Explicitly mark as not existing
 
+        # DEBUG: Log first player receipt to verify frontend→backend payload integrity
+        if players:
+            first_player = players[0]
+            logging.info(f"[UPLOAD_RECEIPT] Received {len(players)} players for event {event_id}")
+            logging.info(f"[UPLOAD_RECEIPT] First player raw keys: {list(first_player.keys())}")
+            logging.info(f"[UPLOAD_RECEIPT] First player identity fields: first_name={first_player.get('first_name')}, last_name={first_player.get('last_name')}, number={first_player.get('number')}")
+        
         batch = db.batch()
         batch_count = 0
         
@@ -432,6 +439,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                     row_errors.append(f"Missing {field}")
             
             num = None
+            num_source = None
             try:
                 # UPDATED: Check 'number' first (canonical field), then fall back to aliases
                 raw_num = player.get("number")
@@ -446,6 +454,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                             break
                             
                 num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
+                
+                # DEBUG: Log number extraction for first player
+                if idx == 0:
+                    logging.info(f"[NUMBER_EXTRACT] Row 1: Extracted {num} from field '{num_source}' (raw: {raw_num})")
                 
                 # DEBUG: Log number extraction details
                 if num is None:
@@ -620,6 +632,18 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
             player_data["scores"] = scores
             
+            # DEBUG: Log first player storage data
+            if idx == 0:
+                logging.info(f"[STORAGE] Row 1 player_data being written:")
+                logging.info(f"[STORAGE]   - player_id: {player_id}")
+                logging.info(f"[STORAGE]   - name: {player_data.get('name')}")
+                logging.info(f"[STORAGE]   - first: {player_data.get('first')}")
+                logging.info(f"[STORAGE]   - last: {player_data.get('last')}")
+                logging.info(f"[STORAGE]   - number: {player_data.get('number')}")
+                logging.info(f"[STORAGE]   - age_group: {player_data.get('age_group')}")
+                logging.info(f"[STORAGE]   - scores keys: {list(player_data.get('scores', {}).keys())}")
+                logging.info(f"[STORAGE]   - operation: {'UPDATE (merge with existing)' if previous_state else 'CREATE (new player)'}")
+            
             # --- IMPROVED DUPLICATE HANDLING (MERGE LOGIC) ---
             # Strategy: 'overwrite' (default) or 'merge'
             strategy = player.get("merge_strategy", "overwrite")
@@ -701,7 +725,17 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         except Exception as e:
             logging.error(f"Failed to write import audit log: {e}")
             
-        logging.info(f"Player upload completed: Mode={req.mode}, Created={created_players}, Updated={updated_players}, Scores={scores_written_total}, Errors={len(errors)}")
+        # FINAL SUMMARY LOG
+        logging.info(f"[UPLOAD_COMPLETE] ═══════════════════════════════════════")
+        logging.info(f"[UPLOAD_COMPLETE] Event: {event_id}")
+        logging.info(f"[UPLOAD_COMPLETE] Mode: {req.mode}")
+        logging.info(f"[UPLOAD_COMPLETE] Players received: {len(players)}")
+        logging.info(f"[UPLOAD_COMPLETE] Created (new): {created_players}")
+        logging.info(f"[UPLOAD_COMPLETE] Updated (existing): {updated_players}")
+        logging.info(f"[UPLOAD_COMPLETE] Errors/Rejected: {len(errors)}")
+        logging.info(f"[UPLOAD_COMPLETE] Total scores written: {scores_written_total}")
+        logging.info(f"[UPLOAD_COMPLETE] ═══════════════════════════════════════")
+        
         return {
             "added": added, 
             "created_players": created_players,
