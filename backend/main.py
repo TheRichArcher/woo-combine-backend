@@ -101,7 +101,7 @@ app.add_middleware(
     allow_origin_regex=allowed_origin_regex,
     allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    # Avoid wildcard headers; enumerate common headers used by the app
+    # Enumerate common headers used by the app
     allow_headers=[
         "Authorization",
         "Content-Type",
@@ -109,6 +109,8 @@ app.add_middleware(
         "X-Requested-With",
         "X-Abuse-Nonce",
         "X-Abuse-Answer",
+        "X-Delete-Target-Event-Id",     # Required for event deletion validation
+        "X-Delete-Intent-Token",        # Optional token for one-time-use validation
     ],
 )
 

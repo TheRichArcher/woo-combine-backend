@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Response
 from google.cloud import firestore
 from typing import Optional, List
 from ..firestore_client import db
@@ -449,6 +449,18 @@ def issue_delete_intent_token(
         logging.error(f"Error issuing delete intent token for {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to issue delete intent token")
 
+@router.options('/leagues/{league_id}/events/{event_id}')
+def delete_event_preflight(
+    league_id: str = Path(..., regex=r"^.{1,50}$"), 
+    event_id: str = Path(..., regex=r"^.{1,50}$")
+):
+    """
+    CORS preflight handler for DELETE endpoint.
+    Returns 200 OK to allow browser to proceed with actual DELETE request.
+    CORSMiddleware adds the necessary headers automatically.
+    """
+    return Response(status_code=200)
+
 @router.delete('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
 @require_permission("events", "delete", target="league", target_param="league_id")
@@ -464,6 +476,7 @@ def delete_event(
     Use hard_delete query param to permanently delete (admin only).
     """
     try:
+        
         # CRITICAL SERVER-SIDE VALIDATION: REQUIRED header check (not optional)
         # This protects against UI drift, client regressions, and malicious calls
         declared_target_id = request.headers.get("X-Delete-Target-Event-Id")
