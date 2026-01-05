@@ -284,6 +284,18 @@ function calculateMatchScore(header, key, synonyms) {
   const normHeader = normalizeHeader(header);
   const normHeaderAggressive = normalizeHeaderAggressive(header);
   
+  // CRITICAL FIX: Prevent cross-category matches (name vs number)
+  // If header contains "name" and key is "number", immediately return 0
+  const headerLower = header.toLowerCase();
+  if (headerLower.includes('name') && key === 'number') {
+    return 0; // Block player_name from matching to number field
+  }
+  // Conversely, if header contains "number" and key is name-related, block it
+  if ((headerLower.includes('number') || headerLower === '#' || headerLower === 'no') && 
+      (key === 'first_name' || key === 'last_name')) {
+    return 0; // Block player_number from matching to name fields
+  }
+  
   // 1. Exact Key Match (Highest confidence)
   if (normHeader === normalizeHeader(key)) return 100;
   if (normHeaderAggressive === normalizeHeaderAggressive(key)) return 95;
@@ -293,24 +305,26 @@ function calculateMatchScore(header, key, synonyms) {
     const normSyn = normalizeHeader(syn);
     const normSynAggressive = normalizeHeaderAggressive(syn);
     
-    // Exact synonym match
-    if (normHeader === normSyn) return 90;
+    // EXACT synonym match - BOOST score significantly to beat partial matches
+    if (normHeader === normSyn) return 95; // Increased from 90 to 95
     
     // Aggressive match (handles "3-Cone" = "3 Cone" = "3cone")
-    if (normHeaderAggressive === normSynAggressive && normSynAggressive.length > 2) return 85;
+    if (normHeaderAggressive === normSynAggressive && normSynAggressive.length > 2) return 90; // Increased from 85
     
-    // Header contains synonym (Partial match)
+    // Header contains synonym (Partial match) - PENALIZE to prevent false matches
     // We prioritize longer synonyms to avoid "Throw" matching "Free Throw"
     if (normHeader.includes(normSyn) && normSyn.length > 2) {
       // Score based on specificity (length of synonym relative to header)
       const specificity = normSyn.length / normHeader.length;
-      return 50 + (specificity * 30); // 50-80 range
+      // REDUCED score range from 50-80 to 30-60 to penalize partial matches
+      return 30 + (specificity * 30); // 30-60 range (was 50-80)
     }
     
-    // Aggressive partial match as last resort
+    // Aggressive partial match as last resort - FURTHER PENALIZED
     if (normHeaderAggressive.includes(normSynAggressive) && normSynAggressive.length > 3) {
       const specificity = normSynAggressive.length / normHeaderAggressive.length;
-      return 40 + (specificity * 20); // 40-60 range
+      // REDUCED score range from 40-60 to 20-40
+      return 20 + (specificity * 20); // 20-40 range (was 40-60)
     }
   }
   
@@ -444,27 +458,14 @@ export function generateDefaultMapping(headers = [], drillDefinitions = []) {
   // Sort matches by score (descending) to prioritize best matches
   allMatches.sort((a, b) => b.score - a.score);
   
-  // Assign mappings greedily
+  // Assign mappings greedily (cross-category guards now in calculateMatchScore)
   allMatches.forEach(({ key, header, score }) => {
     // If key is already mapped or header is already used, skip
     if (!mapping[key] && !usedHeaders.has(header)) {
-      
-      // CRITICAL FIX: Add guards for player number (jersey_number) to prevent mapping to name columns
-      if (key === 'jersey_number') {
-        const headerLower = normalizeHeader(header);
-        // Guard 1: Exclude name columns
-        const isNameColumn = headerLower.includes('name') || headerLower.includes('player');
-        
-        if (isNameColumn) {
-          // Skip this mapping - jersey should never map to name columns
-          return;
-        }
-      }
-      
       mapping[key] = header;
       usedHeaders.add(header);
       
-      // Determine confidence level
+      // Determine confidence level (adjusted for new scoring)
       if (score >= 90) confidence[key] = 'high';
       else if (score >= 60) confidence[key] = 'medium';
       else confidence[key] = 'low';
