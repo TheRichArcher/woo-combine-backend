@@ -259,7 +259,13 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       if (remainingEvents.length > 0) {
         // There are other events - navigate to admin tools (neutral, stable page)
         // DO NOT navigate to /dashboard (triggers redirects) or /players (onboarding CTA)
-        navigate('/admin-tools');
+        // Pass state flag to show "What's next?" panel (optional polish)
+        navigate('/admin-tools', { 
+          state: { 
+            deletedEvent: targetEvent.name,
+            showNextActions: true 
+          }
+        });
       } else {
         // No events left - navigate to event creation (explicit intent to create new event)
         navigate('/select-league');

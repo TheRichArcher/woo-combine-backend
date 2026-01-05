@@ -1,15 +1,21 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
-import { Link, useNavigate } from 'react-router-dom';
-import { Users, Settings, Activity, BarChart3, ArrowRight } from 'lucide-react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Users, Settings, Activity, BarChart3, ArrowRight, CheckCircle, X, Plus, Calendar, SettingsIcon } from 'lucide-react';
 import EventSetup from "./EventSetup";
 
 export default function AdminTools() {
   const { userRole, selectedLeagueId } = useAuth();
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, events } = useEvent();
   const [view, setView] = useState('hub'); // 'hub' | 'setup'
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if we just came from deletion (optional polish panel)
+  const showNextActions = location.state?.showNextActions || false;
+  const deletedEventName = location.state?.deletedEvent || null;
+  const [nextActionsPanelDismissed, setNextActionsPanelDismissed] = useState(false);
 
   // 1. Access Control
   if (userRole !== 'organizer') {
@@ -86,6 +92,96 @@ export default function AdminTools() {
             <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded border border-blue-200">Organizer Mode</span>
           </div>
         </div>
+
+        {/* OPTIONAL POLISH: "What's Next?" Panel (Post-Delete) */}
+        {showNextActions && !nextActionsPanelDismissed && (
+          <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-8 shadow-sm">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-green-800">
+                    Event Deleted Successfully
+                  </h3>
+                  {deletedEventName && (
+                    <p className="text-sm text-green-700 mt-1">
+                      "{deletedEventName}" has been removed. Recovery available for 30 days via support.
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setNextActionsPanelDismissed(true)}
+                className="flex-shrink-0 text-green-600 hover:text-green-800 transition"
+                aria-label="Dismiss"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="border-t border-green-200 pt-4 mt-4">
+              <p className="text-sm font-semibold text-green-800 mb-3">
+                What would you like to do next?
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Create New Event */}
+                <button
+                  onClick={() => {
+                    setNextActionsPanelDismissed(true);
+                    setView('setup');
+                  }}
+                  className="flex items-center gap-2 bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 text-green-800 font-medium px-4 py-3 rounded-lg transition"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create a New Event
+                </button>
+
+                {/* Select Another Event */}
+                {events && events.length > 0 && (
+                  <button
+                    onClick={() => {
+                      setNextActionsPanelDismissed(true);
+                      // Event selector in navigation header will handle selection
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex items-center gap-2 bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 text-green-800 font-medium px-4 py-3 rounded-lg transition"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    Select Another Event
+                  </button>
+                )}
+
+                {/* Manage League Settings */}
+                <button
+                  onClick={() => {
+                    setNextActionsPanelDismissed(true);
+                    navigate('/select-league');
+                  }}
+                  className="flex items-center gap-2 bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 text-green-800 font-medium px-4 py-3 rounded-lg transition"
+                >
+                  <SettingsIcon className="w-5 h-5" />
+                  Manage League Settings
+                </button>
+
+                {/* Manage Players (only if event exists) */}
+                {selectedEvent?.id && (
+                  <button
+                    onClick={() => {
+                      setNextActionsPanelDismissed(true);
+                      navigate('/players');
+                    }}
+                    className="flex items-center gap-2 bg-white hover:bg-green-50 border-2 border-green-200 hover:border-green-400 text-green-800 font-medium px-4 py-3 rounded-lg transition"
+                  >
+                    <Users className="w-5 h-5" />
+                    Manage Players
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Main 3 Areas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
