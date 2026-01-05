@@ -24,7 +24,7 @@ import { logger } from '../utils/logger';
  */
 export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess }) {
   const { selectedLeagueId, userRole } = useAuth();
-  const { events, refreshEvents, setSelectedEvent } = useEvent();
+  const { events, deleteEvent, setSelectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
@@ -45,6 +45,29 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
   // Deletion in progress
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // DEFENSIVE GUARD: Ensure deleteEvent function exists
+  const deleteEventAvailable = typeof deleteEvent === 'function';
+  
+  useEffect(() => {
+    if (!deleteEventAvailable) {
+      const error = new Error('CRITICAL: deleteEvent function not available in EventContext');
+      console.error('[DELETE_FLOW_ERROR]', error);
+      logger.error('DELETE_EVENT_FUNCTION_MISSING', {
+        eventId: event?.id,
+        eventName: event?.name,
+        hasDeleteEvent: !!deleteEvent,
+        deleteEventType: typeof deleteEvent
+      });
+      // Send to Sentry if available
+      if (window.Sentry) {
+        window.Sentry.captureException(error, {
+          tags: { component: 'DeleteEventFlow', severity: 'critical' },
+          extra: { eventId: event?.id, deleteEventType: typeof deleteEvent }
+        });
+      }
+    }
+  }, [deleteEventAvailable, deleteEvent, event]);
 
   // Permission check
   if (userRole !== 'organizer') {
@@ -457,13 +480,19 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
               </button>
               <button
                 onClick={handleFinalDelete}
-                disabled={isDeleting}
+                disabled={isDeleting || !deleteEventAvailable}
                 className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-lg transition flex items-center justify-center gap-2"
+                title={!deleteEventAvailable ? 'Delete function unavailable - please refresh the page' : ''}
               >
                 {isDeleting ? (
                   <>
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Deleting...
+                  </>
+                ) : !deleteEventAvailable ? (
+                  <>
+                    <AlertTriangle className="w-5 h-5" />
+                    Delete Unavailable
                   </>
                 ) : (
                   <>
