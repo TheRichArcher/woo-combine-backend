@@ -101,9 +101,14 @@ else:
 
 **Prevents**:
 - **UI drift**: Token bound to specific `target_event_id`
-- **Replay attacks**: Token can only be used ONCE (jti tracking)
+- **Replay attacks**: Token can only be used ONCE (jti tracking)*
 - **Malicious calls**: Token must be signed by server
-- **Token reuse**: `jti` marked as used after first deletion
+- **Token reuse**: `jti` marked as used after first deletion*
+
+**\*IMPORTANT LIMITATION**: Replay protection works on **single-instance deployments**.  
+In multi-instance/autoscaled environments, replay can succeed if different instances handle requests.  
+**Production multi-instance deployments require Redis/DB-backed token store.**  
+See `docs/reports/MULTI_INSTANCE_TOKEN_STORE.md` for migration guide.
 
 ---
 
@@ -360,6 +365,23 @@ curl -X DELETE \
 
 ## Production Deployment
 
+### CRITICAL: Deployment Topology Check
+
+**Before enabling token-based deletion, verify your deployment**:
+
+| Deployment Type | Token Replay Protection | Action Required |
+|----------------|------------------------|----------------|
+| **Single Instance** | ✅ Works (in-memory store OK) | Set `DELETE_TOKEN_SECRET_KEY` |
+| **Multi-Instance / Autoscaled** | ❌ Fails (memory not shared) | **Requires Redis/DB migration** |
+
+**How to check**:
+- Render free tier: Single instance ✅
+- Render paid tier with autoscaling: Multi-instance ❌
+- Kubernetes with replicas > 1: Multi-instance ❌
+- Load balancer with multiple backends: Multi-instance ❌
+
+**If multi-instance**: See `docs/reports/MULTI_INSTANCE_TOKEN_STORE.md` for Redis migration guide.
+
 ### Dependencies Added
 ```
 PyJWT==2.10.1  # JWT token signing/validation
@@ -370,6 +392,11 @@ PyJWT==2.10.1  # JWT token signing/validation
 # Backend .env (REQUIRED for token system to work)
 DELETE_TOKEN_SECRET_KEY=<generate_strong_secret_key_here>
 # Use: python -c "import secrets; print(secrets.token_urlsafe(32))"
+
+# For multi-instance deployments (REQUIRED if scaled):
+# REDIS_HOST=redis.example.com
+# REDIS_PORT=6379
+# REDIS_PASSWORD=<password>
 ```
 
 **Startup Validation**:
@@ -377,18 +404,20 @@ DELETE_TOKEN_SECRET_KEY=<generate_strong_secret_key_here>
 - If default value: Server logs WARNING about insecurity
 - If properly set: Server enables token-based deletion
 
-**Example Startup Logs**:
+**Example Startup Logs (Single Instance)**:
 ```
 [STARTUP] WooCombine API starting up...
 [STARTUP] DELETE_TOKEN_SECRET_KEY: ✓ configured - Token-based deletion enabled
+[STARTUP] Token replay protection: ⚠ Single-instance only (in-memory)
 [STARTUP] Using lazy Firestore initialization for faster cold starts
 ```
 
-**OR (if missing)**:
+**Example Startup Logs (Multi-Instance with Redis)**:
 ```
 [STARTUP] WooCombine API starting up...
-[STARTUP] DELETE_TOKEN_SECRET_KEY: ✗ not set - Token-based deletion DISABLED
-[STARTUP] Set DELETE_TOKEN_SECRET_KEY environment variable to enable secure token system
+[STARTUP] DELETE_TOKEN_SECRET_KEY: ✓ configured - Token-based deletion enabled
+[STARTUP] Redis connection: ✓ available - Multi-instance replay protection enabled
+[STARTUP] Token replay protection: ✓ Multi-instance safe (Redis)
 ```
 
 ### Build Status ✅
@@ -429,17 +458,34 @@ DELETE_TOKEN_SECRET_KEY=<generate_strong_secret_key_here>
 
 ## What You Can Tell Stakeholders
 
+### For Single-Instance Deployments ✅
+
 > "The deletion system is now truly bulletproof with **required** server-side validation:
 >
 > **Even if the frontend completely fails**, the server will:
 > 1. **Block deletions without validation header** (400 error)
 > 2. **Block deletions with wrong target** (400 error)
 > 3. **Block deletions with invalid token** (400 error)
-> 4. **Log all attempts** (audit trail + Sentry)
+> 4. **Block token replay** (one-time-use via jti tracking)
+> 5. **Log all attempts** (audit trail + Sentry)
 >
 > A future client regression **cannot** bypass these protections. The server enforces data integrity **independent** of the frontend.
 >
-> This is impossible, not unlikely."
+> **Replay Protection**: Works on single-instance deployments (in-memory tracking)."
+
+### For Multi-Instance Deployments (After Redis Migration) ✅
+
+> "The deletion system is bulletproof **even under autoscaling**:
+>
+> **Token replay protection works across all backend instances** via Redis-backed storage. Even if an attacker captures a token and tries to reuse it on a different server instance, it will be blocked.
+>
+> This is impossible, not unlikely - even in distributed systems."
+
+### Current Status (Accurate)
+
+**Deployment**: Single instance (Render free tier)  
+**Replay Protection**: ✅ Active (in-memory jti tracking)  
+**Claim**: "Replay-proof on single instance. For multi-instance, requires Redis."
 
 ---
 

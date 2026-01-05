@@ -22,8 +22,17 @@ SECRET_KEY = os.environ.get("DELETE_TOKEN_SECRET_KEY")
 ALGORITHM = "HS256"
 TOKEN_EXPIRY_MINUTES = 5
 
-# In-memory token usage store (production should use Redis or database)
+# CRITICAL: In-memory token usage store (SINGLE-INSTANCE ONLY)
 # Structure: {jti: {"user_id": str, "target_event_id": str, "expires_at": datetime, "used_at": datetime|None}}
+# 
+# LIMITATION: Replay protection only works if same backend instance handles both requests.
+# In multi-instance/autoscaled environments, instance B won't know instance A consumed the jti.
+#
+# PRODUCTION: For multi-instance deployments, replace with:
+# - Redis (recommended): atomic "SET NX" operations
+# - Database: jti table with unique constraint + transaction
+#
+# See docs/reports/MULTI_INSTANCE_TOKEN_STORE.md for migration guide
 _token_usage_store = {}
 
 def validate_secret_key():
