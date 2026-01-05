@@ -195,6 +195,12 @@ def get_event(
         
         if event_doc.exists:
             event_data = event_doc.to_dict()
+            
+            # CRITICAL: Reject soft-deleted events (must filter everywhere)
+            if event_data.get("deleted_at"):
+                logging.warning(f"Event {event_id} is soft-deleted, returning 404")
+                raise HTTPException(status_code=404, detail="Event not found")
+            
             event_data["id"] = event_doc.id
             logging.info(f"Found event {event_id} in league {league_id}")
             return event_data
@@ -209,6 +215,12 @@ def get_event(
         
         if event_doc.exists:
             event_data = event_doc.to_dict()
+            
+            # CRITICAL: Reject soft-deleted events (must filter everywhere)
+            if event_data.get("deleted_at"):
+                logging.warning(f"Event {event_id} in top-level collection is soft-deleted, returning 404")
+                raise HTTPException(status_code=404, detail="Event not found")
+            
             event_data["id"] = event_doc.id
             # Verify it belongs to the requested league
             if event_data.get("league_id") == league_id:
@@ -336,6 +348,11 @@ def get_event_stats(
             raise HTTPException(status_code=404, detail="Event not found")
         
         event_data = event_doc.to_dict()
+        
+        # DEFENSIVE: Reject soft-deleted events (shouldn't happen during normal flow, but be safe)
+        if event_data.get("deleted_at"):
+            logging.warning(f"Event {event_id} is already soft-deleted, cannot get stats")
+            raise HTTPException(status_code=404, detail="Event not found")
         
         # Count players
         players_ref = db.collection("events").document(event_id).collection("players")

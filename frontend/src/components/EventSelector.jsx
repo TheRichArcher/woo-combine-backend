@@ -45,7 +45,8 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
-    const ev = events.find(ev => ev.id === e.target.value);
+    // CRITICAL: Defensive filter - never allow selection of soft-deleted events
+    const ev = events.find(ev => ev.id === e.target.value && !ev.deleted_at && !ev.deletedAt);
     if (ev) {
       setSelectedEvent(ev);
       if (onEventSelected) onEventSelected(ev);
@@ -258,7 +259,8 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                 data-event-selector-dropdown
               >
                 <option value="">Select an event...</option>
-                {events.map(ev => {
+                {/* CRITICAL: Defensive filter - never render soft-deleted events */}
+                {events.filter(ev => !ev.deleted_at && !ev.deletedAt).map(ev => {
                   let dateLabel = "Date not set";
                   if (ev.date && !isNaN(Date.parse(ev.date))) {
                     dateLabel = new Date(ev.date).toLocaleDateString();

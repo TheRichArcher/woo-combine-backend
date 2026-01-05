@@ -145,37 +145,39 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
     setIsDeleting(true);
     try {
-      const response = await api.delete(`/leagues/${selectedLeagueId}/events/${event.id}`);
+      // CRITICAL: Use EventContext.deleteEvent for proper state management
+      // This ensures immediate removal from events list without waiting for refetch
+      const response = await deleteEvent(event.id);
       
       // AUDIT LOG: Deletion completed successfully
       logger.info('DELETE_EVENT_COMPLETED', {
         event_id: event.id,
         event_name: event.name,
         league_id: selectedLeagueId,
-        deleted_at: response.data?.deleted_at,
-        recovery_window: response.data?.recovery_window,
+        deleted_at: response?.deleted_at,
+        recovery_window: response?.recovery_window,
         user_role: userRole,
         timestamp: new Date().toISOString()
       });
       
       showSuccess(`Event "${event.name}" has been deleted. Recovery available for 30 days via support.`);
       
-      // Refresh events list to remove deleted event
-      await refreshEvents();
-      
-      // If this was the selected event, clear selection
-      if (isCurrentlySelected) {
-        setSelectedEvent(null);
-      }
-      
-      // Close modal and navigate to event selection
+      // Close modal
       setShowFinalModal(false);
       if (onSuccess) {
         onSuccess();
       }
       
-      // Navigate to select event page
-      navigate('/select-league');
+      // CRITICAL: Force navigation to event selection or next available event
+      // EventContext has already cleared selectedEvent and removed from events list
+      const remainingEvents = events.filter(e => e.id !== event.id);
+      if (remainingEvents.length > 0) {
+        // There are other events - navigate to dashboard (EventSelector will handle selection)
+        navigate('/dashboard');
+      } else {
+        // No events left - navigate to league selection
+        navigate('/select-league');
+      }
       
     } catch (error) {
       // AUDIT LOG: Deletion failed

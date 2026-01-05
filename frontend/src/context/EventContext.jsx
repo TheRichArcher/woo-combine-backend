@@ -78,13 +78,17 @@ export function EventProvider({ children }) {
 
     try {
       const eventsData = await cachedFetchEvents(leagueId);
-      setEvents(eventsData);
+      
+      // CRITICAL: Defensive filter - never show soft-deleted events
+      // This provides defense-in-depth even if backend or cache has stale data
+      const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
+      setEvents(activeEvents);
       
       // Auto-select first event if available and none is currently selected
       // Check current selectedEvent state instead of using it as dependency
       setSelectedEvent(current => {
-        if (!current && eventsData.length > 0) {
-          const firstEvent = eventsData[0];
+        if (!current && activeEvents.length > 0) {
+          const firstEvent = activeEvents[0];
           // Persist the auto-selected event
           localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
           return firstEvent;
@@ -223,22 +227,30 @@ export function EventProvider({ children }) {
     try {
       const response = await api.delete(`/leagues/${selectedLeagueId}/events/${eventId}`);
       
-      // Remove from events list immediately (soft-deleted events are hidden)
-      setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      // CRITICAL: Immediately remove from events list - DO NOT wait for refetch
+      // This prevents deleted events from appearing in any UI while refetch is pending
+      setEvents(prevEvents => {
+        const filtered = prevEvents.filter(event => event.id !== eventId);
+        logger.info(`EVENT_DELETED_FROM_CONTEXT`, {
+          deleted_event_id: eventId,
+          remaining_events: filtered.length,
+          removed_immediately: true
+        });
+        return filtered;
+      });
       
-      // Clear selectedEvent if it's the one being deleted
-      if (selectedEvent && selectedEvent.id === eventId) {
-        setSelectedEvent(null);
-        localStorage.removeItem('selectedEvent');
-      }
+      // CRITICAL: Force context reset - clear selectedEvent ALWAYS
+      // This prevents any references to deleted event in active context
+      setSelectedEvent(null);
+      localStorage.removeItem('selectedEvent');
       
-      logger.info(`Event ${eventId} soft-deleted successfully`);
+      logger.info(`Event ${eventId} soft-deleted successfully and removed from context`);
       return response.data;
     } catch (error) {
       logger.error('Failed to delete event:', error);
       throw error;
     }
-  }, [selectedLeagueId, selectedEvent]);
+  }, [selectedLeagueId]);
 
   // Wrapper to persist selectedEvent to localStorage
   const setSelectedEventWithPersistence = useCallback((event) => {

@@ -53,7 +53,9 @@ export default function EventSwitcher({ isOpen, onClose }) {
         
         <div className="max-h-80 overflow-y-auto">
           {events && events.length > 0 ? (
-            events.map(event => {
+            // CRITICAL: Defensive filter - never render soft-deleted events
+            // This provides defense-in-depth even if state is stale
+            events.filter(event => !event.deleted_at && !event.deletedAt).map(event => {
               const isSelected = selectedEvent?.id === event.id;
               const dateLabel = event.date && !isNaN(Date.parse(event.date)) 
                 ? new Date(event.date).toLocaleDateString() 

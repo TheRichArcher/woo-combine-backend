@@ -12,7 +12,8 @@ export default function Schedule() {
   const { selectedLeagueId } = useAuth();
 
   // Convert events to schedule format with safe date handling
-  const scheduleEvents = events.map(event => {
+  // CRITICAL: Defensive filter - never render soft-deleted events
+  const scheduleEvents = events.filter(event => !event.deleted_at && !event.deletedAt).map(event => {
     try {
       const eventDate = new Date(event.date);
       const isValidDate = !isNaN(eventDate.getTime());
