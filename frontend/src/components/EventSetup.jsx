@@ -13,6 +13,7 @@ import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS, OPTIONAL_HEADERS } from '../utils/csvUtils';
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
+import DeleteEventFlow from "./DeleteEventFlow";
 
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
@@ -1018,22 +1019,26 @@ export default function EventSetup({ onBack }) {
           <StaffManagement leagueId={selectedLeagueId} currentUser={user} />
         </div>
 
-        {/* Step 6: Advanced Options (Reset) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        {/* Step 6: Danger Zone - Advanced Options */}
+        <div className="bg-white rounded-xl shadow-sm border-2 border-red-300 p-6 mb-6">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-gray-500 text-white rounded-full flex items-center justify-center text-sm font-bold">6</div>
-            <h2 className="text-lg font-semibold text-gray-900">Advanced Options</h2>
+            <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">⚠️</div>
+            <h2 className="text-lg font-semibold text-red-700">Danger Zone</h2>
           </div>
           
-          <div className="space-y-4">
-            {/* Reset Section */}
-            <div className="bg-semantic-error/10 border border-semantic-error/20 rounded-lg p-4">
-              <h3 className="font-medium text-semantic-error mb-2 flex items-center gap-2">
-                <RefreshCcw className="w-4 h-4 text-semantic-error" />
-                Reset Event Data
+          <p className="text-sm text-gray-600 mb-6">
+            These actions are destructive and cannot be easily undone. Use with extreme caution.
+          </p>
+
+          <div className="space-y-6">
+            {/* Reset Player Data Section */}
+            <div className="bg-orange-50/50 border border-orange-200 rounded-lg p-4">
+              <h3 className="font-medium text-orange-700 mb-2 flex items-center gap-2">
+                <RefreshCcw className="w-4 h-4 text-orange-600" />
+                Reset Player Data
               </h3>
-              <p className="text-semantic-error/90 text-sm mb-3">
-                ⚠️ This will permanently delete all player data for this event. Use only for testing or starting over.
+              <p className="text-orange-700/90 text-sm mb-3">
+                ⚠️ This will permanently delete all player data for this event. The event itself will remain. Use only for testing or starting over.
               </p>
               
               <div className="space-y-3">
@@ -1042,20 +1047,20 @@ export default function EventSetup({ onBack }) {
                   value={confirmInput}
                   onChange={(e) => setConfirmInput(e.target.value)}
                   placeholder="Type 'RESET' to confirm"
-                  className="w-full border border-red-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-semantic-error focus:border-semantic-error"
+                  className="w-full border border-orange-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                 />
                 
                 <button
                   onClick={handleReset}
                   disabled={confirmInput !== "RESET" || status === "loading"}
-                  className="w-full bg-semantic-error hover:bg-red-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition"
+                  className="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-2 rounded-lg transition"
                 >
-                  {status === "loading" ? "Resetting..." : "Reset All Event Data"}
+                  {status === "loading" ? "Resetting..." : "Reset Player Data Only"}
                 </button>
                 
                 {status === "success" && (
                   <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded text-sm">
-                    ✅ Event data has been reset successfully.
+                    ✅ Player data has been reset successfully.
                   </div>
                 )}
                 
@@ -1065,6 +1070,28 @@ export default function EventSetup({ onBack }) {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t-2 border-red-200"></div>
+
+            {/* Delete Entire Event Section */}
+            <div className="bg-red-50/50 border-2 border-red-300 rounded-lg p-4">
+              <h3 className="font-bold text-red-700 mb-2 flex items-center gap-2 text-lg">
+                🗑️ Delete Entire Event
+              </h3>
+              <p className="text-red-700 text-sm mb-4">
+                <strong>EXTREME CAUTION:</strong> This permanently deletes the entire event including all players, scores, and settings. This action is intentionally difficult to prevent accidents.
+              </p>
+              
+              <DeleteEventFlow 
+                event={selectedEvent}
+                isCurrentlySelected={true}
+                onSuccess={() => {
+                  // Navigate away after successful deletion
+                  if (onBack) onBack();
+                }}
+              />
             </div>
           </div>
         </div>

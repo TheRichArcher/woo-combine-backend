@@ -214,6 +214,32 @@ export function EventProvider({ children }) {
     }
   }, [selectedLeagueId, selectedEvent]);
 
+  // Delete event function (soft delete)
+  const deleteEvent = useCallback(async (eventId) => {
+    if (!selectedLeagueId) {
+      throw new Error('No league selected');
+    }
+
+    try {
+      const response = await api.delete(`/leagues/${selectedLeagueId}/events/${eventId}`);
+      
+      // Remove from events list immediately (soft-deleted events are hidden)
+      setEvents(prevEvents => prevEvents.filter(event => event.id !== eventId));
+      
+      // Clear selectedEvent if it's the one being deleted
+      if (selectedEvent && selectedEvent.id === eventId) {
+        setSelectedEvent(null);
+        localStorage.removeItem('selectedEvent');
+      }
+      
+      logger.info(`Event ${eventId} soft-deleted successfully`);
+      return response.data;
+    } catch (error) {
+      logger.error('Failed to delete event:', error);
+      throw error;
+    }
+  }, [selectedLeagueId, selectedEvent]);
+
   // Wrapper to persist selectedEvent to localStorage
   const setSelectedEventWithPersistence = useCallback((event) => {
     setSelectedEvent(event);
@@ -234,7 +260,8 @@ export function EventProvider({ children }) {
     eventsLoaded, // CRITICAL: Expose to components to gate onboarding
     error,
     refreshEvents,
-    updateEvent
+    updateEvent,
+    deleteEvent
   };
 
   return (

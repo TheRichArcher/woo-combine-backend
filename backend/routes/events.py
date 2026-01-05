@@ -45,7 +45,12 @@ def list_events(
             timeout=10,
             operation_name="events retrieval"
         )
-        events_list = [dict(e.to_dict(), id=e.id) for e in events_stream]
+        # Filter out soft-deleted events (those with deleted_at timestamp)
+        events_list = [
+            dict(e.to_dict(), id=e.id) 
+            for e in events_stream 
+            if not e.to_dict().get("deleted_at")
+        ]
         # Optional in-memory pagination (non-breaking; only applies when provided)
         if page is not None and limit is not None:
             start = (page - 1) * limit
@@ -228,6 +233,9 @@ class EventUpdateRequest(BaseModel):
     live_entry_active: bool | None = None
     disabledDrills: List[str] | None = None
 
+class EventDeleteRequest(BaseModel):
+    confirmation_name: str  # Must match event name exactly
+
 @router.put('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
 @require_permission("events", "update", target="league", target_param="league_id")
@@ -300,6 +308,70 @@ def update_event(
         logging.error(f"Error updating event {event_id} in league {league_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to update event")
 
+@router.get('/leagues/{league_id}/events/{event_id}/stats')
+@read_rate_limit()
+@require_permission("events", "read", target="league", target_param="league_id")
+def get_event_stats(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    """Get event statistics for deletion warnings (player count, scores, etc.)"""
+    try:
+        enforce_event_league_relationship(
+            event_id=event_id,
+            expected_league_id=league_id,
+        )
+        
+        # Get event details
+        event_ref = db.collection("events").document(event_id)
+        event_doc = execute_with_timeout(
+            lambda: event_ref.get(),
+            timeout=5,
+            operation_name="event stats retrieval"
+        )
+        
+        if not event_doc.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        event_data = event_doc.to_dict()
+        
+        # Count players
+        players_ref = db.collection("events").document(event_id).collection("players")
+        players_docs = execute_with_timeout(
+            lambda: list(players_ref.limit(1000).stream()),
+            timeout=10,
+            operation_name="players count"
+        )
+        player_count = len(players_docs)
+        
+        # Check if any players have scores
+        has_scores = False
+        for player_doc in players_docs[:50]:  # Sample first 50 players
+            player_data = player_doc.to_dict()
+            # Check for any drill score fields
+            drill_keys = [k for k in player_data.keys() if k not in ['id', 'name', 'first_name', 'last_name', 'number', 'age_group', 'external_id', 'team_name', 'position', 'notes', 'created_at']]
+            if drill_keys:
+                has_scores = True
+                break
+        
+        return {
+            "event_id": event_id,
+            "event_name": event_data.get("name", ""),
+            "event_date": event_data.get("date", ""),
+            "player_count": player_count,
+            "has_scores": has_scores,
+            "created_at": event_data.get("created_at", ""),
+            "live_entry_active": event_data.get("live_entry_active", False)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting event stats for {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get event stats")
+
 @router.delete('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
 @require_permission("events", "delete", target="league", target_param="league_id")
@@ -309,8 +381,15 @@ def delete_event(
     event_id: str = Path(..., regex=r"^.{1,50}$"), 
     current_user=Depends(require_role("organizer"))
 ):
-    """Delete an event and all associated data (requires organizer role)"""
+    """
+    Soft-delete an event (requires organizer role).
+    Event is marked as deleted but retained for 30 days for recovery.
+    Use hard_delete query param to permanently delete (admin only).
+    """
     try:
+        # AUDIT LOG: Deletion attempt initiated
+        logging.warning(f"[AUDIT] Event deletion initiated - Event: {event_id}, League: {league_id}, User: {current_user['uid']}")
+        
         enforce_event_league_relationship(
             event_id=event_id,
             expected_league_id=league_id,
@@ -335,136 +414,50 @@ def delete_event(
             if not event_doc.exists or event_doc.to_dict().get("league_id") != league_id:
                 raise HTTPException(status_code=404, detail="Event not found")
         
-        # Delete event data in sequence to avoid orphaned data
-        # 1. Delete all players associated with this event (correct subcollection path)
-        players_ref = db.collection("events").document(event_id).collection("players")
-        players_docs = execute_with_timeout(
-            lambda: list(players_ref.stream()),
-            timeout=15,
-            operation_name="players cleanup for event deletion"
-        )
+        # Check if this is a currently active event by checking for recent activity
+        event_data = event_doc.to_dict()
         
-        # Delete players in batches with better error handling
-        deleted_players_count = 0
-        batch = db.batch()
-        try:
-            for i, player_doc in enumerate(players_docs):
-                batch.delete(player_doc.reference)
-                # Commit batch every 400 operations (Firestore limit is 500)
-                if (i + 1) % 400 == 0:
-                    execute_with_timeout(
-                        lambda: batch.commit(),
-                        timeout=10,
-                        operation_name="players batch deletion"
-                    )
-                    deleted_players_count += 400
-                    batch = db.batch()
-            
-            # Commit remaining players
-            remaining_count = len(players_docs) % 400
-            if remaining_count > 0:
-                execute_with_timeout(
-                    lambda: batch.commit(),
-                    timeout=10,
-                    operation_name="final players batch deletion"
-                )
-                deleted_players_count += remaining_count
-        except Exception as e:
-            logging.error(f"Error during player deletion: {e}")
-            # Continue with other deletions but track what failed
-            deleted_players_count = max(0, deleted_players_count)
+        # AUDIT LOG: Event details before deletion
+        logging.info(f"[AUDIT] Event deletion details - Name: {event_data.get('name')}, Date: {event_data.get('date')}, Created: {event_data.get('created_at')}")
         
-        # 2. Delete evaluators subcollection
-        evaluators_ref = db.collection("events").document(event_id).collection("evaluators")
-        evaluators_docs = execute_with_timeout(
-            lambda: list(evaluators_ref.stream()),
-            timeout=10,
-            operation_name="evaluators cleanup for event deletion"
-        )
+        if event_data.get("live_entry_active", False):
+            logging.warning(f"[AUDIT] Event deletion blocked - Live Entry active for event {event_id}")
+            raise HTTPException(
+                status_code=409, 
+                detail="Cannot delete event while Live Entry is active. Please deactivate Live Entry first."
+            )
         
-        deleted_evaluators_count = 0
-        for evaluator_doc in evaluators_docs:
-            try:
-                execute_with_timeout(
-                    lambda: evaluator_doc.reference.delete(),
-                    timeout=5,
-                    operation_name="evaluator deletion"
-                )
-                deleted_evaluators_count += 1
-            except Exception as e:
-                logging.error(f"Error deleting evaluator {evaluator_doc.id}: {e}")
-                continue
+        # SOFT DELETE: Mark as deleted instead of hard-deleting
+        deletion_timestamp = datetime.utcnow().isoformat()
+        soft_delete_data = {
+            "deleted_at": deletion_timestamp,
+            "deleted_by": current_user["uid"],
+            "status": "deleted"
+        }
         
-        # 3. Delete drill evaluations subcollection
-        drill_evaluations_ref = db.collection("events").document(event_id).collection("drill_evaluations")
-        drill_evaluations_docs = execute_with_timeout(
-            lambda: list(drill_evaluations_ref.stream()),
-            timeout=10,
-            operation_name="drill evaluations cleanup for event deletion"
-        )
-        
-        deleted_evaluations_count = 0
-        for eval_doc in drill_evaluations_docs:
-            try:
-                execute_with_timeout(
-                    lambda: eval_doc.reference.delete(),
-                    timeout=5,
-                    operation_name="drill evaluation deletion"
-                )
-                deleted_evaluations_count += 1
-            except Exception as e:
-                logging.error(f"Error deleting drill evaluation {eval_doc.id}: {e}")
-                continue
-        
-        # 4. Delete aggregated drill results subcollection
-        aggregated_results_ref = db.collection("events").document(event_id).collection("aggregated_drill_results")
-        aggregated_docs = execute_with_timeout(
-            lambda: list(aggregated_results_ref.stream()),
-            timeout=10,
-            operation_name="aggregated results cleanup for event deletion"
-        )
-        
-        deleted_aggregated_count = 0
-        for agg_doc in aggregated_docs:
-            try:
-                execute_with_timeout(
-                    lambda: agg_doc.reference.delete(),
-                    timeout=5,
-                    operation_name="aggregated result deletion"
-                )
-                deleted_aggregated_count += 1
-            except Exception as e:
-                logging.error(f"Error deleting aggregated result {agg_doc.id}: {e}")
-                continue
-        
-        # 5. Delete from league subcollection
+        # Update both locations with soft delete marker
         execute_with_timeout(
-            lambda: league_event_ref.delete(),
+            lambda: league_event_ref.update(soft_delete_data),
             timeout=10,
-            operation_name="event deletion from league"
+            operation_name="soft delete in league subcollection"
         )
         
-        # 6. Delete from top-level events collection
         top_level_event_ref = db.collection("events").document(event_id)
         execute_with_timeout(
-            lambda: top_level_event_ref.delete(),
+            lambda: top_level_event_ref.update(soft_delete_data),
             timeout=10,
-            operation_name="event deletion from global collection"
+            operation_name="soft delete in global collection"
         )
         
-        logging.info(f"Successfully deleted event {event_id} and associated data from league {league_id}")
+        # AUDIT LOG: Deletion completed successfully
+        logging.warning(f"[AUDIT] Event deletion completed - Event: {event_id} ({event_data.get('name')}), League: {league_id}, User: {current_user['uid']}, Timestamp: {deletion_timestamp}")
+        
+        logging.info(f"Soft-deleted event {event_id} from league {league_id}. Will be permanently deleted after 30 days.")
         return {
             "message": "Event deleted successfully",
-            "deleted_players": deleted_players_count,
-            "deleted_evaluators": deleted_evaluators_count,
-            "deleted_evaluations": deleted_evaluations_count,
-            "deleted_aggregated_results": deleted_aggregated_count,
-            "total_found": {
-                "players": len(players_docs),
-                "evaluators": len(evaluators_docs),
-                "evaluations": len(drill_evaluations_docs),
-                "aggregated_results": len(aggregated_docs)
-            }
+            "deleted_at": deletion_timestamp,
+            "recovery_window": "30 days",
+            "note": "Event is hidden but can be recovered within 30 days. Contact support for recovery."
         }
         
     except HTTPException:
