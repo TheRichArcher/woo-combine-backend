@@ -28,6 +28,18 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
+  // CRITICAL: Create immutable snapshot of deletion target at flow start
+  // This prevents the target from drifting when we switch context (setSelectedEvent)
+  // The event prop might change if parent re-renders with new selectedEvent
+  const [targetEvent] = useState(() => ({
+    id: event?.id,
+    name: event?.name,
+    date: event?.date,
+    location: event?.location,
+    drillTemplate: event?.drillTemplate,
+    league_id: event?.league_id
+  }));
+
   // Layer 1: Initial warning shown
   const [layer1Acknowledged, setLayer1Acknowledged] = useState(false);
 
@@ -54,8 +66,8 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       const error = new Error('CRITICAL: deleteEvent function not available in EventContext');
       console.error('[DELETE_FLOW_ERROR]', error);
       logger.error('DELETE_EVENT_FUNCTION_MISSING', {
-        eventId: event?.id,
-        eventName: event?.name,
+        targetEventId: targetEvent?.id,
+        targetEventName: targetEvent?.name,
         hasDeleteEvent: !!deleteEvent,
         deleteEventType: typeof deleteEvent
       });
@@ -63,11 +75,11 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       if (window.Sentry) {
         window.Sentry.captureException(error, {
           tags: { component: 'DeleteEventFlow', severity: 'critical' },
-          extra: { eventId: event?.id, deleteEventType: typeof deleteEvent }
+          extra: { targetEventId: targetEvent?.id, deleteEventType: typeof deleteEvent }
         });
       }
     }
-  }, [deleteEventAvailable, deleteEvent, event]);
+  }, [deleteEventAvailable, deleteEvent, targetEvent]);
 
   // Permission check
   if (userRole !== 'organizer') {
@@ -77,11 +89,11 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
   // Fetch event stats when component mounts
   useEffect(() => {
     const fetchStats = async () => {
-      if (!event || !selectedLeagueId) return;
+      if (!targetEvent?.id || !selectedLeagueId) return;
       
       setStatsLoading(true);
       try {
-        const response = await api.get(`/leagues/${selectedLeagueId}/events/${event.id}/stats`);
+        const response = await api.get(`/leagues/${selectedLeagueId}/events/${targetEvent.id}/stats`);
         setEventStats(response.data);
       } catch (error) {
         console.error("Failed to fetch event stats:", error);
@@ -92,10 +104,10 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     };
 
     fetchStats();
-  }, [event, selectedLeagueId]);
+  }, [targetEvent, selectedLeagueId]);
 
   // Check if typed name matches (case-insensitive)
-  const isNameMatch = typedName.trim().toLowerCase() === event?.name?.toLowerCase();
+  const isNameMatch = typedName.trim().toLowerCase() === targetEvent?.name?.toLowerCase();
 
   // Handle layer 2 completion - switch context then show final modal
   const handleLayer2Complete = async () => {
@@ -106,8 +118,8 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     
     // AUDIT LOG: User completed Layer 2 (typed confirmation)
     logger.info('DELETE_EVENT_LAYER_2_COMPLETE', {
-      event_id: event?.id,
-      event_name: event?.name,
+      event_id: targetEvent.id,
+      event_name: targetEvent.name,
       player_count: eventStats?.player_count,
       has_scores: eventStats?.has_scores,
       user_role: userRole,
@@ -118,30 +130,33 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     
     // CRITICAL: If this is the currently selected event, switch context BEFORE showing final modal
     // This prevents the paradox of deleting the active context
+    // NOTE: Context switch does NOT change targetEvent - deletion target remains immutable
     if (isCurrentlySelected) {
       logger.info('DELETE_EVENT_CONTEXT_SWITCH', {
-        event_id: event?.id,
-        event_name: event?.name,
+        target_event_id: targetEvent.id,
+        target_event_name: targetEvent.name,
         action: 'Switching context before deletion',
-        available_events: events.length
+        available_events: events.length,
+        note: 'Target event remains unchanged - only runtime context switches'
       });
       
       // Find another event to switch to (from current events list)
-      const otherEvent = events.find(e => e.id !== event.id);
+      const otherEvent = events.find(e => e.id !== targetEvent.id);
       
       if (otherEvent) {
         // Switch to most recent other event
         setSelectedEvent(otherEvent);
         logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
-          from_event: event?.id,
-          to_event: otherEvent.id,
-          to_event_name: otherEvent.name
+          target_event_id: targetEvent.id,
+          safe_context_event_id: otherEvent.id,
+          safe_context_event_name: otherEvent.name,
+          note: 'User context switched, but deletion target unchanged'
         });
       } else {
         // No other events - switch to "no event selected" state
         setSelectedEvent(null);
         logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
-          from_event: event?.id,
+          target_event_id: targetEvent.id,
           reason: 'No other events available'
         });
       }
@@ -153,12 +168,32 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
   // Handle final deletion
   const handleFinalDelete = async () => {
-    if (!event || !selectedLeagueId) return;
+    if (!targetEvent || !selectedLeagueId) return;
+
+    // CRITICAL SAFETY ASSERTION: Verify deletion target integrity before destructive action
+    if (!targetEvent.id || !targetEvent.name) {
+      const error = new Error('CRITICAL: Target event data corrupted - cannot proceed with deletion');
+      console.error('[DELETE_FLOW_SAFETY_FAILURE]', error, { targetEvent });
+      logger.error('DELETE_TARGET_CORRUPTED', {
+        target_event_id: targetEvent?.id,
+        target_event_name: targetEvent?.name,
+        has_id: !!targetEvent?.id,
+        has_name: !!targetEvent?.name
+      });
+      showError('Safety check failed: Cannot verify deletion target. Please refresh and try again.');
+      if (window.Sentry) {
+        window.Sentry.captureException(error, {
+          tags: { component: 'DeleteEventFlow', severity: 'critical', check: 'safety_assertion' },
+          extra: { targetEvent }
+        });
+      }
+      return;
+    }
 
     // AUDIT LOG: Deletion initiated (Layer 3 confirmed)
     logger.warn('DELETE_EVENT_INITIATED', {
-      event_id: event.id,
-      event_name: event.name,
+      target_event_id: targetEvent.id,
+      target_event_name: targetEvent.name,
       league_id: selectedLeagueId,
       player_count: eventStats?.player_count,
       has_scores: eventStats?.has_scores,
@@ -168,14 +203,14 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
     setIsDeleting(true);
     try {
-      // CRITICAL: Use EventContext.deleteEvent for proper state management
-      // This ensures immediate removal from events list without waiting for refetch
-      const response = await deleteEvent(event.id);
+      // CRITICAL: Use targetEvent.id (immutable snapshot) NOT event.id or selectedEvent.id
+      // This ensures we delete the correct event even after context switches
+      const response = await deleteEvent(targetEvent.id);
       
       // AUDIT LOG: Deletion completed successfully
       logger.info('DELETE_EVENT_COMPLETED', {
-        event_id: event.id,
-        event_name: event.name,
+        target_event_id: targetEvent.id,
+        target_event_name: targetEvent.name,
         league_id: selectedLeagueId,
         deleted_at: response?.deleted_at,
         recovery_window: response?.recovery_window,
@@ -183,7 +218,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
         timestamp: new Date().toISOString()
       });
       
-      showSuccess(`Event "${event.name}" has been deleted. Recovery available for 30 days via support.`);
+      showSuccess(`Event "${targetEvent.name}" has been deleted. Recovery available for 30 days via support.`);
       
       // Close modal
       setShowFinalModal(false);
@@ -193,7 +228,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       
       // CRITICAL: Force navigation to event selection or next available event
       // EventContext has already cleared selectedEvent and removed from events list
-      const remainingEvents = events.filter(e => e.id !== event.id);
+      const remainingEvents = events.filter(e => e.id !== targetEvent.id);
       if (remainingEvents.length > 0) {
         // There are other events - navigate to dashboard (EventSelector will handle selection)
         navigate('/dashboard');
@@ -205,8 +240,8 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     } catch (error) {
       // AUDIT LOG: Deletion failed
       logger.error('DELETE_EVENT_FAILED', {
-        event_id: event.id,
-        event_name: event.name,
+        target_event_id: targetEvent.id,
+        target_event_name: targetEvent.name,
         league_id: selectedLeagueId,
         error_message: error.response?.data?.detail || error.message,
         error_status: error.response?.status,
@@ -310,7 +345,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
                 Confirm Event Deletion
               </h3>
               <p className="text-sm text-red-800 mb-4">
-                Type the event name <strong className="font-mono bg-red-100 px-1 rounded">{event.name}</strong> to confirm deletion:
+                Type the event name <strong className="font-mono bg-red-100 px-1 rounded">{targetEvent.name}</strong> to confirm deletion:
               </p>
             </div>
           </div>
@@ -344,7 +379,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
                   // Also block copying from this field (though less critical)
                   e.preventDefault();
                 }}
-                placeholder={event.name}
+                placeholder={targetEvent.name}
                 className={`w-full px-4 py-3 border-2 rounded-lg focus:ring-2 focus:outline-none ${
                   typedNameError 
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' 
@@ -360,7 +395,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
               )}
               {typedNameError && !pasteBlocked && (
                 <p className="text-red-600 text-sm mt-1">
-                  Event name does not match. Please type exactly: {event.name}
+                  Event name does not match. Please type exactly: {targetEvent.name}
                 </p>
               )}
               {typedName && !isNameMatch && !typedNameError && !pasteBlocked && (
@@ -422,7 +457,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
                   </p>
                   <p className="text-sm text-blue-800">
                     You are no longer in this event. The system has switched your context to keep you safe. 
-                    Deleting <strong>{event.name}</strong> will permanently remove it.
+                    Deleting <strong>{targetEvent.name}</strong> will permanently remove it.
                   </p>
                 </div>
               )}
@@ -430,7 +465,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
               <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4 space-y-3">
                 <div>
                   <p className="text-sm text-red-700 font-semibold mb-1">Event Name</p>
-                  <p className="text-lg font-bold text-red-900">{event.name}</p>
+                  <p className="text-lg font-bold text-red-900">{targetEvent.name}</p>
                 </div>
                 
                 {eventStats?.event_date && (
