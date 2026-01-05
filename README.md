@@ -28,6 +28,34 @@ A comprehensive full-stack platform for managing youth sports combines and playe
 - **Autoscaling guidance**: min 1, max 4 instances; CPU 60%, Mem 70% (tune as needed)
 - **Stateless**: Sticky sessions not required
 
+### ⚠️ **CRITICAL: Event Deletion Safety - Single Instance Requirement**
+
+**Deletion safety guarantees assume a single backend instance. Autoscaling requires Redis-backed token store.**
+
+The current event deletion system uses in-memory token tracking for replay protection. This works correctly for single-instance deployments but **will NOT prevent replay attacks in multi-instance/autoscaled environments**.
+
+**Current Status** (Commit b79f0f2):
+- ✅ **Single Instance** (Render free/starter): Production-safe
+- ❌ **Multi-Instance** (autoscaled/replicas>1): Redis migration required
+
+**If you need to scale to multiple instances**:
+1. DO NOT enable autoscaling without addressing this
+2. Implement Redis-backed token store first
+3. See: `docs/reports/MULTI_INSTANCE_TOKEN_STORE.md`
+
+**Why This Matters**:
+- Token replay protection relies on in-memory `_token_usage_store`
+- Different instances have different memory spaces
+- Token used on Instance A can be replayed on Instance B
+- This would bypass the one-time-use guarantee
+
+**Verification**: Check `backend/main.py` startup logs:
+```
+[STARTUP] Token replay protection: ⚠ Single-instance only (in-memory)
+```
+
+**DO NOT ignore this warning when scaling.**
+
 ### **Required Environment Variables**
 Set these in your Render dashboard (and local `.env` files):
 

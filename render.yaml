@@ -40,13 +40,34 @@ services:
       - key: VITE_FIREBASE_APP_ID
         sync: false
 
-  # Backend API Service  
+  # Backend API Service
+  #
+  # ⚠️ CRITICAL SCALING TRIPWIRE ⚠️
+  # 
+  # IF YOU ARE CONSIDERING AUTOSCALING OR INCREASING REPLICAS:
+  # 
+  # The event deletion system currently uses IN-MEMORY token tracking.
+  # This ONLY provides replay protection on SINGLE-INSTANCE deployments.
+  #
+  # BEFORE enabling autoscaling or setting numInstances > 1:
+  # 1. You MUST implement Redis-backed token store
+  # 2. See: docs/reports/MULTI_INSTANCE_TOKEN_STORE.md
+  # 3. Set REDIS_HOST, REDIS_PORT, REDIS_PASSWORD env vars
+  # 4. Verify startup logs show: "Multi-instance replay protection enabled"
+  #
+  # WITHOUT Redis: Token replay attacks WILL succeed across instances.
+  # This bypasses the one-time-use deletion guarantee.
+  #
+  # Current safe configuration: numInstances: 1 (single instance)
+  # If you change this, you MUST address the above requirements first.
+  #
   - type: web
     name: woo-combine-backend
     env: python
     buildCommand: pip install -r requirements.txt
     startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port 10000"
     healthCheckPath: "/health"
+    # numInstances: 1  # ⚠️ DO NOT INCREASE without Redis migration (see above)
     envVars:
       - key: ALLOWED_ORIGINS
         value: https://woo-combine.com,https://www.woo-combine.com
@@ -107,3 +128,14 @@ services:
       # CSP rollout: start in Report-Only, enforce after validation
       - key: CSP_REPORT_ONLY
         value: true
+      # Event deletion token system (REQUIRED for production)
+      # Generate: python -c "import secrets; print(secrets.token_urlsafe(32))"
+      - key: DELETE_TOKEN_SECRET_KEY
+        sync: false
+      # Redis for multi-instance token store (REQUIRED if numInstances > 1)
+      # - key: REDIS_HOST
+      #   sync: false
+      # - key: REDIS_PORT
+      #   value: "6379"
+      # - key: REDIS_PASSWORD
+      #   sync: false
