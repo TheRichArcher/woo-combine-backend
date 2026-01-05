@@ -13,6 +13,8 @@ from ..utils.data_integrity import (
 )
 from ..security.access_matrix import require_permission
 from pydantic import BaseModel
+from ..utils.delete_token import generate_delete_intent_token, validate_delete_intent_token
+import jwt
 from typing import Dict
 from ..models import (
     CustomDrillCreateRequest,
@@ -389,6 +391,57 @@ def get_event_stats(
         logging.error(f"Error getting event stats for {event_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get event stats")
 
+@router.post('/leagues/{league_id}/events/{event_id}/delete-intent-token')
+@write_rate_limit()
+@require_permission("events", "delete", target="league", target_param="league_id")
+def issue_delete_intent_token(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(require_role("organizer"))
+):
+    """
+    Issue a short-lived delete intent token after Layer 2 (typed name confirmation).
+    
+    Token is bound to:
+    - user_id (who initiated deletion)
+    - league_id (league containing event)
+    - target_event_id (event being deleted)
+    - expires_at (5 minutes from now)
+    
+    This prevents:
+    - UI drift (token bound to specific target)
+    - Replay attacks (token expires)
+    - Malicious calls (token must be signed by server)
+    """
+    try:
+        # Verify event exists and belongs to league
+        enforce_event_league_relationship(
+            event_id=event_id,
+            expected_league_id=league_id,
+        )
+        
+        # Generate token
+        token = generate_delete_intent_token(
+            user_id=current_user["uid"],
+            league_id=league_id,
+            target_event_id=event_id
+        )
+        
+        logging.info(f"[AUDIT] Delete intent token issued - Event: {event_id}, League: {league_id}, User: {current_user['uid']}")
+        
+        return {
+            "token": token,
+            "expires_in_minutes": 5,
+            "target_event_id": event_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error issuing delete intent token for {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to issue delete intent token")
+
 @router.delete('/leagues/{league_id}/events/{event_id}')
 @write_rate_limit()
 @require_permission("events", "delete", target="league", target_param="league_id")
@@ -404,15 +457,42 @@ def delete_event(
     Use hard_delete query param to permanently delete (admin only).
     """
     try:
-        # CRITICAL SERVER-SIDE VALIDATION: Verify declared deletion target matches route parameter
-        # This protects against UI drift or malicious calls attempting to delete wrong event
+        # CRITICAL SERVER-SIDE VALIDATION: REQUIRED header check (not optional)
+        # This protects against UI drift, client regressions, and malicious calls
         declared_target_id = request.headers.get("X-Delete-Target-Event-Id")
         
-        if declared_target_id and declared_target_id != event_id:
+        # ENFORCE: Header is REQUIRED for all organizer deletes (not optional)
+        if not declared_target_id:
+            error_msg = f"CRITICAL: Missing deletion target header - Route: {event_id}"
+            logging.error(f"[AUDIT] {error_msg} - League: {league_id}, User: {current_user['uid']}, Reason: X-Delete-Target-Event-Id header missing")
+            
+            # Send to monitoring/Sentry
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    error_msg,
+                    level='error',
+                    extras={
+                        'route_event_id': event_id,
+                        'league_id': league_id,
+                        'user_id': current_user['uid'],
+                        'error': 'Missing X-Delete-Target-Event-Id header'
+                    }
+                )
+            except:
+                pass
+            
+            raise HTTPException(
+                status_code=400, 
+                detail="Missing deletion target validation header (X-Delete-Target-Event-Id). This is required for data integrity."
+            )
+        
+        # ENFORCE: Header must match route parameter (prevent wrong deletion)
+        if declared_target_id != event_id:
             error_msg = f"CRITICAL: Deletion target mismatch - Route: {event_id}, Declared: {declared_target_id}"
             logging.error(f"[AUDIT] {error_msg} - League: {league_id}, User: {current_user['uid']}")
             
-            # Send to monitoring/Sentry if available
+            # Send to monitoring/Sentry
             try:
                 import sentry_sdk
                 sentry_sdk.capture_message(
@@ -433,8 +513,37 @@ def delete_event(
                 detail=f"Deletion target mismatch. Route event_id ({event_id}) does not match declared target ({declared_target_id})"
             )
         
+        # OPTIONAL BUT RECOMMENDED: Validate delete intent token
+        # Token provides additional protection against replay attacks and drift
+        delete_token = request.headers.get("X-Delete-Intent-Token")
+        token_validated = False
+        
+        if delete_token:
+            try:
+                # Validate token claims match request parameters
+                token_payload = validate_delete_intent_token(
+                    token=delete_token,
+                    expected_user_id=current_user["uid"],
+                    expected_league_id=league_id,
+                    expected_target_event_id=event_id
+                )
+                token_validated = True
+                logging.info(f"[AUDIT] Delete intent token validated successfully - Event: {event_id}, Token issued at: {token_payload.get('issued_at')}")
+            except jwt.ExpiredSignatureError:
+                logging.warning(f"[AUDIT] Expired delete intent token - Event: {event_id}, User: {current_user['uid']}")
+                raise HTTPException(
+                    status_code=400,
+                    detail="Delete intent token has expired. Please restart the deletion process."
+                )
+            except (jwt.InvalidTokenError, ValueError) as e:
+                logging.error(f"[AUDIT] Invalid delete intent token - Event: {event_id}, User: {current_user['uid']}, Error: {e}")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid delete intent token: {str(e)}"
+                )
+        
         # AUDIT LOG: Deletion attempt initiated (with target validation confirmation)
-        logging.warning(f"[AUDIT] Event deletion initiated - Event: {event_id}, Declared Target: {declared_target_id or 'not provided'}, League: {league_id}, User: {current_user['uid']}, Target Match: {declared_target_id == event_id if declared_target_id else 'N/A'}")
+        logging.warning(f"[AUDIT] Event deletion initiated - Event: {event_id}, Declared Target: {declared_target_id}, League: {league_id}, User: {current_user['uid']}, Target Match: {declared_target_id == event_id}, Token Validated: {token_validated}")
         
         enforce_event_league_relationship(
             event_id=event_id,
