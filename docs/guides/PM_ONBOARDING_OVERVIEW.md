@@ -343,7 +343,9 @@ Users uploading CSVs faced critical discoverability failures:
   - `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Complete analysis)
   - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual flow diagram)
 
-**7. Canonical Field Alignment (Commit d01b787) - DEFINITIVE FIX**
+**7. Canonical Field Alignment (Commits d01b787 + 5627aa1) - DEFINITIVE FIX + HARDENING**
+
+**Part A: Canonical Field Migration (d01b787)**
 - **Problem:** Despite synonym fix, imports still failed with "(no jersey number)" duplicates. Payload had no number field even after mapping worked
 - **Root Cause - Canonical Field Mismatch:**
   - **Backend canonical:** `"number"` (stored in Firestore, used in identity generation)
@@ -359,23 +361,51 @@ Users uploading CSVs faced critical discoverability failures:
   - Changed `OPTIONAL_HEADERS`: `jersey_number` → `number`
   - Changed `STANDARD_FIELDS`: `jersey_number` → `number`
   - Updated synonym dictionary: `number` is now canonical, `jersey_number` is alias
-  - Added comprehensive synonyms: `player_number`, `athlete_number`, `jersey_number`, etc.
+  - Added comprehensive synonyms: `player_number`, `athlete_number`, `jersey_number`, etc. (18 variations)
   - Updated all mapping references to use `'number'` (5 locations)
-- **Impact:**
-  - ✅ Mapping now produces: `player_number → number` (matches backend)
-  - ✅ Payload includes: `{"number": 1010}` (backend can use it)
-  - ✅ Backend duplicate detection uses actual numbers, not None
-  - ✅ No more "(no jersey number)" false positives
-  - ✅ All 50 players import successfully (0 skipped)
-- **Why Phases 5+6 Weren't Enough:**
-  - Phase 5: Prevented wrong mappings (e.g., `player_name → jersey`)
-  - Phase 6: Added missing synonyms (`player_number`)
-  - **Phase 7: Made mapping output match backend expectations** ← Root cause fix
-- **Files:**
-  - `frontend/src/utils/csvUtils.js` (+4, -3) - Canonical field + synonyms
-  - `frontend/src/components/Players/ImportResultsModal.jsx` (+4, -4) - UI mapping
-  - `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Complete analysis)
-- **Lesson:** Canonical field names must match across entire stack (frontend mapping → payload → backend storage → database schema). Mismatch anywhere breaks the chain.
+
+**Part B: Alias Normalization + Backward Compatibility (5627aa1)**
+- **Problem:** Need to ensure bulletproof migration with backward compatibility for legacy clients
+- **Solution - Defense in Depth (2 checkpoints):**
+  - **Frontend checkpoint (ImportResultsModal.jsx line 764):**
+    - If payload has `jersey_number` but not `number` → normalize to `number`
+    - If both present → keep `number`, remove `jersey_number`
+    - Ensures payload always uses canonical field
+  - **Backend checkpoint (players.py line 422):**
+    - If incoming payload has `jersey_number` but not `number` → copy to `number`
+    - If both present → keep `number`, remove `jersey_number`
+    - Updated field extraction to check `number` first, then fall back to aliases
+    - Prevents regressions if older clients send legacy field name
+- **Backward Compatibility Matrix:**
+  - Payload with `number: 1010` → ✅ Pass through unchanged
+  - Payload with `jersey_number: 1010` → ✅ Normalized to `number: 1010` (both checkpoints)
+  - Payload with both → ✅ Keep `number`, discard `jersey_number`
+  - Payload with `player_number: 1010` → ✅ Mapped to `number` by synonyms
+
+**Complete Impact:**
+- ✅ Mapping now produces: `player_number → number` (matches backend)
+- ✅ Payload includes: `{"number": 1010}` (backend can use it)
+- ✅ Backend duplicate detection uses actual numbers, not None
+- ✅ No more "(no jersey number)" false positives
+- ✅ All 50 players import successfully (0 skipped)
+- ✅ Legacy clients sending `jersey_number` continue to work
+- ✅ Two independent normalization checkpoints (defense in depth)
+- ✅ Future-proof against mapping bugs or legacy code
+
+**Why All 3 Phases Were Necessary:**
+- Phase 5: Prevented wrong mappings (e.g., `player_name → jersey`)
+- Phase 6: Added missing synonyms (`player_number`)
+- **Phase 7A: Made mapping output match backend expectations** ← Root cause fix
+- **Phase 7B: Added bulletproof normalization + backward compatibility** ← Production hardening
+
+**Files:**
+- `frontend/src/utils/csvUtils.js` (+4, -3) - Canonical field + synonyms
+- `frontend/src/components/Players/ImportResultsModal.jsx` (+13, -4) - UI mapping + normalization
+- `backend/routes/players.py` (+16, -7) - Defensive normalization + updated extraction
+- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Problem analysis)
+- `docs/reports/CANONICAL_FIELD_HARDENING.md` (Complete 4-part strategy)
+
+**Lesson:** Canonical field names must match across entire stack (frontend mapping → payload → backend storage → database schema). Mismatch anywhere breaks the chain. Use defense in depth with multiple normalization checkpoints.
 
 #### Current UX Flow
 
@@ -429,7 +459,8 @@ Users uploading CSVs faced critical discoverability failures:
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` (Auto-detection guards + name-split fix)
 - `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Synonym fix - incomplete)
 - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual data flow explanation)
-- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Definitive root cause fix)
+- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Canonical field alignment)
+- `docs/reports/CANONICAL_FIELD_HARDENING.md` (Complete 4-part hardening strategy)
 
 #### Success Metrics
 
@@ -796,7 +827,8 @@ When someone requests a new feature on `/coach`, ask:
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` - Auto-detection guards
 - `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` - Synonym fix (incomplete)
 - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` - Visual data flow diagrams
-- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` - Definitive canonical field fix
+- `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` - Canonical field alignment
+- `docs/reports/CANONICAL_FIELD_HARDENING.md` - Complete 4-part hardening strategy
 
 **QA & Testing:**
 - `docs/qa/IMPORTER_PRODUCTION_VERIFICATION.md` - Complete importer test suite
@@ -904,11 +936,11 @@ This document should be updated when:
 
 **Last Updated:** January 4, 2026  
 **Major Changes This Update:**
-- Added Phase 7: Canonical Field Alignment (commit d01b787) - Definitive fix for duplicate detection
-- Documented the jersey_number vs number mismatch that was root cause of import failures
-- Clarified that Phase 6 (synonym fix) was incomplete without Phase 7 (canonical alignment)
-- Added CANONICAL_FIELD_MISMATCH_FIX.md to documentation references
-- Previous update (Jan 4, 2026): Added Phase 6 player_number synonym fix
+- Added Phase 7B: Alias Normalization + Backward Compatibility (commit 5627aa1)
+- Documented the complete 4-part hardening strategy (unified canonical, alias conversion, synonyms, backend defense)
+- Added defense-in-depth with dual normalization checkpoints (frontend + backend)
+- Updated with CANONICAL_FIELD_HARDENING.md comprehensive guide
+- Previous updates: Phase 7A canonical field alignment (d01b787), Phase 6 synonym fix (bdbee6d)
 
 **Next Review:** When next major feature sprint begins
 
