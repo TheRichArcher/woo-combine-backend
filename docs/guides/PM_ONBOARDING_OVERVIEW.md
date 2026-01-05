@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 4, 2026_
+_Last updated: January 5, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -457,10 +457,11 @@ Users uploading CSVs faced critical discoverability failures:
 - `docs/reports/IMPORT_CTA_CONFIDENCE_POLISH.md` (Ready state confidence)
 - `docs/reports/IMPORT_DRILL_DETECTION_UX_FIX.md` (Workflow clarity)
 - `docs/reports/IMPORT_JERSEY_NAME_AUTOMAP_FIX.md` (Auto-detection guards + name-split fix)
-- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Synonym fix - incomplete)
+- `docs/reports/PLAYER_NUMBER_SYNONYM_HOTFIX.md` (Synonym fix - superseded by fuzzy matching fix)
 - `docs/reports/PLAYER_NUMBER_BUG_DIAGRAM.md` (Visual data flow explanation)
 - `docs/reports/CANONICAL_FIELD_MISMATCH_FIX.md` (Canonical field alignment)
 - `docs/reports/CANONICAL_FIELD_HARDENING.md` (Complete 4-part hardening strategy)
+- **NEW:** See §5.1.8 for complete fuzzy matching scoring fix (Jan 5, 2026)
 
 #### Success Metrics
 
@@ -498,6 +499,110 @@ Per `docs/product/IMPORTER_UX_LOCKED.md`:
 - Auto-proceeding without explicit mapping
 
 **This area is over-solved (intentionally).** Focus development on post-import success flows.
+
+---
+
+### 🔴 CRITICAL FIX: CSV Fuzzy Matching Scoring Bug (Jan 5, 2026)
+
+**Status:** ✅ RESOLVED - Production deployed (Commit: 1a79911)
+
+**Severity:** P0 - Complete data loss in CSV imports
+
+#### The Bug
+
+A fundamental flaw in the fuzzy matching scoring algorithm caused `player_name` to steal the `number` field mapping from `player_number`, resulting in payloads missing ALL identity fields (first_name, last_name, number).
+
+**Root Cause Analysis:**
+```
+player_name scored 66.36 for 'number' field  (WRONG - partial word match)
+player_number scored 63.85 for 'number' field  (RIGHT - exact synonym match)
+→ player_name WON by 2.51 points
+→ player_name → number, player_number unmapped
+→ Payload: {age_group, sprint_60, ...} ← Missing ALL identity!
+→ Backend dedupe: "(no jersey number)" → FALSE DUPLICATES
+```
+
+**Why It Happened:**
+1. The synonym list for `number` included `"player number"` (two words)
+2. Fuzzy matcher saw `player_name` and matched it to `"player number"` via partial overlap (both contain "player")
+3. Partial match scoring (50-80 range) gave `player_name` 66.36 points
+4. Exact match scoring gave `player_number` only 63.85 points
+5. **Worse match beat better match** → Wrong mapping assigned
+
+**Impact:**
+- Every CSV with `player_name` and `player_number` columns failed
+- Upload appeared successful but backend rejected all rows as duplicates
+- Users saw misleading "Duplicate: [Name] (no jersey number)" errors
+- Actually correct data was being rejected due to mapping failure
+
+#### The Fix (Three Layers)
+
+**Layer 1: Cross-Category Blocking (Highest Priority)**
+```javascript
+// Prevent name columns from EVER matching number fields
+if (headerLower.includes('name') && key === 'number') return 0;
+if ((headerLower.includes('number') || headerLower === '#') && 
+    (key === 'first_name' || key === 'last_name')) return 0;
+```
+
+**Layer 2: Boost Exact Matches**
+- Exact synonym match: 90 → 95 points (increased)
+- Aggressive exact match: 85 → 90 points (increased)
+- Ensures exact matches ALWAYS beat partial matches
+
+**Layer 3: Penalize Partial Matches**
+- Partial synonym match: 50-80 → 30-60 range (reduced)
+- Aggressive partial: 40-60 → 20-40 range (reduced)
+- Reduces false positive word overlaps
+
+#### Verification Results
+
+**After Fix:**
+```
+player_name scored 0 for 'number' → BLOCKED ✅
+player_number scored 95 for 'number' → MAPPED ✅
+
+Final Payload:
+{
+  first_name: "Cole",      ✅
+  last_name: "Anderson",   ✅
+  number: "1000",          ✅
+  age_group: "15U",
+  sprint_60: "7.29",
+  ...
+}
+
+Backend dedupe: (cole, anderson, 1000) → CORRECT ✅
+No false duplicates ✅
+```
+
+#### Files Changed
+
+**Primary Fix:**
+- `frontend/src/utils/csvUtils.js` - Rewrote `calculateMatchScore()` function with three-layer protection
+
+**Documentation:**
+- This section (PM_ONBOARDING_OVERVIEW.md)
+- Git commit 1a79911 with full technical analysis
+
+#### Lessons Learned
+
+1. **Fuzzy Matching Is Dangerous:** Partial word overlaps can create scoring inversions where wrong matches beat right matches
+2. **Cross-Category Guards Essential:** Identity fields (name vs number) should have explicit blocking rules
+3. **Scoring Must Favor Precision:** Exact matches should score MUCH higher than partial matches
+4. **Test With Real Data:** Synthetic tests missed this because they used simpler column names
+5. **Diagnostic Logging Critical:** Without detailed match score logging, this bug would have been nearly impossible to find
+
+#### Testing Checklist
+
+Before deploying similar fuzzy matching changes:
+- [ ] Test with `player_name` + `player_number` columns
+- [ ] Verify cross-category blocking (name never matches number)
+- [ ] Confirm exact matches score higher than any partial match
+- [ ] Check final payload contains all identity fields
+- [ ] Verify backend receives correct data structure
+
+**This was a production-critical bug that broke CSV imports completely.** The three-layer fix ensures it can never happen again, even if synonym lists are modified in the future.
 
 ---
 
