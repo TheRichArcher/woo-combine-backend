@@ -103,8 +103,19 @@ export default function Players() {
       setShowRoster(true);
     }
 
-    if (actionParam === 'import') {
+    // MANDATORY GUARDRAIL: Import Players must always be tied to a confirmed selected event
+    // Prevent showing import modal as side-effect of deletion or navigation without explicit event context
+    if (actionParam === 'import' && selectedEvent?.id) {
       setShowImportModal(true);
+    } else if (actionParam === 'import' && !selectedEvent?.id) {
+      // Log security violation: Attempt to access Import Players without selected event
+      console.warn('[PLAYERS_IMPORT_GUARDRAIL] Blocked import action without selected event');
+      if (window.Sentry) {
+        window.Sentry.captureMessage('Import Players accessed without selected event', {
+          level: 'warning',
+          tags: { component: 'Players', check: 'import_guardrail' }
+        });
+      }
     }
 
     if (playerIdParam && players.length > 0) {
@@ -619,16 +630,19 @@ export default function Players() {
                 </button>
               )}
               
-              <button
-                onClick={() => {
-                  setDrillRefreshTrigger(t => t + 1);
-                  setShowImportModal(true);
-                }}
-                className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
-              >
-                <Upload className="w-5 h-5 mb-1" />
-                <span className="text-xs font-medium">Import Results</span>
-              </button>
+              {/* MANDATORY GUARDRAIL: Import Results must be explicitly user-initiated and tied to confirmed selected event */}
+              {selectedEvent?.id && (
+                <button
+                  onClick={() => {
+                    setDrillRefreshTrigger(t => t + 1);
+                    setShowImportModal(true);
+                  }}
+                  className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
+                >
+                  <Upload className="w-5 h-5 mb-1" />
+                  <span className="text-xs font-medium">Import Results</span>
+                </button>
+              )}
               
               <button
                 onClick={() => setShowExportModal(true)}

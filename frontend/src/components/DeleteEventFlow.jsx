@@ -253,14 +253,15 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
         onSuccess();
       }
       
-      // CRITICAL: Force navigation to event selection or next available event
+      // CRITICAL: Force navigation to neutral landing page (NOT onboarding/import flows)
       // EventContext has already cleared selectedEvent and removed from events list
       const remainingEvents = events.filter(e => e.id !== targetEvent.id);
       if (remainingEvents.length > 0) {
-        // There are other events - navigate to dashboard (EventSelector will handle selection)
-        navigate('/dashboard');
+        // There are other events - navigate to admin tools (neutral, stable page)
+        // DO NOT navigate to /dashboard (triggers redirects) or /players (onboarding CTA)
+        navigate('/admin-tools');
       } else {
-        // No events left - navigate to league selection
+        // No events left - navigate to event creation (explicit intent to create new event)
         navigate('/select-league');
       }
       
