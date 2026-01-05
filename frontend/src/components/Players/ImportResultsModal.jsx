@@ -581,6 +581,17 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         effectiveDrills: effectiveDrills.map(d => ({ key: d.key, label: d.label })),
         keyMappingEntries: Object.entries(updatedMapping)
     });
+    
+    // DEBUG: Verify canonical field is 'number' not 'jersey_number'
+    const hasNumber = validKeys.has('number');
+    const hasJerseyNumber = validKeys.has('jersey_number');
+    console.log(`[ImportResultsModal] Canonical field check: number=${hasNumber}, jersey_number=${hasJerseyNumber}`);
+    if (!hasNumber) {
+        console.error("[ImportResultsModal] ❌ CRITICAL: 'number' not in validKeys! This will cause data loss.");
+    }
+    if (hasJerseyNumber) {
+        console.warn("[ImportResultsModal] ⚠️ WARNING: 'jersey_number' in validKeys (should only be 'number')");
+    }
 
     const activeMappings = Object.entries(updatedMapping)
         .filter(([_, targetKey]) => targetKey !== '__ignore__');
@@ -785,8 +796,28 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       const skippedCount = playersToUpload.filter(p => p.merge_strategy === 'skip').length;
       playersToUpload = playersToUpload.filter(p => p.merge_strategy !== 'skip');
 
+      // DEBUG: Comprehensive payload audit before submission
+      const playersWithoutNumber = playersToUpload.filter(p => !p.number && p.number !== 0);
+      if (playersWithoutNumber.length > 0) {
+          console.warn(`[ImportResultsModal] ⚠️ ${playersWithoutNumber.length} players missing 'number' field:`);
+          
+          // Show first 3 examples with their raw CSV data
+          playersWithoutNumber.slice(0, 3).forEach((player, idx) => {
+              const rowId = player.row_id || idx + 1;
+              const rawRow = allRows.find(r => r.row_id === rowId);
+              console.warn(`[ImportResultsModal] Missing number example ${idx + 1}:`, {
+                  player_data: player,
+                  raw_csv_source: rawRow ? rawRow.data : 'not found',
+                  merged_edits: editedRows[rowId] || 'none'
+              });
+          });
+      } else {
+          console.log(`[ImportResultsModal] ✅ All ${playersToUpload.length} players have 'number' field`);
+      }
+
       if (playersToUpload.length > 0) {
           console.log("[ImportResultsModal] Submitting first player:", playersToUpload[0]);
+          console.log("[ImportResultsModal] Final payload sample (first 3):", playersToUpload.slice(0, 3));
       }
 
       if (playersToUpload.length === 0) {

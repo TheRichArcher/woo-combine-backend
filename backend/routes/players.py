@@ -435,19 +435,29 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             try:
                 # UPDATED: Check 'number' first (canonical field), then fall back to aliases
                 raw_num = player.get("number")
+                num_source = "number" if raw_num is not None else None
+                
                 if raw_num is None:
                     # Try common synonyms for backward compatibility
                     for alias in ["player_number", "jersey", "jersey_number", "no", "No", "#", "Jersey #"]:
                         if player.get(alias) is not None:
                             raw_num = player.get(alias)
+                            num_source = alias
                             break
                             
                 num = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
                 
+                # DEBUG: Log number extraction details
+                if num is None:
+                    logging.warning(f"[NUMBER_EXTRACT] Row {idx + 1}: No number found! Checked: number, player_number, jersey, jersey_number, etc. Player data keys: {list(player.keys())}")
+                else:
+                    logging.info(f"[NUMBER_EXTRACT] Row {idx + 1}: Extracted {num} from field '{num_source}' (raw_value='{raw_num}')")
+                
                 # Validation: number is OPTIONAL, but if present must be valid
                 if num is not None and (num < 0 or num > 9999):
                     row_errors.append("number must be between 0 and 9999")
-            except Exception:
+            except Exception as e:
+                logging.error(f"[NUMBER_EXTRACT] Row {idx + 1}: Exception during number extraction: {e}, player keys: {list(player.keys())}")
                 row_errors.append("Invalid number")
                 
             if row_errors:
@@ -476,6 +486,10 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             # Note: We use Name+Number key for local dup check usually, but what if ext_id matches?
             # Let's keep the name+number check for simplicity, or should we check ID?
             key = (first_name.lower(), last_name.lower(), num)
+            
+            # DEBUG: Log identity key for duplicate detection
+            logging.info(f"[DEDUPE] Row {idx + 1}: Identity key = {key} (first={first_name}, last={last_name}, number={num})")
+            
             if key in seen_keys:
                 first_row_num, first_player = seen_keys[key]
                 
