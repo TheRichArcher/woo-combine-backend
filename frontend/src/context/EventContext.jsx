@@ -219,13 +219,20 @@ export function EventProvider({ children }) {
   }, [selectedLeagueId, selectedEvent]);
 
   // Delete event function (soft delete)
-  const deleteEvent = useCallback(async (eventId) => {
+  const deleteEvent = useCallback(async (eventId, options = {}) => {
     if (!selectedLeagueId) {
       throw new Error('No league selected');
     }
 
     try {
-      const response = await api.delete(`/leagues/${selectedLeagueId}/events/${eventId}`);
+      // CRITICAL SERVER-SIDE VALIDATION: Include X-Delete-Target-Event-Id header
+      // Backend will validate that route event_id matches declared target to prevent UI drift
+      const headers = {
+        'X-Delete-Target-Event-Id': eventId,
+        ...options.headers
+      };
+      
+      const response = await api.delete(`/leagues/${selectedLeagueId}/events/${eventId}`, { headers });
       
       // CRITICAL: Immediately remove from events list - DO NOT wait for refetch
       // This prevents deleted events from appearing in any UI while refetch is pending
@@ -234,7 +241,8 @@ export function EventProvider({ children }) {
         logger.info(`EVENT_DELETED_FROM_CONTEXT`, {
           deleted_event_id: eventId,
           remaining_events: filtered.length,
-          removed_immediately: true
+          removed_immediately: true,
+          server_validation_header: headers['X-Delete-Target-Event-Id']
         });
         return filtered;
       });

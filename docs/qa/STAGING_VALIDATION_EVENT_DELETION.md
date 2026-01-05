@@ -431,6 +431,78 @@ Create these test events in staging:
 
 ---
 
+### ✅ Test 11: Deletion Target Integrity (CRITICAL)
+
+**Objective:** Verify deletion target remains immutable through context switches
+
+**Background:** This test verifies the P0 correctness fix that prevents deletion target drift.
+When user initiates delete on Event A, the system must ALWAYS delete Event A, even if
+context switches to Event B during the flow.
+
+#### Test 11.1: Target Remains Correct After Context Switch
+
+**Setup:**
+- [ ] Have at least 2 events: "Event A" and "Event B"
+- [ ] Select "Event A" as currently active event
+- [ ] Confirm "Event A" is shown in header dropdown
+
+**Test Steps:**
+- [ ] Navigate to Admin Tools → Danger Zone
+- [ ] Click "Delete Entire Event" for Event A
+- [ ] Complete Layer 1 (Acknowledge warning)
+- [ ] In Layer 2, type "Event A" exactly
+- [ ] Click "Continue to Final Confirmation"
+
+**Verification (Layer 3 Final Modal):**
+- [ ] **VERIFY:** Modal shows "Event A" in event name field (NOT Event B)
+- [ ] **VERIFY:** Context switch banner says "switched to Event B" but deletion target is still Event A
+- [ ] **VERIFY:** Modal copy clearly states deleting "Event A"
+- [ ] Open browser DevTools → Network tab
+- [ ] Click "Delete Permanently"
+- [ ] **VERIFY:** DELETE request URL contains Event A's ID (not Event B's ID)
+- [ ] **VERIFY:** Request header `X-Delete-Target-Event-Id` matches Event A's ID
+- [ ] **VERIFY:** Event A is deleted (disappears from list)
+- [ ] **VERIFY:** Event B remains (was NOT deleted)
+- [ ] **RESULT:** ✅ Pass / ❌ Fail
+
+**Backend Logs Verification (Optional but Recommended):**
+- [ ] Check backend logs for deletion request
+- [ ] **VERIFY:** Logs show both:
+  - `route_event_id`: Event A's ID
+  - `declared_target_id`: Event A's ID
+  - `Target Match: True`
+- [ ] **RESULT:** ✅ Pass / ❌ Fail
+
+#### Test 11.2: Client-Side Safety Assertion Blocks Active Context Deletion
+
+**Test Steps:**
+- [ ] Use browser console to simulate race condition:
+  ```javascript
+  // Manually trigger handleFinalDelete while selectedEvent still equals targetEvent
+  // This simulates the bug we fixed
+  ```
+- [ ] **VERIFY:** Error toast: "Safety check failed: You must be out of the event"
+- [ ] **VERIFY:** Console shows `[DELETE_FLOW_SAFETY_FAILURE]` error
+- [ ] **VERIFY:** Deletion does NOT execute
+- [ ] **RESULT:** ✅ Pass / ❌ Fail
+
+#### Test 11.3: Server-Side Validation Blocks Mismatched Targets
+
+**Test Steps (Requires API Testing Tool):**
+- [ ] Use Postman/cURL to send DELETE request:
+  ```bash
+  DELETE /api/leagues/{league_id}/events/{event_A_id}
+  Headers:
+    X-Delete-Target-Event-Id: {event_B_id}  # Intentional mismatch
+  ```
+- [ ] **VERIFY:** Response: 400 Bad Request
+- [ ] **VERIFY:** Error message: "Deletion target mismatch"
+- [ ] **VERIFY:** Backend logs show audit error
+- [ ] **VERIFY:** Neither event is deleted
+- [ ] **RESULT:** ✅ Pass / ❌ Fail
+
+---
+
 ## VALIDATION SUMMARY
 
 ### Required Tests (Must All Pass)
@@ -440,6 +512,7 @@ Create these test events in staging:
 - [ ] Test 4: Soft-deleted events behavior ✅ Pass / ❌ Fail
 - [ ] Test 5: Backend enforcement ✅ Pass / ❌ Fail
 - [ ] Test 6: Live Entry active blocks deletion ✅ Pass / ❌ Fail
+- [ ] **Test 11: Deletion target integrity (CRITICAL)** ✅ Pass / ❌ Fail
 
 ### Non-Blocking (Required Before GA)
 - [ ] Test 7: Audit logging ✅ Pass / ❌ Fail

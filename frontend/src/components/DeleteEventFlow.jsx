@@ -24,7 +24,7 @@ import { logger } from '../utils/logger';
  */
 export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess }) {
   const { selectedLeagueId, userRole } = useAuth();
-  const { events, deleteEvent, setSelectedEvent } = useEvent();
+  const { events, selectedEvent, deleteEvent, setSelectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
@@ -190,11 +190,38 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       return;
     }
 
+    // CRITICAL SAFETY ASSERTION: Block if target == current context (runtime context must be switched first)
+    // This guarantees we never delete the active runtime context
+    if (selectedEvent?.id === targetEvent.id) {
+      const error = new Error('CRITICAL: Cannot delete active runtime context - context must be switched first');
+      console.error('[DELETE_FLOW_SAFETY_FAILURE]', error, {
+        targetEventId: targetEvent.id,
+        currentContextId: selectedEvent?.id,
+        match: selectedEvent?.id === targetEvent.id
+      });
+      logger.error('DELETE_ACTIVE_CONTEXT_BLOCKED', {
+        target_event_id: targetEvent.id,
+        current_context_id: selectedEvent?.id,
+        error: 'Attempted to delete active runtime context'
+      });
+      showError('Safety check failed: You must be out of the event before deletion. Please refresh and try again.');
+      if (window.Sentry) {
+        window.Sentry.captureException(error, {
+          tags: { component: 'DeleteEventFlow', severity: 'critical', check: 'active_context_block' },
+          extra: { targetEventId: targetEvent.id, currentContextId: selectedEvent?.id }
+        });
+      }
+      setIsDeleting(false);
+      return;
+    }
+
     // AUDIT LOG: Deletion initiated (Layer 3 confirmed)
     logger.warn('DELETE_EVENT_INITIATED', {
       target_event_id: targetEvent.id,
       target_event_name: targetEvent.name,
       league_id: selectedLeagueId,
+      current_context_id: selectedEvent?.id || null,
+      context_safely_switched: selectedEvent?.id !== targetEvent.id,
       player_count: eventStats?.player_count,
       has_scores: eventStats?.has_scores,
       user_role: userRole,

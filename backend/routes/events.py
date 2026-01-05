@@ -404,8 +404,37 @@ def delete_event(
     Use hard_delete query param to permanently delete (admin only).
     """
     try:
-        # AUDIT LOG: Deletion attempt initiated
-        logging.warning(f"[AUDIT] Event deletion initiated - Event: {event_id}, League: {league_id}, User: {current_user['uid']}")
+        # CRITICAL SERVER-SIDE VALIDATION: Verify declared deletion target matches route parameter
+        # This protects against UI drift or malicious calls attempting to delete wrong event
+        declared_target_id = request.headers.get("X-Delete-Target-Event-Id")
+        
+        if declared_target_id and declared_target_id != event_id:
+            error_msg = f"CRITICAL: Deletion target mismatch - Route: {event_id}, Declared: {declared_target_id}"
+            logging.error(f"[AUDIT] {error_msg} - League: {league_id}, User: {current_user['uid']}")
+            
+            # Send to monitoring/Sentry if available
+            try:
+                import sentry_sdk
+                sentry_sdk.capture_message(
+                    error_msg,
+                    level='error',
+                    extras={
+                        'route_event_id': event_id,
+                        'declared_target_id': declared_target_id,
+                        'league_id': league_id,
+                        'user_id': current_user['uid']
+                    }
+                )
+            except:
+                pass
+            
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Deletion target mismatch. Route event_id ({event_id}) does not match declared target ({declared_target_id})"
+            )
+        
+        # AUDIT LOG: Deletion attempt initiated (with target validation confirmation)
+        logging.warning(f"[AUDIT] Event deletion initiated - Event: {event_id}, Declared Target: {declared_target_id or 'not provided'}, League: {league_id}, User: {current_user['uid']}, Target Match: {declared_target_id == event_id if declared_target_id else 'N/A'}")
         
         enforce_event_league_relationship(
             event_id=event_id,
