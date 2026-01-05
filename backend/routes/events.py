@@ -421,12 +421,19 @@ def issue_delete_intent_token(
             expected_league_id=league_id,
         )
         
-        # Generate token
-        token = generate_delete_intent_token(
-            user_id=current_user["uid"],
-            league_id=league_id,
-            target_event_id=event_id
-        )
+        # Generate token (will raise RuntimeError if secret key not configured)
+        try:
+            token = generate_delete_intent_token(
+                user_id=current_user["uid"],
+                league_id=league_id,
+                target_event_id=event_id
+            )
+        except RuntimeError as e:
+            logging.error(f"[AUDIT] Token generation failed - DELETE_TOKEN_SECRET_KEY not configured: {e}")
+            raise HTTPException(
+                status_code=503,
+                detail="Token-based deletion is not configured on this server. Contact administrator."
+            )
         
         logging.info(f"[AUDIT] Delete intent token issued - Event: {event_id}, League: {league_id}, User: {current_user['uid']}")
         
@@ -513,29 +520,30 @@ def delete_event(
                 detail=f"Deletion target mismatch. Route event_id ({event_id}) does not match declared target ({declared_target_id})"
             )
         
-        # OPTIONAL BUT RECOMMENDED: Validate delete intent token
+        # OPTIONAL BUT RECOMMENDED: Validate delete intent token (one-time-use)
         # Token provides additional protection against replay attacks and drift
         delete_token = request.headers.get("X-Delete-Intent-Token")
         token_validated = False
         
         if delete_token:
             try:
-                # Validate token claims match request parameters
+                # Validate token claims match request parameters AND mark as used (prevents replay)
                 token_payload = validate_delete_intent_token(
                     token=delete_token,
                     expected_user_id=current_user["uid"],
                     expected_league_id=league_id,
-                    expected_target_event_id=event_id
+                    expected_target_event_id=event_id,
+                    mark_as_used=True  # CRITICAL: Mark as used to prevent replay
                 )
                 token_validated = True
-                logging.info(f"[AUDIT] Delete intent token validated successfully - Event: {event_id}, Token issued at: {token_payload.get('issued_at')}")
+                logging.info(f"[AUDIT] Delete intent token validated and marked as used - Event: {event_id}, jti: {token_payload.get('jti')}, Token issued at: {token_payload.get('issued_at')}")
             except jwt.ExpiredSignatureError:
                 logging.warning(f"[AUDIT] Expired delete intent token - Event: {event_id}, User: {current_user['uid']}")
                 raise HTTPException(
                     status_code=400,
                     detail="Delete intent token has expired. Please restart the deletion process."
                 )
-            except (jwt.InvalidTokenError, ValueError) as e:
+            except (jwt.InvalidTokenError, ValueError, RuntimeError) as e:
                 logging.error(f"[AUDIT] Invalid delete intent token - Event: {event_id}, User: {current_user['uid']}, Error: {e}")
                 raise HTTPException(
                     status_code=400,

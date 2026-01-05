@@ -160,6 +160,20 @@
 - [ ] Event B NOT deleted
 - [ ] **PASS** if token claims validated
 
+#### Test 4.5: Token Replay Blocked (One-Time-Use via JTI)
+**Steps**:
+1. Request delete intent token for Event A
+2. Use token to successfully delete Event A (200 OK)
+3. Attempt to replay the SAME token to delete another event
+
+**Verification**:
+- [ ] First deletion: 200 OK (token used successfully)
+- [ ] Backend logs show: `Token marked as used (jti: ...)`
+- [ ] Replay attempt: 400 Bad Request
+- [ ] Error message: "Token already used at {timestamp}. Replay attacks are blocked."
+- [ ] Backend logs show: `REPLAY ATTACK DETECTED - jti: ... already used`
+- [ ] **PASS** if replay blocked (one-time-use enforced)
+
 ---
 
 ## COMPREHENSIVE VERIFICATION MATRIX
@@ -183,10 +197,11 @@
 | Attack | Method | Expected Defense | Status |
 |--------|--------|-----------------|--------|
 | UI drift | Context switch changes target | Immutable snapshot prevents | [ ] Blocked |
-| Missing header | DELETE without header | 400 Bad Request | [ ] Blocked |
-| Header mismatch | DELETE with wrong ID in header | 400 Bad Request | [ ] Blocked |
+| Missing header | DELETE without header | 400 Bad Request (ENFORCED) | [ ] Blocked |
+| Header mismatch | DELETE with wrong ID in header | 400 Bad Request (ENFORCED) | [ ] Blocked |
 | Expired token | DELETE with old token | 400 Bad Request | [ ] Blocked |
-| Token replay | Use token for different event | 400 Bad Request | [ ] Blocked |
+| Token replay (same event) | Reuse token within TTL | 400 Bad Request (jti tracking) | [ ] Blocked |
+| Token replay (different event) | Use token for different event | 400 Bad Request (claims validation) | [ ] Blocked |
 | Active context | Delete current event | Client assertion blocks | [ ] Blocked |
 | Malicious API | Direct API call with wrong params | Server validation blocks | [ ] Blocked |
 

@@ -52,6 +52,7 @@ Response:
 #### Token Claims
 ```json
 {
+  "jti": "550e8400-e29b-41d4-a716-446655440000",  // Unique JWT ID for one-time-use
   "user_id": "firebase_uid_xyz",
   "league_id": "league_123",
   "target_event_id": "event_abc",
@@ -68,20 +69,41 @@ Response:
 delete_token = request.headers.get("X-Delete-Intent-Token")
 
 if delete_token:
-    # Validate signature, expiration, and ALL claims
+    # Validate signature, expiration, ALL claims, AND mark as used (one-time-use via jti)
     validate_delete_intent_token(
         token=delete_token,
         expected_user_id=current_user["uid"],
         expected_league_id=league_id,
-        expected_target_event_id=event_id
+        expected_target_event_id=event_id,
+        mark_as_used=True  # CRITICAL: Prevents replay by marking jti as used
     )
-    # If invalid/expired/wrong claims → 400 Bad Request
+    # If invalid/expired/wrong claims/already used → 400 Bad Request
+```
+
+**JTI (JWT ID) Tracking for One-Time-Use**:
+```python
+# Token usage store tracks jti
+_token_usage_store = {
+    "550e8400-...": {
+        "user_id": "firebase_uid",
+        "target_event_id": "event_abc",
+        "expires_at": datetime(...),
+        "used_at": None  # Set when token is used (prevents replay)
+    }
+}
+
+# When token is validated:
+if token_record["used_at"] is not None:
+    raise ValueError("Token already used. Replay attacks are blocked.")
+else:
+    token_record["used_at"] = datetime.utcnow()  # Mark as used
 ```
 
 **Prevents**:
 - **UI drift**: Token bound to specific `target_event_id`
-- **Replay attacks**: Token expires after 5 minutes
+- **Replay attacks**: Token can only be used ONCE (jti tracking)
 - **Malicious calls**: Token must be signed by server
+- **Token reuse**: `jti` marked as used after first deletion
 
 ---
 
@@ -241,7 +263,40 @@ await api.delete(`/leagues/${leagueId}/events/${eventId}`);
 
 ---
 
-### Scenario: Token Replay Attack
+### Scenario: Token Replay Attack (Same Token Reused)
+
+Attacker captures token for Event A, uses it successfully, then tries to reuse it:
+```http
+# First request (legitimate)
+DELETE /api/leagues/league_123/events/event_A
+X-Delete-Target-Event-Id: event_A
+X-Delete-Intent-Token: eyJ...
+# Response: 200 OK, token marked as used
+
+# Replay attempt (within TTL)
+DELETE /api/leagues/league_123/events/event_A
+X-Delete-Target-Event-Id: event_A
+X-Delete-Intent-Token: eyJ...  # SAME token reused
+```
+
+**Server Response**:
+```
+400 Bad Request
+{
+  "detail": "Invalid delete intent token: Token already used at 2026-01-05T12:01:30Z. Replay attacks are blocked."
+}
+```
+
+**Audit Log**:
+```
+[DELETE_TOKEN] REPLAY ATTACK DETECTED - jti: 550e8400-... already used at 2026-01-05T12:01:30Z
+```
+
+**Result**: Replay blocked. Token is one-time-use via jti tracking.
+
+---
+
+### Scenario: Token Replay Attack (Different Event)
 
 Attacker captures token for Event A, tries to use it for Event B:
 ```http
@@ -312,9 +367,28 @@ PyJWT==2.10.1  # JWT token signing/validation
 
 ### Environment Variables (Required)
 ```bash
-# Backend .env
+# Backend .env (REQUIRED for token system to work)
 DELETE_TOKEN_SECRET_KEY=<generate_strong_secret_key_here>
 # Use: python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+**Startup Validation**:
+- If missing: Server logs ERROR + disables token endpoint (503 response)
+- If default value: Server logs WARNING about insecurity
+- If properly set: Server enables token-based deletion
+
+**Example Startup Logs**:
+```
+[STARTUP] WooCombine API starting up...
+[STARTUP] DELETE_TOKEN_SECRET_KEY: ✓ configured - Token-based deletion enabled
+[STARTUP] Using lazy Firestore initialization for faster cold starts
+```
+
+**OR (if missing)**:
+```
+[STARTUP] WooCombine API starting up...
+[STARTUP] DELETE_TOKEN_SECRET_KEY: ✗ not set - Token-based deletion DISABLED
+[STARTUP] Set DELETE_TOKEN_SECRET_KEY environment variable to enable secure token system
 ```
 
 ### Build Status ✅

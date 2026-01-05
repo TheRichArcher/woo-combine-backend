@@ -339,6 +339,14 @@ async def startup_event():
     # Don't initialize Firestore on startup - do it lazily
     logging.info("[STARTUP] Using lazy Firestore initialization for faster cold starts")
     
+    # Validate delete token secret key (fail fast if misconfigured)
+    from .utils.delete_token import validate_secret_key
+    if validate_secret_key():
+        logging.info("[STARTUP] DELETE_TOKEN_SECRET_KEY: ✓ configured - Token-based deletion enabled")
+    else:
+        logging.error("[STARTUP] DELETE_TOKEN_SECRET_KEY: ✗ not set - Token-based deletion DISABLED")
+        logging.error("[STARTUP] Set DELETE_TOKEN_SECRET_KEY environment variable to enable secure token system")
+    
     # Just log environment status quickly
     critical_vars = ["GOOGLE_CLOUD_PROJECT", "FIREBASE_PROJECT_ID"]
     for var in critical_vars:
