@@ -776,6 +776,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           // CRITICAL FIX: Handle 'name' field by splitting into first_name/last_name
           // If user mapped a column to 'name', split it and populate first_name/last_name
           if (mappedData.name && !mappedData.first_name && !mappedData.last_name) {
+              const originalName = mappedData.name;
+              const keysBefore = [...Object.keys(mappedData)];
+              
               const nameParts = String(mappedData.name).trim().split(/\s+/);
               if (nameParts.length === 1) {
                   // Single name - treat as last name
@@ -790,10 +793,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               delete mappedData.name;
               
               if (mapIdx === 0) {
-                  console.log("[UPLOAD] Row 1 - Name split:", {
-                      original: String(mappedData.name || 'deleted'),
-                      first_name: mappedData.first_name,
-                      last_name: mappedData.last_name
+                  console.log("[UPLOAD] Row 1 - Name split transformation:", {
+                      BEFORE: { keys: keysBefore, name: originalName },
+                      AFTER: { 
+                          keys: Object.keys(mappedData), 
+                          first_name: mappedData.first_name,
+                          last_name: mappedData.last_name,
+                          full_object: { ...mappedData }
+                      }
                   });
               }
           } else if (mapIdx === 0) {
@@ -833,10 +840,26 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           // unless it matches a duplicate? Error rows usually don't have is_duplicate set by backend
           const strategy = rowStrategies[row.row_id] || (row.is_duplicate ? conflictMode : 'overwrite');
           
-          return {
+          const returnObject = {
               ...mappedData,
               merge_strategy: strategy
           };
+          
+          // DEBUG: Log the exact object being returned for first row
+          if (mapIdx === 0) {
+              console.log("[UPLOAD] Row 1 - RETURN OBJECT:", {
+                  keys: Object.keys(returnObject),
+                  has_first_name: 'first_name' in returnObject,
+                  has_last_name: 'last_name' in returnObject,
+                  has_number: 'number' in returnObject,
+                  first_name: returnObject.first_name,
+                  last_name: returnObject.last_name,
+                  number: returnObject.number,
+                  full_object: { ...returnObject }
+              });
+          }
+          
+          return returnObject;
       });
       
       // Filter out skipped rows
@@ -888,6 +911,20 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           number: playersToUpload[0]?.number
       });
       console.log("[UPLOAD] ═══════════════════════════════════════");
+      
+      // CRITICAL DEBUG: Show exact keys in payload.players[0]
+      if (playersToUpload.length > 0) {
+          console.log('[UPLOAD] payload.players[0] keys:', Object.keys(playersToUpload[0]));
+          console.log('[UPLOAD] payload.players[0] full object:', JSON.stringify(playersToUpload[0], null, 2));
+          console.log('[UPLOAD] Explicit field check:', {
+              has_first_name: 'first_name' in playersToUpload[0],
+              has_last_name: 'last_name' in playersToUpload[0],
+              has_number: 'number' in playersToUpload[0],
+              first_name_value: playersToUpload[0].first_name,
+              last_name_value: playersToUpload[0].last_name,
+              number_value: playersToUpload[0].number
+          });
+      }
 
       const response = await api.post('/players/upload', {
         event_id: selectedEvent.id,
