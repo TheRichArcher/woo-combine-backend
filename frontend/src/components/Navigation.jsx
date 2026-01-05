@@ -514,53 +514,12 @@ export default function Navigation() {
 
           {/* Right: Settings & Mobile Menu */}
           <div className="flex items-center gap-2">
-            {/* Desktop Settings Dropdown */}
-            <div className="hidden sm:block relative">
-              <button
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="p-2 rounded-lg hover:bg-gray-50 transition"
-                aria-label="Settings"
-              >
-                <Settings className="w-6 h-6 text-gray-600" />
-              </button>
-              
-              {/* Settings Dropdown */}
-              {mobileOpen && (
-                <div className="absolute right-0 top-12 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                  <Link 
-                    to="/select-league" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Switch Event
-                  </Link>
-                  <Link 
-                    to="/join" 
-                    className="block px-4 py-2 text-gray-700 hover:bg-gray-50"
-                    onClick={() => setMobileOpen(false)}
-                  >
-                    Join Event
-                  </Link>
-                  <hr className="my-2" />
-                  <button
-                    onClick={() => {
-                      setMobileOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex items-center gap-2 w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    Log Out
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Mobile Hamburger */}
+            {/* Hamburger Menu - Always Visible */}
             <button 
-              className="sm:hidden p-2 rounded-lg hover:bg-gray-50"
+              className="p-2 rounded-lg hover:bg-gray-50 transition"
               onClick={() => setMobileOpen(!mobileOpen)} 
               aria-label="Open menu"
+              title="Menu"
             >
               <Menu className="w-6 h-6 text-gray-600" />
             </button>
@@ -568,9 +527,9 @@ export default function Navigation() {
         </div>
       </nav>
 
-      {/* Mobile nav menu */}
+      {/* Navigation menu - accessible on all screen sizes */}
       {mobileOpen && (
-        <div className="sm:hidden fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
+        <div className="fixed top-16 left-0 w-full bg-white shadow-lg z-50 border-t border-gray-200">
           <div className="flex flex-col py-4">
             
             {/* Onboarding Indicator (Mobile) */}
