@@ -8,6 +8,8 @@ This guide serves as the primary source of truth for the WooCombine product stat
 
 ## 1. 🟢 Executive Status: Production Ready
 
+> **📋 Looking for user-facing features?** See [FEATURES_OVERVIEW.md](../../docs/product/FEATURES_OVERVIEW.md) for a non-technical capabilities list.
+
 The application has graduated from "debugging/crisis" mode to a stable, focused product with clear architectural boundaries.
 
 - **Stability**: Critical infinite loops, race conditions (including login/league fetching), and temporal dead zones have been definitively resolved.
