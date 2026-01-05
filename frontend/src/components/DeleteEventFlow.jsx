@@ -257,10 +257,11 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       // EventContext has already cleared selectedEvent and removed from events list
       const remainingEvents = events.filter(e => e.id !== targetEvent.id);
       if (remainingEvents.length > 0) {
-        // There are other events - navigate to admin tools (neutral, stable page)
+        // There are other events - navigate to admin (neutral, stable page)
         // DO NOT navigate to /dashboard (triggers redirects) or /players (onboarding CTA)
         // Pass state flag to show "What's next?" panel (optional polish)
-        navigate('/admin-tools', { 
+        // NOTE: Route is /admin (not /admin-tools) per App.jsx routing config
+        navigate('/admin', { 
           state: { 
             deletedEvent: targetEvent.name,
             showNextActions: true 
