@@ -741,9 +741,19 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     setStep('submitting');
     try {
       // Merge edited data and filter based on strategy
-      let playersToUpload = allRows.map(row => {
+      let playersToUpload = allRows.map((row, mapIdx) => {
           const edited = editedRows[row.row_id] || {};
           const mergedData = { ...row.data, ...edited };
+          
+          // DEBUG: Log raw data for first player
+          if (mapIdx === 0) {
+              console.log("[UPLOAD] Row 1 - Raw data:", {
+                  row_data: row.data,
+                  edited: edited,
+                  merged: mergedData,
+                  updatedMapping: updatedMapping
+              });
+          }
           
           // Apply column mapping (rename keys) - use updatedMapping which includes required field selections
           const mappedData = {};
@@ -752,8 +762,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               // Strict Filtering: Only include keys that are in validKeys (respects intent)
               if (targetKey !== '__ignore__' && validKeys.has(targetKey)) {
                   mappedData[targetKey] = mergedData[k];
+              } else if (mapIdx === 0) {
+                  // DEBUG: Log filtered out fields for first player
+                  console.warn(`[UPLOAD] Row 1 - Filtered out: ${k} → ${targetKey} (not in validKeys)`);
               }
           });
+          
+          // DEBUG: Log after mapping for first player
+          if (mapIdx === 0) {
+              console.log("[UPLOAD] Row 1 - After mapping:", mappedData);
+          }
 
           // CRITICAL FIX: Handle 'name' field by splitting into first_name/last_name
           // If user mapped a column to 'name', split it and populate first_name/last_name
@@ -770,6 +788,21 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               }
               // Remove the 'name' field as backend expects first_name/last_name
               delete mappedData.name;
+              
+              if (mapIdx === 0) {
+                  console.log("[UPLOAD] Row 1 - Name split:", {
+                      original: String(mappedData.name || 'deleted'),
+                      first_name: mappedData.first_name,
+                      last_name: mappedData.last_name
+                  });
+              }
+          } else if (mapIdx === 0) {
+              console.warn("[UPLOAD] Row 1 - Name splitting skipped:", {
+                  has_name: !!mappedData.name,
+                  has_first_name: !!mappedData.first_name,
+                  has_last_name: !!mappedData.last_name,
+                  mappedData_keys: Object.keys(mappedData)
+              });
           }
 
           // CRITICAL FIX: Normalize jersey_number to number (backward compatibility)
@@ -777,9 +810,23 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           if (mappedData.jersey_number && !mappedData.number) {
               mappedData.number = mappedData.jersey_number;
               delete mappedData.jersey_number;
+              if (mapIdx === 0) {
+                  console.log("[UPLOAD] Row 1 - Normalized jersey_number to number");
+              }
           } else if (mappedData.jersey_number && mappedData.number) {
               // Both present - remove jersey_number, keep number as canonical
               delete mappedData.jersey_number;
+          }
+          
+          // DEBUG: Log final mapped data for first player
+          if (mapIdx === 0) {
+              console.log("[UPLOAD] Row 1 - Final mapped data:", {
+                  has_first_name: !!mappedData.first_name,
+                  has_last_name: !!mappedData.last_name,
+                  has_number: !!mappedData.number,
+                  keys: Object.keys(mappedData),
+                  sample: mappedData
+              });
           }
 
           // Strategy: if it was an error row, default to overwrite (new insert attempt)
@@ -825,6 +872,22 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         setStep('review');
         return;
       }
+
+      // CRITICAL DEBUG: Log final payload before POST
+      console.log("[UPLOAD] ═══════════════════════════════════════");
+      console.log("[UPLOAD] Final payload being sent to /players/upload:");
+      console.log("[UPLOAD] Event ID:", selectedEvent.id);
+      console.log("[UPLOAD] Total players:", playersToUpload.length);
+      console.log("[UPLOAD] Sample player (first):", playersToUpload[0]);
+      console.log("[UPLOAD] Identity check for first player:", {
+          has_first_name: !!playersToUpload[0]?.first_name,
+          has_last_name: !!playersToUpload[0]?.last_name,
+          has_number: !!playersToUpload[0]?.number,
+          first_name: playersToUpload[0]?.first_name,
+          last_name: playersToUpload[0]?.last_name,
+          number: playersToUpload[0]?.number
+      });
+      console.log("[UPLOAD] ═══════════════════════════════════════");
 
       const response = await api.post('/players/upload', {
         event_id: selectedEvent.id,
