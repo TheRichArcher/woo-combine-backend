@@ -702,6 +702,7 @@ function parseJwtPayload(token) {
             localStorage.setItem('pendingEventJoin', joinPath);
           }
           
+          console.log('[AuthContext] NAV_FROM: AuthContext → /select-role (no role)');
           authLogger.debug('Navigating to /select-role');
           if (!isVerificationBridgeRoute) {
             navigate("/select-role");
@@ -748,6 +749,7 @@ function parseJwtPayload(token) {
             const target = localStorage.getItem('postLoginRedirect');
             if (target && target !== '/login') {
               localStorage.removeItem('postLoginRedirect');
+              console.log(`[AuthContext] NAV_FROM: AuthContext → ${target} (post-login redirect)`);
               authLogger.debug('Navigating back to post-login redirect', target);
               navigate(target, { replace: true });
               return;
@@ -757,9 +759,11 @@ function parseJwtPayload(token) {
           const pendingEventJoin = localStorage.getItem('pendingEventJoin');
           if (pendingEventJoin) {
             const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+            console.log(`[AuthContext] NAV_FROM: AuthContext → /join-event/${safePath} (pending invite)`);
             authLogger.debug('Redirecting to pending invited event join');
             navigate(`/join-event/${safePath}`, { replace: true });
           } else {
+            console.log('[AuthContext] NAV_FROM: AuthContext → /dashboard (init complete)');
             authLogger.debug('Navigating to /dashboard');
             navigate("/dashboard");
           }

@@ -32,17 +32,10 @@ export default function Home() {
     }, 0);
   };
 
-  // Redirect organizers and coaches to the new Coach Dashboard
-  // CRITICAL FIX: Only redirect if we're NOT currently loading leagues
-  // This prevents navigation before auth state is fully ready
-  React.useEffect(() => {
-    if ((userRole === 'organizer' || userRole === 'coach') && !leaguesLoading && selectedLeagueId) {
-      navigate('/coach', { replace: true });
-    }
-  }, [userRole, navigate, leaguesLoading, selectedLeagueId]);
+  // NOTE: RouteDecisionGate now handles organizer/coach redirect to /coach
+  // This component only renders for viewers or in edge cases
 
-  // Show loading spinner ONLY while leagues are actually loading
-  // NOT just because user is organizer/coach (that was the bug!)
+  // Show loading spinner while navigating or leagues are loading
   if (isNavigating || leaguesLoading) {
     return (
       <LoadingScreen 

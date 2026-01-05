@@ -21,6 +21,7 @@ import CreateLeague from "./pages/CreateLeague";
 import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
 import WorkflowDemo from "./pages/WorkflowDemo";
+import RouteDecisionGate from "./components/RouteDecisionGate";
 
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
@@ -41,13 +42,16 @@ import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
 import SessionExpiredGate from "./components/SessionExpiredGate";
 import BootGate from "./components/BootGate";
+import { NavigationLogger } from "./hooks/useTrackedNavigate";
 
-// Authenticated Layout Component
+// Authenticated Layout Component with Route Decision Gate
 function AuthenticatedLayout({ children }) {
   return (
     <ErrorBoundary>
-      <Navigation />
-      {children}
+      <RouteDecisionGate>
+        <Navigation />
+        {children}
+      </RouteDecisionGate>
     </ErrorBoundary>
   );
 }
@@ -55,6 +59,7 @@ function AuthenticatedLayout({ children }) {
 function App() {
   return (
     <BrowserRouter>
+      <NavigationLogger />
       <ErrorBoundary>
         <ToastProvider>
         <AuthProvider>
