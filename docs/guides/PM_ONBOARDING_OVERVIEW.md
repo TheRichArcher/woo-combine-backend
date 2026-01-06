@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 5, 2026_
+_Last updated: January 6, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -14,7 +14,7 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
 
 - **Stability**: Critical infinite loops, race conditions (including login/league fetching), and temporal dead zones have been definitively resolved.
 - **Ranking Accuracy**: The ranking system is **definitively verified** via "Golden Ranking" tests. Both Backend and Frontend scoring engines calculate identical scores (accurate to 2 decimal places) using the Renormalized Weighted Average formula.
-- **Boot Experience**: Multi-route flicker on login has been eliminated via `BootGate` architecture. Auth/context hydration is now smooth and deterministic.
+- **Boot Experience**: Multi-route flicker on login has been eliminated via `RouteDecisionGate` architecture. Single centralized routing decision after full state hydration ensures clean navigation with no intermediate route flashes.
 - **Quality**: Zero linting errors, clean build process. CI pipeline resilient with graceful degradation for optional dependencies.
 - **Observability**: Full Sentry integration (Frontend & Backend) for real-time error tracking and performance monitoring.
 - **Import System**: **Production-ready and locked** (Jan 3, 2026). Progressive disclosure UX with explicit required field mapping, drill detection, and confidence-safe messaging. Handles CSV/Excel with smart column detection. See §5.1 for complete import UX evolution.
@@ -34,8 +34,9 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
   - `EventContext`: Minimalist context to avoid initialization race conditions.
   - `useOptimizedWeights` & `usePlayerRankings`: Centralized hooks for weight management, ensuring 0-100 scale consistency using Renormalized Weighted Average.
 - **Boot Process**:
-  - `BootGate.jsx`: Gating component that blocks router until Auth, Role, League, and Event contexts are fully resolved. Eliminates flash of unstyled content.
-  - `LoadingScreen.jsx`: Standardized loading component used globally.
+  - `RouteDecisionGate.jsx`: Centralized routing controller that waits for auth, role, leagues, and events to be ready before making a SINGLE routing decision. Prevents multi-route flicker during state hydration. Implements tiered state checking to avoid dependency deadlocks.
+  - `AuthContext.jsx`: Handles authentication, role fetching, and league initialization. Navigates from `/login` to `/dashboard` only when fully ready, then defers to RouteDecisionGate for final routing.
+  - `LoadingScreen.jsx`: Standardized loading component used globally. Displayed by RouteDecisionGate during state hydration and navigation transitions.
 - **Data Access**: All data operations through backend API (`/api/v1`). **No direct Firestore writes from frontend.**
 - **Key Components**:
   - `CoachDashboard.jsx`: **Command center** for organizers + coaches. Shared ops dashboard with role-based controls. See §8 for detailed scope.
@@ -781,6 +782,74 @@ During the fuzzy matching bug investigation, we discovered that:
 
 ---
 
+### 🚦 CRITICAL FIX: Route Flicker Elimination (Jan 6, 2026)
+
+**Status:** ✅ RESOLVED - Production deployed (Commits: 95f7e84, a9463af, 5801186)
+
+**The Problem:**
+
+Users experienced visible route flicker during app startup and post-login flows, with the URL bar and screen content rapidly cycling through multiple intermediate pages:
+
+```
+Visual Experience (BEFORE):
+/login → /dashboard → /select-role → /dashboard → /coach
+         ↑ flash      ↑ flash        ↑ flash      ↑ final
+```
+
+**Root Causes:**
+
+1. **Dependency Deadlock**: `RouteDecisionGate` waited for `eventsLoaded` even when `userRole` was null. Events can't load without a role → infinite hang.
+
+2. **State Sync Race**: "Fast exit from login" set `roleChecked: true` before `userRole` state propagated, causing gate to render with stale data.
+
+3. **Distributed Navigation**: Multiple components (`LoginForm`, `AuthContext`, `RouteDecisionGate`) all calling `navigate()` during hydration.
+
+**The Solution:**
+
+**Part 1: Tiered State Checking**
+- Check minimal state (auth + role) BEFORE waiting for events
+- If no role → redirect to `/select-role` immediately
+- Only wait for leagues/events if user HAS a role
+
+**Part 2: Removed Fast Exit**
+- Always go through full initialization
+- Only set `roleChecked: true` when role is guaranteed valid
+- Ensures state synchronization before any navigation
+
+**Part 3: Centralized Navigation**
+- `LoginForm` no longer navigates
+- `AuthContext` navigates once when fully ready
+- `RouteDecisionGate` makes single final routing decision
+
+**Result:**
+
+```
+Visual Experience (AFTER):
+/login → [Loading Screen] → /coach
+         ↑ stable         ↑ direct landing
+```
+
+**Console Evidence:**
+```
+[AUTH] Login detected
+[AUTH] User role found organizer
+ROUTE_CHANGE: /login → /dashboard
+[RouteDecisionGate] ALL_STATE_READY
+ROUTE_CHANGE: /dashboard → /coach ← Single redirect
+[RouteDecisionGate] RENDER_CHILDREN
+```
+
+No `/select-role` in sequence. Clean progression. ~1.5 seconds total.
+
+**Files Changed:**
+- `frontend/src/components/RouteDecisionGate.jsx` - Tiered state checking
+- `frontend/src/context/AuthContext.jsx` - Removed fast exit
+- `frontend/src/components/Welcome/LoginForm.jsx` - Removed navigation
+- `frontend/src/components/RequireAuth.jsx` - Added skipRoleCheck prop
+- `frontend/src/App.jsx` - Applied skipRoleCheck
+
+---
+
 ### 📊 Ranking System Unification (Dec 2025)
 - **Consistency**: Backend API and Frontend UI use exact same formula (Renormalized Weighted Average)
 - **Accuracy**: Weights can be entered as decimals (0.2) or percents (20) without issues
@@ -789,10 +858,11 @@ During the fuzzy matching bug investigation, we discovered that:
 
 ---
 
-### 🚦 Boot & Navigation Stability (Dec 2025)
-- **BootGate Implementation**: Global circuit breaker prevents router loading until app state is stable
-- **Route Guards**: `RequireAuth` and `RequireLeague` check context flags before rendering
-- **Zero-Flicker Login**: Clean loading spinner until destination resolved
+### 🚦 Boot & Navigation Stability (Jan 2026)
+- **RouteDecisionGate Architecture**: Centralized routing controller replaces distributed navigation logic. Implements tiered state checking (minimal state for role check, full state for route decision) to prevent dependency deadlocks.
+- **State Synchronization**: Removed "fast exit" optimization that caused state/UI race conditions. All users go through full initialization to ensure proper state sync.
+- **Route Guards**: `RequireAuth` (with `skipRoleCheck` for gate-wrapped routes) verifies authentication. `RequireLeague` ensures league context.
+- **Zero-Flicker Login**: Single loading screen → direct landing on final destination. No intermediate route flashes (/dashboard, /select-role, etc.). LoginForm no longer navigates; AuthContext navigates once when fully ready.
 
 ---
 
@@ -811,12 +881,14 @@ For the new PM/Dev, these are the files you will touch most often:
 ```text
 frontend/
 ├── src/
-│   ├── App.jsx                  # 🚦 BootGate & Routing Definition
-│   ├── main.jsx                 # Context Providers Setup
+│   ├── App.jsx                         # 🚦 App Routes & AuthenticatedLayout wrapper
+│   ├── main.jsx                        # Context Providers Setup
+│   ├── components/
+│   │   └── RouteDecisionGate.jsx       # 🚦 Centralized routing controller
 │   ├── context/
-│   │   ├── AuthContext.jsx      # 🔐 Session & League Logic
-│   │   ├── EventContext.jsx     # 📅 Event Selection Logic
-│   │   └── ToastContext.jsx     # 🔔 Notification System
+│   │   ├── AuthContext.jsx             # 🔐 Session, Role & League Initialization
+│   │   ├── EventContext.jsx            # 📅 Event Selection Logic
+│   │   └── ToastContext.jsx            # 🔔 Notification System
 │   ├── hooks/
 │   │   ├── usePlayerRankings.js # ⚖️ Live Ranking Calculation
 │   │   └── useDrills.js         # 🛠 Drill Schema Fetching
