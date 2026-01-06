@@ -384,7 +384,6 @@ export default function UnifiedDemo() {
   const resetDemo = () => {
     setCurrentStep(0);
     setStepProgress(0);
-    setIsAutoPlaying(false);
     setLeagueName("");
     setEventName("");
     setPlayers([]);
@@ -407,6 +406,11 @@ export default function UnifiedDemo() {
     setShowTransition(false);
     setTransitionText("");
     setStepSubState("initial");
+    
+    // Restart auto-play after a brief moment
+    setTimeout(() => {
+      setIsAutoPlaying(true);
+    }, 100);
   };
 
   // Clear all notifications 
