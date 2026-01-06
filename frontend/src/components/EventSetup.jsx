@@ -461,7 +461,7 @@ export default function EventSetup({ onBack }) {
 
   if (userRole !== 'organizer') {
     return (
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-red-200">
+        <div className="bg-white rounded-xl shadow-md p-6 text-center border-2 border-red-200">
             <h2 className="text-xl font-bold text-red-600 mb-2">Access Denied</h2>
             <p>You must be an organizer to view this page.</p>
         </div>
@@ -473,8 +473,8 @@ export default function EventSetup({ onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+    <div className="min-h-screen bg-gray-50 py-4">
+      <div className="max-w-lg mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-3 mb-6">
             <button 
                 onClick={onBack}
@@ -486,8 +486,8 @@ export default function EventSetup({ onBack }) {
         </div>
         
         {/* Welcome Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-l-4 border-cmf-primary">
-          <h2 className="text-lg font-bold text-cmf-secondary mb-1">
+        <div className="bg-white rounded-xl shadow-md p-4 mb-4 border-l-4 border-brand-primary">
+          <h2 className="text-lg font-bold text-brand-secondary mb-1">
              {selectedEvent.name}
           </h2>
           <p className="text-sm text-gray-600">
@@ -496,9 +496,9 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 1: Event Details */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">1</div>
             <h2 className="text-lg font-semibold text-gray-900">Event Details</h2>
           </div>
           
@@ -513,7 +513,7 @@ export default function EventSetup({ onBack }) {
           
           <button
             onClick={() => setShowEditEventModal(true)}
-            className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
+            className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-2 rounded-lg transition flex items-center gap-2"
           >
             <Edit className="w-4 h-4" />
             Edit Event Details
@@ -521,9 +521,9 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 2: Manage Drills */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">2</div>
             <h2 className="text-lg font-semibold text-gray-900">Manage Drills</h2>
           </div>
           
@@ -535,9 +535,9 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 3: Add Players Section */}
-        <div id="player-upload-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div id="player-upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
             <h2 className="text-lg font-semibold text-gray-900">Add Players</h2>
           </div>
           
@@ -572,7 +572,7 @@ export default function EventSetup({ onBack }) {
                   }, 100);
                 }
               }}
-              className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
             >
               <UserPlus className="w-5 h-5" />
               Add Manual
@@ -588,9 +588,9 @@ export default function EventSetup({ onBack }) {
 
           {/* Manual Add Player Form */}
           {showManualForm && (
-            <div ref={manualFormRef} className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-6">
+            <div ref={manualFormRef} className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-cmf-primary" />
+                <UserPlus className="w-5 h-5 text-brand-primary" />
                 Add Player Manually
               </h3>
               
@@ -603,7 +603,7 @@ export default function EventSetup({ onBack }) {
                       name="first_name"
                       value={manualPlayer.first_name}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="Enter first name"
                       required
                     />
@@ -615,7 +615,7 @@ export default function EventSetup({ onBack }) {
                       name="last_name"
                       value={manualPlayer.last_name}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="Enter last name"
                       required
                     />
@@ -633,7 +633,7 @@ export default function EventSetup({ onBack }) {
                       name="number"
                       value={manualPlayer.number}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="Leave empty for auto-generated"
                     />
                   </div>
@@ -644,7 +644,7 @@ export default function EventSetup({ onBack }) {
                       name="age_group"
                       value={manualPlayer.age_group}
                       onChange={handleManualChange}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
                       placeholder="e.g., 6U, 7-8, U10"
                     />
                   </div>
@@ -661,7 +661,7 @@ export default function EventSetup({ onBack }) {
                   <button
                     type="submit"
                     disabled={manualStatus === 'loading'}
-                    className="flex-1 bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
+                    className="flex-1 bg-brand-primary hover:bg-brand-secondary disabled:opacity-50 text-white font-medium py-2 rounded-lg transition"
                   >
                     {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
                   </button>
@@ -683,7 +683,7 @@ export default function EventSetup({ onBack }) {
           )}
 
           {/* CSV Upload Section */}
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50 hover:bg-gray-100 transition">
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50 hover:bg-gray-100 transition">
             <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <div className="mb-4">
               <input
@@ -757,7 +757,7 @@ export default function EventSetup({ onBack }) {
                         <select
                           value={fieldMapping[fieldKey] || ''}
                           onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                          className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cmf-primary focus:border-cmf-primary ${
+                          className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
                             (!fieldMapping[fieldKey]) || (fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high')
                               ? 'border-amber-300 bg-amber-50' 
                               : 'border-gray-300'
@@ -777,7 +777,7 @@ export default function EventSetup({ onBack }) {
                 <div className="flex gap-3 mt-4">
                   <button
                     onClick={handleApplyMapping}
-                    className="bg-cmf-primary hover:bg-cmf-secondary text-white font-medium px-4 py-2 rounded-lg transition"
+                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-2 rounded-lg transition"
                   >
                     Apply Mapping & Import
                   </button>
@@ -849,7 +849,7 @@ export default function EventSetup({ onBack }) {
                 <button
                   disabled={!hasValidPlayers || uploadStatus === "loading"}
                   onClick={handleUpload}
-                  className="bg-cmf-primary hover:bg-cmf-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
+                  className="bg-brand-primary hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-6 py-2 rounded-lg transition"
                 >
                   {uploadStatus === "loading" ? "Importing..." : "Import Players"}
                 </button>
@@ -908,9 +908,9 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 4: Invite Coaches & Share */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">4</div>
             <h2 className="text-lg font-semibold text-gray-900">Invite People to Event</h2>
           </div>
           
@@ -1010,9 +1010,9 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 5: Staff & Access Control */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-cmf-primary text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">5</div>
             <h2 className="text-lg font-semibold text-gray-900">Staff & Access Control</h2>
           </div>
           
@@ -1020,7 +1020,7 @@ export default function EventSetup({ onBack }) {
         </div>
 
         {/* Step 6: Danger Zone - Advanced Options */}
-        <div className="bg-white rounded-xl shadow-sm border-2 border-red-300 p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border-2 border-red-300 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">⚠️</div>
             <h2 className="text-lg font-semibold text-red-700">Danger Zone</h2>
