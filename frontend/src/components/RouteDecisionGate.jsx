@@ -39,7 +39,9 @@ export default function RouteDecisionGate({ children }) {
   
   const [isReady, setIsReady] = useState(false);
   const [decisionMade, setDecisionMade] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const navigationAttempted = useRef(false);
+  const targetRoute = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
 
   // Routes that are always allowed (public/auth routes)
@@ -168,30 +170,31 @@ export default function RouteDecisionGate({ children }) {
 
     console.log(`${logPrefix} ROUTE_DECISION: Making routing decision for ${location.pathname}`);
 
+    // Helper to navigate and track it
+    const performNavigation = (to, reason) => {
+      console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → ${to} (${reason})`);
+      navigationAttempted.current = true;
+      targetRoute.current = to;
+      setIsNavigating(true);
+      navigate(to, { replace: true });
+      setDecisionMade(true);
+    };
+
     // Unauthenticated users → welcome
     if (!user) {
-      console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /welcome (no user)`);
-      navigationAttempted.current = true;
-      navigate('/welcome', { replace: true });
-      setDecisionMade(true);
+      performNavigation('/welcome', 'no user');
       return;
     }
 
     // Unverified email → verify page
     if (!user.emailVerified) {
-      console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /verify-email (unverified)`);
-      navigationAttempted.current = true;
-      navigate('/verify-email', { replace: true });
-      setDecisionMade(true);
+      performNavigation('/verify-email', 'unverified');
       return;
     }
 
     // No role → role selection
     if (!userRole) {
-      console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /select-role (no role)`);
-      navigationAttempted.current = true;
-      navigate('/select-role', { replace: true });
-      setDecisionMade(true);
+      performNavigation('/select-role', 'no role');
       return;
     }
 
@@ -204,10 +207,7 @@ export default function RouteDecisionGate({ children }) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
-        console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /dashboard (no league, will show fallback)`);
-        navigationAttempted.current = true;
-        navigate('/dashboard', { replace: true });
-        setDecisionMade(true);
+        performNavigation('/dashboard', 'no league, will show fallback');
         return;
       }
     }
@@ -219,21 +219,20 @@ export default function RouteDecisionGate({ children }) {
       );
       
       if (needsEvent) {
-        console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /dashboard (no event selected)`);
-        navigationAttempted.current = true;
-        navigate('/dashboard', { replace: true });
-        setDecisionMade(true);
+        performNavigation('/dashboard', 'no event selected');
         return;
       }
     }
 
-    // Special handling: Organizers and coaches should land on /coach dashboard
-    if ((userRole === 'organizer' || userRole === 'coach') && location.pathname === '/dashboard') {
-      console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → /coach (${userRole} default dashboard)`);
-      navigationAttempted.current = true;
-      navigate('/coach', { replace: true });
-      setDecisionMade(true);
-      return;
+    // CRITICAL FIX: Organizers and coaches should ALWAYS go to /coach
+    // Check ANY protected route, not just /dashboard
+    if (userRole === 'organizer' || userRole === 'coach') {
+      const mainRoutes = ['/dashboard', '/admin', '/players', '/live-entry', '/analytics', '/live-standings'];
+      
+      if (mainRoutes.includes(location.pathname)) {
+        performNavigation('/coach', `${userRole} default dashboard`);
+        return;
+      }
     }
 
     // If we're here, state is ready and current route is valid
@@ -254,8 +253,17 @@ export default function RouteDecisionGate({ children }) {
     navigate
   ]);
 
+  // Detect when navigation completes
+  useEffect(() => {
+    if (isNavigating && targetRoute.current && location.pathname === targetRoute.current) {
+      console.log(`${logPrefix} NAVIGATION_COMPLETE: Reached target route ${targetRoute.current}`);
+      setIsNavigating(false);
+      targetRoute.current = null;
+    }
+  }, [location.pathname, isNavigating]);
+
   // Show loading screen while waiting for state OR while navigating
-  if (!isReady || !decisionMade) {
+  if (!isReady || !decisionMade || isNavigating) {
     return (
       <LoadingScreen
         title="Loading Dashboard..."
