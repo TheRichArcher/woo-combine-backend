@@ -385,12 +385,12 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                   onClick={() => applyPreset(key)}
                     className={`p-1.5 text-left rounded border transition-all ${
                       activePreset === key 
-                        ? 'border-brand-primary bg-brand-primary bg-opacity-5 text-brand-primary' 
-                        : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                        ? 'border-brand-primary bg-brand-primary text-white shadow-md' 
+                        : 'border-gray-200 hover:border-gray-300 text-gray-700 bg-white'
                     }`}
                   >
                     <div className="font-medium text-[11px] leading-tight">{preset.name}</div>
-                    <div className="text-[9px] text-gray-500 truncate mt-0.5">{preset.description}</div>
+                    <div className={`text-[9px] truncate mt-0.5 ${activePreset === key ? 'text-white opacity-90' : 'text-gray-500'}`}>{preset.description}</div>
                   </button>
                 ))}
               </div>
