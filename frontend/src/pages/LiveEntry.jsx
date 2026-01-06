@@ -950,14 +950,21 @@ export default function LiveEntry() {
                           type="button"
                           onMouseDown={(e) => {
                             e.preventDefault(); // Prevent input blur
+                            console.log('[LiveEntry] Dropdown click:', player.name, player.number);
                             selectPlayer(player);
                           }}
-                          className={`w-full p-3 text-left border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors
+                          onClick={(e) => {
+                            // Backup handler in case onMouseDown doesn't fire
+                            e.preventDefault();
+                            console.log('[LiveEntry] Dropdown onClick fallback:', player.name);
+                            selectPlayer(player);
+                          }}
+                          className={`w-full p-3 text-left border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors cursor-pointer
                             ${idx === focusedMatchIndex ? 'bg-brand-primary/10 text-brand-primary' : 'hover:bg-gray-50'}`}
                         >
-                          <span className="font-bold w-12 bg-gray-100 rounded px-2 py-1 text-center text-xs">#{player.number}</span>
-                          <span className="flex-1 font-medium">{player.name}</span>
-                          <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded">{player.age_group}</span>
+                          <span className="font-bold w-12 bg-gray-100 rounded px-2 py-1 text-center text-xs pointer-events-none">#{player.number}</span>
+                          <span className="flex-1 font-medium pointer-events-none">{player.name}</span>
+                          <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded pointer-events-none">{player.age_group}</span>
                         </button>
                       ))}
                     </div>
