@@ -126,11 +126,29 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // Check if all required state is ready
-    const allStateReady = 
+    // CRITICAL FIX: Check minimal state first - if user has no role, don't wait for events
+    // Events will never load without a role, so we'd hang forever
+    const minimalStateReady = 
       authChecked &&          // Firebase auth checked
       roleChecked &&          // Backend role fetched
-      !initializing &&        // Auth initialization complete
+      !initializing;          // Auth initialization complete
+
+    // If user has no role, we can make a decision immediately (redirect to /select-role)
+    if (minimalStateReady && !user) {
+      console.log(`${logPrefix} MINIMAL_STATE_READY: No user, can redirect to welcome`);
+      setIsReady(true);
+      return;
+    }
+
+    if (minimalStateReady && !userRole) {
+      console.log(`${logPrefix} MINIMAL_STATE_READY: No role, can redirect to select-role`);
+      setIsReady(true);
+      return;
+    }
+
+    // If user has a role, wait for full state including leagues and events
+    const allStateReady = 
+      minimalStateReady &&
       !leaguesLoading &&      // Leagues fetch complete
       eventsLoaded;           // Events fetch complete (even if empty)
 
@@ -142,8 +160,8 @@ export default function RouteDecisionGate({ children }) {
       if (!authChecked) waiting.push('authChecked');
       if (!roleChecked) waiting.push('roleChecked');
       if (initializing) waiting.push('!initializing');
-      if (leaguesLoading) waiting.push('!leaguesLoading');
-      if (!eventsLoaded) waiting.push('eventsLoaded');
+      if (userRole && leaguesLoading) waiting.push('!leaguesLoading');
+      if (userRole && !eventsLoaded) waiting.push('eventsLoaded');
       
       console.log(`${logPrefix} WAITING: Still waiting for [${waiting.join(', ')}]`);
     }
@@ -154,6 +172,8 @@ export default function RouteDecisionGate({ children }) {
     initializing, 
     leaguesLoading, 
     eventsLoaded,
+    user,
+    userRole,
     location.pathname
   ]);
 
