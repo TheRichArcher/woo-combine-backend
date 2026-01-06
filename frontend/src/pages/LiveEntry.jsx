@@ -948,7 +948,10 @@ export default function LiveEntry() {
                         <button
                           key={player.id}
                           type="button"
-                          onClick={() => selectPlayer(player)}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent input blur
+                            selectPlayer(player);
+                          }}
                           className={`w-full p-3 text-left border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors
                             ${idx === focusedMatchIndex ? 'bg-brand-primary/10 text-brand-primary' : 'hover:bg-gray-50'}`}
                         >
@@ -972,7 +975,8 @@ export default function LiveEntry() {
                                      <button
                                          key={pid}
                                          type="button"
-                                         onClick={() => {
+                                         onMouseDown={(e) => {
+                                             e.preventDefault(); // Prevent input blur
                                              const p = players.find(pl => pl.id === pid);
                                              if (p) selectPlayer(p);
                                          }}
