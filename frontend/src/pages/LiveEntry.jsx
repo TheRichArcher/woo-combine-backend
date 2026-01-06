@@ -945,18 +945,18 @@ export default function LiveEntry() {
                   {!playerId && shortlist.length > 0 && (
                     <div className="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50 max-h-60 overflow-y-auto">
                       {shortlist.map((player, idx) => (
-                        <button
+                        <div
                           key={player.id}
-                          type="button"
                           onMouseDown={(e) => {
-                            e.preventDefault(); // Prevent input blur
-                            console.log('[LiveEntry] Dropdown click:', player.name, player.number);
+                            e.preventDefault();
+                            e.stopPropagation();
+                            console.log('[LiveEntry] DIV onMouseDown:', player.name, player.number);
                             selectPlayer(player);
                           }}
                           onClick={(e) => {
-                            // Backup handler in case onMouseDown doesn't fire
                             e.preventDefault();
-                            console.log('[LiveEntry] Dropdown onClick fallback:', player.name);
+                            e.stopPropagation();
+                            console.log('[LiveEntry] DIV onClick:', player.name);
                             selectPlayer(player);
                           }}
                           className={`w-full p-3 text-left border-b border-gray-100 last:border-b-0 flex items-center gap-3 transition-colors cursor-pointer
@@ -965,7 +965,7 @@ export default function LiveEntry() {
                           <span className="font-bold w-12 bg-gray-100 rounded px-2 py-1 text-center text-xs pointer-events-none">#{player.number}</span>
                           <span className="flex-1 font-medium pointer-events-none">{player.name}</span>
                           <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded pointer-events-none">{player.age_group}</span>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
