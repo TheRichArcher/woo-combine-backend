@@ -79,17 +79,17 @@ export default function AdminTools() {
 
   // 4. Render Hub View
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-4">
       <div className="max-w-lg mx-auto px-4 sm:px-6">
         
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 border-l-4 border-brand-primary flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow-md p-4 mb-4 border-l-4 border-brand-primary flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
-            <p className="text-gray-600">Managing: <strong>{selectedEvent.name}</strong></p>
+            <h1 className="text-xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
+            <p className="text-sm text-gray-600">Managing: <strong>{selectedEvent.name}</strong></p>
           </div>
           <div className="hidden sm:block">
-            <span className="bg-brand-primary/10 text-brand-primary text-xs font-semibold px-2.5 py-0.5 rounded border border-brand-primary/20">Organizer Mode</span>
+            <span className="bg-brand-primary/10 text-brand-primary text-xs font-semibold px-2 py-0.5 rounded border border-brand-primary/20">Organizer</span>
           </div>
         </div>
 
@@ -184,62 +184,68 @@ export default function AdminTools() {
         )}
 
         {/* Main 3 Areas */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           
           {/* Card 1: Event Setup */}
           <button 
             onClick={() => setView('setup')}
-            className="w-full group bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
+            className="w-full group bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
           >
-            <div className="w-12 h-12 bg-brand-primary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Settings className="w-6 h-6 text-brand-primary" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-brand-primary transition-colors">Event Setup</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Configure details, manage drills, upload roster, and invite staff.
-            </p>
-            <div className="flex items-center text-brand-primary font-medium text-sm">
-              Manage Setup <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Settings className="w-5 h-5 text-brand-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 mb-0.5 group-hover:text-brand-primary transition-colors">Event Setup</h2>
+                <p className="text-xs text-gray-600">
+                  Configure details, manage drills, upload roster, and invite staff.
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-brand-primary flex-shrink-0 group-hover:translate-x-1 transition-transform" />
             </div>
           </button>
 
           {/* Card 2: Live Entry Mode */}
           <Link 
             to="/live-entry"
-            className="block group bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
+            className="block group bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
           >
-            <div className="w-12 h-12 bg-semantic-success/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Activity className="w-6 h-6 text-semantic-success" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-semantic-success transition-colors">Live Entry Mode</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              High-speed data entry for the field. Mobile-optimized & fast.
-            </p>
-            <div className="flex items-center text-semantic-success font-medium text-sm">
-              Launch Live Entry <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-semantic-success/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Activity className="w-5 h-5 text-semantic-success" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 mb-0.5 group-hover:text-semantic-success transition-colors">Live Entry Mode</h2>
+                <p className="text-xs text-gray-600">
+                  High-speed data entry for the field. Mobile-optimized & fast.
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-semantic-success flex-shrink-0 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
           {/* Card 3: Results & Export */}
           <Link 
             to="/players?tab=analyze"
-            className="block group bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
+            className="block group bg-white rounded-lg shadow-sm border border-gray-200 p-4 text-left hover:shadow-md hover:border-brand-primary/50 transition-all duration-200"
           >
-            <div className="w-12 h-12 bg-brand-secondary/10 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <BarChart3 className="w-6 h-6 text-brand-secondary" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-brand-secondary transition-colors">Results & Export</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              View rankings, analyze performance, and export CSV/PDF reports.
-            </p>
-            <div className="flex items-center text-brand-secondary font-medium text-sm">
-              View Results <ArrowRight className="w-4 h-4 ml-1 group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <BarChart3 className="w-5 h-5 text-brand-secondary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 mb-0.5 group-hover:text-brand-secondary transition-colors">Results & Export</h2>
+                <p className="text-xs text-gray-600">
+                  View rankings, analyze performance, and export CSV/PDF reports.
+                </p>
+              </div>
+              <ArrowRight className="w-4 h-4 text-brand-secondary flex-shrink-0 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
         </div>
 
         {/* Quick Links / Footer Info */}
-        <div className="mt-8 bg-gray-100 rounded-xl p-4 text-center text-sm text-gray-500">
+        <div className="mt-6 bg-gray-100 rounded-lg p-3 text-center text-xs text-gray-500">
           Need help? Check the <a href="/docs" className="text-brand-primary hover:underline">documentation</a> or contact support.
         </div>
 
