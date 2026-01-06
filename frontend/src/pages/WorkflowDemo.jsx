@@ -89,6 +89,7 @@ const FEATURE_IMPACTS = {
 };
 
 // NEW STRUCTURE: Pain → Features → Quick Workflow → Results
+// Using brand teal color scheme consistently
 const WORKFLOW_STEPS = [
   // PHASE 1: PAIN POINT SETUP (30 seconds)
   {
@@ -96,7 +97,7 @@ const WORKFLOW_STEPS = [
     title: "💔 The Current Reality",
     desc: "See what coaches deal with every combine day",
     icon: "😰",
-    color: "from-red-500 to-orange-600",
+    color: "from-gray-600 to-gray-700", // Neutral for pain points
     duration: 5000, // Optimized for reading speed
     phase: "pain",
     category: "intro"
@@ -108,7 +109,7 @@ const WORKFLOW_STEPS = [
     title: "⚡ The Game Changer",
     desc: "Real-time everything - watch the magic happen",
     icon: "✨",
-    color: "from-green-400 to-blue-600",
+    color: "from-brand-primary to-brand-secondary", // Brand teal gradient
     duration: 6000, // Auto-triggers during demo, no manual click needed
     phase: "hero",
     category: "intro"
@@ -122,7 +123,7 @@ const WORKFLOW_STEPS = [
     title: "⚡ Setup in 60 Seconds",
     desc: "Watch how fast you can go from zero to running a combine",
     icon: "🏃‍♂️",
-    color: "from-green-500 to-teal-600",
+    color: "from-brand-primary to-brand-secondary", // Brand teal
     duration: 8000, // Better reading time
     phase: "workflow_ease",
     category: "setup"
@@ -134,7 +135,7 @@ const WORKFLOW_STEPS = [
     title: "📱 Smart Parent Engagement",
     desc: "Parents connected live - no more waiting",
     icon: "📲",
-    color: "from-blue-500 to-cyan-600",
+    color: "from-brand-secondary to-brand-primary", // Reversed teal gradient
     duration: 7000, // Better reading time
     phase: "features",
     category: "setup"
@@ -146,7 +147,7 @@ const WORKFLOW_STEPS = [
     title: "📝 Live Data Entry Magic",
     desc: "See how ridiculously easy it is to enter drill results",
     icon: "⚡",
-    color: "from-orange-500 to-red-600",
+    color: "from-brand-primary to-brand-secondary", // Brand teal
     duration: 8000, // Better demo time
     phase: "workflow_ease",
     category: "live"
@@ -158,7 +159,7 @@ const WORKFLOW_STEPS = [
     title: "🎯 Intelligent Rankings", 
     desc: "AI-powered adjustments in real-time",
     icon: "🧠",
-    color: "from-purple-500 to-pink-600",
+    color: "from-brand-secondary to-brand-primary", // Reversed teal gradient
     duration: 7000, // Better ranking demo time
     phase: "features",
     category: "rankings"
@@ -170,7 +171,7 @@ const WORKFLOW_STEPS = [
     title: "📊 Instant Professional Reports",
     desc: "From raw data to scout-ready reports in 0.5 seconds",
     icon: "📈",
-    color: "from-indigo-500 to-purple-600",
+    color: "from-brand-primary to-brand-secondary", // Brand teal
     duration: 7000, // Better report time
     phase: "workflow_ease",
     category: "export"
@@ -182,7 +183,7 @@ const WORKFLOW_STEPS = [
     title: "🎉 Your New Reality",
     desc: "47+ hours saved, 100% accuracy, happy parents",
     icon: "🏆",
-    color: "from-yellow-400 to-orange-500",
+    color: "from-semantic-success to-brand-primary", // Success to brand
     duration: 10000, // Important final message needs time
     phase: "results",
     category: "export"
@@ -988,7 +989,7 @@ export default function UnifiedDemo() {
                     addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
                   }, 4000);
                 }}
-                className={`bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transform hover:scale-105 transition-all duration-300 shadow-lg ${isAutoPlaying ? 'animate-pulse opacity-75' : 'animate-pulse'}`}
+                className={`bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 px-4 rounded-lg text-sm transform hover:scale-105 transition-all duration-300 shadow-lg ${isAutoPlaying ? 'animate-pulse opacity-75' : 'animate-pulse'}`}
                 disabled={isAutoPlaying}
               >
                 🎯 {isAutoPlaying ? 'AUTO-TRIGGERING...' : 'TRIGGER THE MAGIC!'}
@@ -997,16 +998,16 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Compact Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
+            <div className="bg-gray-800 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-green-400">2 min setup</div>
+                  <div className="text-xs font-bold text-brand-primary">2 min setup</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-blue-400">Instant results</div>
+                  <div className="text-xs font-bold text-brand-primary">Instant results</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-purple-400">98% satisfaction</div>
+                  <div className="text-xs font-bold text-brand-primary">98% satisfaction</div>
                 </div>
               </div>
             </div>
@@ -1018,10 +1019,10 @@ export default function UnifiedDemo() {
         return (
           <div className="space-y-2">
             {/* Ultra Compact Header */}
-            <div className="bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg p-1 text-center">
+            <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-lg p-1 text-center">
               <div className="text-2xl mb-1">🏃‍♂️</div>
               <h3 className="text-base font-bold">Setup in 60 Seconds</h3>
-              <p className="text-green-100 text-xs">Zero → running combine in 1 minute! ⚡</p>
+              <p className="opacity-90 text-xs">Zero → running combine in 1 minute! ⚡</p>
             </div>
 
             {/* Compact Quick Steps Demo */}
@@ -1046,13 +1047,13 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Compact Comparison */}
-            <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white rounded-lg p-1">
+            <div className="bg-gray-800 text-white rounded-lg p-2">
               <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="bg-red-600/20 rounded p-2 border border-red-500">
-                  <div className="text-sm font-bold text-red-400">Traditional: 45+ min</div>
+                <div className="bg-gray-700 rounded p-2">
+                  <div className="text-sm font-bold text-gray-300">Traditional: 45+ min</div>
                 </div>
-                <div className="bg-green-600/20 rounded p-2 border border-green-500">
-                  <div className="text-sm font-bold text-green-400">WooCombine: 30 sec</div>
+                <div className="bg-brand-primary/20 rounded p-2 border border-brand-primary">
+                  <div className="text-sm font-bold text-brand-primary">WooCombine: 30 sec</div>
                 </div>
               </div>
             </div>
@@ -1092,18 +1093,18 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Impact Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
+            <div className="bg-gray-800 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-xs font-bold text-green-400">98%</div>
+                  <div className="text-xs font-bold text-brand-primary">98%</div>
                   <div className="text-xs text-gray-300">Satisfaction</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-xs font-bold text-blue-400">Instant</div>
+                  <div className="text-xs font-bold text-brand-primary">Instant</div>
                   <div className="text-xs text-gray-300">Updates</div>
                 </div>
                 <div className="bg-white/10 rounded-lg p-1">
-                  <div className="text-xs font-bold text-purple-400">Zero</div>
+                  <div className="text-xs font-bold text-brand-primary">Zero</div>
                   <div className="text-xs text-gray-300">Questions</div>
                 </div>
               </div>
@@ -1137,24 +1138,24 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <button className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white font-bold py-1 rounded text-xs">
+              <button className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-1 rounded text-xs transition-colors">
                 ✅ SAVE & NEXT PLAYER
               </button>
             </div>
 
             {/* Compact Magic Stats */}
-            <div className="bg-gradient-to-r from-gray-800 to-blue-900 text-white rounded-lg p-1">
+            <div className="bg-gray-800 text-white rounded-lg p-1">
               <div className="grid grid-cols-3 gap-1 text-center">
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-green-400">0.5s</div>
+                  <div className="text-xs font-bold text-brand-primary">0.5s</div>
                   <div className="text-xs text-gray-300">Entry</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-blue-400">Instant</div>
+                  <div className="text-xs font-bold text-brand-primary">Instant</div>
                   <div className="text-xs text-gray-300">Parent</div>
                 </div>
                 <div className="bg-white/10 rounded p-1">
-                  <div className="text-xs font-bold text-purple-400">Auto</div>
+                  <div className="text-xs font-bold text-brand-primary">Auto</div>
                   <div className="text-xs text-gray-300">Ranking</div>
                 </div>
               </div>
@@ -1289,7 +1290,7 @@ export default function UnifiedDemo() {
                 </div>
               </div>
               
-              <button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-bold py-1 rounded text-xs">
+              <button className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-1 rounded text-xs transition-colors">
                 📧 EMAIL TO SCOUTS & PARENTS
               </button>
             </div>
@@ -1338,20 +1339,20 @@ export default function UnifiedDemo() {
             </div>
 
             {/* Compact Statistics */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white rounded-lg p-2 text-center">
+            <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white rounded-lg p-2 text-center">
               <h4 className="text-sm font-bold mb-1">Join thousands of coaches who've revolutionized their workflow</h4>
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div>
                   <div className="text-lg font-bold">5,000+</div>
-                  <div className="text-xs text-blue-200">Coaches</div>
+                  <div className="text-xs opacity-90">Coaches</div>
                 </div>
                 <div>
                   <div className="text-lg font-bold">50,000+</div>
-                  <div className="text-xs text-blue-200">Athletes</div>
+                  <div className="text-xs opacity-90">Athletes</div>
                 </div>
                 <div>
                   <div className="text-lg font-bold">99.8%</div>
-                  <div className="text-xs text-blue-200">Satisfaction</div>
+                  <div className="text-xs opacity-90">Satisfaction</div>
                 </div>
               </div>
             </div>
@@ -1433,7 +1434,7 @@ export default function UnifiedDemo() {
       
       {/* Duration Estimate Banner */}
       {currentStep < 2 && (
-        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-2 px-4">
+        <div className="bg-gradient-to-r from-brand-primary to-brand-secondary text-white text-center py-2 px-4">
           <p className="text-sm font-medium">
             ⏱️ <strong>~2–3 minutes</strong> to see complete workflow • Setup → Live Entry → Rankings → Export
           </p>
@@ -1459,7 +1460,7 @@ export default function UnifiedDemo() {
             console.log('[Analytics] demo_cta_click_start_setup');
             navigate("/signup");
           }}
-          className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform active:scale-95"
+          className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform active:scale-95 shadow-md"
         >
           🚀 Start Setup Now
         </button>
@@ -1529,7 +1530,7 @@ export default function UnifiedDemo() {
                 onClick={() => handleJumpToCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
                   WORKFLOW_STEPS[currentStep]?.category === cat.id
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-brand-primary text-white shadow-md'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -1544,14 +1545,14 @@ export default function UnifiedDemo() {
           {/* Step Header */}
           <div className={`text-white p-2 ${
             WORKFLOW_STEPS[currentStep]?.phase === 'workflow_ease' 
-              ? 'bg-gradient-to-r from-blue-600 to-indigo-600' 
+              ? 'bg-gradient-to-r from-brand-primary to-brand-secondary' 
               : WORKFLOW_STEPS[currentStep]?.phase === 'features'
-                ? 'bg-gradient-to-r from-purple-600 to-pink-600'
+                ? 'bg-gradient-to-r from-brand-secondary to-brand-primary'
                 : WORKFLOW_STEPS[currentStep]?.phase === 'pain'
-                  ? 'bg-gradient-to-r from-red-500 to-orange-600'
+                  ? 'bg-gradient-to-r from-gray-600 to-gray-700'
                   : WORKFLOW_STEPS[currentStep]?.phase === 'hero'
-                    ? 'bg-gradient-to-r from-green-400 to-blue-600'
-                    : 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                    ? 'bg-gradient-to-r from-brand-primary to-brand-secondary'
+                    : 'bg-gradient-to-r from-semantic-success to-brand-primary'
           }`}>
             <div className="flex items-center gap-2">
               <div className="text-xl">{WORKFLOW_STEPS[currentStep]?.icon}</div>
@@ -1607,11 +1608,11 @@ export default function UnifiedDemo() {
           </div>
 
           {/* Primary CTA - Big and Obvious */}
-          <div className="bg-gradient-to-r from-green-500 to-blue-600 rounded-xl shadow-lg p-4 text-white text-center">
+          <div className="bg-gradient-to-r from-brand-primary to-brand-secondary rounded-xl shadow-lg p-4 text-white text-center">
             <h2 className="text-lg font-bold mb-2">
               🚀 Ready to Transform Your Combines?
             </h2>
-            <p className="text-sm text-green-100 mb-3">
+            <p className="text-sm mb-3 opacity-90">
               Join 5,000+ coaches who've revolutionized their workflow
             </p>
             
@@ -1620,12 +1621,12 @@ export default function UnifiedDemo() {
                 console.log('[Analytics] demo_cta_click_signup');
                 navigate("/signup");
               }}
-              className="w-full bg-white text-green-600 font-bold py-4 px-6 text-lg rounded-xl hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02] shadow-lg mb-3"
+              className="w-full bg-white text-brand-primary font-bold py-4 px-6 text-lg rounded-xl hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02] shadow-lg mb-3"
             >
               ⚡ Start Your Free Trial Now
             </button>
             
-            <div className="text-xs text-green-100">
+            <div className="text-xs opacity-90">
               ✅ No credit card required • ✅ Setup in 30 seconds • ✅ 99.8% satisfaction rate
             </div>
           </div>
