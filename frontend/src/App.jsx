@@ -77,7 +77,7 @@ function App() {
                 <Route 
                   path="/coach" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <CoachDashboard />
                       </AuthenticatedLayout>
@@ -87,7 +87,7 @@ function App() {
                 <Route 
                   path="/schedule" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <Schedule />
                       </AuthenticatedLayout>
@@ -99,7 +99,7 @@ function App() {
                 <Route 
                   path="/evaluators" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <EvaluatorManagementPage />
                       </AuthenticatedLayout>
@@ -109,7 +109,7 @@ function App() {
                 <Route 
                   path="/team-formation" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <TeamFormationPage />
                       </AuthenticatedLayout>
@@ -119,7 +119,7 @@ function App() {
                 <Route 
                   path="/sport-templates" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <SportTemplatesPage />
                       </AuthenticatedLayout>
@@ -129,7 +129,7 @@ function App() {
                 <Route 
                   path="/scorecards" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <ScorecardsPage />
                       </AuthenticatedLayout>
@@ -139,7 +139,7 @@ function App() {
                 <Route 
                   path="/players/rankings" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <ScorecardsPage />
                       </AuthenticatedLayout>
@@ -149,7 +149,7 @@ function App() {
                 <Route 
                   path="/event-sharing" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <EventSharing />
                       </AuthenticatedLayout>
@@ -160,7 +160,7 @@ function App() {
                 <Route
                   path="/dashboard"
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <Home />
                       </AuthenticatedLayout>
@@ -171,7 +171,7 @@ function App() {
                 <Route
                   path="/players"
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <Players />
                       </AuthenticatedLayout>
@@ -181,7 +181,7 @@ function App() {
                 <Route
                   path="/admin"
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <div className="container mx-auto px-4 py-8">
                           <AdminTools />
@@ -193,7 +193,7 @@ function App() {
                 <Route
                   path="/live-entry"
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <LiveEntry />
                       </AuthenticatedLayout>
@@ -203,7 +203,7 @@ function App() {
                 <Route
                   path="/live-standings"
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <LiveStandings />
                       </AuthenticatedLayout>
@@ -213,7 +213,7 @@ function App() {
                 <Route 
                   path="/analytics" 
                   element={
-                    <RequireAuth>
+                    <RequireAuth skipRoleCheck={true}>
                       <AuthenticatedLayout>
                         <Analytics />
                       </AuthenticatedLayout>
@@ -273,9 +273,9 @@ function App() {
                     <MfaEnroll />
                   </WelcomeLayout>
                 } />
-                <Route path="/create-league" element={<RequireAuth><AuthenticatedLayout><CreateLeague /></AuthenticatedLayout></RequireAuth>} />
-                <Route path="/join" element={<RequireAuth><AuthenticatedLayout><JoinLeague /></AuthenticatedLayout></RequireAuth>} />
-                <Route path="/select-league" element={<RequireAuth><AuthenticatedLayout><SelectLeague /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/create-league" element={<RequireAuth skipRoleCheck={true}><AuthenticatedLayout><CreateLeague /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/join" element={<RequireAuth skipRoleCheck={true}><AuthenticatedLayout><JoinLeague /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/select-league" element={<RequireAuth skipRoleCheck={true}><AuthenticatedLayout><SelectLeague /></AuthenticatedLayout></RequireAuth>} />
                 {/* Redirect /league to /select-league for better UX */}
                 <Route path="/league" element={<Navigate to="/select-league" replace />} />
                 <Route path="/select-role" element={
@@ -283,7 +283,7 @@ function App() {
                     <SelectRole />
                   </RequireAuth>
                 } />
-                <Route path="/onboarding/event" element={<RequireAuth><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/onboarding/event" element={<RequireAuth skipRoleCheck={true}><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
                 <Route path="/join-event/:leagueId/:eventId/:role" element={<JoinEvent />} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />

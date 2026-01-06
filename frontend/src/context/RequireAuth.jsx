@@ -3,7 +3,7 @@ import { useAuth } from "./AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import LoadingScreen from '../components/LoadingScreen';
 
-export default function RequireAuth({ children }) {
+export default function RequireAuth({ children, skipRoleCheck = false }) {
   const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
 
@@ -32,6 +32,13 @@ export default function RequireAuth({ children }) {
     return <Navigate to="/verify-email" replace />;
   }
   
+  // CRITICAL FIX: Skip role check for routes wrapped in RouteDecisionGate
+  // The gate will handle role-based routing decisions after all state is ready
+  // This prevents RequireAuth from redirecting to /select-role prematurely
+  if (skipRoleCheck) {
+    return children;
+  }
+  
   // Special case: if user is authenticated but has no role,
   // redirect to select-role UNLESS we're already on that page
   if (!userRole && location.pathname !== '/select-role') {
@@ -43,6 +50,7 @@ export default function RequireAuth({ children }) {
       
     }
     
+    console.log('[RequireAuth] NAV_FROM: RequireAuth → /select-role (no role)');
     return <Navigate to="/select-role" replace />;
   }
   
