@@ -723,10 +723,17 @@ function parseJwtPayload(token) {
         
         transitionTo(STATUS.READY, 'Initialization complete');
         
-        // CRITICAL FIX: DO NOT NAVIGATE HERE
-        // Let RouteDecisionGate handle ALL navigation decisions
-        // AuthContext only sets state, gate decides routing
-        authLogger.debug('Auth complete - RouteDecisionGate will handle routing')
+        // CRITICAL: If user is on /login, navigate to dashboard to trigger RouteDecisionGate
+        // Gate will then immediately redirect to the correct final destination based on role/leagues
+        // This creates a clean single-decision flow: /login → /dashboard (gate) → /coach (final)
+        const currentPath = window.location.pathname;
+        if (currentPath === '/login') {
+          authLogger.debug('Auth complete from /login - navigating to /dashboard to trigger gate');
+          navigate('/dashboard', { replace: true });
+        } else {
+          // Already on a protected route, gate will handle it
+          authLogger.debug('Auth complete - RouteDecisionGate will handle routing');
+        }
 
       } catch (err) {
         setError(err.message);

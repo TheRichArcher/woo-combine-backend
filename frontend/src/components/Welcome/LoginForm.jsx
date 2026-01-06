@@ -29,15 +29,18 @@ export default function LoginForm() {
     
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Immediate redirect to ensure we don't stay on /login
-      try {
-        const stored = localStorage.getItem('postLoginRedirect');
-        const target = (stored && stored !== '/login') ? stored : '/dashboard';
+      // CRITICAL FIX: Don't navigate here - let AuthContext handle navigation
+      // after role/league state is fully ready. This prevents flicker through
+      // intermediate routes like /dashboard before reaching final destination.
+      // LoginForm will unmount when AuthContext redirects to proper route.
+      
+      // Store intended redirect if exists (for post-verification flow)
+      const stored = localStorage.getItem('postLoginRedirect');
+      if (stored && stored !== '/login') {
+        localStorage.setItem('postLoginTarget', stored);
         localStorage.removeItem('postLoginRedirect');
-        navigate(target, { replace: true });
-      } catch {
-        navigate('/dashboard', { replace: true });
       }
+      // Don't navigate - AuthContext onAuthStateChanged will handle it
     } catch (err) {
       // Handle expected credential errors without Sentry logging
       if (!isExpectedAuthError(err.code)) {

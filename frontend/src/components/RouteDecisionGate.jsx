@@ -180,11 +180,20 @@ export default function RouteDecisionGate({ children }) {
   // Make ONE routing decision when ready
   useEffect(() => {
     if (!isReady || decisionMade || navigationAttempted.current) {
+      // DIAGNOSTIC: Log why we're not making a decision
+      if (!isReady) {
+        console.log(`${logPrefix} DECISION_BLOCKED: !isReady`);
+      } else if (decisionMade) {
+        console.log(`${logPrefix} DECISION_BLOCKED: decisionMade=true`);
+      } else if (navigationAttempted.current) {
+        console.log(`${logPrefix} DECISION_BLOCKED: navigationAttempted=true`);
+      }
       return;
     }
 
     // Don't navigate if we're on a bypass route
     if (bypassGate) {
+      console.log(`${logPrefix} DECISION_BLOCKED: bypassGate=true`);
       return;
     }
 
