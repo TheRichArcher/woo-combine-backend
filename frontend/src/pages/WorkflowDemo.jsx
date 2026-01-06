@@ -325,29 +325,8 @@ export default function UnifiedDemo() {
     };
   }, [currentStep, isAutoPlaying]);
 
-  // Auto-trigger magic for "The Game Changer" step
-  useEffect(() => {
-    if (isAutoPlaying && currentStep === 1) {
-      const autoTriggerTimer = setTimeout(() => {
-        // Simplified notification sequence for demo
-        addNotification("⚡ MAGIC INITIATED: Multi-evaluator sync!", "success", 3000);
-        setTimeout(() => {
-          addNotification("📱 Parent phones exploding with updates!", "success", 3000);
-        }, 1000);
-        setTimeout(() => {
-          addNotification("🧠 AI rankings updated instantly!", "success", 3000);
-        }, 2000);
-        setTimeout(() => {
-          addNotification("📊 Professional reports generated!", "success", 3000);
-        }, 3000);
-        setTimeout(() => {
-          addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
-        }, 4000);
-      }, 1500); // Auto-trigger after 1.5 seconds in auto-play mode
-
-      return () => clearTimeout(autoTriggerTimer);
-    }
-  }, [isAutoPlaying, currentStep]);
+  // Auto-trigger notifications removed - they were too distracting during slide transitions
+  // Slide content communicates value propositions more effectively
 
   // Advance to next step function
   const advanceToNextStep = () => {
@@ -492,17 +471,8 @@ export default function UnifiedDemo() {
     const timeouts = [];
     const intervals = [];
 
-    // NEW REVOLUTIONARY STEP LOGIC - Simple and effective!
-    if (currentStep === 1 && isAutoPlaying) {
-      // For "The Game Changer" step, add some demo data after a delay
-      timeouts.push(setTimeout(() => {
-        addNotification("⚡ Real-time magic is happening!", "success", 3000);
-      }, 2000));
-      
-      timeouts.push(setTimeout(() => {
-        addNotification("📱 Parents are getting instant updates!", "success", 3000); 
-      }, 4000));
-    }
+    // Notifications removed - they competed with slide content and caused distracting timing conflicts
+    // The slide content itself tells the story effectively
 
     // OLD LOGIC DISABLED - keeping for reference but not executed
     switch (step.component) {
@@ -974,31 +944,10 @@ export default function UnifiedDemo() {
 
         return (
           <div className="space-y-1">
-            {/* Compact Button - Auto-triggers during demo */}
-            <div className="text-center">
-              <button
-                onClick={() => {
-                  // Manual trigger for non-auto mode
-                  addNotification("⚡ MAGIC INITIATED: Multi-evaluator sync!", "success", 3000);
-                  setTimeout(() => {
-                    addNotification("📱 Parent phones exploding with updates!", "success", 3000);
-                  }, 1000);
-                  setTimeout(() => {
-                    addNotification("🧠 AI rankings updated instantly!", "success", 3000);
-                  }, 2000);
-                  setTimeout(() => {
-                    addNotification("📊 Professional reports generated!", "success", 3000);
-                  }, 3000);
-                  setTimeout(() => {
-                    addNotification("🎉 47 HOURS SAVED! Welcome to the future!", "success", 4000);
-                  }, 4000);
-                }}
-                className={`bg-brand-primary hover:bg-brand-secondary text-white font-bold py-2 px-4 rounded-lg text-sm transform hover:scale-105 transition-all duration-300 shadow-lg ${isAutoPlaying ? 'animate-pulse opacity-75' : 'animate-pulse'}`}
-                disabled={isAutoPlaying}
-              >
-                🎯 {isAutoPlaying ? 'AUTO-TRIGGERING...' : 'TRIGGER THE MAGIC!'}
-              </button>
-              <p className="text-gray-600 text-xs mt-1">{isAutoPlaying ? 'Magic happening automatically!' : 'Click to see real-time updates'}</p>
+            {/* Hero Message */}
+            <div className="text-center bg-white/50 rounded-lg p-2 border border-brand-primary/20">
+              <p className="text-sm font-semibold text-brand-primary mb-1">✨ Real-Time Everything</p>
+              <p className="text-xs text-gray-600">Multi-evaluator sync • Live parent updates • Auto rankings • Instant reports</p>
             </div>
 
             {/* Compact Stats */}
