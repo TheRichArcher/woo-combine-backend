@@ -513,33 +513,21 @@ function parseJwtPayload(token) {
       // FAST EXIT: If we're on the login page, immediately send the user back
       try {
         if (initialPath === '/login') {
-          // CRITICAL FIX: Check for pending join FIRST, before default redirect
+          // CRITICAL FIX: Check for pending join FIRST, before any initialization
           // This ensures users returning from email verification loop back to the join flow
           const pendingEventJoin = localStorage.getItem('pendingEventJoin');
           if (pendingEventJoin) {
             const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-            authLogger.debug('Redirecting to pending invited event join from FAST EXIT');
+            authLogger.debug('Redirecting to pending invited event join');
             navigate(`/join-event/${safePath}`, { replace: true });
             setInitializing(false);
             return;
           }
-
-          const target = localStorage.getItem('postLoginRedirect') || '/dashboard';
-          localStorage.removeItem('postLoginRedirect');
-          // Ensure minimal ready state before redirect so guards don't stall
-          const cachedRoleQuick = sanitizeRole(localStorage.getItem('userRole'));
-          if (cachedRoleQuick) {
-            setUserRole(cachedRoleQuick);
-            setRole(cachedRoleQuick);
-          }
-          setRoleChecked(true);
           
-          transitionTo(STATUS.READY, 'Fast exit from login');
-          // League fetch will be triggered by useEffect watching state
-          
-          navigate(target, { replace: true });
-          setInitializing(false);
-          return;
+          // REMOVED: Fast exit path - was causing race conditions where roleChecked was set
+          // before userRole state propagated, causing premature redirects to /select-role
+          // Now always go through normal initialization to ensure proper state sync
+          authLogger.debug('Login detected - proceeding with normal initialization flow');
         }
       } catch {}
       
@@ -567,7 +555,7 @@ function parseJwtPayload(token) {
       try {
         authLogger.debug('Starting role check for user', firebaseUser.email);
         
-        // PERFORMANCE FIX: Always use cached role for immediate UI load
+        // PERFORMANCE FIX: Use cached role ONLY if it exists for immediate UI load
         const cachedRole = sanitizeRole(localStorage.getItem('userRole'));
         const cachedEmail = localStorage.getItem('userEmail');
         
@@ -575,7 +563,7 @@ function parseJwtPayload(token) {
           authLogger.debug('Using cached role for immediate startup', cachedRole);
           setUserRole(cachedRole);
           setRole(cachedRole);
-          setRoleChecked(true);
+          setRoleChecked(true); // Only mark checked when we have a valid cached role
           setInitializing(false); // Don't wait for API verification
           
           transitionTo(STATUS.READY, 'Cached role used');
