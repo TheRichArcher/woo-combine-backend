@@ -405,29 +405,29 @@ export default function Analytics() {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {loading ? (
           <div className="text-center text-gray-600">Loading analytics…</div>
         ) : error ? (
           <div className="text-center text-semantic-error">{error}</div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {summaryTiles.map((tile, idx) => (
-                  <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center flex flex-col items-center justify-center">
-                    <div className="text-xs text-gray-500 mb-1">{tile.title}</div>
-                    <div className="text-2xl font-bold text-gray-900 flex items-baseline gap-1">
+                  <div key={idx} className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 text-center flex flex-col items-center justify-center">
+                    <div className="text-[10px] text-gray-500 mb-0.5">{tile.title}</div>
+                    <div className="text-xl font-bold text-gray-900 flex items-baseline gap-1">
                         {tile.value}
-                        {tile.unit && <span className="text-sm font-normal text-gray-500">{tile.unit}</span>}
+                        {tile.unit && <span className="text-xs font-normal text-gray-500">{tile.unit}</span>}
                     </div>
-                    {tile.sub && <div className="text-[10px] text-gray-400 font-medium uppercase tracking-wide mt-1">{tile.sub}</div>}
+                    {tile.sub && <div className="text-[9px] text-gray-400 font-medium uppercase tracking-wide mt-0.5">{tile.sub}</div>}
                   </div>
               ))}
             </div>
 
             {/* Drill Explorer */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-              <div className="flex items-center justify-between mb-3 gap-2">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
+              <div className="flex items-center justify-between mb-2 gap-2">
                 <h2 className="font-semibold text-gray-900">Drill Explorer</h2>
                 <div className="flex flex-wrap items-center gap-2">
                   
@@ -693,7 +693,7 @@ export default function Analytics() {
                   <div>
                     <div className="text-sm text-gray-700 font-medium mb-2">{selectedDrill.label} at a glance</div>
                     <div className="grid grid-cols-1 gap-2">
-                      <div className="bg-gray-50 rounded border p-3 text-sm">
+                      <div className="bg-gray-50 rounded-lg border p-3 text-sm">
                         <div>Best: <span className="font-semibold">{drillStats.bestEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.bestEntry?.participantId} {drillStats.bestEntry?.player?.name})</div>
                         <div>Typical range: <span className="font-semibold">{drillStats.p25?.toFixed(2)}–{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</span></div>
                         <div>Needs work: <span className="font-semibold">{drillStats.worstEntry?.value?.toFixed(2)} {selectedDrill.unit}</span> ({drillStats.worstEntry?.participantId} {drillStats.worstEntry?.player?.name})</div>
@@ -722,20 +722,20 @@ export default function Analytics() {
 
                   {/* Stats + Top performers */}
                   <div>
-                    <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="grid grid-cols-3 gap-1.5 mb-2">
                       {selectedDrill.lowerIsBetter ? (
                         <>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
                             <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
                           </div>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P25: top 25% cutoff (lower is better)" aria-label="P25, top 25% cutoff">P25</div>
                             <div className="font-semibold text-gray-900">{drillStats.p25?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Top 25% cutoff</div>
                           </div>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P10: top 10% cutoff (lower is better)" aria-label="P10, top 10% cutoff">P10</div>
                             <div className="font-semibold text-gray-900">{drillStats.p10?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Top 10% cutoff</div>
@@ -743,17 +743,17 @@ export default function Analytics() {
                         </>
                       ) : (
                         <>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P50: the middle score (half of scores are below, half above)" aria-label="P50, the middle score">P50</div>
                             <div className="font-semibold text-gray-900">{drillStats.p50?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Middle score</div>
                           </div>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P75: top 25% cutoff (higher is better)" aria-label="P75, top 25% cutoff">P75</div>
                             <div className="font-semibold text-gray-900">{drillStats.p75?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Top 25% cutoff</div>
                           </div>
-                          <div className="bg-gray-50 rounded border p-2 text-center">
+                          <div className="bg-gray-50 rounded-lg border p-2 text-center">
                             <div className="text-xs text-gray-500" title="P90: top 10% cutoff (higher is better)" aria-label="P90, top 10% cutoff">P90</div>
                             <div className="font-semibold text-gray-900">{drillStats.p90?.toFixed(2)} {selectedDrill.unit}</div>
                             <div className="text-[11px] text-gray-500 mt-0.5">Top 10% cutoff</div>
@@ -770,7 +770,7 @@ export default function Analytics() {
                       {drillStats.top5.map((t, idx) => (
                         <div 
                             key={idx} 
-                            className={`flex items-center justify-between text-sm bg-white rounded border p-2 cursor-pointer transition-colors ${highlightedPlayerId === t.id ? 'ring-2 ring-brand-primary bg-blue-50' : 'hover:bg-gray-50'}`}
+                            className={`flex items-center justify-between text-sm bg-white rounded-lg border p-2 cursor-pointer transition-colors ${highlightedPlayerId === t.id ? 'ring-2 ring-brand-primary bg-blue-50' : 'hover:bg-gray-50'}`}
                             onClick={() => {
                                 setHighlightedPlayerId(t.id);
                                 openDetails(t.player, {
