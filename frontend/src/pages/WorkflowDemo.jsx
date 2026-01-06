@@ -1524,31 +1524,39 @@ export default function UnifiedDemo() {
 
         {/* Call to Action - Much More Prominent */}
         <div className="mt-2 space-y-2">
-          {/* What to Expect - Honest Timeline */}
-          <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
-            <h3 className="text-blue-800 font-bold text-center mb-2">📋 What Happens Next (2-3 minutes setup)</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                <span className="text-blue-700">Create account & verify email (30 seconds)</span>
+          {/* During demo: Simple reassurance. Final slide: Full checklist */}
+          {currentStep === 7 ? (
+            // FINAL SLIDE: Full "What Happens Next" with 4-step checklist
+            <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-4">
+              <h3 className="text-blue-800 font-bold text-center mb-2">📋 What Happens Next (2-3 minutes setup)</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                  <span className="text-blue-700">Create account & verify email (30 seconds)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                  <span className="text-blue-700">Choose your role (coach, organizer, etc.)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                  <span className="text-blue-700">Create league & first event</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                  <span className="text-blue-700">Add players & start timing! 🏃‍♂️</span>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                <span className="text-blue-700">Choose your role (coach, organizer, etc.)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-                <span className="text-blue-700">Create league & first event</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">4</span>
-                <span className="text-blue-700">Add players & start timing! 🏃‍♂️</span>
-              </div>
+              <p className="text-center text-blue-600 text-xs mt-3 font-medium">
+                💡 This matches exactly what you just saw, step-by-step!
+              </p>
             </div>
-            <p className="text-center text-blue-600 text-xs mt-3 font-medium">
-              💡 This matches what you just saw, step-by-step!
-            </p>
-          </div>
+          ) : (
+            // DURING DEMO: Single-line reassurance only
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-2 mb-4 text-center">
+              <p className="text-xs text-gray-600">⏱️ Setup takes ~2–3 minutes after signup</p>
+            </div>
+          )}
 
           {/* Primary CTA - Big and Obvious */}
           <div className="bg-gradient-to-r from-brand-primary to-brand-secondary rounded-xl shadow-lg p-4 text-white text-center">
