@@ -1466,7 +1466,7 @@ export default function UnifiedDemo() {
         </button>
       </div>
       
-      <div className="max-w-4xl mx-auto px-4 py-2">
+      <div className="max-w-lg mx-auto px-4 py-2">
         {/* Header */}
         <div className="text-center mb-1">
           <div className="bg-white rounded-xl shadow-lg p-1">
