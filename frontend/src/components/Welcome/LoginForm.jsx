@@ -35,7 +35,7 @@ export default function LoginForm() {
       // LoginForm will unmount when AuthContext redirects to proper route.
       
       // Store intended redirect if exists (for post-verification flow)
-      const stored = localStorage.getItem('postLoginRedirect');
+        const stored = localStorage.getItem('postLoginRedirect');
       if (stored && stored !== '/login') {
         localStorage.setItem('postLoginTarget', stored);
         localStorage.removeItem('postLoginRedirect');

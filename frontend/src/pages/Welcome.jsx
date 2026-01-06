@@ -59,18 +59,35 @@ export default function Welcome() {
             {content.subtitle}
           </p>
           
-          {/* Primary CTA Buttons */}
+          {/* Primary CTA Buttons - Dual intent: Action vs Proof */}
           <div className="space-y-3 mb-6">
-            <Button size="lg" className="w-full" onClick={() => navigate("/signup")}>
-              {content.buttonText}
+            {/* Primary: Direct Action for ready users */}
+            <Button 
+              size="lg" 
+              className="w-full" 
+              onClick={() => {
+                console.log('[Analytics] welcome_cta_start_setup');
+                navigate("/signup");
+              }}
+            >
+              🚀 Start Setup Now
             </Button>
-            {/* Unified Demo Button */}
-            <div className="flex justify-center">
-              <Button variant="outline" className="py-4 px-8" onClick={() => navigate("/workflow-demo")}>
-                🚀 Watch Complete Demo
-                <div className="text-xs text-gray-600 mt-1">Workflow + Features in Action</div>
-              </Button>
-            </div>
+            
+            {/* Secondary: Proof for skeptical users */}
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="w-full" 
+              onClick={() => {
+                console.log('[Analytics] welcome_demo_click');
+                navigate("/workflow-demo");
+              }}
+            >
+              <div className="text-center">
+                <div className="font-semibold">See how to run a combine in 3 minutes</div>
+                <div className="text-xs text-gray-500 mt-0.5">Setup → Live Entry → Rankings → Export (no signup)</div>
+              </div>
+            </Button>
           </div>
         </div>
 

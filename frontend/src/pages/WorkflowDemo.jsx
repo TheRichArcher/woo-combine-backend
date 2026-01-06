@@ -98,7 +98,8 @@ const WORKFLOW_STEPS = [
     icon: "😰",
     color: "from-red-500 to-orange-600",
     duration: 5000, // Optimized for reading speed
-    phase: "pain"
+    phase: "pain",
+    category: "intro"
   },
   
   // PHASE 2: HERO FEATURE (45 seconds)
@@ -109,7 +110,8 @@ const WORKFLOW_STEPS = [
     icon: "✨",
     color: "from-green-400 to-blue-600",
     duration: 6000, // Auto-triggers during demo, no manual click needed
-    phase: "hero"
+    phase: "hero",
+    category: "intro"
   },
   
   // PHASE 3: WORKFLOW + FEATURES ALTERNATING (150 seconds)
@@ -122,7 +124,8 @@ const WORKFLOW_STEPS = [
     icon: "🏃‍♂️",
     color: "from-green-500 to-teal-600",
     duration: 8000, // Better reading time
-    phase: "workflow_ease"
+    phase: "workflow_ease",
+    category: "setup"
   },
   
   // FEATURE POWER: Parent Engagement  
@@ -133,7 +136,8 @@ const WORKFLOW_STEPS = [
     icon: "📲",
     color: "from-blue-500 to-cyan-600",
     duration: 7000, // Better reading time
-    phase: "features"
+    phase: "features",
+    category: "setup"
   },
   
   // WORKFLOW EASE: Live Data Entry
@@ -144,7 +148,8 @@ const WORKFLOW_STEPS = [
     icon: "⚡",
     color: "from-orange-500 to-red-600",
     duration: 8000, // Better demo time
-    phase: "workflow_ease"
+    phase: "workflow_ease",
+    category: "live"
   },
   
   // FEATURE POWER: Intelligent Rankings
@@ -155,7 +160,8 @@ const WORKFLOW_STEPS = [
     icon: "🧠",
     color: "from-purple-500 to-pink-600",
     duration: 7000, // Better ranking demo time
-    phase: "features"
+    phase: "features",
+    category: "rankings"
   },
   
   // WORKFLOW EASE: Instant Reports
@@ -166,7 +172,8 @@ const WORKFLOW_STEPS = [
     icon: "📈",
     color: "from-indigo-500 to-purple-600",
     duration: 7000, // Better report time
-    phase: "workflow_ease"
+    phase: "workflow_ease",
+    category: "export"
   },
   
   // PHASE 4: RESULTS (30 seconds)
@@ -177,8 +184,17 @@ const WORKFLOW_STEPS = [
     icon: "🏆",
     color: "from-yellow-400 to-orange-500",
     duration: 10000, // Important final message needs time
-    phase: "results"
+    phase: "results",
+    category: "export"
   }
+];
+
+// Jump chip categories for navigation
+const JUMP_CATEGORIES = [
+  { id: 'setup', label: 'Setup', icon: '🏃‍♂️', targetStep: 2 },
+  { id: 'live', label: 'Live Entry', icon: '⚡', targetStep: 4 },
+  { id: 'rankings', label: 'Rankings', icon: '🎯', targetStep: 5 },
+  { id: 'export', label: 'Export', icon: '📊', targetStep: 6 }
 ];
 
 export default function UnifiedDemo() {
@@ -188,14 +204,29 @@ export default function UnifiedDemo() {
   const [stepProgress, setStepProgress] = useState(0);
   const [notifications, setNotifications] = useState([]);
   const intervalRef = useRef();
+  
+  // Conversion optimization state
+  const [showSkipIntro, setShowSkipIntro] = useState(false);
+  const [demoStarted, setDemoStarted] = useState(false);
 
   // Auto-start the demo when component mounts
   useEffect(() => {
+    console.log('[Analytics] demo_started');
+    setDemoStarted(true);
+    
     const autoStartTimer = setTimeout(() => {
       setIsAutoPlaying(true);
     }, 1000); // Start after 1 second to allow component to fully load
+    
+    // Show skip intro button after 3 seconds
+    const skipTimer = setTimeout(() => {
+      setShowSkipIntro(true);
+    }, 3000);
 
-    return () => clearTimeout(autoStartTimer);
+    return () => {
+      clearTimeout(autoStartTimer);
+      clearTimeout(skipTimer);
+    };
   }, []);
 
   // Demo state
@@ -257,6 +288,9 @@ export default function UnifiedDemo() {
       setIsAutoPlaying(false);
       return;
     }
+    
+    // Log step view
+    console.log(`[Analytics] demo_step_viewed_${currentStep}`);
 
     // Progress bar animation
     setStepProgress(0);
@@ -277,8 +311,9 @@ export default function UnifiedDemo() {
       } else {
         setIsAutoPlaying(false);
         // Demo complete notification
+        console.log('[Analytics] demo_completed');
         setTimeout(() => {
-          addNotification("🎉 Revolutionary demo complete! Ready to transform your combines?", "success", 5000);
+          addNotification("🎉 Demo complete! Ready to start your setup?", "success", 5000);
         }, 500);
       }
     }, step.duration);
@@ -327,6 +362,22 @@ export default function UnifiedDemo() {
     resetDemo();
     setCurrentStep(0);
     setIsAutoPlaying(true);
+  };
+  
+  // Skip intro handler (jumps to Setup step)
+  const handleSkipIntro = () => {
+    console.log('[Analytics] demo_skip_intro');
+    setCurrentStep(2); // Jump to "Setup in 60 Seconds" step
+    setShowSkipIntro(false);
+  };
+  
+  // Jump chip handler for category navigation
+  const handleJumpToCategory = (category) => {
+    const jumpTarget = JUMP_CATEGORIES.find(cat => cat.id === category);
+    if (jumpTarget) {
+      console.log(`[Analytics] demo_jump_${category}`);
+      setCurrentStep(jumpTarget.targetStep);
+    }
   };
 
   const resetDemo = () => {
@@ -1361,7 +1412,7 @@ export default function UnifiedDemo() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-20 md:pb-2">
       {/* Notifications */}
       {notifications.length > 0 && (
         <div className="fixed top-4 right-4 z-50 space-y-2">
@@ -1379,6 +1430,40 @@ export default function UnifiedDemo() {
           ))}
         </div>
       )}
+      
+      {/* Duration Estimate Banner */}
+      {currentStep < 2 && (
+        <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-center py-2 px-4">
+          <p className="text-sm font-medium">
+            ⏱️ <strong>~2–3 minutes</strong> to see complete workflow • Setup → Live Entry → Rankings → Export
+          </p>
+        </div>
+      )}
+      
+      {/* Skip Intro Button */}
+      {showSkipIntro && currentStep < 2 && (
+        <div className="fixed top-20 right-4 z-40 animate-slide-in">
+          <button
+            onClick={handleSkipIntro}
+            className="bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg shadow-lg font-medium text-sm border border-gray-200 transition-all duration-200"
+          >
+            ⏭️ Skip intro
+          </button>
+        </div>
+      )}
+      
+      {/* Persistent Sticky CTA - Mobile only */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 shadow-lg z-40 md:hidden">
+        <button
+          onClick={() => {
+            console.log('[Analytics] demo_cta_click_start_setup');
+            navigate("/signup");
+          }}
+          className="w-full bg-gradient-to-r from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 transform active:scale-95"
+        >
+          🚀 Start Setup Now
+        </button>
+      </div>
       
       <div className="max-w-4xl mx-auto px-4 py-2">
         {/* Header */}
@@ -1431,6 +1516,26 @@ export default function UnifiedDemo() {
                 ></div>
               </div>
             )}
+          </div>
+        </div>
+        
+        {/* Jump Chips - Quick Navigation */}
+        <div className="bg-white rounded-xl shadow-md p-3 mb-2">
+          <p className="text-xs text-gray-600 text-center mb-2 font-medium">Quick jump to:</p>
+          <div className="flex flex-wrap justify-center gap-2">
+            {JUMP_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => handleJumpToCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  WORKFLOW_STEPS[currentStep]?.category === cat.id
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {cat.icon} {cat.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -1511,7 +1616,10 @@ export default function UnifiedDemo() {
             </p>
             
             <button
-              onClick={() => navigate("/signup")}
+              onClick={() => {
+                console.log('[Analytics] demo_cta_click_signup');
+                navigate("/signup");
+              }}
               className="w-full bg-white text-green-600 font-bold py-4 px-6 text-lg rounded-xl hover:bg-gray-50 transition-all duration-200 transform hover:scale-[1.02] shadow-lg mb-3"
             >
               ⚡ Start Your Free Trial Now
@@ -1532,10 +1640,13 @@ export default function UnifiedDemo() {
             </button>
             
             <button
-              onClick={() => navigate("/signup")}
+              onClick={() => {
+                console.log('[Analytics] demo_cta_click_start_setup');
+                navigate("/signup");
+              }}
               className="bg-gray-100 hover:bg-gray-200 text-gray-600 font-medium py-2 px-4 rounded-lg text-sm transition-all duration-200"
             >
-              ← Ready? Let's Start
+              🚀 Ready? Start Setup
             </button>
           </div>
         </div>

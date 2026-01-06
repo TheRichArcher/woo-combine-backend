@@ -523,7 +523,7 @@ function parseJwtPayload(token) {
             setInitializing(false);
             return;
           }
-          
+
           // REMOVED: Fast exit path - was causing race conditions where roleChecked was set
           // before userRole state propagated, causing premature redirects to /select-role
           // Now always go through normal initialization to ensure proper state sync
@@ -714,7 +714,7 @@ function parseJwtPayload(token) {
         authLogger.debug('Role confirmed - league fetch will be triggered by state machine');
 
         setRoleChecked(true);
-        
+
         authLogger.debug('Auth state after role check', {
           userRole,
           selectedLeagueId: localStorage.getItem('selectedLeagueId'),
@@ -730,7 +730,7 @@ function parseJwtPayload(token) {
         if (currentPath === '/login') {
           authLogger.debug('Auth complete from /login - navigating to /dashboard to trigger gate');
           navigate('/dashboard', { replace: true });
-        } else {
+          } else {
           // Already on a protected route, gate will handle it
           authLogger.debug('Auth complete - RouteDecisionGate will handle routing');
         }

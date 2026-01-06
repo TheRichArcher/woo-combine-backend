@@ -49,8 +49,8 @@ function AuthenticatedLayout({ children }) {
   return (
     <ErrorBoundary>
       <RouteDecisionGate>
-        <Navigation />
-        {children}
+      <Navigation />
+      {children}
       </RouteDecisionGate>
     </ErrorBoundary>
   );
