@@ -1477,19 +1477,9 @@ export default function UnifiedDemo() {
             <h1 className="text-base md:text-sm font-bold text-gray-900 mb-1">
               🚀 WooCombine: The Revolution
             </h1>
-            <p className="text-gray-600 text-xs mb-1">
+            <p className="text-gray-600 text-xs mb-2">
               Pain → Solution → Wow Factor (watch the transformation!)
             </p>
-            
-            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mb-1">
-              <button
-                onClick={resetDemo}
-                className="w-full sm:w-auto bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition flex items-center justify-center gap-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                Reset Demo
-              </button>
-            </div>
 
             {/* Step Progress */}
             <div className="flex flex-wrap justify-center gap-1 mb-1">
