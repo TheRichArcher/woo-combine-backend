@@ -500,7 +500,7 @@ export default function UnifiedDemo() {
       }, 2000));
       
       timeouts.push(setTimeout(() => {
-        addNotification("📱 Parents are getting instant updates!", "info", 3000); 
+        addNotification("📱 Parents are getting instant updates!", "success", 3000); 
       }, 4000));
     }
 
