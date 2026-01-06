@@ -727,14 +727,6 @@ function parseJwtPayload(token) {
 
         setRoleChecked(true);
         
-        // Navigation logic (reuse currentPath from above)
-        // Include '/welcome' and '/select-role' so authenticated users land on the dashboard automatically
-        const onboardingRoutes = ["/login", "/signup", "/", "/welcome", "/select-role"];
-        authLogger.debug('Checking navigation', { currentPath, onboardingRoutes });
-        
-        // No artificial delays - league fetch is started, will complete in background
-        // Components are gated by leaguesLoading state, not fixed timeouts
-
         authLogger.debug('Auth state after role check', {
           userRole,
           selectedLeagueId: localStorage.getItem('selectedLeagueId'),
@@ -743,33 +735,10 @@ function parseJwtPayload(token) {
         
         transitionTo(STATUS.READY, 'Initialization complete');
         
-        if (onboardingRoutes.includes(currentPath)) {
-          // If we were redirected here due to session expiry, send user back
-          try {
-            const target = localStorage.getItem('postLoginRedirect');
-            if (target && target !== '/login') {
-              localStorage.removeItem('postLoginRedirect');
-              console.log(`[AuthContext] NAV_FROM: AuthContext → ${target} (post-login redirect)`);
-              authLogger.debug('Navigating back to post-login redirect', target);
-              navigate(target, { replace: true });
-              return;
-            }
-          } catch {}
-          // If we have a pending invited join, honor it first
-          const pendingEventJoin = localStorage.getItem('pendingEventJoin');
-          if (pendingEventJoin) {
-            const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
-            console.log(`[AuthContext] NAV_FROM: AuthContext → /join-event/${safePath} (pending invite)`);
-            authLogger.debug('Redirecting to pending invited event join');
-            navigate(`/join-event/${safePath}`, { replace: true });
-          } else {
-            console.log('[AuthContext] NAV_FROM: AuthContext → /dashboard (init complete)');
-            authLogger.debug('Navigating to /dashboard');
-            navigate("/dashboard");
-          }
-        } else {
-          authLogger.debug('Staying on current path', currentPath);
-        }
+        // CRITICAL FIX: DO NOT NAVIGATE HERE
+        // Let RouteDecisionGate handle ALL navigation decisions
+        // AuthContext only sets state, gate decides routing
+        authLogger.debug('Auth complete - RouteDecisionGate will handle routing')
 
       } catch (err) {
         setError(err.message);
