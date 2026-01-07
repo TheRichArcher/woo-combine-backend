@@ -1114,21 +1114,59 @@ export default function LiveEntry() {
           </div>
         ) : (
           <>
-            {/* Active Drill Header - Sticky */}
-            <div className="sticky top-16 z-10 bg-brand-primary text-white rounded-xl p-4 text-center shadow-lg">
+            {/* Full Status Card (Non-Sticky) - For reassurance/motivation */}
+            <div className="bg-brand-primary text-white rounded-xl p-4 text-center shadow-md">
               <h2 className="text-xl font-bold">{currentDrill.label}</h2>
-              <p className="text-brand-primary/20">Entry Mode Active</p>
+              <p className="text-sm text-white/70 mt-1">Entry Mode Active</p>
               {/* Progress summary */}
-              <div className="mt-2 text-sm">
+              <div className="mt-3 text-sm">
                 You've entered <span className="font-semibold">{completedForDrill}</span> / {totalPlayers} players ({completionPct}%).
               </div>
               <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white/80" style={{ width: `${Math.min(100, completionPct)}%` }} />
+                <div className="h-full bg-white/80 transition-all duration-300" style={{ width: `${Math.min(100, completionPct)}%` }} />
               </div>
-              {/* Removed redundant "Change Drill" link; use drill pills/selector above */}
             </div>
 
-            {/* Quick Drill Switcher */}
+            {/* Slim Sticky Context Bar - Compact drill context while scrolling */}
+            <div className="sticky top-16 z-10 bg-brand-primary/95 backdrop-blur-sm text-white shadow-lg mt-3 -mx-4 px-4 py-2 border-b-2 border-brand-secondary/30">
+              <div className="max-w-lg mx-auto flex items-center justify-between gap-2 text-sm">
+                {/* Left: Drill name + recording state */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <Target className="w-4 h-4 flex-shrink-0" />
+                  <span className="font-bold truncate">{currentDrill.label}</span>
+                  <span className="text-white/60 text-xs flex-shrink-0">
+                    {isCurrentDrillLocked ? '🔒 Locked' : '● Recording'}
+                  </span>
+                </div>
+                
+                {/* Right: Progress + drill pills */}
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  <span className="text-xs text-white/80 font-medium">
+                    {completedForDrill}/{totalPlayers} ({completionPct}%)
+                  </span>
+                  
+                  {/* Quick drill switch (compact) */}
+                  <select
+                    value={selectedDrill || ''}
+                    onChange={(e) => { 
+                      if (e.target.value) {
+                        handleDrillSwitch(e.target.value);
+                      }
+                    }}
+                    className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 text-white border border-white/30 cursor-pointer transition"
+                    title="Switch drill"
+                  >
+                    {drills.map((d) => (
+                      <option key={d.key} value={d.key} className="text-gray-900">
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Optional: Quick Drill Pills (non-sticky, for reference at top) */}
             <div className="mt-3 px-2">
               <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:justify-center pb-2 no-scrollbar">
                 {drills.map((d) => (
@@ -1137,6 +1175,7 @@ export default function LiveEntry() {
                     onClick={() => handleDrillSwitch(d.key)}
                     className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-brand-primary text-white border-brand-primary shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
                     aria-pressed={d.key === selectedDrill}
+                    title={`Switch to ${d.label}`}
                   >
                     {d.label}
                   </button>
