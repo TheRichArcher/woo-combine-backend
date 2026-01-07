@@ -27,6 +27,10 @@ export default function EventSetup({ onBack }) {
   const { selectedEvent } = useEvent();
   const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
 
+  // CRITICAL: Create immutable snapshot of event at component mount
+  // This prevents component from unmounting during deletion flow when selectedEvent becomes null
+  const [eventSnapshot] = useState(() => selectedEvent);
+
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
@@ -468,7 +472,9 @@ export default function EventSetup({ onBack }) {
     );
   }
 
-  if (!selectedEvent || !selectedEvent.id) {
+  // CRITICAL: Use eventSnapshot (immutable) instead of selectedEvent for validation
+  // This keeps component mounted during deletion flow even after selectedEvent is cleared
+  if (!eventSnapshot || !eventSnapshot.id) {
     return null; // Should be handled by parent
   }
 
@@ -488,10 +494,10 @@ export default function EventSetup({ onBack }) {
         {/* Welcome Header */}
         <div className="bg-white rounded-xl shadow-md p-4 mb-4 border-l-4 border-brand-primary">
           <h2 className="text-lg font-bold text-brand-secondary mb-1">
-             {selectedEvent.name}
+             {eventSnapshot.name}
           </h2>
           <p className="text-sm text-gray-600">
-             {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Date not set"} • {selectedEvent.location || 'Location TBD'}
+             {eventSnapshot.date && !isNaN(Date.parse(eventSnapshot.date)) ? new Date(eventSnapshot.date).toLocaleDateString() : "Date not set"} • {eventSnapshot.location || 'Location TBD'}
           </p>
         </div>
 
@@ -504,10 +510,10 @@ export default function EventSetup({ onBack }) {
           
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <div className="space-y-2 text-sm">
-              <p><strong>Name:</strong> {selectedEvent.name}</p>
-              <p><strong>Date:</strong> {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : "Date not set"}</p>
-              <p><strong>Location:</strong> {selectedEvent.location || 'Location TBD'}</p>
-              {selectedEvent.notes && <p><strong>Notes:</strong> {selectedEvent.notes}</p>}
+              <p><strong>Name:</strong> {eventSnapshot.name}</p>
+              <p><strong>Date:</strong> {eventSnapshot.date && !isNaN(Date.parse(eventSnapshot.date)) ? new Date(eventSnapshot.date).toLocaleDateString() : "Date not set"}</p>
+              <p><strong>Location:</strong> {eventSnapshot.location || 'Location TBD'}</p>
+              {eventSnapshot.notes && <p><strong>Notes:</strong> {eventSnapshot.notes}</p>}
             </div>
           </div>
           
@@ -528,9 +534,9 @@ export default function EventSetup({ onBack }) {
           </div>
           
           <DrillManager 
-            event={selectedEvent} 
+            event={eventSnapshot} 
             leagueId={selectedLeagueId} 
-            isLiveEntryActive={selectedEvent?.live_entry_active || false} 
+            isLiveEntryActive={eventSnapshot?.live_entry_active || false} 
           />
         </div>
 
@@ -1085,7 +1091,7 @@ export default function EventSetup({ onBack }) {
               </p>
               
               <DeleteEventFlow 
-                event={selectedEvent}
+                event={eventSnapshot}
                 isCurrentlySelected={true}  // Always true when in Event Setup
                 onSuccess={() => {
                   // Navigate away after successful deletion
@@ -1100,7 +1106,7 @@ export default function EventSetup({ onBack }) {
         {showEditEventModal && (
           <EditEventModal
             open={showEditEventModal}
-            event={selectedEvent}
+            event={eventSnapshot}
             onClose={() => setShowEditEventModal(false)}
             onUpdated={() => {
               setShowEditEventModal(false);
