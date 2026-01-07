@@ -1128,20 +1128,27 @@ export default function LiveEntry() {
             </div>
 
             {/* Slim Sticky Context Bar - Compact drill context while scrolling */}
-            <div className="sticky top-16 z-10 bg-brand-primary/95 backdrop-blur-sm text-white shadow-lg mt-3 -mx-4 px-4 py-2 border-b-2 border-brand-secondary/30">
+            <div 
+              className="sticky top-16 z-10 shadow-lg mt-3 -mx-4 px-4 py-2.5 border-b-2"
+              style={{ 
+                backgroundColor: '#19c3e6',
+                borderBottomColor: '#008fa3',
+                color: '#ffffff'
+              }}
+            >
               <div className="max-w-lg mx-auto flex items-center justify-between gap-2 text-sm">
                 {/* Left: Drill name + recording state */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <Target className="w-4 h-4 flex-shrink-0" />
+                <div className="flex items-center gap-2 min-w-0 text-white">
+                  <Target className="w-4 h-4 flex-shrink-0 text-white" />
                   <span className="font-bold truncate">{currentDrill.label}</span>
-                  <span className="text-white/60 text-xs flex-shrink-0">
+                  <span className="text-white/80 text-xs flex-shrink-0">
                     {isCurrentDrillLocked ? '🔒 Locked' : '● Recording'}
                   </span>
                 </div>
                 
                 {/* Right: Progress + drill pills */}
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <span className="text-xs text-white/80 font-medium">
+                <div className="flex items-center gap-3 flex-shrink-0 text-white">
+                  <span className="text-xs font-medium whitespace-nowrap">
                     {completedForDrill}/{totalPlayers} ({completionPct}%)
                   </span>
                   
@@ -1153,11 +1160,16 @@ export default function LiveEntry() {
                         handleDrillSwitch(e.target.value);
                       }
                     }}
-                    className="text-xs px-2 py-1 rounded bg-white/20 hover:bg-white/30 text-white border border-white/30 cursor-pointer transition"
+                    className="text-xs px-2 py-1 rounded border cursor-pointer transition"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      borderColor: 'rgba(255, 255, 255, 0.4)',
+                      color: '#ffffff'
+                    }}
                     title="Switch drill"
                   >
                     {drills.map((d) => (
-                      <option key={d.key} value={d.key} className="text-gray-900">
+                      <option key={d.key} value={d.key} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
                         {d.label}
                       </option>
                     ))}
