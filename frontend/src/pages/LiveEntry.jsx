@@ -341,8 +341,9 @@ export default function LiveEntry() {
     setPlayerName(player.name);
     setPlayerId(player.id);
     
-    // Update input to reflect selection (using number as canonical display)
-    setInputValue(playerNum);
+    // Update input to show full player info: "#123 · John Doe"
+    const displayText = playerNum ? `#${playerNum} · ${player.name}` : player.name;
+    setInputValue(displayText);
     
     setShortlist([]);
     setSearchError(null);
@@ -358,7 +359,9 @@ export default function LiveEntry() {
   // Dual-mode search logic
   useEffect(() => {
     // Skip if input matches currently selected player (avoids loops)
-    if (playerId && inputValue === playerNumber) {
+    // Check for both old format (just number) and new format ("#123 · Name")
+    const selectedDisplay = playerNumber ? `#${playerNumber} · ${playerName}` : playerName;
+    if (playerId && (inputValue === playerNumber || inputValue === selectedDisplay)) {
       return;
     }
 
@@ -454,7 +457,7 @@ export default function LiveEntry() {
       
       return () => clearTimeout(handler);
     }
-  }, [inputValue, normalizedPlayers, playerId, playerNumber, selectPlayer]);
+  }, [inputValue, normalizedPlayers, playerId, playerNumber, playerName, selectPlayer]);
   const checkForDuplicate = useCallback((targetPlayerId, targetDrill) => {
     const player = players.find(p => p.id === targetPlayerId);
     if (player && player[targetDrill] != null) {
@@ -929,12 +932,7 @@ export default function LiveEntry() {
                     )}
                   </div>
 
-                  {/* Selected Helper Text */}
-                  {playerId && (
-                    <div className="mt-1 text-center text-green-700 font-medium text-sm animate-in fade-in slide-in-from-top-1">
-                        Selected: #{playerNumber} · {playerName}
-                    </div>
-                  )}
+                  {/* Selected Helper Text - REMOVED: Info now shows in input field */}
                   
                   {/* Error Message */}
                   {searchError && !playerId && (
