@@ -46,6 +46,13 @@ export default [
       'eqeqeq': ['warn', 'always'],
       'no-duplicate-imports': 'warn',
       'no-unused-expressions': 'warn',
+      // Prevent TDZ errors: disallow use before definition
+      'no-use-before-define': ['error', { 
+        functions: true, 
+        classes: true, 
+        variables: true,
+        allowNamedExports: false 
+      }],
     },
   },
 ]
