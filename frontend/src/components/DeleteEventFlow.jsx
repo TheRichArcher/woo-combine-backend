@@ -300,7 +300,9 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     setShowFinalModal(false);
   };
 
-  if (!event) return null;
+  // CRITICAL: Use targetEvent (immutable snapshot) for validation, not event prop
+  // The event prop can become null after context switch, but targetEvent remains stable
+  if (!targetEvent || !targetEvent.id) return null;
 
   return (
     <>
