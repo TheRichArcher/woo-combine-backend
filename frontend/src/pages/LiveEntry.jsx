@@ -90,6 +90,7 @@ export default function LiveEntry() {
   // Rapid Entry Mode (optional single-input mode)
   const [rapidEntryMode, setRapidEntryMode] = useState(false);
   const [rapidEntryInput, setRapidEntryInput] = useState("");
+  const [showRapidEntryHint, setShowRapidEntryHint] = useState(false);
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -116,7 +117,8 @@ export default function LiveEntry() {
       reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`,
       drillHint: `liveEntry:${selectedEvent.id}:drillHintShown`,
       autoReplace: `liveEntry:${selectedEvent.id}:autoReplace`,
-      rapidEntry: `liveEntry:${selectedEvent.id}:rapidEntryMode`
+      rapidEntry: `liveEntry:${selectedEvent.id}:rapidEntryMode`,
+      rapidEntryHint: `liveEntry:${selectedEvent.id}:rapidEntryHintShown`
     };
   }, [selectedEvent]);
 
@@ -206,6 +208,14 @@ export default function LiveEntry() {
         setRapidEntryMode(true);
       } else {
         setRapidEntryMode(false); // Default OFF
+      }
+    } catch {}
+    try {
+      const hintFlag = localStorage.getItem(storageKeys.rapidEntryHint);
+      if (hintFlag !== '1') {
+        setShowRapidEntryHint(true);
+      } else {
+        setShowRapidEntryHint(false);
       }
     } catch {}
   }, [storageKeys]);
@@ -995,20 +1005,75 @@ export default function LiveEntry() {
             
             {/* Entry Form */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-              {/* Rapid Entry Toggle */}
-              <div className="mb-4 flex items-center justify-between pb-3 border-b border-gray-200">
-                <span className="text-sm text-gray-600">Entry Mode:</span>
-                <button
-                  type="button"
-                  onClick={() => setRapidEntryMode(!rapidEntryMode)}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                    rapidEntryMode 
-                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {rapidEntryMode ? '⚡ Rapid Entry (# SCORE)' : '📝 Standard (Two Inputs)'}
-                </button>
+              {/* Rapid Entry Mode Selector - Segmented Control */}
+              <div className="mb-4 pb-3 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Entry Mode:</span>
+                </div>
+                
+                {/* Segmented Control */}
+                <div className="inline-flex rounded-lg border-2 border-gray-200 bg-gray-50 p-1 w-full">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRapidEntryMode(false);
+                      if (showRapidEntryHint && storageKeys) {
+                        try { localStorage.setItem(storageKeys.rapidEntryHint, '1'); } catch {}
+                        setShowRapidEntryHint(false);
+                      }
+                    }}
+                    className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 ${
+                      !rapidEntryMode 
+                        ? 'bg-white text-brand-primary shadow-sm border border-brand-primary/20' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    📝 Standard
+                    <div className="text-xs text-gray-500 mt-0.5">Player + Score</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRapidEntryMode(true);
+                      if (showRapidEntryHint && storageKeys) {
+                        try { localStorage.setItem(storageKeys.rapidEntryHint, '1'); } catch {}
+                        setShowRapidEntryHint(false);
+                      }
+                    }}
+                    className={`flex-1 px-4 py-2.5 rounded-md text-sm font-medium transition-all duration-200 ${
+                      rapidEntryMode 
+                        ? 'bg-blue-500 text-white shadow-sm' 
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    ⚡ Rapid Entry
+                    <div className="text-xs mt-0.5" style={{ opacity: rapidEntryMode ? 0.9 : 0.7 }}>
+                      # SCORE
+                    </div>
+                  </button>
+                </div>
+                
+                {/* One-time hint */}
+                {showRapidEntryHint && !rapidEntryMode && (
+                  <div className="mt-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg p-2 text-xs flex items-start gap-2 animate-in fade-in slide-in-from-top-1">
+                    <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <strong>Tip:</strong> Try Rapid Entry mode for faster keyboard-based entry. Type player# and score together (e.g., "1201 87").
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowRapidEntryHint(false);
+                        if (storageKeys) {
+                          try { localStorage.setItem(storageKeys.rapidEntryHint, '1'); } catch {}
+                        }
+                      }}
+                      className="text-blue-700 hover:text-blue-900 font-medium"
+                    >
+                      Got it
+                    </button>
+                  </div>
+                )}
               </div>
               
               {rapidEntryMode ? (
