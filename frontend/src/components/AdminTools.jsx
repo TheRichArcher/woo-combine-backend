@@ -51,6 +51,9 @@ export default function AdminTools() {
 
   // 2. Event Selection Check
   if (!selectedEvent || !selectedEvent.id) {
+    // Check if no events exist at all vs. just no selection
+    const noEventsExist = !events || events.length === 0;
+    
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
@@ -58,14 +61,37 @@ export default function AdminTools() {
             <div className="w-16 h-16 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
               <Users className="w-8 h-8 text-brand-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-brand-primary mb-4">No Event Selected</h2>
-            <p className="text-gray-600 mb-6">Click on "Select Event" in the header above to choose an event to manage.</p>
-            <button
-              onClick={() => window.location.href = '/select-league'}
-              className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
-            >
-              Select Event
-            </button>
+            
+            {noEventsExist ? (
+              // Empty state: no events exist
+              <>
+                <h2 className="text-2xl font-bold text-brand-primary mb-4">No Events Yet</h2>
+                <p className="text-gray-600 mb-6">
+                  You don't have any events created yet. Create your first event to get started.
+                </p>
+                <button
+                  onClick={() => setView('setup')}
+                  className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition inline-flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Create First Event
+                </button>
+              </>
+            ) : (
+              // Events exist but none selected
+              <>
+                <h2 className="text-2xl font-bold text-brand-primary mb-4">No Event Selected</h2>
+                <p className="text-gray-600 mb-6">
+                  Click on "Select Event" in the header above to choose an event to manage.
+                </p>
+                <button
+                  onClick={() => window.location.href = '/select-league'}
+                  className="bg-brand-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-brand-secondary transition"
+                >
+                  Select Event
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
