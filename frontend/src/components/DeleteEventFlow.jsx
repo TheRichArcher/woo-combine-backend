@@ -109,7 +109,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
   // Check if typed name matches (case-insensitive)
   const isNameMatch = typedName.trim().toLowerCase() === targetEvent?.name?.toLowerCase();
 
-  // Handle layer 2 completion - switch context then show final modal
+  // Handle layer 2 completion - show modal FIRST, then switch context in effect
   const handleLayer2Complete = async () => {
     if (!isNameMatch) {
       setTypedNameError(true);
@@ -128,43 +128,46 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     
     setTypedNameError(false);
     
-    // CRITICAL: If this is the currently selected event, switch context BEFORE showing final modal
-    // This prevents the paradox of deleting the active context
-    // NOTE: Context switch does NOT change targetEvent - deletion target remains immutable
-    if (isCurrentlySelected) {
-      logger.info('DELETE_EVENT_CONTEXT_SWITCH', {
-        target_event_id: targetEvent.id,
-        target_event_name: targetEvent.name,
-        action: 'Switching context before deletion',
-        available_events: events.length,
-        note: 'Target event remains unchanged - only runtime context switches'
-      });
-      
-      // Find another event to switch to (from current events list)
-      const otherEvent = events.find(e => e.id !== targetEvent.id);
-      
-      if (otherEvent) {
-        // Switch to most recent other event
-        setSelectedEvent(otherEvent);
-        logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
-          target_event_id: targetEvent.id,
-          safe_context_event_id: otherEvent.id,
-          safe_context_event_name: otherEvent.name,
-          note: 'User context switched, but deletion target unchanged'
-        });
-      } else {
-        // No other events - switch to "no event selected" state
-        setSelectedEvent(null);
-        logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
-          target_event_id: targetEvent.id,
-          reason: 'No other events available'
-        });
-      }
-    }
-    
-    // Now show final modal (context is safe)
+    // CRITICAL: Show modal FIRST, before any context switching
+    // Context switch will happen in useEffect after modal renders
     setShowFinalModal(true);
   };
+
+  // CRITICAL: Handle context switch AFTER modal is shown (in useEffect)
+  // This prevents React's render batching from interfering with modal display
+  useEffect(() => {
+    // Only switch context when modal is shown and event is currently selected
+    if (!showFinalModal || !isCurrentlySelected) return;
+    
+    logger.info('DELETE_EVENT_CONTEXT_SWITCH', {
+      target_event_id: targetEvent.id,
+      target_event_name: targetEvent.name,
+      action: 'Switching context after modal shown',
+      available_events: events.length,
+      note: 'Target event remains unchanged - only runtime context switches'
+    });
+    
+    // Find another event to switch to (from current events list)
+    const otherEvent = events.find(e => e.id !== targetEvent.id);
+    
+    if (otherEvent) {
+      // Switch to most recent other event
+      setSelectedEvent(otherEvent);
+      logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
+        target_event_id: targetEvent.id,
+        safe_context_event_id: otherEvent.id,
+        safe_context_event_name: otherEvent.name,
+        note: 'User context switched, but deletion target unchanged'
+      });
+    } else {
+      // No other events - switch to "no event selected" state
+      setSelectedEvent(null);
+      logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
+        target_event_id: targetEvent.id,
+        reason: 'No other events available'
+      });
+    }
+  }, [showFinalModal, isCurrentlySelected, targetEvent, events, setSelectedEvent]);
 
   // Handle final deletion
   const handleFinalDelete = async () => {
