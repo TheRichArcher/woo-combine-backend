@@ -1129,7 +1129,7 @@ export default function LiveEntry() {
 
             {/* Slim Sticky Context Bar - Compact drill context while scrolling */}
             <div 
-              className="sticky top-16 z-10 shadow-lg mt-3 -mx-4 px-4 py-2.5 border-b-2"
+              className="sticky top-16 z-10 shadow-lg -mx-4 px-4 py-2.5 border-b-2"
               style={{ 
                 backgroundColor: '#19c3e6',
                 borderBottomColor: '#008fa3',
