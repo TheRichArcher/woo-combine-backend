@@ -21,8 +21,6 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
-      // Enforce design tokens usage: discourage inline styles for presentational props
-      'react/jsx-no-style': ['warn'],
       // Ban raw hex/rgb colors in strings
       'no-restricted-syntax': [
         'warn',
