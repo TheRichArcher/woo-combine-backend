@@ -175,9 +175,9 @@ export default function EventSetup({ onBack }) {
   };
 
   const handleApplyMapping = () => {
-    // Check for critical schema error - user requested blocking import if schema fails
+    // Check for roster-only import (no drill columns detected)
     if (drillDefinitions.length === 0) {
-      if (!window.confirm("⚠️ WARNING: No drill columns are mapped because the event schema failed to load. \n\nOnly roster information (names, numbers) will be imported. Drill scores will be ignored. \n\nDo you want to proceed with a Roster-Only import?")) {
+      if (!window.confirm("Import roster only?\n\nNo drill score columns were detected.\nThis will import player names and info only — you can add scores later.\n\nHave scores now? Cancel and upload a file with drill columns.")) {
         return;
       }
     }
