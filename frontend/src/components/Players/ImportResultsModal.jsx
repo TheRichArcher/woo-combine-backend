@@ -58,6 +58,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   const [nameMappingMode, setNameMappingMode] = useState('separate'); // 'separate' | 'full'
   const [firstNameColumn, setFirstNameColumn] = useState('');
   const [lastNameColumn, setLastNameColumn] = useState('');
+  
+  // Confirmation Modal State (replaces window.confirm to avoid Chrome suppression)
+  const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel, confirmText, cancelText, type }
   const [fullNameColumn, setFullNameColumn] = useState('');
   const [jerseyColumn, setJerseyColumn] = useState('');
   const [ageGroupColumn, setAgeGroupColumn] = useState('');
@@ -87,15 +90,27 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             const draft = JSON.parse(savedDraft);
             // Ask user if they want to restore? For now, just show a notification or restore if it's in review step
             if (draft.step === 'review' && draft.parseResult) {
-                if (window.confirm("Found an unfinished import draft. Would you like to resume?")) {
-                    setParseResult(draft.parseResult);
-                    setEditedRows(draft.editedRows || {});
-                    setRowStrategies(draft.rowStrategies || {});
-                    setConflictMode(draft.conflictMode || 'overwrite');
-                    setStep('review');
-                } else {
-                    localStorage.removeItem(draftKey);
-                }
+                setConfirmModal({
+                    title: 'Resume Import?',
+                    message: 'Found an unfinished import draft. Would you like to resume where you left off?',
+                    confirmText: 'Resume',
+                    cancelText: 'Start Fresh',
+                    type: 'info',
+                    onConfirm: () => {
+                        setParseResult(draft.parseResult);
+                        setEditedRows(draft.editedRows || {});
+                        setRowStrategies(draft.rowStrategies || {});
+                        setConflictMode(draft.conflictMode || 'overwrite');
+                        setStep('review');
+                        setConfirmModal(null);
+                    },
+                    onCancel: () => {
+                        localStorage.removeItem(draftKey);
+                        setConfirmModal(null);
+                    }
+                });
+            } else {
+                localStorage.removeItem(draftKey);
             }
         } catch (e) {
             console.error("Failed to load draft", e);
@@ -512,8 +527,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         }
     };
 
-    const handleSubmit = async () => {
-    console.log("[IMPORT DEBUG] handleSubmit called - START");
+    const handleSubmit = async (bypassValidations = false) => {
+    console.log("[IMPORT DEBUG] handleSubmit called - START, bypass:", bypassValidations);
     if (!parseResult) {
         console.log("[IMPORT DEBUG] Early return - no parseResult");
         return;
@@ -625,7 +640,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         // Note: Ignored columns (mapped to __ignore__) are allowed even if they contain data
         
         // 1. Check active mappings that point to invalid/missing keys (shouldn't happen with dropdown, but safety net)
-        if (invalidMappings.length > 0) {
+        if (!bypassValidations && invalidMappings.length > 0) {
             const unmappedKeys = invalidMappings.map(([source]) => source);
             
             // Check if any of these unmapped columns actually have data in the rows
@@ -639,12 +654,24 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
             if (hasDataLossRisk) {
                 const names = unmappedKeys.slice(0, 3).join(', ') + (unmappedKeys.length > 3 ? '...' : '');
-                if (!window.confirm(`⚠️ WARNING: Potential Data Loss\n\nThe following columns contain data but are not mapped to any event drill:\n\n${names}\n\nThey will NOT be imported. Continue?`)) {
-                    setStep('review');
-                    return;
-                }
+                setConfirmModal({
+                    title: '⚠️ WARNING: Potential Data Loss',
+                    message: `The following columns contain data but are not mapped to any event drill:\n\n${names}\n\nThey will NOT be imported. Continue?`,
+                    confirmText: 'Continue Anyway',
+                    cancelText: 'Go Back',
+                    type: 'warning',
+                    onConfirm: () => {
+                        setConfirmModal(null);
+                        // Re-call handleSubmit with bypass flag
+                        handleSubmit(true);
+                    },
+                    onCancel: () => {
+                        setConfirmModal(null);
+                        setStep('review');
+                    }
+                });
+                return;
             }
-        }
 
         // 2. CRITICAL: Check columns explicitly set to "__ignore__" but that contain data
         // This catches the case where auto-mapping failed (so defaulted to ignore) but user didn't notice
@@ -661,16 +688,26 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           })
         );
 
-        if (ignoredWithData.length > 0) {
+        if (!bypassValidations && ignoredWithData.length > 0) {
           const names = ignoredWithData.slice(0, 5).join(', ') + (ignoredWithData.length > 5 ? '...' : '');
           // Just a confirmation to ensure they meant to ignore data-bearing columns
           // If they say cancel, we go back. If OK, we proceed (data is dropped as requested)
-          if (!window.confirm(
-            `NOTE: You are choosing to ignore columns that contain data:\n\n${names}\n\nThis data will NOT be imported. Continue?`
-          )) {
-              setStep('review');
-              return;
-          }
+          setConfirmModal({
+              title: 'Ignored Columns Contain Data',
+              message: `NOTE: You are choosing to ignore columns that contain data:\n\n${names}\n\nThis data will NOT be imported. Continue?`,
+              confirmText: 'Continue',
+              cancelText: 'Go Back',
+              type: 'info',
+              onConfirm: () => {
+                  setConfirmModal(null);
+                  handleSubmit(true);
+              },
+              onCancel: () => {
+                  setConfirmModal(null);
+                  setStep('review');
+              }
+          });
+          return;
         }
 
         // --- NEW: PREVENT SILENT FAILURE (0 SCORES) ---
@@ -701,42 +738,66 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         });
 
         // Strict Block for Scores Only Mode
-        if (importMode === 'scores_only' && mappedDrillCount === 0) {
-            alert("❌ Import Blocked\n\nYou selected 'Upload Drill Scores' but no columns are mapped to valid drill results.\n\nPlease map your columns to the event's drills (check dropdowns) or switch to 'Add & Update Players' if you only have roster data.");
-            setStep('review');
+        if (!bypassValidations && importMode === 'scores_only' && mappedDrillCount === 0) {
+            setConfirmModal({
+                title: '❌ Import Blocked',
+                message: "You selected 'Upload Drill Scores' but no columns are mapped to valid drill results.\n\nPlease map your columns to the event's drills (check dropdowns) or switch to 'Add & Update Players' if you only have roster data.",
+                confirmText: 'OK',
+                cancelText: null,
+                type: 'error',
+                onConfirm: () => {
+                    setConfirmModal(null);
+                    setStep('review');
+                },
+                onCancel: null
+            });
             return;
         }
 
         // Softer confirmation for Roster+Scores Intent with unmapped drill columns
-        if (intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length > 0) {
+        if (!bypassValidations && intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length > 0) {
             // Show custom confirm dialog with helpful options
-            const userChoice = window.confirm(
-                `📊 Unmapped Drill Columns Detected\n\n` +
-                `We found ${potentialDrillColumns.length} column(s) that look like drill scores:\n` +
-                `${potentialDrillColumns.slice(0, 3).join(', ')}${potentialDrillColumns.length > 3 ? '...' : ''}\n\n` +
-                `These aren't mapped yet, so no scores will be imported.\n\n` +
-                `• Click OK to import players only (you can add scores later)\n` +
-                `• Click Cancel to map drill columns now (scroll to Step 2)`
-            );
-            
-            if (!userChoice) {
-                // User wants to map drills - scroll to Step 2 header
-                document.getElementById('step-2-header')?.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start' 
-                });
-                setStep('review');
-                return;
-            }
-        } else if (intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length === 0) {
+            setConfirmModal({
+                title: '📊 Unmapped Drill Columns Detected',
+                message: `We found ${potentialDrillColumns.length} column(s) that look like drill scores:\n${potentialDrillColumns.slice(0, 3).join(', ')}${potentialDrillColumns.length > 3 ? '...' : ''}\n\nThese aren't mapped yet, so no scores will be imported.\n\n• Click "Import Players Only" to continue (you can add scores later)\n• Click "Map Drills Now" to return and map drill columns`,
+                confirmText: 'Import Players Only',
+                cancelText: 'Map Drills Now',
+                type: 'warning',
+                onConfirm: () => {
+                    setConfirmModal(null);
+                    handleSubmit(true);
+                },
+                onCancel: () => {
+                    setConfirmModal(null);
+                    // User wants to map drills - scroll to Step 2 header
+                    document.getElementById('step-2-header')?.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                    setStep('review');
+                }
+            });
+            return;
+        } else if (!bypassValidations && intent !== 'roster_only' && mappedDrillCount === 0 && potentialDrillColumns.length === 0) {
             // No drill-like columns detected, proceed with simple confirmation
-            if (!window.confirm(
-                `Import roster only?\n\nNo drill score columns detected. Click OK to import player names and info only.`
-            )) {
-                setStep('review');
-                return;
-            }
+            setConfirmModal({
+                title: 'Import roster only?',
+                message: 'No drill score columns detected. This will import player names and info only.',
+                confirmText: 'OK, Import Roster',
+                cancelText: 'Cancel',
+                type: 'info',
+                onConfirm: () => {
+                    setConfirmModal(null);
+                    handleSubmit(true);
+                },
+                onCancel: () => {
+                    setConfirmModal(null);
+                    setStep('review');
+                }
+            });
+            return;
         }
+    }
 
     // Auto-fix: Treat invalid mappings as ignore if the target key itself isn't valid
     if (invalidMappings.length > 0) {
@@ -2372,6 +2433,44 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           )}
         </div>
       </div>
+      
+      {/* Confirmation Modal - Replaces window.confirm() to avoid Chrome suppression */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-in fade-in duration-200">
+            <h3 className={`text-lg font-bold mb-3 ${
+              confirmModal.type === 'error' ? 'text-red-600' :
+              confirmModal.type === 'warning' ? 'text-amber-600' :
+              'text-gray-900'
+            }`}>
+              {confirmModal.title}
+            </h3>
+            <p className="text-gray-700 whitespace-pre-line mb-6">
+              {confirmModal.message}
+            </p>
+            <div className="flex gap-3">
+              {confirmModal.cancelText && (
+                <button
+                  onClick={confirmModal.onCancel}
+                  className="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition"
+                >
+                  {confirmModal.cancelText}
+                </button>
+              )}
+              <button
+                onClick={confirmModal.onConfirm}
+                className={`${confirmModal.cancelText ? 'flex-1' : 'w-full'} px-4 py-2 rounded-lg font-medium transition ${
+                  confirmModal.type === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                  confirmModal.type === 'warning' ? 'bg-amber-600 hover:bg-amber-700 text-white' :
+                  'bg-cmf-primary hover:bg-cmf-secondary text-white'
+                }`}
+              >
+                {confirmModal.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
