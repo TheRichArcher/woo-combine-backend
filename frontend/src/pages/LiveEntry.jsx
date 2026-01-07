@@ -312,7 +312,7 @@ export default function LiveEntry() {
         normFirst: first.toLowerCase(),
         normLast: last.toLowerCase(),
         normFull: name.toLowerCase(),
-        normNumber: (p.number || "").toString()
+        normNumber: p.number != null ? p.number.toString() : ""
       };
     });
   }, [players]);
@@ -333,12 +333,16 @@ export default function LiveEntry() {
 
   const selectPlayer = useCallback((player) => {
     if (!player) return;
-    setPlayerNumber(player.number.toString());
+    
+    // Handle null/undefined player numbers gracefully
+    const playerNum = player.number != null ? player.number.toString() : '';
+    
+    setPlayerNumber(playerNum);
     setPlayerName(player.name);
     setPlayerId(player.id);
     
     // Update input to reflect selection (using number as canonical display)
-    setInputValue(player.number.toString());
+    setInputValue(playerNum);
     
     setShortlist([]);
     setSearchError(null);
