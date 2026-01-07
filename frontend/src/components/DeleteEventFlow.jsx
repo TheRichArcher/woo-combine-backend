@@ -109,7 +109,7 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
   // Check if typed name matches (case-insensitive)
   const isNameMatch = typedName.trim().toLowerCase() === targetEvent?.name?.toLowerCase();
 
-  // Handle layer 2 completion - show modal FIRST, then switch context in effect
+  // Handle layer 2 completion - ONLY show modal, NO context switching yet
   const handleLayer2Complete = async () => {
     if (!isNameMatch) {
       setTypedNameError(true);
@@ -128,46 +128,17 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     
     setTypedNameError(false);
     
-    // CRITICAL: Show modal FIRST, before any context switching
-    // Context switch will happen in useEffect after modal renders
+    // CRITICAL: ONLY show the modal - do NOT switch context yet
+    // Context switching causes navigation/unmounting before modal can render
+    // The safety checks in handleFinalDelete will handle context switching
     setShowFinalModal(true);
-  };
-
-  // CRITICAL: Handle context switch AFTER modal is shown (in useEffect)
-  // This prevents React's render batching from interfering with modal display
-  useEffect(() => {
-    // Only switch context when modal is shown and event is currently selected
-    if (!showFinalModal || !isCurrentlySelected) return;
     
-    logger.info('DELETE_EVENT_CONTEXT_SWITCH', {
+    logger.info('DELETE_EVENT_SHOWING_FINAL_MODAL', {
       target_event_id: targetEvent.id,
       target_event_name: targetEvent.name,
-      action: 'Switching context after modal shown',
-      available_events: events.length,
-      note: 'Target event remains unchanged - only runtime context switches'
+      note: 'Final confirmation modal should now be visible'
     });
-    
-    // Find another event to switch to (from current events list)
-    const otherEvent = events.find(e => e.id !== targetEvent.id);
-    
-    if (otherEvent) {
-      // Switch to most recent other event
-      setSelectedEvent(otherEvent);
-      logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
-        target_event_id: targetEvent.id,
-        safe_context_event_id: otherEvent.id,
-        safe_context_event_name: otherEvent.name,
-        note: 'User context switched, but deletion target unchanged'
-      });
-    } else {
-      // No other events - switch to "no event selected" state
-      setSelectedEvent(null);
-      logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
-        target_event_id: targetEvent.id,
-        reason: 'No other events available'
-      });
-    }
-  }, [showFinalModal, isCurrentlySelected, targetEvent, events, setSelectedEvent]);
+  };
 
   // Handle final deletion
   const handleFinalDelete = async () => {
@@ -193,29 +164,35 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       return;
     }
 
-    // CRITICAL SAFETY ASSERTION: Block if target == current context (runtime context must be switched first)
-    // This guarantees we never delete the active runtime context
+    // CRITICAL: Switch context NOW if currently selected (before making delete call)
+    // This ensures we're not in the event context when deletion happens
     if (selectedEvent?.id === targetEvent.id) {
-      const error = new Error('CRITICAL: Cannot delete active runtime context - context must be switched first');
-      console.error('[DELETE_FLOW_SAFETY_FAILURE]', error, {
-        targetEventId: targetEvent.id,
-        currentContextId: selectedEvent?.id,
-        match: selectedEvent?.id === targetEvent.id
-      });
-      logger.error('DELETE_ACTIVE_CONTEXT_BLOCKED', {
+      logger.info('DELETE_EVENT_CONTEXT_SWITCH_BEFORE_DELETE', {
         target_event_id: targetEvent.id,
-        current_context_id: selectedEvent?.id,
-        error: 'Attempted to delete active runtime context'
+        action: 'Switching context immediately before deletion',
+        available_events: events.length
       });
-      showError('Safety check failed: You must be out of the event before deletion. Please refresh and try again.');
-      if (window.Sentry) {
-        window.Sentry.captureException(error, {
-          tags: { component: 'DeleteEventFlow', severity: 'critical', check: 'active_context_block' },
-          extra: { targetEventId: targetEvent.id, currentContextId: selectedEvent?.id }
+      
+      // Find another event to switch to
+      const otherEvent = events.find(e => e.id !== targetEvent.id);
+      
+      if (otherEvent) {
+        setSelectedEvent(otherEvent);
+        logger.info('DELETE_EVENT_CONTEXT_SWITCHED', {
+          target_event_id: targetEvent.id,
+          safe_context_event_id: otherEvent.id,
+          safe_context_event_name: otherEvent.name
+        });
+      } else {
+        setSelectedEvent(null);
+        logger.info('DELETE_EVENT_CONTEXT_CLEARED', {
+          target_event_id: targetEvent.id,
+          reason: 'No other events available'
         });
       }
-      setIsDeleting(false);
-      return;
+      
+      // Small delay to let context switch settle
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     // AUDIT LOG: Deletion initiated (Layer 3 confirmed)
@@ -233,9 +210,28 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
     setIsDeleting(true);
     try {
+      // CRITICAL: Log the actual API call details
+      const deleteUrl = `/leagues/${selectedLeagueId}/events/${targetEvent.id}`;
+      logger.warn('DELETE_EVENT_API_REQUEST_START', {
+        method: 'DELETE',
+        url: deleteUrl,
+        target_event_id: targetEvent.id,
+        league_id: selectedLeagueId,
+        timestamp: new Date().toISOString()
+      });
+      
       // CRITICAL: Use targetEvent.id (immutable snapshot) NOT event.id or selectedEvent.id
       // This ensures we delete the correct event even after context switches
       const response = await deleteEvent(targetEvent.id);
+      
+      // AUDIT LOG: API call succeeded
+      logger.info('DELETE_EVENT_API_REQUEST_SUCCESS', {
+        method: 'DELETE',
+        url: deleteUrl,
+        status: 200,
+        response: response,
+        timestamp: new Date().toISOString()
+      });
       
       // AUDIT LOG: Deletion completed successfully
       logger.info('DELETE_EVENT_COMPLETED', {
@@ -276,6 +272,17 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       }
       
     } catch (error) {
+      // AUDIT LOG: API call failed
+      const deleteUrl = `/leagues/${selectedLeagueId}/events/${targetEvent.id}`;
+      logger.error('DELETE_EVENT_API_REQUEST_FAILED', {
+        method: 'DELETE',
+        url: deleteUrl,
+        status: error.response?.status || 'NO_RESPONSE',
+        error_message: error.response?.data?.detail || error.message,
+        error_full: error.toString(),
+        timestamp: new Date().toISOString()
+      });
+      
       // AUDIT LOG: Deletion failed
       logger.error('DELETE_EVENT_FAILED', {
         target_event_id: targetEvent.id,
@@ -351,18 +358,6 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
             </div>
           </div>
 
-          {/* Context Safety Note */}
-          {isCurrentlySelected && (
-            <div className="bg-blue-50 border border-blue-300 rounded-lg p-4 mb-4">
-              <p className="text-blue-800 font-semibold mb-2">
-                ℹ️ Context Safety
-              </p>
-              <p className="text-sm text-blue-700">
-                You're currently viewing this event. Before final deletion, the system will automatically switch you to another event to prevent context loss.
-              </p>
-            </div>
-          )}
-          
           <button
             onClick={() => setLayer1Acknowledged(true)}
             disabled={statsLoading}
@@ -489,15 +484,15 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
 
             {/* Modal Body */}
             <div className="p-6 space-y-4">
-              {/* Context Switch Notice (only if was currently selected) */}
+              {/* Currently Selected Notice */}
               {isCurrentlySelected && (
                 <div className="bg-blue-50 border-2 border-blue-400 rounded-lg p-4">
                   <p className="text-blue-900 font-bold mb-2">
-                    ✓ Context Switched
+                    ⚠️ Active Event
                   </p>
                   <p className="text-sm text-blue-800">
-                    You are no longer in this event. The system has switched your context to keep you safe. 
-                    Deleting <strong>{targetEvent.name}</strong> will permanently remove it.
+                    You are currently viewing this event. When you click "Delete Permanently", 
+                    the system will switch you to another event before deletion completes.
                   </p>
                 </div>
               )}
