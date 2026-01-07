@@ -49,6 +49,7 @@ export default function EventSetup({ onBack }) {
   const [uploadStatus, setUploadStatus] = useState("idle"); // idle | loading | success | error
   const [uploadMsg, setUploadMsg] = useState("");
   const [backendErrors, setBackendErrors] = useState([]);
+  const [isRosterOnlyImport, setIsRosterOnlyImport] = useState(false);
 
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -176,10 +177,14 @@ export default function EventSetup({ onBack }) {
 
   const handleApplyMapping = () => {
     // Check for roster-only import (no drill columns detected)
-    if (drillDefinitions.length === 0) {
+    const isRosterOnly = drillDefinitions.length === 0;
+    if (isRosterOnly) {
       if (!window.confirm("Import roster only?\n\nNo drill score columns were detected.\nThis will import player names and info only — you can add scores later.\n\nHave scores now? Cancel and upload a file with drill columns.")) {
         return;
       }
+      setIsRosterOnlyImport(true);
+    } else {
+      setIsRosterOnlyImport(false);
     }
 
     const mapped = applyMapping(originalCsvRows, fieldMapping, drillDefinitions);
@@ -318,19 +323,50 @@ export default function EventSetup({ onBack }) {
     try {
        const res = await api.post(`/players/upload`, payload);
       const { data } = res;
-      if (data.errors && data.errors.length > 0) {
+      
+      // Filter out score-related errors for roster-only imports
+      let relevantErrors = data.errors || [];
+      if (isRosterOnlyImport && relevantErrors.length > 0) {
+        // For roster-only imports, only show errors about missing required fields (names)
+        relevantErrors = relevantErrors.filter(err => {
+          const msg = err.message?.toLowerCase() || '';
+          // Keep only critical errors about missing names
+          return msg.includes('first name') || msg.includes('last name') || msg.includes('required');
+        });
+      }
+      
+      if (relevantErrors.length > 0) {
         setUploadStatus("error");
-        setUploadMsg("Some rows failed to upload. See errors below.");
-        showError(`❌ Upload partially failed: ${data.errors.length} errors`);
+        setBackendErrors(relevantErrors);
+        
+        if (isRosterOnlyImport) {
+          // Roster-only: downgrade to "rows skipped" language
+          const skippedCount = relevantErrors.length;
+          setUploadMsg(`${data.added || 0} players imported successfully. ${skippedCount} ${skippedCount === 1 ? 'row was' : 'rows were'} skipped due to missing required fields.`);
+          showInfo(`📋 ${data.added || 0} players added. ${skippedCount} ${skippedCount === 1 ? 'row' : 'rows'} skipped.`);
+        } else {
+          // Normal import: show errors
+          setUploadMsg("Some rows failed to upload. See errors below.");
+          showError(`❌ Upload partially failed: ${relevantErrors.length} errors`);
+        }
       } else {
         setUploadStatus("success");
+        setBackendErrors([]);
         const numbersAssigned = playersWithNumbers.filter(p => {
           const fn = p.first_name?.trim();
           const ln = p.last_name?.trim();
           const match = cleanedPlayers.find(cp => cp.first_name?.trim() === fn && cp.last_name?.trim() === ln && (cp.jersey_number || cp.number));
           return !match;
         }).length;
-        setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+        
+        if (isRosterOnlyImport) {
+          // Roster-only: confident success message
+          setUploadMsg(`✅ Roster Imported Successfully! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+        } else {
+          // Normal import: standard success message
+          setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
+        }
+        
         notifyPlayersUploaded(data.added);
         setCsvRows([]);
         setCsvHeaders([]);
@@ -451,6 +487,8 @@ export default function EventSetup({ onBack }) {
     setCsvFileName("");
     setUploadStatus("idle");
     setUploadMsg("");
+    setBackendErrors([]);
+    setIsRosterOnlyImport(false);
     if (fileInputRef.current) fileInputRef.current.value = "";
     showInfo('🔄 Ready for new CSV file');
   };
@@ -883,22 +921,24 @@ export default function EventSetup({ onBack }) {
             )}
 
             {uploadStatus === "error" && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
-                <p className="text-red-700 font-medium">{uploadMsg}</p>
+              <div className={`${isRosterOnlyImport ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'} border rounded-lg p-4 mt-4`}>
+                <p className={`${isRosterOnlyImport ? 'text-blue-700' : 'text-red-700'} font-medium`}>{uploadMsg}</p>
                 {Array.isArray(backendErrors) && backendErrors.length > 0 && (
                   <div className="mt-3">
-                    <div className="text-sm text-red-800 font-medium mb-1">Row Errors</div>
+                    <div className={`text-sm ${isRosterOnlyImport ? 'text-blue-800' : 'text-red-800'} font-medium mb-1`}>
+                      {isRosterOnlyImport ? 'Rows Skipped' : 'Row Errors'}
+                    </div>
                     <div className="overflow-x-auto">
                       <table className="min-w-full text-sm">
                         <thead>
-                          <tr className="bg-red-100">
+                          <tr className={isRosterOnlyImport ? 'bg-blue-100' : 'bg-red-100'}>
                             <th className="px-2 py-1 text-left">Row</th>
-                            <th className="px-2 py-1 text-left">Message</th>
+                            <th className="px-2 py-1 text-left">Reason</th>
                           </tr>
                         </thead>
                         <tbody>
                           {backendErrors.map((err, idx) => (
-                            <tr key={idx} className="border-t border-red-200">
+                            <tr key={idx} className={`border-t ${isRosterOnlyImport ? 'border-blue-200' : 'border-red-200'}`}>
                               <td className="px-2 py-1">{err.row}</td>
                               <td className="px-2 py-1 whitespace-pre-wrap">{err.message}</td>
                             </tr>
