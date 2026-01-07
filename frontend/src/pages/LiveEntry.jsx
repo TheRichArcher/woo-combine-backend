@@ -327,6 +327,29 @@ export default function LiveEntry() {
     }
   }, [selectedDrill, drillConfirmed]);
 
+  // Handle drill switching with protection after entries (MUST be before keyboard shortcuts useEffect)
+  const handleDrillSwitch = useCallback((newDrillKey) => {
+    // If no entries in current drill, switch immediately
+    if (entriesInCurrentDrill === 0) {
+      setSelectedDrill(newDrillKey);
+      setDrillConfirmed(true);
+      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+      return;
+    }
+    
+    // If entries exist, require confirmation
+    setPendingDrillSwitch({ newDrillKey });
+  }, [entriesInCurrentDrill]);
+  
+  const confirmDrillSwitch = useCallback(() => {
+    if (pendingDrillSwitch) {
+      setSelectedDrill(pendingDrillSwitch.newDrillKey);
+      setDrillConfirmed(true);
+      setPendingDrillSwitch(null);
+      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+    }
+  }, [pendingDrillSwitch]);
+
   // Keyboard shortcuts to switch drills when not typing
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -876,29 +899,6 @@ export default function LiveEntry() {
   const toggleCurrentDrillLock = () => {
     if (!selectedDrill) return;
     setLockedDrills(prev => ({ ...prev, [selectedDrill]: !prev[selectedDrill] }));
-  };
-  
-  // Handle drill switching with protection after entries
-  const handleDrillSwitch = (newDrillKey) => {
-    // If no entries in current drill, switch immediately
-    if (entriesInCurrentDrill === 0) {
-      setSelectedDrill(newDrillKey);
-      setDrillConfirmed(true);
-      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
-      return;
-    }
-    
-    // If entries exist, require confirmation
-    setPendingDrillSwitch({ newDrillKey });
-  };
-  
-  const confirmDrillSwitch = () => {
-    if (pendingDrillSwitch) {
-      setSelectedDrill(pendingDrillSwitch.newDrillKey);
-      setDrillConfirmed(true);
-      setPendingDrillSwitch(null);
-      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
-    }
   };
 
   // Prevent scroll from changing numeric inputs
