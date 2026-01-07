@@ -3,7 +3,7 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 import { useDrills } from '../hooks/useDrills';
@@ -85,6 +85,11 @@ export default function LiveEntry() {
   const [lockedDrills, setLockedDrills] = useState({}); // { drillKey: true }
   const [reviewDismissed, setReviewDismissed] = useState({}); // { drillKey: true }
   const [showDrillHint, setShowDrillHint] = useState(false);
+  const [autoReplaceDuplicates, setAutoReplaceDuplicates] = useState({}); // { drillKey: true }
+  
+  // Rapid Entry Mode (optional single-input mode)
+  const [rapidEntryMode, setRapidEntryMode] = useState(false);
+  const [rapidEntryInput, setRapidEntryInput] = useState("");
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
@@ -109,7 +114,9 @@ export default function LiveEntry() {
       focus: `liveEntry:${selectedEvent.id}:lastPlayerNumber`,
       locks: `liveEntry:${selectedEvent.id}:locks`,
       reviews: `liveEntry:${selectedEvent.id}:reviewDismissed`,
-      drillHint: `liveEntry:${selectedEvent.id}:drillHintShown`
+      drillHint: `liveEntry:${selectedEvent.id}:drillHintShown`,
+      autoReplace: `liveEntry:${selectedEvent.id}:autoReplace`,
+      rapidEntry: `liveEntry:${selectedEvent.id}:rapidEntryMode`
     };
   }, [selectedEvent]);
 
@@ -182,6 +189,23 @@ export default function LiveEntry() {
         setShowDrillHint(true);
       } else {
         setShowDrillHint(false);
+      }
+    } catch {}
+    try {
+      const savedAutoReplace = localStorage.getItem(storageKeys.autoReplace);
+      if (savedAutoReplace) {
+        const parsed = JSON.parse(savedAutoReplace);
+        if (parsed && typeof parsed === 'object') setAutoReplaceDuplicates(parsed);
+      } else {
+        setAutoReplaceDuplicates({});
+      }
+    } catch {}
+    try {
+      const savedRapidEntry = localStorage.getItem(storageKeys.rapidEntry);
+      if (savedRapidEntry === 'true') {
+        setRapidEntryMode(true);
+      } else {
+        setRapidEntryMode(false); // Default OFF
       }
     } catch {}
   }, [storageKeys]);
@@ -262,6 +286,14 @@ export default function LiveEntry() {
     if (!storageKeys) return;
     try { localStorage.setItem(storageKeys.reviews, JSON.stringify(reviewDismissed)); } catch {}
   }, [storageKeys, reviewDismissed]);
+  useEffect(() => {
+    if (!storageKeys) return;
+    try { localStorage.setItem(storageKeys.autoReplace, JSON.stringify(autoReplaceDuplicates)); } catch {}
+  }, [storageKeys, autoReplaceDuplicates]);
+  useEffect(() => {
+    if (!storageKeys) return;
+    try { localStorage.setItem(storageKeys.rapidEntry, rapidEntryMode ? 'true' : 'false'); } catch {}
+  }, [storageKeys, rapidEntryMode]);
 
   // Load players on mount
   useEffect(() => {
@@ -458,6 +490,31 @@ export default function LiveEntry() {
       return () => clearTimeout(handler);
     }
   }, [inputValue, normalizedPlayers, playerId, playerNumber, playerName, selectPlayer]);
+  
+  // Rapid Entry Parser - handles formats like "1201 87", "1201,87", "1201-87"
+  const parseRapidEntry = useCallback((input) => {
+    const trimmed = input.trim();
+    
+    // Pattern: number (space/comma/dash) number
+    const patterns = [
+      /^(\d+)\s+(\d+\.?\d*)$/, // "1201 87" or "1201  7.2"
+      /^(\d+),(\d+\.?\d*)$/,   // "1201,87"
+      /^(\d+)-(\d+\.?\d*)$/,   // "1201-87"
+    ];
+    
+    for (const pattern of patterns) {
+      const match = trimmed.match(pattern);
+      if (match) {
+        return { 
+          playerNumber: match[1], 
+          score: match[2] 
+        };
+      }
+    }
+    
+    return null;
+  }, []);
+  
   const checkForDuplicate = useCallback((targetPlayerId, targetDrill) => {
     const player = players.find(p => p.id === targetPlayerId);
     if (player && player[targetDrill] != null) {
@@ -492,8 +549,15 @@ export default function LiveEntry() {
 
     const duplicate = checkForDuplicate(playerId, selectedDrill);
     if (duplicate) {
-      setDuplicateData({ ...duplicate, newScore: numericScore });
-      setShowDuplicateDialog(true);
+      // Check if auto-replace is enabled for this drill
+      if (autoReplaceDuplicates[selectedDrill]) {
+        // Auto-replace without showing modal
+        await submitScore(true);
+      } else {
+        // Show modal for user decision
+        setDuplicateData({ ...duplicate, newScore: numericScore });
+        setShowDuplicateDialog(true);
+      }
       return;
     }
     await submitScore();
@@ -502,6 +566,53 @@ export default function LiveEntry() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     await attemptSubmit();
+  };
+  
+  const handleRapidEntrySubmit = async (e) => {
+    e.preventDefault();
+    
+    const parsed = parseRapidEntry(rapidEntryInput);
+    if (!parsed) {
+      showError('Invalid format. Use: # SCORE (e.g., "1201 87" or "1201,87")');
+      return;
+    }
+    
+    // Find player by number
+    const player = normalizedPlayers.find(p => p.normNumber === parsed.playerNumber);
+    if (!player) {
+      showError(`Player #${parsed.playerNumber} not found in this event.`);
+      return;
+    }
+    
+    // Validate score
+    const numericScore = parseFloat(parsed.score);
+    if (isNaN(numericScore)) {
+      showError("Score must be a valid number.");
+      return;
+    }
+    
+    // Set the player and score temporarily
+    setPlayerId(player.id);
+    setPlayerNumber(parsed.playerNumber);
+    setPlayerName(player.name);
+    setScore(parsed.score);
+    
+    // Check for duplicate and submit
+    const duplicate = checkForDuplicate(player.id, selectedDrill);
+    if (duplicate) {
+      if (autoReplaceDuplicates[selectedDrill]) {
+        await submitScore(true);
+      } else {
+        setDuplicateData({ ...duplicate, newScore: numericScore });
+        setShowDuplicateDialog(true);
+        return;
+      }
+    } else {
+      await submitScore();
+    }
+    
+    // Clear rapid entry input after successful submit
+    setRapidEntryInput("");
   };
   
   const submitScore = async (overrideDuplicate = false) => {
@@ -587,6 +698,29 @@ export default function LiveEntry() {
       setRecentEntries(prev => prev.slice(1));
       showSuccess('Entry undone');
     }
+  };
+
+  const handleEditLast = () => {
+    if (recentEntries.length === 0) return;
+    
+    const lastEntry = recentEntries[0];
+    
+    // Find the player and select them
+    const player = players.find(p => p.id === lastEntry.playerId);
+    if (player) {
+      selectPlayer(player);
+    }
+    
+    // Pre-fill the score
+    setScore(String(lastEntry.score));
+    
+    // Focus and select the score input for easy editing
+    setTimeout(() => {
+      scoreRef.current?.focus();
+      scoreRef.current?.select();
+    }, 150);
+    
+    showSuccess(`Editing ${lastEntry.playerName}'s ${lastEntry.drill.label} score`);
   };
 
 
@@ -861,6 +995,65 @@ export default function LiveEntry() {
             
             {/* Entry Form */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+              {/* Rapid Entry Toggle */}
+              <div className="mb-4 flex items-center justify-between pb-3 border-b border-gray-200">
+                <span className="text-sm text-gray-600">Entry Mode:</span>
+                <button
+                  type="button"
+                  onClick={() => setRapidEntryMode(!rapidEntryMode)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    rapidEntryMode 
+                      ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {rapidEntryMode ? '⚡ Rapid Entry (# SCORE)' : '📝 Standard (Two Inputs)'}
+                </button>
+              </div>
+              
+              {rapidEntryMode ? (
+                // RAPID ENTRY MODE: Single input
+                <form onSubmit={handleRapidEntrySubmit} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Enter Player # and Score
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="text"
+                      value={rapidEntryInput}
+                      onChange={(e) => setRapidEntryInput(e.target.value)}
+                      placeholder={`e.g., 1201 87 or 1201,87 or 1201-87`}
+                      className="w-full text-2xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center font-mono"
+                      disabled={isCurrentDrillLocked}
+                      autoFocus
+                      required
+                    />
+                    <p className="text-xs text-gray-500 text-center mt-2">
+                      Format: player# space/comma/dash score ({currentDrill.unit})
+                    </p>
+                  </div>
+                  
+                  <button
+                    type="submit"
+                    disabled={loading || isCurrentDrillLocked || !rapidEntryInput}
+                    className={`w-full font-bold text-xl py-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2
+                      ${submitSuccess 
+                        ? 'bg-green-500 text-white scale-[1.02] shadow-lg' 
+                        : 'bg-semantic-success hover:bg-green-600 disabled:bg-gray-300 text-white'}`}
+                  >
+                    {submitSuccess ? (
+                      <>
+                        <CheckCircle className="w-6 h-6" />
+                        Saved!
+                      </>
+                    ) : (
+                      loading ? "Saving..." : "Submit & Next"
+                    )}
+                  </button>
+                </form>
+              ) : (
+                // STANDARD MODE: Separate player and score inputs
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Player Number or Name Input */}
                 <div className="relative">
@@ -1066,6 +1259,7 @@ export default function LiveEntry() {
                   )}
                 </button>
               </form>
+              )}
             </div>
             
             <div className="flex justify-center -mt-2 mb-4">
@@ -1095,13 +1289,24 @@ export default function LiveEntry() {
                 </Link>
               )}
               {recentEntries.length > 0 && (
-                <button
-                  onClick={handleUndo}
-                  className="bg-semantic-warning hover:opacity-90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
-                >
-                  <Undo2 className="w-5 h-5" />
-                  Undo
-                </button>
+                <>
+                  <button
+                    onClick={handleEditLast}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition shadow"
+                    title="Edit the last entry"
+                  >
+                    <Edit className="w-5 h-5" />
+                    Edit Last
+                  </button>
+                  <button
+                    onClick={handleUndo}
+                    className="bg-semantic-warning hover:opacity-90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
+                    title="Delete the last entry"
+                  >
+                    <Undo2 className="w-5 h-5" />
+                    Undo
+                  </button>
+                </>
               )}
             </div>
             
@@ -1227,7 +1432,17 @@ export default function LiveEntry() {
       {/* Duplicate Score Dialog */}
       {showDuplicateDialog && duplicateData && (
         <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                submitScore(true);
+              } else if (e.key === 'Escape') {
+                setShowDuplicateDialog(false);
+              }
+            }}
+          >
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-semantic-warning" />
               <h3 className="text-lg font-bold text-gray-900">Existing Score Found</h3>
@@ -1238,29 +1453,47 @@ export default function LiveEntry() {
                 <strong>{duplicateData.playerName}</strong> already has a {duplicateData.drill.label} score:
               </p>
               <div className="bg-brand-light/20 rounded-lg p-3 mb-3">
-                <div className="text-lg font-medium">
-                  Current: {duplicateData.existingScore} {duplicateData.drill.unit}
+                <div className="text-base font-medium text-gray-600">
+                  Current: <span className="text-gray-800">{duplicateData.existingScore} {duplicateData.drill.unit}</span>
                 </div>
-                <div className="text-lg font-medium text-brand-primary">
+                <div className="text-lg font-bold text-brand-primary mt-1">
                   New: {duplicateData.newScore} {duplicateData.drill.unit}
                 </div>
               </div>
             </div>
             
+            {/* Remember choice checkbox */}
+            <label className="flex items-center gap-2 mb-4 text-sm text-gray-600 cursor-pointer hover:text-gray-800">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                onChange={(e) => {
+                  setAutoReplaceDuplicates(prev => ({
+                    ...prev,
+                    [selectedDrill]: e.target.checked
+                  }));
+                }}
+              />
+              <span>Auto-replace duplicates for this drill (no more prompts)</span>
+            </label>
+            
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDuplicateDialog(false)}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-lg"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-lg text-sm transition"
               >
-                Keep Current
+                Cancel (Keep {duplicateData.existingScore})
               </button>
               <button
                 onClick={() => submitScore(true)}
-                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-medium py-3 rounded-lg"
+                autoFocus
+                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 rounded-lg text-lg shadow-lg transition"
               >
-                Replace Score
+                ✓ Replace with {duplicateData.newScore}
               </button>
             </div>
+            
+            <p className="text-xs text-gray-500 text-center mt-3">Press Enter to replace, Esc to cancel</p>
           </div>
         </div>
       )}
