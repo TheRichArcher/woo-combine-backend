@@ -50,15 +50,26 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
         const { data } = await api.get(endpoint);
         
         if (isMounted) {
+          // CRITICAL: Merge backend drill data with local DRILL_TEMPLATES to preserve min/max validation ranges
+          // Backend provides authoritative drill list, but local templates have validation metadata
+          const templateId = selectedEvent.drillTemplate;
+          const localTemplate = templateId ? DRILL_TEMPLATES[templateId] : null;
+          
           // Normalize backend data to match frontend expectations
-          const normalizedDrills = (data.drills || []).map(d => ({
-            ...d,
-            // Backend sends snake_case, Frontend expects camelCase
-            lowerIsBetter: d.lowerIsBetter !== undefined ? d.lowerIsBetter : d.lower_is_better,
-            min: d.min !== undefined ? d.min : d.min_value,
-            max: d.max !== undefined ? d.max : d.max_value,
-            defaultWeight: d.defaultWeight !== undefined ? d.defaultWeight : d.default_weight,
-          }));
+          const normalizedDrills = (data.drills || []).map(d => {
+            // Find matching drill in local template to inherit min/max/validation metadata
+            const localDrill = localTemplate?.drills?.find(ld => ld.key === d.key);
+            
+            return {
+              ...localDrill, // Start with local template (has min/max/validation)
+              ...d,          // Overlay backend data (authoritative for enabled/disabled/custom)
+              // Backend sends snake_case, Frontend expects camelCase
+              lowerIsBetter: d.lowerIsBetter !== undefined ? d.lowerIsBetter : d.lower_is_better ?? localDrill?.lowerIsBetter,
+              min: d.min !== undefined ? d.min : d.min_value ?? localDrill?.min,
+              max: d.max !== undefined ? d.max : d.max_value ?? localDrill?.max,
+              defaultWeight: d.defaultWeight !== undefined ? d.defaultWeight : d.default_weight ?? localDrill?.defaultWeight,
+            };
+          });
 
           // Normalize presets from list (backend) to object (frontend expectation)
           let normalizedPresets = {};
