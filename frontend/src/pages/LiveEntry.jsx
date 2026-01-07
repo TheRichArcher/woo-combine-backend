@@ -92,6 +92,13 @@ export default function LiveEntry() {
   const [rapidEntryInput, setRapidEntryInput] = useState("");
   const [showRapidEntryHint, setShowRapidEntryHint] = useState(false);
   
+  // Drill-aware validation
+  const [validationWarning, setValidationWarning] = useState(null); // { message: string, score: number }
+  
+  // Drill switch protection
+  const [entriesInCurrentDrill, setEntriesInCurrentDrill] = useState(0);
+  const [pendingDrillSwitch, setPendingDrillSwitch] = useState(null); // { newDrillKey: string }
+  
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
   const scoreRef = useRef(null);
@@ -262,9 +269,10 @@ export default function LiveEntry() {
     } catch {}
   }, [storageKeys, selectedDrill]);
 
-  // Clear score when drill changes
+  // Clear score when drill changes and reset entry counter
   useEffect(() => {
     setScore("");
+    setEntriesInCurrentDrill(0);
   }, [selectedDrill]);
 
   // Persist recent entries (last 10)
@@ -332,14 +340,12 @@ export default function LiveEntry() {
         const idx = drills.findIndex(d => d.key === selectedDrill);
         if (idx === -1) return;
         const nextIdx = e.key === 'ArrowRight' ? (idx + 1) % drills.length : (idx - 1 + drills.length) % drills.length;
-        setSelectedDrill(drills[nextIdx].key);
-        setDrillConfirmed(true);
-        setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+        handleDrillSwitch(drills[nextIdx].key);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [drillConfirmed, selectedDrill]);
+  }, [drillConfirmed, selectedDrill, drills, entriesInCurrentDrill, handleDrillSwitch]);
   
   // Memoized normalized players for efficient search
   const normalizedPlayers = useMemo(() => {
@@ -537,6 +543,84 @@ export default function LiveEntry() {
     return null;
   }, [players, drills]);
   
+  // Drill-aware validation - checks for suspicious scores
+  const validateScoreForDrill = useCallback((score, drill) => {
+    const numericScore = parseFloat(score);
+    
+    // Basic numeric check
+    if (isNaN(numericScore)) {
+      return { valid: false, error: "Score must be a valid number." };
+    }
+    
+    // Check drill-defined ranges (if available)
+    if (drill.min !== undefined && numericScore < drill.min) {
+      return { 
+        valid: false, 
+        warning: `${numericScore} ${drill.unit} is unusually low for ${drill.label}. Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+      };
+    }
+    if (drill.max !== undefined && numericScore > drill.max) {
+      return { 
+        valid: false, 
+        warning: `${numericScore} ${drill.unit} is unusually high for ${drill.label}. Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+      };
+    }
+    
+    // Unit-aware checks for common mistakes
+    if (drill.unit === 'sec' && drill.lowerIsBetter) {
+      // Sprint times - check for decimal mistakes (e.g., 72 instead of 7.2)
+      if (numericScore > 20 && numericScore < 100) {
+        const suggestedScore = (numericScore / 10).toFixed(1);
+        return {
+          valid: false,
+          warning: `${numericScore} seconds seems very slow for ${drill.label}. Did you mean ${suggestedScore} seconds?`
+        };
+      }
+      // Extremely fast times (likely typo)
+      if (numericScore < 3) {
+        return {
+          valid: false,
+          warning: `${numericScore} seconds is unusually fast for ${drill.label}. Please verify this is correct.`
+        };
+      }
+    }
+    
+    // Percentage checks (0-100 expected)
+    if (drill.unit === '%') {
+      if (numericScore > 100) {
+        return {
+          valid: false,
+          warning: `${numericScore}% exceeds 100%. Please enter a value between 0-100.`
+        };
+      }
+      if (numericScore < 0) {
+        return {
+          valid: false,
+          warning: `Percentage cannot be negative. Please enter a value between 0-100.`
+        };
+      }
+    }
+    
+    // Points checks (0-100 typical)
+    if (drill.unit === 'pts') {
+      if (numericScore > 100 && !drill.max) {
+        return {
+          valid: false,
+          warning: `${numericScore} points is unusually high for ${drill.label}. Most drills use 0-100 scale. Verify this is correct.`
+        };
+      }
+      if (numericScore < 0) {
+        return {
+          valid: false,
+          warning: `Points cannot be negative.`
+        };
+      }
+    }
+    
+    // All checks passed
+    return { valid: true };
+  }, []);
+  
   // Handle score submission
   const attemptSubmit = async () => {
     if (!selectedDrill || !playerId || !score) return;
@@ -555,6 +639,21 @@ export default function LiveEntry() {
       showError("Please enter a valid numeric format.");
       scoreRef.current?.focus();
       return;
+    }
+    
+    // Drill-aware validation
+    const validation = validateScoreForDrill(score, currentDrill);
+    if (!validation.valid) {
+      if (validation.error) {
+        // Hard error - block submission
+        showError(validation.error);
+        scoreRef.current?.focus();
+        return;
+      } else if (validation.warning) {
+        // Soft warning - require confirmation
+        setValidationWarning({ message: validation.warning, score: numericScore });
+        return;
+      }
     }
 
     const duplicate = checkForDuplicate(playerId, selectedDrill);
@@ -578,6 +677,25 @@ export default function LiveEntry() {
     await attemptSubmit();
   };
   
+  const confirmSubmitDespiteWarning = async () => {
+    // User has explicitly confirmed they want to submit despite validation warning
+    setValidationWarning(null);
+    
+    // Proceed with submission (skip validation, go straight to duplicate check)
+    const duplicate = checkForDuplicate(playerId, selectedDrill);
+    if (duplicate) {
+      const numericScore = parseFloat(score);
+      if (autoReplaceDuplicates[selectedDrill]) {
+        await submitScore(true);
+      } else {
+        setDuplicateData({ ...duplicate, newScore: numericScore });
+        setShowDuplicateDialog(true);
+      }
+      return;
+    }
+    await submitScore();
+  };
+  
   const handleRapidEntrySubmit = async (e) => {
     e.preventDefault();
     
@@ -599,6 +717,23 @@ export default function LiveEntry() {
     if (isNaN(numericScore)) {
       showError("Score must be a valid number.");
       return;
+    }
+    
+    // Drill-aware validation
+    const validation = validateScoreForDrill(parsed.score, currentDrill);
+    if (!validation.valid) {
+      if (validation.error) {
+        showError(validation.error);
+        return;
+      } else if (validation.warning) {
+        // Set player and score state so warning modal has context
+        setPlayerId(player.id);
+        setPlayerNumber(parsed.playerNumber);
+        setPlayerName(player.name);
+        setScore(parsed.score);
+        setValidationWarning({ message: validation.warning, score: numericScore });
+        return;
+      }
     }
     
     // Set the player and score temporarily
@@ -651,6 +786,9 @@ export default function LiveEntry() {
       };
       
       setRecentEntries(prev => [entry, ...prev.slice(0, 9)]); // Keep last 10
+      
+      // Track entries in current drill for switch protection
+      setEntriesInCurrentDrill(prev => prev + 1);
       
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 300);
@@ -739,6 +877,29 @@ export default function LiveEntry() {
     if (!selectedDrill) return;
     setLockedDrills(prev => ({ ...prev, [selectedDrill]: !prev[selectedDrill] }));
   };
+  
+  // Handle drill switching with protection after entries
+  const handleDrillSwitch = (newDrillKey) => {
+    // If no entries in current drill, switch immediately
+    if (entriesInCurrentDrill === 0) {
+      setSelectedDrill(newDrillKey);
+      setDrillConfirmed(true);
+      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+      return;
+    }
+    
+    // If entries exist, require confirmation
+    setPendingDrillSwitch({ newDrillKey });
+  };
+  
+  const confirmDrillSwitch = () => {
+    if (pendingDrillSwitch) {
+      setSelectedDrill(pendingDrillSwitch.newDrillKey);
+      setDrillConfirmed(true);
+      setPendingDrillSwitch(null);
+      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+    }
+  };
 
   // Prevent scroll from changing numeric inputs
   const preventWheel = (e) => e.preventDefault();
@@ -811,7 +972,14 @@ export default function LiveEntry() {
               <div className="block">
                 <select
                 value={selectedDrill || ''}
-                onChange={(e) => { setSelectedDrill(e.target.value); setDrillConfirmed(!!e.target.value); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                onChange={(e) => { 
+                  if (e.target.value) {
+                    handleDrillSwitch(e.target.value);
+                  } else {
+                    setSelectedDrill('');
+                    setDrillConfirmed(false);
+                  }
+                }}
                 className="p-2 border rounded-lg text-sm bg-white"
               >
                 <option value="">Select drill…</option>
@@ -946,8 +1114,8 @@ export default function LiveEntry() {
           </div>
         ) : (
           <>
-            {/* Active Drill Header */}
-            <div className="bg-brand-primary text-white rounded-xl p-4 text-center">
+            {/* Active Drill Header - Sticky */}
+            <div className="sticky top-16 z-10 bg-brand-primary text-white rounded-xl p-4 text-center shadow-lg">
               <h2 className="text-xl font-bold">{currentDrill.label}</h2>
               <p className="text-brand-primary/20">Entry Mode Active</p>
               {/* Progress summary */}
@@ -966,7 +1134,7 @@ export default function LiveEntry() {
                 {drills.map((d) => (
                   <button
                     key={d.key}
-                    onClick={() => { setSelectedDrill(d.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                    onClick={() => handleDrillSwitch(d.key)}
                     className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-brand-primary text-white border-brand-primary shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
                     aria-pressed={d.key === selectedDrill}
                   >
@@ -1338,7 +1506,7 @@ export default function LiveEntry() {
               {/* Next Drill CTA at >=80% completion */}
               {selectedDrill && completionPct >= 80 && nextDrill && (
                 <button
-                  onClick={() => { setSelectedDrill(nextDrill.key); setDrillConfirmed(true); setTimeout(() => { playerNumberRef.current?.focus(); }, 100); }}
+                  onClick={() => handleDrillSwitch(nextDrill.key)}
                   className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-semibold py-3 rounded-lg transition shadow"
                 >
                   Next Drill → {nextDrill.label}
@@ -1493,6 +1661,121 @@ export default function LiveEntry() {
           </>
         )}
       </div>
+      
+      {/* Drill Switch Confirmation Dialog */}
+      {pendingDrillSwitch && (
+        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmDrillSwitch();
+              } else if (e.key === 'Escape') {
+                setPendingDrillSwitch(null);
+              }
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-semantic-warning" />
+              <h3 className="text-lg font-bold text-gray-900">Switch Drills?</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-3">
+                You've entered <strong>{entriesInCurrentDrill} score{entriesInCurrentDrill !== 1 ? 's' : ''}</strong> for <strong>{currentDrill.label}</strong>.
+              </p>
+              <p className="text-gray-700 mb-3">
+                Switching to <strong>{drills.find(d => d.key === pendingDrillSwitch.newDrillKey)?.label}</strong> will change the active drill.
+              </p>
+              
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <p className="text-sm text-yellow-800">
+                  <strong>⚠️ Important:</strong> Make sure you've finished entering all scores for {currentDrill.label} before switching.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingDrillSwitch(null)}
+                autoFocus
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-lg transition"
+              >
+                ← Stay on {currentDrill.label}
+              </button>
+              <button
+                onClick={confirmDrillSwitch}
+                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 rounded-lg shadow-lg transition"
+              >
+                Switch to {drills.find(d => d.key === pendingDrillSwitch.newDrillKey)?.label.split(' ')[0]} →
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center mt-3">Press Enter to switch, Esc to cancel</p>
+          </div>
+        </div>
+      )}
+      
+      {/* Validation Warning Dialog */}
+      {validationWarning && (
+        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmSubmitDespiteWarning();
+              } else if (e.key === 'Escape') {
+                setValidationWarning(null);
+                scoreRef.current?.focus();
+              }
+            }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="w-6 h-6 text-orange-500" />
+              <h3 className="text-lg font-bold text-gray-900">Score Verification Needed</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-700 mb-3">
+                {validationWarning.message}
+              </p>
+              
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Entered score:</span>
+                  <span className="text-xl font-bold text-orange-600">
+                    {validationWarning.score} {currentDrill.unit}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setValidationWarning(null);
+                  scoreRef.current?.focus();
+                  scoreRef.current?.select();
+                }}
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-lg transition"
+              >
+                ← Go Back & Edit
+              </button>
+              <button
+                onClick={confirmSubmitDespiteWarning}
+                autoFocus
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 rounded-lg shadow-lg transition"
+              >
+                ✓ Submit Anyway
+              </button>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center mt-3">Press Enter to submit, Esc to go back</p>
+          </div>
+        </div>
+      )}
       
       {/* Duplicate Score Dialog */}
       {showDuplicateDialog && duplicateData && (
