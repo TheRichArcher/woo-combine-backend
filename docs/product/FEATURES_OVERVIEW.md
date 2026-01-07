@@ -2,7 +2,7 @@
 
 _User-facing capabilities and benefits_
 
-**Last updated:** January 5, 2026
+**Last updated:** January 7, 2026
 
 ---
 
@@ -25,6 +25,13 @@ WooCombine is a web-based platform for managing youth sports combine events and 
 - ✅ Support multiple age groups per event (12U, 14U, etc.)
 - ✅ Generate unique QR codes for coach/viewer access
 - ✅ Guided setup wizard for first-time organizers
+- ✅ **Delete events safely** with 3-layer confirmation and 30-day recovery window
+
+**Event Deletion Safety:**
+- Layer 1: Explicit intent confirmation with data impact warning
+- Layer 2: Type exact event name to confirm (paste blocked)
+- Layer 3: Final confirmation modal with full event details
+- Soft-delete system allows recovery within 30 days via support
 
 **Typical Use Cases:**
 - Youth football tryouts
@@ -140,7 +147,7 @@ WooCombine is a web-based platform for managing youth sports combine events and 
 - ✅ **Secure authentication** - Email/password login with verification
 
 **Access Levels:**
-- **Organizer (Full Control):** Create events, manage players, enter scores, adjust weights, generate teams, export data
+- **Organizer (Full Control):** Create/edit/delete events, manage players, enter scores, adjust weights, generate teams, export data, admin tools
 - **Coach (Evaluation Access):** View rankings, adjust weights, export data, analyze performance
 - **Viewer (Read-Only):** View rankings and leaderboards only
 
@@ -244,6 +251,12 @@ A: No. Only organizers can enter/edit scores. Coaches can view, adjust weights, 
 
 **Q: How do I prevent parents from seeing other players' scores?**  
 A: Use Viewer role QR codes. Viewers see aggregated rankings but not individual drill breakdowns (unless you enable it).
+
+**Q: Can I delete an event if I made a mistake?**  
+A: Yes! Organizers can delete events through Admin Tools → Event Setup. The system uses 3-layer confirmation to prevent accidents. Deleted events are recoverable for 30 days - contact support immediately if you need recovery.
+
+**Q: What happens to player data when I delete an event?**  
+A: All player data, scores, and event settings are soft-deleted (marked as deleted, not permanently removed). During the 30-day recovery window, support can restore everything. After 30 days, data is permanently purged.
 
 ---
 

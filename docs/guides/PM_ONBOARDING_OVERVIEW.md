@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 6, 2026_
+_Last updated: January 7, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -21,6 +21,21 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
 - **Security**: Email/Password authentication with proper verification flows. Phone auth and reCAPTCHA fully removed.
 - **UX**: Guided onboarding flows, contextual navigation, and clear next-action CTAs eliminate "what do I do next?" friction.
 - **Product Discipline**: Clear architectural boundaries documented. Features organized by the 10-second rule for operational focus.
+
+### Recent Fixes & Improvements (January 7, 2026)
+
+**Event Deletion Flow (P0 - Critical)**
+- **Issue**: Event deletion completely broken in production. Users could complete 3-layer confirmation flow but DELETE request never fired. Events remained in database and continued appearing in dropdowns.
+- **Root Cause**: Complex state management issue where context switching during confirmation flow caused component unmounting before final modal could render. React's batching and re-render timing prevented the "Delete Permanently" button from ever appearing to users.
+- **Solution**: Complete redesign of deletion timing flow. Final confirmation modal now renders FIRST (no premature context switching), then context switch happens inside `handleFinalDelete` immediately before DELETE request. Added comprehensive API logging (REQUEST_START/SUCCESS/FAILED) for observability.
+- **Commits**: bd805a7, 5ba7f93, 1cfc4e0, ae9cda2
+- **Impact**: Event deletion now works reliably. Network logs show proper DELETE requests, backend confirms deletions, events disappear from UI immediately.
+
+**AdminTools Empty State (UX Improvement)**
+- **Issue**: AdminTools showed misleading "No Event Selected" message when all events were deleted, implying events existed when none did.
+- **Solution**: Added conditional logic to distinguish between "no event selected" (events exist) vs "no events exist" (empty state). Empty state now shows "No Events Yet" with clear "Create First Event" CTA.
+- **Commit**: 91ea72c
+- **Impact**: Eliminates user confusion when starting fresh after deleting all events.
 
 ---
 
@@ -951,7 +966,7 @@ docs/
 ### 💾 Data & Models
 - **Legacy Fields**: Fields like `drill_40m_dash` deprecated but auto-synced to `scores` map for backward compatibility
 - **Multi-sport Athletes**: Players scoped to Event (`event_id`), meaning same person in multiple events = duplicate records
-- **Deletion**: Hard deletes supported; no soft-delete column exists
+- **Event Deletion**: Production-ready soft-delete system with 3-layer confirmation flow. Events marked as `deleted_at` in Firestore, filtered from all API responses, with 30-day recovery window. Backend logging tracks all deletion attempts with full audit trail.
 
 ### 🛠 Tech & Tooling
 - **Design System**: Tailwind CSS. No external UI component library
@@ -1053,8 +1068,9 @@ When someone requests a new feature on `/coach`, ask:
 ### 4) Data Lifecycle
 - **Retention**:
   - **Leagues/Events**: Retained indefinitely until user deletion; inactive projects purged after 24 months
+  - **Deleted Events**: Soft-deleted events retained 30 days for recovery (contact support)
   - **Player Data**: Retained 24 months after event end
-- **Recoverability**: JSON exports available via verified DSR request
+- **Recoverability**: JSON exports available via verified DSR request; soft-deleted events recoverable within 30 days
 
 ### 5) Architecture Philosophy
 - **Role Model**: Organizer = superset of coach (same pages, different controls)
