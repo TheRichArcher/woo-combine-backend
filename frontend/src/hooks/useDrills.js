@@ -55,20 +55,38 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
           const templateId = selectedEvent.drillTemplate;
           const localTemplate = templateId ? DRILL_TEMPLATES[templateId] : null;
           
-          // Normalize backend data to match frontend expectations
+          // DEFENSIVE MERGE: Whitelist which fields backend can control to prevent validation data loss
+          // Backend is allowed to override: label, unit, category, enabled status, custom drill metadata
+          // Backend is NOT allowed to wipe: min, max, lowerIsBetter, defaultWeight (use local template as source of truth)
           const normalizedDrills = (data.drills || []).map(d => {
             // Find matching drill in local template to inherit min/max/validation metadata
             const localDrill = localTemplate?.drills?.find(ld => ld.key === d.key);
             
-            return {
-              ...localDrill, // Start with local template (has min/max/validation)
-              ...d,          // Overlay backend data (authoritative for enabled/disabled/custom)
-              // Backend sends snake_case, Frontend expects camelCase
-              lowerIsBetter: d.lowerIsBetter !== undefined ? d.lowerIsBetter : d.lower_is_better ?? localDrill?.lowerIsBetter,
-              min: d.min !== undefined ? d.min : d.min_value ?? localDrill?.min,
-              max: d.max !== undefined ? d.max : d.max_value ?? localDrill?.max,
-              defaultWeight: d.defaultWeight !== undefined ? d.defaultWeight : d.default_weight ?? localDrill?.defaultWeight,
-            };
+            // Start with local template (has validation metadata)
+            const merged = { ...localDrill };
+            
+            // Overlay ONLY backend-controlled fields (whitelist approach)
+            if (d.key !== undefined) merged.key = d.key;
+            if (d.label !== undefined) merged.label = d.label;
+            if (d.unit !== undefined) merged.unit = d.unit;
+            if (d.category !== undefined) merged.category = d.category;
+            if (d.isCustom !== undefined) merged.isCustom = d.isCustom;
+            
+            // For validation fields: backend wins IF explicitly provided, else keep local template
+            // This allows future backend validation ranges while protecting against undefined overwrites
+            if (d.lowerIsBetter !== undefined) merged.lowerIsBetter = d.lowerIsBetter;
+            else if (d.lower_is_better !== undefined) merged.lowerIsBetter = d.lower_is_better;
+            
+            if (d.min !== undefined) merged.min = d.min;
+            else if (d.min_value !== undefined) merged.min = d.min_value;
+            
+            if (d.max !== undefined) merged.max = d.max;
+            else if (d.max_value !== undefined) merged.max = d.max_value;
+            
+            if (d.defaultWeight !== undefined) merged.defaultWeight = d.defaultWeight;
+            else if (d.default_weight !== undefined) merged.defaultWeight = d.default_weight;
+            
+            return merged;
           });
 
           // Normalize presets from list (backend) to object (frontend expectation)
