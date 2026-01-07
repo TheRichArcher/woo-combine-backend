@@ -253,18 +253,8 @@ export default function RouteDecisionGate({ children }) {
       }
     }
 
-    // CRITICAL FIX: Organizers and coaches should ALWAYS go to /coach
-    // Check ANY protected route, not just /dashboard
-    if (userRole === 'organizer' || userRole === 'coach') {
-      const mainRoutes = ['/dashboard', '/admin', '/players', '/live-entry', '/analytics', '/live-standings'];
-      
-      if (mainRoutes.includes(location.pathname)) {
-        performNavigation('/coach', `${userRole} default dashboard`);
-        return;
-      }
-    }
-
     // If we're here, state is ready and current route is valid
+    // Let the user stay on their requested route - don't force redirects
     console.log(`${logPrefix} ROUTE_VALID: ${location.pathname} is valid, rendering content`);
     setDecisionMade(true);
 

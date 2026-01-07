@@ -16,11 +16,6 @@ export default function LoginForm() {
   const { loading } = useAuth();
   const navigate = useNavigate();
 
-  // Debug logging
-  useEffect(() => {
-    console.log('[LoginForm] Rendered with loading:', loading);
-  }, [loading]);
-
   // CRITICAL FIX: Clear stale invitation data when accessing login normally
   useEffect(() => {
     // Preserve pendingEventJoin; it can originate from QR flows without referrer
@@ -29,14 +24,11 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('[LoginForm] Form submitted', { email, hasPassword: !!password });
     setFormError("");
     setSubmitting(true);
     
     try {
-      console.log('[LoginForm] Calling signInWithEmailAndPassword...');
       await signInWithEmailAndPassword(auth, email, password);
-      console.log('[LoginForm] Sign in successful');
       // CRITICAL FIX: Don't navigate here - let AuthContext handle navigation
       // after role/league state is fully ready. This prevents flicker through
       // intermediate routes like /dashboard before reaching final destination.
@@ -80,10 +72,7 @@ export default function LoginForm() {
     }
   };
 
-  if (loading) {
-    console.log('[LoginForm] Stuck in loading state - form not rendering');
-    return <div>Loading...</div>;
-  }
+  if (loading) return <div>Loading...</div>;
 
   return (
     <>
