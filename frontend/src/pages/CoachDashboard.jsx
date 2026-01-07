@@ -289,127 +289,78 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         </div>
       );
     }
-    // EMPTY STATE: Full-screen takeover for returning users with new empty event
-    // This is a DISTINCT VISUAL MODE - not just missing content
-    // Import is primary CTA (most prominent), other actions secondary/subdued
-    // This is a suggestion, not a forced redirect - preserves user control
+    // EMPTY STATE: Standard page layout with opinionated CTA hierarchy
+    // Matches the consistent styling of all other pages
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center px-4 py-12">
-        <div className="max-w-2xl w-full">
-          {/* Prominent Empty State Illustration */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-32 h-32 bg-white rounded-full shadow-xl mb-6 border-4 border-cmf-primary/20">
-              <Users className="w-16 h-16 text-cmf-primary" />
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center border-2 border-cmf-primary/30">
+            <div className="w-16 h-16 bg-cmf-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users className="w-8 h-8 text-cmf-primary" />
             </div>
             
-            <h1 className="text-4xl font-bold text-gray-900 mb-3">
-              {selectedEvent ? `Ready to Start: ${selectedEvent.name}` : "Select an Event"}
-            </h1>
-            
-            <p className="text-xl text-gray-600 mb-2">
-              Your event is set up and ready to go!
+            <h2 className="text-2xl font-bold text-cmf-secondary mb-2">
+              {selectedEvent ? selectedEvent.name : "No Event Selected"}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              {selectedEvent 
+                ? "Your event is ready. Add players to get started."
+                : "Select an event to continue."}
             </p>
-            <p className="text-lg text-gray-500">
-              Next step: Add your players to begin evaluations
-            </p>
-          </div>
 
-          {userRole === 'organizer' && selectedEvent ? (
-            <div className="space-y-6">
-              {/* PRIMARY CTA: Import Players - HERO TREATMENT */}
-              <div className="bg-white rounded-2xl shadow-2xl p-8 border-2 border-cmf-primary">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-cmf-primary rounded-xl flex items-center justify-center">
-                      <Upload className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <div className="flex-1">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Import Your Roster</h2>
-                    <p className="text-gray-600">
-                      Upload a CSV file to add all your players at once. This is the fastest way to get started.
-                    </p>
-                  </div>
-                </div>
-                
+            {userRole === 'organizer' && selectedEvent ? (
+              <div className="space-y-4">
+                {/* PRIMARY CTA: Import Players */}
                 <Link 
                   to="/players?action=import" 
-                  className="block w-full bg-gradient-to-r from-cmf-primary to-cmf-secondary text-white font-bold text-xl px-10 py-5 rounded-xl shadow-lg hover:shadow-2xl transition-all transform hover:scale-[1.02] text-center"
+                  className="block w-full bg-cmf-primary text-white font-bold px-6 py-4 rounded-lg shadow hover:bg-cmf-secondary hover:shadow-lg transition"
                 >
-                  <span className="flex items-center justify-center gap-3">
-                    <Upload className="w-6 h-6" />
-                    Import Players from CSV
-                    <ChevronRight className="w-6 h-6" />
-                  </span>
+                  <div className="flex items-center justify-center gap-2">
+                    <Upload className="w-5 h-5" />
+                    <span>Import Players from CSV</span>
+                  </div>
                 </Link>
-                
-                <div className="mt-4 flex items-center justify-center gap-2 text-sm text-green-600 bg-green-50 px-4 py-2 rounded-lg">
-                  <CheckCircle className="w-4 h-4" />
-                  <span className="font-medium">Recommended for teams with 10+ players</span>
-                </div>
-              </div>
-
-              {/* SECONDARY OPTIONS: Clearly de-emphasized */}
-              <div className="bg-white/50 backdrop-blur rounded-xl border border-gray-200 p-6">
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4 text-center">
-                  Other Ways to Add Players
-                </p>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Link 
-                    to="/players" 
-                    className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-cmf-primary hover:shadow-md transition group"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-cmf-primary/10 transition">
-                      <Users className="w-5 h-5 text-gray-600 group-hover:text-cmf-primary transition" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold text-gray-900 text-sm">Add Manually</div>
-                      <div className="text-xs text-gray-500">One player at a time</div>
-                    </div>
-                  </Link>
-                  
-                  <Link 
-                    to="/admin-tools" 
-                    className="flex items-center gap-3 p-4 bg-white border border-gray-200 rounded-lg hover:border-cmf-primary hover:shadow-md transition group"
-                  >
-                    <div className="flex-shrink-0 w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-cmf-primary/10 transition">
-                      <Settings className="w-5 h-5 text-gray-600 group-hover:text-cmf-primary transition" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="font-semibold text-gray-900 text-sm">Event Settings</div>
-                      <div className="text-xs text-gray-500">Configure drills & details</div>
-                    </div>
-                  </Link>
-                </div>
-              </div>
-
-              {/* Quick tip */}
-              <div className="text-center">
                 <p className="text-sm text-gray-500">
-                  Need help? Check out the{' '}
-                  <Link to="/help" className="text-cmf-primary hover:underline font-medium">
-                    Import Guide
-                  </Link>
-                  {' '}for CSV formatting tips
+                  Recommended: Upload a CSV file to quickly add your roster
                 </p>
+                
+                {/* SECONDARY ACTIONS */}
+                <div className="pt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-3 font-semibold">
+                    Other Options
+                  </p>
+                  <div className="space-y-2">
+                    <Link 
+                      to="/players" 
+                      className="flex items-center justify-center gap-2 w-full text-gray-600 hover:text-cmf-primary font-medium py-2 px-4 rounded-lg hover:bg-gray-50 border border-gray-200 transition"
+                    >
+                      <Users className="w-4 h-4" />
+                      Add Players Manually
+                    </Link>
+                    <Link 
+                      to="/admin-tools" 
+                      className="flex items-center justify-center gap-2 w-full text-gray-600 hover:text-cmf-primary font-medium py-2 px-4 rounded-lg hover:bg-gray-50 border border-gray-200 transition"
+                    >
+                      <Settings className="w-4 h-4" />
+                      Event Settings
+                    </Link>
+                  </div>
+                </div>
               </div>
-            </div>
-          ) : userRole === 'organizer' && !selectedEvent ? (
-            <div className="text-center">
+            ) : userRole === 'organizer' && !selectedEvent ? (
               <Link 
                 to="/admin-tools" 
-                className="inline-block bg-cmf-primary text-white font-bold text-lg px-8 py-4 rounded-xl shadow-lg hover:bg-cmf-secondary transition"
+                className="inline-block bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
               >
                 Select or Create Event
               </Link>
-            </div>
-          ) : (
-            <div className="text-center bg-white rounded-xl shadow-lg p-8">
-              <Clock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg text-gray-600">Waiting for organizer to add players</p>
-            </div>
-          )}
+            ) : (
+              <div className="mt-4">
+                <Clock className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">Waiting for organizer to add players</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
