@@ -577,15 +577,25 @@ export default function LiveEntry() {
     
     // Check drill-defined ranges (if available)
     if (drill.min !== undefined && numericScore < drill.min) {
+      // Only show range if both min and max are defined
+      const rangeText = (drill.max !== undefined) 
+        ? ` Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+        : '';
+      
       return { 
         valid: false, 
-        warning: `${numericScore} ${drill.unit} is unusually low for ${drill.label}. Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+        warning: `${numericScore} ${drill.unit} is unusually low for ${drill.label}.${rangeText}`
       };
     }
     if (drill.max !== undefined && numericScore > drill.max) {
+      // Only show range if both min and max are defined
+      const rangeText = (drill.min !== undefined) 
+        ? ` Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+        : '';
+      
       return { 
         valid: false, 
-        warning: `${numericScore} ${drill.unit} is unusually high for ${drill.label}. Expected range: ${drill.min}-${drill.max} ${drill.unit}.`
+        warning: `${numericScore} ${drill.unit} is unusually high for ${drill.label}.${rangeText}`
       };
     }
     
