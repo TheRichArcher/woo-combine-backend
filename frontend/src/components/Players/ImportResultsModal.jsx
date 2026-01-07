@@ -513,10 +513,16 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     };
 
     const handleSubmit = async () => {
-    if (!parseResult) return;
+    console.log("[IMPORT DEBUG] handleSubmit called - START");
+    if (!parseResult) {
+        console.log("[IMPORT DEBUG] Early return - no parseResult");
+        return;
+    }
+    console.log("[IMPORT DEBUG] parseResult exists, continuing...");
     
     // CRITICAL: Validate required fields FIRST before any other validation
     const requiredStatus = getRequiredFieldsStatus();
+    console.log("[IMPORT DEBUG] Required fields status:", requiredStatus);
     if (!requiredStatus.valid) {
         setRequiredFieldsError(requiredStatus.error);
         // Scroll to required fields panel
@@ -738,6 +744,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         // So we can proceed. We effectively "ignore" them by not including them in the mapped payload.
     }
 
+    console.log("[IMPORT DEBUG] All validations passed, setting step to 'submitting'");
     setStep('submitting');
     try {
       // Merge edited data and filter based on strategy
@@ -2071,7 +2078,10 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             Back to Input
           </button>
           <button
-            onClick={handleSubmit}
+            onClick={() => {
+                console.log("[IMPORT DEBUG] Import Data button clicked. requiredFieldsComplete:", requiredFieldsComplete);
+                handleSubmit();
+            }}
             disabled={!requiredFieldsComplete}
             className={`px-6 py-2 rounded-lg font-medium flex items-center gap-2 ${
                 requiredFieldsComplete
