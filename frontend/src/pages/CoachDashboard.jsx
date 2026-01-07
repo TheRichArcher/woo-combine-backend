@@ -289,8 +289,9 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         </div>
       );
     }
-    // If user has leagues but no players, show neutral landing (NOT onboarding/import CTA)
-    // This could be a new event OR post-deletion state - do NOT assume intent to import
+    // For returning users with new empty event: opinionated CTA hierarchy
+    // Import is primary CTA (most prominent), other actions secondary/subdued
+    // This is a suggestion, not a forced redirect - preserves user control
     return (
       <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
         <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
@@ -300,15 +301,38 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               ? `Your event "${selectedEvent.name}" doesn't have any players yet.`
               : "Select an event to get started."}
           </p>
-          <div className="flex flex-col gap-3 items-center">
+          <div className="flex flex-col gap-4 items-center">
             {userRole === 'organizer' && selectedEvent ? (
               <>
-                <Link to="/players" className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition w-full max-w-xs text-center">
-                  Manage Players
+                {/* PRIMARY CTA: Import Players - most prominent */}
+                <Link 
+                  to="/players?action=import" 
+                  className="bg-cmf-primary text-white font-bold px-8 py-4 rounded-xl shadow-lg hover:bg-cmf-secondary hover:shadow-xl transition-all transform hover:scale-105 w-full max-w-xs text-center text-lg"
+                >
+                  📥 Import Players
                 </Link>
-                <p className="text-sm text-gray-600 mt-2">
-                  From the Players page, you can add players manually or import from a CSV.
+                <p className="text-sm text-gray-600 -mt-2">
+                  Recommended: Upload a CSV file to quickly add your roster
                 </p>
+                
+                {/* SECONDARY ACTIONS: subdued styling */}
+                <div className="w-full max-w-xs pt-4 mt-4 border-t border-gray-200">
+                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-3 font-semibold">Other Options</p>
+                  <div className="flex flex-col gap-2">
+                    <Link 
+                      to="/players" 
+                      className="text-gray-600 hover:text-cmf-primary text-sm py-2 px-4 rounded-lg hover:bg-gray-50 transition text-center border border-gray-200"
+                    >
+                      Add Players Manually
+                    </Link>
+                    <Link 
+                      to="/admin-tools" 
+                      className="text-gray-600 hover:text-cmf-primary text-sm py-2 px-4 rounded-lg hover:bg-gray-50 transition text-center border border-gray-200"
+                    >
+                      Event Settings
+                    </Link>
+                  </div>
+                </div>
               </>
             ) : userRole === 'organizer' && !selectedEvent ? (
               <Link to="/admin-tools" className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition w-full max-w-xs text-center">
