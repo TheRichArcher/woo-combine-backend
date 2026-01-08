@@ -1061,15 +1061,12 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       interval = setInterval(() => {
         setUndoTimer(prev => prev - 1);
       }, 1000);
-    } else if (undoTimer === 0) {
+    } else if (undoTimer === 0 && undoLog) {
+        // Timer expired - just hide the undo option, don't auto-close modal
         setUndoLog(null);
-        setTimeout(() => {
-            onSuccess?.(false); // isRevert = false
-            onClose();
-        }, 1000);
     }
     return () => clearInterval(interval);
-  }, [step, undoLog, undoTimer, onSuccess, onClose]);
+  }, [step, undoLog, undoTimer]);
 
   const fetchHistory = async () => {
       setLoadingHistory(true);
@@ -2416,7 +2413,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 </div>
               )}
               
-              <div className="flex justify-center gap-4 mt-8 mb-8">
+              <div className="flex justify-center gap-4 mt-8">
                    <button 
                        onClick={() => { 
                            onSuccess?.(false); 
@@ -2424,31 +2421,27 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                            // Force navigation to players tab to ensure context is refreshed
                            window.location.href = '/players';
                        }} 
-                       className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                       className="px-8 py-3 bg-cmf-primary text-white rounded-lg font-semibold hover:bg-cmf-secondary shadow-lg hover:shadow-xl transition-all"
                    >
                        View Rankings
                    </button>
                    <button
                        onClick={handleDownloadPDF}
-                       className="px-6 py-2 bg-cmf-primary text-white rounded-lg font-medium hover:bg-cmf-secondary flex items-center gap-2"
+                       className="px-8 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 flex items-center gap-2 transition-all"
                    >
                        <FileText className="w-4 h-4" /> Download Results PDF
                    </button>
               </div>
 
               {undoLog && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-xl border border-gray-200 max-w-md mx-auto">
-                      <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">Made a mistake?</span>
-                          <span className="text-xs text-gray-500">{undoTimer}s remaining</span>
-                      </div>
+                  <div className="mt-8 pt-6 border-t border-gray-200 max-w-md mx-auto">
                       <button
                           onClick={handleUndo}
                           disabled={undoing}
-                          className="w-full py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+                          className="text-sm text-gray-500 hover:text-gray-700 flex items-center justify-center gap-2 mx-auto transition-colors"
                       >
-                          {undoing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
-                          Undo Import
+                          {undoing ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />}
+                          Undo this import ({undoTimer}s)
                       </button>
                   </div>
               )}
