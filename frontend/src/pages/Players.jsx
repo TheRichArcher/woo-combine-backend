@@ -945,7 +945,11 @@ export default function Players() {
 
       {showImportModal && (
         <ImportResultsModal
-          onClose={() => setShowImportModal(false)}
+          onClose={() => {
+            setShowImportModal(false);
+            // Clear action=import query param to prevent modal from reopening
+            navigate('/players', { replace: true });
+          }}
           onSuccess={() => {
             if (selectedEvent) cacheInvalidation.playersUpdated(selectedEvent.id);
             fetchPlayers();
