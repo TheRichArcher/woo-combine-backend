@@ -244,16 +244,24 @@ export default function EventSetup({ onBack }) {
   };
 
   // ROBUST DRAG-AND-DROP: Capture-phase handlers on container
+  // Safari-optimized with explicit dropEffect
   const handleDragEnterCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Safari needs dropEffect set early
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    
     dragCounter.current++;
     
     logDragEvent('dragenter', {
       counter: dragCounter.current,
       target: e.target.tagName,
       currentTarget: e.currentTarget.id || e.currentTarget.className,
-      defaultPrevented: e.defaultPrevented
+      defaultPrevented: e.defaultPrevented,
+      dropEffect: e.dataTransfer?.dropEffect
     });
     
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
@@ -280,8 +288,13 @@ export default function EventSetup({ onBack }) {
   const handleDragOverCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-    // Set dropEffect to indicate this is a valid drop target
-    e.dataTransfer.dropEffect = 'copy';
+    
+    // CRITICAL for Safari: Must set dropEffect on EVERY dragover
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+      // Safari sometimes needs effectAllowed too
+      e.dataTransfer.effectAllowed = 'copy';
+    }
   }, []);
 
   const handleDropCapture = useCallback((e) => {
@@ -793,10 +806,13 @@ export default function EventSetup({ onBack }) {
             </div>
           </div>
 
-          {/* Action Buttons with Drag & Drop - ROBUST CAPTURE-PHASE VERSION */}
+          {/* Action Buttons with Drag & Drop - SAFARI-OPTIMIZED */}
           <div 
             ref={dropZoneRef}
             data-dropzone="player-upload"
+            role="button"
+            tabIndex={0}
+            aria-label="Drag and drop CSV file here or use buttons below"
             className={`relative border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 transition-all hover:border-semantic-success/70 hover:bg-green-50/10 ${
               isDragging 
                 ? '!border-semantic-success bg-green-50 scale-[1.02] ring-2 ring-semantic-success/50' 
@@ -806,7 +822,14 @@ export default function EventSetup({ onBack }) {
             onDragLeaveCapture={handleDragLeaveCapture}
             onDragOverCapture={handleDragOverCapture}
             onDropCapture={handleDropCapture}
-            style={{ minHeight: '120px', position: 'relative', zIndex: 1 }}
+            style={{ 
+              minHeight: '120px', 
+              position: 'relative', 
+              zIndex: 1,
+              // Safari-specific: Ensure proper hit-testing
+              WebkitUserSelect: 'none',
+              userSelect: 'none'
+            }}
           >
             {/* Build version indicator (temporary - remove after validation) */}
             <div className="absolute top-1 right-1 text-[8px] text-gray-400 font-mono opacity-50">
@@ -823,7 +846,13 @@ export default function EventSetup({ onBack }) {
               </div>
             )}
             
-            <div className="grid grid-cols-3 gap-3">
+            <div 
+              className="grid grid-cols-3 gap-3"
+              style={{ 
+                // Safari: Buttons don't interfere with drop events
+                pointerEvents: isDragging ? 'none' : 'auto'
+              }}
+            >
               <button
                 onClick={() => {
                   const newState = !showManualForm;
@@ -839,6 +868,7 @@ export default function EventSetup({ onBack }) {
                 }}
                 className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
                 type="button"
+                draggable={false}
               >
                 <UserPlus className="w-5 h-5" />
                 Add Manual
@@ -847,6 +877,7 @@ export default function EventSetup({ onBack }) {
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
                 type="button"
+                draggable={false}
               >
                 <Upload className="w-5 h-5" />
                 Upload CSV
@@ -855,6 +886,7 @@ export default function EventSetup({ onBack }) {
                 onClick={handleSampleDownload}
                 className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
                 type="button"
+                draggable={false}
               >
                 <Upload className="w-5 h-5" />
                 Sample CSV
