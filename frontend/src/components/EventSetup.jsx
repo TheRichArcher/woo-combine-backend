@@ -1197,9 +1197,9 @@ export default function EventSetup({ onBack }) {
                                   {needsReview && (
                                     <button
                                       onClick={() => setConfirmedRequiredFields(prev => new Set(prev).add(fieldKey))}
-                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition"
+                                      className="text-xs bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-4 py-1.5 rounded transition"
                                     >
-                                      Looks good ✓
+                                      Confirm
                                     </button>
                                   )}
                                 </div>
