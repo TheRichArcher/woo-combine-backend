@@ -819,6 +819,9 @@ export default function OnboardingEvent() {
                     setShowImportModal(false);
                     setDroppedFileForImport(null);
                     showSuccess(`Successfully imported players/scores!`);
+                    // Navigate to Players page to keep user in event context
+                    // Prevents landing back on Admin Dashboard after import
+                    navigate('/players');
                   }
                 }}
                 availableDrills={allDrills}
