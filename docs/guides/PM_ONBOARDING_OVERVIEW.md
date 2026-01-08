@@ -37,6 +37,34 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
 - **Commit**: 91ea72c
 - **Impact**: Eliminates user confusion when starting fresh after deleting all events.
 
+**Roster-Only Import UX (Confidence Calibration)**
+- **Issue**: After confirming roster-only import, results screen showed "Imported with Warnings" with yellow warning icon and alarming "No drill scores were saved" messaging. This undermined user confidence for expected, correct behavior.
+- **Root Cause**: UI was branching on `intent` flag (which stayed `'roster_and_scores'` even for roster-only outcomes) instead of actual import results. Additionally, Chrome was suppressing `window.confirm()` dialogs when page wasn't active tab, breaking "Import Data" button entirely.
+- **Solution** (3-part fix):
+  1. **Replaced browser-native confirms with React modal** (P0): Eliminated Chrome suppression issue by using controlled React state instead of `window.confirm()`. Added `confirmModal` state to handle all confirmation flows in-app.
+  2. **Outcome-based UI logic**: Changed from `if (intent === 'roster_only')` to `const isRosterOnlyOutcome = scores === 0 && players > 0`. UI now reflects what actually happened, not what was originally intended.
+  3. **Results messaging reframe**: For roster-only outcomes:
+     - Green checkmark (not yellow warning)
+     - "Roster Imported" headline (not "Imported with Warnings")
+     - Muted info text for scores (not yellow warning block)
+     - Row skips shown as blue informational (not red errors)
+- **Commits**: 7af68dd (initial intent-based attempt), c8d0b80 (early flag setting), 1d347e8 (safer detection), 0921699 (outcome-based fix), d89e88d (diagnostic logging), 8ae737c (cleanup)
+- **Product Rule**: Once outcome is roster-only (scores === 0, players > 0), this is expected success, not a degraded state. Only surface actionable issues.
+- **Impact**: Roster-only imports now give users confidence that everything worked as intended. No more false warnings for expected behavior.
+
+**Import Modal Reopen Bug (Routing Fix)**
+- **Issue**: After successful import, modal would immediately reopen, making it appear as if the import failed or didn't persist. Data was actually saving correctly (Network showed 200 response), but UX was confusing.
+- **Root Cause**: Route stayed `/players?action=import` after modal close. `useEffect` in `Players.jsx` watches for `action=import` query param and re-triggers modal open when detected. Modal close only set state to false, never cleared the URL param.
+- **Solution**: Updated `onClose` handler to call `navigate('/players', { replace: true })` to clear query param. Uses `replace: true` to avoid adding extra history entries.
+- **Commit**: 5f71d7a
+- **Impact**: Modal now closes cleanly after import, stays closed, and URL is clean (`/players` with no params).
+
+**Build Version Visibility (Debugging Infrastructure)**
+- **Addition**: Frontend now injects build SHA and timestamp at build time via Vite config. Available globally as `window.__WOOCOMBINE_BUILD__` and logged to console on app load.
+- **Purpose**: Enables deterministic debugging by confirming exactly which code is running in production. Critical for verifying deployments and diagnosing "old code still running" issues.
+- **Files**: `frontend/vite.config.js`, `frontend/src/App.jsx`
+- **Impact**: Eliminated guesswork when debugging production issues. Can now verify deployment status from browser console instantly.
+
 ---
 
 ## 2. 🏗 System Architecture

@@ -1,14 +1,14 @@
-# 🔒 Importer Required Fields UX - LOCKED
+# 🔒 Importer UX - LOCKED
 
 **Status:** Canonical Implementation  
-**Commit:** 80fb72c  
-**Date Locked:** January 3, 2026
+**Core Commits:** 80fb72c (Required Fields), 0921699 (Results Confidence)  
+**Date Locked:** January 3, 2026 (Mapping UX), January 7, 2026 (Results UX)
 
 ---
 
 ## Policy
 
-**Importer Required Fields UX (Commit 80fb72c) is canonical.**
+**Importer UX (mapping flow + results screen) is canonical.**
 
 **No changes without PM sign-off.**
 
@@ -16,12 +16,19 @@
 
 ## Rationale
 
-The Import Results modal Review step has been comprehensively solved:
+The Import Results modal has been comprehensively solved across both mapping and results phases:
 
+### Mapping Flow (Jan 3, 2026)
 1. ✅ **P0 UX failure resolved** - Required field mapping now explicit and discoverable
 2. ✅ **Success criteria validated** - Users can fix name errors in < 5 seconds
 3. ✅ **Production-ready** - Cold user tests pass without hand-holding
 4. ✅ **Over-engineered (intentionally)** - Progressive disclosure, auto-detection, error guidance
+
+### Results Screen (Jan 7, 2026)
+1. ✅ **Roster-only confidence calibrated** - Green success state for expected behavior (no false warnings)
+2. ✅ **Outcome-based messaging** - UI reflects what actually happened, not original intent
+3. ✅ **Modal reopen bug fixed** - Clean routing after import completion
+4. ✅ **Chrome confirm() P0 resolved** - React-based modals prevent browser suppression
 
 **This area is now over-solved.** Further iteration risks:
 - Introducing regressions
