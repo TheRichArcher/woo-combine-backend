@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import { Link, useNavigate, useLocation } from 'react-router-dom';
@@ -16,6 +16,13 @@ export default function AdminTools() {
   const showNextActions = location.state?.showNextActions || false;
   const deletedEventName = location.state?.deletedEvent || null;
   const [nextActionsPanelDismissed, setNextActionsPanelDismissed] = useState(false);
+
+  // Auto-open Event Setup if hash indicates player upload section
+  useEffect(() => {
+    if (location.hash === '#player-upload' || location.hash === '#player-upload-section') {
+      setView('setup');
+    }
+  }, [location.hash]);
 
   // 1. Access Control
   if (userRole !== 'organizer') {
