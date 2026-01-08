@@ -51,6 +51,9 @@ export default function EventSetup({ onBack }) {
   const [uploadMsg, setUploadMsg] = useState("");
   const [backendErrors, setBackendErrors] = useState([]);
   const [isRosterOnlyImport, setIsRosterOnlyImport] = useState(false);
+  
+  // Track which required fields user has manually confirmed as correct
+  const [confirmedRequiredFields, setConfirmedRequiredFields] = useState(new Set());
 
   // Manual add player state
   const [showManualForm, setShowManualForm] = useState(false);
@@ -227,15 +230,19 @@ export default function EventSetup({ onBack }) {
       setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings initially
       setCsvErrors(headerErrors);
       setShowMapping(true);
+      setConfirmedRequiredFields(new Set()); // Reset confirmations for new upload
 
       if (headerErrors.length > 0) {
         showError(`⚠️ Column headers don't match. Please map fields to continue.`);
       } else {
         // Only check if REQUIRED fields need review (not optional fields)
+        // Field needs review if: missing OR (not high confidence AND not confirmed)
         const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
           const fieldConfidence = confidence[key] || 'low';
           const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
-          return !hasMappedValue || fieldConfidence !== 'high';
+          if (!hasMappedValue) return true; // Missing
+          if (fieldConfidence === 'high') return false; // High confidence = no review needed
+          return !confirmedRequiredFields.has(key); // Needs review if not confirmed
         });
         
         if (requiredFieldsNeedReview) {
@@ -350,15 +357,19 @@ export default function EventSetup({ onBack }) {
           setCsvRows(rows.map(r => ({ ...r, warnings: [] })));
           setCsvErrors(headerErrors);
           setShowMapping(true);
+          setConfirmedRequiredFields(new Set()); // Reset confirmations for new upload
 
           if (headerErrors.length > 0) {
             showError(`⚠️ Column headers don't match. Please map fields to continue.`);
           } else {
             // Only check if REQUIRED fields need review (not optional fields)
+            // Field needs review if: missing OR (not high confidence AND not confirmed)
             const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
               const fieldConfidence = confidence[key] || 'low';
               const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
-              return !hasMappedValue || fieldConfidence !== 'high';
+              if (!hasMappedValue) return true; // Missing
+              if (fieldConfidence === 'high') return false; // High confidence = no review needed
+              return !confirmedRequiredFields.has(key); // Needs review if not confirmed
             });
             
             if (requiredFieldsNeedReview) {
@@ -719,6 +730,7 @@ export default function EventSetup({ onBack }) {
     setUploadMsg("");
     setBackendErrors([]);
     setIsRosterOnlyImport(false);
+    setConfirmedRequiredFields(new Set()); // Reset confirmations
     if (fileInputRef.current) fileInputRef.current.value = "";
     showInfo('🔄 Ready for new CSV file');
   };
@@ -1055,9 +1067,14 @@ export default function EventSetup({ onBack }) {
 
             {showMapping && (() => {
               // Calculate stats for dynamic messaging
-              const requiredFieldsMissing = REQUIRED_HEADERS.filter(key => 
-                !fieldMapping[key] || fieldMapping[key] === '__ignore__'
-              ).length;
+              // Field is "missing" if: no value OR (medium/low confidence AND not confirmed)
+              const requiredFieldsNeedingAttention = REQUIRED_HEADERS.filter(key => {
+                const hasMappedValue = fieldMapping[key] && fieldMapping[key] !== '__ignore__';
+                if (!hasMappedValue) return true; // Missing
+                const confidence = mappingConfidence[key] || 'low';
+                if (confidence === 'high') return false; // High confidence = ready
+                return !confirmedRequiredFields.has(key); // Needs confirmation
+              }).length;
               
               // Count only player info fields (not drill columns) that are auto-mapped
               const allKnownFields = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
@@ -1073,7 +1090,7 @@ export default function EventSetup({ onBack }) {
                 (mappingConfidence[key] || 'low') === 'high'
               ).length;
               
-              const allRequiredFieldsReady = requiredFieldsMissing === 0;
+              const allRequiredFieldsReady = requiredFieldsNeedingAttention === 0;
 
               return (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-left">
@@ -1093,11 +1110,11 @@ export default function EventSetup({ onBack }) {
                       </div>
                     )}
                     
-                    {/* Show counter only if there are missing fields */}
-                    {requiredFieldsMissing > 0 && (
+                    {/* Show counter only if there are fields needing attention */}
+                    {requiredFieldsNeedingAttention > 0 && (
                       <div className="inline-flex items-center gap-2 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         <span className="text-amber-700 font-medium text-sm">
-                          {requiredFieldsMissing} required {requiredFieldsMissing === 1 ? 'field' : 'fields'} left to confirm
+                          {requiredFieldsNeedingAttention} required {requiredFieldsNeedingAttention === 1 ? 'field' : 'fields'} left to confirm
                         </span>
                       </div>
                     )}
@@ -1115,11 +1132,13 @@ export default function EventSetup({ onBack }) {
                         // Get confidence with fallback to avoid undefined issues
                         const confidence = mappingConfidence[fieldKey] || 'low';
                         const hasMappedValue = fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__';
+                        const isConfirmed = confirmedRequiredFields.has(fieldKey);
                         
                         // Mutually exclusive states (only ONE can be true)
                         const isMissing = !hasMappedValue;
                         const isAutoMapped = hasMappedValue && confidence === 'high';
-                        const needsReview = hasMappedValue && confidence !== 'high';
+                        const needsReview = hasMappedValue && confidence !== 'high' && !isConfirmed;
+                        const isConfirmedMedium = hasMappedValue && confidence !== 'high' && isConfirmed;
                         
                         return (
                           <div key={fieldKey} className="flex items-start gap-3">
@@ -1136,7 +1155,12 @@ export default function EventSetup({ onBack }) {
                                   <span>✓</span> Auto-matched
                                 </div>
                               )}
-                              {needsReview && !isAutoMapped && (
+                              {isConfirmedMedium && (
+                                <div className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1">
+                                  <span>✓</span> Confirmed
+                                </div>
+                              )}
+                              {needsReview && (
                                 <div className="text-xs text-amber-600 font-semibold mt-0.5">
                                   ⚠️ Please confirm
                                 </div>
@@ -1145,11 +1169,15 @@ export default function EventSetup({ onBack }) {
                             <div className="flex-1">
                               <select
                                 value={fieldMapping[fieldKey] || ''}
-                                onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                onChange={(e) => {
+                                  setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }));
+                                  // User manually changed dropdown - mark as confirmed
+                                  setConfirmedRequiredFields(prev => new Set(prev).add(fieldKey));
+                                }}
                                 className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
                                   isMissing
                                     ? 'border-red-300 bg-red-50 font-medium' 
-                                    : isAutoMapped 
+                                    : (isAutoMapped || isConfirmedMedium)
                                       ? 'border-green-300 bg-green-50'
                                       : 'border-amber-300 bg-amber-50'
                                 }`}
@@ -1157,14 +1185,24 @@ export default function EventSetup({ onBack }) {
                                 <option value="">{fieldHelperText[fieldKey] || 'Select a column...'}</option>
                                 {csvHeaders.map(h => (
                                   <option key={h} value={h}>
-                                    {h} {fieldMapping[fieldKey] === h && isAutoMapped ? '✓' : ''}
+                                    {h} {fieldMapping[fieldKey] === h && (isAutoMapped || isConfirmedMedium) ? '✓' : ''}
                                   </option>
                                 ))}
                               </select>
                               {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Matched to: <span className="font-medium">{fieldMapping[fieldKey]}</span>
-                                </p>
+                                <div className="flex items-center justify-between mt-1">
+                                  <p className="text-xs text-gray-500">
+                                    Matched to: <span className="font-medium">{fieldMapping[fieldKey]}</span>
+                                  </p>
+                                  {needsReview && (
+                                    <button
+                                      onClick={() => setConfirmedRequiredFields(prev => new Set(prev).add(fieldKey))}
+                                      className="text-xs bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded transition"
+                                    >
+                                      Looks good ✓
+                                    </button>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
