@@ -72,6 +72,9 @@ export default function EventSetup({ onBack }) {
   const [schemaLoading, setSchemaLoading] = useState(false);
   const [schemaError, setSchemaError] = useState(null);
 
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+
   const fileInputRef = useRef();
   const manualFormRef = useRef(null);
 
@@ -162,6 +165,75 @@ export default function EventSetup({ onBack }) {
       }
     };
     reader.readAsText(file);
+  };
+
+  // Drag and drop handlers
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      // Check if it's a CSV file
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        // Trigger the same processing as file input
+        setCsvFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const text = evt.target.result;
+          const { headers, rows, mappingType } = parseCsv(text);
+
+          // Generate default mapping immediately with drill definitions
+          const { mapping: initialMapping, confidence } = generateDefaultMapping(headers, drillDefinitions);
+          setFieldMapping(initialMapping);
+          setMappingConfidence(confidence);
+          setOriginalCsvRows(rows);
+
+          // Enhanced validation with mapping type support
+          const headerErrors = validateHeaders(headers, mappingType);
+
+          // Always show mapping review to ensure accuracy
+          setCsvHeaders(headers);
+          setCsvRows(rows.map(r => ({ ...r, warnings: [] })));
+          setCsvErrors(headerErrors);
+          setShowMapping(true);
+
+          if (headerErrors.length > 0) {
+            showError(`⚠️ Column headers don't match. Please map fields to continue.`);
+          } else {
+            const needsReview = Object.values(confidence).some(c => c !== 'high');
+            if (needsReview) {
+              showInfo(`⚠️ Some columns need review. Please check mappings marked "Review".`);
+            } else {
+              showInfo(`📋 Please confirm column mappings before importing.`);
+            }
+          }
+        };
+        reader.readAsText(file);
+        showSuccess('📄 CSV file dropped successfully!');
+      } else {
+        showError('❌ Please drop a CSV file');
+      }
+    }
   };
 
   const canonicalHeaderLabels = {
@@ -600,41 +672,77 @@ export default function EventSetup({ onBack }) {
             </div>
           </div>
 
-          {/* Action Buttons */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-            <button
-              onClick={() => {
-                const newState = !showManualForm;
-                setShowManualForm(newState);
-                if (newState && manualFormRef.current) {
-                  // Auto-scroll to manual form after a brief delay to allow DOM update
-                  setTimeout(() => {
-                    manualFormRef.current.scrollIntoView({ 
-                      behavior: 'smooth', 
-                      block: 'start' 
-                    });
-                  }, 100);
-                }
-              }}
-              className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-            >
-              <UserPlus className="w-5 h-5" />
-              Add Manual
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-            >
-              <Upload className="w-5 h-5" />
-              Upload CSV
-            </button>
-            <button
-              onClick={handleSampleDownload}
-              className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-            >
-              <Upload className="w-5 h-5" />
-              Sample CSV
-            </button>
+          {/* Action Buttons with Drag & Drop */}
+          <div 
+            className={`relative border-2 border-dashed rounded-xl p-4 mb-6 transition-all ${
+              isDragging 
+                ? 'border-semantic-success bg-green-50 scale-[1.02]' 
+                : 'border-transparent bg-transparent'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          >
+            {isDragging && (
+              <div className="absolute inset-0 flex items-center justify-center bg-green-50/90 rounded-xl z-10 pointer-events-none">
+                <div className="text-center">
+                  <Upload className="w-12 h-12 text-semantic-success mx-auto mb-2" />
+                  <p className="text-semantic-success font-bold text-lg">Drop CSV file here</p>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => {
+                  const newState = !showManualForm;
+                  setShowManualForm(newState);
+                  if (newState && manualFormRef.current) {
+                    // Auto-scroll to manual form after a brief delay to allow DOM update
+                    setTimeout(() => {
+                      manualFormRef.current.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                      });
+                    }, 100);
+                  }
+                }}
+                className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              >
+                <UserPlus className="w-5 h-5" />
+                Add Manual
+              </button>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              >
+                <Upload className="w-5 h-5" />
+                Upload CSV
+              </button>
+              <button
+                onClick={handleSampleDownload}
+                className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              >
+                <Upload className="w-5 h-5" />
+                Sample CSV
+              </button>
+            </div>
+            
+            {!isDragging && (
+              <p className="text-center text-sm text-gray-500 mt-3">
+                or drag and drop CSV file here
+              </p>
+            )}
+            
+            {/* Hidden file input for Upload CSV button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCsv}
+              className="hidden"
+            />
           </div>
 
           {/* Manual Add Player Form */}
