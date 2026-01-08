@@ -1,11 +1,20 @@
 # Drag-and-Drop Investigation & Fix Report
 
+> **⚠️ OBSOLETE DOCUMENT**  
+> This investigation debugged technical implementation when the actual problem was UX design.  
+> **Real Issue:** Two competing drop zones (upper + lower) instead of one consistent target.  
+> **Actual Fix:** See `SINGLE_FOCAL_POINT_CSV_UPLOAD.md` (commit 182c246)  
+> The drag-and-drop worked perfectly - users just expected it on the bottom box, not top.
+
 **Date:** January 8, 2026  
 **Priority:** P0 (Core UX Path)  
-**Status:** ✅ FIXED + DEPLOYED  
-**Commit:** 66a11f0
+**Status:** ⚠️ SUPERSEDED BY SINGLE FOCAL POINT FIX  
+**Original Commit:** 66a11f0  
+**Final Commit:** 182c246
 
 ---
+
+## Original Investigation (Historical Reference)
 
 ## Investigation Checklist Results
 
