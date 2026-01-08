@@ -2270,66 +2270,60 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           )}
 
           {step === 'success' && (() => {
+            // Derive roster-only outcome from actual import results (not intent)
+            const isRosterOnlyOutcome = (importSummary?.scores ?? 0) === 0 && (importSummary?.players ?? 0) > 0;
+            const hasFailures = (importSummary?.scores ?? 0) === 0 && (importSummary?.players ?? 0) === 0 && ((importSummary?.errors?.length ?? 0) > 0);
+            
             // DEBUG: Log all values that determine UI branch selection
-            console.log('%c=== IMPORT RESULTS DEBUG ===', 'background: #f59e0b; color: white; padding: 4px 8px; font-weight: bold;');
-            console.log('userConfirmedRosterOnly:', userConfirmedRosterOnly);
-            console.log('intent:', intent);
-            console.log('importMode:', importMode);
+            console.log('%c=== IMPORT RESULTS DEBUG ===', 'background: #10b981; color: white; padding: 4px 8px; font-weight: bold;');
             console.log('importSummary:', importSummary);
-            console.log('Condition check (userConfirmedRosterOnly || intent === roster_only):', 
-              userConfirmedRosterOnly || intent === 'roster_only');
-            console.log('Scores === 0:', importSummary?.scores === 0);
-            console.log('Players > 0:', importSummary?.players > 0);
+            console.log('Derived isRosterOnlyOutcome:', isRosterOnlyOutcome, '(scores === 0 && players > 0)');
+            console.log('hasFailures:', hasFailures);
             
             // Determine which branch will be taken
             let uiBranch = 'unknown';
-            if (importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)) {
+            if (hasFailures) {
               uiBranch = 'FAILED (red)';
-            } else if (importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')) {
+            } else if (isRosterOnlyOutcome) {
               uiBranch = 'ROSTER-ONLY SUCCESS (green)';
-            } else if (importSummary?.scores === 0 && importSummary?.players > 0) {
-              uiBranch = 'WARNINGS (amber)';
             } else {
               uiBranch = 'COMPLETE (green)';
             }
             console.log('UI Branch Selected:', uiBranch);
-            console.log('%c=== END DEBUG ===', 'background: #f59e0b; color: white; padding: 4px 8px;');
+            console.log('%c=== END DEBUG ===', 'background: #10b981; color: white; padding: 4px 8px;');
             
             return null;
           })()}
           
-          {step === 'success' && (
+          {step === 'success' && (() => {
+            // Derive outcome-based flags
+            const isRosterOnlyOutcome = (importSummary?.scores ?? 0) === 0 && (importSummary?.players ?? 0) > 0;
+            const hasFailures = (importSummary?.scores ?? 0) === 0 && (importSummary?.players ?? 0) === 0 && ((importSummary?.errors?.length ?? 0) > 0);
+            
+            return (
             <div className="text-center py-12">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
-                  importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
+                  hasFailures
                   ? 'bg-red-100 text-red-600'
-                  : importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')
-                  ? 'bg-green-100 text-green-600' 
-                  : importSummary?.scores === 0 && importSummary?.players > 0 
-                  ? 'bg-amber-100 text-amber-600' 
                   : 'bg-green-100 text-green-600'
               }`}>
-                {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0) ? (
+                {hasFailures ? (
                     <AlertCircle className="w-8 h-8" />
-                ) : importSummary?.scores === 0 && importSummary?.players > 0 && !(userConfirmedRosterOnly || intent === 'roster_only') ? (
-                    <AlertTriangle className="w-8 h-8" />
                 ) : (
                     <Check className="w-8 h-8" />
                 )}
               </div>
               
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
+                  {hasFailures
                    ? 'Import Failed'
-                   : importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')
+                   : isRosterOnlyOutcome
                    ? 'Roster Imported'
-                   : importSummary?.scores === 0 && importSummary?.players > 0 
-                   ? 'Imported with Warnings' 
                    : 'Import Complete!'}
               </h3>
               
               {/* Roster-Only: Simple text summary */}
-              {importSummary && (userConfirmedRosterOnly || intent === 'roster_only') && importSummary.scores === 0 && (
+              {importSummary && isRosterOnlyOutcome && (
                   <div className="mb-4 text-gray-600 font-medium">
                       {importSummary.created !== undefined ? (
                           <p>
@@ -2345,8 +2339,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   </div>
               )}
               
-              {/* Regular import: Full stats grid */}
-              {importSummary && !(userConfirmedRosterOnly || intent === 'roster_only' && importSummary.scores === 0) && (
+              {/* Regular import: Full stats grid (only for non-roster-only outcomes) */}
+              {importSummary && !isRosterOnlyOutcome && (
                   <div className="mb-4 text-gray-600 font-medium bg-gray-50 p-3 rounded-lg border border-gray-200">
                       <div className="flex justify-center gap-6">
                           {importSummary.created !== undefined ? (
@@ -2385,29 +2379,12 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   </div>
               )}
               
-              {importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only') && (
+              {/* Roster-only outcome: muted info text (never a warning) */}
+              {isRosterOnlyOutcome && (
                   <div className="max-w-md mx-auto mb-4">
                       <p className="text-sm text-gray-500 italic">
                           Scores were not imported (roster-only import).
                       </p>
-                  </div>
-              )}
-              
-              {importSummary?.scores === 0 && importSummary?.players > 0 && !(userConfirmedRosterOnly || intent === 'roster_only') && (
-                  <div className="max-w-md mx-auto bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-left">
-                      <div className="flex items-start gap-3">
-                          <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-                          <div className="text-sm text-amber-800">
-                              <p className="font-bold mb-1">No drill scores were saved.</p>
-                              <p className="mb-1">Common causes:</p>
-                              <ul className="list-disc pl-4 space-y-1 text-xs">
-                                  <li>This event's schema doesn't include the drills you mapped (custom drills not loaded)</li>
-                                  <li>The CSV columns weren't mapped to drill keys</li>
-                                  <li>You imported into a different event than you're viewing</li>
-                              </ul>
-                              <p className="mt-2 text-xs italic">Check the schema and event selection.</p>
-                          </div>
-                      </div>
                   </div>
               )}
 
@@ -2451,14 +2428,17 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                               </div>
                           )}
                           
-                          {/* Other Errors - Red (actual errors) */}
+                          {/* Other Errors - Red (actual errors) or Blue (info for roster-only) */}
                           {otherErrors.length > 0 && (
-                              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-left">
+                              <div className={`${isRosterOnlyOutcome ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'} border rounded-lg p-4 text-left`}>
                                   <div className="flex items-start gap-3">
-                                      <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                                      <div className="text-sm text-red-800">
+                                      <AlertCircle className={`w-5 h-5 ${isRosterOnlyOutcome ? 'text-blue-600' : 'text-red-600'} mt-0.5 flex-shrink-0`} />
+                                      <div className={`text-sm ${isRosterOnlyOutcome ? 'text-blue-800' : 'text-red-800'}`}>
                                           <p className="font-bold mb-1">
-                                              Encountered {otherErrors.length} error{otherErrors.length !== 1 ? 's' : ''} during import:
+                                              {isRosterOnlyOutcome 
+                                                ? `${otherErrors.length} row${otherErrors.length !== 1 ? 's' : ''} skipped:`
+                                                : `Encountered ${otherErrors.length} error${otherErrors.length !== 1 ? 's' : ''} during import:`
+                                              }
                                           </p>
                                           <ul className="list-disc pl-4 space-y-1 text-xs max-h-32 overflow-y-auto">
                                               {otherErrors.slice(0, 10).map((e, idx) => (
@@ -2520,7 +2500,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   </div>
               )}
             </div>
-          )}
+            );
+          })()}
         </div>
       </div>
       
