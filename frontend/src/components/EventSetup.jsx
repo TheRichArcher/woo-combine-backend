@@ -1045,10 +1045,13 @@ export default function EventSetup({ onBack }) {
             {showMapping && (() => {
               // Calculate stats for dynamic messaging
               const requiredFieldsMissing = REQUIRED_HEADERS.filter(key => !fieldMapping[key] || fieldMapping[key] === '__ignore__').length;
+              const requiredFieldsAutoMapped = REQUIRED_HEADERS.filter(key => 
+                fieldMapping[key] && fieldMapping[key] !== '__ignore__' && mappingConfidence[key] === 'high'
+              ).length;
+              const allRequiredFieldsReady = requiredFieldsMissing === 0;
               const autoMappedCount = Object.keys(fieldMapping).filter(key => 
                 fieldMapping[key] && fieldMapping[key] !== '__ignore__' && mappingConfidence[key] === 'high'
               ).length;
-              const readyToImport = requiredFieldsMissing === 0;
 
               return (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-left">
@@ -1057,8 +1060,19 @@ export default function EventSetup({ onBack }) {
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Step 2: Match your CSV columns</h3>
                     <p className="text-gray-700 mb-1">
                       {autoMappedCount > 0 ? `We've auto-matched ${autoMappedCount} ${autoMappedCount === 1 ? 'field' : 'fields'} for you. ` : ''}
-                      Just confirm the required fields below, then click Import.
+                      Just confirm the required fields below (or continue if they look correct).
                     </p>
+                    
+                    {/* Show positive message when all required fields are ready */}
+                    {allRequiredFieldsReady && requiredFieldsAutoMapped === REQUIRED_HEADERS.length && (
+                      <div className="inline-flex items-center gap-2 mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                        <span className="text-green-700 font-medium text-sm">
+                          ✔ All required fields are ready — You can import now or make changes below
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Show counter only if there are missing fields */}
                     {requiredFieldsMissing > 0 && (
                       <div className="inline-flex items-center gap-2 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                         <span className="text-amber-700 font-medium text-sm">
@@ -1145,10 +1159,10 @@ export default function EventSetup({ onBack }) {
                         const isIgnored = !fieldMapping[fieldKey] || fieldMapping[fieldKey] === '__ignore__';
                         
                         return (
-                          <div key={fieldKey} className="flex items-start gap-3 opacity-75 hover:opacity-100 transition">
+                          <div key={fieldKey} className="flex items-start gap-3">
                             <div className="w-32 pt-2">
                               <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-gray-700">
+                                <span className="text-sm font-medium text-gray-600">
                                   {canonicalHeaderLabels[fieldKey] || fieldKey}
                                 </span>
                               </div>
@@ -1162,10 +1176,10 @@ export default function EventSetup({ onBack }) {
                               <select
                                 value={fieldMapping[fieldKey] || ''}
                                 onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                                className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
+                                className={`w-full border rounded-lg px-3 py-2 text-sm text-gray-700 focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
                                   isAutoMapped 
                                     ? 'border-green-300 bg-green-50'
-                                    : 'border-gray-300 bg-white'
+                                    : 'border-gray-200 bg-gray-50'
                                 }`}
                               >
                                 <option value="">Leave blank if this column isn't in your file</option>
@@ -1192,14 +1206,14 @@ export default function EventSetup({ onBack }) {
                   <div className="flex gap-3 pt-4 border-t border-gray-200">
                     <button
                       onClick={handleApplyMapping}
-                      disabled={!readyToImport}
+                      disabled={!allRequiredFieldsReady}
                       className={`flex-1 font-semibold px-6 py-3 rounded-lg transition ${
-                        readyToImport
+                        allRequiredFieldsReady
                           ? 'bg-brand-primary hover:bg-brand-secondary text-white'
                           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       }`}
                     >
-                      {readyToImport 
+                      {allRequiredFieldsReady 
                         ? `Import ${csvRows.length} ${csvRows.length === 1 ? 'Player' : 'Players'}` 
                         : 'Finish required fields to continue'}
                     </button>
