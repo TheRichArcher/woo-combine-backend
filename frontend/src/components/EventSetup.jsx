@@ -231,12 +231,17 @@ export default function EventSetup({ onBack }) {
       if (headerErrors.length > 0) {
         showError(`⚠️ Column headers don't match. Please map fields to continue.`);
       } else {
-        // Check if any fields need review
-        const needsReview = Object.values(confidence).some(c => c !== 'high');
-        if (needsReview) {
-          showInfo(`⚠️ Some columns need review. Please check mappings marked "Review".`);
+        // Only check if REQUIRED fields need review (not optional fields)
+        const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
+          const fieldConfidence = confidence[key] || 'low';
+          const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
+          return !hasMappedValue || fieldConfidence !== 'high';
+        });
+        
+        if (requiredFieldsNeedReview) {
+          showInfo(`⚠️ Please confirm required field mappings before importing.`);
         } else {
-          showInfo(`📋 Please confirm column mappings before importing.`);
+          showInfo(`✓ Required fields look good! Review mappings and click Import.`);
         }
       }
     };
@@ -349,11 +354,17 @@ export default function EventSetup({ onBack }) {
           if (headerErrors.length > 0) {
             showError(`⚠️ Column headers don't match. Please map fields to continue.`);
           } else {
-            const needsReview = Object.values(confidence).some(c => c !== 'high');
-            if (needsReview) {
-              showInfo(`⚠️ Some columns need review. Please check mappings marked "Review".`);
+            // Only check if REQUIRED fields need review (not optional fields)
+            const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
+              const fieldConfidence = confidence[key] || 'low';
+              const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
+              return !hasMappedValue || fieldConfidence !== 'high';
+            });
+            
+            if (requiredFieldsNeedReview) {
+              showInfo(`⚠️ Please confirm required field mappings before importing.`);
             } else {
-              showInfo(`📋 Please confirm column mappings before importing.`);
+              showInfo(`✓ Required fields look good! Review mappings and click Import.`);
             }
           }
           
