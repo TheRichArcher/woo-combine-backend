@@ -74,6 +74,7 @@ export default function EventSetup({ onBack }) {
 
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
 
   const fileInputRef = useRef();
   const manualFormRef = useRef(null);
@@ -171,13 +172,19 @@ export default function EventSetup({ onBack }) {
   const handleDragEnter = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    dragCounter.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
   };
 
   const handleDragLeave = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(false);
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
   };
 
   const handleDragOver = (e) => {
@@ -188,13 +195,14 @@ export default function EventSetup({ onBack }) {
   const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCounter.current = 0;
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
       // Check if it's a CSV file
-      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.CSV')) {
         // Trigger the same processing as file input
         setCsvFileName(file.name);
         const reader = new FileReader();
@@ -231,7 +239,7 @@ export default function EventSetup({ onBack }) {
         reader.readAsText(file);
         showSuccess('📄 CSV file dropped successfully!');
       } else {
-        showError('❌ Please drop a CSV file');
+        showError('❌ Please drop a CSV file (.csv extension required)');
       }
     }
   };
@@ -693,7 +701,7 @@ export default function EventSetup({ onBack }) {
               </div>
             )}
             
-            <div className="grid grid-cols-3 gap-3">
+            <div className={`grid grid-cols-3 gap-3 ${isDragging ? 'pointer-events-none' : ''}`}>
               <button
                 onClick={() => {
                   const newState = !showManualForm;
