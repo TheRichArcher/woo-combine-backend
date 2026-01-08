@@ -1044,14 +1044,25 @@ export default function EventSetup({ onBack }) {
 
             {showMapping && (() => {
               // Calculate stats for dynamic messaging
-              const requiredFieldsMissing = REQUIRED_HEADERS.filter(key => !fieldMapping[key] || fieldMapping[key] === '__ignore__').length;
+              const requiredFieldsMissing = REQUIRED_HEADERS.filter(key => 
+                !fieldMapping[key] || fieldMapping[key] === '__ignore__'
+              ).length;
+              
+              // Count only player info fields (not drill columns) that are auto-mapped
+              const allKnownFields = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
+              const autoMappedCount = allKnownFields.filter(key => 
+                fieldMapping[key] && 
+                fieldMapping[key] !== '__ignore__' && 
+                (mappingConfidence[key] || 'low') === 'high'
+              ).length;
+              
               const requiredFieldsAutoMapped = REQUIRED_HEADERS.filter(key => 
-                fieldMapping[key] && fieldMapping[key] !== '__ignore__' && mappingConfidence[key] === 'high'
+                fieldMapping[key] && 
+                fieldMapping[key] !== '__ignore__' && 
+                (mappingConfidence[key] || 'low') === 'high'
               ).length;
+              
               const allRequiredFieldsReady = requiredFieldsMissing === 0;
-              const autoMappedCount = Object.keys(fieldMapping).filter(key => 
-                fieldMapping[key] && fieldMapping[key] !== '__ignore__' && mappingConfidence[key] === 'high'
-              ).length;
 
               return (
                 <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-left">
@@ -1059,15 +1070,14 @@ export default function EventSetup({ onBack }) {
                   <div className="mb-6">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Step 2: Match your CSV columns</h3>
                     <p className="text-gray-700 mb-1">
-                      {autoMappedCount > 0 ? `We've auto-matched ${autoMappedCount} ${autoMappedCount === 1 ? 'field' : 'fields'} for you. ` : ''}
-                      Just confirm the required fields below (or continue if they look correct).
+                      We auto-matched what we could. Just confirm the required fields below (or continue if they look correct).
                     </p>
                     
                     {/* Show positive message when all required fields are ready */}
                     {allRequiredFieldsReady && requiredFieldsAutoMapped === REQUIRED_HEADERS.length && (
                       <div className="inline-flex items-center gap-2 mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                         <span className="text-green-700 font-medium text-sm">
-                          ✔ All required fields are ready — You can import now or make changes below
+                          ✔ All required fields are ready — you can import now
                         </span>
                       </div>
                     )}
@@ -1091,9 +1101,14 @@ export default function EventSetup({ onBack }) {
                     
                     <div className="space-y-3">
                       {REQUIRED_HEADERS.map((fieldKey) => {
-                        const isAutoMapped = fieldMapping[fieldKey] && mappingConfidence[fieldKey] === 'high';
-                        const isMissing = !fieldMapping[fieldKey] || fieldMapping[fieldKey] === '__ignore__';
-                        const needsReview = fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] !== 'high';
+                        // Get confidence with fallback to avoid undefined issues
+                        const confidence = mappingConfidence[fieldKey] || 'low';
+                        const hasMappedValue = fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__';
+                        
+                        // Mutually exclusive states (only ONE can be true)
+                        const isMissing = !hasMappedValue;
+                        const isAutoMapped = hasMappedValue && confidence === 'high';
+                        const needsReview = hasMappedValue && confidence !== 'high';
                         
                         return (
                           <div key={fieldKey} className="flex items-start gap-3">
@@ -1104,12 +1119,13 @@ export default function EventSetup({ onBack }) {
                                 </span>
                                 <span className="text-red-500 text-lg">*</span>
                               </div>
+                              {/* Only show ONE badge based on state */}
                               {isAutoMapped && (
                                 <div className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1">
                                   <span>✓</span> Auto-matched
                                 </div>
                               )}
-                              {needsReview && (
+                              {needsReview && !isAutoMapped && (
                                 <div className="text-xs text-amber-600 font-semibold mt-0.5">
                                   ⚠️ Please confirm
                                 </div>
@@ -1155,8 +1171,10 @@ export default function EventSetup({ onBack }) {
                     
                     <div className="space-y-3">
                       {OPTIONAL_HEADERS.map((fieldKey) => {
-                        const isAutoMapped = fieldMapping[fieldKey] && mappingConfidence[fieldKey] === 'high';
-                        const isIgnored = !fieldMapping[fieldKey] || fieldMapping[fieldKey] === '__ignore__';
+                        // Get confidence with fallback to avoid undefined issues
+                        const confidence = mappingConfidence[fieldKey] || 'low';
+                        const hasMappedValue = fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__';
+                        const isAutoMapped = hasMappedValue && confidence === 'high';
                         
                         return (
                           <div key={fieldKey} className="flex items-start gap-3">
