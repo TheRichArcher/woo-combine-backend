@@ -806,111 +806,55 @@ export default function EventSetup({ onBack }) {
             </div>
           </div>
 
-          {/* Action Buttons with Drag & Drop - SAFARI-OPTIMIZED */}
-          <div 
-            ref={dropZoneRef}
-            data-dropzone="player-upload"
-            role="button"
-            tabIndex={0}
-            aria-label="Drag and drop CSV file here or use buttons below"
-            className={`relative border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 transition-all hover:border-semantic-success/70 hover:bg-green-50/10 ${
-              isDragging 
-                ? '!border-semantic-success bg-green-50 scale-[1.02] ring-2 ring-semantic-success/50' 
-                : ''
-            }`}
-            onDragEnterCapture={handleDragEnterCapture}
-            onDragLeaveCapture={handleDragLeaveCapture}
-            onDragOverCapture={handleDragOverCapture}
-            onDropCapture={handleDropCapture}
-            style={{ 
-              minHeight: '120px', 
-              position: 'relative', 
-              zIndex: 1,
-              // Safari-specific: Ensure proper hit-testing
-              WebkitUserSelect: 'none',
-              userSelect: 'none'
-            }}
-          >
-            {/* Build version indicator (temporary - remove after validation) */}
-            <div className="absolute top-1 right-1 text-[8px] text-gray-400 font-mono opacity-50">
-              v3-{window.__WOOCOMBINE_BUILD__?.sha?.slice(0, 7) || 'dev'}
-            </div>
-
-            {isDragging && (
-              <div className="absolute inset-0 flex items-center justify-center bg-green-50/90 rounded-xl z-10 pointer-events-none">
-                <div className="text-center">
-                  <Upload className="w-12 h-12 text-semantic-success mx-auto mb-2" />
-                  <p className="text-semantic-success font-bold text-lg">Drop CSV file here</p>
-                  <p className="text-semantic-success/70 text-xs mt-1">Detected {dragCounter.current} drag points</p>
-                </div>
-              </div>
-            )}
-            
-            <div 
-              className="grid grid-cols-3 gap-3"
-              style={{ 
-                // Safari: Buttons don't interfere with drop events
-                pointerEvents: isDragging ? 'none' : 'auto'
+          {/* Quick Action Buttons - NO DRAG/DROP HERE */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <button
+              onClick={() => {
+                const newState = !showManualForm;
+                setShowManualForm(newState);
+                if (newState && manualFormRef.current) {
+                  setTimeout(() => {
+                    manualFormRef.current.scrollIntoView({ 
+                      behavior: 'smooth', 
+                      block: 'start' 
+                    });
+                  }, 100);
+                }
               }}
+              className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              type="button"
             >
-              <button
-                onClick={() => {
-                  const newState = !showManualForm;
-                  setShowManualForm(newState);
-                  if (newState && manualFormRef.current) {
-                    setTimeout(() => {
-                      manualFormRef.current.scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'start' 
-                      });
-                    }, 100);
-                  }
-                }}
-                className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-                type="button"
-                draggable={false}
-              >
-                <UserPlus className="w-5 h-5" />
-                Add Manual
-              </button>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-                type="button"
-                draggable={false}
-              >
-                <Upload className="w-5 h-5" />
-                Upload CSV
-              </button>
-              <button
-                onClick={handleSampleDownload}
-                className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
-                type="button"
-                draggable={false}
-              >
-                <Upload className="w-5 h-5" />
-                Sample CSV
-              </button>
-            </div>
-            
-            <p className="text-center text-sm text-gray-600 mt-3 font-medium">
-              <Upload className="w-3 h-3 inline mr-1" />
-              Drag and drop CSV file anywhere in this box
-            </p>
-            
-            <p className="text-center text-[10px] text-gray-400 mt-1">
-              Capture-phase handlers active • Window safety net enabled
-            </p>
-            
-            {/* Hidden file input for Upload CSV button */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleCsv}
-              className="hidden"
-            />
+              <UserPlus className="w-5 h-5" />
+              Add Manual
+            </button>
+            <button
+              onClick={() => {
+                // Scroll to the actual upload box below
+                const uploadBox = document.querySelector('[data-upload-target]');
+                if (uploadBox) {
+                  uploadBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  uploadBox.click();
+                }
+              }}
+              className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              type="button"
+            >
+              <Upload className="w-5 h-5" />
+              Upload CSV
+            </button>
+            <button
+              onClick={handleSampleDownload}
+              className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+              type="button"
+            >
+              <Upload className="w-5 h-5" />
+              Sample CSV
+            </button>
           </div>
+
+          <p className="text-center text-sm text-gray-500 mb-6">
+            Use buttons above for quick actions, or upload CSV below ↓
+          </p>
 
           {/* Manual Add Player Form */}
           {showManualForm && (
@@ -1008,51 +952,76 @@ export default function EventSetup({ onBack }) {
             </div>
           )}
 
-          {/* CSV Upload Section */}
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center bg-gray-50 hover:bg-gray-100 transition">
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <div className="mb-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={handleCsv}
-                className="hidden"
-                id="csv-upload"
-              />
-              <label
-                htmlFor="csv-upload"
-                className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-lg cursor-pointer transition inline-flex items-center gap-2"
-              >
-                <Upload className="w-4 h-4" />
-                Choose CSV File
-              </label>
-            </div>
-
-            {csvFileName && (
-              <div className="flex items-center justify-center gap-3 mb-3">
-                <button
-                  onClick={() => setShowMapping(true)}
-                  className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
-                >
-                  Map Fields
-                </button>
-                <button
-                  onClick={handleReupload}
-                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
-                >
-                  Choose Different File
-                </button>
-              </div>
-            )}
+          {/* PRIMARY CSV UPLOAD - SINGLE FOCAL POINT FOR DRAG/DROP */}
+          <div 
+            ref={dropZoneRef}
+            data-upload-target="true"
+            data-dropzone="player-upload"
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-4 ${
+              isDragging 
+                ? 'border-brand-primary bg-blue-50 scale-[1.02] ring-2 ring-brand-primary/50' 
+                : 'border-gray-300 hover:bg-gray-50 hover:border-brand-primary/50'
+            }`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragEnterCapture={handleDragEnterCapture}
+            onDragLeaveCapture={handleDragLeaveCapture}
+            onDragOverCapture={handleDragOverCapture}
+            onDropCapture={handleDropCapture}
+            role="button"
+            tabIndex={0}
+            aria-label="Upload CSV file - Click to choose or drag and drop"
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              onChange={handleCsv}
+              className="hidden"
+            />
             
-            {csvFileName && (
-              <div className="text-sm text-gray-600 mb-2">
-                📄 {csvFileName} loaded ({csvRows.length} players)
-                <div className="text-xs text-gray-500">🎉 CSV file loaded. Next, click <span className="font-semibold">Map Fields</span> to match your columns to our fields.</div>
+            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            
+            {csvFileName ? (
+              <div>
+                <p className="font-medium text-brand-primary text-lg">📄 {csvFileName}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {csvRows.length} players loaded
+                </p>
+                <div className="flex items-center justify-center gap-3 mt-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMapping(true);
+                    }}
+                    className="bg-brand-primary text-white font-medium px-4 py-2 rounded-lg hover:bg-brand-secondary transition"
+                  >
+                    Map Fields
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleReupload();
+                    }}
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
+                  >
+                    Choose Different File
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p className="font-semibold text-gray-900 text-lg mb-1">
+                  {isDragging ? "Drop to upload" : "Click to choose a file or drag & drop"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {isDragging ? "Release to upload your CSV" : "Supports CSV files (.csv)"}
+                </p>
               </div>
             )}
+          </div>
 
+          {/* Additional upload feedback and mapping UI */}
+          <>
             {csvErrors.length > 0 && !showMapping && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
                 <p className="text-red-700 text-sm font-medium">❌ Upload Error</p>
@@ -1232,7 +1201,7 @@ export default function EventSetup({ onBack }) {
                 )}
               </div>
             )}
-          </div>
+          </>
         </div>
 
         {/* Step 4: Invite Coaches & Share */}
