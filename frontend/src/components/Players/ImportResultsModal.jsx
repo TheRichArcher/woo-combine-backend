@@ -61,6 +61,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   
   // Confirmation Modal State (replaces window.confirm to avoid Chrome suppression)
   const [confirmModal, setConfirmModal] = useState(null); // { title, message, onConfirm, onCancel, confirmText, cancelText, type }
+  const [userConfirmedRosterOnly, setUserConfirmedRosterOnly] = useState(false); // Track if user explicitly confirmed roster-only import
   const [fullNameColumn, setFullNameColumn] = useState('');
   const [jerseyColumn, setJerseyColumn] = useState('');
   const [ageGroupColumn, setAgeGroupColumn] = useState('');
@@ -765,6 +766,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 type: 'warning',
                 onConfirm: () => {
                     setConfirmModal(null);
+                    setUserConfirmedRosterOnly(true);
                     handleSubmit(true);
                 },
                 onCancel: () => {
@@ -788,6 +790,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 type: 'info',
                 onConfirm: () => {
                     setConfirmModal(null);
+                    setUserConfirmedRosterOnly(true);
                     handleSubmit(true);
                 },
                 onCancel: () => {
@@ -2243,13 +2246,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
                   importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
                   ? 'bg-red-100 text-red-600'
+                  : importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')
+                  ? 'bg-green-100 text-green-600' 
                   : importSummary?.scores === 0 && importSummary?.players > 0 
                   ? 'bg-amber-100 text-amber-600' 
                   : 'bg-green-100 text-green-600'
               }`}>
                 {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0) ? (
                     <AlertCircle className="w-8 h-8" />
-                ) : importSummary?.scores === 0 && importSummary?.players > 0 ? (
+                ) : importSummary?.scores === 0 && importSummary?.players > 0 && !(userConfirmedRosterOnly || intent === 'roster_only') ? (
                     <AlertTriangle className="w-8 h-8" />
                 ) : (
                     <Check className="w-8 h-8" />
@@ -2259,12 +2264,32 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
               <h3 className="text-2xl font-bold text-gray-900 mb-2">
                   {importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)
                    ? 'Import Failed'
+                   : importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')
+                   ? 'Roster Imported'
                    : importSummary?.scores === 0 && importSummary?.players > 0 
                    ? 'Imported with Warnings' 
                    : 'Import Complete!'}
               </h3>
               
-              {importSummary && (
+              {/* Roster-Only: Simple text summary */}
+              {importSummary && (userConfirmedRosterOnly || intent === 'roster_only') && importSummary.scores === 0 && (
+                  <div className="mb-4 text-gray-600 font-medium">
+                      {importSummary.created !== undefined ? (
+                          <p>
+                              {importSummary.created + importSummary.updated} players {importSummary.created > 0 ? 'added/updated' : 'updated'}
+                              {importSummary.rejected > 0 && `. ${importSummary.rejected} ${importSummary.rejected === 1 ? 'row' : 'rows'} skipped`}.
+                          </p>
+                      ) : (
+                          <p>
+                              {importSummary.players} players added
+                              {importSummary.rejected > 0 && `. ${importSummary.rejected} ${importSummary.rejected === 1 ? 'row' : 'rows'} skipped`}.
+                          </p>
+                      )}
+                  </div>
+              )}
+              
+              {/* Regular import: Full stats grid */}
+              {importSummary && !(userConfirmedRosterOnly || intent === 'roster_only' && importSummary.scores === 0) && (
                   <div className="mb-4 text-gray-600 font-medium bg-gray-50 p-3 rounded-lg border border-gray-200">
                       <div className="flex justify-center gap-6">
                           {importSummary.created !== undefined ? (
@@ -2303,7 +2328,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                   </div>
               )}
               
-              {importSummary?.scores === 0 && importSummary?.players > 0 && (
+              {importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only') && (
+                  <div className="max-w-md mx-auto mb-4">
+                      <p className="text-sm text-gray-500 italic">
+                          Scores were not imported (roster-only import).
+                      </p>
+                  </div>
+              )}
+              
+              {importSummary?.scores === 0 && importSummary?.players > 0 && !(userConfirmedRosterOnly || intent === 'roster_only') && (
                   <div className="max-w-md mx-auto bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4 text-left">
                       <div className="flex items-start gap-3">
                           <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
@@ -2311,9 +2344,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                               <p className="font-bold mb-1">No drill scores were saved.</p>
                               <p className="mb-1">Common causes:</p>
                               <ul className="list-disc pl-4 space-y-1 text-xs">
-                                  <li>This event’s schema doesn’t include the drills you mapped (custom drills not loaded)</li>
-                                  <li>The CSV columns weren’t mapped to drill keys</li>
-                                  <li>You imported into a different event than you’re viewing</li>
+                                  <li>This event's schema doesn't include the drills you mapped (custom drills not loaded)</li>
+                                  <li>The CSV columns weren't mapped to drill keys</li>
+                                  <li>You imported into a different event than you're viewing</li>
                               </ul>
                               <p className="mt-2 text-xs italic">Check the schema and event selection.</p>
                           </div>
