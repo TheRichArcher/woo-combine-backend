@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { PlayerDetailsProvider } from "./context/PlayerDetailsContext";
@@ -57,6 +57,22 @@ function AuthenticatedLayout({ children }) {
 }
 
 function App() {
+  // Log build version on app load for deployment verification
+  useEffect(() => {
+    const buildInfo = {
+      sha: typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : 'dev',
+      time: typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'dev',
+      url: window.location.href
+    };
+    console.log('%c🚀 WooCombine Build Info', 'background: #0ea5e9; color: white; padding: 4px 8px; border-radius: 4px; font-weight: bold;');
+    console.log('Build SHA:', buildInfo.sha);
+    console.log('Build Time:', buildInfo.time);
+    console.log('Environment:', import.meta.env.MODE);
+    
+    // Also expose on window for easy access in console
+    window.__WOOCOMBINE_BUILD__ = buildInfo;
+  }, []);
+
   return (
     <BrowserRouter>
       <NavigationLogger />
