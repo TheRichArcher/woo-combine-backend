@@ -1122,9 +1122,27 @@ export default function EventSetup({ onBack }) {
 
                   {/* REQUIRED FIELDS - Prominent Section */}
                   <div className="mb-6">
-                    <div className="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 mb-3">
-                      <h4 className="text-sm font-bold text-red-900 mb-1">Required</h4>
-                      <p className="text-xs text-red-700">These fields are needed to import players</p>
+                    <div className={`border-l-4 rounded-r-lg p-4 mb-3 ${
+                      allRequiredFieldsReady 
+                        ? 'bg-green-50 border-green-500' 
+                        : 'bg-red-50 border-red-500'
+                    }`}>
+                      <h4 className={`text-sm font-bold mb-1 ${
+                        allRequiredFieldsReady 
+                          ? 'text-green-900' 
+                          : 'text-red-900'
+                      }`}>
+                        Required {allRequiredFieldsReady && '✓ Complete'}
+                      </h4>
+                      <p className={`text-xs ${
+                        allRequiredFieldsReady 
+                          ? 'text-green-700' 
+                          : 'text-red-700'
+                      }`}>
+                        {allRequiredFieldsReady 
+                          ? 'All required fields are confirmed and ready' 
+                          : 'These fields are needed to import players'}
+                      </p>
                     </div>
                     
                     <div className="space-y-3">
