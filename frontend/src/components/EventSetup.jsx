@@ -601,7 +601,7 @@ export default function EventSetup({ onBack }) {
           </div>
 
           {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-6">
             <button
               onClick={() => {
                 const newState = !showManualForm;
@@ -620,6 +620,13 @@ export default function EventSetup({ onBack }) {
             >
               <UserPlus className="w-5 h-5" />
               Add Manual
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+            >
+              <Upload className="w-5 h-5" />
+              Upload CSV
             </button>
             <button
               onClick={handleSampleDownload}
