@@ -1102,7 +1102,7 @@ export default function EventSetup({ onBack }) {
                     </p>
                     
                     {/* Show positive message when all required fields are ready */}
-                    {allRequiredFieldsReady && requiredFieldsAutoMapped === REQUIRED_HEADERS.length && (
+                    {allRequiredFieldsReady && (
                       <div className="inline-flex items-center gap-2 mt-2 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                         <span className="text-green-700 font-medium text-sm">
                           ✔ All required fields are ready — you can import now
