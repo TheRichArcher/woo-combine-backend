@@ -14,6 +14,7 @@ import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
 import DeleteEventFlow from "./DeleteEventFlow";
+import * as Sentry from '@sentry/react';
 
 const SAMPLE_ROWS = [
   ["Jane", "Smith", "9-10"],
@@ -75,9 +76,36 @@ export default function EventSetup({ onBack }) {
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
+  const dropZoneRef = useRef(null);
+  const [dropZoneMounted, setDropZoneMounted] = useState(false);
 
   const fileInputRef = useRef();
   const manualFormRef = useRef(null);
+
+  // Production telemetry helper
+  const logDragEvent = useCallback((eventType, details = {}) => {
+    const telemetry = {
+      event: eventType,
+      timestamp: new Date().toISOString(),
+      buildSHA: window.__WOOCOMBINE_BUILD__?.sha || 'unknown',
+      buildTime: window.__WOOCOMBINE_BUILD__?.timestamp || 'unknown',
+      userAgent: navigator.userAgent,
+      ...details
+    };
+    
+    // Console log for immediate debugging
+    console.log(`[DRAG-TELEMETRY] ${eventType}:`, telemetry);
+    
+    // Send to Sentry as breadcrumb
+    Sentry.addBreadcrumb({
+      category: 'drag-drop',
+      message: `Drag event: ${eventType}`,
+      level: 'info',
+      data: telemetry
+    });
+    
+    return telemetry;
+  }, []);
 
   // Invite to League section state
   const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
@@ -109,6 +137,53 @@ export default function EventSetup({ onBack }) {
     window.addEventListener('hashchange', scrollToSection);
     return () => window.removeEventListener('hashchange', scrollToSection);
   }, []);
+
+  // WINDOW-LEVEL DRAG SAFETY NET: Prevent browser from opening files
+  useEffect(() => {
+    const preventDefaultDrag = (e) => {
+      // Only preventDefault on the document/window level
+      // Our capture handlers will handle the dropzone
+      if (!e.target.closest('[data-dropzone]')) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('dragover', preventDefaultDrag);
+    window.addEventListener('drop', preventDefaultDrag);
+    
+    logDragEvent('window-handlers-mounted', {
+      route: window.location.pathname,
+      hash: window.location.hash
+    });
+
+    return () => {
+      window.removeEventListener('dragover', preventDefaultDrag);
+      window.removeEventListener('drop', preventDefaultDrag);
+      logDragEvent('window-handlers-unmounted', {});
+    };
+  }, [logDragEvent]);
+
+  // LOG DROPZONE MOUNTED WITH VERSION
+  useEffect(() => {
+    if (dropZoneRef.current && !dropZoneMounted) {
+      const rect = dropZoneRef.current.getBoundingClientRect();
+      logDragEvent('dropzone-mounted', {
+        version: 'v3-capture-phase',
+        buildSHA: window.__WOOCOMBINE_BUILD__?.sha,
+        buildTime: window.__WOOCOMBINE_BUILD__?.timestamp,
+        dimensions: {
+          width: rect.width,
+          height: rect.height,
+          top: rect.top,
+          left: rect.left
+        },
+        visible: rect.width > 0 && rect.height > 0,
+        zIndex: window.getComputedStyle(dropZoneRef.current).zIndex,
+        pointerEvents: window.getComputedStyle(dropZoneRef.current).pointerEvents
+      });
+      setDropZoneMounted(true);
+    }
+  }, [dropZoneMounted, logDragEvent]);
 
   const handleReset = async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
@@ -168,45 +243,74 @@ export default function EventSetup({ onBack }) {
     reader.readAsText(file);
   };
 
-  // Drag and drop handlers
-  const handleDragEnter = (e) => {
+  // ROBUST DRAG-AND-DROP: Capture-phase handlers on container
+  const handleDragEnterCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current++;
-    console.log('[DRAG] Enter - Counter:', dragCounter.current, 'Target:', e.target.tagName);
+    
+    logDragEvent('dragenter', {
+      counter: dragCounter.current,
+      target: e.target.tagName,
+      currentTarget: e.currentTarget.id || e.currentTarget.className,
+      defaultPrevented: e.defaultPrevented
+    });
+    
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setIsDragging(true);
     }
-  };
+  }, [logDragEvent]);
 
-  const handleDragLeave = (e) => {
+  const handleDragLeaveCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current--;
-    console.log('[DRAG] Leave - Counter:', dragCounter.current, 'Target:', e.target.tagName);
+    
+    logDragEvent('dragleave', {
+      counter: dragCounter.current,
+      target: e.target.tagName,
+      defaultPrevented: e.defaultPrevented
+    });
+    
     if (dragCounter.current === 0) {
       setIsDragging(false);
     }
-  };
+  }, [logDragEvent]);
 
-  const handleDragOver = (e) => {
+  const handleDragOverCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
-  };
+    // Set dropEffect to indicate this is a valid drop target
+    e.dataTransfer.dropEffect = 'copy';
+  }, []);
 
-  const handleDrop = (e) => {
-    console.log('[DRAG] DROP FIRED!', 'Files:', e.dataTransfer.files.length, 'Target:', e.target.tagName);
+  const handleDropCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current = 0;
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
+    
+    logDragEvent('drop', {
+      target: e.target.tagName,
+      currentTarget: e.currentTarget.id || e.currentTarget.className,
+      defaultPrevented: e.defaultPrevented,
+      filesLength: files ? files.length : 0,
+      fileDetails: files && files.length > 0 ? {
+        name: files[0].name,
+        type: files[0].type,
+        size: files[0].size
+      } : null
+    });
+
     if (files && files.length > 0) {
       const file = files[0];
-      console.log('[DRAG] File details:', { name: file.name, type: file.type, size: file.size });
+      
       // Check if it's a CSV file
       if (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.CSV')) {
+        logDragEvent('drop-success', { fileName: file.name });
+        
         // Trigger the same processing as file input
         setCsvFileName(file.name);
         const reader = new FileReader();
@@ -239,17 +343,19 @@ export default function EventSetup({ onBack }) {
               showInfo(`📋 Please confirm column mappings before importing.`);
             }
           }
+          
+          logDragEvent('csv-parsed', { rowCount: rows.length, headerCount: headers.length });
         };
         reader.readAsText(file);
         showSuccess('📄 CSV file dropped successfully!');
       } else {
-        console.log('[DRAG] File rejected - not a CSV');
+        logDragEvent('drop-rejected', { fileName: file.name, fileType: file.type });
         showError('❌ Please drop a CSV file (.csv extension required)');
       }
     } else {
-      console.log('[DRAG] No files in drop event');
+      logDragEvent('drop-no-files', {});
     }
-  };
+  }, [logDragEvent, showError, showInfo, showSuccess, drillDefinitions]);
 
   const canonicalHeaderLabels = {
     first_name: 'First Name',
@@ -687,36 +793,42 @@ export default function EventSetup({ onBack }) {
             </div>
           </div>
 
-          {/* Action Buttons with Drag & Drop */}
+          {/* Action Buttons with Drag & Drop - ROBUST CAPTURE-PHASE VERSION */}
           <div 
+            ref={dropZoneRef}
+            data-dropzone="player-upload"
             className={`relative border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 transition-all hover:border-semantic-success/70 hover:bg-green-50/10 ${
               isDragging 
-                ? '!border-semantic-success bg-green-50 scale-[1.02]' 
+                ? '!border-semantic-success bg-green-50 scale-[1.02] ring-2 ring-semantic-success/50' 
                 : ''
             }`}
-            onDragEnter={handleDragEnter}
-            onDragLeave={handleDragLeave}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
+            onDragEnterCapture={handleDragEnterCapture}
+            onDragLeaveCapture={handleDragLeaveCapture}
+            onDragOverCapture={handleDragOverCapture}
+            onDropCapture={handleDropCapture}
+            style={{ minHeight: '120px', position: 'relative', zIndex: 1 }}
           >
+            {/* Build version indicator (temporary - remove after validation) */}
+            <div className="absolute top-1 right-1 text-[8px] text-gray-400 font-mono opacity-50">
+              v3-{window.__WOOCOMBINE_BUILD__?.sha?.slice(0, 7) || 'dev'}
+            </div>
+
             {isDragging && (
               <div className="absolute inset-0 flex items-center justify-center bg-green-50/90 rounded-xl z-10 pointer-events-none">
                 <div className="text-center">
                   <Upload className="w-12 h-12 text-semantic-success mx-auto mb-2" />
                   <p className="text-semantic-success font-bold text-lg">Drop CSV file here</p>
+                  <p className="text-semantic-success/70 text-xs mt-1">Detected {dragCounter.current} drag points</p>
                 </div>
               </div>
             )}
             
             <div className="grid grid-cols-3 gap-3">
               <button
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={() => {
                   const newState = !showManualForm;
                   setShowManualForm(newState);
                   if (newState && manualFormRef.current) {
-                    // Auto-scroll to manual form after a brief delay to allow DOM update
                     setTimeout(() => {
                       manualFormRef.current.scrollIntoView({ 
                         behavior: 'smooth', 
@@ -726,24 +838,23 @@ export default function EventSetup({ onBack }) {
                   }
                 }}
                 className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+                type="button"
               >
                 <UserPlus className="w-5 h-5" />
                 Add Manual
               </button>
               <button
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+                type="button"
               >
                 <Upload className="w-5 h-5" />
                 Upload CSV
               </button>
               <button
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={handleSampleDownload}
                 className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
+                type="button"
               >
                 <Upload className="w-5 h-5" />
                 Sample CSV
@@ -753,6 +864,10 @@ export default function EventSetup({ onBack }) {
             <p className="text-center text-sm text-gray-600 mt-3 font-medium">
               <Upload className="w-3 h-3 inline mr-1" />
               Drag and drop CSV file anywhere in this box
+            </p>
+            
+            <p className="text-center text-[10px] text-gray-400 mt-1">
+              Capture-phase handlers active • Window safety net enabled
             </p>
             
             {/* Hidden file input for Upload CSV button */}
