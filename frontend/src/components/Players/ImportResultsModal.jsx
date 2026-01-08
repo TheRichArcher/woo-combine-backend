@@ -717,6 +717,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             return effectiveDrills.some(d => d.key === targetKey);
         }).length;
 
+        // CRITICAL: Detect roster-only situation EARLY (before any bypasses)
+        // If no drill columns are mapped AND not in scores-only mode, this is roster-only
+        if (mappedDrillCount === 0 && importMode !== 'scores_only' && intent !== 'roster_only') {
+            console.log('[ImportResultsModal] Detected roster-only import (mappedDrillCount=0), setting flag');
+            setUserConfirmedRosterOnly(true);
+        }
+
         // Detect if there are potential drill columns (non-identity fields with numeric data)
         const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'player_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
         const potentialDrillColumns = Object.keys(allRows?.[0]?.data || {}).filter(key => {
