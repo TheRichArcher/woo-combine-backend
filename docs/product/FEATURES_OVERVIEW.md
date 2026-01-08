@@ -2,7 +2,7 @@
 
 _User-facing capabilities and benefits_
 
-**Last updated:** January 7, 2026
+**Last updated:** January 8, 2026
 
 ---
 
@@ -44,6 +44,7 @@ WooCombine is a web-based platform for managing youth sports combine events and 
 ### 2. Player Management
 
 **Build and maintain your roster:**
+- ✅ **One-click CSV import** - Direct "Upload CSV" button from dashboard for instant access
 - ✅ Bulk import rosters from CSV or Excel files
 - ✅ Add players manually with simple forms
 - ✅ Auto-assign jersey numbers by age group (e.g., 12U players get 1201, 1202...)
@@ -55,6 +56,9 @@ WooCombine is a web-based platform for managing youth sports combine events and 
 **Import Modes:**
 - **"Import Roster"** - Add new players or update existing ones
 - **"Import Results"** - Update scores for existing players only
+
+**Streamlined Import Experience:**
+Dashboard → Click "Import Players" → Immediate upload buttons (no scrolling needed)
 
 ---
 

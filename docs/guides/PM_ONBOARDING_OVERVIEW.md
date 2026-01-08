@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 7, 2026_
+_Last updated: January 8, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -22,9 +22,19 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
 - **UX**: Guided onboarding flows, contextual navigation, and clear next-action CTAs eliminate "what do I do next?" friction.
 - **Product Discipline**: Clear architectural boundaries documented. Features organized by the 10-second rule for operational focus.
 
-### Recent Fixes & Improvements (January 7, 2026)
+### Recent Fixes & Improvements (January 2026)
 
-**Event Deletion Flow (P0 - Critical)**
+**Import Players Direct Access (P1 - UX) - January 8**
+- **Issue**: Clicking "Import Players" from dashboard required two extra steps: landing on Admin Dashboard hub, clicking "Event Setup", then scrolling to find CSV upload. Users frustrated by hidden upload functionality.
+- **Root Cause**: Navigation target `/admin#player-upload` wasn't being detected by AdminTools component. No auto-open logic existed for the hash. Additionally, Event Setup lacked a prominent "Upload CSV" button - upload was only accessible via dropzone lower on page.
+- **Solution**: 
+  1. Added `useEffect` hash detection in AdminTools.jsx - automatically opens Event Setup view when `#player-upload` hash detected
+  2. Added prominent green "Upload CSV" button alongside existing "Add Manual" and "Sample CSV" buttons
+  3. Changed button grid from 2-column to 3-column layout for immediate upload access
+- **Commits**: a997e54, 72fbe4a
+- **Impact**: Streamlined from 4-click to 2-click process. Upload now immediately accessible without scrolling. 50% reduction in steps to complete import.
+
+**Event Deletion Flow (P0 - Critical) - January 7**
 - **Issue**: Event deletion completely broken in production. Users could complete 3-layer confirmation flow but DELETE request never fired. Events remained in database and continued appearing in dropdowns.
 - **Root Cause**: Complex state management issue where context switching during confirmation flow caused component unmounting before final modal could render. React's batching and re-render timing prevented the "Delete Permanently" button from ever appearing to users.
 - **Solution**: Complete redesign of deletion timing flow. Final confirmation modal now renders FIRST (no premature context switching), then context switch happens inside `handleFinalDelete` immediately before DELETE request. Added comprehensive API logging (REQUEST_START/SUCCESS/FAILED) for observability.
