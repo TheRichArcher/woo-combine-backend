@@ -742,8 +742,22 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         // Only set flag if we're CERTAIN it's intentional roster-only (no drill-like columns in CSV)
         // This prevents masking real mapping failures where scores should have been imported
         if (mappedDrillCount === 0 && importMode !== 'scores_only' && intent !== 'roster_only' && potentialDrillColumns.length === 0) {
-            console.log('[ImportResultsModal] Detected roster-only import (no drill columns in CSV), setting flag');
+            console.log('%c[ROSTER-ONLY DETECTION]', 'background: #10b981; color: white; padding: 2px 6px; font-weight: bold;');
+            console.log('Early detection triggered:');
+            console.log('  mappedDrillCount:', mappedDrillCount);
+            console.log('  importMode:', importMode);
+            console.log('  intent:', intent);
+            console.log('  potentialDrillColumns.length:', potentialDrillColumns.length);
+            console.log('  → Setting userConfirmedRosterOnly = true');
             setUserConfirmedRosterOnly(true);
+        } else {
+            console.log('%c[ROSTER-ONLY DETECTION]', 'background: #6b7280; color: white; padding: 2px 6px;');
+            console.log('Early detection NOT triggered:');
+            console.log('  mappedDrillCount:', mappedDrillCount);
+            console.log('  importMode:', importMode);
+            console.log('  intent:', intent);
+            console.log('  potentialDrillColumns.length:', potentialDrillColumns.length);
+            console.log('  Condition result:', mappedDrillCount === 0 && importMode !== 'scores_only' && intent !== 'roster_only' && potentialDrillColumns.length === 0);
         }
 
         // Strict Block for Scores Only Mode
@@ -773,6 +787,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 cancelText: 'Map Drills Now',
                 type: 'warning',
                 onConfirm: () => {
+                    console.log('%c[ROSTER-ONLY CONFIRMATION]', 'background: #f59e0b; color: white; padding: 2px 6px; font-weight: bold;');
+                    console.log('User confirmed roster-only import via modal (no mappable drills)');
+                    console.log('Setting userConfirmedRosterOnly = true');
                     setConfirmModal(null);
                     setUserConfirmedRosterOnly(true);
                     handleSubmit(true);
@@ -797,6 +814,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 cancelText: 'Cancel',
                 type: 'info',
                 onConfirm: () => {
+                    console.log('%c[ROSTER-ONLY CONFIRMATION]', 'background: #3b82f6; color: white; padding: 2px 6px; font-weight: bold;');
+                    console.log('User confirmed roster-only import via modal (no drill columns detected)');
+                    console.log('Setting userConfirmedRosterOnly = true');
                     setConfirmModal(null);
                     setUserConfirmedRosterOnly(true);
                     handleSubmit(true);
@@ -2249,6 +2269,35 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             </div>
           )}
 
+          {step === 'success' && (() => {
+            // DEBUG: Log all values that determine UI branch selection
+            console.log('%c=== IMPORT RESULTS DEBUG ===', 'background: #f59e0b; color: white; padding: 4px 8px; font-weight: bold;');
+            console.log('userConfirmedRosterOnly:', userConfirmedRosterOnly);
+            console.log('intent:', intent);
+            console.log('importMode:', importMode);
+            console.log('importSummary:', importSummary);
+            console.log('Condition check (userConfirmedRosterOnly || intent === roster_only):', 
+              userConfirmedRosterOnly || intent === 'roster_only');
+            console.log('Scores === 0:', importSummary?.scores === 0);
+            console.log('Players > 0:', importSummary?.players > 0);
+            
+            // Determine which branch will be taken
+            let uiBranch = 'unknown';
+            if (importSummary?.scores === 0 && importSummary?.players === 0 && (importSummary?.errors?.length > 0)) {
+              uiBranch = 'FAILED (red)';
+            } else if (importSummary?.scores === 0 && importSummary?.players > 0 && (userConfirmedRosterOnly || intent === 'roster_only')) {
+              uiBranch = 'ROSTER-ONLY SUCCESS (green)';
+            } else if (importSummary?.scores === 0 && importSummary?.players > 0) {
+              uiBranch = 'WARNINGS (amber)';
+            } else {
+              uiBranch = 'COMPLETE (green)';
+            }
+            console.log('UI Branch Selected:', uiBranch);
+            console.log('%c=== END DEBUG ===', 'background: #f59e0b; color: white; padding: 4px 8px;');
+            
+            return null;
+          })()}
+          
           {step === 'success' && (
             <div className="text-center py-12">
               <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
