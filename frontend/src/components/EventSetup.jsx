@@ -96,7 +96,7 @@ export default function EventSetup({ onBack }) {
   // Scroll to player upload section if hash is present or changes
   useEffect(() => {
     const scrollToSection = () => {
-      if (window.location.hash === '#player-upload-section') {
+      if (window.location.hash === '#player-upload-section' || window.location.hash === '#player-upload') {
         const section = document.getElementById('player-upload-section');
         if (section) section.scrollIntoView({ behavior: 'smooth' });
       }

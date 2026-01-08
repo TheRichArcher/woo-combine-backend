@@ -153,13 +153,13 @@ export default function Home() {
                 
                 {/* Import Actions */}
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => handleNavigation('/admin#player-upload')}
-                    className="bg-semantic-success text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
-                  >
-                    <Users className="w-5 h-5" />
-                    Import Players
-                  </button>
+                <button
+                  onClick={() => handleNavigation('/admin#player-upload-section')}
+                  className="bg-semantic-success text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-green-700 transition flex items-center justify-center gap-2"
+                >
+                  <Users className="w-5 h-5" />
+                  Import Players
+                </button>
                   <button
                     onClick={() => handleNavigation('/players?action=import')}
                     className="bg-blue-600 text-white font-semibold px-4 py-3 rounded-xl shadow hover:bg-blue-700 transition flex items-center justify-center gap-2"
