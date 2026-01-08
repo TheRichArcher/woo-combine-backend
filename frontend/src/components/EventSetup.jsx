@@ -173,6 +173,7 @@ export default function EventSetup({ onBack }) {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current++;
+    console.log('[DRAG] Enter - Counter:', dragCounter.current, 'Target:', e.target.tagName);
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setIsDragging(true);
     }
@@ -182,6 +183,7 @@ export default function EventSetup({ onBack }) {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current--;
+    console.log('[DRAG] Leave - Counter:', dragCounter.current, 'Target:', e.target.tagName);
     if (dragCounter.current === 0) {
       setIsDragging(false);
     }
@@ -193,6 +195,7 @@ export default function EventSetup({ onBack }) {
   };
 
   const handleDrop = (e) => {
+    console.log('[DRAG] DROP FIRED!', 'Files:', e.dataTransfer.files.length, 'Target:', e.target.tagName);
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current = 0;
@@ -201,6 +204,7 @@ export default function EventSetup({ onBack }) {
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       const file = files[0];
+      console.log('[DRAG] File details:', { name: file.name, type: file.type, size: file.size });
       // Check if it's a CSV file
       if (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.CSV')) {
         // Trigger the same processing as file input
@@ -239,8 +243,11 @@ export default function EventSetup({ onBack }) {
         reader.readAsText(file);
         showSuccess('📄 CSV file dropped successfully!');
       } else {
+        console.log('[DRAG] File rejected - not a CSV');
         showError('❌ Please drop a CSV file (.csv extension required)');
       }
+    } else {
+      console.log('[DRAG] No files in drop event');
     }
   };
 
@@ -682,10 +689,10 @@ export default function EventSetup({ onBack }) {
 
           {/* Action Buttons with Drag & Drop */}
           <div 
-            className={`relative border-2 border-dashed rounded-xl p-4 mb-6 transition-all ${
+            className={`relative border-2 border-dashed border-gray-300 rounded-xl p-4 mb-6 transition-all hover:border-semantic-success/70 hover:bg-green-50/10 ${
               isDragging 
-                ? 'border-semantic-success bg-green-50 scale-[1.02]' 
-                : 'border-transparent bg-transparent'
+                ? '!border-semantic-success bg-green-50 scale-[1.02]' 
+                : ''
             }`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -701,8 +708,10 @@ export default function EventSetup({ onBack }) {
               </div>
             )}
             
-            <div className={`grid grid-cols-3 gap-3 ${isDragging ? 'pointer-events-none' : ''}`}>
+            <div className="grid grid-cols-3 gap-3">
               <button
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={() => {
                   const newState = !showManualForm;
                   setShowManualForm(newState);
@@ -722,6 +731,8 @@ export default function EventSetup({ onBack }) {
                 Add Manual
               </button>
               <button
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={() => fileInputRef.current?.click()}
                 className="bg-semantic-success hover:bg-semantic-success/90 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
               >
@@ -729,6 +740,8 @@ export default function EventSetup({ onBack }) {
                 Upload CSV
               </button>
               <button
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 onClick={handleSampleDownload}
                 className="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-3 rounded-xl transition flex items-center justify-center gap-2"
               >
@@ -737,11 +750,10 @@ export default function EventSetup({ onBack }) {
               </button>
             </div>
             
-            {!isDragging && (
-              <p className="text-center text-sm text-gray-500 mt-3">
-                or drag and drop CSV file here
-              </p>
-            )}
+            <p className="text-center text-sm text-gray-600 mt-3 font-medium">
+              <Upload className="w-3 h-3 inline mr-1" />
+              Drag and drop CSV file anywhere in this box
+            </p>
             
             {/* Hidden file input for Upload CSV button */}
             <input
