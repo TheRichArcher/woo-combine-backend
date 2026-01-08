@@ -373,12 +373,25 @@ export default function EventSetup({ onBack }) {
   const canonicalHeaderLabels = {
     first_name: 'First Name',
     last_name: 'Last Name',
-    jersey_number: 'Player #',
+    number: 'Player #',
+    jersey_number: 'Player #', // Legacy support
     age_group: 'Age Group',
     external_id: 'External ID',
     team_name: 'Team Name',
     position: 'Position',
     notes: 'Notes'
+  };
+
+  // Helper text for each field
+  const fieldHelperText = {
+    first_name: "Choose the column that contains the player's first name",
+    last_name: "Choose the column that contains the player's last name",
+    number: "Choose the column that contains the player's jersey number",
+    age_group: "Choose the column for age group (e.g., 12U, 14U)",
+    external_id: "Choose the column for external/system ID if you have one",
+    team_name: "Choose the column for team name if players have teams",
+    position: "Choose the column for player position if applicable",
+    notes: "Choose the column for additional notes or comments"
   };
 
   const handleApplyMapping = () => {
@@ -1029,62 +1042,177 @@ export default function EventSetup({ onBack }) {
               </div>
             )}
 
-            {showMapping && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4 text-left">
-                <h3 className="font-medium text-gray-900 mb-2">Match Column Headers</h3>
-                <p className="text-sm text-gray-600 mb-3">Match our fields to the columns in your CSV. Only First and Last Name are required. Others are optional.</p>
+            {showMapping && (() => {
+              // Calculate stats for dynamic messaging
+              const requiredFieldsMissing = REQUIRED_HEADERS.filter(key => !fieldMapping[key] || fieldMapping[key] === '__ignore__').length;
+              const autoMappedCount = Object.keys(fieldMapping).filter(key => 
+                fieldMapping[key] && fieldMapping[key] !== '__ignore__' && mappingConfidence[key] === 'high'
+              ).length;
+              const readyToImport = requiredFieldsMissing === 0;
 
-                {/* Player Fields */}
-                <div className="mb-4">
-                  <h4 className="text-sm font-medium text-gray-700 mb-2">Player Information</h4>
-                  <div className="grid grid-cols-1 gap-3">
-                    {[...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].map((fieldKey) => (
-                      <div key={fieldKey} className="flex items-center gap-3">
-                        <div className="w-40 text-sm text-gray-700 font-medium">
-                          <div className="flex items-center">
-                            {canonicalHeaderLabels[fieldKey] || fieldKey}
-                            {REQUIRED_HEADERS.includes(fieldKey) && <span className="text-red-500 ml-1">*</span>}
-                          </div>
-                          {((fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high') || (!fieldMapping[fieldKey])) && (
-                            <div className="text-xs text-amber-600 font-semibold mt-0.5">⚠️ Review Required</div>
-                          )}
-                        </div>
-                        <select
-                          value={fieldMapping[fieldKey] || ''}
-                          onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
-                          className={`flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
-                            (!fieldMapping[fieldKey]) || (fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] && mappingConfidence[fieldKey] !== 'high')
-                              ? 'border-amber-300 bg-amber-50' 
-                              : 'border-gray-300'
-                          }`}
-                        >
-                          <option value="">Select Column...</option>
-                          <option value="__ignore__">Ignore (Don't Import)</option>
-                          {csvHeaders.map(h => (
-                            <option key={h} value={h}>{h}</option>
-                          ))}
-                        </select>
+              return (
+                <div className="bg-white rounded-lg border border-gray-200 p-6 mb-4 text-left">
+                  {/* Clear Task Framing */}
+                  <div className="mb-6">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Step 2: Match your CSV columns</h3>
+                    <p className="text-gray-700 mb-1">
+                      {autoMappedCount > 0 ? `We've auto-matched ${autoMappedCount} ${autoMappedCount === 1 ? 'field' : 'fields'} for you. ` : ''}
+                      Just confirm the required fields below, then click Import.
+                    </p>
+                    {requiredFieldsMissing > 0 && (
+                      <div className="inline-flex items-center gap-2 mt-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                        <span className="text-amber-700 font-medium text-sm">
+                          {requiredFieldsMissing} required {requiredFieldsMissing === 1 ? 'field' : 'fields'} left to confirm
+                        </span>
                       </div>
-                    ))}
+                    )}
+                  </div>
+
+                  {/* REQUIRED FIELDS - Prominent Section */}
+                  <div className="mb-6">
+                    <div className="bg-red-50 border-l-4 border-red-500 rounded-r-lg p-4 mb-3">
+                      <h4 className="text-sm font-bold text-red-900 mb-1">Required</h4>
+                      <p className="text-xs text-red-700">These fields are needed to import players</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {REQUIRED_HEADERS.map((fieldKey) => {
+                        const isAutoMapped = fieldMapping[fieldKey] && mappingConfidence[fieldKey] === 'high';
+                        const isMissing = !fieldMapping[fieldKey] || fieldMapping[fieldKey] === '__ignore__';
+                        const needsReview = fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && mappingConfidence[fieldKey] !== 'high';
+                        
+                        return (
+                          <div key={fieldKey} className="flex items-start gap-3">
+                            <div className="w-32 pt-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-gray-900">
+                                  {canonicalHeaderLabels[fieldKey] || fieldKey}
+                                </span>
+                                <span className="text-red-500 text-lg">*</span>
+                              </div>
+                              {isAutoMapped && (
+                                <div className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1">
+                                  <span>✓</span> Auto-matched
+                                </div>
+                              )}
+                              {needsReview && (
+                                <div className="text-xs text-amber-600 font-semibold mt-0.5">
+                                  ⚠️ Please confirm
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <select
+                                value={fieldMapping[fieldKey] || ''}
+                                onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
+                                  isMissing
+                                    ? 'border-red-300 bg-red-50 font-medium' 
+                                    : isAutoMapped 
+                                      ? 'border-green-300 bg-green-50'
+                                      : 'border-amber-300 bg-amber-50'
+                                }`}
+                              >
+                                <option value="">{fieldHelperText[fieldKey] || 'Select a column...'}</option>
+                                {csvHeaders.map(h => (
+                                  <option key={h} value={h}>
+                                    {h} {fieldMapping[fieldKey] === h && isAutoMapped ? '✓' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Matched to: <span className="font-medium">{fieldMapping[fieldKey]}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* OPTIONAL FIELDS - Lower Emphasis */}
+                  <div className="mb-6">
+                    <div className="bg-gray-50 border-l-4 border-gray-300 rounded-r-lg p-4 mb-3">
+                      <h4 className="text-sm font-bold text-gray-700 mb-1">Optional (you can skip these)</h4>
+                      <p className="text-xs text-gray-600">Add these if your CSV has this information</p>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {OPTIONAL_HEADERS.map((fieldKey) => {
+                        const isAutoMapped = fieldMapping[fieldKey] && mappingConfidence[fieldKey] === 'high';
+                        const isIgnored = !fieldMapping[fieldKey] || fieldMapping[fieldKey] === '__ignore__';
+                        
+                        return (
+                          <div key={fieldKey} className="flex items-start gap-3 opacity-75 hover:opacity-100 transition">
+                            <div className="w-32 pt-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-gray-700">
+                                  {canonicalHeaderLabels[fieldKey] || fieldKey}
+                                </span>
+                              </div>
+                              {isAutoMapped && (
+                                <div className="text-xs text-green-600 font-medium mt-0.5 flex items-center gap-1">
+                                  <span>✓</span> Auto-matched
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <select
+                                value={fieldMapping[fieldKey] || ''}
+                                onChange={(e) => setFieldMapping(prev => ({ ...prev, [fieldKey]: e.target.value }))}
+                                className={`w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-brand-primary focus:border-brand-primary ${
+                                  isAutoMapped 
+                                    ? 'border-green-300 bg-green-50'
+                                    : 'border-gray-300 bg-white'
+                                }`}
+                              >
+                                <option value="">Leave blank if this column isn't in your file</option>
+                                <option value="__ignore__">Skip this field</option>
+                                {csvHeaders.map(h => (
+                                  <option key={h} value={h}>
+                                    {h} {fieldMapping[fieldKey] === h && isAutoMapped ? '✓' : ''}
+                                  </option>
+                                ))}
+                              </select>
+                              {fieldMapping[fieldKey] && fieldMapping[fieldKey] !== '__ignore__' && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Matched to: <span className="font-medium">{fieldMapping[fieldKey]}</span>
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dynamic CTA Buttons */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <button
+                      onClick={handleApplyMapping}
+                      disabled={!readyToImport}
+                      className={`flex-1 font-semibold px-6 py-3 rounded-lg transition ${
+                        readyToImport
+                          ? 'bg-brand-primary hover:bg-brand-secondary text-white'
+                          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      }`}
+                    >
+                      {readyToImport 
+                        ? `Import ${csvRows.length} ${csvRows.length === 1 ? 'Player' : 'Players'}` 
+                        : 'Finish required fields to continue'}
+                    </button>
+                    <button
+                      onClick={() => setShowMapping(false)}
+                      className="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-medium px-6 py-3 rounded-lg transition"
+                    >
+                      Cancel
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={handleApplyMapping}
-                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-2 rounded-lg transition"
-                  >
-                    Apply Mapping & Import
-                  </button>
-                  <button
-                    onClick={() => setShowMapping(false)}
-                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium px-4 py-2 rounded-lg transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* CSV Preview Table */}
             {Array.isArray(csvRows) && csvRows.length > 0 && csvErrors.length === 0 && (
