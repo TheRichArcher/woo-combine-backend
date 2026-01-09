@@ -155,34 +155,20 @@ export default function EventSetup({ onBack }) {
     
     dragCounter.current++;
     
-    logDragEvent('dragenter', {
-      counter: dragCounter.current,
-      target: e.target.tagName,
-      currentTarget: e.currentTarget.id || e.currentTarget.className,
-      defaultPrevented: e.defaultPrevented,
-      dropEffect: e.dataTransfer?.dropEffect
-    });
-    
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setIsDragging(true);
     }
-  }, [logDragEvent]);
+  }, []);
 
   const handleDragLeaveCapture = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     dragCounter.current--;
     
-    logDragEvent('dragleave', {
-      counter: dragCounter.current,
-      target: e.target.tagName,
-      defaultPrevented: e.defaultPrevented
-    });
-    
     if (dragCounter.current === 0) {
       setIsDragging(false);
     }
-  }, [logDragEvent]);
+  }, []);
 
   const handleDragOverCapture = useCallback((e) => {
     e.preventDefault();
@@ -203,26 +189,12 @@ export default function EventSetup({ onBack }) {
     setIsDragging(false);
 
     const files = e.dataTransfer.files;
-    
-    logDragEvent('drop', {
-      target: e.target.tagName,
-      currentTarget: e.currentTarget.id || e.currentTarget.className,
-      defaultPrevented: e.defaultPrevented,
-      filesLength: files ? files.length : 0,
-      fileDetails: files && files.length > 0 ? {
-        name: files[0].name,
-        type: files[0].type,
-        size: files[0].size
-      } : null
-    });
 
     if (files && files.length > 0) {
       const file = files[0];
       
       // Check if it's a CSV file
       if (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.CSV')) {
-        logDragEvent('drop-success', { fileName: file.name });
-        
         // Trigger the same processing as file input
         setCsvFileName(file.name);
         const reader = new FileReader();
@@ -265,19 +237,14 @@ export default function EventSetup({ onBack }) {
               showInfo(`✓ Required fields look good! Review mappings and click Import.`);
             }
           }
-          
-          logDragEvent('csv-parsed', { rowCount: rows.length, headerCount: headers.length });
         };
         reader.readAsText(file);
         showSuccess('📄 CSV file dropped successfully!');
       } else {
-        logDragEvent('drop-rejected', { fileName: file.name, fileType: file.type });
         showError('❌ Please drop a CSV file (.csv extension required)');
       }
-    } else {
-      logDragEvent('drop-no-files', {});
     }
-  }, [logDragEvent, showError, showInfo, showSuccess, drillDefinitions]);
+  }, [showError, showInfo, showSuccess, drillDefinitions, confirmedRequiredFields]);
 
   const canonicalHeaderLabels = {
     first_name: 'First Name',
