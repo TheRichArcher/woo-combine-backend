@@ -5,6 +5,7 @@ import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import EventSelector from "../components/EventSelector";
 import CreateEventModal from "../components/CreateEventModal";
 import EditEventModal from "../components/EditEventModal";
+import PlayerCard from "../components/PlayerCard";
 import api from '../lib/api';
 import { withCache } from '../utils/dataCache';
 import { debounce } from '../utils/debounce';
@@ -864,60 +865,32 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </button>
             </div>
             
-            {/* Rankings List - Reusing style from Players.jsx */}
+            {/* Rankings List - Standardized with PlayerCard */}
             <div className="space-y-1">
               {rankings.map((player, index) => {
                 const playerId = player.player_id || player.id;
-                // Calculate individual drill rankings safely
-                // (Optional: if we want to show drill details in tooltip or extended view later)
-                
-                const playerAgeGroup = players.find(p => p.id === playerId)?.age_group;
-                const score = (player.composite_score || 0).toFixed(1);
+                const fullPlayer = players.find(p => p.id === playerId) || player;
                 
                 return (
-                  <div 
-                    key={playerId} 
-                    className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors rounded text-sm border border-transparent hover:border-gray-200"
-                    onClick={() => {
-                      const fullPlayer = players.find(p => p.id === playerId) || player;
-                      openDetails(fullPlayer, {
-                          allPlayers: players,
-                          sliderWeights: sliderWeights, // Pass weights directly
-                          handleWeightChange: handleWeightChange,
-                          activePreset,
-                          applyPreset,
-                          drills: allDrills,
-                          presets: currentPresets
-                      });
+                  <PlayerCard
+                    key={playerId}
+                    player={{
+                      ...fullPlayer,
+                      composite_score: player.composite_score
                     }}
-                  >
-                    <div className={`font-bold w-8 text-center text-lg ${
-                      index === 0 ? "text-yellow-500" : 
-                      index === 1 ? "text-gray-500" : 
-                      index === 2 ? "text-orange-500" : "text-gray-400"
-                    }`}>
-                      {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : index + 1}
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-2">
-                        <span className="font-semibold text-gray-900 truncate text-base">{player.name}</span>
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-2">
-                         <span className="bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 font-medium">#{player.number || '-'}</span>
-                         {selectedAgeGroupId === "ALL" && playerAgeGroup && (
-                           <span>• {playerAgeGroup}</span>
-                         )}
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="font-mono font-bold text-xl text-cmf-primary">{score}</div>
-                      <div className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Score</div>
-                    </div>
-                    
-                    <ChevronRight className="w-4 h-4 text-gray-300 ml-2" />
-                  </div>
+                    variant="compact"
+                    rankIndex={index}
+                    showScore={true}
+                    onSelect={() => openDetails(fullPlayer, {
+                      allPlayers: players,
+                      sliderWeights: sliderWeights,
+                      handleWeightChange: handleWeightChange,
+                      activePreset,
+                      applyPreset,
+                      drills: allDrills,
+                      presets: currentPresets
+                    })}
+                  />
                 );
               })}
             </div>

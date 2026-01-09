@@ -6,6 +6,7 @@ import PlayerDetailsModal from "../components/Players/PlayerDetailsModal";
 import AddPlayerModal from "../components/Players/AddPlayerModal";
 import ImportResultsModal from "../components/Players/ImportResultsModal";
 import EventSelector from "../components/EventSelector"; // Import EventSelector
+import PlayerCard, { PlayerCardSkeleton, PlayerCardEmpty } from "../components/PlayerCard";
 
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
@@ -527,14 +528,13 @@ export default function Players() {
                         {/* Rankings List */}
                          <div className="p-3 space-y-1">
                            {selectedLiveRankings.slice(0, 10).map((player, index) => (
-                             <div key={player.id} className="flex items-center gap-2 p-2 bg-gray-50 rounded text-sm">
-                               <div className="font-bold w-6 text-center text-gray-500">{index + 1}</div>
-                               <div className="flex-1 min-w-0">
-                                 <div className="font-medium text-gray-900 truncate">{player.name}</div>
-                                 <div className="text-xs text-gray-500">#{player.number || '-'}</div>
-                               </div>
-                               <div className="font-bold text-blue-600">{(player.weightedScore ?? 0).toFixed(1)}</div>
-                             </div>
+                             <PlayerCard
+                               key={player.id}
+                               player={player}
+                               variant="compact"
+                               rankIndex={index}
+                               showScore={true}
+                             />
                            ))}
                          </div>
                       </div>
@@ -740,49 +740,36 @@ export default function Players() {
               {/* Player List */}
               <div className="space-y-2 max-h-[60vh] overflow-y-auto">
                 {selectedGroupPlayers.length === 0 ? (
-                  <div className="text-center py-8 text-gray-500">No players found. Add some players to get started!</div>
+                  <PlayerCardEmpty message="No players found. Add some players to get started!" />
                 ) : (
                   selectedGroupPlayers.map((player) => (
-                    <div key={player.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <div>
-                          <h4 className="font-semibold text-gray-900">{player.name}</h4>
-                          <p className="text-sm text-gray-600">
-                            #{player.number || '-'} • {player.age_group || 'N/A'}
-                          </p>
-                        </div>
-                      </div>
+                    <div key={player.id} className="space-y-2">
+                      <PlayerCard
+                        player={player}
+                        variant="card"
+                        onViewStats={() => openDetails(player, {
+                          allPlayers: players,
+                          persistedWeights,
+                          sliderWeights,
+                          persistSliderWeights,
+                          activePreset,
+                          applyPreset,
+                          drills: allDrills,
+                          presets: currentPresets
+                        })}
+                        onEdit={() => setEditingPlayer(player)}
+                        canEdit={true}
+                      />
                       
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          onClick={() => openDetails(player, {
-                              allPlayers: players,
-                              persistedWeights,
-                              sliderWeights,
-                              persistSliderWeights,
-                              activePreset,
-                              applyPreset,
-                              drills: allDrills,
-                              presets: currentPresets
-                          })}
-                          className="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                        >
-                          View Stats & Weights
-                        </button>
-                        <button
-                          onClick={() => setEditingPlayer(player)}
-                          className="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-1 rounded-md text-sm font-medium transition"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => toggleForm(player.id)}
-                          className="bg-brand-light/20 hover:bg-brand-light/30 text-brand-primary px-3 py-1 rounded-md text-sm font-medium transition"
-                        >
-                          Add Result
-                        </button>
-                      </div>
+                      {/* Context-specific action: Add Result */}
+                      <button
+                        onClick={() => toggleForm(player.id)}
+                        className="w-full bg-brand-light/20 hover:bg-brand-light/30 text-brand-primary px-3 py-2 rounded-md text-sm font-medium transition"
+                      >
+                        Add Result
+                      </button>
                       
+                      {/* Expanded drill input form */}
                       {expandedPlayerIds[player.id] && (
                         <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200 mt-3">
                           <DrillInputForm 
@@ -895,43 +882,31 @@ export default function Players() {
 
                     {/* Rankings List */}
                     <div className="p-3 space-y-1">
-                      {backendRankings.slice(0, 5).map((player, index) => (
-                        <div 
-                          key={player.player_id || player.id} 
-                          className="flex items-center gap-2 p-2 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors rounded text-sm"
-                          onClick={() => {
-                            const fullPlayer = players.find(p => p.id === (player.player_id || player.id)) || player;
-                            openDetails(fullPlayer, {
-                                allPlayers: players,
-                                persistedWeights,
-                                sliderWeights,
-                                persistSliderWeights,
-                                activePreset,
-                                applyPreset,
-                                drills: allDrills,
-                                presets: currentPresets
-                            });
-                          }}
-                        >
-                          <div className={`font-bold w-6 text-center ${
-                            index === 0 ? "text-yellow-500" : 
-                            index === 1 ? "text-gray-500" : 
-                            index === 2 ? "text-orange-500" : "text-gray-400"
-                          }`}>
-                            {index === 0 ? "🥇" : index === 1 ? "🥈" : index === 2 ? "🥉" : `${index + 1}`}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900 truncate">{player.name}</div>
-                            <div className="text-xs text-gray-500">
-                               #{player.number || '-'} {selectedAgeGroup === 'all' && player.age_group && `• ${player.age_group}`}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-cmf-primary">{(player.composite_score ?? player.weightedScore ?? 0).toFixed(1)}</div>
-                            <div className="text-xs text-gray-400">points</div>
-                          </div>
-                        </div>
-                      ))}
+                      {backendRankings.slice(0, 5).map((player, index) => {
+                        const fullPlayer = players.find(p => p.id === (player.player_id || player.id)) || player;
+                        return (
+                          <PlayerCard
+                            key={player.player_id || player.id}
+                            player={{
+                              ...fullPlayer,
+                              composite_score: player.composite_score ?? player.weightedScore
+                            }}
+                            variant="compact"
+                            rankIndex={index}
+                            showScore={true}
+                            onSelect={() => openDetails(fullPlayer, {
+                              allPlayers: players,
+                              persistedWeights,
+                              sliderWeights,
+                              persistSliderWeights,
+                              activePreset,
+                              applyPreset,
+                              drills: allDrills,
+                              presets: currentPresets
+                            })}
+                          />
+                        );
+                      })}
 
                       {/* View Full Rankings CTA */}
                       <div className="pt-3 text-center border-t border-gray-100 mt-2">
