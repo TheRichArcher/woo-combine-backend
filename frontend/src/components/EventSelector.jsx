@@ -5,19 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
 import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from 'lucide-react';
-import { getAllTemplates } from '../constants/drillTemplates';
-
-const getSportIcon = (sport) => {
-  switch(sport) {
-    case 'Football': return '🏈';
-    case 'Soccer': return '⚽';
-    case 'Basketball': return '🏀';
-    case 'Baseball': return '⚾';
-    case 'Track & Field': return '🏃';
-    case 'Volleyball': return '🏐';
-    default: return '🏆';
-  }
-};
+import EventFormModal from "./EventFormModal";
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   const { events, selectedEvent, setSelectedEvent, setEvents, loading, eventsLoaded, error, refreshEvents } = useEvent();
@@ -31,16 +19,9 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
       setShowModal(true);
     }
   }, [eventsLoaded, loading, events, selectedLeagueId, showModal]);
-  const [name, setName] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const templates = getAllTemplates();
-  const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || "football");
   
   // Missing state variables restoration
   const [playerCount, setPlayerCount] = useState(0);
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState("");
   const [creatingLeague, setCreatingLeague] = useState(false);
 
   const handleSelect = useCallback((e) => {
@@ -102,61 +83,12 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
     }
   }, [selectedLeagueId, setSelectedLeagueId]);
 
-  const handleCreate = useCallback(async (e) => {
-    e.preventDefault();
-    setCreateLoading(true);
-    setCreateError("");
-    
-    // GUIDED SETUP FIX: Don't attempt to create event with empty league ID
-    if (!selectedLeagueId || 
-        selectedLeagueId === '' || 
-        selectedLeagueId === null || 
-        selectedLeagueId === undefined || 
-        selectedLeagueId.trim() === '') {
-      logger.error('EVENT-SELECTOR', 'Cannot create event - no selectedLeagueId available');
-      setCreateError('Cannot create event: No league selected.');
-      setCreateLoading(false);
-      return;
-    }
-    
-    try {
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : null;
-      logger.info('EVENT-SELECTOR', `Creating event in league: ${selectedLeagueId}`);
-      
-      const response = await api.post(`/leagues/${selectedLeagueId}/events`, {
-        name,
-        date: isoDate,
-        location,
-        drillTemplate: selectedTemplate
-      });
-      
-      // CRITICAL FIX: Use complete event object from backend response
-      // Backend now returns both event_id (legacy) and full event object
-      // This ensures league_id and all other fields are properly set
-      const newEvent = response.data.event || {
-        id: response.data.event_id,
-        name: name,
-        date: isoDate,
-        location: location,
-        league_id: selectedLeagueId, // Ensure league_id is always set
-        drillTemplate: selectedTemplate,
-        created_at: new Date().toISOString()
-      };
-      
-      setEvents(prev => [newEvent, ...prev]);
-      setSelectedEvent(newEvent);
-      setShowModal(false);
-      setName("");
-      setDate("");
-      setLocation("");
-      setSelectedTemplate(templates[0]?.id || "football");
-      if (onEventSelected) onEventSelected(newEvent);
-    } catch (err) {
-      setCreateError(err.response?.data?.detail || err.message || 'Failed to create event');
-    } finally {
-      setCreateLoading(false);
-    }
-  }, [selectedLeagueId, name, date, location, setEvents, setSelectedEvent, onEventSelected]);
+  // Handle successful event creation from EventFormModal
+  const handleEventCreated = useCallback((newEvent) => {
+    setShowModal(false);
+    setSelectedEvent(newEvent);
+    if (onEventSelected) onEventSelected(newEvent);
+  }, [setSelectedEvent, onEventSelected]);
 
   // Deprecated create-league pathway removed from UI. Using ensureLeagueThenOpenModal instead.
 
@@ -354,87 +286,13 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
         </div>
       )}
 
-      {/* Create Event Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-            <h3 className="text-lg font-bold mb-2">
-              {events.length === 0 ? "Create Your First Event" : "Create New Event"}
-            </h3>
-            {events.length === 0 && (
-              <p className="text-gray-600 text-sm mb-4">
-                Set up your combine event with a name, date, and location.
-              </p>
-            )}
-            <form onSubmit={handleCreate}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Event Name</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                  required
-                />
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Sport Template</label>
-                <select
-                  value={selectedTemplate}
-                  onChange={(e) => setSelectedTemplate(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                  required
-                >
-                  {templates.map(template => (
-                    <option key={template.id} value={template.id}>
-                      {getSportIcon(template.sport)} {template.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Event Date</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                  required
-                />
-              </div>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">Location</label>
-                <input
-                  type="text"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Event Location"
-                  className="w-full border rounded px-3 py-2 focus:ring-cmf-primary focus:border-cmf-primary"
-                />
-              </div>
-              {createError && <div className="text-red-500 text-sm mb-4">{createError}</div>}
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={createLoading}
-                  className="bg-cmf-primary text-white px-4 py-2 rounded hover:bg-cmf-secondary transition disabled:opacity-50"
-                >
-                  {createLoading ? "Creating..." : "Create"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded hover:bg-gray-400 transition"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Create Event Modal - CANONICAL COMPONENT */}
+      <EventFormModal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        mode="create"
+        onSuccess={handleEventCreated}
+      />
     </div>
   );
 });
