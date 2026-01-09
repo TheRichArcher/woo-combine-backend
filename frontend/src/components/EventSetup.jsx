@@ -9,8 +9,8 @@ import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash, A
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import ImportResultsModal from "./Players/ImportResultsModal";
+import AddPlayerModal from "./Players/AddPlayerModal";
 import { Link, useNavigate } from 'react-router-dom';
-import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
 import DeleteEventFlow from "./DeleteEventFlow";
@@ -34,23 +34,15 @@ export default function EventSetup({ onBack }) {
   // Import modal state (replaces CSV upload state)
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // Manual add player state
-  const [showManualForm, setShowManualForm] = useState(false);
-  const [manualPlayer, setManualPlayer] = useState({
-    first_name: '',
-    last_name: '',
-    number: '',
-    age_group: '',
-  });
-  const [_manualErrors, setManualErrors] = useState([]);
-  const [manualStatus, setManualStatus] = useState('idle');
-  const [manualMsg, setManualMsg] = useState('');
+  // Add player modal state (replaces inline manual form)
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  
+  // Players list for AddPlayerModal (empty array is fine, modal will work)
+  const [players, setPlayers] = useState([]);
 
   // Player count state
   const [playerCount, setPlayerCount] = useState(0);
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
-
-  const manualFormRef = useRef(null);
 
   // Invite to League section state
   const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
@@ -544,80 +536,7 @@ export default function EventSetup({ onBack }) {
     }
   };
 
-  // Manual add player logic
-  const handleManualChange = (e) => {
-    setManualPlayer({ ...manualPlayer, [e.target.name]: e.target.value });
-  };
-  const validateManual = () => {
-    const errors = [];
-    if (!manualPlayer.first_name || manualPlayer.first_name.trim() === "") {
-      errors.push("Missing first name");
-    }
-    if (!manualPlayer.last_name || manualPlayer.last_name.trim() === "") {
-      errors.push("Missing last name");
-    }
-    if (manualPlayer.number && manualPlayer.number.trim() !== "" && isNaN(Number(manualPlayer.number))) {
-      errors.push("Invalid number");
-    }
-    // Age group is flexible - any text is allowed
-    return errors;
-  };
-  const handleManualSubmit = async (e) => {
-    e.preventDefault();
-    setManualErrors([]);
-    setManualStatus('idle');
-    setManualMsg('');
-    const errors = validateManual();
-    if (errors.length > 0) {
-      setManualErrors(errors);
-      showError(`❌ Please fix: ${errors.join(", ")}`);
-      return;
-    }
-    setManualStatus('loading');
-    try {
-      // Auto-assign player number if not provided
-      let playerNumber = null;
-      if (manualPlayer.number && manualPlayer.number.trim() !== "") {
-        playerNumber = Number(manualPlayer.number);
-      } else {
-        // Auto-assign number based on age group
-        const tempPlayer = { age_group: manualPlayer.age_group.trim() || null };
-        const [numberedPlayer] = autoAssignPlayerNumbers([tempPlayer]);
-        playerNumber = numberedPlayer.number;
-      }
-      
-      const playerPayload = {
-        name: `${manualPlayer.first_name.trim()} ${manualPlayer.last_name.trim()}`,
-        number: playerNumber,
-        age_group: manualPlayer.age_group.trim() || null,
-      };
-      
-      await api.post(`/players?event_id=${selectedEvent.id}`, playerPayload);
-      setManualStatus('success');
-      const autoNumbered = !manualPlayer.number || manualPlayer.number.trim() === "";
-      setManualMsg(`Player added${autoNumbered ? ` with auto-number #${playerNumber}` : ''}!`);
-      const playerName = `${manualPlayer.first_name} ${manualPlayer.last_name}`;
-      notifyPlayerAdded(playerName);
-      setManualPlayer({
-        first_name: '',
-        last_name: '',
-        number: '',
-        age_group: '',
-      });
-      // Don't hide form immediately - let user see next steps
-      cacheInvalidation.playersUpdated(selectedEvent.id);
-      handlePostUploadSuccess();
-      // Reset status after success message is shown
-      setTimeout(() => {
-        setManualStatus('idle');
-        setManualMsg('');
-      }, 3000);
-    } catch (err) {
-      setManualStatus('error');
-      setManualMsg(err.message || 'Failed to add player.');
-      notifyError(err);
-    }
-  };
+  // Manual add player logic - NOW HANDLED BY AddPlayerModal (canonical component)
 
   // Download sample CSV
   const handleSampleDownload = () => {
@@ -780,18 +699,7 @@ export default function EventSetup({ onBack }) {
             
             {/* Manual Add - SECONDARY METHOD */}
             <button
-              onClick={() => {
-                const newState = !showManualForm;
-                setShowManualForm(newState);
-                if (newState && manualFormRef.current) {
-                  setTimeout(() => {
-                    manualFormRef.current.scrollIntoView({ 
-                      behavior: 'smooth', 
-                      block: 'start' 
-                    });
-                  }, 100);
-                }
-              }}
+              onClick={() => setShowAddPlayerModal(true)}
               className="bg-white hover:bg-gray-50 text-gray-900 font-semibold px-6 py-4 rounded-xl transition flex flex-col items-center justify-center gap-2 shadow-sm border-2 border-gray-200"
               type="button"
             >
@@ -800,86 +708,6 @@ export default function EventSetup({ onBack }) {
               <span className="text-xs text-gray-600">One at a time</span>
             </button>
           </div>
-
-          {/* Manual Add Player Form */}
-          {showManualForm && (
-            <div ref={manualFormRef} className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <h3 className="font-semibold text-gray-900 mb-3">Add Single Player</h3>
-              <form onSubmit={handleManualSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    name="first_name"
-                    placeholder="First Name *"
-                    value={manualPlayer.first_name}
-                    onChange={handleManualChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    required
-                  />
-                  <input
-                    type="text"
-                    name="last_name"
-                    placeholder="Last Name *"
-                    value={manualPlayer.last_name}
-                    onChange={handleManualChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <input
-                    type="text"
-                    name="number"
-                    placeholder="Jersey # (optional)"
-                    value={manualPlayer.number}
-                    onChange={handleManualChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  />
-                  <input
-                    type="text"
-                    name="age_group"
-                    placeholder="Age Group (optional)"
-                    value={manualPlayer.age_group}
-                    onChange={handleManualChange}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    type="submit"
-                    disabled={manualStatus === 'loading'}
-                    className="flex-1 bg-brand-primary hover:bg-brand-secondary disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium px-4 py-2 rounded-lg transition"
-                  >
-                    {manualStatus === 'loading' ? 'Adding...' : 'Add Player'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowManualForm(false);
-                      setManualPlayer({ first_name: '', last_name: '', number: '', age_group: '' });
-                      setManualStatus('idle');
-                      setManualMsg('');
-                    }}
-                    className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition"
-                  >
-                    Cancel
-                  </button>
-                </div>
-                
-                {/* Success/Error Messages */}
-                {manualStatus === 'success' && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-green-800 text-sm">
-                    ✅ {manualMsg}
-                  </div>
-                )}
-                {manualStatus === 'error' && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-800 text-sm">
-                    ❌ {manualMsg}
-                  </div>
-                )}
-              </form>
-            </div>
-          )}
 
           {/* Help Text */}
           <div className="text-sm text-gray-600 text-center mt-4">
@@ -1109,6 +937,19 @@ export default function EventSetup({ onBack }) {
             intent="roster_and_scores"
             showModeSwitch={false}
             availableDrills={[]}
+          />
+        )}
+
+        {/* Add Player Modal - SINGLE CANONICAL MANUAL ADD */}
+        {showAddPlayerModal && (
+          <AddPlayerModal
+            allPlayers={players}
+            onClose={() => setShowAddPlayerModal(false)}
+            onSave={() => {
+              setShowAddPlayerModal(false);
+              cacheInvalidation.playersUpdated(selectedEvent.id);
+              fetchPlayerCount();
+            }}
           />
         )}
       </div>

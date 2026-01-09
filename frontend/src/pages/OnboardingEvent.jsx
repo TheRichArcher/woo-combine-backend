@@ -16,6 +16,7 @@ import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import LoadingScreen from "../components/LoadingScreen";
 import DrillManager from "../components/drills/DrillManager";
 import ImportResultsModal from "../components/Players/ImportResultsModal";
+import AddPlayerModal from "../components/Players/AddPlayerModal";
 import { useDrills } from "../hooks/useDrills";
 
 // CSV processing utilities
@@ -87,15 +88,11 @@ export default function OnboardingEvent() {
   const [forcedIgnoreFields, setForcedIgnoreFields] = useState([]);
   
   // Manual add player state
-  const [showManualForm, setShowManualForm] = useState(false);
-  const [manualPlayer, setManualPlayer] = useState({
-    first_name: '',
-    last_name: '',
-    number: '',
-    age_group: '',
-  });
-  const [manualStatus, setManualStatus] = useState('idle');
-  const [manualMsg, setManualMsg] = useState('');
+  // Add player modal state (replaces inline manual form)
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+  
+  // Players list for AddPlayerModal (empty array is fine, modal will work)
+  const [players, setPlayers] = useState([]);
   
   const [showImportModal, setShowImportModal] = useState(false);
   const [importModalMode, setImportModalMode] = useState('create_or_update');
@@ -355,58 +352,7 @@ export default function OnboardingEvent() {
     }
   };
 
-  // Add single player manually
-  const handleAddPlayer = async () => {
-    if (!createdEvent?.id) {
-      showError("No event selected. Please create an event first.");
-      return;
-    }
-
-    if (!manualPlayer.first_name || !manualPlayer.last_name) {
-      setManualMsg("First name and last name are required.");
-      return;
-    }
-
-    setManualStatus('adding');
-    setManualMsg('Adding player...');
-
-    try {
-      // Transform data to match backend PlayerCreate model
-      const playerData = {
-        name: `${manualPlayer.first_name} ${manualPlayer.last_name}`.trim(),
-        number: manualPlayer.number ? parseInt(manualPlayer.number) : null,
-        age_group: manualPlayer.age_group || null,
-        photo_url: null
-      };
-
-      await api.post(`/players?event_id=${createdEvent.id}`, playerData);
-      
-      setManualStatus('success');
-      setManualMsg('✅ Player added successfully!');
-      notifyPlayerAdded(manualPlayer.first_name, manualPlayer.last_name);
-      
-      // Reset form
-      setManualPlayer({
-        first_name: '',
-        last_name: '',
-        number: '',
-        age_group: '',
-      });
-      
-      // Refresh player count
-      await fetchEventData();
-      
-      // Reset status after brief delay
-      setTimeout(() => {
-        setManualStatus('idle');
-        setManualMsg('');
-      }, 2000);
-      
-    } catch (error) {
-      setManualStatus('error');
-      setManualMsg(error.response?.data?.detail || "Failed to add player. Please try again.");
-    }
-  };
+  // Manual add player - NOW HANDLED BY AddPlayerModal (canonical component)
 
   const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
 
@@ -712,44 +658,15 @@ export default function OnboardingEvent() {
                       </div>
                   </div>
 
-                  {/* Manual Add Link */}
+                  {/* Manual Add Link - Opens Canonical AddPlayerModal */}
                   <div className="text-center py-1">
                       <button 
-                        onClick={() => setShowManualForm(!showManualForm)}
+                        onClick={() => setShowAddPlayerModal(true)}
                         className="text-xs text-gray-500 underline hover:text-brand-primary transition-colors"
                       >
-                        Don’t have a spreadsheet? Add players manually
+                        Don't have a spreadsheet? Add players manually
                       </button>
                   </div>
-
-                  {/* Manual Add Section */}
-                  {showManualForm && (
-                    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 text-left animate-in fade-in slide-in-from-top-2">
-                        <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2 text-sm">
-                        <UserPlus className="w-4 h-4 text-gray-600" />
-                        Add Single Player
-                        </h3>
-                        <div className="space-y-3">
-                            <div className="grid grid-cols-2 gap-3">
-                                <Input type="text" placeholder="First Name *" value={manualPlayer.first_name} onChange={(e) => setManualPlayer(prev => ({...prev, first_name: e.target.value}))} className="text-sm" />
-                                <Input type="text" placeholder="Last Name *" value={manualPlayer.last_name} onChange={(e) => setManualPlayer(prev => ({...prev, last_name: e.target.value}))} className="text-sm" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                                <Input type="text" placeholder="Number" value={manualPlayer.number} onChange={(e) => setManualPlayer(prev => ({...prev, number: e.target.value}))} className="text-sm" />
-                                <Input type="text" placeholder="Age Group" value={manualPlayer.age_group} onChange={(e) => setManualPlayer(prev => ({...prev, age_group: e.target.value}))} className="text-sm" />
-                            </div>
-                            <Button onClick={handleAddPlayer} disabled={manualStatus === 'adding'} className="w-full text-sm py-2">
-                            {manualStatus === 'adding' ? 'Adding...' : 'Add Player'}
-                            </Button>
-                            
-                            {manualMsg && (
-                            <div className={`text-xs ${manualStatus === 'error' ? 'text-semantic-error' : manualStatus === 'success' ? 'text-semantic-success' : 'text-brand-primary'}`}>
-                                {manualMsg}
-                            </div>
-                            )}
-                        </div>
-                    </div>
-                  )}
 
                   {/* Secondary CTA: Scores Only */}
                   <div className={`border border-gray-200 rounded-xl p-3 text-left flex items-center justify-between transition-all ${playerCount === 0 ? 'opacity-60 bg-gray-50' : 'hover:border-gray-300 bg-white'}`}>
@@ -826,6 +743,18 @@ export default function OnboardingEvent() {
                 }}
                 availableDrills={allDrills}
                 droppedFile={droppedFileForImport}
+              />
+            )}
+
+            {/* Add Player Modal - SINGLE CANONICAL MANUAL ADD */}
+            {showAddPlayerModal && (
+              <AddPlayerModal
+                allPlayers={players}
+                onClose={() => setShowAddPlayerModal(false)}
+                onSave={async () => {
+                  setShowAddPlayerModal(false);
+                  await fetchEventData();
+                }}
               />
             )}
 
