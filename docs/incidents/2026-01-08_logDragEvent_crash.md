@@ -2,8 +2,8 @@
 
 **Date:** January 8, 2026  
 **Severity:** P0 - Production Outage  
-**Status:** ✅ Resolved  
-**Duration:** ~20 minutes (detection to deployment)
+**Status:** ✅ Resolved (2 hotfixes deployed)  
+**Duration:** ~45 minutes total (2 separate crashes)
 
 ---
 
@@ -194,11 +194,38 @@ const safeLog = logEvent || ((...args) => {});
 
 | Item | Owner | Status |
 |------|-------|--------|
-| Deploy hotfix | Done | ✅ |
+| Deploy hotfix #1 (logDragEvent) | Done | ✅ |
+| Deploy hotfix #2 (drillDefinitions) | Done | ✅ |
 | Create telemetry utility | Done | ✅ |
 | Update CONTRIBUTING.md | Pending | ⏳ |
 | Update PR template | Pending | ⏳ |
+| Clean up orphaned CSV code | Recommended | 📋 |
 | Add smoke tests | Future | 📋 |
+
+---
+
+## Second Crash: drillDefinitions (Hotfix #2)
+
+**Time:** ~25 minutes after first hotfix deployment  
+**Error:** `ReferenceError: drillDefinitions is not defined` (line 247)  
+**Also:** `ReferenceError: confirmedRequiredFields is not defined`
+
+### Root Cause (Same Pattern)
+
+Incomplete cleanup from Phase 1 import unification:
+- `drillDefinitions` was removed but referenced in 7 locations
+- `confirmedRequiredFields` state was never declared but setter was called
+- Both were in dependency arrays and code paths of orphaned CSV handlers
+
+### Solution (Hotfix #2 - commit 73e316b)
+
+Added safe defaults for orphaned variables:
+```javascript
+const drillDefinitions = [];  // Safe empty array
+const [confirmedRequiredFields, setConfirmedRequiredFields] = useState(new Set());
+```
+
+**Note:** EventSetup.jsx still has ~500 lines of old CSV processing code that's no longer used (ImportResultsModal replaced it). These safe defaults prevent crashes but **full cleanup is recommended**.
 
 ---
 
@@ -210,11 +237,20 @@ const safeLog = logEvent || ((...args) => {});
 
 ---
 
-## Incident Closed
+## Incident Resolution
 
-**Resolution:** Hotfix deployed, telemetry utility created, prevention measures established
+**Both crashes resolved:**
+- ✅ Hotfix #1: Removed logDragEvent calls (commit `08eca91`)
+- ✅ Hotfix #2: Added missing variable declarations (commit `73e316b`)
+- ✅ Prevention: Created fail-safe telemetry utility (commit `82a80a8`)
 
-**Follow-up:** Update contribution guidelines with telemetry best practices
+**Root pattern:** Incomplete refactoring left orphaned code with undefined references
+
+**Recommended follow-up:**
+1. Clean up all orphaned CSV code in EventSetup.jsx (~500 lines)
+2. Update contribution guidelines about complete refactoring
+3. Add smoke tests for /admin page
+4. Consider ESLint rule to catch undefined variables in dependency arrays
 
 **Date Closed:** January 8, 2026
 
