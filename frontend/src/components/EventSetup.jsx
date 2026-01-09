@@ -44,6 +44,12 @@ export default function EventSetup({ onBack }) {
   const [playerCount, setPlayerCount] = useState(0);
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
 
+  // HOTFIX: Provide empty drillDefinitions for legacy CSV code paths
+  // These code paths are not used (ImportResultsModal handles imports now)
+  // but must be defined to prevent crashes in orphaned handlers
+  const drillDefinitions = [];
+  const [confirmedRequiredFields, setConfirmedRequiredFields] = useState(new Set());
+
   // Invite to League section state
   const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
   
