@@ -174,23 +174,29 @@ Comprehensive audit of duplicate UX patterns across WooCombine codebase, followi
 
 ## Metrics
 
-### Phase 1 Results
+### Phase 1 Results (Git-Verified)
 
-| Pattern | Implementations | Lines Removed | Status |
-|---------|----------------|---------------|--------|
-| Player Bulk Import | ~~3~~ → 1 | 460 lines | ✅ DONE (`a0c0b52`) |
-| Manual Player Add | ~~3~~ → 1 | 273 lines | ✅ DONE (`10a83d2`) |
-| Event Forms | ~~3~~ → 1 | 268 lines | ✅ DONE (`7b07559`) |
-| **Phase 1 Total** | **~~9~~ → 3** | **1,001 lines** | **✅ COMPLETE** |
+| Pattern | Implementations | Duplicate Lines Removed | Net Code Change | Status |
+|---------|----------------|------------------------|-----------------|--------|
+| Player Bulk Import | ~~3~~ → 1 | ~669 lines | -669 lines | ✅ DONE (`a0c0b52`) |
+| Manual Player Add | ~~3~~ → 1 | 273 lines | -273 lines | ✅ DONE (`10a83d2`) |
+| Event Forms | ~~3~~ → 1 | 448 lines | -149 lines (net) | ✅ DONE (`7b07559`) |
+| **Phase 1 Total** | **~~9~~ → 3** | **~1,390 duplicate lines** | **~1,091 net lines removed** | **✅ COMPLETE** |
+
+**Explanation:**
+- "Duplicate Lines Removed" = lines of duplicate implementations eliminated
+- "Net Code Change" = total lines removed minus canonical component additions
+- Event Forms: Removed 448 lines, added 299 for EventFormModal = net -149 lines
 
 ### Phase 1 Impact
 
 | Metric | Before | After | Improvement |
 |--------|--------|-------|-------------|
 | Duplicate patterns | 9 implementations | 3 canonical components | 67% reduction |
-| Lines of code | Baseline | -1,001 lines | 1,001 lines removed |
-| Bundle size | 1,953.59 kB | TBD (next build) | Est. ~50kB |
-| Maintenance points | 9+ files | 3 canonical files | 67% reduction |
+| Duplicate code eliminated | Baseline | ~1,390 lines | Pure duplicate removal |
+| Net codebase reduction | Baseline | ~1,091 lines | After canonical additions |
+| Bundle size | 1,953.59 kB | TBD (next build) | Est. ~30-50kB |
+| Maintenance points | 9+ files to update | 3 canonical files | 67% reduction |
 
 ---
 
@@ -263,10 +269,10 @@ For each unified component:
 ## Change Log
 
 **2026-01-08 (Part 3):** Phase 1 complete ✅
-- ✅ Manual Player Add unified (commit `10a83d2`) - 273 lines removed
-- ✅ Event Forms unified (commit `7b07559`) - 268 lines removed
-- ✅ **Phase 1 total: 1,001 lines removed across 3 patterns**
-- 🎉 All high-impact duplicates eliminated
+- ✅ Manual Player Add unified (commit `10a83d2`) - 273 duplicate lines removed
+- ✅ Event Forms unified (commit `7b07559`) - 448 duplicate lines removed (net -149)
+- ✅ **Phase 1 total: ~1,390 duplicate lines eliminated, ~1,091 net lines removed**
+- 🎉 All high-impact duplicates eliminated (git-verified stats)
 
 **2026-01-08 (Part 2):** Phase 1 Task 1 complete
 - ✅ Manual Player Add unified (commit `10a83d2`)
