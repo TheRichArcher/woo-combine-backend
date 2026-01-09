@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
 import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { cacheInvalidation } from '../utils/dataCache';
-import { UserPlus, RefreshCcw, Users, Copy, QrCode, Edit, ArrowLeft, FileText } from 'lucide-react';
+import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash, ArrowLeft, FileText } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import ImportResultsModal from "./Players/ImportResultsModal";
@@ -14,22 +14,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
 import DeleteEventFlow from "./DeleteEventFlow";
+import * as Sentry from '@sentry/react';
 
-/**
- * EventSetup Component
- * 
- * CLEAN VERSION - All orphaned CSV processing code removed
- * This component now uses ONLY canonical components for imports/adds:
- * - ImportResultsModal: canonical player import (CSV/Excel)
- * - AddPlayerModal: canonical manual player add
- * 
- * Cleanup Date: January 8, 2026
- * Removed: ~400 lines of unused CSV parsing, drag/drop, field mapping, and upload code
- */
 export default function EventSetup({ onBack }) {
   const { user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
-  const { notifyError, showSuccess, showInfo } = useToast();
+  const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
   const navigate = useNavigate();
 
   // CRITICAL: Create immutable snapshot of event at component mount
@@ -41,10 +31,10 @@ export default function EventSetup({ onBack }) {
   const [status, setStatus] = useState("idle"); // idle | loading | success | error
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Import modal state (canonical importer)
+  // Import modal state (replaces CSV upload state)
   const [showImportModal, setShowImportModal] = useState(false);
 
-  // Add player modal state (canonical manual add)
+  // Add player modal state (replaces inline manual form)
   const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
   
   // Players list for AddPlayerModal (empty array is fine, modal will work)
@@ -53,6 +43,12 @@ export default function EventSetup({ onBack }) {
   // Player count state
   const [playerCount, setPlayerCount] = useState(0);
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
+
+  // HOTFIX: Provide empty drillDefinitions for legacy CSV code paths
+  // These code paths are not used (ImportResultsModal handles imports now)
+  // but must be defined to prevent crashes in orphaned handlers
+  const drillDefinitions = [];
+  const [confirmedRequiredFields, setConfirmedRequiredFields] = useState(new Set());
 
   // Invite to League section state
   const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
@@ -67,6 +63,8 @@ export default function EventSetup({ onBack }) {
     return `https://woo-combine.com/join-event/${selectedLeagueId}/${selectedEvent.id}`;
   })();
     
+  
+
   // Edit Event Modal state
   const [showEditEventModal, setShowEditEventModal] = useState(false);
 
@@ -102,6 +100,249 @@ export default function EventSetup({ onBack }) {
     }
   };
 
+  const handleCsv = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result;
+      const { headers, rows, mappingType } = parseCsv(text);
+
+      // Generate default mapping immediately with drill definitions
+      const { mapping: initialMapping, confidence } = generateDefaultMapping(headers, drillDefinitions);
+      setFieldMapping(initialMapping);
+      setMappingConfidence(confidence);
+      setOriginalCsvRows(rows); // Always save original rows
+
+      // Enhanced validation with mapping type support
+      const headerErrors = validateHeaders(headers, mappingType);
+
+      // Always show mapping review to ensure accuracy
+      setCsvHeaders(headers);
+      setCsvRows(rows.map(r => ({ ...r, warnings: [] }))); // Show raw rows without warnings initially
+      setCsvErrors(headerErrors);
+      setShowMapping(true);
+      setConfirmedRequiredFields(new Set()); // Reset confirmations for new upload
+
+      if (headerErrors.length > 0) {
+        showError(`⚠️ Column headers don't match. Please map fields to continue.`);
+      } else {
+        // Only check if REQUIRED fields need review (not optional fields)
+        // Field needs review if: missing OR (not high confidence AND not confirmed)
+        const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
+          const fieldConfidence = confidence[key] || 'low';
+          const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
+          if (!hasMappedValue) return true; // Missing
+          if (fieldConfidence === 'high') return false; // High confidence = no review needed
+          return !confirmedRequiredFields.has(key); // Needs review if not confirmed
+        });
+        
+        if (requiredFieldsNeedReview) {
+          showInfo(`⚠️ Please confirm required field mappings before importing.`);
+        } else {
+          showInfo(`✓ Required fields look good! Review mappings and click Import.`);
+        }
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // ROBUST DRAG-AND-DROP: Capture-phase handlers on container
+  // Safari-optimized with explicit dropEffect
+  const handleDragEnterCapture = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Safari needs dropEffect set early
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    
+    dragCounter.current++;
+    
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeaveCapture = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current--;
+    
+    if (dragCounter.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOverCapture = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // CRITICAL for Safari: Must set dropEffect on EVERY dragover
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+      // Safari sometimes needs effectAllowed too
+      e.dataTransfer.effectAllowed = 'copy';
+    }
+  }, []);
+
+  const handleDropCapture = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounter.current = 0;
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+
+    if (files && files.length > 0) {
+      const file = files[0];
+      
+      // Check if it's a CSV file
+      if (file.type === 'text/csv' || file.name.endsWith('.csv') || file.name.endsWith('.CSV')) {
+        // Trigger the same processing as file input
+        setCsvFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const text = evt.target.result;
+          const { headers, rows, mappingType } = parseCsv(text);
+
+          // Generate default mapping immediately with drill definitions
+          const { mapping: initialMapping, confidence } = generateDefaultMapping(headers, drillDefinitions);
+          setFieldMapping(initialMapping);
+          setMappingConfidence(confidence);
+          setOriginalCsvRows(rows);
+
+          // Enhanced validation with mapping type support
+          const headerErrors = validateHeaders(headers, mappingType);
+
+          // Always show mapping review to ensure accuracy
+          setCsvHeaders(headers);
+          setCsvRows(rows.map(r => ({ ...r, warnings: [] })));
+          setCsvErrors(headerErrors);
+          setShowMapping(true);
+          setConfirmedRequiredFields(new Set()); // Reset confirmations for new upload
+
+          if (headerErrors.length > 0) {
+            showError(`⚠️ Column headers don't match. Please map fields to continue.`);
+          } else {
+            // Only check if REQUIRED fields need review (not optional fields)
+            // Field needs review if: missing OR (not high confidence AND not confirmed)
+            const requiredFieldsNeedReview = REQUIRED_HEADERS.some(key => {
+              const fieldConfidence = confidence[key] || 'low';
+              const hasMappedValue = initialMapping[key] && initialMapping[key] !== '__ignore__';
+              if (!hasMappedValue) return true; // Missing
+              if (fieldConfidence === 'high') return false; // High confidence = no review needed
+              return !confirmedRequiredFields.has(key); // Needs review if not confirmed
+            });
+            
+            if (requiredFieldsNeedReview) {
+              showInfo(`⚠️ Please confirm required field mappings before importing.`);
+            } else {
+              showInfo(`✓ Required fields look good! Review mappings and click Import.`);
+            }
+          }
+        };
+        reader.readAsText(file);
+        showSuccess('📄 CSV file dropped successfully!');
+      } else {
+        showError('❌ Please drop a CSV file (.csv extension required)');
+      }
+    }
+  }, [showError, showInfo, showSuccess, drillDefinitions, confirmedRequiredFields]);
+
+  const canonicalHeaderLabels = {
+    first_name: 'First Name',
+    last_name: 'Last Name',
+    number: 'Player #',
+    jersey_number: 'Player #', // Legacy support
+    age_group: 'Age Group',
+    external_id: 'External ID',
+    team_name: 'Team Name',
+    position: 'Position',
+    notes: 'Notes'
+  };
+
+  // Helper text for each field
+  const fieldHelperText = {
+    first_name: "Choose the column that contains the player's first name",
+    last_name: "Choose the column that contains the player's last name",
+    number: "Choose the column that contains the player's jersey number",
+    age_group: "Choose the column for age group (e.g., 12U, 14U)",
+    external_id: "Choose the column for external/system ID if you have one",
+    team_name: "Choose the column for team name if players have teams",
+    position: "Choose the column for player position if applicable",
+    notes: "Choose the column for additional notes or comments"
+  };
+
+  const handleApplyMapping = () => {
+    // Check for roster-only import (no drill columns detected)
+    const isRosterOnly = drillDefinitions.length === 0;
+    if (isRosterOnly) {
+      if (!window.confirm("Import roster only?\n\nNo drill score columns were detected.\nThis will import player names and info only — you can add scores later.\n\nHave scores now? Cancel and upload a file with drill columns.")) {
+        return;
+      }
+      setIsRosterOnlyImport(true);
+    } else {
+      setIsRosterOnlyImport(false);
+    }
+
+    const mapped = applyMapping(originalCsvRows, fieldMapping, drillDefinitions);
+    const validated = mapped.map(row => validateRow(row, drillDefinitions));
+    const selectedCanonical = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS].filter(key => {
+      const source = fieldMapping[key];
+      return source && source !== '__ignore__';
+    });
+    const selectedDrills = drillDefinitions.filter(drill => {
+      const source = fieldMapping[drill.key];
+      return source && source !== '__ignore__';
+    }).map(drill => drill.key);
+
+    const headersForPreview = [...selectedCanonical, ...selectedDrills];
+    if (headersForPreview.length === 0) {
+      headersForPreview.push(...REQUIRED_HEADERS);
+    }
+
+    setCsvHeaders(headersForPreview);
+    setCsvRows(validated);
+    setCsvErrors([]);
+    setShowMapping(false);
+    // Immediately start import after applying mapping to reduce steps
+    showSuccess(`✅ Mapping applied. Importing ${validated.length} players...`);
+    // Kick off upload using validated rows
+    setTimeout(() => handleUpload(), 0);
+  };
+
+  // Allow upload if we have valid players with first and last names
+  const hasValidPlayers = csvErrors.length === 0 && csvRows.length > 0 && csvRows.some(r => r.name && r.name.trim() !== "");
+
+  // Fetch event schema to get drill definitions
+  const fetchEventSchema = useCallback(async () => {
+    if (!selectedEvent) {
+      setDrillDefinitions([]);
+      setSchemaError(null);
+      return;
+    }
+
+    setSchemaLoading(true);
+    setSchemaError(null);
+    try {
+      const response = await api.get(`/events/${selectedEvent.id}/schema`);
+      const drills = response.data?.drills || [];
+      setDrillDefinitions(drills);
+      if (drills.length === 0) {
+        console.warn('Event schema returned no drills');
+      }
+    } catch (error) {
+      console.error('Failed to fetch event schema:', error);
+      setSchemaError("Failed to load event configuration. Drill scores may not import correctly.");
+      setDrillDefinitions([]);
+    } finally {
+      setSchemaLoading(false);
+    }
+  }, [selectedEvent]);
+
   // Fetch player count for summary badge
   const fetchPlayerCount = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
@@ -110,8 +351,8 @@ export default function EventSetup({ onBack }) {
       const { data } = await api.get(`/players?event_id=${selectedEvent.id}`);
       setPlayerCount(Array.isArray(data) ? data.length : 0);
     } catch (error) {
-      if (error.response?.status === 404) {
-        // 404 means no players found yet - normal for new events
+              if (error.response?.status === 404) {
+          // 404 means no players found yet - normal for new events
         setPlayerCount(0);
       } else {
         // Other errors are actual problems
@@ -125,6 +366,183 @@ export default function EventSetup({ onBack }) {
   useEffect(() => {
     fetchPlayerCount();
   }, [selectedEvent, user, selectedLeagueId, fetchPlayerCount]);
+
+  useEffect(() => {
+    fetchEventSchema();
+  }, [selectedEvent, fetchEventSchema]);
+
+  // Call this after upload or manual add
+  const handlePostUploadSuccess = () => {
+    fetchPlayerCount();
+  };
+
+  const handleUpload = async () => {
+    if (!selectedEvent || !user || !selectedLeagueId) return;
+    setUploadStatus("loading");
+    setUploadMsg("");
+    setBackendErrors([]);
+    
+    // Prepare players and auto-assign numbers
+    const cleanedPlayers = csvRows.map(row => { const { warnings: _warnings, ...rest } = row; return rest; });
+    // Normalize for numbering: use `number` field expected by autoAssign
+    const rowsForNumbering = cleanedPlayers.map(r => ({ ...r, number: r.jersey_number ?? r.number }));
+    // Ensure jersey_number present (auto-assign if missing)
+    const playersWithNumbers = autoAssignPlayerNumbers(rowsForNumbering).map(p => ({
+      ...p,
+      jersey_number: p.jersey_number || p.number || p.number === 0 ? p.number : p.jersey_number
+    }));
+    
+    // Shape per contract - include drill scores
+    const payload = {
+      event_id: selectedEvent.id,
+      players: playersWithNumbers.map(r => {
+        const playerData = {
+          first_name: r.first_name,
+          last_name: r.last_name,
+          age_group: r.age_group,
+          jersey_number: r.jersey_number || r.number,
+          external_id: r.external_id,
+          team_name: r.team_name,
+          position: r.position,
+          notes: r.notes,
+        };
+
+        // Add drill scores if they exist
+        drillDefinitions.forEach(drill => {
+          if (r[drill.key] && r[drill.key].trim() !== '') {
+            const score = parseFloat(r[drill.key]);
+            if (!isNaN(score)) {
+              playerData[drill.key] = score;
+            }
+          }
+        });
+
+        return playerData;
+      })
+    };
+    
+    try {
+       const res = await api.post(`/players/upload`, payload);
+      const { data } = res;
+      
+      // [DIAGNOSTIC] Log import response for debugging
+      console.log('[IMPORT SUCCESS]', {
+        eventId: selectedEvent.id,
+        leagueId: selectedLeagueId,
+        createdCount: data.added || 0,
+        totalSubmitted: payload.players.length,
+        samplePlayerIds: data.player_ids?.slice(0, 3) || 'N/A',
+        hasErrors: data.errors?.length > 0,
+        errorCount: data.errors?.length || 0
+      });
+      
+      // Filter out score-related errors for roster-only imports
+      let relevantErrors = data.errors || [];
+      if (isRosterOnlyImport && relevantErrors.length > 0) {
+        // For roster-only imports, only show errors about missing required fields (names)
+        relevantErrors = relevantErrors.filter(err => {
+          const msg = err.message?.toLowerCase() || '';
+          // Keep only critical errors about missing names
+          return msg.includes('first name') || msg.includes('last name') || msg.includes('required');
+        });
+      }
+      
+      if (relevantErrors.length > 0) {
+        setUploadStatus("error");
+        setBackendErrors(relevantErrors);
+        
+        if (isRosterOnlyImport) {
+          // Roster-only: downgrade to "rows skipped" language
+          const skippedCount = relevantErrors.length;
+          setUploadMsg(`${data.added || 0} players imported successfully. ${skippedCount} ${skippedCount === 1 ? 'row was' : 'rows were'} skipped due to missing required fields.`);
+          showInfo(`📋 ${data.added || 0} players added. ${skippedCount} ${skippedCount === 1 ? 'row' : 'rows'} skipped.`);
+        } else {
+          // Normal import: show errors
+          setUploadMsg("Some rows failed to upload. See errors below.");
+          showError(`❌ Upload partially failed: ${relevantErrors.length} errors`);
+        }
+      } else {
+        setUploadStatus("success");
+        setBackendErrors([]);
+        const numbersAssigned = playersWithNumbers.filter(p => {
+          const fn = p.first_name?.trim();
+          const ln = p.last_name?.trim();
+          const match = cleanedPlayers.find(cp => cp.first_name?.trim() === fn && cp.last_name?.trim() === ln && (cp.jersey_number || cp.number));
+          return !match;
+        }).length;
+        
+        const successMsg = isRosterOnlyImport
+          ? `✅ Roster Imported Successfully! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`
+          : `✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`;
+        
+        setUploadMsg(successMsg);
+        notifyPlayersUploaded(data.added);
+        
+        // Clear form state
+        setCsvRows([]);
+        setCsvHeaders([]);
+        setCsvFileName("");
+        setShowMapping(false); // Close mapping UI
+        
+        // Invalidate cache
+        cacheInvalidation.playersUpdated(selectedEvent.id);
+        handlePostUploadSuccess();
+        
+        // Show success toast and redirect to Players page
+        showSuccess(`🎉 Successfully imported ${data.added} ${data.added === 1 ? 'player' : 'players'}!`);
+        
+        // Redirect to Players page after short delay
+        setTimeout(() => {
+          navigate('/players?tab=manage');
+        }, 1500);
+      }
+    } catch (err) {
+      console.error('[IMPORT ERROR]', {
+        eventId: selectedEvent.id,
+        leagueId: selectedLeagueId,
+        error: err.message,
+        response: err.response?.data
+      });
+      setUploadStatus("error");
+      setUploadMsg(`❌ ${err.message || "Upload failed."}`);
+      notifyError(err);
+    }
+  };
+
+  // Manual add player logic - NOW HANDLED BY AddPlayerModal (canonical component)
+
+  // Download sample CSV
+  const handleSampleDownload = () => {
+    let csv = REQUIRED_HEADERS.join(",") + "\n";
+    SAMPLE_ROWS.forEach(row => {
+      csv += row.join(",") + "\n";
+    });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'sample_players.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showInfo('📥 Sample CSV downloaded - check your Downloads folder');
+  };
+
+  // Reupload button handler
+  const handleReupload = () => {
+    setCsvRows([]);
+    setCsvHeaders([]);
+    setCsvErrors([]);
+    setCsvFileName("");
+    setUploadStatus("idle");
+    setUploadMsg("");
+    setBackendErrors([]);
+    setIsRosterOnlyImport(false);
+    setConfirmedRequiredFields(new Set()); // Reset confirmations
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    showInfo('🔄 Ready for new CSV file');
+  };
 
   // Copy functionality with notifications
   const handleCopyInviteLink = (role) => {
@@ -270,6 +688,7 @@ export default function EventSetup({ onBack }) {
             <p className="mt-1">View and manage your roster on the <Link to="/players" className="text-brand-primary hover:underline font-medium">Players page</Link>.</p>
           </div>
         </div>
+
 
         {/* Step 4: Invite Coaches & Share */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
