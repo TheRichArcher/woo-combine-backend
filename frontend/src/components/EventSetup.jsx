@@ -493,10 +493,10 @@ export default function EventSetup({ onBack }) {
                 navigate('/players?tab=manage');
               }, 1500);
             }}
-            initialMode="create_or_update"
-            intent="roster_and_scores"
-            showModeSwitch={false}
-            availableDrills={[]}
+            // Guided flow: Show "Import Goal" selector first (default showModeSwitch=true)
+            // initialMode="create_or_update" is the default
+            // intent="roster_and_scores" is the default
+            // availableDrills will be fetched from server automatically
           />
         )}
 
