@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
+import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
@@ -66,6 +67,7 @@ export default function LiveEntry() {
   
   // Entry tracking
   const [recentEntries, setRecentEntries] = useState([]);
+  const [entryToUndo, setEntryToUndo] = useState(null);
   const [duplicateData, setDuplicateData] = useState(null);
   const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -856,29 +858,31 @@ export default function LiveEntry() {
     }
   };
   
-  const handleUndo = async () => {
+  const handleUndoClick = () => {
     if (recentEntries.length === 0) return;
-    
     const lastEntry = recentEntries[0];
-    if (confirm(`Undo entry for ${lastEntry.playerName}?`)) {
-      // Perform true backend undo if we have the ID
-      if (lastEntry.drillResultId) {
-        try {
-          await api.delete(`/drill-results/${lastEntry.drillResultId}?event_id=${selectedEvent.id}&player_id=${lastEntry.playerId}`);
-          
-          // Refresh data
-          cacheInvalidation.playersUpdated(selectedEvent.id);
-          fetchPlayers();
-        } catch (error) {
-          console.error("Undo failed:", error);
-          showError("Failed to remove score from backend. Please try again.");
-          return;
-        }
+    setEntryToUndo(lastEntry);
+  };
+
+  const handleUndoConfirm = async () => {
+    if (!entryToUndo) return;
+    
+    // Perform true backend undo if we have the ID
+    if (entryToUndo.drillResultId) {
+      try {
+        await api.delete(`/drill-results/${entryToUndo.drillResultId}?event_id=${selectedEvent.id}&player_id=${entryToUndo.playerId}`);
+        
+        // Refresh data
+        cacheInvalidation.playersUpdated(selectedEvent.id);
+        fetchPlayers();
+      } catch (error) {
+        console.error("Undo failed:", error);
+        throw error; // Let DeleteConfirmModal handle the error display
       }
-      
-      setRecentEntries(prev => prev.slice(1));
-      showSuccess('Entry undone');
     }
+    
+    setRecentEntries(prev => prev.slice(1));
+    // Success toast handled by DeleteConfirmModal
   };
 
   const handleEditLast = () => {
@@ -1593,7 +1597,7 @@ export default function LiveEntry() {
                     Edit Last
                   </button>
                   <button
-                    onClick={handleUndo}
+                    onClick={handleUndoClick}
                     className="bg-semantic-warning hover:opacity-90 text-white font-medium py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition"
                     title="Delete the last entry"
                   >
@@ -1978,6 +1982,28 @@ export default function LiveEntry() {
           </div>
         </div>
       )}
+
+      {/* Undo Confirmation Modal */}
+      <DeleteConfirmModal
+        open={!!entryToUndo}
+        onClose={() => setEntryToUndo(null)}
+        onConfirm={handleUndoConfirm}
+        title="Undo Entry"
+        itemName={entryToUndo?.playerName || ""}
+        itemType="entry"
+        description={`Undo the score entry for ${entryToUndo?.playerName}?`}
+        consequences="This will remove the score from the backend and cannot be undone."
+        severity="low"
+        variant="warning"
+        confirmButtonText="Undo Entry"
+        requireTypedConfirmation={false}
+        analyticsData={{
+          playerId: entryToUndo?.playerId,
+          playerName: entryToUndo?.playerName,
+          drillResultId: entryToUndo?.drillResultId,
+          eventId: selectedEvent?.id
+        }}
+      />
     </div>
   );
 } 

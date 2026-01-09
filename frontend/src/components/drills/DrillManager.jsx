@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getDrillsFromTemplate, getTemplateById } from '../../constants/drillTemplates';
 import CustomDrillWizard from './CustomDrillWizard';
+import DeleteConfirmModal from '../DeleteConfirmModal';
 import api from '../../lib/api';
 import { useToast } from '../../context/ToastContext';
 import { Plus, Lock, Edit2, Trash2, Info, Eye, EyeOff } from 'lucide-react';
@@ -13,6 +14,7 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
   const [editingDrill, setEditingDrill] = useState(null);
   const [disabledDrills, setDisabledDrills] = useState([]);
   const [updatingEvent, setUpdatingEvent] = useState(false);
+  const [drillToDelete, setDrillToDelete] = useState(null);
   const { showError, showSuccess } = useToast();
 
   const templateId = event?.drillTemplate;
@@ -74,17 +76,21 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
     }
   };
 
-  const handleDelete = async (drillId) => {
+  const handleDeleteClick = (drill) => {
     if (isLiveEntryActive) return;
-    if (!window.confirm("Are you sure you want to delete this drill? This cannot be undone.")) return;
+    setDrillToDelete(drill);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!drillToDelete) return;
 
     try {
-      await api.delete(`/leagues/${leagueId}/events/${event.id}/custom-drills/${drillId}`);
-      showSuccess("Drill deleted successfully");
+      await api.delete(`/leagues/${leagueId}/events/${event.id}/custom-drills/${drillToDelete.id}`);
       await fetchCustomDrills();
       onDrillsChanged?.();
+      // Success toast handled by DeleteConfirmModal
     } catch (error) {
-      showError("Failed to delete drill");
+      throw error; // Let DeleteConfirmModal handle the error display
     }
   };
 
@@ -244,7 +250,7 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
                                                 <button onClick={() => handleEdit(drill)} className="p-1 text-gray-400 hover:text-teal-600">
                                                     <Edit2 className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(drill.id)} className="p-1 text-gray-400 hover:text-red-600">
+                                                <button onClick={() => handleDeleteClick(drill)} className="p-1 text-gray-400 hover:text-red-600">
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </>
@@ -275,6 +281,26 @@ export default function DrillManager({ event, leagueId, isLiveEntryActive = fals
           }}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={!!drillToDelete}
+        onClose={() => setDrillToDelete(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Custom Drill"
+        itemName={drillToDelete?.name || ""}
+        itemType="drill"
+        description={`Are you sure you want to delete the "${drillToDelete?.name}" drill?`}
+        consequences="This drill and all associated data will be permanently removed. This action cannot be undone."
+        severity="medium"
+        variant="danger"
+        confirmButtonText="Delete Drill"
+        analyticsData={{
+          drillId: drillToDelete?.id,
+          drillName: drillToDelete?.name,
+          eventId: event?.id
+        }}
+      />
     </div>
   );
 }
