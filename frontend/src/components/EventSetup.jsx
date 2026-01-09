@@ -8,7 +8,7 @@ import { cacheInvalidation } from '../utils/dataCache';
 import { Upload, UserPlus, RefreshCcw, Users, Copy, Link2, QrCode, Edit, Hash, ArrowLeft } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { autoAssignPlayerNumbers } from '../utils/playerNumbering';
 import { parseCsv, validateRow, validateHeaders, getMappingDescription, REQUIRED_HEADERS, generateDefaultMapping, applyMapping, ALL_HEADERS, OPTIONAL_HEADERS } from '../utils/csvUtils';
 import DrillManager from "./drills/DrillManager";
@@ -27,6 +27,7 @@ export default function EventSetup({ onBack }) {
   const { user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const { notifyPlayerAdded, notifyPlayersUploaded, notifyError, showSuccess, showError, showInfo } = useToast();
+  const navigate = useNavigate();
 
   // CRITICAL: Create immutable snapshot of event at component mount
   // This prevents component from unmounting during deletion flow when selectedEvent becomes null
@@ -565,6 +566,17 @@ export default function EventSetup({ onBack }) {
        const res = await api.post(`/players/upload`, payload);
       const { data } = res;
       
+      // [DIAGNOSTIC] Log import response for debugging
+      console.log('[IMPORT SUCCESS]', {
+        eventId: selectedEvent.id,
+        leagueId: selectedLeagueId,
+        createdCount: data.added || 0,
+        totalSubmitted: payload.players.length,
+        samplePlayerIds: data.player_ids?.slice(0, 3) || 'N/A',
+        hasErrors: data.errors?.length > 0,
+        errorCount: data.errors?.length || 0
+      });
+      
       // Filter out score-related errors for roster-only imports
       let relevantErrors = data.errors || [];
       if (isRosterOnlyImport && relevantErrors.length > 0) {
@@ -600,27 +612,38 @@ export default function EventSetup({ onBack }) {
           return !match;
         }).length;
         
-        if (isRosterOnlyImport) {
-          // Roster-only: confident success message
-          setUploadMsg(`✅ Roster Imported Successfully! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
-        } else {
-          // Normal import: standard success message
-          setUploadMsg(`✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`);
-        }
+        const successMsg = isRosterOnlyImport
+          ? `✅ Roster Imported Successfully! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`
+          : `✅ Upload successful! ${data.added} players added${numbersAssigned > 0 ? `, ${numbersAssigned} auto-numbered` : ''}.`;
         
+        setUploadMsg(successMsg);
         notifyPlayersUploaded(data.added);
+        
+        // Clear form state
         setCsvRows([]);
         setCsvHeaders([]);
         setCsvFileName("");
+        setShowMapping(false); // Close mapping UI
+        
+        // Invalidate cache
         cacheInvalidation.playersUpdated(selectedEvent.id);
         handlePostUploadSuccess();
         
-        // Guidance for next steps
+        // Show success toast and redirect to Players page
+        showSuccess(`🎉 Successfully imported ${data.added} ${data.added === 1 ? 'player' : 'players'}!`);
+        
+        // Redirect to Players page after short delay
         setTimeout(() => {
-            showInfo("🚀 Pro Tip: View your roster on the Players page or start Live Entry to add more results.");
-        }, 1000);
+          navigate('/players?tab=manage');
+        }, 1500);
       }
     } catch (err) {
+      console.error('[IMPORT ERROR]', {
+        eventId: selectedEvent.id,
+        leagueId: selectedLeagueId,
+        error: err.message,
+        response: err.response?.data
+      });
       setUploadStatus("error");
       setUploadMsg(`❌ ${err.message || "Upload failed."}`);
       notifyError(err);

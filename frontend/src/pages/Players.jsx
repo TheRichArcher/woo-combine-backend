@@ -30,9 +30,18 @@ const cachedFetchPlayers = withCache(
     const limit = 200; // Chunk size to avoid 1MB limits and timeouts
     let hasMore = true;
 
+    console.log('[PLAYERS API] Starting paginated fetch for eventId:', eventId);
+
     while (hasMore) {
       const res = await api.get(`/players?event_id=${eventId}&page=${page}&limit=${limit}`);
       const chunk = res.data || [];
+      
+      console.log(`[PLAYERS API] Page ${page}:`, {
+        chunkSize: chunk.length,
+        totalSoFar: allPlayers.length + chunk.length,
+        sampleIds: chunk.slice(0, 3).map(p => p.id)
+      });
+      
       allPlayers = [...allPlayers, ...chunk];
       
       if (chunk.length < limit) {
@@ -41,6 +50,12 @@ const cachedFetchPlayers = withCache(
         page++;
       }
     }
+    
+    console.log('[PLAYERS API] Fetch complete:', {
+      totalPlayers: allPlayers.length,
+      eventId: eventId
+    });
+    
     return allPlayers;
   },
   'players',
@@ -270,6 +285,11 @@ export default function Players() {
   // Fetch players
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) {
+      console.log('[PLAYERS FETCH] Skipped - missing context:', {
+        hasEvent: !!selectedEvent,
+        hasUser: !!user,
+        hasLeague: !!selectedLeagueId
+      });
       setPlayers([]);
       setLoading(false);
       return;
@@ -278,7 +298,25 @@ export default function Players() {
     try {
       setLoading(true);
       setError(null);
+      
+      // [DIAGNOSTIC] Log fetch parameters
+      console.log('[PLAYERS FETCH] Fetching with:', {
+        eventId: selectedEvent.id,
+        eventName: selectedEvent.name,
+        leagueId: selectedLeagueId,
+        userId: user.uid
+      });
+      
       const playersData = await cachedFetchPlayers(selectedEvent.id);
+      
+      // [DIAGNOSTIC] Log fetch results
+      console.log('[PLAYERS FETCH] Results:', {
+        playerCount: playersData.length,
+        samplePlayerIds: playersData.slice(0, 3).map(p => p.id),
+        ageGroups: [...new Set(playersData.map(p => p.age_group))],
+        eventId: selectedEvent.id
+      });
+      
       setPlayers(playersData);
       
       if (contextSelectedPlayer) {
