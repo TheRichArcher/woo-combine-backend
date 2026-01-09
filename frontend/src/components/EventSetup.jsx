@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { cacheInvalidation } from '../utils/dataCache';
-import { UserPlus, RefreshCcw, Users, Copy, QrCode, Edit, ArrowLeft, FileText } from 'lucide-react';
+import { UserPlus, RefreshCcw, Users, Copy, QrCode, Edit, ArrowLeft, FileText, ArrowRight, Upload } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
 import ImportResultsModal from "./Players/ImportResultsModal";
@@ -211,63 +211,69 @@ export default function EventSetup({ onBack }) {
           />
         </div>
 
-        {/* Step 3: Add Players Section - STREAMLINED VERSION */}
-        <div id="player-upload-section" className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">3</div>
-            <h2 className="text-lg font-semibold text-gray-900">Add Players</h2>
-          </div>
+        {/* Step 3: Add Players Section - MATCHES /players EMPTY STATE */}
+        <div id="player-upload-section" className="bg-white rounded-2xl shadow-lg p-6 mb-4 border-2 border-blue-200">
+          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">
+            Add Players to Your Event
+          </h2>
           
-          {/* Player Count Status */}
-          {playerCountLoading ? (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4 text-center">
-              <p className="text-gray-600">Loading player count...</p>
-            </div>
-          ) : (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-blue-600" />
-                <div>
-                  <p className="text-blue-900 font-semibold">
-                    {playerCount === 0 ? 'No players yet' : `${playerCount} ${playerCount === 1 ? 'player' : 'players'} in roster`}
-                  </p>
-                  <p className="text-blue-700 text-sm">
-                    {playerCount === 0 ? 'Add players using the options below' : 'Add more players or manage your roster on the Players page'}
-                  </p>
+          <div className="space-y-4">
+            {/* Player Count Status */}
+            {playerCountLoading ? (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                <p className="text-gray-600">Loading player count...</p>
+              </div>
+            ) : playerCount > 0 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-blue-600" />
+                  <div>
+                    <p className="text-blue-900 font-semibold">
+                      {playerCount} {playerCount === 1 ? 'player' : 'players'} in roster
+                    </p>
+                    <p className="text-blue-700 text-sm">
+                      Add more players or manage your roster on the Players page
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Primary Actions - Grid */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {/* Import from File - PRIMARY METHOD */}
+            {/* Primary CTA - Import Players (Full Width) */}
             <button
               onClick={() => setShowImportModal(true)}
-              className="bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-6 py-4 rounded-xl transition flex flex-col items-center justify-center gap-2 shadow-sm"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg transition-all duration-200 transform hover:scale-[1.02] flex items-center justify-center gap-3 text-lg"
               type="button"
             >
-              <FileText className="w-6 h-6" />
-              <span>Import Players from File</span>
-              <span className="text-xs opacity-90">CSV or Excel</span>
+              <Upload className="w-5 h-5" />
+              Import Players from File
+              <ArrowRight className="w-5 h-5" />
             </button>
-            
-            {/* Manual Add - SECONDARY METHOD */}
-            <button
-              onClick={() => setShowAddPlayerModal(true)}
-              className="bg-white hover:bg-gray-50 text-gray-900 font-semibold px-6 py-4 rounded-xl transition flex flex-col items-center justify-center gap-2 shadow-sm border-2 border-gray-200"
-              type="button"
-            >
-              <UserPlus className="w-6 h-6" />
-              <span>Add Player Manually</span>
-              <span className="text-xs text-gray-600">One at a time</span>
-            </button>
-          </div>
 
-          {/* Help Text */}
-          <div className="text-sm text-gray-600 text-center mt-4">
-            <p><strong>Tip:</strong> For bulk uploads, use "Import Players from File" to add multiple players at once.</p>
-            <p className="mt-1">View and manage your roster on the <Link to="/players" className="text-brand-primary hover:underline font-medium">Players page</Link>.</p>
+            {/* Secondary CTAs - Grid of smaller actions */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowAddPlayerModal(true)}
+                className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
+                type="button"
+              >
+                <UserPlus className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">Add Player</span>
+              </button>
+              
+              <Link
+                to="/players?tab=manage"
+                className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
+              >
+                <Users className="w-5 h-5 mb-1" />
+                <span className="text-xs font-medium">View Roster</span>
+              </Link>
+            </div>
+
+            {/* Helper Text */}
+            <p className="text-sm text-gray-600 text-center">
+              Import CSV/Excel files for bulk uploads, or add players one at a time.
+            </p>
           </div>
         </div>
 
