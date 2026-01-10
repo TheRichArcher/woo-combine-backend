@@ -315,7 +315,7 @@ export default function EventSetup({ onBack }) {
                       setShowQr(showQr === 'coach' ? false : 'coach');
                       if (showQr !== 'coach') showInfo('📱 Coach QR code displayed');
                     }}
-                    className="bg-brand-primary/90 hover:bg-brand-primary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                   >
                     <QrCode className="w-4 h-4" />
                     Coach QR
@@ -361,7 +361,7 @@ export default function EventSetup({ onBack }) {
                       setShowQr(showQr === 'viewer' ? false : 'viewer');
                       if (showQr !== 'viewer') showInfo('📱 Viewer QR code displayed');
                     }}
-                    className="bg-semantic-success/90 hover:bg-semantic-success text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="bg-semantic-success hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
                   >
                     <QrCode className="w-4 h-4" />
                     Viewer QR
