@@ -125,7 +125,14 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
         setEvents(prev => prev.map(e => e.id === event.id ? updatedEvent : e));
         
         // Update selected event if it's the one being edited
-        setSelectedEvent(prev => prev && prev.id === event.id ? updatedEvent : prev);
+        // CRITICAL: Also update localStorage to prevent staleness on page refresh
+        setSelectedEvent(prev => {
+          if (prev && prev.id === event.id) {
+            localStorage.setItem('selectedEvent', JSON.stringify(updatedEvent));
+            return updatedEvent;
+          }
+          return prev;
+        });
         
         // Invalidate cache
         if (selectedLeagueId) {
