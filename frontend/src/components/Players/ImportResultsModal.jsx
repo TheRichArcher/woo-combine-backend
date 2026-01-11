@@ -3,6 +3,7 @@ import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, Alert
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping, REQUIRED_HEADERS } from '../../utils/csvUtils';
+import { autoAssignPlayerNumbers } from '../../utils/playerNumbering';
 
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true, droppedFile = null }) {
   const { selectedEvent } = useEvent();
@@ -944,16 +945,26 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       const skippedCount = playersToUpload.filter(p => p.merge_strategy === 'skip').length;
       playersToUpload = playersToUpload.filter(p => p.merge_strategy !== 'skip');
 
-      // DEBUG: Comprehensive payload audit before submission
+      // CRITICAL FIX: Auto-assign player numbers to prevent duplicate ID collisions
+      // Players without numbers will generate identical IDs if they have the same name,
+      // causing Firestore batch write failures and 500 errors
+      const playersBeforeAutoNumber = playersToUpload.filter(p => !p.number && p.number !== 0).length;
+      if (playersBeforeAutoNumber > 0) {
+          console.log(`[ImportResultsModal] Auto-assigning numbers to ${playersBeforeAutoNumber} players...`);
+          playersToUpload = autoAssignPlayerNumbers(playersToUpload);
+          console.log(`[ImportResultsModal] ✅ Auto-assignment complete. All players now have unique numbers.`);
+      }
+
+      // DEBUG: Verify all players have numbers after auto-assignment
       const playersWithoutNumber = playersToUpload.filter(p => !p.number && p.number !== 0);
       if (playersWithoutNumber.length > 0) {
-          console.warn(`[ImportResultsModal] ⚠️ ${playersWithoutNumber.length} players missing 'number' field:`);
+          console.error(`[ImportResultsModal] ❌ CRITICAL: ${playersWithoutNumber.length} players STILL missing 'number' field after auto-assignment!`);
           
           // Show first 3 examples with their raw CSV data
           playersWithoutNumber.slice(0, 3).forEach((player, idx) => {
               const rowId = player.row_id || idx + 1;
               const rawRow = allRows.find(r => r.row_id === rowId);
-              console.warn(`[ImportResultsModal] Missing number example ${idx + 1}:`, {
+              console.error(`[ImportResultsModal] Missing number example ${idx + 1}:`, {
                   player_data: player,
                   raw_csv_source: rawRow ? rawRow.data : 'not found',
                   merged_edits: editedRows[rowId] || 'none'

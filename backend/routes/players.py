@@ -523,6 +523,30 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             if key in seen_keys:
                 first_row_num, first_player = seen_keys[key]
                 
+                # CRITICAL FIX: Enhanced error handling for missing jersey numbers
+                # When num is None, multiple players with the same name generate identical IDs,
+                # causing Firestore batch write failures that result in 500 errors.
+                # Return clear 400 validation error instead.
+                if num is None:
+                    error_msg = (
+                        f"Duplicate identity: {first_name} {last_name} without jersey number matches Row {first_row_num}. "
+                        f"Players with the same name MUST have unique jersey numbers for identification. "
+                        f"SOLUTION: The Import Results UI should auto-assign jersey numbers. "
+                        f"If you're seeing this error, please report it as a bug - the frontend auto-assignment failed."
+                    )
+                    errors.append({
+                        "row": idx + 1,
+                        "message": error_msg,
+                        "requires_jersey_number": True,
+                        "duplicate_of_row": first_row_num,
+                        "identity_key": {
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "jersey_number": None
+                        }
+                    })
+                    continue
+                
                 # Build detailed error message with context
                 age_group = (player.get("age_group") or "").strip()
                 jersey_display = f"#{num}" if num is not None else "(no jersey number)"
