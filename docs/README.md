@@ -1,21 +1,28 @@
 ### Documentation Index
 
-Start here to get productive quickly. Each section links to focused docs.
+**New to WooCombine? Start here:**
+- **Quick Start (All Roles)**: `../ONBOARDING_QUICK_START.md` ← Start here! 30-minute onboarding
+- **Recent Fixes**: `../RECENT_FIXES_INDEX.md` ← Last 7 days of critical fixes
 
-- Getting Started: `docs/GETTING_STARTED.md`
-- API Reference (OpenAPI): `docs/API_REFERENCE.md`
-- Data Contracts: `docs/DATA_CONTRACTS.md`
-- Runbooks: `docs/runbooks/` (see: Incident Response, Firestore Quota Exceeded, Credential Outage, Rate Limit Tuning)
-- Security (headers, CSP, rate limits, auth): `docs/SECURITY.md`
-- Release Process: `docs/RELEASE_FLOW.md`
+**For Specific Roles:**
+- **Product Managers**: `guides/PM_ONBOARDING_OVERVIEW.md`
+- **Developers**: `GETTING_STARTED.md` (setup guide)
+- **Operations**: `runbooks/` (incident response, troubleshooting)
 
-Additional resources:
-- Environment variables and Render setup: `docs/ENV_VARS_AND_RENDER_SETUP.md`
-- Guides: `docs/guides/`
-- Reports: `docs/reports/`
-- Checklists: `docs/checklists/`
+**Core Documentation:**
+- API Reference (OpenAPI): `API_REFERENCE.md`
+- Data Contracts: `DATA_CONTRACTS.md`
+- Security (headers, CSP, rate limits, auth): `SECURITY.md`
+- Release Process: `RELEASE_FLOW.md`
+- Environment Variables: `ENV_VARS_AND_RENDER_SETUP.md`
 
-Buyer readiness highlights:
+**Additional Resources:**
+- Guides: `guides/` (comprehensive how-tos)
+- Reports: `reports/` (incident reports and postmortems)
+- Checklists: `checklists/` (deployment, testing, QA)
+- Runbooks: `runbooks/` (operational procedures)
+
+**Buyer Readiness Highlights:**
 - Security headers, CORS, and rate limiting enforced by default
 - Error monitoring ready (Sentry) in both backend and frontend via environment variables
 - CI pipeline runs linting, tests, build, and dependency audit

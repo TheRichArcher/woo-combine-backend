@@ -2,6 +2,13 @@
 
 A comprehensive full-stack platform for managing youth sports combines and player evaluations.
 
+## 🚀 **New Here? Start Here!**
+
+- **New Team Member**: Read [`ONBOARDING_QUICK_START.md`](./ONBOARDING_QUICK_START.md) - Get productive in 30 minutes
+- **Product Manager**: See [`docs/guides/PM_ONBOARDING_OVERVIEW.md`](./docs/guides/PM_ONBOARDING_OVERVIEW.md)
+- **Developer Setup**: See [`docs/GETTING_STARTED.md`](./docs/GETTING_STARTED.md)
+- **Recent Fixes**: See [`RECENT_FIXES_INDEX.md`](./RECENT_FIXES_INDEX.md) for last 7 days of critical fixes
+
 ## 🏗️ **Architecture**
 
 ### **Frontend**
