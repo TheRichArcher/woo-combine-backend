@@ -45,22 +45,32 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  // DEBUG: Log date state changes (remove after fixing)
+  useEffect(() => {
+    console.log('[EventFormModal] Date state changed:', date);
+  }, [date]);
+
   // Pre-populate form when editing
   // CRITICAL: Only run when modal opens (open changes), not on every event prop change
   // This prevents overwriting user edits when parent re-renders
   useEffect(() => {
+    console.log('[EventFormModal] useEffect triggered - open:', open, 'mode:', mode, 'event:', event);
+    
     if (!open) return; // Only initialize when modal is visible
     
     if (mode === "edit" && event) {
+      console.log('[EventFormModal] Initializing EDIT mode with event.date:', event.date);
       setName(event.name || "");
       // CRITICAL: Extract YYYY-MM-DD format for <input type="date">
       // Browser requires exact YYYY-MM-DD, rejects ISO timestamps or locale strings
       const dateValue = event.date ? event.date.slice(0, 10) : "";
+      console.log('[EventFormModal] Setting date to:', dateValue);
       setDate(dateValue);
       setLocation(event.location || "");
       setNotes(event.notes || "");
       setDrillTemplate(event.drillTemplate || "football");
     } else if (mode === "create") {
+      console.log('[EventFormModal] Initializing CREATE mode');
       // Reset form for create mode
       setName("");
       setDate("");
@@ -211,7 +221,13 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
           <input
             type="date"
             value={date}
-            onChange={e => setDate(e.target.value)}
+            onChange={e => {
+              console.log('[EventFormModal] Date onChange fired. New value:', e.target.value);
+              setDate(e.target.value);
+            }}
+            onInput={e => {
+              console.log('[EventFormModal] Date onInput fired. New value:', e.target.value);
+            }}
             className="w-full border border-brand-primary/20 rounded px-3 py-2 mb-4 focus:ring-2 focus:ring-brand-primary/30 focus:border-brand-primary"
             required
           />
