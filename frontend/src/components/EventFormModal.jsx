@@ -49,7 +49,10 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
   useEffect(() => {
     if (mode === "edit" && event) {
       setName(event.name || "");
-      setDate(event.date || "");
+      // CRITICAL: Extract YYYY-MM-DD format for <input type="date">
+      // Browser requires exact YYYY-MM-DD, rejects ISO timestamps or locale strings
+      const dateValue = event.date ? event.date.slice(0, 10) : "";
+      setDate(dateValue);
       setLocation(event.location || "");
       setNotes(event.notes || "");
       setDrillTemplate(event.drillTemplate || "football");
@@ -71,7 +74,9 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
     setError("");
     
     try {
-      const isoDate = date ? new Date(date).toISOString().slice(0, 10) : null;
+      // CRITICAL: date is already in YYYY-MM-DD format from <input type="date">
+      // Don't convert to Date object (causes timezone shifts), just use as-is
+      const isoDate = date || null;
       const payload = {
         name,
         date: isoDate,
