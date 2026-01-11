@@ -794,8 +794,14 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"Error uploading players: {e}")
-        raise HTTPException(status_code=500, detail="Failed to upload players")
+        import traceback
+        error_details = traceback.format_exc()
+        logging.error(f"[UPLOAD_ERROR] Exception during player upload: {e}")
+        logging.error(f"[UPLOAD_ERROR] Full traceback:\n{error_details}")
+        logging.error(f"[UPLOAD_ERROR] Event ID: {req.event_id if hasattr(req, 'event_id') else 'unknown'}")
+        logging.error(f"[UPLOAD_ERROR] Number of players in request: {len(req.players) if hasattr(req, 'players') and req.players else 0}")
+        # Return more detailed error to help with debugging
+        raise HTTPException(status_code=500, detail=f"Failed to upload players: {str(e)}")
 
 class RevertRequest(BaseModel):
     event_id: str
