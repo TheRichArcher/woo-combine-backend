@@ -436,8 +436,72 @@ def get_league_member(
     ensure_league_access() for consistency with backend authorization.
     
     Returns membership record with: role, canWrite, name, email, disabled status.
+    
+    SECURITY: Non-organizers can only read their own membership details.
     """
     try:
+        # SECURITY CHECK: Verify organizer status or self-read
+        # Note: current_user["role"] is GLOBAL role from users collection,
+        # but we need LEAGUE-SPECIFIC role since a user can be organizer in one league
+        # and coach in another. Must check league membership to get league role.
+        
+        current_user_league_role = None
+        current_user_uid = current_user["uid"]
+        
+        # Get current user's role in THIS specific league
+        try:
+            # Fast path
+            current_memberships_ref = db.collection("user_memberships").document(current_user_uid)
+            current_memberships_doc = execute_with_timeout(
+                lambda: current_memberships_ref.get(),
+                timeout=5,
+                operation_name="check current user league role"
+            )
+            
+            if current_memberships_doc.exists:
+                leagues_data = current_memberships_doc.to_dict().get("leagues", {})
+                current_membership = leagues_data.get(league_id)
+                if current_membership:
+                    current_user_league_role = current_membership.get("role")
+            
+            if not current_user_league_role:
+                # Fallback to legacy
+                current_member_ref = (
+                    db.collection("leagues")
+                    .document(league_id)
+                    .collection("members")
+                    .document(current_user_uid)
+                )
+                current_member_doc = execute_with_timeout(
+                    lambda: current_member_ref.get(),
+                    timeout=5,
+                    operation_name="check current user legacy role"
+                )
+                if current_member_doc.exists:
+                    current_user_league_role = current_member_doc.to_dict().get("role")
+        
+        except Exception as role_check_err:
+            logging.error(f"[SECURITY] Failed to determine current user's league role: {role_check_err}")
+            # Continue without role - will fail authorization below if not self-read
+        
+        # AUTHORIZATION: Only organizers can read other members' details
+        if current_user_league_role != "organizer":
+            if current_user_uid != member_id:
+                logging.warning(
+                    f"[SECURITY] User {current_user_uid} (league role: {current_user_league_role}) "
+                    f"attempted to read member {member_id}'s permissions without authorization"
+                )
+                raise HTTPException(
+                    status_code=403,
+                    detail="You can only view your own permission details. Contact an organizer if you need information about other members."
+                )
+        
+        logging.info(
+            f"[SECURITY] Authorization passed: User {current_user_uid} "
+            f"(league role: {current_user_league_role}) reading member {member_id}"
+        )
+        
+        # FETCH MEMBER DATA
         membership = None
         
         # Fast path: user_memberships document (matches ensure_league_access logic)
