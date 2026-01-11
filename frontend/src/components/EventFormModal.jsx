@@ -68,6 +68,10 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
       // CRITICAL: date is already in YYYY-MM-DD format from <input type="date">
       // Don't convert to Date object (causes timezone shifts), just use as-is
       const isoDate = date || null;
+      
+      console.log('[EventFormModal] handleSubmit - date state:', date);
+      console.log('[EventFormModal] handleSubmit - isoDate for payload:', isoDate);
+      
       const payload = {
         name,
         date: isoDate,
@@ -117,6 +121,9 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
           updated_at: new Date().toISOString()
         };
         
+        console.log('[EventFormModal] updatedEvent object:', updatedEvent);
+        console.log('[EventFormModal] updatedEvent.date:', updatedEvent.date);
+        
         // Update events list
         setEvents(prev => prev.map(e => e.id === event.id ? updatedEvent : e));
         
@@ -124,6 +131,7 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
         // CRITICAL: Also update localStorage to prevent staleness on page refresh
         setSelectedEvent(prev => {
           if (prev && prev.id === event.id) {
+            console.log('[EventFormModal] Updating localStorage with:', updatedEvent);
             localStorage.setItem('selectedEvent', JSON.stringify(updatedEvent));
             return updatedEvent;
           }

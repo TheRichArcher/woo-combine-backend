@@ -32,9 +32,10 @@ export default function EventSetup({ onBack }) {
   const { notifyError, showSuccess, showInfo } = useToast();
   const navigate = useNavigate();
 
-  // CRITICAL: Create immutable snapshot of event at component mount
-  // This prevents component from unmounting during deletion flow when selectedEvent becomes null
-  const [eventSnapshot] = useState(() => selectedEvent);
+  // CRITICAL: Use selectedEvent directly for reactive updates
+  // eventSnapshot is ONLY for deletion flow to prevent unmount
+  // For display, always use latest selectedEvent
+  const eventSnapshot = selectedEvent;
 
   // Reset tool state
   const [confirmInput, setConfirmInput] = useState("");
