@@ -100,7 +100,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_origin_regex=allowed_origin_regex,
     allow_credentials=False,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     # Enumerate common headers used by the app
     allow_headers=[
         "Authorization",
