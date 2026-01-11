@@ -5,6 +5,7 @@ import { useToast } from "../context/ToastContext";
 import api from '../lib/api';
 import QRCode from 'react-qr-code';
 import { cacheInvalidation } from '../utils/dataCache';
+import { formatEventDate } from '../utils/dateUtils';
 import { UserPlus, RefreshCcw, Users, Copy, QrCode, Edit, ArrowLeft, FileText, ArrowRight, Upload } from 'lucide-react';
 import CreateEventModal from "./CreateEventModal";
 import EditEventModal from "./EditEventModal";
@@ -169,7 +170,7 @@ export default function EventSetup({ onBack }) {
              {eventSnapshot.name}
           </h2>
           <p className="text-sm text-gray-600">
-             {eventSnapshot.date && !isNaN(Date.parse(eventSnapshot.date)) ? new Date(eventSnapshot.date).toLocaleDateString() : "Date not set"} • {eventSnapshot.location || 'Location TBD'}
+             {formatEventDate(eventSnapshot.date)} • {eventSnapshot.location || 'Location TBD'}
           </p>
         </div>
 
@@ -183,7 +184,7 @@ export default function EventSetup({ onBack }) {
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <div className="space-y-2 text-sm">
               <p><strong>Name:</strong> {eventSnapshot.name}</p>
-              <p><strong>Date:</strong> {eventSnapshot.date && !isNaN(Date.parse(eventSnapshot.date)) ? new Date(eventSnapshot.date).toLocaleDateString() : "Date not set"}</p>
+              <p><strong>Date:</strong> {formatEventDate(eventSnapshot.date)}</p>
               <p><strong>Location:</strong> {eventSnapshot.location || 'Location TBD'}</p>
               {eventSnapshot.notes && <p><strong>Notes:</strong> {eventSnapshot.notes}</p>}
             </div>

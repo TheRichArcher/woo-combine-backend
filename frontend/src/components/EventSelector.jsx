@@ -4,6 +4,7 @@ import api from '../lib/api';
 import { useAuth } from "../context/AuthContext";
 import { Link } from "react-router-dom";
 import { logger } from '../utils/logger';
+import { formatEventDate, formatEventDateLong } from '../utils/dateUtils';
 import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from 'lucide-react';
 import EventFormModal from "./EventFormModal";
 
@@ -193,10 +194,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                 <option value="">Select an event...</option>
                 {/* CRITICAL: Defensive filter - never render soft-deleted events */}
                 {events.filter(ev => !ev.deleted_at && !ev.deletedAt).map(ev => {
-                  let dateLabel = "Date not set";
-                  if (ev.date && !isNaN(Date.parse(ev.date))) {
-                    dateLabel = new Date(ev.date).toLocaleDateString();
-                  }
+                  const dateLabel = formatEventDate(ev.date);
                   return (
                     <option key={ev.id} value={ev.id}>
                       {ev.name} – {dateLabel}
@@ -237,15 +235,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
                     <span className="text-sm font-medium text-blue-900">Date</span>
                   </div>
                   <div className="text-sm text-blue-800">
-                    {selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) 
-                      ? new Date(selectedEvent.date).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })
-                      : 'Date not set'
-                    }
+                    {formatEventDateLong(selectedEvent.date)}
                   </div>
                 </div>
 

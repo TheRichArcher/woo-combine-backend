@@ -6,6 +6,7 @@ import { Calendar, Users, BarChart3, Upload, QrCode } from 'lucide-react';
 import LoadingScreen from '../components/LoadingScreen';
 import EventSelector from '../components/EventSelector';
 import LeagueFallback from '../context/LeagueFallback';
+import { formatEventDate } from '../utils/dateUtils';
 
 export default function Home() {
   const { user: _user, userRole, selectedLeagueId, leagues, leaguesLoading } = useAuth();
@@ -18,10 +19,8 @@ export default function Home() {
     // Debug: Component state logging removed for production
   }, [userRole, selectedLeagueId, leagues, noLeague, selectedEvent]);
 
-  // Format event date
-  const formattedDate = selectedEvent && selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) 
-    ? new Date(selectedEvent.date).toLocaleDateString() 
-    : 'No date set';
+  // Format event date without timezone shifts
+  const formattedDate = formatEventDate(selectedEvent?.date);
 
   // Handle navigation with loading state to prevent flashing
   const handleNavigation = (path) => {
