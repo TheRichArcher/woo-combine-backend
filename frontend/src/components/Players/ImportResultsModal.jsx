@@ -2424,24 +2424,38 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                 </div>
               )}
               
-              <div className="flex justify-center gap-4 mt-8">
+              <div className="flex flex-col items-center gap-3 mt-8">
+                   {/* Primary Continue Button */}
                    <button 
                        onClick={() => { 
                            onSuccess?.(false); 
                            onClose(); 
-                           // Force navigation to players tab to ensure context is refreshed
-                           window.location.href = '/players';
                        }} 
-                       className="px-8 py-3 bg-cmf-primary text-white rounded-lg font-semibold hover:bg-cmf-secondary shadow-lg hover:shadow-xl transition-all"
+                       className="w-full max-w-md px-8 py-4 bg-cmf-primary text-white rounded-lg font-semibold hover:bg-cmf-secondary shadow-lg hover:shadow-xl transition-all text-lg"
                    >
-                       View Rankings
+                       Continue
                    </button>
-                   <button
-                       onClick={handleDownloadPDF}
-                       className="px-8 py-3 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 flex items-center gap-2 transition-all"
-                   >
-                       <FileText className="w-4 h-4" /> Download Results PDF
-                   </button>
+                   
+                   {/* Secondary Action Buttons */}
+                   <div className="flex justify-center gap-3 w-full max-w-md">
+                       <button 
+                           onClick={() => { 
+                               onSuccess?.(false); 
+                               onClose(); 
+                               // Force navigation to players tab to ensure context is refreshed
+                               window.location.href = '/players';
+                           }} 
+                           className="flex-1 px-4 py-2 bg-white border-2 border-cmf-primary text-cmf-primary rounded-lg font-medium hover:bg-blue-50 transition-all"
+                       >
+                           View Rankings
+                       </button>
+                       <button
+                           onClick={handleDownloadPDF}
+                           className="flex-1 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2 transition-all"
+                       >
+                           <FileText className="w-4 h-4" /> Download PDF
+                       </button>
+                   </div>
               </div>
 
               {undoLog && (
