@@ -77,6 +77,14 @@ export default function Players() {
   const [showImportModal, setShowImportModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // PERMISSION STATE: Track coach write permissions and combine lock status
+  const [permissions, setPermissions] = useState({
+    canWrite: true, // Default to true for organizers
+    isLocked: false, // Combine lock status
+    loading: true,
+    resolved: false
+  });
 
   // Redesign State
   const [showRoster, setShowRoster] = useState(false);
@@ -176,6 +184,137 @@ export default function Players() {
       setLoadingRankings(false);
     }
   }, [selectedEvent]);
+
+  // PERMISSION FETCH: Get coach write permissions and combine lock status
+  const fetchPermissions = useCallback(async () => {
+    if (!user || !selectedLeagueId || !selectedEvent?.id) {
+      console.log('[PERMISSIONS] Skipping fetch - missing context', {
+        hasUser: !!user,
+        hasLeagueId: !!selectedLeagueId,
+        hasEventId: !!selectedEvent?.id
+      });
+      return;
+    }
+
+    try {
+      console.log('[PERMISSIONS] === STARTING PERMISSION RESOLUTION ===');
+      console.log('[PERMISSIONS] User Identity:', {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName
+      });
+      console.log('[PERMISSIONS] Context:', {
+        leagueId: selectedLeagueId,
+        eventId: selectedEvent.id,
+        userRole: userRole
+      });
+
+      // Organizers always have full access
+      if (userRole === 'organizer') {
+        console.log('[PERMISSIONS] ✅ User is ORGANIZER - full edit access granted');
+        setPermissions({
+          canWrite: true,
+          isLocked: false, // Organizers ignore lock
+          loading: false,
+          resolved: true
+        });
+        return;
+      }
+
+      // Fetch membership to get canWrite permission
+      let membershipCanWrite = true; // Default for backward compatibility
+      let membershipFound = false;
+      
+      try {
+        const membershipRes = await api.get(`/leagues/${selectedLeagueId}/members/${user.uid}`);
+        membershipFound = true;
+        membershipCanWrite = membershipRes.data?.canWrite !== undefined ? membershipRes.data.canWrite : true;
+        
+        console.log('[PERMISSIONS] Membership record found:', {
+          userId: user.uid,
+          canWrite: membershipCanWrite,
+          role: membershipRes.data?.role,
+          fullMembership: membershipRes.data
+        });
+      } catch (err) {
+        if (err.response?.status === 404) {
+          console.warn('[PERMISSIONS] ⚠️ NO MEMBERSHIP RECORD FOUND - falling back to read-only');
+          membershipFound = false;
+          membershipCanWrite = false; // No membership = no write access
+        } else {
+          console.error('[PERMISSIONS] Error fetching membership:', err);
+          throw err;
+        }
+      }
+
+      // Fetch event to get lock status
+      let eventIsLocked = false;
+      try {
+        const eventRes = await api.get(`/leagues/${selectedLeagueId}/events/${selectedEvent.id}`);
+        eventIsLocked = eventRes.data?.is_locked || false;
+        
+        console.log('[PERMISSIONS] Event lock status:', {
+          isLocked: eventIsLocked,
+          eventId: selectedEvent.id
+        });
+      } catch (err) {
+        console.error('[PERMISSIONS] Error fetching event lock status:', err);
+        // Don't throw - continue with unlocked assumption
+      }
+
+      // FINAL RESOLUTION LOGIC
+      let finalCanWrite = false;
+      let resolutionReason = '';
+
+      if (!membershipFound) {
+        finalCanWrite = false;
+        resolutionReason = 'NO_MEMBERSHIP_RECORD';
+      } else if (eventIsLocked && userRole === 'coach') {
+        finalCanWrite = false;
+        resolutionReason = 'COMBINE_LOCKED';
+      } else if (!membershipCanWrite) {
+        finalCanWrite = false;
+        resolutionReason = 'CANWRITE_FALSE';
+      } else {
+        finalCanWrite = true;
+        resolutionReason = 'GRANTED';
+      }
+
+      console.log('[PERMISSIONS] === FINAL RESOLUTION ===');
+      console.log('[PERMISSIONS] Decision:', {
+        finalCanWrite,
+        reason: resolutionReason,
+        factors: {
+          membershipFound,
+          membershipCanWrite,
+          eventIsLocked,
+          userRole
+        }
+      });
+
+      setPermissions({
+        canWrite: finalCanWrite,
+        isLocked: eventIsLocked,
+        loading: false,
+        resolved: true
+      });
+
+    } catch (err) {
+      console.error('[PERMISSIONS] Fatal error during permission fetch:', err);
+      // Fail closed - no access on error
+      setPermissions({
+        canWrite: false,
+        isLocked: false,
+        loading: false,
+        resolved: true
+      });
+    }
+  }, [user, selectedLeagueId, selectedEvent?.id, userRole]);
+
+  // Fetch permissions when context changes
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
 
   // Refresh event data on mount
   useEffect(() => {
@@ -566,6 +705,25 @@ export default function Players() {
           </div>
         </div>
 
+        {/* PERMISSION STATUS BADGE - Show for coaches when read-only */}
+        {userRole === 'coach' && !permissions.canWrite && permissions.resolved && (
+          <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <span className="text-xl">👁️</span>
+              </div>
+              <div className="flex-1">
+                <div className="font-semibold text-orange-900 mb-1">View Only Access</div>
+                <div className="text-sm text-orange-700">
+                  {permissions.isLocked 
+                    ? "This combine is locked. Contact the organizer if you need edit access."
+                    : "Your account has read-only permissions. Contact the organizer if you need to edit players or scores."}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* SECTION 1: Primary Actions (State-Aware) */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-4 border-2 border-blue-200">
           <h1 className="text-2xl font-bold text-cmf-secondary mb-4">
@@ -577,6 +735,16 @@ export default function Players() {
             {(() => {
               // State 1: No players
               if (players.length === 0) {
+                // Don't show add button if read-only
+                if (!permissions.canWrite) {
+                  return (
+                    <div className="text-center py-8 text-gray-500">
+                      <Users className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                      <p className="font-medium">No players added yet</p>
+                      <p className="text-sm mt-1">Contact the organizer to add players to this event</p>
+                    </div>
+                  );
+                }
                 return (
                   <button
                     onClick={() => setShowAddPlayerModal(true)}
@@ -591,6 +759,16 @@ export default function Players() {
               
               // State 2: No scores yet
               if (totalScoresCount === 0) {
+                // Don't show recording button if read-only
+                if (!permissions.canWrite) {
+                  return (
+                    <div className="text-center py-6 px-4 bg-blue-50 rounded-xl">
+                      <BarChart3 className="w-10 h-10 mx-auto mb-2 text-blue-500" />
+                      <p className="font-medium text-blue-900">No drill results recorded yet</p>
+                      <p className="text-sm text-blue-700 mt-1">Results will appear here once the organizer records them</p>
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     to="/live-entry"
@@ -604,6 +782,18 @@ export default function Players() {
               
               // State 3: In progress
               if (completionRate < 100) {
+                // Don't show continue button if read-only
+                if (!permissions.canWrite) {
+                  return (
+                    <div className="text-center py-4 px-4 bg-orange-50 rounded-xl">
+                      <TrendingUp className="w-8 h-8 mx-auto mb-2 text-orange-500" />
+                      <p className="font-medium text-orange-900">Results in progress</p>
+                      <p className="text-sm text-orange-700 mt-1">
+                        {Math.round(completionRate)}% complete ({totalScoresCount}/{players.length} players)
+                      </p>
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     to="/live-entry"
@@ -658,7 +848,7 @@ export default function Players() {
 
             {/* Secondary CTAs - Always Available */}
             <div className="grid grid-cols-3 gap-3">
-              {players.length > 0 && (
+              {players.length > 0 && permissions.canWrite && (
                 <button
                   onClick={() => setShowAddPlayerModal(true)}
                   className="flex flex-col items-center justify-center p-3 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl transition border border-blue-200"
@@ -669,7 +859,7 @@ export default function Players() {
               )}
               
               {/* MANDATORY GUARDRAIL: Import Results must be explicitly user-initiated and tied to confirmed selected event */}
-              {selectedEvent?.id && (
+              {selectedEvent?.id && permissions.canWrite && (
                 <button
                   onClick={() => {
                     setDrillRefreshTrigger(t => t + 1);
@@ -758,16 +948,18 @@ export default function Players() {
                           presets: currentPresets
                         })}
                         onEdit={() => setEditingPlayer(player)}
-                        canEdit={true}
+                        canEdit={permissions.canWrite}
                       />
                       
-                      {/* Context-specific action: Add Result */}
-                      <button
-                        onClick={() => toggleForm(player.id)}
-                        className="w-full bg-brand-light/20 hover:bg-brand-light/30 text-brand-primary px-3 py-2 rounded-md text-sm font-medium transition"
-                      >
-                        Add Result
-                      </button>
+                      {/* Context-specific action: Add Result - only show if can edit */}
+                      {permissions.canWrite && (
+                        <button
+                          onClick={() => toggleForm(player.id)}
+                          className="w-full bg-brand-light/20 hover:bg-brand-light/30 text-brand-primary px-3 py-2 rounded-md text-sm font-medium transition"
+                        >
+                          Add Result
+                        </button>
+                      )}
                       
                       {/* Expanded drill input form */}
                       {expandedPlayerIds[player.id] && (
