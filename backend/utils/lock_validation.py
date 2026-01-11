@@ -93,9 +93,9 @@ def check_write_permission(
         raise HTTPException(status_code=500, detail="Event configuration error")
     
     # Verify event access (handles Kill Switch and membership checks)
+    # Note: ensure_event_access gets league_id from event document internally
     membership = ensure_event_access(
         user_id=user_id,
-        league_id=league_id,
         event_id=event_id,
         allowed_roles=["organizer", "coach"],
         operation_name=operation_name
