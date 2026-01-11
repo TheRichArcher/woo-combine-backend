@@ -13,9 +13,11 @@
 
 /**
  * Maps age groups to numeric prefixes
+ * CRITICAL: Prefixes must be <= 97 to ensure numbers stay within 0-9999 range
+ * (Backend validation requires number <= 9999)
  */
 const getAgeGroupPrefix = (ageGroup) => {
-  if (!ageGroup || typeof ageGroup !== 'string') return 99; // Default for no age group
+  if (!ageGroup || typeof ageGroup !== 'string') return 90; // Default for no age group (90xx range)
   
   const normalized = ageGroup.toLowerCase().trim();
   
@@ -25,7 +27,8 @@ const getAgeGroupPrefix = (ageGroup) => {
     const num = parseInt(numericMatch[1]);
     // Handle special cases for very young ages
     if (num <= 5) return 5;  // 3U, 4U, 5U all use 5xx range
-    return num;
+    // Cap at 97 to ensure 97xx stays under 9999
+    return Math.min(num, 97);
   }
   
   // Map common non-numeric age groups to meaningful prefixes
@@ -66,11 +69,12 @@ const getAgeGroupPrefix = (ageGroup) => {
     'recreational': 32
   };
   
-  return mappings[normalized] || 99; // Default to 99xx range for unknown groups
+  return mappings[normalized] || 90; // Default to 90xx range for unknown groups (stays under 9999)
 };
 
 /**
  * Generates a unique player number for the given age group
+ * CRITICAL: Numbers must stay within 0-9999 range (backend validation)
  */
 export const generatePlayerNumber = (ageGroup, existingNumbers = [], sequenceStart = 1) => {
   const prefix = getAgeGroupPrefix(ageGroup);
@@ -82,13 +86,25 @@ export const generatePlayerNumber = (ageGroup, existingNumbers = [], sequenceSta
     candidateNumber = prefix * 100 + counter;
     counter++;
     
-    // Safety check to prevent infinite loops
-    if (counter > 999) {
-      // If we can't find a number in the primary range, try the 99xx range
-      candidateNumber = 99 * 100 + Math.floor(Math.random() * 900) + 100;
+    // Safety check to prevent infinite loops and out-of-range numbers
+    if (counter > 99 || candidateNumber > 9999) {
+      // If we can't find a number in the primary range, use fallback range 9000-9999
+      // Start from 9000 and find first available
+      for (let fallback = 9000; fallback <= 9999; fallback++) {
+        if (!existingNumbers.includes(fallback)) {
+          candidateNumber = fallback;
+          break;
+        }
+      }
       break;
     }
   } while (existingNumbers.includes(candidateNumber));
+  
+  // Final safety check - ensure we never exceed backend limit
+  if (candidateNumber > 9999) {
+    console.error(`[playerNumbering] Generated number ${candidateNumber} exceeds 9999 limit. Using 9999.`);
+    candidateNumber = 9999;
+  }
   
   return candidateNumber;
 };
