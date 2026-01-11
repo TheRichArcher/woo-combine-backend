@@ -35,7 +35,22 @@ export default function CombineLockControl({ leagueId, event }) {
         reason: lockReason || undefined
       };
 
-      await api.patch(`/leagues/${leagueId}/events/${eventId}/lock`, payload);
+      console.log('[LOCK] Sending lock toggle request:', {
+        eventId,
+        leagueId,
+        currentState: isLocked,
+        newState: !isLocked,
+        endpoint: `/leagues/${leagueId}/events/${eventId}/lock`
+      });
+
+      const response = await api.patch(`/leagues/${leagueId}/events/${eventId}/lock`, payload);
+      
+      console.log('[LOCK] Backend response:', {
+        isLocked: response.data?.isLocked,
+        changed: response.data?.changed,
+        verified: response.data?.verified,
+        message: response.data?.message
+      });
 
       showSuccess(
         !isLocked 
@@ -44,14 +59,16 @@ export default function CombineLockControl({ leagueId, event }) {
       );
 
       // Refresh event data
+      console.log('[LOCK] Calling refreshEvents() to sync UI...');
       await refreshEvents();
+      console.log('[LOCK] refreshEvents() completed');
 
       // Reset state
       setShowConfirmation(false);
       setLockReason('');
 
     } catch (err) {
-      console.error('Failed to toggle lock:', err);
+      console.error('[LOCK] Failed to toggle lock:', err);
       const errorMsg = err.response?.data?.detail || 'Failed to update combine lock status';
       showError(errorMsg);
     } finally {

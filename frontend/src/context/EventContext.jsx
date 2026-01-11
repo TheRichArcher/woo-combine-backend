@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useAuth } from "./AuthContext";
 import api from '../lib/api';
-import { withCache } from '../utils/dataCache';
+import { withCache, cacheInvalidation } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 
 const EventContext = createContext();
@@ -62,7 +62,7 @@ export function EventProvider({ children }) {
   );
 
   // Load events when league is selected
-  const loadEvents = useCallback(async (leagueId) => {
+  const loadEvents = useCallback(async (leagueId, options = {}) => {
     if (!leagueId) {
       setEvents([]);
       setSelectedEvent(null);
@@ -84,17 +84,31 @@ export function EventProvider({ children }) {
       const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
       setEvents(activeEvents);
       
-      // Auto-select first event if available and none is currently selected
-      // Check current selectedEvent state instead of using it as dependency
-      setSelectedEvent(current => {
-        if (!current && activeEvents.length > 0) {
-          const firstEvent = activeEvents[0];
-          // Persist the auto-selected event
-          localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
-          return firstEvent;
-        }
-        return current;
-      });
+      // If refreshing and we have a selected event, update it with fresh data
+      if (options.syncSelectedEvent) {
+        setSelectedEvent(current => {
+          if (!current?.id) return current;
+          const refreshedEvent = activeEvents.find(e => e.id === current.id);
+          if (refreshedEvent) {
+            localStorage.setItem('selectedEvent', JSON.stringify(refreshedEvent));
+            logger.info('EVENT-CONTEXT', `Synced selectedEvent after refresh: ${current.id}`);
+            return refreshedEvent;
+          }
+          return current;
+        });
+      } else {
+        // Auto-select first event if available and none is currently selected
+        // Check current selectedEvent state instead of using it as dependency
+        setSelectedEvent(current => {
+          if (!current && activeEvents.length > 0) {
+            const firstEvent = activeEvents[0];
+            // Persist the auto-selected event
+            localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
+            return firstEvent;
+          }
+          return current;
+        });
+      }
     } catch (err) {
       logger.error('EVENT-CONTEXT', 'Failed to load events', err);
       
@@ -184,9 +198,15 @@ export function EventProvider({ children }) {
 
   // Refresh function
   const refreshEvents = useCallback(async () => {
-    if (selectedLeagueId) {
-      await loadEvents(selectedLeagueId);
-    }
+    if (!selectedLeagueId) return;
+    
+    // CRITICAL: Invalidate events cache before refreshing
+    // This ensures we get fresh data from backend, not stale cached data
+    cacheInvalidation.eventsUpdated(selectedLeagueId);
+    logger.info('EVENT-CONTEXT', `Invalidated events cache for league ${selectedLeagueId}`);
+    
+    // Pass syncSelectedEvent flag to update the currently selected event with fresh data
+    await loadEvents(selectedLeagueId, { syncSelectedEvent: true });
   }, [selectedLeagueId, loadEvents]);
 
   // Update event function

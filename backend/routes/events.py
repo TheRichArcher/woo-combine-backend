@@ -681,14 +681,21 @@ def set_combine_lock_status(
         )
         
         if not event_doc.exists:
+            logging.error(f"[LOCK] Event {event_id} not found in league {league_id}")
             raise HTTPException(status_code=404, detail="Event not found")
         
         event_data = event_doc.to_dict()
         current_lock_status = event_data.get("isLocked", False)
         new_lock_status = req.isLocked
         
+        logging.info(
+            f"[LOCK] Lock toggle request - Event: {event_id}, League: {league_id}, "
+            f"Current: {current_lock_status}, Requested: {new_lock_status}, User: {current_user['uid']}"
+        )
+        
         # No-op if already in desired state
         if current_lock_status == new_lock_status:
+            logging.info(f"[LOCK] No-op - Event {event_id} already in state: {new_lock_status}")
             return {
                 "isLocked": new_lock_status,
                 "message": f"Event is already {'locked' if new_lock_status else 'unlocked'}",
@@ -702,6 +709,7 @@ def set_combine_lock_status(
             "lock_updated_by": current_user["uid"]
         }
         
+        logging.info(f"[LOCK] Updating league subcollection: /leagues/{league_id}/events/{event_id}")
         execute_with_timeout(
             lambda: event_ref.update(update_data),
             timeout=10,
@@ -710,11 +718,29 @@ def set_combine_lock_status(
         
         # Also update top-level events collection for consistency
         top_level_event_ref = db.collection("events").document(event_id)
+        logging.info(f"[LOCK] Updating global collection: /events/{event_id}")
         execute_with_timeout(
             lambda: top_level_event_ref.update(update_data),
             timeout=10,
             operation_name="update combine lock in global collection"
         )
+        
+        # Verify the update by reading back
+        verify_doc = execute_with_timeout(
+            lambda: event_ref.get(),
+            timeout=5,
+            operation_name="verify lock update"
+        )
+        verify_data = verify_doc.to_dict()
+        verify_lock_status = verify_data.get("isLocked", False)
+        
+        if verify_lock_status != new_lock_status:
+            logging.error(
+                f"[LOCK] VERIFICATION FAILED - Event {event_id} shows isLocked={verify_lock_status}, "
+                f"expected {new_lock_status}. Update may not have persisted!"
+            )
+        else:
+            logging.info(f"[LOCK] Verification successful - Event {event_id} isLocked={verify_lock_status}")
         
         # Audit log
         action = "LOCKED" if new_lock_status else "UNLOCKED"
@@ -729,7 +755,8 @@ def set_combine_lock_status(
             "isLocked": new_lock_status,
             "message": f"Combine {'locked' if new_lock_status else 'unlocked'} successfully",
             "changed": True,
-            "lock_updated_at": update_data["lock_updated_at"]
+            "lock_updated_at": update_data["lock_updated_at"],
+            "verified": verify_lock_status == new_lock_status
         }
         
     except HTTPException:
