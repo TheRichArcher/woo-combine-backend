@@ -46,7 +46,11 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
   const [error, setError] = useState("");
 
   // Pre-populate form when editing
+  // CRITICAL: Only run when modal opens (open changes), not on every event prop change
+  // This prevents overwriting user edits when parent re-renders
   useEffect(() => {
+    if (!open) return; // Only initialize when modal is visible
+    
     if (mode === "edit" && event) {
       setName(event.name || "");
       // CRITICAL: Extract YYYY-MM-DD format for <input type="date">
@@ -64,7 +68,7 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
       setNotes("");
       setDrillTemplate(templates[0]?.id || "football");
     }
-  }, [mode, event, templates]);
+  }, [mode, open, event?.id, templates]); // Changed: use open + event.id, not full event object
 
   if (!open) return null;
 
