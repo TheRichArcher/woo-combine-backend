@@ -218,7 +218,7 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, addLeague, setSelectedLeagueId, userRole, initializing]);
+  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing]);
 
   if (loading || initializing) {
     return <LoadingScreen size="medium" />;
