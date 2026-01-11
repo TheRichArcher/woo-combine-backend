@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Body, Body
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
@@ -484,4 +484,93 @@ def update_member_status(
     except Exception as e:
         logging.error(f"Error updating member status: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to update member status")
+
+
+@router.patch('/{league_id}/members/{member_id}/write-permission')
+@write_rate_limit()
+@require_permission("league_members", "update", target="league", target_param="league_id")
+def update_member_write_permission(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    member_id: str = Path(..., regex=r"^.{1,50}$"),
+    permission_data: dict = Body(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Update per-coach write permission (canWrite field).
+    
+    This allows organizers to set individual coaches to read-only without
+    disabling their access entirely. Only applies when event is unlocked.
+    
+    If event.isLocked = true, all non-organizers are read-only regardless
+    of this setting.
+    """
+    try:
+        can_write = permission_data.get("canWrite")
+        if can_write is None:
+            raise HTTPException(status_code=400, detail="Missing 'canWrite' field in body")
+        
+        if not isinstance(can_write, bool):
+            raise HTTPException(status_code=400, detail="'canWrite' must be a boolean")
+            
+        logging.info(
+            f"[PATCH] Updating member {member_id} write permission in league {league_id} to canWrite={can_write}"
+        )
+        
+        # Verify member exists and get current role
+        member_ref = db.collection("leagues").document(league_id).collection("members").document(member_id)
+        member_doc = execute_with_timeout(lambda: member_ref.get(), timeout=5)
+        
+        if not member_doc.exists:
+            raise HTTPException(status_code=404, detail="Member not found")
+        
+        member_data = member_doc.to_dict()
+        member_role = member_data.get("role", "viewer")
+        
+        # Prevent changing organizer write permissions (they always have full access)
+        if member_role == "organizer":
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot modify write permissions for organizers. Organizers always have full access."
+            )
+        
+        # Prevent user from revoking their own write access (would be confusing)
+        if member_id == current_user["uid"]:
+            raise HTTPException(
+                status_code=400,
+                detail="You cannot revoke your own write access. Ask another organizer to change your permissions."
+            )
+        
+        # Update both storage locations atomically
+        batch = db.batch()
+        
+        # 1. Update legacy member document
+        batch.update(member_ref, {"canWrite": can_write})
+        
+        # 2. Update user_memberships (FAST PATH) 
+        user_memberships_ref = db.collection('user_memberships').document(member_id)
+        membership_update = {
+            f"leagues.{league_id}.canWrite": can_write
+        }
+        batch.update(user_memberships_ref, membership_update)
+        
+        # Execute atomically
+        batch.commit()
+        
+        logging.info(
+            f"Updated member {member_id} ({member_role}) write permission to canWrite={can_write}"
+        )
+        
+        return {
+            "message": f"Write permission {'granted' if can_write else 'revoked'}",
+            "canWrite": can_write,
+            "member_id": member_id,
+            "role": member_role
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating member write permission: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to update write permission")
  

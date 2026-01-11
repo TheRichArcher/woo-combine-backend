@@ -226,6 +226,15 @@ def update_player(
     try:
         enforce_event_league_relationship(event_id=event_id)
         
+        # Check write permission
+        user_role = current_user.get("role", "viewer")
+        check_write_permission(
+            event_id=event_id,
+            user_id=current_user["uid"],
+            user_role=user_role,
+            operation_name="update player"
+        )
+        
         player_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
         player_doc = execute_with_timeout(
             player_ref.get,
@@ -282,6 +291,15 @@ class UploadRequest(BaseModel):
 def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_role("organizer"))):
     try:
         enforce_event_league_relationship(event_id=req.event_id)
+        
+        # Check write permission (organizer only for bulk upload, but still check lock)
+        user_role = current_user.get("role", "viewer")
+        check_write_permission(
+            event_id=req.event_id,
+            user_id=current_user["uid"],
+            user_role=user_role,
+            operation_name="upload players"
+        )
             
         event_id = req.event_id
         

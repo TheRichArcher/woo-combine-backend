@@ -643,10 +643,111 @@ def delete_event(
         raise HTTPException(status_code=500, detail="Failed to delete event")
 
 
+# --- Combine Lock/Unlock Endpoints ---
+
+class LockCombineRequest(BaseModel):
+    """Request to lock or unlock a combine (event)"""
+    isLocked: bool
+    reason: Optional[str] = None  # Optional reason for audit log
+
+@router.patch('/leagues/{league_id}/events/{event_id}/lock')
+@write_rate_limit()
+@require_permission("events", "update", target="league", target_param="league_id")
+def set_combine_lock_status(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    event_id: str = Path(..., regex=r"^.{1,50}$"),
+    req: LockCombineRequest = None,
+    current_user=Depends(require_role("organizer"))
+):
+    """
+    Set global combine lock status (isLocked field).
+    
+    When locked:
+    - Only organizers can edit scores, players, or drills
+    - All coaches become read-only regardless of individual canWrite setting
+    - Represents "official end" of combine
+    
+    Only organizers can lock/unlock events.
+    """
+    try:
+        enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
+        
+        event_ref = db.collection("leagues").document(league_id).collection("events").document(event_id)
+        event_doc = execute_with_timeout(
+            lambda: event_ref.get(),
+            timeout=5,
+            operation_name="fetch event for lock update"
+        )
+        
+        if not event_doc.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        event_data = event_doc.to_dict()
+        current_lock_status = event_data.get("isLocked", False)
+        new_lock_status = req.isLocked
+        
+        # No-op if already in desired state
+        if current_lock_status == new_lock_status:
+            return {
+                "isLocked": new_lock_status,
+                "message": f"Event is already {'locked' if new_lock_status else 'unlocked'}",
+                "changed": False
+            }
+        
+        # Update lock status
+        update_data = {
+            "isLocked": new_lock_status,
+            "lock_updated_at": datetime.utcnow().isoformat(),
+            "lock_updated_by": current_user["uid"]
+        }
+        
+        execute_with_timeout(
+            lambda: event_ref.update(update_data),
+            timeout=10,
+            operation_name="update combine lock status"
+        )
+        
+        # Also update top-level events collection for consistency
+        top_level_event_ref = db.collection("events").document(event_id)
+        execute_with_timeout(
+            lambda: top_level_event_ref.update(update_data),
+            timeout=10,
+            operation_name="update combine lock in global collection"
+        )
+        
+        # Audit log
+        action = "LOCKED" if new_lock_status else "UNLOCKED"
+        reason_text = f" (Reason: {req.reason})" if req.reason else ""
+        logging.warning(
+            f"[AUDIT] Combine {action} - Event: {event_id} ({event_data.get('name')}), "
+            f"League: {league_id}, User: {current_user['uid']}, "
+            f"Timestamp: {update_data['lock_updated_at']}{reason_text}"
+        )
+        
+        return {
+            "isLocked": new_lock_status,
+            "message": f"Combine {'locked' if new_lock_status else 'unlocked'} successfully",
+            "changed": True,
+            "lock_updated_at": update_data["lock_updated_at"]
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating combine lock status for event {event_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update combine lock status")
+
+
 # --- Custom Drill Endpoints ---
 
 def check_event_unlocked(event_id: str):
-    """Helper to ensure event is not locked (Live Entry active)"""
+    """
+    Helper to ensure event allows drill configuration changes.
+    Checks live_entry_active (not isLocked) - custom drills lock when live entry starts.
+    
+    For general write operations (scores, players), use lock_validation.check_write_permission instead.
+    """
     event_ref = db.collection("events").document(event_id)
     event_doc = execute_with_timeout(
         lambda: event_ref.get(),
@@ -658,7 +759,7 @@ def check_event_unlocked(event_id: str):
         raise HTTPException(status_code=404, detail="Event not found")
         
     if event_doc.to_dict().get("live_entry_active", False):
-        raise HTTPException(status_code=409, detail="Cannot modify drills after Live Entry has started")
+        raise HTTPException(status_code=409, detail="Cannot modify drill configuration after Live Entry has started")
 
 @router.post('/leagues/{league_id}/events/{event_id}/custom-drills')
 @write_rate_limit()

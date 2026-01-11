@@ -116,6 +116,15 @@ def submit_drill_evaluation(
             raise HTTPException(status_code=403, detail="Email verification required")
 
         enforce_event_league_relationship(event_id=event_id)
+        
+        # Check write permission
+        user_role = current_user.get("role", "viewer")
+        check_write_permission(
+            event_id=event_id,
+            user_id=current_user["uid"],
+            user_role=user_role,
+            operation_name="submit drill evaluation"
+        )
 
         # Create individual drill result with evaluator info and enforce constraints
         validated_value = validate_drill_score(float(evaluation.value), evaluation.drill_type)

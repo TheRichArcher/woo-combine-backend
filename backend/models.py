@@ -121,6 +121,7 @@ class EventSchema(BaseModel):
     created_at: str
     league_id: Optional[str] = None
     live_entry_active: bool = False  # Controls locking of custom drills
+    isLocked: bool = False  # Global combine lock - prevents all edits by non-organizers
     drillTemplate: Optional[str] = "football" # Track which schema this event uses
     disabled_drills: List[str] = []  # List of built-in drill keys to hide/disable
 

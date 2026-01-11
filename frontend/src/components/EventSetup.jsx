@@ -14,6 +14,7 @@ import AddPlayerModal from "./Players/AddPlayerModal";
 import { Link, useNavigate } from 'react-router-dom';
 import DrillManager from "./drills/DrillManager";
 import StaffManagement from "./StaffManagement";
+import CombineLockControl from "./CombineLockControl";
 import DeleteEventFlow from "./DeleteEventFlow";
 
 /**
@@ -384,7 +385,17 @@ export default function EventSetup({ onBack }) {
           <StaffManagement leagueId={selectedLeagueId} currentUser={user} />
         </div>
 
-        {/* Step 6: Danger Zone - Advanced Options */}
+        {/* Step 6: Global Combine Lock */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-3">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 bg-brand-primary text-white rounded-full flex items-center justify-center text-sm font-bold">6</div>
+            <h2 className="text-lg font-semibold text-gray-900">Combine Lock Control</h2>
+          </div>
+          
+          <CombineLockControl leagueId={selectedLeagueId} event={selectedEvent} />
+        </div>
+
+        {/* Step 7: Danger Zone - Advanced Options */}
         <div className="bg-white rounded-lg shadow-sm border-2 border-red-300 p-4 mb-3">
           <div className="flex items-center gap-2 mb-4">
             <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">⚠️</div>

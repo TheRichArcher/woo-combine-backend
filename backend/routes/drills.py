@@ -12,6 +12,7 @@ from ..utils.database import execute_with_timeout
 from ..utils.data_integrity import enforce_event_league_relationship
 from ..security.access_matrix import require_permission
 from ..utils.event_schema import get_event_schema
+from ..utils.lock_validation import check_write_permission
 
 router = APIRouter()
 
@@ -42,6 +43,15 @@ def create_drill_result(
     """Create a new drill result for a player"""
     try:
         enforce_event_league_relationship(event_id=result.event_id)
+        
+        # Check write permission (respects both global lock and per-coach permissions)
+        user_role = current_user.get("role", "viewer")
+        check_write_permission(
+            event_id=result.event_id,
+            user_id=current_user["uid"],
+            user_role=user_role,
+            operation_name="create drill result"
+        )
 
         event_ref = db.collection("events").document(result.event_id)
         
@@ -141,6 +151,15 @@ def delete_drill_result(
     """
     try:
         enforce_event_league_relationship(event_id=event_id)
+        
+        # Check write permission
+        user_role = current_user.get("role", "viewer")
+        check_write_permission(
+            event_id=event_id,
+            user_id=current_user["uid"],
+            user_role=user_role,
+            operation_name="delete drill result"
+        )
         
         player_ref = db.collection("events").document(event_id).collection("players").document(player_id)
         result_ref = player_ref.collection("drill_results").document(result_id)
