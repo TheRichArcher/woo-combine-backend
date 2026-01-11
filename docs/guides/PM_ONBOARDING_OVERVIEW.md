@@ -1,6 +1,6 @@
 # WooCombine PM Handoff & Onboarding Guide
 
-_Last updated: January 8, 2026_
+_Last updated: January 11, 2026_
 
 This guide serves as the primary source of truth for the WooCombine product state, architecture, and operational procedures. It supersedes previous debugging guides and reflects the current **stable, production-ready** status of the application following comprehensive stabilization and product definition sprints through January 2026.
 
@@ -17,12 +17,29 @@ The application has graduated from "debugging/crisis" mode to a stable, focused 
 - **Boot Experience**: Multi-route flicker on login has been eliminated via `RouteDecisionGate` architecture. Single centralized routing decision after full state hydration ensures clean navigation with no intermediate route flashes.
 - **Quality**: Zero linting errors, clean build process. CI pipeline resilient with graceful degradation for optional dependencies.
 - **Observability**: Full Sentry integration (Frontend & Backend) for real-time error tracking and performance monitoring.
-- **Import System**: **Production-ready and locked** (Jan 3, 2026). Progressive disclosure UX with explicit required field mapping, drill detection, and confidence-safe messaging. Handles CSV/Excel with smart column detection. See §5.1 for complete import UX evolution.
+- **Import System**: **Production-ready and bullet-proof** (Jan 11, 2026). Progressive disclosure UX with explicit required field mapping, drill detection, and confidence-safe messaging. Handles CSV/Excel with smart column detection and automatic jersey number assignment. See §5.1 for complete import UX evolution and January 2026 fixes.
 - **Security**: Email/Password authentication with proper verification flows. Phone auth and reCAPTCHA fully removed.
 - **UX**: Guided onboarding flows, contextual navigation, and clear next-action CTAs eliminate "what do I do next?" friction.
 - **Product Discipline**: Clear architectural boundaries documented. Features organized by the 10-second rule for operational focus.
 
 ### Recent Fixes & Improvements (January 2026)
+
+**Player Import System Overhaul (P0 - Critical Production Blocker) - January 11**
+- **Issue**: CSV imports with 50+ players returning 500 errors. Four separate layered issues preventing imports from completing.
+- **Root Causes**: 
+  1. ImportResultsModal missing auto-number assignment (other flows had it)
+  2. Auto-assigned numbers exceeding backend 9999 limit (age group "C" → 9901)
+  3. Missing import statement for check_write_permission function
+  4. Invalid function parameter (league_id) passed to ensure_event_access()
+- **Solution**: Systematic debugging through each layer:
+  1. Added autoAssignPlayerNumbers() to ImportResultsModal matching other upload flows
+  2. Changed default age group prefix from 99 to 90, capped numeric groups at 97
+  3. Added missing `from ..utils.lock_validation import check_write_permission` import
+  4. Fixed function call to match actual signature (removed league_id parameter)
+  5. Enhanced error logging with full stack traces for faster future debugging
+  6. Added prominent "Continue" button to success screen (UX improvement)
+- **Commits**: bf80876, ba03d27, 5eee345, 39eaf9e, 50bd5ea, 591b26c
+- **Impact**: CSV imports now work reliably with automatic jersey number assignment. See [JANUARY_2026_IMPORT_FIXES.md](../reports/JANUARY_2026_IMPORT_FIXES.md) for complete technical analysis.
 
 **Import Players Direct Access (P1 - UX) - January 8**
 - **Issue**: Clicking "Import Players" from dashboard required two extra steps: landing on Admin Dashboard hub, clicking "Event Setup", then scrolling to find CSV upload. Users frustrated by hidden upload functionality.

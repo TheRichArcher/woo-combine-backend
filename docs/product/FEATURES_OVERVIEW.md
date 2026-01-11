@@ -2,7 +2,7 @@
 
 _User-facing capabilities and benefits_
 
-**Last updated:** January 8, 2026
+**Last updated:** January 11, 2026
 
 ---
 
@@ -46,8 +46,20 @@ WooCombine is a web-based platform for managing youth sports combine events and 
 **Build and maintain your roster:**
 - ✅ **One-click CSV import** - Direct "Upload CSV" button from dashboard for instant access
 - ✅ Bulk import rosters from CSV or Excel files
+- ✅ **Automatic jersey number assignment** - Players without numbers get age-group-based numbers (12U → 1201, 1202...)
 - ✅ Add players manually with simple forms
-- ✅ Auto-assign jersey numbers by age group (e.g., 12U players get 1201, 1202...)
+- ✅ Edit player information anytime
+- ✅ Support for large imports (50+ players)
+- ✅ Smart column detection (handles variations like "First Name", "Player First Name", "fname")
+- ✅ Progressive disclosure UX guides you through required field mapping
+- ✅ Clear success feedback with prominent "Continue" button
+
+**Jersey Number Auto-Assignment:**
+- 12U players: 1201, 1202, 1203...
+- 8U players: 801, 802, 803...
+- Unknown groups: 9001, 9002, 9003...
+- Ensures unique identification for Live Entry mode
+- Respects backend validation (0-9999 range)
 - ✅ Track player details: name, age group, team, position, notes
 - ✅ Edit player information anytime
 - ✅ Smart CSV mapping (auto-detects name, number, age columns)
