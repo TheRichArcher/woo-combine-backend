@@ -23,6 +23,9 @@ const getSportIcon = (sport) => {
  * 
  * Single source of truth for all event creation and editing flows.
  * 
+ * CRITICAL PATTERN: Component remounts on event change via key prop
+ * This eliminates useEffect race conditions and ensures clean state
+ * 
  * @param {boolean} open - Whether modal is visible
  * @param {function} onClose - Callback to close modal
  * @param {string} mode - "create" | "edit"
@@ -36,49 +39,23 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
   
   const templates = getAllTemplates();
   
+  // Initialize form state directly from props (no useEffect needed)
+  const initialDate = (mode === "edit" && event?.date) ? event.date.slice(0, 10) : "";
+  
   // Form state
-  const [name, setName] = useState("");
-  const [date, setDate] = useState("");
-  const [location, setLocation] = useState("");
-  const [notes, setNotes] = useState("");
-  const [drillTemplate, setDrillTemplate] = useState(templates[0]?.id || "football");
+  const [name, setName] = useState(mode === "edit" && event ? event.name || "" : "");
+  const [date, setDate] = useState(initialDate);
+  const [location, setLocation] = useState(mode === "edit" && event ? event.location || "" : "");
+  const [notes, setNotes] = useState(mode === "edit" && event ? event.notes || "" : "");
+  const [drillTemplate, setDrillTemplate] = useState(mode === "edit" && event ? event.drillTemplate || "football" : templates[0]?.id || "football");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   // DEBUG: Log date state changes (remove after fixing)
   useEffect(() => {
     console.log('[EventFormModal] Date state changed:', date);
-  }, [date]);
-
-  // Pre-populate form when editing
-  // CRITICAL: Only run when modal opens (open changes), not on every event prop change
-  // This prevents overwriting user edits when parent re-renders
-  useEffect(() => {
-    console.log('[EventFormModal] useEffect triggered - open:', open, 'mode:', mode, 'event:', event);
-    
-    if (!open) return; // Only initialize when modal is visible
-    
-    if (mode === "edit" && event) {
-      console.log('[EventFormModal] Initializing EDIT mode with event.date:', event.date);
-      setName(event.name || "");
-      // CRITICAL: Extract YYYY-MM-DD format for <input type="date">
-      // Browser requires exact YYYY-MM-DD, rejects ISO timestamps or locale strings
-      const dateValue = event.date ? event.date.slice(0, 10) : "";
-      console.log('[EventFormModal] Setting date to:', dateValue);
-      setDate(dateValue);
-      setLocation(event.location || "");
-      setNotes(event.notes || "");
-      setDrillTemplate(event.drillTemplate || "football");
-    } else if (mode === "create") {
-      console.log('[EventFormModal] Initializing CREATE mode');
-      // Reset form for create mode
-      setName("");
-      setDate("");
-      setLocation("");
-      setNotes("");
-      setDrillTemplate(templates[0]?.id || "football");
-    }
-  }, [mode, open, event?.id, templates]); // Changed: use open + event.id, not full event object
+    console.log('[EventFormModal] Current mode:', mode, 'Event ID:', event?.id);
+  }, [date, mode, event?.id]);
 
   if (!open) return null;
 
