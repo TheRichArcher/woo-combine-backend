@@ -57,7 +57,8 @@ export default function EventSetup({ onBack }) {
   const [playerCountLoading, setPlayerCountLoading] = useState(false);
 
   // Invite to League section state
-  const [showQr, setShowQr] = useState(false); // false | 'coach' | 'viewer'
+  // QR codes shown by default for mobile-first, scan-and-go workflows
+  const [showQr, setShowQr] = useState('both'); // 'both' | 'coach' | 'viewer' | false
   
   // Generate consistent invite links
   const inviteLink = (() => {
@@ -296,40 +297,36 @@ export default function EventSetup({ onBack }) {
               </div>
               
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-brand-primary mb-1">Coach Invitation Link</label>
-                  <div className="bg-white border border-brand-primary/20 rounded-lg p-3 text-sm text-center break-all">
-                    {inviteLink ? `${inviteLink}/coach` : 'Loading...'}
+                {/* QR Code - Primary Action (shown by default) */}
+                {(showQr === 'both' || showQr === 'coach') && (
+                  <div className="bg-white rounded-lg p-4 text-center border border-brand-primary/20">
+                    <QRCode key={`${inviteLink}/coach`} value={`${inviteLink}/coach`} size={180} className="mx-auto mb-2" />
+                    <p className="text-xs text-brand-primary font-bold mb-1">🔵 COACH ACCESS QR CODE</p>
+                    <p className="text-xs text-gray-500">Scan with phone camera to join</p>
                   </div>
-                </div>
+                )}
                 
-                <div className="grid grid-cols-2 gap-2">
+                {/* Copy Link - Secondary Action */}
+                <div className="space-y-2">
                   <button
                     onClick={() => handleCopyInviteLink('coach')}
-                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-medium px-4 py-2.5 rounded-lg transition flex items-center justify-center gap-2"
                     disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
                     Copy Coach Link
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowQr(showQr === 'coach' ? false : 'coach');
-                      if (showQr !== 'coach') showInfo('📱 Coach QR code displayed');
-                    }}
-                    className="bg-brand-primary hover:bg-brand-secondary text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    Coach QR
-                  </button>
+                  
+                  {/* Optional: Toggle link visibility */}
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-brand-primary hover:text-brand-secondary font-medium">
+                      Show invitation link
+                    </summary>
+                    <div className="mt-2 bg-gray-50 border border-gray-200 rounded p-2 text-center break-all text-gray-700">
+                      {inviteLink ? `${inviteLink}/coach` : 'Loading...'}
+                    </div>
+                  </details>
                 </div>
-                
-                {showQr === 'coach' && (
-                  <div className="bg-white rounded-lg p-4 text-center border border-brand-primary/20">
-                    <QRCode key={`${inviteLink}/coach`} value={`${inviteLink}/coach`} size={150} className="mx-auto mb-2" />
-                    <p className="text-xs text-brand-primary font-medium">🔵 COACH ACCESS QR CODE</p>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -342,40 +339,36 @@ export default function EventSetup({ onBack }) {
               </div>
               
               <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-semantic-success mb-1">Viewer Invitation Link</label>
-                  <div className="bg-white border border-semantic-success/30 rounded-lg p-3 text-sm text-center break-all">
-                    {inviteLink ? `${inviteLink}/viewer` : 'Loading...'}
+                {/* QR Code - Primary Action (shown by default) */}
+                {(showQr === 'both' || showQr === 'viewer') && (
+                  <div className="bg-white rounded-lg p-4 text-center border border-semantic-success/30">
+                    <QRCode key={`${inviteLink}/viewer`} value={`${inviteLink}/viewer`} size={180} className="mx-auto mb-2" />
+                    <p className="text-xs text-semantic-success font-bold mb-1">🟢 VIEWER ACCESS QR CODE</p>
+                    <p className="text-xs text-gray-500">Scan with phone camera to join</p>
                   </div>
-                </div>
+                )}
                 
-                <div className="grid grid-cols-2 gap-2">
+                {/* Copy Link - Secondary Action */}
+                <div className="space-y-2">
                   <button
                     onClick={() => handleCopyInviteLink('viewer')}
-                    className="bg-semantic-success hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
+                    className="w-full bg-semantic-success hover:bg-green-700 text-white font-medium px-4 py-2.5 rounded-lg transition flex items-center justify-center gap-2"
                     disabled={!inviteLink}
                   >
                     <Copy className="w-4 h-4" />
                     Copy Viewer Link
                   </button>
-                  <button
-                    onClick={() => {
-                      setShowQr(showQr === 'viewer' ? false : 'viewer');
-                      if (showQr !== 'viewer') showInfo('📱 Viewer QR code displayed');
-                    }}
-                    className="bg-semantic-success hover:bg-green-700 text-white font-medium px-3 py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    Viewer QR
-                  </button>
+                  
+                  {/* Optional: Toggle link visibility */}
+                  <details className="text-xs">
+                    <summary className="cursor-pointer text-semantic-success hover:text-green-700 font-medium">
+                      Show invitation link
+                    </summary>
+                    <div className="mt-2 bg-gray-50 border border-gray-200 rounded p-2 text-center break-all text-gray-700">
+                      {inviteLink ? `${inviteLink}/viewer` : 'Loading...'}
+                    </div>
+                  </details>
                 </div>
-                
-                {showQr === 'viewer' && (
-                  <div className="bg-white rounded-lg p-4 text-center border border-semantic-success/30">
-                    <QRCode key={`${inviteLink}/viewer`} value={`${inviteLink}/viewer`} size={150} className="mx-auto mb-2" />
-                    <p className="text-xs text-semantic-success font-medium">🟢 VIEWER ACCESS QR CODE</p>
-                  </div>
-                )}
               </div>
             </div>
           </div>
