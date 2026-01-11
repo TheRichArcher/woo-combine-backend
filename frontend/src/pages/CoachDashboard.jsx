@@ -339,7 +339,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                       Add Players Manually
                     </Link>
                     <Link 
-                      to="/admin-tools" 
+                      to="/admin" 
                       className="flex items-center justify-center gap-2 w-full text-gray-600 hover:text-cmf-primary font-medium py-2 px-4 rounded-lg hover:bg-gray-50 border border-gray-200 transition"
                     >
                       <Settings className="w-4 h-4" />
@@ -350,7 +350,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               </div>
             ) : userRole === 'organizer' && !selectedEvent ? (
               <Link 
-                to="/admin-tools" 
+                to="/admin" 
                 className="inline-block bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition"
               >
                 Select or Create Event

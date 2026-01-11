@@ -206,6 +206,8 @@ function App() {
                     </RequireAuth>
                   }
                 />
+                {/* Redirect /admin-tools to /admin for backward compatibility */}
+                <Route path="/admin-tools" element={<Navigate to="/admin" replace />} />
                 <Route
                   path="/live-entry"
                   element={

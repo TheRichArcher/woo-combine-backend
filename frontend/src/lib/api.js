@@ -284,10 +284,18 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Try a one-time token refresh and retry the original request
       const original = error.config || {};
-    const reqUrl = String(original.url || error.config?.url || '');
-    const isAuthCriticalPath = reqUrl.includes('/users/me') || reqUrl.includes('/users/role') || reqUrl.includes('/leagues/me');
+      const reqUrl = String(original.url || error.config?.url || '');
+      const isAuthCriticalPath = reqUrl.includes('/users/me') || reqUrl.includes('/users/role') || reqUrl.includes('/leagues/me');
+      const isSchemaPath = reqUrl.includes('/schema');
       const currentPath = (typeof window !== 'undefined' && window.location) ? window.location.pathname : '';
       const isOnboardingPath = ['/login','/signup','/verify-email','/welcome','/'].includes(currentPath);
+
+      // Special handling for schema 401s - these are often context mismatches, not auth failures
+      // Let the component handle gracefully with fallback templates instead of forcing logout
+      if (isSchemaPath) {
+        apiLogger.info('401 on schema endpoint - likely event/league context mismatch, allowing component fallback');
+        return Promise.reject(error);
+      }
 
       if (!original._did401Refresh && auth.currentUser) {
         original._did401Refresh = true;
@@ -300,37 +308,54 @@ api.interceptors.response.use(
             original.headers['Authorization'] = `Bearer ${token}`;
             return api(original);
           })
-          .catch(() => {
-            apiLogger.warn('Token refresh after 401 failed');
-            // On refresh failure: sign out and trigger global session-expired modal
-            try { signOut(auth).catch(() => {}); broadcastLogout(); } catch {}
-            try {
-              if (typeof window !== 'undefined') {
-                if (!window.__wcSessionExpiredShown) {
-                  window.__wcSessionExpiredShown = true;
+          .catch((refreshError) => {
+            // Only force logout if token refresh actually failed (not just a permission issue)
+            const refreshFailed = refreshError?.message?.includes('Token refresh unavailable') || 
+                                  !auth.currentUser;
+            
+            if (refreshFailed) {
+              apiLogger.warn('Token refresh after 401 failed - forcing logout');
+              // On refresh failure: sign out and trigger global session-expired modal
+              try { signOut(auth).catch(() => {}); broadcastLogout(); } catch {}
+              try {
+                if (typeof window !== 'undefined') {
+                  if (!window.__wcSessionExpiredShown) {
+                    window.__wcSessionExpiredShown = true;
+                  }
+                  markSessionStale();
+                  const ev = new CustomEvent('wc-session-expired');
+                  window.dispatchEvent(ev);
                 }
-                markSessionStale();
-                const ev = new CustomEvent('wc-session-expired');
-                window.dispatchEvent(ev);
-              }
-            } catch {}
+              } catch {}
+            } else {
+              // Permission issue, not auth failure - let component handle it
+              apiLogger.info('401 after token refresh but auth still valid - likely permission/context issue');
+            }
             return Promise.reject(error);
           });
       }
 
-      // For all other 401 paths (including onboarding), sign out and show modal instead of redirecting
-      try { signOut(auth).catch(() => {}); } catch {}
-      broadcastLogout();
-      markSessionStale();
-      try {
-        if (typeof window !== 'undefined') {
-          if (!window.__wcSessionExpiredShown) {
-            window.__wcSessionExpiredShown = true;
+      // For repeat 401s (already tried refresh), only logout if no current user
+      // This prevents logout loops when user has valid auth but wrong context
+      if (!auth.currentUser) {
+        apiLogger.warn('401 with no current user - forcing logout');
+        try { signOut(auth).catch(() => {}); } catch {}
+        broadcastLogout();
+        markSessionStale();
+        try {
+          if (typeof window !== 'undefined') {
+            if (!window.__wcSessionExpiredShown) {
+              window.__wcSessionExpiredShown = true;
+            }
+            const ev = new CustomEvent('wc-session-expired');
+            window.dispatchEvent(ev);
           }
-          const ev = new CustomEvent('wc-session-expired');
-          window.dispatchEvent(ev);
-        }
-      } catch {}
+        } catch {}
+      } else {
+        // User is authenticated but getting 401 - likely a permission/context issue
+        apiLogger.info('401 with valid auth - likely permission or context mismatch, not forcing logout');
+      }
+      
       return Promise.reject(error);
     }
     
