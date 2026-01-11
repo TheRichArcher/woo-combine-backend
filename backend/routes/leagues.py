@@ -418,6 +418,90 @@ def list_league_members(
         logging.error(f"Error listing league members: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to list league members")
 
+
+@router.get('/{league_id}/members/{member_id}')
+@read_rate_limit()
+@require_permission("league_members", "read", target="league", target_param="league_id")
+def get_league_member(
+    request: Request,
+    league_id: str = Path(..., regex=r"^.{1,50}$"),
+    member_id: str = Path(..., regex=r"^.{1,50}$"),
+    current_user=Depends(get_current_user)
+):
+    """
+    Get a specific member's details including role and write permissions.
+    
+    Used by frontend to check coach write permissions for UI state (e.g., showing
+    edit buttons vs read-only banner). Reads from the same dual-storage system as
+    ensure_league_access() for consistency with backend authorization.
+    
+    Returns membership record with: role, canWrite, name, email, disabled status.
+    """
+    try:
+        membership = None
+        
+        # Fast path: user_memberships document (matches ensure_league_access logic)
+        memberships_ref = db.collection("user_memberships").document(member_id)
+        memberships_doc = execute_with_timeout(
+            lambda: memberships_ref.get(),
+            timeout=5,
+            operation_name="get member fast path"
+        )
+        
+        if memberships_doc.exists:
+            leagues_data = memberships_doc.to_dict().get("leagues", {})
+            membership = leagues_data.get(league_id)
+            
+            if membership:
+                logging.info(
+                    f"[GET] Found member {member_id} in league {league_id} via fast path (user_memberships)"
+                )
+        
+        if not membership:
+            # Fallback: legacy members subcollection
+            member_ref = (
+                db.collection("leagues")
+                .document(league_id)
+                .collection("members")
+                .document(member_id)
+            )
+            member_doc = execute_with_timeout(
+                lambda: member_ref.get(),
+                timeout=5,
+                operation_name="get member legacy path"
+            )
+            if member_doc.exists:
+                membership = member_doc.to_dict() or {}
+                logging.info(
+                    f"[GET] Found member {member_id} in league {league_id} via legacy path (members subcollection)"
+                )
+        
+        if not membership:
+            logging.warning(
+                f"[GET] Member {member_id} not found in league {league_id} (neither fast nor legacy path)"
+            )
+            raise HTTPException(status_code=404, detail="Member not found in this league")
+        
+        # Add member_id to response for frontend convenience
+        membership["id"] = member_id
+        
+        # Log the permission state for debugging
+        logging.info(
+            f"[GET] Retrieved member {member_id} from league {league_id}: "
+            f"role={membership.get('role', 'unknown')}, "
+            f"canWrite={membership.get('canWrite', True)}, "
+            f"disabled={membership.get('disabled', False)}"
+        )
+        
+        return membership
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error retrieving league member {member_id} in league {league_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve member details")
+
+
 @router.patch('/{league_id}/members/{member_id}/status')
 @write_rate_limit()
 @require_permission("league_members", "update", target="league", target_param="league_id")

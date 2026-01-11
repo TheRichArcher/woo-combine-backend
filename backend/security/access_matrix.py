@@ -45,6 +45,7 @@ ACCESS_MATRIX: Dict[ResourceKey, RoleSet] = {
     ("invitations", "list"): ADMIN_ROLES,
     ("teams", "list"): VIEW_ROLES,
     ("league_members", "list"): ADMIN_ROLES,
+    ("league_members", "read"): VIEW_ROLES,  # Anyone in league can read member details (e.g., coaches checking their own permissions)
     ("league_members", "update"): ADMIN_ROLES,
 }
 
