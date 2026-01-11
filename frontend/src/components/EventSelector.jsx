@@ -24,6 +24,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   // Missing state variables restoration
   const [playerCount, setPlayerCount] = useState(0);
   const [creatingLeague, setCreatingLeague] = useState(false);
+  const [createError, setCreateError] = useState(null);
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;
@@ -174,7 +175,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
           <button
             onClick={ensureLeagueThenOpenModal}
             className="bg-cmf-primary text-white font-bold px-6 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50"
-            disabled={createLoading || creatingLeague}
+            disabled={creatingLeague}
           >
             {creatingLeague ? 'Preparing…' : 'Create Event'}
           </button>
@@ -206,7 +207,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
             </div>
             <button
               onClick={ensureLeagueThenOpenModal}
-              disabled={createLoading || creatingLeague}
+              disabled={creatingLeague}
               className="bg-cmf-primary text-white font-bold px-4 py-3 rounded-lg shadow hover:bg-cmf-secondary transition disabled:opacity-50 whitespace-nowrap"
             >
               {creatingLeague ? 'Preparing…' : 'Create New Event'}
