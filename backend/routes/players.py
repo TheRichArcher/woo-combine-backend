@@ -17,6 +17,7 @@ from ..utils.data_integrity import (
     ensure_league_document,
 )
 from ..utils.identity import generate_player_id
+from ..utils.lock_validation import check_write_permission
 from ..security.access_matrix import require_permission
 import hashlib
 import uuid
