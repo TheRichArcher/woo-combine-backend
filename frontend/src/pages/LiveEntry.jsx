@@ -3,11 +3,13 @@ import { useEvent } from "../context/EventContext";
 import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
+import CombineLockedBanner from "../components/CombineLockedBanner";
 import api from '../lib/api';
 import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 import { useDrills } from '../hooks/useDrills';
+import { useCombineLockState } from '../hooks/useCombineLockState';
 
 
 export default function LiveEntry() {
@@ -15,6 +17,9 @@ export default function LiveEntry() {
   const { userRole } = useAuth();
   const { showError, showSuccess } = useToast();
   const location = useLocation();
+  
+  // Real-time combine lock state monitoring
+  const { isLocked: combineIsLocked, lockMessage, handleSubmitError } = useCombineLockState();
 
   // Refresh event data on mount to ensure drill template is up to date
   useEffect(() => {
@@ -850,9 +855,18 @@ export default function LiveEntry() {
         playerNumberRef.current?.focus();
       }, 100);
       
-          } catch {
-        // Score submission failed
-      showError('Error submitting score. Please try again.');
+    } catch (error) {
+      // Check if error is due to combine being locked
+      const { isLockError, userMessage } = await handleSubmitError(error);
+      
+      if (isLockError) {
+        // Combine was locked - show specific message
+        showError(userMessage);
+        console.log('[LOCK] Score submission blocked - combine is locked');
+      } else {
+        // Generic error
+        showError(userMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -1044,6 +1058,9 @@ export default function LiveEntry() {
       </div>
       
       <div className="max-w-lg mx-auto p-4 space-y-6">
+        {/* Combine Lock Banner */}
+        <CombineLockedBanner isLocked={combineIsLocked} message={lockMessage} />
+        
         {/* Drill Selection */}
         {!selectedDrill || !drillConfirmed ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1334,7 +1351,7 @@ export default function LiveEntry() {
                   
                   <button
                     type="submit"
-                    disabled={loading || isCurrentDrillLocked || !rapidEntryInput}
+                    disabled={loading || isCurrentDrillLocked || combineIsLocked || !rapidEntryInput}
                     className={`w-full font-bold text-xl py-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2
                       ${submitSuccess 
                         ? 'bg-green-500 text-white scale-[1.02] shadow-lg' 
@@ -1512,7 +1529,7 @@ export default function LiveEntry() {
                     onWheel={(e) => e.preventDefault()}
                     placeholder={`Enter ${currentDrill.unit}`}
                     className="w-full text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
-                    disabled={isCurrentDrillLocked}
+                    disabled={isCurrentDrillLocked || combineIsLocked}
                     required
                   />
                 </div>
@@ -1533,7 +1550,7 @@ export default function LiveEntry() {
                       placeholder="e.g., tripped, fast start, minor injury"
                       className="mt-2 w-full p-3 border rounded-lg text-sm"
                       rows={2}
-                      disabled={isCurrentDrillLocked}
+                      disabled={isCurrentDrillLocked || combineIsLocked}
                     />
                   )}
                 </div>
@@ -1541,7 +1558,7 @@ export default function LiveEntry() {
                 {/* Submit Button */}
                 <button
                   type="submit"
-                  disabled={loading || (!submitSuccess && (!playerId || !score || isCurrentDrillLocked))}
+                  disabled={loading || (!submitSuccess && (!playerId || !score || isCurrentDrillLocked || combineIsLocked))}
                   className={`w-full font-bold text-xl py-4 rounded-lg transition-all duration-200 flex items-center justify-center gap-2
                     ${submitSuccess 
                       ? 'bg-green-500 text-white scale-[1.02] shadow-lg' 
