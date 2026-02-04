@@ -36,8 +36,6 @@ def calculate_composite_score(player_data: Dict[str, Any], weights: Optional[Dic
     # If no custom weights provided, use defaults from schema
     use_weights = weights if weights is not None else {d.key: d.default_weight for d in schema.drills}
     
-    score = 0.0
-    
     # 3. Iterate Drills defined in Schema
     # Calculate total weight first for renormalization (only active drills)
     total_weight = 0.0

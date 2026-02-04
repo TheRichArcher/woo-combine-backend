@@ -114,7 +114,7 @@ async def set_user_role(
             # Test Firestore connectivity first
             try:
                 # Try a simple operation to test connection
-                test_doc = db.collection("_test").document("connectivity").get()
+                _ = db.collection("_test").document("connectivity").get()  # Test connectivity
                 logging.info("Firestore connectivity test passed")
             except Exception as conn_error:
                 logging.error(f"Firestore connectivity test failed: {conn_error}")
@@ -263,7 +263,7 @@ async def debug_set_user_role(
             logging.info(f"[DEBUG-ROLE] Firestore client obtained: {type(db)}")
             
             # Simple connectivity test
-            test_doc = db.collection("_debug").document("test").get()
+            _ = db.collection("_debug").document("test").get()
             logging.info("[DEBUG-ROLE] Connectivity test passed")
             
             # Try to create a simple test document
