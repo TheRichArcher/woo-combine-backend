@@ -193,6 +193,7 @@ export function EventProvider({ children }) {
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
       setNoLeague(true);
+      setEventsLoaded(true); // CRITICAL: Mark loaded even with no league to unblock RouteDecisionGate
     }
   }, [selectedLeagueId, authChecked, roleChecked, loadEvents]);
 
