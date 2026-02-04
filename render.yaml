@@ -1,9 +1,10 @@
 services:
   # Frontend Static Site
-  - type: static
+  - type: web
+    runtime: static
     name: woo-combine-frontend
     buildCommand: cd frontend && npm install && npm run build
-    publishDir: frontend/dist
+    staticPublishPath: frontend/dist
     routes:
       - type: rewrite
         source: /*

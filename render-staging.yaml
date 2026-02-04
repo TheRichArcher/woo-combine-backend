@@ -1,0 +1,51 @@
+services:
+  # Tosh's Staging Frontend
+  - type: web
+    runtime: static
+    name: tosh-woo-combine-frontend
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE
+        value: https://tosh-woo-combine-backend.onrender.com/api
+      - key: VITE_LOG_LEVEL
+        value: DEBUG
+      # Firebase config - set in Render dashboard (not in repo for security)
+      - key: VITE_FIREBASE_API_KEY
+        sync: false
+      - key: VITE_FIREBASE_AUTH_DOMAIN
+        sync: false
+      - key: VITE_FIREBASE_PROJECT_ID
+        sync: false
+      - key: VITE_FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: VITE_FIREBASE_APP_ID
+        sync: false
+
+  # Tosh's Staging Backend
+  - type: web
+    name: tosh-woo-combine-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: "uvicorn backend.main:app --host 0.0.0.0 --port 10000"
+    healthCheckPath: "/health"
+    envVars:
+      - key: ALLOWED_ORIGINS
+        value: https://tosh-woo-combine-frontend.onrender.com
+      - key: LOG_LEVEL
+        value: DEBUG
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: GOOGLE_CLOUD_PROJECT
+        value: tosh-woo-combine
+      - key: FIREBASE_PROJECT_ID
+        value: tosh-woo-combine
+      # Service account JSON - will be set in Render dashboard
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false
