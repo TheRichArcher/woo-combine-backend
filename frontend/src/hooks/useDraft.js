@@ -1,105 +1,122 @@
 /**
- * Draft hooks for managing draft state and real-time updates
+ * Draft hooks for managing draft state
+ * Uses backend API polling instead of direct Firestore subscriptions
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { 
-  doc, 
-  collection, 
-  onSnapshot, 
-  query, 
-  where, 
-  orderBy 
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../lib/api';
 
+// Polling interval for real-time updates (ms)
+const POLL_INTERVAL = 2000;
+
 /**
- * Hook to fetch and subscribe to a draft's real-time state
+ * Hook to fetch and poll a draft's state
  */
 export function useDraft(draftId) {
   const [draft, setDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const pollRef = useRef(null);
 
-  useEffect(() => {
+  const fetchDraft = useCallback(async () => {
     if (!draftId) {
       setLoading(false);
       return;
     }
 
-    // Real-time subscription to draft document
-    const unsubscribe = onSnapshot(
-      doc(db, 'drafts', draftId),
-      (doc) => {
-        if (doc.exists()) {
-          setDraft({ id: doc.id, ...doc.data() });
-        } else {
-          setError('Draft not found');
-        }
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Draft subscription error:', err);
-        setError(err.message);
-        setLoading(false);
+    try {
+      const res = await api.get(`/drafts/${draftId}`);
+      setDraft(res.data);
+      setError(null);
+    } catch (err) {
+      console.error('Draft fetch error:', err);
+      if (err.response?.status === 404) {
+        setError('Draft not found');
+      } else {
+        setError(err.response?.data?.detail || err.message);
       }
-    );
-
-    return () => unsubscribe();
+    } finally {
+      setLoading(false);
+    }
   }, [draftId]);
 
-  return { draft, loading, error };
+  // Initial fetch
+  useEffect(() => {
+    fetchDraft();
+  }, [fetchDraft]);
+
+  // Polling for real-time updates
+  useEffect(() => {
+    if (!draftId) return;
+
+    pollRef.current = setInterval(fetchDraft, POLL_INTERVAL);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, [draftId, fetchDraft]);
+
+  return { draft, loading, error, refetch: fetchDraft };
 }
 
 /**
- * Hook to fetch and subscribe to draft picks
+ * Hook to fetch and poll draft picks
  */
 export function useDraftPicks(draftId) {
   const [picks, setPicks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const pollRef = useRef(null);
 
-  useEffect(() => {
+  const fetchPicks = useCallback(async () => {
     if (!draftId) {
       setLoading(false);
       return;
     }
 
-    const picksQuery = query(
-      collection(db, 'draft_picks'),
-      where('draft_id', '==', draftId),
-      orderBy('pick_number', 'asc')
-    );
-
-    const unsubscribe = onSnapshot(
-      picksQuery,
-      (snapshot) => {
-        const picksData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setPicks(picksData);
-        setLoading(false);
-      },
-      (err) => {
-        console.error('Picks subscription error:', err);
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
+    try {
+      const res = await api.get(`/drafts/${draftId}/picks`);
+      setPicks(res.data);
+      setError(null);
+    } catch (err) {
+      console.error('Picks fetch error:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }, [draftId]);
 
-  return { picks, loading };
+  // Initial fetch
+  useEffect(() => {
+    fetchPicks();
+  }, [fetchPicks]);
+
+  // Polling for real-time updates
+  useEffect(() => {
+    if (!draftId) return;
+
+    pollRef.current = setInterval(fetchPicks, POLL_INTERVAL);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, [draftId, fetchPicks]);
+
+  return { picks, loading, error, refetch: fetchPicks };
 }
 
 /**
- * Hook to fetch draft teams
+ * Hook to fetch and poll draft teams
  */
 export function useDraftTeams(draftId) {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const pollRef = useRef(null);
 
   const fetchTeams = useCallback(async () => {
     if (!draftId) {
@@ -110,37 +127,32 @@ export function useDraftTeams(draftId) {
     try {
       const res = await api.get(`/drafts/${draftId}/teams`);
       setTeams(res.data);
+      setError(null);
     } catch (err) {
+      console.error('Teams fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [draftId]);
 
+  // Initial fetch
   useEffect(() => {
     fetchTeams();
   }, [fetchTeams]);
 
-  // Real-time updates for teams
+  // Polling for real-time updates
   useEffect(() => {
     if (!draftId) return;
 
-    const teamsQuery = query(
-      collection(db, 'draft_teams'),
-      where('draft_id', '==', draftId),
-      orderBy('pick_order', 'asc')
-    );
+    pollRef.current = setInterval(fetchTeams, POLL_INTERVAL);
 
-    const unsubscribe = onSnapshot(teamsQuery, (snapshot) => {
-      const teamsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setTeams(teamsData);
-    });
-
-    return () => unsubscribe();
-  }, [draftId]);
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, [draftId, fetchTeams]);
 
   return { teams, loading, error, refetch: fetchTeams };
 }
@@ -152,6 +164,7 @@ export function useAvailablePlayers(draftId) {
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const pollRef = useRef(null);
 
   const fetchPlayers = useCallback(async () => {
     if (!draftId) {
@@ -162,16 +175,32 @@ export function useAvailablePlayers(draftId) {
     try {
       const res = await api.get(`/drafts/${draftId}/players`);
       setPlayers(res.data);
+      setError(null);
     } catch (err) {
+      console.error('Players fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   }, [draftId]);
 
+  // Initial fetch
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  // Polling for real-time updates (to track who's been drafted)
+  useEffect(() => {
+    if (!draftId) return;
+
+    pollRef.current = setInterval(fetchPlayers, POLL_INTERVAL);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
+    };
+  }, [draftId, fetchPlayers]);
 
   return { players, loading, error, refetch: fetchPlayers };
 }
@@ -194,7 +223,9 @@ export function useCoachRankings(draftId) {
     try {
       const res = await api.get(`/drafts/${draftId}/rankings`);
       setRankings(res.data.ranked_player_ids || []);
+      setError(null);
     } catch (err) {
+      console.error('Rankings fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -210,6 +241,7 @@ export function useCoachRankings(draftId) {
         ranked_player_ids: rankedPlayerIds
       });
       setRankings(rankedPlayerIds);
+      setError(null);
     } catch (err) {
       setError(err.message);
       throw err;
@@ -343,7 +375,9 @@ export function useDraftList(eventId) {
     try {
       const res = await api.get(`/drafts?event_id=${eventId}`);
       setDrafts(res.data);
+      setError(null);
     } catch (err) {
+      console.error('Drafts list fetch error:', err);
       setError(err.message);
     } finally {
       setLoading(false);
