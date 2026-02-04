@@ -63,7 +63,9 @@ function App() {
   // Log build version on app load for deployment verification
   useEffect(() => {
     const buildInfo = {
+      // eslint-disable-next-line no-undef
       sha: typeof __BUILD_SHA__ !== 'undefined' ? __BUILD_SHA__ : 'dev',
+      // eslint-disable-next-line no-undef
       time: typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'dev',
       url: window.location.href
     };

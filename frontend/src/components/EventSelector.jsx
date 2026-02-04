@@ -9,7 +9,7 @@ import { ChevronDown, Calendar, MapPin, Users, Trophy, CheckCircle, Clock } from
 import EventFormModal from "./EventFormModal";
 
 const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
-  const { events, selectedEvent, setSelectedEvent, setEvents, loading, eventsLoaded, error, refreshEvents } = useEvent();
+  const { events, selectedEvent, setSelectedEvent, loading, eventsLoaded, error, refreshEvents } = useEvent();
   const { selectedLeagueId, user: _user, setSelectedLeagueId } = useAuth();
   const [showModal, setShowModal] = useState(false);
   
@@ -24,7 +24,7 @@ const EventSelector = React.memo(function EventSelector({ onEventSelected }) {
   // Missing state variables restoration
   const [playerCount, setPlayerCount] = useState(0);
   const [creatingLeague, setCreatingLeague] = useState(false);
-  const [createError, setCreateError] = useState(null);
+  const [_createError, setCreateError] = useState(null);
 
   const handleSelect = useCallback((e) => {
     if (!Array.isArray(events)) return;

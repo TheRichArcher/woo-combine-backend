@@ -13,7 +13,6 @@ export default function CombineLockControl({ leagueId, event }) {
 
   const isLocked = event?.isLocked || false;
   const eventId = event?.id;
-  const eventName = event?.name || 'this event';
 
   const handleToggleLock = async () => {
     if (!eventId || !leagueId) {

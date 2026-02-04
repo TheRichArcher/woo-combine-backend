@@ -6,7 +6,7 @@ import { Users, Settings, Activity, BarChart3, ArrowRight, CheckCircle, X, Plus,
 import EventSetup from "./EventSetup";
 
 export default function AdminTools() {
-  const { userRole, selectedLeagueId } = useAuth();
+  const { userRole } = useAuth();
   const { selectedEvent, events } = useEvent();
   const [view, setView] = useState('hub'); // 'hub' | 'setup'
   const navigate = useNavigate();

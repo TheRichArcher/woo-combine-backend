@@ -81,11 +81,6 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     }
   }, [deleteEventAvailable, deleteEvent, targetEvent]);
 
-  // Permission check
-  if (userRole !== 'organizer') {
-    return null; // Should never happen - backend also enforces
-  }
-
   // Fetch event stats when component mounts
   useEffect(() => {
     const fetchStats = async () => {
@@ -309,6 +304,11 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
     setPasteBlocked(false);
     setShowFinalModal(false);
   };
+
+  // Permission check - must be after all hooks
+  if (userRole !== 'organizer') {
+    return null; // Should never happen - backend also enforces
+  }
 
   // CRITICAL: Use targetEvent (immutable snapshot) for validation, not event prop
   // The event prop can become null after context switch, but targetEvent remains stable
