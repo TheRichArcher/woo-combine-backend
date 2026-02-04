@@ -1,3 +1,4 @@
+/* eslint-disable no-console, no-unused-vars, no-extra-boolean-cast */
 /**
  * League/Event Fix Verification Script
  * 
