@@ -237,7 +237,7 @@ export default function EventFormModal({ open, onClose, mode = "create", event =
           />
 
           <small className="text-gray-500 text-xs mb-4 block">
-            Leave location/notes blank if not determined yet
+            Event name and date are required. Location/notes are optional.
           </small>
 
           {/* Error Display */}

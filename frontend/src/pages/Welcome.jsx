@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import Button from "../components/ui/Button";
 import { Link as RouterLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 // Simplified welcome content - no more confusing A/B testing
 const getWelcomeContent = () => {
@@ -16,6 +17,31 @@ const getWelcomeContent = () => {
 
 export default function Welcome() {
   const navigate = useNavigate();
+  const { user, userRole, status, initializing } = useAuth();
+  
+  // Redirect authenticated users to appropriate destination
+  useEffect(() => {
+    // Wait for auth to finish initializing
+    if (initializing) return;
+    
+    // If user is logged in
+    if (user) {
+      // If email not verified, go to verify-email
+      if (!user.emailVerified) {
+        navigate('/verify-email', { replace: true });
+        return;
+      }
+      
+      // If no role selected, go to role selection
+      if (!userRole) {
+        navigate('/select-role', { replace: true });
+        return;
+      }
+      
+      // Authenticated with role - go to dashboard
+      navigate('/coach', { replace: true });
+    }
+  }, [user, userRole, initializing, navigate]);
   
   const content = getWelcomeContent();
 

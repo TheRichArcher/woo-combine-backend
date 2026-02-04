@@ -314,9 +314,17 @@ export default function VerifyEmail() {
               with a link to verify your WooCombine account.
             </p>
             <p className="text-gray-600 text-sm leading-relaxed">
-              It might take a few minutes. If you don't see our email in your inbox, please check your spam or 
-              promo folders. If you see multiple emails, make sure you're selecting the most recent verification email.
+              It might take a few minutes. If you see multiple emails, make sure you're selecting the most recent verification email.
             </p>
+            {/* Prominent spam warning */}
+            <div className="mt-3 bg-amber-50 border border-amber-300 rounded-lg px-4 py-3 text-left">
+              <p className="text-amber-900 text-sm font-semibold flex items-center gap-2">
+                <span className="text-lg">📬</span> Can't find it? Check your spam folder!
+              </p>
+              <p className="text-amber-800 text-xs mt-1">
+                Verification emails sometimes land in spam or promotions. Search for "WooCombine" or "verify" in your email.
+              </p>
+            </div>
             <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-left">
               <p className="text-blue-900 text-sm leading-relaxed font-medium mb-1">
                 💡 What to expect:
