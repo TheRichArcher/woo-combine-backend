@@ -4,6 +4,7 @@ import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { ChevronLeft, ChevronRight, Calendar, MapPin, Clock, Plus, AlertCircle, ArrowLeft } from 'lucide-react';
 import { logger } from '../utils/logger';
+import { parseLocalDate, formatEventDateCustom } from '../utils/dateUtils';
 import EventSelector from '../components/EventSelector';
 
 export default function Schedule() {
@@ -15,8 +16,9 @@ export default function Schedule() {
   // CRITICAL: Defensive filter - never render soft-deleted events
   const scheduleEvents = events.filter(event => !event.deleted_at && !event.deletedAt).map(event => {
     try {
-      const eventDate = new Date(event.date);
-      const isValidDate = !isNaN(eventDate.getTime());
+      // Use parseLocalDate to avoid timezone shift issues
+      const eventDate = parseLocalDate(event.date);
+      const isValidDate = eventDate !== null;
       const isUpcoming = isValidDate && eventDate >= new Date();
       
       return {
@@ -95,11 +97,11 @@ export default function Schedule() {
 
   const days = getDaysInMonth(currentMonth);
 
-  // Filter upcoming events
+  // Filter upcoming events (using parseLocalDate to avoid timezone issues)
   const futureEvents = upcomingEvents.filter(event => {
-    const eventDate = new Date(event.date);
-    return eventDate >= new Date();
-  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    const eventDate = parseLocalDate(event.date);
+    return eventDate && eventDate >= new Date();
+  }).sort((a, b) => (parseLocalDate(a.date) || 0) - (parseLocalDate(b.date) || 0));
 
   if (!selectedLeagueId) {
     return (
@@ -294,7 +296,7 @@ export default function Schedule() {
                       {/* Date and Time */}
                       <div className="flex items-center text-gray-700 text-sm mb-2">
                         <Clock className="w-4 h-4 mr-2" />
-                        {new Date(event.date).toLocaleDateString('en-US', { 
+                        {formatEventDateCustom(event.date, { 
                           weekday: 'long', 
                           month: 'short', 
                           day: 'numeric',

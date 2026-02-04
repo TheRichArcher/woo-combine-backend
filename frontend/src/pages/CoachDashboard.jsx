@@ -13,6 +13,7 @@ import { Settings, ChevronDown, Users, BarChart3, CheckCircle, Clock, Target, Tr
 import { useNavigate, Link } from "react-router-dom";
 import CreateLeagueForm from '../components/CreateLeagueForm';
 import { playerLogger, rankingLogger } from '../utils/logger';
+import { formatEventDate } from '../utils/dateUtils';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights';
 import LoadingScreen from "../components/LoadingScreen";
@@ -248,8 +249,8 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // Format event date
-  const formattedDate = selectedEvent && selectedEvent.date && !isNaN(Date.parse(selectedEvent.date)) ? new Date(selectedEvent.date).toLocaleDateString() : 'Date not set';
+  // Format event date (using dateUtils to avoid timezone shift)
+  const formattedDate = selectedEvent?.date ? formatEventDate(selectedEvent.date) : 'Date not set';
 
   // Scroll to import section if hash is present
   useEffect(() => {
