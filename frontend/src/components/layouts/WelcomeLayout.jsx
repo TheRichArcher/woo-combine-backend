@@ -57,12 +57,12 @@ export default function WelcomeLayout({
       <footer className="w-full flex flex-col items-center gap-2 pb-8 mt-auto relative z-10">
         {footerLinks}
         {!footerLinks && (
-          <div className="flex gap-3 text-white/80 text-sm">
-            <a href="/terms" className="hover:underline">Terms</a>
+          <div className={`flex gap-3 text-sm ${isLightBackground ? "text-gray-500" : "text-white/80"}`}>
+            <a href="/terms" className="hover:underline hover:text-gray-700">Terms</a>
             <span>·</span>
-            <a href="/privacy" className="hover:underline">Privacy</a>
+            <a href="/privacy" className="hover:underline hover:text-gray-700">Privacy</a>
             <span>·</span>
-            <a href="/help" className="hover:underline">Contact</a>
+            <a href="/help" className="hover:underline hover:text-gray-700">Contact</a>
           </div>
         )}
       </footer>
