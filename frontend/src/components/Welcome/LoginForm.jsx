@@ -3,7 +3,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase";
 import { useAuth } from "../../context/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft, Mail, Loader2 } from "lucide-react";
 import Button from "../ui/Button";
 import { authLogger } from "../../utils/logger";
 import { isExpectedAuthError } from "../../utils/authErrorHandler";
@@ -132,7 +132,14 @@ export default function LoginForm() {
         {formError && <div className="text-red-500 mb-4 text-sm w-full text-center">{formError}</div>}
         
         <Button type="submit" size="lg" className="w-full mb-4" disabled={submitting}>
-          {submitting ? "Signing In..." : "Sign In"}
+          {submitting ? (
+            <>
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+              Signing In...
+            </>
+          ) : (
+            "Sign In"
+          )}
         </Button>
 
         {/* Footer Links */}
