@@ -11,6 +11,7 @@ from .routes.imports import router as imports_router
 from .routes.stats import router as stats_router
 from .routes.schemas import router as schemas_router
 from .routes.migrations import router as migrations_router
+from .routes.drafts import router as drafts_router
 from .auth import get_current_user
 from .middleware.rate_limiting import add_rate_limiting, health_rate_limit, read_rate_limit
 from .middleware.abuse_protection import add_abuse_protection_middleware
@@ -141,6 +142,7 @@ app.include_router(evaluators_router, prefix="/api", tags=["Evaluators"])
 app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 app.include_router(imports_router, prefix="/api", tags=["Imports"])
 app.include_router(stats_router, prefix="/api", tags=["Stats"])
+app.include_router(drafts_router, prefix="/api", tags=["Drafts"])
 app.include_router(schemas_router, prefix="/api", tags=["Schemas"])
 app.include_router(migrations_router, prefix="/api", tags=["Migrations"])
 
