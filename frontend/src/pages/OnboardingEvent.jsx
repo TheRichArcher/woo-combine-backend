@@ -158,14 +158,16 @@ export default function OnboardingEvent() {
     if (!createdEvent?.id) return;
     try {
       const { data } = await api.get(`/players?event_id=${createdEvent.id}`);
-      const players = Array.isArray(data) ? data : [];
-      setPlayerCount(players.length);
+      const fetchedPlayers = Array.isArray(data) ? data : [];
+      setPlayers(fetchedPlayers);  // Update players state for AddPlayerModal
+      setPlayerCount(fetchedPlayers.length);
       
       // Check if any player has scores (non-empty scores object)
-      const scoresExist = players.some(p => p.scores && Object.keys(p.scores).length > 0);
+      const scoresExist = fetchedPlayers.some(p => p.scores && Object.keys(p.scores).length > 0);
       setHasScores(scoresExist);
-      return { playerCount: players.length, hasScores: scoresExist };
+      return { playerCount: fetchedPlayers.length, hasScores: scoresExist };
     } catch (_error) {
+      setPlayers([]);
       setPlayerCount(0);
       setHasScores(false);
       return { playerCount: 0, hasScores: false };
