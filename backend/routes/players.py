@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from pydantic import BaseModel
@@ -19,8 +19,6 @@ from ..utils.data_integrity import (
 from ..utils.identity import generate_player_id
 from ..utils.lock_validation import check_write_permission
 from ..security.access_matrix import require_permission
-import hashlib
-import uuid
 
 router = APIRouter()
 
@@ -202,7 +200,7 @@ def create_player(
             timeout=5
         )
         
-        logging.info(f"[CREATE_PLAYER] Player created successfully")
+        logging.info("[CREATE_PLAYER] Player created successfully")
         
         return {
             "id": player_id,
@@ -391,7 +389,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
                      # Even if num is None, we can generate an ID
                      pid = generate_player_id(event_id, p.get("first_name"), p.get("last_name"), num)
                      ids_to_fetch.append(pid)
-                except:
+                except Exception:
                     pass
         
         # Fetch existing documents in batches (Firestore limit 10-30 per getAll? No, supports more but better chunked)
@@ -677,7 +675,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             
             # DEBUG: Log first player storage data
             if idx == 0:
-                logging.info(f"[STORAGE] Row 1 player_data being written:")
+                logging.info("[STORAGE] Row 1 player_data being written:")
                 logging.info(f"[STORAGE]   - player_id: {player_id}")
                 logging.info(f"[STORAGE]   - name: {player_data.get('name')}")
                 logging.info(f"[STORAGE]   - first: {player_data.get('first')}")
@@ -741,7 +739,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         # Suppress warning if at least some scores were written, unless specific debugging is needed
         if missing_drills and scores_written_total == 0:
             logging.warning(f"[IMPORT_WARNING] Expected drill keys not received in any player data: {missing_drills}")
-            logging.warning(f"[IMPORT_WARNING] This could mean: 1) No players had scores for these drills, 2) CSV columns weren't mapped correctly, or 3) Column names didn't match drill keys/labels")
+            logging.warning("[IMPORT_WARNING] This could mean: 1) No players had scores for these drills, 2) CSV columns weren't mapped correctly, or 3) Column names didn't match drill keys/labels")
             # Add detail about first row keys
             if len(players) > 0:
                  logging.warning(f"[IMPORT_WARNING] First row keys for debugging: {list(players[0].keys())}")
@@ -769,7 +767,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
             logging.error(f"Failed to write import audit log: {e}")
             
         # FINAL SUMMARY LOG
-        logging.info(f"[UPLOAD_COMPLETE] ═══════════════════════════════════════")
+        logging.info("[UPLOAD_COMPLETE] ═══════════════════════════════════════")
         logging.info(f"[UPLOAD_COMPLETE] Event: {event_id}")
         logging.info(f"[UPLOAD_COMPLETE] Mode: {req.mode}")
         logging.info(f"[UPLOAD_COMPLETE] Players received: {len(players)}")
@@ -777,7 +775,7 @@ def upload_players(request: Request, req: UploadRequest, current_user=Depends(re
         logging.info(f"[UPLOAD_COMPLETE] Updated (existing): {updated_players}")
         logging.info(f"[UPLOAD_COMPLETE] Errors/Rejected: {len(errors)}")
         logging.info(f"[UPLOAD_COMPLETE] Total scores written: {scores_written_total}")
-        logging.info(f"[UPLOAD_COMPLETE] ═══════════════════════════════════════")
+        logging.info("[UPLOAD_COMPLETE] ═══════════════════════════════════════")
         
         return {
             "added": added, 
@@ -871,7 +869,7 @@ def revert_import(request: Request, req: RevertRequest, current_user=Depends(req
                 "method": "undo"
             }
             execute_with_timeout(lambda: import_log_ref.set(log_entry), timeout=5)
-        except:
+        except Exception:
             pass
             
         logging.info(f"Revert completed: {restored} restored, {deleted} deleted")
@@ -938,7 +936,7 @@ def get_rankings(
                 drill_key = key.replace("weight_", "")
                 try:
                     custom_weights[drill_key] = float(value)
-                except:
+                except Exception:
                     pass
         
         # Use custom weights if provided, otherwise calculate_composite_score uses schema defaults

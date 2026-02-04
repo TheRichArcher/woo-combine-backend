@@ -344,7 +344,7 @@ def get_dashboard_data(
                     operation_name=f"player count for event {event.id}"
                 )
                 event_dict["player_count"] = players_count
-            except:
+            except Exception:
                 event_dict["player_count"] = 0
             
             events.append(event_dict)

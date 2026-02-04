@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-from typing import List, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Request
+from typing import List
 from pydantic import BaseModel
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 import logging
 from ..firestore_client import db
 from datetime import datetime
-from ..models import EvaluatorSchema, DrillResultSchema, MultiEvaluatorDrillResult
+from ..models import EvaluatorSchema
 from ..utils.database import execute_with_timeout
 from ..utils.validation import validate_drill_score, get_unit_for_drill
 from ..utils.data_integrity import enforce_event_league_relationship
 from ..security.access_matrix import require_permission
+from ..utils.lock_validation import check_write_permission
 import statistics
 
 router = APIRouter()

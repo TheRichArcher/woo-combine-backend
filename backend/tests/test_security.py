@@ -1,6 +1,5 @@
 import os
 import importlib
-import types
 
 
 def import_app():

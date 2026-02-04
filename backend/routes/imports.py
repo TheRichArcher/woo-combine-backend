@@ -6,10 +6,9 @@ import csv
 import io
 import logging
 
-from ..auth import get_current_user, require_role
+from ..auth import require_role
 from ..middleware.rate_limiting import write_rate_limit, read_rate_limit
 from ..utils.importers import DataImporter
-from ..utils.validation import DRILL_SCORE_RANGES
 from ..utils.data_integrity import enforce_event_league_relationship
 from ..utils.database import execute_with_timeout
 from ..utils.identity import generate_player_id
@@ -135,7 +134,7 @@ def parse_import_file(
             try:
                 raw_num = data.get("jersey_number")
                 number = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
-            except:
+            except Exception:
                 number = None
             
             # Generate ID deterministically

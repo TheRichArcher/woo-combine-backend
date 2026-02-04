@@ -4,8 +4,8 @@ Handles draft creation, management, picks, and real-time state.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Query
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
+from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client

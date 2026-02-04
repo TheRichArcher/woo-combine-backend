@@ -239,7 +239,7 @@ async def debug_set_user_role(
         # Disable in production unless explicitly enabled
         if os.getenv("ENABLE_DEBUG_ENDPOINTS", "false").lower() not in ("1", "true", "yes"):
             raise HTTPException(status_code=404, detail="Not Found")
-        logging.info(f"[DEBUG-ROLE] Starting role setting debug")
+        logging.info("[DEBUG-ROLE] Starting role setting debug")
         
         # Very basic Firebase token verification
         token = credentials.credentials
@@ -264,12 +264,12 @@ async def debug_set_user_role(
             
             # Simple connectivity test
             test_doc = db.collection("_debug").document("test").get()
-            logging.info(f"[DEBUG-ROLE] Connectivity test passed")
+            logging.info("[DEBUG-ROLE] Connectivity test passed")
             
             # Try to create a simple test document
             test_data = {"test": "value", "timestamp": datetime.utcnow().isoformat()}
             db.collection("_debug").document(f"test_{uid}").set(test_data)
-            logging.info(f"[DEBUG-ROLE] Test document created successfully")
+            logging.info("[DEBUG-ROLE] Test document created successfully")
             
             return {
                 "success": True,
@@ -313,7 +313,7 @@ async def set_user_role_simple(
         raise HTTPException(status_code=404, detail="Not Found")
 
     try:
-        logging.info(f"[SIMPLE-ROLE] Starting simplified role setting")
+        logging.info("[SIMPLE-ROLE] Starting simplified role setting")
         
         # Extract auth header manually
         auth_header = request.headers.get("authorization")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Request
 from typing import List
 from ..schemas import SportSchema
 from ..services.schema_registry import SchemaRegistry

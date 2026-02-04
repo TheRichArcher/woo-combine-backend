@@ -4,8 +4,7 @@ import logging
 import re
 from typing import List, Dict, Any, Optional, Tuple
 import openpyxl
-from datetime import datetime
-from .validation import validate_drill_score, get_unit_for_drill, DRILL_SCORE_RANGES
+from .validation import DRILL_SCORE_RANGES
 from ..services.schema_registry import SchemaRegistry
 
 logger = logging.getLogger(__name__)

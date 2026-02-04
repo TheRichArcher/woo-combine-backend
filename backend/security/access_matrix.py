@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from functools import wraps
-from typing import Any, Awaitable, Callable, Dict, Iterable, Literal, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, Literal, Optional, Set, Tuple
 
 from fastapi import HTTPException
 

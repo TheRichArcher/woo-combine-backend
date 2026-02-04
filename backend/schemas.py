@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Union, Literal
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 
 class DrillDefinition(BaseModel):

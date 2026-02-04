@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from ..auth import require_role
 from ..firestore_client import db
-from ..utils.database import execute_with_timeout
 import logging
 
 router = APIRouter()

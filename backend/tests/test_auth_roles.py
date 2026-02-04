@@ -111,7 +111,6 @@ def test_role_enforced_on_write(monkeypatch):
     monkeypatch.setattr(fsc, "get_firestore_client", fake_get_client)
     monkeypatch.setattr(auth_mod, "get_firestore_client", fake_get_client)
 
-    from starlette.testclient import TestClient
 
     app = import_app()
     client = TestClient(app)

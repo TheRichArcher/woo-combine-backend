@@ -147,7 +147,7 @@ def validate_drill_score(score: float, drill_type: str) -> float:
         raise ValidationError(f"Unknown drill type: {drill_type}")
     
     if not isinstance(score, (int, float)):
-        raise ValidationError(f"Drill score must be a number")
+        raise ValidationError("Drill score must be a number")
     
     ranges = DRILL_SCORE_RANGES[drill_type]
     if score < ranges['min'] or score > ranges['max']:

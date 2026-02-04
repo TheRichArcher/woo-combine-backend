@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Tuple
 from google.cloud import vision
 from google.oauth2 import service_account
 

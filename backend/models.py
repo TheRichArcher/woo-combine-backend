@@ -3,7 +3,6 @@
 
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Any, Dict, List
-from datetime import datetime
 
 # Pydantic schemas for API responses
 class PlayerSchema(BaseModel):
@@ -51,15 +50,9 @@ class PlayerSchema(BaseModel):
         }
         
         # Update scores map if needed
-        scores_updated = False
         for key, value in legacy_map.items():
             if value is not None and key not in self.scores:
                 self.scores[key] = value
-                scores_updated = True
-        
-        # If we updated scores via self.scores[...] assignment, that's safe because 
-        # 'scores' is a mutable dict, not a field assignment on self (unless we replaced the whole dict)
-        # But to be safe, let's ensure we are working with the dict reference
         
         # 2. Map Scores Map -> Legacy Fields (for backward compatibility)
         # Use direct __dict__ access to bypass validation hooks

@@ -1,4 +1,3 @@
-import time
 from functools import lru_cache
 from ..middleware.observability import add_cache_deltas
 

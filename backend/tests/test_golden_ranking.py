@@ -1,4 +1,3 @@
-import pytest
 from backend.routes.players import calculate_composite_score
 from backend.schemas import SportSchema, DrillDefinition
 

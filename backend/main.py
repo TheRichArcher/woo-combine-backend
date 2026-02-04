@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, Body
 from fastapi.middleware.cors import CORSMiddleware
 from .routes.players import router as players_router
 from .routes.leagues import router as leagues_router
@@ -13,7 +13,7 @@ from .routes.schemas import router as schemas_router
 from .routes.migrations import router as migrations_router
 from .routes.drafts import router as drafts_router
 from .auth import get_current_user
-from .middleware.rate_limiting import add_rate_limiting, health_rate_limit, read_rate_limit
+from .middleware.rate_limiting import add_rate_limiting, health_rate_limit
 from .middleware.abuse_protection import add_abuse_protection_middleware
 from .middleware.security import (
     add_security_headers_middleware,
@@ -25,14 +25,10 @@ from .middleware.observability import (
 )
 import logging
 from pathlib import Path
-from fastapi.staticfiles import StaticFiles
 import os
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response, JSONResponse
 from fastapi.responses import PlainTextResponse
-from google.cloud import firestore
 from datetime import datetime
-import asyncio
 from .utils.error_handling import StandardError, handle_standard_error
  
 # Enable or disable debug/test endpoints via environment
@@ -212,7 +208,6 @@ def warmup_endpoint(request: Request):
     
     # PERFORMANCE OPTIMIZATION: Parallel warmup operations for maximum efficiency
     import concurrent.futures
-    import threading
     
     def warmup_firestore():
         try:
@@ -247,8 +242,8 @@ def warmup_endpoint(request: Request):
     
     def warmup_auth():
         try:
-            from . import auth
-            from firebase_admin import auth as admin_auth
+            from . import auth  # noqa: F401 - intentional preload
+            from firebase_admin import auth as admin_auth  # noqa: F401 - intentional preload
             
             # Test that auth module is importable and Firebase Admin is initialized
             logging.info("[WARMUP] Auth module pre-initialized")
@@ -259,7 +254,7 @@ def warmup_endpoint(request: Request):
     
     def warmup_routes():
         try:
-            from .routes import leagues, users
+            from .routes import leagues, users  # noqa: F401 - intentional preload
             logging.info("[WARMUP] Critical routes pre-initialized")
             return "warmed"
         except Exception as e:
@@ -290,7 +285,6 @@ def warmup_endpoint(request: Request):
         "version": "1.0.2"
     }
 
-from fastapi import Body
 
 @app.post("/api/csp-report", include_in_schema=False)
 def csp_report(report: dict = Body(default=None)):

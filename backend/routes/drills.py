@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
-from typing import List
 from pydantic import BaseModel
-from ..models import DrillResultSchema
-from ..auth import get_current_user, require_role
-from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
+from ..auth import require_role
+from ..middleware.rate_limiting import write_rate_limit
 from ..firestore_client import db
 from google.cloud import firestore
 import logging

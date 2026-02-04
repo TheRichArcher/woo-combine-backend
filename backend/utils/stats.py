@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any
 from ..firestore_client import db
 from ..utils.event_schema import get_event_schema
 

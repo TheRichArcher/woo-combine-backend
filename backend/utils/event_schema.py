@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from ..firestore_client import db
 from ..services.schema_registry import SchemaRegistry
 from ..schemas import SportSchema, DrillDefinition
@@ -112,5 +112,5 @@ def get_event_schema(event_id: str, league_id: Optional[str] = None) -> SportSch
             # But 'template_id' might be available in local scope if we crashed later
             # Safe fallback:
             return SchemaRegistry.get_schema("football")
-        except:
+        except Exception:
             return SchemaRegistry.get_schema("football")

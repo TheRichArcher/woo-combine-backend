@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Body, Body
+from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Body
 from ..firestore_client import db
 from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
-from google.cloud.firestore import Query
+from google.cloud.firestore import Query as FirestoreQuery
 from ..utils.database import execute_with_timeout
 from ..security.access_matrix import require_permission
-from ..utils.authorization import ensure_league_access
 
 # Fixed: Removed FieldPath import to resolve deployment issues
 
@@ -69,7 +68,7 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
         logging.info(f"🔄 No user_memberships found, checking legacy system for user {user_id}")
         
         # Reduced limit for faster cold start response
-        leagues_query = db.collection('leagues').order_by("created_at", direction=Query.DESCENDING).limit(5)
+        leagues_query = db.collection('leagues').order_by("created_at", direction=FirestoreQuery.DESCENDING).limit(5)
         all_leagues = execute_with_timeout(lambda: list(leagues_query.stream()), timeout=8, operation_name="leagues stream")
         
         # Check membership in each league (old way) with longer timeouts
@@ -307,7 +306,7 @@ def join_league(
         batch.set(user_memberships_ref, membership_update, merge=True)
         
         # Execute both operations atomically
-        logging.info(f"[BATCH] Preparing to write membership to paths:")
+        logging.info("[BATCH] Preparing to write membership to paths:")
         logging.info(f"  1. {member_ref.path}")
         logging.info(f"  2. {user_memberships_ref.path} (update)")
         

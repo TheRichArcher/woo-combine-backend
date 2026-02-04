@@ -15,11 +15,9 @@ from ..security.access_matrix import require_permission
 from pydantic import BaseModel
 from ..utils.delete_token import generate_delete_intent_token, validate_delete_intent_token
 import jwt
-from typing import Dict
 from ..models import (
     CustomDrillCreateRequest,
-    CustomDrillUpdateRequest,
-    CustomDrillSchema
+    CustomDrillUpdateRequest
 )
 from ..utils.event_schema import get_event_schema
 
@@ -499,7 +497,7 @@ def delete_event(
                         'error': 'Missing X-Delete-Target-Event-Id header'
                     }
                 )
-            except:
+            except Exception:
                 pass
             
             raise HTTPException(
@@ -525,7 +523,7 @@ def delete_event(
                         'user_id': current_user['uid']
                     }
                 )
-            except:
+            except Exception:
                 pass
             
             raise HTTPException(

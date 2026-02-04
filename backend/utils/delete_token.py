@@ -15,7 +15,6 @@ from datetime import datetime, timedelta
 import os
 import logging
 import uuid
-from typing import Optional
 
 # Secret key for JWT signing (REQUIRED in production)
 SECRET_KEY = os.environ.get("DELETE_TOKEN_SECRET_KEY")
@@ -145,7 +144,7 @@ def validate_delete_intent_token(
         # CRITICAL: Verify jti (JWT ID) for one-time-use
         jti = payload.get("jti")
         if not jti:
-            logging.error(f"[DELETE_TOKEN] Missing jti claim in token")
+            logging.error("[DELETE_TOKEN] Missing jti claim in token")
             raise ValueError("Token missing jti claim (not a valid delete intent token)")
         
         # Check if jti exists in usage store
@@ -167,17 +166,17 @@ def validate_delete_intent_token(
         # Verify user_id claim
         if payload.get("user_id") != expected_user_id:
             logging.error(f"[DELETE_TOKEN] User ID mismatch - Token: {payload.get('user_id')}, Expected: {expected_user_id}")
-            raise ValueError(f"Token user_id mismatch")
+            raise ValueError("Token user_id mismatch")
         
         # Verify league_id claim
         if payload.get("league_id") != expected_league_id:
             logging.error(f"[DELETE_TOKEN] League ID mismatch - Token: {payload.get('league_id')}, Expected: {expected_league_id}")
-            raise ValueError(f"Token league_id mismatch")
+            raise ValueError("Token league_id mismatch")
         
         # Verify target_event_id claim (CRITICAL)
         if payload.get("target_event_id") != expected_target_event_id:
             logging.error(f"[DELETE_TOKEN] Target event ID mismatch - Token: {payload.get('target_event_id')}, Expected: {expected_target_event_id}")
-            raise ValueError(f"Token target_event_id mismatch")
+            raise ValueError("Token target_event_id mismatch")
         
         # Mark token as used if requested (prevents replay)
         if mark_as_used:

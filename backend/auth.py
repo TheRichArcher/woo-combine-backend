@@ -6,11 +6,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from typing import Optional, Dict
 import os
 import json
-from google.cloud import firestore
 from datetime import datetime
 import logging
-import asyncio
-from functools import wraps, lru_cache
+from functools import lru_cache
 import time
 from collections import defaultdict
 
@@ -211,7 +209,7 @@ def get_current_user(
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
         try:
             db = get_firestore_client()
-            logging.info(f"[AUTH] Firestore client obtained successfully")
+            logging.info("[AUTH] Firestore client obtained successfully")
             
             # Direct Firestore call - much faster than ThreadPoolExecutor
             user_doc = db.collection("users").document(uid).get()
@@ -302,12 +300,12 @@ def get_current_user_for_role_setting(
         
     token = credentials.credentials
     try:
-        logging.info(f"[AUTH] Starting token verification for role setting")
+        logging.info("[AUTH] Starting token verification for role setting")
         
         # Strict verification with revocation enforcement
         try:
             decoded_token = _verify_id_token_strict(token)
-            logging.info(f"[AUTH] Token verification completed successfully")
+            logging.info("[AUTH] Token verification completed successfully")
         except getattr(auth, "RevokedIdTokenError", Exception):
             logging.warning("[AUTH] Token has been revoked (role setting)")
             raise HTTPException(
@@ -338,7 +336,7 @@ def get_current_user_for_role_setting(
             
             # If token is less than 5 minutes old, be more lenient
             if current_time - token_issued_at < 300:  # 5 minutes
-                logging.info(f"[AUTH] Allowing role setting for recent token (might be verification delay)")
+                logging.info("[AUTH] Allowing role setting for recent token (might be verification delay)")
             else:
                 logging.warning(f"[AUTH] User {uid} has not verified their email (for role setting)")
                 raise HTTPException(
@@ -351,7 +349,7 @@ def get_current_user_for_role_setting(
         try:
             db = get_firestore_client()
             if not db:
-                logging.error(f"[AUTH] Failed to get Firestore client")
+                logging.error("[AUTH] Failed to get Firestore client")
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                     detail="Database connection failed"

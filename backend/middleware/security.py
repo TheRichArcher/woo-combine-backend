@@ -4,7 +4,7 @@ Implements security headers and policies to protect against common attacks
 """
 
 from fastapi import Request, Response
-from starlette.responses import Response as StarletteResponse, RedirectResponse
+from starlette.responses import RedirectResponse
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
