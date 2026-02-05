@@ -40,9 +40,26 @@ export default function RouteDecisionGate({ children }) {
   const [isReady, setIsReady] = useState(false);
   const [decisionMade, setDecisionMade] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const navigationAttempted = useRef(false);
   const targetRoute = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
+  
+  // CRITICAL FIX: Timeout to prevent infinite loading on cold start
+  // If eventsLoaded doesn't resolve within 15 seconds, proceed anyway
+  const LOADING_TIMEOUT_MS = 15000;
+  
+  useEffect(() => {
+    // Only start timeout if we're waiting for state (not on bypass routes)
+    if (isReady || decisionMade) return;
+    
+    const timeoutId = setTimeout(() => {
+      console.warn(`${logPrefix} TIMEOUT: Loading state timed out after ${LOADING_TIMEOUT_MS}ms, proceeding with available state`);
+      setLoadingTimedOut(true);
+    }, LOADING_TIMEOUT_MS);
+    
+    return () => clearTimeout(timeoutId);
+  }, [isReady, decisionMade]);
 
   // Routes that are always allowed (public/auth routes)
   const publicRoutes = [
@@ -155,6 +172,11 @@ export default function RouteDecisionGate({ children }) {
     if (allStateReady) {
       console.log(`${logPrefix} ALL_STATE_READY: Proceeding with route decision`);
       setIsReady(true);
+    } else if (loadingTimedOut && minimalStateReady) {
+      // CRITICAL FIX: If timeout occurred but we have minimal auth state, proceed
+      // This prevents infinite loading if eventsLoaded never resolves
+      console.warn(`${logPrefix} TIMEOUT_FALLBACK: Proceeding with minimal state after timeout`);
+      setIsReady(true);
     } else {
       const waiting = [];
       if (!authChecked) waiting.push('authChecked');
@@ -172,6 +194,7 @@ export default function RouteDecisionGate({ children }) {
     initializing, 
     leaguesLoading, 
     eventsLoaded,
+    loadingTimedOut,
     user,
     userRole,
     location.pathname
@@ -286,7 +309,7 @@ export default function RouteDecisionGate({ children }) {
     return (
       <LoadingScreen
         title="Loading Dashboard..."
-        subtitle="Preparing your workspace"
+        subtitle={loadingTimedOut ? "Taking longer than expected... Please wait" : "Preparing your workspace"}
         size="large"
         showProgress={true}
       />

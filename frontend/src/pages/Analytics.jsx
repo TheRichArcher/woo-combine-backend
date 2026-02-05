@@ -280,30 +280,38 @@ export default function Analytics() {
   // Use min/max from stats to compute a safe domain for vertical chart
   // This avoids Recharts crashing or producing NaN widths when min === max
   const verticalXDomain = useMemo(() => {
-    // Default safe fallback
-    const FALLBACK = [0, 'auto'];
-
-    if (!drillStats || !Number.isFinite(drillStats.min) || !Number.isFinite(drillStats.max)) {
-      return FALLBACK;
+    // CRITICAL FIX: Always return strict numeric domain, never 'auto'
+    // 'auto' can cause Recharts to not render bars in vertical layout
+    const DEFAULT_MAX = 100;
+    
+    // Get the actual data being displayed (respect barLimit)
+    const displayedData = drillStats?.orderedForBars?.slice(0, barLimit) || [];
+    
+    if (displayedData.length === 0) {
+      return [0, DEFAULT_MAX];
     }
     
-    let min = drillStats.min;
-    let max = drillStats.max;
+    // Calculate max from displayed data, not all data
+    const displayedMax = Math.max(...displayedData.map(e => e.value || 0));
+    const displayedMin = Math.min(...displayedData.map(e => e.value || 0));
     
-    // If range is zero (single value or all identical), pad it so we have a valid axis
-    // Recharts can fail if domain is [10, 10] -> range 0 -> division by zero
-    if (min === max) {
-      if (min === 0) {
+    if (!Number.isFinite(displayedMax) || displayedMax <= 0) {
+      return [0, DEFAULT_MAX];
+    }
+    
+    // If range is zero (single value or all identical), pad it
+    if (displayedMin === displayedMax) {
+      if (displayedMax === 0) {
         return [0, 10];
       } else {
-        return [0, Math.ceil(max * 1.1) + 1];
+        return [0, Math.ceil(displayedMax * 1.2) + 1];
       }
     }
     
-    // Force strict numeric domain for vertical charts to avoid [0, 'auto'] collapse
-    const safeMax = Math.ceil(max * 1.1);
-    return [0, safeMax > 0 ? safeMax : 10]; 
-  }, [drillStats]);
+    // Add 10% padding to max for visual clarity
+    const safeMax = Math.ceil(displayedMax * 1.1);
+    return [0, Math.max(safeMax, 1)]; 
+  }, [drillStats, barLimit]);
 
   // Dynamic Summary Tiles based on Drill Selection
   const summaryTiles = useMemo(() => {
