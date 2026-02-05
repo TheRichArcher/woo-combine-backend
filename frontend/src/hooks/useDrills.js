@@ -24,9 +24,10 @@ export function useDrills(selectedEvent, refreshTrigger = 0) {
       return;
     }
 
-    // Gate fetch until auth is checked and leagues are loaded to prevent 401 races during boot
-    // If user is present but auth not checked OR leagues are still loading, wait.
-    if ((!authChecked && user) || leaguesLoading) {
+    // CRITICAL FIX: Gate fetch until auth is FULLY checked to prevent 401/403 races during cold start
+    // Previous logic `(!authChecked && user)` was incorrect - it didn't wait if no user yet
+    // This caused requests to fire before Firebase auth initialized, resulting in 403 errors
+    if (!authChecked || leaguesLoading) {
         return;
     }
 
