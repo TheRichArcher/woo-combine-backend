@@ -13,6 +13,13 @@ import { fetchSchemas } from '../constants/drillTemplates';
 
 const AuthContext = createContext();
 
+// NOTE: This context is being gradually split into:
+// - AuthContext (this file) — auth state, tokens, user
+// - LeagueContext — league selection, data (see LeagueContext.jsx)
+// - NavigationContext — nav state (see NavigationContext.jsx)
+// New code should prefer useLeague() and useNav() where possible.
+// useAuth() remains the backward-compatible facade exposing all state.
+
 // Role utilities to avoid treating 'undefined'/'null' as valid roles
 // Align with backend-accepted roles while keeping internal roles for UI/admin
 const VALID_ROLES = ['organizer', 'coach', 'viewer', 'player', 'evaluator', 'admin'];
