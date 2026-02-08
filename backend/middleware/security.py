@@ -8,6 +8,7 @@ from starlette.responses import RedirectResponse
 import os
 from starlette.middleware.base import BaseHTTPMiddleware
 import logging
+from .. import __version__
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """
@@ -47,7 +48,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         if is_auth_endpoint:
             # Minimal headers for auth endpoints (faster processing)
-            response.headers["X-API-Version"] = "1.0.2"
+            response.headers["X-API-Version"] = __version__
             response.headers["X-Content-Type-Options"] = "nosniff"
             if "Server" in response.headers:
                 del response.headers["Server"]
@@ -146,7 +147,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             del response.headers["Server"]
         
         # Add custom security header for API identification
-        response.headers["X-API-Version"] = "1.0.2"
+        response.headers["X-API-Version"] = __version__
         response.headers["X-Security-Headers"] = "enabled"
 
 class RequestValidationMiddleware(BaseHTTPMiddleware):

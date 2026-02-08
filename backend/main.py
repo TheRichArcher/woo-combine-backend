@@ -30,6 +30,7 @@ from starlette.responses import Response, JSONResponse
 from fastapi.responses import PlainTextResponse
 from datetime import datetime
 from .utils.error_handling import StandardError, handle_standard_error
+from . import __version__
  
 # Enable or disable debug/test endpoints via environment
 _ENABLE_DEBUG_ENDPOINTS = os.getenv("ENABLE_DEBUG_ENDPOINTS", "false").lower() in ("1", "true", "yes")
@@ -49,7 +50,7 @@ def _get_log_level_from_env() -> int:
 
 logging.basicConfig(level=_get_log_level_from_env())
 
-app = FastAPI(title="WooCombine API", version="1.0.2")
+app = FastAPI(title="WooCombine API", version=__version__)
 init_sentry_if_configured()
 app.add_middleware(ObservabilityMiddleware)
 
@@ -146,7 +147,7 @@ app.include_router(migrations_router, prefix="/api", tags=["Migrations"])
 @app.get("/api/meta")
 def meta():
     return {
-        "version": "1.0.2",
+        "version": __version__,
         "allowed_origins": os.getenv("ALLOWED_ORIGINS", ""),
         "role_simple_enabled": os.getenv("ENABLE_ROLE_SIMPLE", "false").lower() in ("1", "true", "yes")
     }
@@ -282,7 +283,7 @@ def warmup_endpoint(request: Request):
         "auth": auth_status,
         "routes": routes_status,
         "timestamp": end_time.isoformat(),
-        "version": "1.0.2"
+        "version": __version__
     }
 
 
@@ -302,7 +303,7 @@ def root():
     """Root endpoint for basic API info"""
     return {
         "message": "WooCombine API",
-        "version": "1.0.2",
+        "version": __version__,
         "status": "running",
         "docs": "/docs"
     }
