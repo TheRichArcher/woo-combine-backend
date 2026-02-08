@@ -174,7 +174,8 @@ def parse_import_file(
 @read_rate_limit()
 def get_import_schema(
     request: Request,
-    sport: Optional[str] = "football"
+    sport: Optional[str] = "football",
+    current_user=Depends(require_role("organizer", "coach"))
 ):
     """
     Return the schema definition for import mapping.
