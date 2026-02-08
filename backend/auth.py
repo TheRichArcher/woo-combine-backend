@@ -264,7 +264,7 @@ def get_current_user(
         logging.error(f"[AUTH] Firebase token verification failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Firebase token verification failed: {e}",
+            detail="Authentication failed",
         )
     except HTTPException:
         # Re-raise HTTP exceptions (like timeouts) without wrapping
@@ -274,7 +274,7 @@ def get_current_user(
         _track_auth_failure("unexpected")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Unexpected error in get_current_user: {e}",
+            detail="Authentication failed",
         )
 
 def get_current_user_for_role_setting(
@@ -402,7 +402,7 @@ def get_current_user_for_role_setting(
         logging.error(f"[AUTH] Unexpected error in role setting auth: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Authentication failed: {e}",
+            detail="Authentication failed",
         )
 
 def require_role(*allowed_roles):
