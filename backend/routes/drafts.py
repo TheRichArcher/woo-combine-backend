@@ -7,14 +7,57 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
-from ..auth import get_current_user
+from ..auth import get_current_user, require_role
 from ..firestore_client import get_firestore_client
+from ..utils.authorization import ensure_league_access
 from google.cloud.firestore_v1 import FieldFilter
 import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/drafts", tags=["drafts"])
+
+
+def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool = False):
+    """Verify user has access to a draft. Returns (draft_ref, draft_data).
+    
+    - Any league member can view drafts
+    - Only the draft creator or league organizer can modify drafts
+    """
+    draft_ref = db.collection("drafts").document(draft_id)
+    draft_doc = draft_ref.get()
+    
+    if not draft_doc.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    draft_data = draft_doc.to_dict()
+    league_id = draft_data.get("league_id")
+    
+    if league_id:
+        # Verify user is a member of the league
+        ensure_league_access(
+            user["uid"], league_id,
+            allowed_roles={"organizer", "coach", "viewer"},
+            operation_name="view draft"
+        )
+    
+    if require_admin:
+        is_creator = draft_data.get("created_by") == user["uid"]
+        is_organizer = False
+        if league_id:
+            try:
+                ensure_league_access(
+                    user["uid"], league_id,
+                    allowed_roles={"organizer"},
+                    operation_name="manage draft"
+                )
+                is_organizer = True
+            except HTTPException:
+                pass
+        if not is_creator and not is_organizer:
+            raise HTTPException(status_code=403, detail="Only draft creator or league organizer can modify this draft")
+    
+    return draft_ref, draft_data
 
 # ============================================================================
 # Pydantic Models
@@ -103,7 +146,7 @@ def get_pick_team(draft: dict, overall_pick: int) -> str:
 # ============================================================================
 
 @router.post("")
-async def create_draft(draft_in: DraftCreate, user: dict = Depends(get_current_user)):
+async def create_draft(draft_in: DraftCreate, user: dict = Depends(require_role("organizer", "coach"))):
     """Create a new draft for an event."""
     db = get_firestore_client()
     
@@ -116,8 +159,13 @@ async def create_draft(draft_in: DraftCreate, user: dict = Depends(get_current_u
     event_data = event_doc.to_dict()
     league_id = event_data.get("league_id")
     
-    # Check user is admin/organizer of the league
-    # (Simplified - in production, check league membership)
+    # Verify user has organizer access to the league
+    if league_id:
+        ensure_league_access(
+            user["uid"], league_id,
+            allowed_roles={"organizer"},
+            operation_name="create draft"
+        )
     
     draft_id = generate_id("draft_")
     draft_data = {
@@ -156,27 +204,14 @@ async def create_draft(draft_in: DraftCreate, user: dict = Depends(get_current_u
 async def get_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Get draft details."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    return draft_doc.to_dict()
+    _, draft_data = _verify_draft_access(db, draft_id, user)
+    return draft_data
 
 @router.patch("/{draft_id}")
 async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depends(get_current_user)):
     """Update draft settings. Only allowed in 'setup' status."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
@@ -192,14 +227,7 @@ async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depend
 async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Delete a draft. Only allowed in 'setup' status."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot delete draft after it has started")
@@ -243,14 +271,7 @@ async def list_drafts(
 async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Start the draft. Requires at least 2 teams."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Draft already started or completed")
@@ -303,14 +324,7 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
 async def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Pause an active draft."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -326,14 +340,7 @@ async def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
 async def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Resume a paused draft."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "paused":
         raise HTTPException(status_code=400, detail="Draft is not paused")
@@ -358,14 +365,7 @@ async def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
 async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_current_user)):
     """Add a team to the draft."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot add teams after draft has started")
@@ -397,6 +397,7 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
 async def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
     """List all teams in a draft."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user)
     
     teams_query = db.collection("draft_teams").where(filter=FieldFilter("draft_id", "==", draft_id)).stream()
     teams = [t.to_dict() for t in teams_query]
@@ -426,14 +427,9 @@ async def update_team(draft_id: str, team_id: str, team_in: TeamUpdate, user: di
 async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_current_user)):
     """Remove a team from the draft."""
     db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    if draft_doc.to_dict().get("status") != "setup":
+    if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot remove teams after draft has started")
     
     team_ref = db.collection("draft_teams").document(team_id)
@@ -453,14 +449,9 @@ async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_curr
 async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends(get_current_user)):
     """Reorder teams for the draft."""
     db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    if draft_doc.to_dict().get("status") != "setup":
+    if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot reorder teams after draft has started")
     
     # Update pick_order for each team
@@ -477,14 +468,7 @@ async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends
 async def make_pick(draft_id: str, pick_in: PickCreate, user: dict = Depends(get_current_user)):
     """Make a draft pick."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
     
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -577,6 +561,7 @@ async def make_pick(draft_id: str, pick_in: PickCreate, user: dict = Depends(get
 async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all picks for a draft."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user)
     
     picks_query = db.collection("draft_picks").where(
         filter=FieldFilter("draft_id", "==", draft_id)
@@ -593,14 +578,7 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
     Can be called by anyone (timer validation happens server-side).
     """
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
     
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -737,18 +715,7 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
 async def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
     """Undo the last pick. Admin only."""
     db = get_firestore_client()
-    
-    draft_ref = db.collection("drafts").document(draft_id)
-    draft_doc = draft_ref.get()
-    
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
-    
-    # Admin only
-    if draft_data.get("created_by") != user["uid"]:
-        raise HTTPException(status_code=403, detail="Only draft admin can undo picks")
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") not in ["active", "paused"]:
         raise HTTPException(status_code=400, detail="Cannot undo picks in current draft state")
@@ -846,12 +813,7 @@ async def save_rankings(draft_id: str, rankings_in: RankingsUpdate, user: dict =
 async def get_available_players(draft_id: str, user: dict = Depends(get_current_user)):
     """Get available (undrafted) players for this draft."""
     db = get_firestore_client()
-    
-    draft_doc = db.collection("drafts").document(draft_id).get()
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    draft_data = draft_doc.to_dict()
+    _, draft_data = _verify_draft_access(db, draft_id, user)
     event_id = draft_data.get("event_id")
     age_group = draft_data.get("age_group")
     
@@ -875,6 +837,7 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
 async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all drafted players with their team assignments."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user)
     
     picks_query = db.collection("draft_picks").where(
         filter=FieldFilter("draft_id", "==", draft_id)
@@ -903,12 +866,9 @@ async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_us
 async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depends(get_current_user)):
     """Pre-assign a player to a team (e.g., coach's child)."""
     db = get_firestore_client()
+    _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
-    draft_doc = db.collection("drafts").document(draft_id).get()
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    if draft_doc.to_dict().get("status") != "setup":
+    if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot add pre-slots after draft has started")
     
     team_ref = db.collection("draft_teams").document(slot_in.team_id)
@@ -929,12 +889,9 @@ async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depen
 async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dict = Depends(get_current_user)):
     """Remove a pre-slotted player."""
     db = get_firestore_client()
+    _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
-    draft_doc = db.collection("drafts").document(draft_id).get()
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-    
-    if draft_doc.to_dict().get("status") != "setup":
+    if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Cannot modify pre-slots after draft has started")
     
     team_ref = db.collection("draft_teams").document(team_id)
