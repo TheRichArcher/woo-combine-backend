@@ -3,15 +3,18 @@ import { useAuth } from "./AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import LoadingScreen from '../components/LoadingScreen';
 
-export default function RequireAuth({ children, skipRoleCheck = false }) {
+/**
+ * RequireAuth - Authentication and authorization gate for routes.
+ * 
+ * @param {string[]} allowedRoles - If provided, restrict access to these roles.
+ *   e.g., allowedRoles={["organizer"]} for admin-only routes.
+ *   If omitted, any authenticated user with a role can access.
+ */
+export default function RequireAuth({ children, allowedRoles }) {
   const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
 
-  const isSelectRole = location.pathname === '/select-role';
-
-  // CRITICAL FIX: Always wait for roleChecked, even for SelectRole page.
-  // This prevents the SelectRole UI from flashing briefly for users who already have a role
-  // but whose role check hasn't finished yet.
+  // Wait for all auth state to be ready
   if (initializing || !authChecked || !roleChecked) {
     return (
       <LoadingScreen 
@@ -32,26 +35,16 @@ export default function RequireAuth({ children, skipRoleCheck = false }) {
     return <Navigate to="/verify-email" replace />;
   }
   
-  // CRITICAL FIX: Skip role check for routes wrapped in RouteDecisionGate
-  // The gate will handle role-based routing decisions after all state is ready
-  // This prevents RequireAuth from redirecting to /select-role prematurely
-  if (skipRoleCheck) {
+  // If no role yet, RouteDecisionGate handles the redirect to /select-role.
+  // We just render children and let the gate do its job.
+  if (!userRole) {
     return children;
   }
   
-  // Special case: if user is authenticated but has no role,
-  // redirect to select-role UNLESS we're already on that page
-  if (!userRole && location.pathname !== '/select-role') {
-    // CRITICAL FIX: Preserve pendingEventJoin for invited users
-    // Check if we're on a join-event route and preserve the invitation context
-    if (location.pathname.startsWith('/join-event/')) {
-      const joinPath = location.pathname.replace('/join-event/', '');
-      localStorage.setItem('pendingEventJoin', joinPath);
-      
-    }
-    
-    console.log('[RequireAuth] NAV_FROM: RequireAuth → /select-role (no role)');
-    return <Navigate to="/select-role" replace />;
+  // Role-based access control: if allowedRoles specified, enforce them
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    // User has a role but it's not permitted for this route
+    return <Navigate to="/dashboard" replace />;
   }
   
   return children;
