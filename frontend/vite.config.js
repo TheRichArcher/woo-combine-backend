@@ -38,8 +38,12 @@ export default defineConfig({
     },
     // Increase chunk size warning limit
     chunkSizeWarningLimit: 1000,
-    // Enable minification
+    // Enable minification and strip debug logging in production
     minify: 'esbuild',
+    esbuild: {
+      drop: ['debugger'],
+      pure: ['console.log', 'console.debug'],
+    },
     // Source maps for production debugging
     sourcemap: true
   },
