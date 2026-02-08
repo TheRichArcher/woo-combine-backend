@@ -69,7 +69,8 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
     """Middleware to add request id, structured logging, and basic timings."""
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
-        req_id = str(uuid.uuid4())
+        # Accept client correlation ID or generate one
+        req_id = request.headers.get("X-Request-ID") or request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
         request_id_var.set(req_id)
 
         # Attach to Sentry scope and set common tags
