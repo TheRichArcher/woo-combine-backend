@@ -35,6 +35,12 @@ def list_events(
     limit: Optional[int] = Query(None, ge=1, le=500),
     current_user=Depends(get_current_user)
 ):
+    """
+    List all events in a league, ordered by creation date (newest first).
+    
+    Automatically filters out soft-deleted events.
+    Supports optional pagination with page and limit parameters.
+    """
     try:
         events_ref = db.collection("leagues").document(league_id).collection("events")
         # Add timeout to events retrieval and cap to reduce large payloads
@@ -83,6 +89,14 @@ def create_event(
     req: EventCreateRequest | None = None, 
     current_user=Depends(require_role("organizer"))
 ):
+    """
+    Create a new event/combine in a league.
+    
+    Supports drill template selection (football, soccer, basketball, etc.)
+    and disabled drills configuration. Uses atomic batch write to create
+    event in both league subcollection and global events collection.
+    Prevents duplicate events with same name and date.
+    """
     try:
         name = req.name if req else None
         date = req.date if req else None
@@ -180,6 +194,12 @@ def get_event(
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
+    """
+    Get details for a specific event.
+    
+    Searches both league subcollection and global events collection.
+    Returns 404 for soft-deleted events.
+    """
     try:
         enforce_event_league_relationship(
             event_id=event_id,
@@ -258,6 +278,12 @@ def update_event(
     req: EventUpdateRequest | None = None, 
     current_user=Depends(require_role("organizer"))
 ):
+    """
+    Update event details including name, date, location, notes, and drill configuration.
+    
+    Validates drill template if changed. Updates both league subcollection
+    and global events collection atomically.
+    """
     try:
         name = req.name if req else None
         date = req.date if req else None
@@ -329,7 +355,12 @@ def get_event_stats(
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
-    """Get event statistics for deletion warnings (player count, scores, etc.)"""
+    """
+    Get event statistics for deletion warnings (player count, scores, etc.).
+    
+    Used by frontend to show confirmation dialogs before destructive operations.
+    Returns player count and whether any scores have been recorded.
+    """
     try:
         enforce_event_league_relationship(
             event_id=event_id,
@@ -399,18 +430,11 @@ def issue_delete_intent_token(
     current_user=Depends(require_role("organizer"))
 ):
     """
-    Issue a short-lived delete intent token after Layer 2 (typed name confirmation).
+    Issue a short-lived delete intent token for event deletion.
     
-    Token is bound to:
-    - user_id (who initiated deletion)
-    - league_id (league containing event)
-    - target_event_id (event being deleted)
-    - expires_at (5 minutes from now)
-    
-    This prevents:
-    - UI drift (token bound to specific target)
-    - Replay attacks (token expires)
-    - Malicious calls (token must be signed by server)
+    Token is bound to user, league, and specific event.
+    Expires in 5 minutes. Prevents UI drift, replay attacks,
+    and unauthorized deletion attempts.
     """
     try:
         # Verify event exists and belongs to league
@@ -470,8 +494,10 @@ def delete_event(
 ):
     """
     Soft-delete an event (requires organizer role).
+    
     Event is marked as deleted but retained for 30 days for recovery.
-    Use hard_delete query param to permanently delete (admin only).
+    Validates deletion target via required header X-Delete-Target-Event-Id.
+    Cannot delete events with active Live Entry.
     """
     try:
         
@@ -796,6 +822,12 @@ def create_custom_drill(
     req: CustomDrillCreateRequest = None,
     current_user=Depends(require_role("organizer"))
 ):
+    """
+    Create a custom drill for an event.
+    
+    Cannot create custom drills after Live Entry has started.
+    Validates name uniqueness and min/max value ranges.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
         check_event_unlocked(event_id)
@@ -847,6 +879,11 @@ def list_custom_drills(
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
+    """
+    List all custom drills for an event.
+    
+    Returns drills ordered by creation date with lock status.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
         
@@ -890,6 +927,12 @@ def update_custom_drill(
     req: CustomDrillUpdateRequest = None,
     current_user=Depends(require_role("organizer"))
 ):
+    """
+    Update a custom drill's configuration.
+    
+    Cannot update drills after Live Entry has started.
+    Validates min/max value relationships.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
         check_event_unlocked(event_id)
@@ -937,6 +980,12 @@ def delete_custom_drill(
     drill_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(require_role("organizer"))
 ):
+    """
+    Delete a custom drill.
+    
+    Cannot delete drills after Live Entry has started.
+    Prevents deletion if any player scores exist for this drill.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id, expected_league_id=league_id)
         check_event_unlocked(event_id)

@@ -17,6 +17,12 @@ router = APIRouter(prefix="/leagues")
 @router.get('/me')
 @read_rate_limit()
 def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
+    """
+    Get all leagues that the current user is a member of.
+    
+    Uses optimized fast-path lookup via user_memberships collection.
+    Falls back to legacy subcollection scan if needed.
+    """
     logging.info(f"[GET] /leagues/me called by user: {current_user}")
     user_id = current_user["uid"]
     
@@ -143,6 +149,12 @@ def get_my_leagues(request: Request, current_user=Depends(get_current_user)):
 @router.post('/')
 @write_rate_limit()
 def create_league(request: Request, req: dict, current_user=Depends(require_role("organizer"))):
+    """
+    Create a new league.
+    
+    The creating user is automatically added as an organizer member.
+    Uses atomic batch operation to create league, membership, and user_memberships entry.
+    """
     logging.info(f"[POST] /leagues called by user: {current_user} with req: {req}")
     user_id = current_user["uid"]
     name = req.get("name")
@@ -209,6 +221,12 @@ def join_league(
     req: dict | None = None, 
     current_user=Depends(get_current_user)
 ):
+    """
+    Join a league using a league code or event code.
+    
+    Requires verified email. Users cannot join as organizer via public code.
+    Supports event codes - resolves to parent league automatically.
+    """
     logging.info(f"[POST] /leagues/join/{code} called by user: {current_user} with req: {req}")
     
     # Security Check 1: Email Verification
@@ -340,6 +358,11 @@ def list_teams(
     limit: int = 0,
     current_user=Depends(get_current_user)
 ):
+    """
+    List all teams in a league.
+    
+    Supports optional pagination with page and limit parameters.
+    """
     try:
         teams_ref = db.collection("leagues").document(league_id).collection("teams")
         # Bound list stream to avoid long-hanging requests
@@ -370,6 +393,11 @@ def list_invitations(
     limit: int = 0,
     current_user=Depends(get_current_user)
 ):
+    """
+    List all pending invitations for a league.
+    
+    Supports optional pagination with page and limit parameters.
+    """
     try:
         invitations_ref = db.collection("leagues").document(league_id).collection("invitations")
         invitations_stream = execute_with_timeout(
@@ -397,6 +425,11 @@ def list_league_members(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     current_user=Depends(get_current_user)
 ):
+    """
+    List all members of a league with their roles and permissions.
+    
+    Returns member details including role, email, name, and disabled status.
+    """
     try:
         members_ref = db.collection("leagues").document(league_id).collection("members")
         # Use stream for efficient listing

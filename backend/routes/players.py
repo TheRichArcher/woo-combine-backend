@@ -103,6 +103,12 @@ def get_players(
     limit: Optional[int] = Query(None, ge=1, le=500),
     current_user = Depends(get_current_user)
 ):
+    """
+    Get all players for an event with calculated composite scores.
+    
+    Supports optional pagination via page/limit query params.
+    Composite scores are calculated dynamically based on the event's drill schema.
+    """
     try:
         if 'user_id' in request.query_params:
             raise HTTPException(status_code=400, detail="Do not include user_id in query params. Use Authorization header.")
@@ -163,8 +169,21 @@ def create_player(
     event_id: str = Query(...),
     current_user=Depends(require_role("organizer", "coach"))
 ):
+    """
+    Create a new player in an event.
+    
+    Returns 409 if player already exists (based on name + number).
+    Use PUT /players/{player_id} to update existing players.
+    """
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
+        
+        # Validate player name is not empty
+        if not player.name or not player.name.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Player name is required and cannot be empty"
+            )
         
         enforce_event_league_relationship(event_id=event_id)
         
@@ -176,9 +195,22 @@ def create_player(
         # Generate deterministic ID for deduplication
         player_id = generate_player_id(event_id, first, last, player.number)
         
-        # Create/Update player in the event subcollection
+        # Check if player already exists
+        player_doc_ref = db.collection("events").document(str(event_id)).collection("players").document(player_id)
+        existing_player = execute_with_timeout(
+            lambda: player_doc_ref.get(),
+            timeout=3
+        )
+        
+        if existing_player.exists:
+            logging.warning(f"[CREATE_PLAYER] Player already exists: {player_id}")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Player already exists. Use PUT /players/{player_id} to update."
+            )
+        
+        # Create player in the event subcollection
         logging.info(f"[CREATE_PLAYER] Creating player document with deterministic ID: {player_id}")
-        player_doc = db.collection("events").document(str(event_id)).collection("players").document(player_id)
         
         player_data = {
             "name": player.name,
@@ -192,9 +224,9 @@ def create_player(
             "scores": {} # Initialize empty scores map
         }
         
-        # Add timeout to player creation (merge=True allows idempotent retries)
+        # Add timeout to player creation (no merge for create - want clean write)
         execute_with_timeout(
-            lambda: player_doc.set(player_data, merge=True),
+            lambda: player_doc_ref.set(player_data),
             timeout=5
         )
         
@@ -220,7 +252,27 @@ def update_player(
     event_id: str = Query(...),
     current_user=Depends(require_role("organizer", "coach"))
 ):
+    """
+    Update an existing player's information.
+    
+    Validates player_id format and player name before updating.
+    Returns 404 if player not found, 422 on validation errors.
+    """
     try:
+        # Validate player_id format (basic check for Firestore document ID)
+        if not player_id or len(player_id) > 1500 or any(c in player_id for c in ['/', '\x00']):
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid player_id format. Must be a valid Firestore document ID."
+            )
+        
+        # Validate player name is not empty
+        if not player.name or not player.name.strip():
+            raise HTTPException(
+                status_code=422,
+                detail="Player name is required and cannot be empty"
+            )
+        
         enforce_event_league_relationship(event_id=event_id)
         
         # Check write permission
@@ -286,6 +338,16 @@ class UploadRequest(BaseModel):
     target_getter=lambda kwargs: getattr(kwargs.get("req"), "event_id", None),
 )
 def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_role("organizer"))):
+    """
+    Bulk upload/import players from CSV or other sources.
+    
+    Supports two modes:
+    - create_or_update: Creates new players or updates existing ones (default)
+    - scores_only: Only updates scores for existing players
+    
+    Uses deterministic player IDs (name + number) to detect and merge duplicates.
+    Returns detailed error information for rejected rows.
+    """
     try:
         enforce_event_league_relationship(event_id=req.event_id)
         
@@ -815,7 +877,9 @@ class RevertRequest(BaseModel):
 def revert_import(request: Request, req: RevertRequest, current_user=Depends(require_role("organizer"))):
     """
     Revert a previous import using the provided undo log.
-    Restores previous state or deletes created players.
+    
+    Restores previous player data or deletes newly created players.
+    Requires the undo_log returned from the original upload_players call.
     """
     try:
         enforce_event_league_relationship(event_id=req.event_id)
@@ -882,6 +946,13 @@ def revert_import(request: Request, req: RevertRequest, current_user=Depends(req
 @router.delete("/players/reset")
 @require_permission("players", "reset", target="event", target_param="event_id")
 def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
+    """
+    Delete all players and drill results for an event.
+    
+    This is a destructive operation that cannot be undone.
+    Also resets the event's live_entry_active flag to false.
+    Requires organizer role.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id)
         players_ref = db.collection("events").document(str(event_id)).collection("players")
@@ -921,6 +992,13 @@ def get_rankings(
     age_group: Optional[str] = Query(None),
     current_user=Depends(get_current_user)
 ):
+    """
+    Get player rankings sorted by composite score.
+    
+    Optionally filter by age_group. Use "ALL" to include all age groups.
+    Supports custom weight parameters (weight_<drill_key>) to override default weights.
+    Only includes players with at least one scored drill.
+    """
     try:
         enforce_event_league_relationship(event_id=event_id)
         
@@ -1014,6 +1092,11 @@ def list_players(
     limit: Optional[int] = Query(None, ge=1, le=500),
     current_user=Depends(get_current_user)
 ):
+    """
+    List all players in a league (across all events).
+    
+    Supports optional pagination with page and limit parameters.
+    """
     try:
         ensure_league_document(league_id)
         
@@ -1037,6 +1120,11 @@ def list_players(
 @write_rate_limit()
 @require_permission("league_players", "create", target="league", target_param="league_id")
 def add_player(request: Request, league_id: str, req: dict, current_user=Depends(require_role("organizer", "coach"))):
+    """
+    Add a player to a league's global player registry.
+    
+    This is separate from event-specific players.
+    """
     try:
         ensure_league_document(league_id)
         players_ref = db.collection("leagues").document(league_id).collection("players")
@@ -1059,6 +1147,11 @@ def add_player(request: Request, league_id: str, req: dict, current_user=Depends
 @router.get('/leagues/{league_id}/players/{player_id}/drill_results')
 @require_permission("league_players", "drill_results", target="league", target_param="league_id")
 def list_drill_results(request: Request, league_id: str, player_id: str, current_user=Depends(get_current_user)):
+    """
+    Get all drill results for a specific player in a league.
+    
+    Returns historical drill performance data.
+    """
     try:
         ensure_league_document(league_id)
         drill_results_ref = db.collection("leagues").document(league_id).collection("players").document(player_id).collection("drill_results")
