@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Camera, Link, Wand } from 'lucide-react';
+import { X, Upload, FileText, AlertTriangle, Check, Loader2, ChevronRight, AlertCircle, Download, RotateCcw, Info, Save, Clock, FileSpreadsheet, Edit2, Eye, Database, Link, Wand } from 'lucide-react';
 import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping, REQUIRED_HEADERS } from '../../utils/csvUtils';
@@ -234,22 +234,13 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     const droppedFile = files[0];
     
     // Validate file type based on current method
-    if (method === 'photo') {
-      const validImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/heic'];
-      if (!validImageTypes.includes(droppedFile.type.toLowerCase()) && 
-          !droppedFile.name.toLowerCase().match(/\.(jpg|jpeg|png|heic)$/)) {
-        setError('Invalid file type. Please upload an image file (JPG, PNG, HEIC).');
-        return;
-      }
-    } else {
-      // For file method, validate CSV/Excel
-      const validExtensions = ['.csv', '.xlsx', '.xls'];
-      const fileExtension = droppedFile.name.toLowerCase().substring(droppedFile.name.lastIndexOf('.'));
-      
-      if (!validExtensions.includes(fileExtension)) {
-        setError(`Invalid file type. Please upload a CSV or Excel file (${validExtensions.join(', ')})`);
-        return;
-      }
+    // For file method, validate CSV/Excel
+    const validExtensions = ['.csv', '.xlsx', '.xls'];
+    const fileExtension = droppedFile.name.toLowerCase().substring(droppedFile.name.lastIndexOf('.'));
+    
+    if (!validExtensions.includes(fileExtension)) {
+      setError(`Invalid file type. Please upload a CSV or Excel file (${validExtensions.join(', ')})`);
+      return;
     }
     
     // File is valid, set it and clear any previous errors
@@ -268,8 +259,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   };
 
   const handleParse = async (sheetName = null) => {
-    if ((method === 'file' || method === 'photo') && !file) {
-      setError(method === 'photo' ? 'Please select a photo' : 'Please select a file');
+    if (method === 'file' && !file) {
+      setError('Please select a file');
       return;
     }
     if (method === 'text' && !text.trim()) {
@@ -286,7 +277,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
     try {
       const formData = new FormData();
-      if (method === 'file' || method === 'photo') {
+      if (method === 'file') {
         formData.append('file', file);
       } else if (method === 'sheets') {
         formData.append('url', url);
@@ -1225,14 +1216,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       {/* ALTERNATIVE METHODS - Smaller secondary options */}
       <div className="mb-4">
         <p className="text-xs text-gray-500 mb-2 text-center">Or use alternative method:</p>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => setMethod('photo')}
-            className="p-2 rounded-lg border border-gray-200 hover:border-cmf-primary hover:bg-blue-50 transition-all flex flex-col items-center gap-1 text-gray-600 hover:text-cmf-primary"
-          >
-            <Camera className="w-4 h-4" />
-            <span className="text-xs font-medium">Photo OCR</span>
-          </button>
+        <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setMethod('sheets')}
             className="p-2 rounded-lg border border-gray-200 hover:border-cmf-primary hover:bg-blue-50 transition-all flex flex-col items-center gap-1 text-gray-600 hover:text-cmf-primary"
@@ -1251,41 +1235,6 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       </div>
 
       {/* Show alternative method input if selected */}
-      {method === 'photo' && (
-        <div 
-          className="border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-4 border-cmf-primary bg-blue-50"
-          onClick={() => fileInputRef.current?.click()}
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-        >
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-            accept="image/*"
-          />
-          <Camera className="w-10 h-10 text-cmf-primary mx-auto mb-3" />
-          {file ? (
-            <div>
-              <p className="font-medium text-cmf-primary">{file.name}</p>
-              <p className="text-sm text-gray-500">{(file.size / 1024).toFixed(1)} KB</p>
-            </div>
-          ) : (
-            <div>
-              <p className="font-medium text-gray-700">
-                {isDragging ? "Drop to upload" : "Click to take/upload photo"}
-              </p>
-              <p className="text-sm text-gray-500 mt-1">
-                {isDragging ? "Release to upload your file" : "Supports JPG, PNG, HEIC"}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-      
       {method === 'sheets' && (
         <div className="mb-4">
           <input
@@ -1342,7 +1291,6 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             onClick={() => handleParse()}
             disabled={
               (method === 'file' && !file) || 
-              (method === 'photo' && !file) || 
               (method === 'text' && !text.trim()) || 
               (method === 'sheets' && !url.trim()) ||
               !!schemaError
