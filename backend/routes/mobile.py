@@ -14,7 +14,6 @@ import logging
 
 from ..auth import get_current_user
 from ..firestore_client import db
-from ..models import User
 from ..utils.database import execute_with_timeout
 
 logger = logging.getLogger(__name__)
