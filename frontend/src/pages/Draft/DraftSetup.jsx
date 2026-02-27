@@ -19,7 +19,9 @@ import {
   Settings,
   Users,
   Timer,
-  Shuffle
+  Shuffle,
+  UserPlus,
+  X
 } from 'lucide-react';
 
 const DraftSetup = () => {
@@ -36,6 +38,10 @@ const DraftSetup = () => {
   const [newTeamName, setNewTeamName] = useState('');
   const [newCoachName, setNewCoachName] = useState('');
   const [addingTeam, setAddingTeam] = useState(false);
+  const [availablePlayers, setAvailablePlayers] = useState([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [preSlotTeamId, setPreSlotTeamId] = useState('');
+  const [preSlotPlayerId, setPreSlotPlayerId] = useState('');
 
   // Settings form
   const [settings, setSettings] = useState({
@@ -55,6 +61,25 @@ const DraftSetup = () => {
       });
     }
   }, [draft]);
+
+  useEffect(() => {
+    if (!draftId || draft?.status !== 'setup') return;
+
+    const loadPlayers = async () => {
+      setPlayersLoading(true);
+      try {
+        const response = await api.get(`/drafts/${draftId}/players`);
+        const playerList = Array.isArray(response.data) ? response.data : response.data?.players || [];
+        setAvailablePlayers(playerList);
+      } catch (err) {
+        showError(err.response?.data?.detail || 'Failed to load players');
+      } finally {
+        setPlayersLoading(false);
+      }
+    };
+
+    loadPlayers();
+  }, [draftId, draft?.status, showError]);
 
   const handleAddTeam = async () => {
     if (!newTeamName.trim()) {
@@ -130,6 +155,35 @@ const DraftSetup = () => {
     }
   };
 
+  const handlePreSlotPlayer = async () => {
+    if (!preSlotTeamId || !preSlotPlayerId) {
+      showError('Select a team and player');
+      return;
+    }
+
+    try {
+      await api.post(`/drafts/${draftId}/pre-slots`, {
+        player_id: preSlotPlayerId,
+        team_id: preSlotTeamId
+      });
+      setPreSlotPlayerId('');
+      refetchTeams();
+      showSuccess('Player pre-slotted');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to pre-slot player');
+    }
+  };
+
+  const handleRemovePreSlot = async (teamId, playerId) => {
+    try {
+      await api.delete(`/drafts/${draftId}/pre-slots/${teamId}/${playerId}`);
+      refetchTeams();
+      showSuccess('Pre-slot removed');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to remove pre-slot');
+    }
+  };
+
   if (draftLoading) return <LoadingScreen />;
   if (!draft) return <div className="p-8 text-center">Draft not found</div>;
 
@@ -151,6 +205,15 @@ const DraftSetup = () => {
       </div>
     );
   }
+
+  const preSlotEntries = teams.flatMap((team) => (
+    (team.pre_slotted_player_ids || []).map((playerId) => ({
+      team,
+      playerId
+    }))
+  ));
+  const preSlottedIds = new Set(preSlotEntries.map((entry) => entry.playerId));
+  const availablePreSlotPlayers = availablePlayers.filter((player) => !preSlottedIds.has(player.id));
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -366,6 +429,100 @@ const DraftSetup = () => {
           </div>
 
         </div>
+
+        {/* Pre-Slot Players */}
+        {draft.status === 'setup' && (
+          <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b">
+              <h2 className="font-semibold flex items-center gap-2">
+                <UserPlus size={18} />
+                Pre-Slot Players
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Assign specific players to teams before the draft starts.
+              </p>
+            </div>
+
+            <div className="p-4 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Team</label>
+                  <select
+                    value={preSlotTeamId}
+                    onChange={(e) => setPreSlotTeamId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="">Select team</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.team_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Player</label>
+                  <select
+                    value={preSlotPlayerId}
+                    onChange={(e) => setPreSlotPlayerId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                    disabled={playersLoading}
+                  >
+                    <option value="">{playersLoading ? 'Loading players...' : 'Select player'}</option>
+                    {availablePreSlotPlayers.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.number ? `#${player.number} ` : ''}{player.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-end">
+                  <button
+                    onClick={handlePreSlotPlayer}
+                    disabled={!preSlotTeamId || !preSlotPlayerId}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 text-sm font-medium"
+                  >
+                    <Plus size={16} />
+                    Pre-Slot
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">Current Pre-Slots</h4>
+                {preSlotEntries.length === 0 ? (
+                  <p className="text-sm text-gray-500">No pre-slotted players yet.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {preSlotEntries.map((entry) => {
+                      const player = availablePlayers.find(p => p.id === entry.playerId);
+                      const label = player?.name || entry.playerId;
+                      return (
+                        <div
+                          key={`${entry.team.id}-${entry.playerId}`}
+                          className="flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-xs"
+                        >
+                          <span className="font-medium">{label}</span>
+                          <span className="text-gray-400">→</span>
+                          <span>{entry.team.team_name}</span>
+                          <button
+                            onClick={() => handleRemovePreSlot(entry.team.id, entry.playerId)}
+                            className="ml-1 text-gray-500 hover:text-gray-700"
+                            title="Remove pre-slot"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Coach Preparation */}
         <div className="mt-8 bg-yellow-50 border border-yellow-200 rounded-xl p-6">

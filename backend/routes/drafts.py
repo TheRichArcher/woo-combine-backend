@@ -108,6 +108,15 @@ class PreSlotCreate(BaseModel):
     team_id: str
     reason: Optional[str] = None  # e.g., "Coach's child"
 
+class TradeCreate(BaseModel):
+    offering_team_id: str
+    receiving_team_id: str
+    offering_player_id: str
+    receiving_player_id: str
+
+class TradeUpdate(BaseModel):
+    status: str  # "approved" | "rejected"
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -140,6 +149,58 @@ def get_pick_team(draft: dict, overall_pick: int) -> str:
         order = draft["team_order"]
     
     return order[pick_in_round]
+
+def _is_draft_admin(user: dict, draft_data: dict) -> bool:
+    if draft_data.get("created_by") == user["uid"]:
+        return True
+    league_id = draft_data.get("league_id")
+    if not league_id:
+        return False
+    try:
+        ensure_league_access(
+            user["uid"], league_id,
+            allowed_roles={"organizer"},
+            operation_name="manage draft"
+        )
+        return True
+    except HTTPException:
+        return False
+
+def _get_pick_for_player(db, draft_id: str, player_id: str):
+    pick_query = db.collection("draft_picks").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    ).where(
+        filter=FieldFilter("player_id", "==", player_id)
+    ).limit(1).stream()
+    picks = list(pick_query)
+    return picks[0] if picks else None
+
+def _execute_trade_swap(db, draft_id: str, offering_player_id: str, receiving_player_id: str,
+                        offering_team_id: str, receiving_team_id: str):
+    offering_pick = _get_pick_for_player(db, draft_id, offering_player_id)
+    receiving_pick = _get_pick_for_player(db, draft_id, receiving_player_id)
+
+    if not offering_pick or not receiving_pick:
+        raise HTTPException(status_code=400, detail="One or more players not found in picks")
+
+    offering_pick_data = offering_pick.to_dict()
+    receiving_pick_data = receiving_pick.to_dict()
+
+    if offering_pick_data.get("team_id") != offering_team_id:
+        raise HTTPException(status_code=400, detail="Offering player is not on the offering team")
+    if receiving_pick_data.get("team_id") != receiving_team_id:
+        raise HTTPException(status_code=400, detail="Receiving player is not on the receiving team")
+
+    batch = db.batch()
+    batch.update(offering_pick.reference, {
+        "team_id": receiving_team_id,
+        "updated_at": now_iso()
+    })
+    batch.update(receiving_pick.reference, {
+        "team_id": offering_team_id,
+        "updated_at": now_iso()
+    })
+    batch.commit()
 
 # ============================================================================
 # Draft CRUD
@@ -907,6 +968,123 @@ async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dic
         team_ref.update({"pre_slotted_player_ids": pre_slotted})
     
     return {"status": "removed", "team_id": team_id, "player_id": player_id}
+
+# ============================================================================
+# Trades
+# ============================================================================
+
+@router.post("/{draft_id}/trades")
+async def create_trade(draft_id: str, trade_in: TradeCreate, user: dict = Depends(get_current_user)):
+    """Create a trade proposal."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
+
+    if draft_data.get("status") != "active":
+        raise HTTPException(status_code=400, detail="Draft is not active")
+
+    if trade_in.offering_player_id == trade_in.receiving_player_id:
+        raise HTTPException(status_code=400, detail="Cannot trade the same player")
+
+    offering_pick = _get_pick_for_player(db, draft_id, trade_in.offering_player_id)
+    receiving_pick = _get_pick_for_player(db, draft_id, trade_in.receiving_player_id)
+
+    if not offering_pick or not receiving_pick:
+        raise HTTPException(status_code=400, detail="One or more players not found in picks")
+
+    offering_pick_data = offering_pick.to_dict()
+    receiving_pick_data = receiving_pick.to_dict()
+
+    if offering_pick_data.get("team_id") != trade_in.offering_team_id:
+        raise HTTPException(status_code=400, detail="Offering player is not on the offering team")
+    if receiving_pick_data.get("team_id") != trade_in.receiving_team_id:
+        raise HTTPException(status_code=400, detail="Receiving player is not on the receiving team")
+
+    is_admin = _is_draft_admin(user, draft_data)
+    requires_approval = draft_data.get("trades_require_approval", True)
+
+    trade_id = generate_id("trade_")
+    status = "approved" if is_admin or not requires_approval else "pending"
+    created_at = now_iso()
+    resolved_at = created_at if status == "approved" else None
+
+    if status == "approved":
+        _execute_trade_swap(
+            db,
+            draft_id,
+            trade_in.offering_player_id,
+            trade_in.receiving_player_id,
+            trade_in.offering_team_id,
+            trade_in.receiving_team_id
+        )
+
+    trade_data = {
+        "id": trade_id,
+        "offering_team_id": trade_in.offering_team_id,
+        "receiving_team_id": trade_in.receiving_team_id,
+        "offering_player_id": trade_in.offering_player_id,
+        "receiving_player_id": trade_in.receiving_player_id,
+        "proposed_by_user_id": user["uid"],
+        "status": status,
+        "created_at": created_at,
+        "resolved_at": resolved_at
+    }
+
+    draft_ref.collection("trades").document(trade_id).set(trade_data)
+
+    return trade_data
+
+@router.get("/{draft_id}/trades")
+async def list_trades(draft_id: str):
+    """List all trades for a draft (public)."""
+    db = get_firestore_client()
+    draft_doc = db.collection("drafts").document(draft_id).get()
+    if not draft_doc.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    trades_query = db.collection("drafts").document(draft_id).collection("trades").order_by(
+        "created_at", direction="DESCENDING"
+    ).stream()
+
+    return [t.to_dict() for t in trades_query]
+
+@router.patch("/{draft_id}/trades/{trade_id}")
+async def update_trade(draft_id: str, trade_id: str, trade_in: TradeUpdate, user: dict = Depends(get_current_user)):
+    """Approve or reject a trade. Admin only."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+
+    if trade_in.status not in ["approved", "rejected"]:
+        raise HTTPException(status_code=400, detail="Invalid status")
+
+    trade_ref = draft_ref.collection("trades").document(trade_id)
+    trade_doc = trade_ref.get()
+    if not trade_doc.exists:
+        raise HTTPException(status_code=404, detail="Trade not found")
+
+    trade_data = trade_doc.to_dict()
+    if trade_data.get("status") != "pending":
+        raise HTTPException(status_code=400, detail="Trade already resolved")
+
+    resolved_at = now_iso()
+
+    if trade_in.status == "approved":
+        _execute_trade_swap(
+            db,
+            draft_id,
+            trade_data.get("offering_player_id"),
+            trade_data.get("receiving_player_id"),
+            trade_data.get("offering_team_id"),
+            trade_data.get("receiving_team_id")
+        )
+
+    updates = {
+        "status": trade_in.status,
+        "resolved_at": resolved_at
+    }
+
+    trade_ref.update(updates)
+
+    return {**trade_data, **updates}
 
 # ============================================================================
 # Helper: Create Team Rosters on Draft Completion

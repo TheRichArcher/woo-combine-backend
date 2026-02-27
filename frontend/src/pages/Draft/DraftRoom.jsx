@@ -17,6 +17,7 @@ import {
   useCoachRankings
 } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
+import TradeModal from './TradeModal';
 import { 
   Clock, 
   Users, 
@@ -32,7 +33,9 @@ import {
   Menu,
   X,
   ChevronDown,
-  ListOrdered
+  ListOrdered,
+  ArrowLeftRight,
+  Bell
 } from 'lucide-react';
 
 const DraftRoom = () => {
@@ -59,7 +62,18 @@ const DraftRoom = () => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [mobileTab, setMobileTab] = useState('players'); // players | board | myteam
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showTradeModal, setShowTradeModal] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => (
+    localStorage.getItem('draft_notifications_enabled') === 'true'
+  ));
+  const [notificationsBlocked, setNotificationsBlocked] = useState(() => (
+    localStorage.getItem('draft_notifications_enabled') === 'false'
+  ));
+  const [notificationPermission, setNotificationPermission] = useState(() => (
+    typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
+  ));
   const autoPickTriggeredRef = useRef(false);
+  const prevIsMyTurnRef = useRef(false);
 
   // Timer countdown and auto-pick trigger
   useEffect(() => {
@@ -95,6 +109,15 @@ const DraftRoom = () => {
   useEffect(() => {
     autoPickTriggeredRef.current = false;
   }, [draft?.current_pick]);
+
+  useEffect(() => {
+    if (typeof Notification === 'undefined') return;
+    if (Notification.permission === 'denied') {
+      setNotificationsBlocked(true);
+      setNotificationPermission('denied');
+      localStorage.setItem('draft_notifications_enabled', 'false');
+    }
+  }, []);
 
   // Refetch players when picks change
   useEffect(() => {
@@ -191,6 +214,42 @@ const DraftRoom = () => {
     }
   };
 
+  const handleEnableNotifications = async () => {
+    if (typeof Notification === 'undefined') {
+      showError('Notifications are not supported in this browser');
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    if (permission === 'granted') {
+      localStorage.setItem('draft_notifications_enabled', 'true');
+      setNotificationsEnabled(true);
+      setNotificationsBlocked(false);
+    } else if (permission === 'denied') {
+      localStorage.setItem('draft_notifications_enabled', 'false');
+      setNotificationsBlocked(true);
+    }
+  };
+
+  useEffect(() => {
+    const wasMyTurn = prevIsMyTurnRef.current;
+    if (
+      !wasMyTurn &&
+      isMyTurn &&
+      notificationsEnabled &&
+      notificationPermission === 'granted' &&
+      typeof Notification !== 'undefined'
+    ) {
+      new Notification('Your pick!', {
+        body: `It is your turn in ${draft?.name || 'the draft'}`,
+        icon: '/favicon.ico'
+      });
+    }
+    prevIsMyTurnRef.current = isMyTurn;
+  }, [isMyTurn, notificationsEnabled, notificationPermission, draft?.name]);
+
   // Handle pause/resume
   const handlePauseResume = async () => {
     try {
@@ -231,6 +290,99 @@ const DraftRoom = () => {
   const get40m = (player) => (player.scores?.['40m_dash'] ?? player.drill_40m_dash)?.toFixed(2) ?? '-';
   const getVert = (player) => (player.scores?.vertical_jump ?? player.vertical_jump)?.toFixed(1) ?? '-';
 
+  const handleExportRosters = () => {
+    if (!picks.length) {
+      showError('No picks to export');
+      return;
+    }
+
+    const teamsById = teams.reduce((acc, team) => {
+      acc[team.id] = team;
+      return acc;
+    }, {});
+
+    const playerMap = new Map();
+    players.forEach((player) => playerMap.set(player.id, player));
+    picks.forEach((pick) => {
+      if (pick.player?.id) {
+        playerMap.set(pick.player.id, pick.player);
+      } else if (pick.player_id && pick.player) {
+        playerMap.set(pick.player_id, pick.player);
+      }
+    });
+
+    const rows = picks.map((pick) => {
+      const team = teamsById[pick.team_id] || {};
+      const player = playerMap.get(pick.player_id) || pick.player || {};
+
+      return {
+        team: team.team_name || 'Unknown Team',
+        coach: team.coach_name || '',
+        round: pick.round ?? '',
+        pickNumber: pick.pick_number ?? '',
+        name: player.name || pick.player?.name || pick.player_id || '',
+        number: player.number ?? pick.player?.number ?? '',
+        composite: player.composite_score ?? player.scores?.composite ?? '',
+        dash40: player.scores?.['40m_dash'] ?? player.drill_40m_dash ?? '',
+        vertical: player.scores?.vertical_jump ?? player.vertical_jump ?? ''
+      };
+    });
+
+    rows.sort((a, b) => {
+      const teamCompare = a.team.localeCompare(b.team);
+      if (teamCompare !== 0) return teamCompare;
+      const roundCompare = (a.round || 0) - (b.round || 0);
+      if (roundCompare !== 0) return roundCompare;
+      return (a.pickNumber || 0) - (b.pickNumber || 0);
+    });
+
+    const headers = [
+      'Team',
+      'Coach',
+      'Round',
+      'Pick #',
+      'Player Name',
+      'Player Number',
+      'Composite Score',
+      '40m Dash',
+      'Vertical Jump'
+    ];
+
+    const escapeValue = (value) => {
+      const str = String(value ?? '');
+      if (/[\",\\n]/.test(str)) {
+        return `\"${str.replace(/\"/g, '\"\"')}\"`;
+      }
+      return str;
+    };
+
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((row) => ([
+        row.team,
+        row.coach,
+        row.round,
+        row.pickNumber,
+        row.name,
+        row.number,
+        row.composite,
+        row.dash40,
+        row.vertical
+      ].map(escapeValue).join(',')))
+    ];
+
+    const csvContent = csvLines.join('\\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${draft?.name || 'draft'}_rosters.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Header */}
@@ -253,6 +405,12 @@ const DraftRoom = () => {
             
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
+              {notificationsEnabled && (
+                <div className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                  <Bell size={14} />
+                  <span>✓</span>
+                </div>
+              )}
               <Link 
                 to={`/draft/${draftId}/rankings`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200"
@@ -260,6 +418,23 @@ const DraftRoom = () => {
                 <ListOrdered size={16} />
                 My Rankings
               </Link>
+              {draft.trades_enabled && draft.status === 'active' && (
+                <button
+                  onClick={() => setShowTradeModal(true)}
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                >
+                  <ArrowLeftRight size={16} />
+                  Trade
+                </button>
+              )}
+              {draft.status === 'completed' && (
+                <button
+                  onClick={handleExportRosters}
+                  className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-900 text-white rounded-lg hover:bg-gray-800"
+                >
+                  Export Rosters
+                </button>
+              )}
               <Link 
                 to={`/draft/${draftId}/board`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
@@ -291,12 +466,20 @@ const DraftRoom = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <button 
-              className="md:hidden p-2"
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-            >
-              {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
-            </button>
+            <div className="md:hidden flex items-center gap-2">
+              {notificationsEnabled && (
+                <div className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-1 rounded-full">
+                  <Bell size={14} />
+                  <span>✓</span>
+                </div>
+              )}
+              <button 
+                className="p-2"
+                onClick={() => setShowMobileMenu(!showMobileMenu)}
+              >
+                {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+              </button>
+            </div>
           </div>
 
           {/* Mobile Menu */}
@@ -309,6 +492,23 @@ const DraftRoom = () => {
                 <ListOrdered size={16} />
                 My Rankings
               </Link>
+              {draft.trades_enabled && draft.status === 'active' && (
+                <button
+                  onClick={() => setShowTradeModal(true)}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg"
+                >
+                  <ArrowLeftRight size={16} />
+                  Trade
+                </button>
+              )}
+              {draft.status === 'completed' && (
+                <button
+                  onClick={handleExportRosters}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-gray-900 text-white rounded-lg"
+                >
+                  Export Rosters
+                </button>
+              )}
               <Link 
                 to={`/draft/${draftId}/board`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 rounded-lg"
@@ -363,6 +563,19 @@ const DraftRoom = () => {
           {isMyTurn && (
             <p className="mt-2 text-green-200 font-semibold text-sm md:text-base">Your pick!</p>
           )}
+        </div>
+      )}
+
+      {/* Notification Opt-in */}
+      {draft.status === 'active' && !isMyTurn && !notificationsEnabled && !notificationsBlocked && notificationPermission !== 'denied' && (
+        <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 text-sm text-blue-900 flex items-center justify-center gap-3">
+          <span>Get notified when it is your turn?</span>
+          <button
+            onClick={handleEnableNotifications}
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-xs font-semibold"
+          >
+            Enable Notifications
+          </button>
         </div>
       )}
 
@@ -641,6 +854,18 @@ const DraftRoom = () => {
           </div>
         </div>
       </div>
+
+      {showTradeModal && (
+        <TradeModal
+          draftId={draftId}
+          teams={teams}
+          picks={picks}
+          players={players}
+          currentTeam={myTeam}
+          isAdmin={isAdmin}
+          onClose={() => setShowTradeModal(false)}
+        />
+      )}
     </div>
   );
 };
