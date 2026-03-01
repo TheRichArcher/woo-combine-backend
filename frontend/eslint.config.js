@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist'] },
+  { ignores: ['dist', '**/__tests__/**'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {
@@ -54,3 +54,6 @@ export default [
     },
   },
 ]
+
+// Add Jest globals for test files
+import jestGlobals from 'globals';
