@@ -165,31 +165,6 @@ const DraftSetup = () => {
     fetchDraftPlayers();
   }, [draftId, draft?.event_id]);
 
-  const handleAddPlayer = async () => {
-    if (!newPlayerName.trim()) {
-      showError('Player name is required');
-      return;
-    }
-    setAddingPlayer(true);
-    try {
-      await api.post(`/drafts/${draftId}/players`, {
-        name: newPlayerName.trim(),
-        number: newPlayerNumber.trim() || null
-      });
-      setNewPlayerName('');
-      setNewPlayerNumber('');
-      setShowAddPlayer(false);
-      // Refresh players list
-      const res = await api.get(`/drafts/${draftId}/players`);
-      setDraftPlayers(res.data.filter(p => p.source === 'manual'));
-      showSuccess('Player added');
-    } catch (err) {
-      showError(err.response?.data?.detail || 'Failed to add player');
-    } finally {
-      setAddingPlayer(false);
-    }
-  };
-
   const handleRemovePlayer = async (playerId) => {
     if (!confirm('Remove this player?')) return;
     try {
