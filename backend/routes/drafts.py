@@ -278,6 +278,7 @@ async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depend
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -311,6 +312,7 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -394,6 +396,7 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -502,6 +505,7 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -582,6 +586,7 @@ async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_curr
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -621,6 +626,7 @@ async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -1071,6 +1077,7 @@ async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depen
     _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
@@ -1111,6 +1118,7 @@ async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dic
     _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
 
     # Payment check (if enabled)
     from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count

@@ -7,8 +7,8 @@ For testing: All drafts are FREE. Set DRAFT_PAYMENTS_ENABLED=true to require pay
 
 from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime, timezone, timedelta
+# from typing import Optional  # unused
+from datetime import datetime, timezone
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
 import os
@@ -93,7 +93,7 @@ async def get_draft_pricing(draft_id: str, user: dict = Depends(get_current_user
     # Get player count (from event or direct draft players)
     num_players = get_draft_player_count(db, draft)
     
-    tier = get_pricing_tier(num_teams)
+    _ = get_pricing_tier(num_teams)  # tier for future use
     is_free = is_draft_free(num_teams, num_players)
     
     # Check payment status
@@ -139,7 +139,7 @@ async def create_checkout_session(
     # Get pricing
     teams = list(db.collection("draft_teams").where("draft_id", "==", request.draft_id).stream())
     num_teams = len(teams)
-    tier = get_pricing_tier(num_teams)
+    _ = get_pricing_tier(num_teams)  # tier for future use
     
     # Check if already paid
     if draft.get("payment_status") == "paid":
