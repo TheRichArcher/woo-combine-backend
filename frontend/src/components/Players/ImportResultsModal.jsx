@@ -258,6 +258,71 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     window.open(url, '_blank');
   };
 
+    const initializeRequiredFieldMappings = (mapping, sourceKeys) => {
+        // Find which source column maps to each target
+        const reverseMapping = {};
+        Object.entries(mapping).forEach(([source, target]) => {
+            reverseMapping[target] = source;
+        });
+        
+        // Check if we have first_name and last_name mapped
+        const hasFirstName = reverseMapping['first_name'];
+        const hasLastName = reverseMapping['last_name'];
+        const hasFullName = reverseMapping['name'];
+        
+        if (hasFirstName && hasLastName) {
+            setNameMappingMode('separate');
+            setFirstNameColumn(hasFirstName);
+            setLastNameColumn(hasLastName);
+        } else if (hasFullName) {
+            setNameMappingMode('full');
+            setFullNameColumn(hasFullName);
+        } else {
+            // No name mapping detected - try to find likely candidates
+            const nameLikeColumns = sourceKeys.filter(key => {
+                const lower = key.toLowerCase();
+                return lower.includes('name') || lower.includes('player');
+            });
+            
+            if (nameLikeColumns.length === 1) {
+                // Single name-like column, suggest full name mode
+                setNameMappingMode('full');
+                setFullNameColumn(nameLikeColumns[0]);
+            } else {
+                // Default to separate mode, user must select
+                setNameMappingMode('separate');
+            }
+        }
+        
+        // CRITICAL FIX: Add guards for player number mapping
+        // Player number should NEVER map to name columns and must be numeric-like
+        if (reverseMapping['number']) {
+            const jerseySource = reverseMapping['number'];
+            const lower = jerseySource.toLowerCase();
+            
+            // Guard: Exclude name columns (but allow player_number, player_no, etc.)
+            // Only reject if it contains "name" specifically, not just "player"
+            const isNameColumn = lower.includes('name') && !lower.includes('number') && !lower.includes('num') && !lower.includes('no');
+            
+            // Only set if it passes guard
+            if (!isNameColumn) {
+                setJerseyColumn(jerseySource);
+            } else {
+                // Default to empty (Not mapped) when it's actually a name column
+                setJerseyColumn('');
+            }
+        } else {
+            // No jersey detected, default to empty (Not mapped)
+            setJerseyColumn('');
+        }
+        
+        // Map age_group
+        if (reverseMapping['age_group']) {
+            setAgeGroupColumn(reverseMapping['age_group']);
+        }
+    };
+    
+    // Check if required fields are validly mapped
   const handleParse = async (sheetName = null) => {
     if (method === 'file' && !file) {
       setError('Please select a file');
@@ -421,71 +486,6 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     const [importSummary, setImportSummary] = useState(null);
     
     // Initialize required field mappings from auto-detected mapping
-    const initializeRequiredFieldMappings = (mapping, sourceKeys) => {
-        // Find which source column maps to each target
-        const reverseMapping = {};
-        Object.entries(mapping).forEach(([source, target]) => {
-            reverseMapping[target] = source;
-        });
-        
-        // Check if we have first_name and last_name mapped
-        const hasFirstName = reverseMapping['first_name'];
-        const hasLastName = reverseMapping['last_name'];
-        const hasFullName = reverseMapping['name'];
-        
-        if (hasFirstName && hasLastName) {
-            setNameMappingMode('separate');
-            setFirstNameColumn(hasFirstName);
-            setLastNameColumn(hasLastName);
-        } else if (hasFullName) {
-            setNameMappingMode('full');
-            setFullNameColumn(hasFullName);
-        } else {
-            // No name mapping detected - try to find likely candidates
-            const nameLikeColumns = sourceKeys.filter(key => {
-                const lower = key.toLowerCase();
-                return lower.includes('name') || lower.includes('player');
-            });
-            
-            if (nameLikeColumns.length === 1) {
-                // Single name-like column, suggest full name mode
-                setNameMappingMode('full');
-                setFullNameColumn(nameLikeColumns[0]);
-            } else {
-                // Default to separate mode, user must select
-                setNameMappingMode('separate');
-            }
-        }
-        
-        // CRITICAL FIX: Add guards for player number mapping
-        // Player number should NEVER map to name columns and must be numeric-like
-        if (reverseMapping['number']) {
-            const jerseySource = reverseMapping['number'];
-            const lower = jerseySource.toLowerCase();
-            
-            // Guard: Exclude name columns (but allow player_number, player_no, etc.)
-            // Only reject if it contains "name" specifically, not just "player"
-            const isNameColumn = lower.includes('name') && !lower.includes('number') && !lower.includes('num') && !lower.includes('no');
-            
-            // Only set if it passes guard
-            if (!isNameColumn) {
-                setJerseyColumn(jerseySource);
-            } else {
-                // Default to empty (Not mapped) when it's actually a name column
-                setJerseyColumn('');
-            }
-        } else {
-            // No jersey detected, default to empty (Not mapped)
-            setJerseyColumn('');
-        }
-        
-        // Map age_group
-        if (reverseMapping['age_group']) {
-            setAgeGroupColumn(reverseMapping['age_group']);
-        }
-    };
-    
-    // Check if required fields are validly mapped
     const getRequiredFieldsStatus = () => {
         if (importMode === 'create_or_update') {
             // Roster mode: must have name mapping

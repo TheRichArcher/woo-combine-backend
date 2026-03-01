@@ -120,29 +120,6 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     });
   }, [player, allPlayers, drills, playerStats]);
 
-  const generatePDFReport = () => {
-    // In a real implementation, this would generate a proper PDF
-    // For now, we'll create an HTML version that can be printed as PDF
-    const reportHtml = generateReportHTML();
-    
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) return;
-    printWindow.document.open();
-    printWindow.document.write(reportHtml);
-    printWindow.document.close();
-    // Ensure styles are applied before printing
-    const handleLoad = () => {
-      try { printWindow.focus(); printWindow.print(); } catch {}
-    };
-    if (printWindow.document.readyState === 'complete') {
-      handleLoad();
-    } else {
-      printWindow.onload = handleLoad;
-    }
-    
-    showSuccess('Scorecard generated! Use your browser\'s print function to save as PDF.');
-  };
-
   const generateReportHTML = () => {
     if (!player || !playerStats) return '';
     
@@ -268,6 +245,29 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
         </body>
       </html>
     `;
+  };
+
+  const generatePDFReport = () => {
+    // In a real implementation, this would generate a proper PDF
+    // For now, we'll create an HTML version that can be printed as PDF
+    const reportHtml = generateReportHTML();
+    
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(reportHtml);
+    printWindow.document.close();
+    // Ensure styles are applied before printing
+    const handleLoad = () => {
+      try { printWindow.focus(); printWindow.print(); } catch { /* ignore print errors */ }
+    };
+    if (printWindow.document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      printWindow.onload = handleLoad;
+    }
+    
+    showSuccess('Scorecard generated! Use your browser\'s print function to save as PDF.');
   };
 
   const shareViaEmail = () => {

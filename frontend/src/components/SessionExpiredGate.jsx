@@ -22,7 +22,7 @@ export default function SessionExpiredGate() {
       const onboarding = ['/login','/signup','/verify-email','/welcome','/'];
       const target = onboarding.includes(currentPath) ? '/dashboard' : (currentPath + (location.search || ''));
       localStorage.setItem('postLoginRedirect', target);
-    } catch {}
+    } catch { /* ignore localStorage errors */ }
     setOpen(false);
     navigate('/login?reason=session_expired', { replace: true });
   }, [location.pathname, location.search, navigate]);

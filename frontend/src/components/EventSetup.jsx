@@ -87,25 +87,6 @@ export default function EventSetup({ onBack }) {
     return () => window.removeEventListener('hashchange', scrollToSection);
   }, []);
 
-  const handleReset = async () => {
-    if (!selectedEvent || !user || !selectedLeagueId) return;
-    setStatus("loading");
-    setErrorMsg("");
-    try {
-      await api.delete(`/players/reset?event_id=${selectedEvent.id}`);
-      setStatus("success");
-      setConfirmInput("");
-      showSuccess(`🗑️ All player data for "${selectedEvent.name}" has been reset`);
-      // Invalidate caches after destructive change
-      cacheInvalidation.playersUpdated(selectedEvent.id);
-      fetchPlayerCount(); // Refresh count
-    } catch (err) {
-      setStatus("error");
-      setErrorMsg(err.message || "Error during reset.");
-      notifyError(err);
-    }
-  };
-
   // Fetch player count for summary badge
   const fetchPlayerCount = useCallback(async () => {
     if (!selectedEvent || !user || !selectedLeagueId) return;
@@ -125,6 +106,25 @@ export default function EventSetup({ onBack }) {
       setPlayerCountLoading(false);
     }
   }, [selectedEvent, user, selectedLeagueId]);
+
+  const handleReset = async () => {
+    if (!selectedEvent || !user || !selectedLeagueId) return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      await api.delete(`/players/reset?event_id=${selectedEvent.id}`);
+      setStatus("success");
+      setConfirmInput("");
+      showSuccess(`🗑️ All player data for "${selectedEvent.name}" has been reset`);
+      // Invalidate caches after destructive change
+      cacheInvalidation.playersUpdated(selectedEvent.id);
+      fetchPlayerCount(); // Refresh count
+    } catch (err) {
+      setStatus("error");
+      setErrorMsg(err.message || "Error during reset.");
+      notifyError(err);
+    }
+  };
 
   useEffect(() => {
     fetchPlayerCount();
