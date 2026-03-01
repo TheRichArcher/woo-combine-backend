@@ -275,6 +275,26 @@ async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depend
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot modify draft after it has started")
     
     updates = {k: v for k, v in draft_in.dict().items() if v is not None}
@@ -291,6 +311,26 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot delete draft after it has started")
     
     # Delete associated teams and picks
@@ -335,6 +375,26 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Draft already started or completed")
     
     # Get teams
@@ -429,6 +489,26 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot add teams after draft has started")
     
     # Get current team count for pick order
@@ -491,6 +571,26 @@ async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_curr
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot remove teams after draft has started")
     
     team_ref = db.collection("draft_teams").document(team_id)
@@ -513,6 +613,26 @@ async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot reorder teams after draft has started")
     
     # Update pick_order for each team
@@ -930,6 +1050,26 @@ async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depen
     _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot add pre-slots after draft has started")
     
     team_ref = db.collection("draft_teams").document(slot_in.team_id)
@@ -953,6 +1093,26 @@ async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dic
     _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
     
     if draft_data.get("status") != "setup":
+
+    # Payment check (if enabled)
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    
+    if PAYMENTS_ENABLED:
+        payment_status = draft_data.get("payment_status", "not_required")
+        teams_for_price = list(db.collection("draft_teams").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        ).stream())
+        num_teams_price = len(teams_for_price)
+        players_for_price = list(db.collection("players").where(
+            filter=FieldFilter("event_id", "==", draft_data["event_id"])
+        ).stream())
+        num_players_price = len(players_for_price)
+        
+        if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
+            raise HTTPException(
+                status_code=402,
+                detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free."
+            )
         raise HTTPException(status_code=400, detail="Cannot modify pre-slots after draft has started")
     
     team_ref = db.collection("draft_teams").document(team_id)

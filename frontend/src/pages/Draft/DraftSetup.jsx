@@ -138,21 +138,13 @@ const DraftSetup = () => {
     }
   };
 
-  const handleStartDraft = async () => {
+const handleStartDraft = () => {
     if (teams.length < 2) {
       showError('Need at least 2 teams to start');
       return;
     }
-
-    if (!confirm(`Start the draft with ${teams.length} teams?`)) return;
-
-    try {
-      await startDraft();
-      showSuccess('Draft started!');
-      navigate(`/draft/${draftId}/live`);
-    } catch (err) {
-      showError(err.message || 'Failed to start draft');
-    }
+    // Navigate to payment page which handles payment check + starting
+    navigate(`/draft/${draftId}/payment`);
   };
 
   const handlePreSlotPlayer = async () => {
