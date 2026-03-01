@@ -8,6 +8,7 @@ ignore = [
     "E402",  # Module level import not at top of file (inline imports for performance)
     "E701",  # Multiple statements on one line (used in data mapping)
     "E741",  # Ambiguous variable name (l, O, I)
+    "F401",  # Unused imports (some are intentional preloads, noqa doesn't work with black multiline)
     "F841",  # Local variable assigned but never used (some are for future use)
 ]
 
