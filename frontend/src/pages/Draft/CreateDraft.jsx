@@ -26,10 +26,7 @@ const CreateDraft = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!selectedEvent) {
-      showError('Please select an event first');
-      return;
-    }
+    // Event is optional for standalone drafts
 
     if (!formData.name.trim()) {
       showError('Draft name is required');
@@ -40,7 +37,7 @@ const CreateDraft = () => {
     try {
       const res = await api.post('/drafts', {
         ...formData,
-        event_id: selectedEvent.id,
+        event_id: selectedEvent?.id || null,
         name: formData.name.trim(),
         age_group: formData.age_group || null
       });
@@ -83,7 +80,8 @@ const CreateDraft = () => {
             </Link>
             <div>
               <h1 className="text-xl font-bold">Create Draft</h1>
-              <p className="text-sm text-gray-500">for {selectedEvent.name}</p>
+              {selectedEvent && <p className="text-sm text-gray-500">for {selectedEvent.name}</p>}
+              {!selectedEvent && <p className="text-sm text-gray-500">Standalone draft (no combine)</p>}
             </div>
           </div>
         </div>

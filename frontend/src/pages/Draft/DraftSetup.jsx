@@ -45,6 +45,13 @@ const DraftSetup = () => {
   const [playersLoading, setPlayersLoading] = useState(false);
   const [preSlotTeamId, setPreSlotTeamId] = useState('');
   const [preSlotPlayerId, setPreSlotPlayerId] = useState('');
+  
+  // Player management (for standalone drafts without combine)
+  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerNumber, setNewPlayerNumber] = useState('');
+  const [addingPlayer, setAddingPlayer] = useState(false);
+  const [standalonePlayerCount, setStandalonePlayerCount] = useState(0);
 
   // Settings form
   const [settings, setSettings] = useState({
@@ -141,7 +148,99 @@ const DraftSetup = () => {
     }
   };
 
-const handleStartDraft = () => {
+
+
+  // Fetch draft-specific players (for standalone drafts)
+  useEffect(() => {
+    const fetchDraftPlayers = async () => {
+      if (!draft?.event_id) {
+        try {
+          const res = await api.get(`/drafts/${draftId}/players`);
+          setDraftPlayers(res.data.filter(p => p.source === 'manual'));
+        } catch (err) {
+          console.error('Failed to fetch draft players:', err);
+        }
+      }
+    };
+    fetchDraftPlayers();
+  }, [draftId, draft?.event_id]);
+
+  const handleAddPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      showError('Player name is required');
+      return;
+    }
+    setAddingPlayer(true);
+    try {
+      await api.post(`/drafts/${draftId}/players`, {
+        name: newPlayerName.trim(),
+        number: newPlayerNumber.trim() || null
+      });
+      setNewPlayerName('');
+      setNewPlayerNumber('');
+      setShowAddPlayer(false);
+      // Refresh players list
+      const res = await api.get(`/drafts/${draftId}/players`);
+      setDraftPlayers(res.data.filter(p => p.source === 'manual'));
+      showSuccess('Player added');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to add player');
+    } finally {
+      setAddingPlayer(false);
+    }
+  };
+
+  const handleRemovePlayer = async (playerId) => {
+    if (!confirm('Remove this player?')) return;
+    try {
+      await api.delete(`/drafts/${draftId}/players/${playerId}`);
+      setDraftPlayers(prev => prev.filter(p => p.id !== playerId));
+      showSuccess('Player removed');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to remove player');
+    }
+  };
+
+  // Fetch standalone player count
+  useEffect(() => {
+    const fetchPlayerCount = async () => {
+      if (!draft?.event_id && draftId) {
+        try {
+          const res = await api.get(`/drafts/${draftId}/players`);
+          const manualPlayers = res.data.filter(p => p.source === 'manual');
+          setStandalonePlayerCount(manualPlayers.length);
+        } catch (err) {
+          console.error('Failed to fetch players:', err);
+        }
+      }
+    };
+    fetchPlayerCount();
+  }, [draftId, draft?.event_id]);
+
+  const handleAddPlayer = async () => {
+    if (!newPlayerName.trim()) {
+      showError('Player name required');
+      return;
+    }
+    setAddingPlayer(true);
+    try {
+      await api.post(`/drafts/${draftId}/players`, {
+        name: newPlayerName.trim(),
+        number: newPlayerNumber.trim() || null
+      });
+      setNewPlayerName('');
+      setNewPlayerNumber('');
+      setShowAddPlayer(false);
+      setStandalonePlayerCount(prev => prev + 1);
+      showSuccess('Player added');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to add player');
+    } finally {
+      setAddingPlayer(false);
+    }
+  };
+
+  const handleStartDraft = () => {
     if (teams.length < 2) {
       showError('Need at least 2 teams to start');
       return;
@@ -337,6 +436,82 @@ const handleStartDraft = () => {
               </div>
             </div>
           </div>
+
+          {/* Players Section - only for standalone drafts (no event) */}
+          {!draft?.event_id && (
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Users size={18} />
+                  Players ({standalonePlayerCount})
+                </h2>
+                <button
+                  onClick={() => setShowAddPlayer(!showAddPlayer)}
+                  className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Add Player
+                </button>
+              </div>
+
+              <div className="p-4">
+                {showAddPlayer && (
+                  <div className="border rounded-lg p-3 mb-3 bg-gray-50">
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Player name *"
+                        value={newPlayerName}
+                        onChange={(e) => setNewPlayerName(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                        autoFocus
+                      />
+                      <input
+                        type="text"
+                        placeholder="Jersey # (optional)"
+                        value={newPlayerNumber}
+                        onChange={(e) => setNewPlayerNumber(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm"
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleAddPlayer}
+                          disabled={addingPlayer || !newPlayerName.trim()}
+                          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:bg-gray-300"
+                        >
+                          {addingPlayer ? 'Adding...' : 'Add Player'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowAddPlayer(false);
+                            setNewPlayerName('');
+                            setNewPlayerNumber('');
+                          }}
+                          className="px-3 py-2 text-gray-600 hover:text-gray-800 text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {standalonePlayerCount === 0 && !showAddPlayer && (
+                  <div className="text-center py-6 text-gray-500">
+                    <Users size={32} className="mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No players added yet</p>
+                    <p className="text-xs mt-1">Add players to include in the draft</p>
+                  </div>
+                )}
+
+                {standalonePlayerCount > 0 && (
+                  <p className="text-sm text-gray-600">
+                    {standalonePlayerCount} player{standalonePlayerCount !== 1 ? 's' : ''} ready for draft
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Settings */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">

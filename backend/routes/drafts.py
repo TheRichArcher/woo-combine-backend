@@ -343,9 +343,10 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
 async def list_drafts(
     event_id: Optional[str] = Query(None),
     league_id: Optional[str] = Query(None),
+    mine: bool = Query(False),
     user: dict = Depends(get_current_user)
 ):
-    """List drafts, optionally filtered by event or league."""
+    """List drafts, optionally filtered by event, league, or owned by user."""
     db = get_firestore_client()
     
     query = db.collection("drafts")
@@ -354,10 +355,31 @@ async def list_drafts(
         query = query.where(filter=FieldFilter("event_id", "==", event_id))
     elif league_id:
         query = query.where(filter=FieldFilter("league_id", "==", league_id))
+    elif mine:
+        # Return only drafts created by this user
+        query = query.where(filter=FieldFilter("created_by", "==", user["uid"]))
     
     drafts = []
     for doc in query.stream():
-        drafts.append(doc.to_dict())
+        draft = doc.to_dict()
+        # Also include drafts where user is a coach
+        drafts.append(draft)
+    
+    # If not filtering, also get drafts where user is a team coach
+    if not event_id and not league_id and not mine:
+        # Get teams where user is coach
+        coach_teams = db.collection("draft_teams").where(
+            filter=FieldFilter("coach_user_id", "==", user["uid"])
+        ).stream()
+        coach_draft_ids = {t.to_dict().get("draft_id") for t in coach_teams}
+        
+        # Add those drafts if not already in list
+        existing_ids = {d.get("id") for d in drafts}
+        for draft_id in coach_draft_ids:
+            if draft_id and draft_id not in existing_ids:
+                draft_doc = db.collection("drafts").document(draft_id).get()
+                if draft_doc.exists:
+                    drafts.append(draft_doc.to_dict())
     
     return drafts
 

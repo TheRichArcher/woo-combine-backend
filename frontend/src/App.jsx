@@ -43,10 +43,6 @@ import Analytics from "./pages/Analytics";
 
 // Draft Feature Pages
 import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft } from "./pages/Draft";
-                <Route
-                  path="/draft/join/:inviteToken"
-                  element={<JoinDraft />}
-                />
 import SessionExpiredGate from "./components/SessionExpiredGate";
 import BootGate from "./components/BootGate";
 import { NavigationLogger } from "./hooks/useTrackedNavigate";
@@ -176,24 +172,24 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/draft/:draftId/rankings" 
+                  path="/draft/:draftId/rankings"
+                  element={
+                    <RequireAuth>
+                      <CoachRankings />
+                    </RequireAuth>
+                  }
                 />
                 <Route
                   path="/draft/:draftId/payment"
                   element={
                     <RequireAuth>
                       <DraftPayment />
+                    </RequireAuth>
+                  }
+                />
                 <Route
                   path="/draft/join/:inviteToken"
                   element={<JoinDraft />}
-                />
-                    </RequireAuth>
-                  }
-                  element={
-                    <RequireAuth >
-                      <CoachRankings />
-                    </RequireAuth>
-                  } 
                 />
                 <Route 
                   path="/sport-templates" 
