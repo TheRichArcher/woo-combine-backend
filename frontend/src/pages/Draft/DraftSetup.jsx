@@ -2,12 +2,12 @@
  * DraftSetup - Configure and start a new draft
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useEvent } from '../../context/EventContext';
 import { useToast } from '../../context/ToastContext';
-import { useDraft, useDraftTeams, useDraftActions } from '../../hooks/useDraft';
+import { useDraft, useDraftTeams, useDraftActions, useAvailablePlayers } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
 import api from '../../lib/api';
 import {
@@ -19,7 +19,8 @@ import {
   Settings,
   Users,
   Timer,
-  Shuffle
+  Shuffle,
+  UserPlus
 } from 'lucide-react';
 
 const DraftSetup = () => {
@@ -32,10 +33,14 @@ const DraftSetup = () => {
   const { draft, loading: draftLoading } = useDraft(draftId);
   const { teams, refetch: refetchTeams } = useDraftTeams(draftId);
   const { startDraft, loading: actionLoading } = useDraftActions(draftId);
+  const { players, refetch: refetchPlayers } = useAvailablePlayers(draftId);
 
   const [newTeamName, setNewTeamName] = useState('');
   const [newCoachName, setNewCoachName] = useState('');
   const [addingTeam, setAddingTeam] = useState(false);
+  const [preSlotPlayerId, setPreSlotPlayerId] = useState('');
+  const [preSlotTeamId, setPreSlotTeamId] = useState('');
+  const [savingPreSlot, setSavingPreSlot] = useState(false);
 
   // Settings form
   const [settings, setSettings] = useState({
@@ -113,6 +118,75 @@ const DraftSetup = () => {
     }
   };
 
+  const preSlottedIds = useMemo(() => {
+    const ids = new Set();
+    teams.forEach((team) => {
+      (team.pre_slotted_player_ids || []).forEach((playerId) => ids.add(playerId));
+    });
+    return ids;
+  }, [teams]);
+
+  const preSlotRows = useMemo(() => {
+    const playerMap = new Map(players.map((player) => [player.id, player]));
+    const rows = [];
+    teams.forEach((team) => {
+      (team.pre_slotted_player_ids || []).forEach((playerId) => {
+        rows.push({
+          team,
+          playerId,
+          player: playerMap.get(playerId)
+        });
+      });
+    });
+    return rows;
+  }, [teams, players]);
+
+  const availablePreSlotPlayers = useMemo(() => {
+    const filtered = players.filter((player) => !preSlottedIds.has(player.id));
+    return filtered.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [players, preSlottedIds]);
+
+  const handleAddPreSlot = async () => {
+    if (!preSlotPlayerId || !preSlotTeamId) {
+      showError('Select a player and a team');
+      return;
+    }
+
+    if (preSlottedIds.has(preSlotPlayerId)) {
+      showError('Player is already pre-slotted');
+      return;
+    }
+
+    setSavingPreSlot(true);
+    try {
+      await api.post(`/drafts/${draftId}/pre-slots`, {
+        player_id: preSlotPlayerId,
+        team_id: preSlotTeamId
+      });
+      setPreSlotPlayerId('');
+      refetchTeams();
+      refetchPlayers();
+      showSuccess('Pre-slot added');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to add pre-slot');
+    } finally {
+      setSavingPreSlot(false);
+    }
+  };
+
+  const handleRemovePreSlot = async (teamId, playerId) => {
+    if (!confirm('Remove this pre-slot?')) return;
+
+    try {
+      await api.delete(`/drafts/${draftId}/pre-slots/${teamId}/${playerId}`);
+      refetchTeams();
+      refetchPlayers();
+      showSuccess('Pre-slot removed');
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to remove pre-slot');
+    }
+  };
+
   const handleStartDraft = async () => {
     if (teams.length < 2) {
       showError('Need at least 2 teams to start');
@@ -183,81 +257,164 @@ const DraftSetup = () => {
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
-          {/* Teams */}
-          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h2 className="font-semibold flex items-center gap-2">
-                <Users size={18} />
-                Teams ({teams.length})
-              </h2>
-              <button
-                onClick={handleRandomizeOrder}
-                disabled={teams.length < 2}
-                className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400"
-              >
-                <Shuffle size={14} />
-                Randomize
-              </button>
-            </div>
-
-            <div className="p-4">
-              {/* Team List */}
-              <div className="space-y-2 mb-4">
-                {teams.map((team, idx) => (
-                  <div 
-                    key={team.id}
-                    className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
-                  >
-                    <GripVertical size={16} className="text-gray-400 cursor-grab" />
-                    <span className="w-6 h-6 flex items-center justify-center bg-blue-100 text-blue-700 text-xs font-bold rounded">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1">
-                      <p className="font-medium">{team.team_name}</p>
-                      {team.coach_name && (
-                        <p className="text-xs text-gray-500">{team.coach_name}</p>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => handleRemoveTeam(team.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-
-                {teams.length === 0 && (
-                  <p className="text-center text-gray-500 py-4">
-                    No teams added yet
-                  </p>
-                )}
+          <div className="space-y-8">
+            {/* Teams */}
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="font-semibold flex items-center gap-2">
+                  <Users size={18} />
+                  Teams ({teams.length})
+                </h2>
+                <button
+                  onClick={handleRandomizeOrder}
+                  disabled={teams.length < 2}
+                  className="flex items-center gap-1 text-sm text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                >
+                  <Shuffle size={14} />
+                  Randomize
+                </button>
               </div>
 
-              {/* Add Team Form */}
-              <div className="border-t pt-4">
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Team name"
-                    value={newTeamName}
-                    onChange={(e) => setNewTeamName(e.target.value)}
+              <div className="p-4">
+                {/* Team List */}
+                <div className="space-y-2 mb-4">
+                  {teams.map((team, idx) => (
+                    <div 
+                      key={team.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                    >
+                      <GripVertical size={16} className="text-gray-400 cursor-grab" />
+                      <span className="w-6 h-6 flex items-center justify-center bg-blue-100 text-blue-700 text-xs font-bold rounded">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1">
+                        <p className="font-medium">{team.team_name}</p>
+                        {team.coach_name && (
+                          <p className="text-xs text-gray-500">{team.coach_name}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRemoveTeam(team.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+
+                  {teams.length === 0 && (
+                    <p className="text-center text-gray-500 py-4">
+                      No teams added yet
+                    </p>
+                  )}
+                </div>
+
+                {/* Add Team Form */}
+                <div className="border-t pt-4">
+                  <div className="space-y-3">
+                    <input
+                      type="text"
+                      placeholder="Team name"
+                      value={newTeamName}
+                      onChange={(e) => setNewTeamName(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Coach name (optional)"
+                      value={newCoachName}
+                      onChange={(e) => setNewCoachName(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg text-sm"
+                    />
+                    <button
+                      onClick={handleAddTeam}
+                      disabled={addingTeam || !newTeamName.trim()}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 text-sm font-medium"
+                    >
+                      <Plus size={16} />
+                      Add Team
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pre-Slotted Players */}
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="p-4 border-b">
+                <h2 className="font-semibold flex items-center gap-2">
+                  <UserPlus size={18} />
+                  Pre-Slotted Players ({preSlotRows.length})
+                </h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  Assign players to a team before the draft starts.
+                </p>
+              </div>
+
+              <div className="p-4 space-y-4">
+                {preSlotRows.length === 0 && (
+                  <p className="text-sm text-gray-500">
+                    No pre-slotted players yet.
+                  </p>
+                )}
+
+                {preSlotRows.length > 0 && (
+                  <div className="space-y-2">
+                    {preSlotRows.map((row) => (
+                      <div
+                        key={`${row.team.id}-${row.playerId}`}
+                        className="flex items-center justify-between gap-3 p-3 bg-gray-50 rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">
+                            {row.player?.name || row.playerId}
+                            {row.player?.number ? ` #${row.player.number}` : ''}
+                          </p>
+                          <p className="text-xs text-gray-500">{row.team.team_name}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemovePreSlot(row.team.id, row.playerId)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t pt-4 space-y-3">
+                  <select
+                    value={preSlotPlayerId}
+                    onChange={(e) => setPreSlotPlayerId(e.target.value)}
                     className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Coach name (optional)"
-                    value={newCoachName}
-                    onChange={(e) => setNewCoachName(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-lg text-sm"
-                  />
-                  <button
-                    onClick={handleAddTeam}
-                    disabled={addingTeam || !newTeamName.trim()}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 text-sm font-medium"
                   >
-                    <Plus size={16} />
-                    Add Team
+                    <option value="">Select player</option>
+                    {availablePreSlotPlayers.map((player) => (
+                      <option key={player.id} value={player.id}>
+                        {player.name}{player.number ? ` #${player.number}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={preSlotTeamId}
+                    onChange={(e) => setPreSlotTeamId(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg text-sm"
+                  >
+                    <option value="">Select team</option>
+                    {teams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.team_name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleAddPreSlot}
+                    disabled={savingPreSlot || !preSlotPlayerId || !preSlotTeamId}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 text-sm font-medium"
+                  >
+                    <UserPlus size={16} />
+                    Add Pre-Slot
                   </button>
                 </div>
               </div>
