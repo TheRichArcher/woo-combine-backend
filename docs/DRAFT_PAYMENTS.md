@@ -7,10 +7,10 @@ WooCombine supports paid drafts with OnlineDraft-style pricing.
 | Tier | Teams | Price |
 |------|-------|-------|
 | Free | Any (≤15 players) | $0 |
-| Basic | 2-5 | $19 |
-| Standard | 6-10 | $29 |
-| Plus | 11-15 | $34 |
-| Pro | 16+ | $39 |
+| Basic | 2-5 | $19.99 |
+| Standard | 6-10 | $29.99 |
+| Plus | 11-15 | $34.99 |
+| Pro | 16+ | $39.99 |
 
 ## Environment Variables
 

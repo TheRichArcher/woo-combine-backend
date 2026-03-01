@@ -23,10 +23,10 @@ PAYMENTS_ENABLED = os.getenv("DRAFT_PAYMENTS_ENABLED", "false").lower() == "true
 # Pricing tiers (based on number of coaches/teams)
 PRICING_TIERS = [
     {"min_teams": 1, "max_teams": 1, "price_cents": 0, "name": "Solo", "stripe_price_id": None},
-    {"min_teams": 2, "max_teams": 5, "price_cents": 1900, "name": "Basic", "stripe_price_id": "price_draft_basic"},
-    {"min_teams": 6, "max_teams": 10, "price_cents": 2900, "name": "Standard", "stripe_price_id": "price_draft_standard"},
-    {"min_teams": 11, "max_teams": 15, "price_cents": 3400, "name": "Plus", "stripe_price_id": "price_draft_plus"},
-    {"min_teams": 16, "max_teams": 999, "price_cents": 3900, "name": "Pro", "stripe_price_id": "price_draft_pro"},
+    {"min_teams": 2, "max_teams": 5, "price_cents": 1999, "name": "Basic", "stripe_price_id": "price_draft_basic"},
+    {"min_teams": 6, "max_teams": 10, "price_cents": 2999, "name": "Standard", "stripe_price_id": "price_draft_standard"},
+    {"min_teams": 11, "max_teams": 15, "price_cents": 3499, "name": "Plus", "stripe_price_id": "price_draft_plus"},
+    {"min_teams": 16, "max_teams": 999, "price_cents": 3999, "name": "Pro", "stripe_price_id": "price_draft_pro"},
 ]
 
 # Free tier: drafts with ≤15 players are free (like OnlineDraft's "Micro Draft")
