@@ -7,7 +7,7 @@ These endpoints are designed for:
 - Mobile-specific features (QR scanning, scorecards)
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional
 from datetime import datetime
 import logging

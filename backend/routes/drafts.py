@@ -3,6 +3,7 @@ Draft API Routes
 Handles draft creation, management, picks, and real-time state.
 """
 
+import secrets
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel
 from typing import Optional, List, Dict
@@ -1435,7 +1436,6 @@ async def remove_draft_player(
 # Coach Invite Links
 # ============================================================================
 
-import secrets
 
 def generate_invite_token() -> str:
     """Generate a short, URL-safe invite token."""

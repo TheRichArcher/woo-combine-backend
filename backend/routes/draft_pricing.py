@@ -93,7 +93,7 @@ async def get_draft_pricing(draft_id: str, user: dict = Depends(get_current_user
     # Get player count (from event or direct draft players)
     num_players = get_draft_player_count(db, draft)
     
-    _ = get_pricing_tier(num_teams)  # tier for future use
+    tier = get_pricing_tier(num_teams)
     is_free = is_draft_free(num_teams, num_players)
     
     # Check payment status
@@ -139,7 +139,7 @@ async def create_checkout_session(
     # Get pricing
     teams = list(db.collection("draft_teams").where("draft_id", "==", request.draft_id).stream())
     num_teams = len(teams)
-    _ = get_pricing_tier(num_teams)  # tier for future use
+    # tier = get_pricing_tier(num_teams)  # TODO: uncomment when Stripe integration is added
     
     # Check if already paid
     if draft.get("payment_status") == "paid":
