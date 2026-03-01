@@ -29,7 +29,7 @@ import DeleteEventFlow from "./DeleteEventFlow";
  * Removed: ~400 lines of unused CSV parsing, drag/drop, field mapping, and upload code
  */
 export default function EventSetup({ onBack }) {
-  const { userRole, selectedLeagueId } = useAuth();
+  const { user, userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
   const { notifyError, showSuccess } = useToast();
   const navigate = useNavigate();
