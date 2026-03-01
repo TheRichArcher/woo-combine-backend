@@ -29,9 +29,9 @@ import DeleteEventFlow from "./DeleteEventFlow";
  * Removed: ~400 lines of unused CSV parsing, drag/drop, field mapping, and upload code
  */
 export default function EventSetup({ onBack }) {
-  const { user, userRole, selectedLeagueId } = useAuth();
+  const { userRole, selectedLeagueId } = useAuth();
   const { selectedEvent } = useEvent();
-  const { notifyError, showSuccess, showInfo } = useToast();
+  const { notifyError, showSuccess } = useToast();
   const navigate = useNavigate();
 
   // CRITICAL: Use selectedEvent directly for reactive updates
