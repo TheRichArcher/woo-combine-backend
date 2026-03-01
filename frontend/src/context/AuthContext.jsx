@@ -341,6 +341,18 @@ export function AuthProvider({ children }) {
         }
         
         authLogger.warn('Concurrent league fetch failed', error.message);
+
+        // BUG FIX: On 401, clear the stale selectedLeagueId from localStorage.
+        // Without this, EventContext sees a non-empty selectedLeagueId and tries
+        // to load events with a stale league ID — also getting 401 — and may
+        // never set eventsLoaded=true, causing RouteDecisionGate to spin forever.
+        if (error?.response?.status === 401) {
+          authLogger.warn('League fetch 401 — clearing stale selectedLeagueId to unblock EventContext');
+          setSelectedLeagueIdState('');
+          localStorage.removeItem('selectedLeagueId');
+          setLeagues([]);
+        }
+
         // Return empty array on error so consumers can handle gracefully
         return [];
       } finally {

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
+import { auth } from '../firebase';
 import api from '../lib/api';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
 import { logger } from '../utils/logger';
@@ -28,9 +29,10 @@ export function EventProvider({ children }) {
   // This prevents showing "create first event" modal before fetch finishes
   const [eventsLoaded, setEventsLoaded] = useState(false);
 
+  // Safety timeout ref — ensures eventsLoaded is never stuck false forever
+  const eventsLoadedTimeoutRef = useRef(null);
+
   // STRICT VALIDATION: Check for stale event on every render or context update
-  // If we have a selectedLeagueId and a selectedEvent, they MUST match.
-  // This derived check prevents "render flashes" of stale data before effects run.
   useEffect(() => {
     if (selectedLeagueId && selectedEvent && selectedEvent.league_id && selectedEvent.league_id !== selectedLeagueId) {
         logger.warn('EVENT-CONTEXT', `Mismatch detected: Event ${selectedEvent.id} (League ${selectedEvent.league_id}) != Active League ${selectedLeagueId}. Clearing.`);
@@ -39,17 +41,24 @@ export function EventProvider({ children }) {
     }
   }, [selectedLeagueId, selectedEvent]);
 
-  // Cached events fetcher: TTL 120s per requirements
+  // Cached events fetcher: TTL 120s
+  // NOTE: Does NOT retry on 401/403 — those require token refresh handled by loadEvents
   const cachedFetchEvents = useCallback(
     withCache(
       async (leagueId) => {
-        // Quick retries for cold starts
         const attempt = async () => (await api.get(`/leagues/${leagueId}/events`)).data?.events || [];
         try {
           return await attempt();
         } catch (e1) {
+          // Do NOT retry auth errors — they need token refresh, not blind retry
+          if (e1?.response?.status === 401 || e1?.response?.status === 403) {
+            throw e1;
+          }
           await new Promise(r => setTimeout(r, 800));
           try { return await attempt(); } catch (e2) {
+            if (e2?.response?.status === 401 || e2?.response?.status === 403) {
+              throw e2;
+            }
             await new Promise(r => setTimeout(r, 1500));
             return await attempt();
           }
@@ -61,14 +70,15 @@ export function EventProvider({ children }) {
     []
   );
 
-  // Load events when league is selected
+  // Load events when league is selected.
+  // On 401: forces Firebase token refresh and retries once before giving up.
   const loadEvents = useCallback(async (leagueId, options = {}) => {
     if (!leagueId) {
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
       setNoLeague(true);
-      setEventsLoaded(true); // Mark as loaded even with no league
+      setEventsLoaded(true);
       return;
     }
 
@@ -76,15 +86,11 @@ export function EventProvider({ children }) {
     setError(null);
     setNoLeague(false);
 
-    try {
+    const fetchAndApply = async () => {
       const eventsData = await cachedFetchEvents(leagueId);
-      
-      // CRITICAL: Defensive filter - never show soft-deleted events
-      // This provides defense-in-depth even if backend or cache has stale data
       const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
       setEvents(activeEvents);
       
-      // If refreshing and we have a selected event, update it with fresh data
       if (options.syncSelectedEvent) {
         setSelectedEvent(current => {
           if (!current?.id) return current;
@@ -97,31 +103,53 @@ export function EventProvider({ children }) {
           return current;
         });
       } else {
-        // Auto-select first event if available and none is currently selected
-        // Check current selectedEvent state instead of using it as dependency
         setSelectedEvent(current => {
           if (!current && activeEvents.length > 0) {
             const firstEvent = activeEvents[0];
-            // Persist the auto-selected event
             localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
             return firstEvent;
           }
           return current;
         });
       }
+    };
+
+    let finalErr = null;
+    try {
+      await fetchAndApply();
     } catch (err) {
-      logger.error('EVENT-CONTEXT', 'Failed to load events', err);
+      // 401: force Firebase token refresh and retry once
+      if (err?.response?.status === 401) {
+        logger.warn('EVENT-CONTEXT', `Got 401 loading events for league ${leagueId} — forcing token refresh and retrying`);
+        try {
+          const firebaseUser = auth.currentUser;
+          if (firebaseUser) {
+            await firebaseUser.getIdToken(true); // force refresh
+          }
+          // Invalidate cache so we don't return stale pre-refresh data
+          cacheInvalidation.eventsUpdated(leagueId);
+          await fetchAndApply();
+          // Success after refresh — return without setting error
+          return;
+        } catch (retryErr) {
+          logger.error('EVENT-CONTEXT', 'Events fetch failed after token refresh', retryErr);
+          finalErr = retryErr;
+        }
+      } else {
+        finalErr = err;
+      }
+
+      logger.error('EVENT-CONTEXT', 'Failed to load events', finalErr);
       
-      // Provide user-friendly error messages based on error type
       let errorMessage = 'Failed to load events';
-      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+      if (finalErr?.code === 'ECONNABORTED' || finalErr?.message?.includes('timeout')) {
         errorMessage = 'Server is starting up. Please wait a moment and try again.';
-      } else if (err.message?.includes('Network Error')) {
+      } else if (finalErr?.message?.includes('Network Error')) {
         errorMessage = 'Network connection issue. Please check your internet connection.';
-      } else if (err.response?.status >= 500) {
+      } else if (finalErr?.response?.status >= 500) {
         errorMessage = 'Server is temporarily unavailable. Please try again in a moment.';
-      } else if (err.response?.data?.detail) {
-        errorMessage = err.response.data.detail;
+      } else if (finalErr?.response?.data?.detail) {
+        errorMessage = finalErr.response.data.detail;
       }
       
       setError(errorMessage);
@@ -132,19 +160,20 @@ export function EventProvider({ children }) {
       setLoading(false);
       setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure
     }
-  }, []); // FIXED: Removed selectedEvent from dependencies to prevent circular dependency
+  }, []); // FIXED: No selectedEvent dep to prevent circular dependency
 
   // Load events when league changes, restoring previous selection if still valid
   useEffect(() => {
     // Only load events after auth is complete
     if (!authChecked || !roleChecked) return;
-    try {
-      const path = window.location?.pathname || '';
-      // Skip event fetching on onboarding routes to avoid 401 spam on login
-      if (['/login', '/signup', '/verify-email', '/welcome', '/'].includes(path)) {
-        return;
-      }
-    } catch {}
+
+    // BUG FIX: Removed window.location.pathname path-check gate.
+    // The old check caused eventsLoaded to never become true when:
+    //   1. Effect fires on /welcome (early return — eventsLoaded never set)
+    //   2. User navigates to /dashboard but selectedLeagueId doesn't change
+    //   3. Effect never re-runs → eventsLoaded stuck false → infinite spinner
+    // AuthContext already skips league fetching on /login etc., so by the time
+    // roleChecked=true we are safe to proceed with event loading.
     
     if (selectedLeagueId) {
       // Guard against stale selections from another league
@@ -157,7 +186,6 @@ export function EventProvider({ children }) {
         return current;
       });
 
-      // Capture previously selectedEvent id only if it belongs to this league
       let previouslySelectedId = null;
       try {
         const stored = localStorage.getItem('selectedEvent');
@@ -176,7 +204,6 @@ export function EventProvider({ children }) {
       (async () => {
         await loadEvents(selectedLeagueId);
         if (previouslySelectedId) {
-          // After events load, if the prior event is still in the list, reselect it
           setSelectedEvent(current => {
             if (current && current.id === previouslySelectedId) return current;
             const found = events.find(e => e.id === previouslySelectedId);
@@ -193,20 +220,31 @@ export function EventProvider({ children }) {
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
       setNoLeague(true);
-      setEventsLoaded(true); // CRITICAL: Mark loaded even with no league to unblock RouteDecisionGate
+      setEventsLoaded(true); // CRITICAL: Unblock RouteDecisionGate even with no league
     }
   }, [selectedLeagueId, authChecked, roleChecked, loadEvents]);
+
+  // SAFETY NET: If eventsLoaded never becomes true within 35s after auth completes,
+  // force it true so RouteDecisionGate doesn't spin forever.
+  useEffect(() => {
+    if (!authChecked || !roleChecked || eventsLoaded) return;
+
+    if (eventsLoadedTimeoutRef.current) clearTimeout(eventsLoadedTimeoutRef.current);
+    eventsLoadedTimeoutRef.current = setTimeout(() => {
+      logger.warn('EVENT-CONTEXT', 'eventsLoaded safety timeout fired after 35s — forcing true to unblock RouteDecisionGate');
+      setEventsLoaded(true);
+    }, 35000);
+
+    return () => {
+      if (eventsLoadedTimeoutRef.current) clearTimeout(eventsLoadedTimeoutRef.current);
+    };
+  }, [authChecked, roleChecked, eventsLoaded]);
 
   // Refresh function
   const refreshEvents = useCallback(async () => {
     if (!selectedLeagueId) return;
-    
-    // CRITICAL: Invalidate events cache before refreshing
-    // This ensures we get fresh data from backend, not stale cached data
     cacheInvalidation.eventsUpdated(selectedLeagueId);
     logger.info('EVENT-CONTEXT', `Invalidated events cache for league ${selectedLeagueId}`);
-    
-    // Pass syncSelectedEvent flag to update the currently selected event with fresh data
     await loadEvents(selectedLeagueId, { syncSelectedEvent: true });
   }, [selectedLeagueId, loadEvents]);
 
@@ -215,23 +253,17 @@ export function EventProvider({ children }) {
     if (!selectedLeagueId) {
       throw new Error('No league selected');
     }
-
     try {
       const response = await api.put(`/leagues/${selectedLeagueId}/events/${eventId}`, updatedData);
-      
-      // Update the selectedEvent if it's the one being updated
       if (selectedEvent && selectedEvent.id === eventId) {
         const updatedEvent = { ...selectedEvent, ...updatedData };
         setSelectedEvent(updatedEvent);
       }
-      
-      // Update the events list
       setEvents(prevEvents => 
         prevEvents.map(event => 
           event.id === eventId ? { ...event, ...updatedData } : event
         )
       );
-      
       return response.data;
     } catch (error) {
       logger.error('Failed to update event:', error);
@@ -244,35 +276,23 @@ export function EventProvider({ children }) {
     if (!selectedLeagueId) {
       throw new Error('No league selected');
     }
-
     try {
-      // CRITICAL SERVER-SIDE VALIDATION: Include X-Delete-Target-Event-Id header
-      // Backend will validate that route event_id matches declared target to prevent UI drift
       const headers = {
         'X-Delete-Target-Event-Id': eventId,
         ...options.headers
       };
-      
       const response = await api.delete(`/leagues/${selectedLeagueId}/events/${eventId}`, { headers });
-      
-      // CRITICAL: Immediately remove from events list - DO NOT wait for refetch
-      // This prevents deleted events from appearing in any UI while refetch is pending
       setEvents(prevEvents => {
         const filtered = prevEvents.filter(event => event.id !== eventId);
         logger.info(`EVENT_DELETED_FROM_CONTEXT`, {
           deleted_event_id: eventId,
           remaining_events: filtered.length,
           removed_immediately: true,
-          server_validation_header: headers['X-Delete-Target-Event-Id']
         });
         return filtered;
       });
-      
-      // CRITICAL: Force context reset - clear selectedEvent ALWAYS
-      // This prevents any references to deleted event in active context
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
-      
       logger.info(`Event ${eventId} soft-deleted successfully and removed from context`);
       return response.data;
     } catch (error) {
@@ -298,7 +318,7 @@ export function EventProvider({ children }) {
     setEvents,
     noLeague,
     loading,
-    eventsLoaded, // CRITICAL: Expose to components to gate onboarding
+    eventsLoaded,
     error,
     refreshEvents,
     updateEvent,
@@ -318,4 +338,4 @@ export function useEvent() {
     throw new Error("useEvent must be used within an EventProvider");
   }
   return context;
-} 
+}

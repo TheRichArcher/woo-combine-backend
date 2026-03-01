@@ -6,16 +6,19 @@ import LoadingScreen from './LoadingScreen';
 
 /**
  * RouteDecisionGate - Centralized routing logic to prevent flicker
- * 
+ *
  * This component waits for ALL app state to hydrate before rendering route children.
  * It makes ONE routing decision instead of allowing multiple components to navigate
  * independently during initialization, which causes screen flashing.
- * 
+ *
  * State Dependencies:
  * - authChecked: Firebase auth initialized
  * - roleChecked: User role fetched from backend
  * - leaguesLoading: Leagues fetch completed (or determined empty)
  * - eventsLoaded: Events fetch completed (or determined empty)
+ *
+ * Safety:
+ * - 30s timeout: if eventsLoaded never resolves, route to /login to avoid endless spinner
  */
 export default function RouteDecisionGate({ children }) {
   const location = useLocation();
@@ -40,8 +43,11 @@ export default function RouteDecisionGate({ children }) {
   const [isReady, setIsReady] = useState(false);
   const [decisionMade, setDecisionMade] = useState(false);
   const [isNavigating, setIsNavigating] = useState(false);
+  // Timeout state: true = gate timed out, route to login
+  const [gateTimedOut, setGateTimedOut] = useState(false);
   const navigationAttempted = useRef(false);
   const targetRoute = useRef(null);
+  const gateTimeoutRef = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
 
   // Routes that are always allowed (public/auth routes)
@@ -93,7 +99,8 @@ export default function RouteDecisionGate({ children }) {
       noLeague,
       bypassGate,
       isReady,
-      decisionMade
+      decisionMade,
+      gateTimedOut
     };
     
     console.log(`${logPrefix} STATE:`, state);
@@ -113,8 +120,41 @@ export default function RouteDecisionGate({ children }) {
     noLeague,
     bypassGate,
     isReady,
-    decisionMade
+    decisionMade,
+    gateTimedOut
   ]);
+
+  // SAFETY TIMEOUT: If the gate is still waiting after 30s, give up and route to /login.
+  // This prevents the app from spinning forever when eventsLoaded never resolves
+  // due to repeated 401s, network issues, or other auth failures on startup.
+  useEffect(() => {
+    if (bypassGate || isReady || gateTimedOut) {
+      if (gateTimeoutRef.current) {
+        clearTimeout(gateTimeoutRef.current);
+        gateTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    // Only start the timeout once auth has at least completed its initial check
+    if (!authChecked) return;
+
+    if (gateTimeoutRef.current) return; // already armed
+
+    console.log(`${logPrefix} TIMEOUT_ARMED: 30s safety timeout started`);
+    gateTimeoutRef.current = setTimeout(() => {
+      console.error(`${logPrefix} TIMEOUT_FIRED: Gate waited >30s for [eventsLoaded]. Routing to /login to prevent infinite spinner.`);
+      setGateTimedOut(true);
+      setIsReady(true); // unblock the gate
+    }, 30000);
+
+    return () => {
+      if (gateTimeoutRef.current) {
+        clearTimeout(gateTimeoutRef.current);
+        gateTimeoutRef.current = null;
+      }
+    };
+  }, [bypassGate, isReady, gateTimedOut, authChecked]);
 
   // Determine if all required state is ready
   useEffect(() => {
@@ -127,13 +167,11 @@ export default function RouteDecisionGate({ children }) {
     }
 
     // CRITICAL FIX: Check minimal state first - if user has no role, don't wait for events
-    // Events will never load without a role, so we'd hang forever
     const minimalStateReady = 
-      authChecked &&          // Firebase auth checked
-      roleChecked &&          // Backend role fetched
-      !initializing;          // Auth initialization complete
+      authChecked &&
+      roleChecked &&
+      !initializing;
 
-    // If user has no role, we can make a decision immediately (redirect to /select-role)
     if (minimalStateReady && !user) {
       console.log(`${logPrefix} MINIMAL_STATE_READY: No user, can redirect to welcome`);
       setIsReady(true);
@@ -149,8 +187,8 @@ export default function RouteDecisionGate({ children }) {
     // If user has a role, wait for full state including leagues and events
     const allStateReady = 
       minimalStateReady &&
-      !leaguesLoading &&      // Leagues fetch complete
-      eventsLoaded;           // Events fetch complete (even if empty)
+      !leaguesLoading &&
+      eventsLoaded;
 
     if (allStateReady) {
       console.log(`${logPrefix} ALL_STATE_READY: Proceeding with route decision`);
@@ -180,7 +218,6 @@ export default function RouteDecisionGate({ children }) {
   // Make ONE routing decision when ready
   useEffect(() => {
     if (!isReady || decisionMade || navigationAttempted.current) {
-      // DIAGNOSTIC: Log why we're not making a decision
       if (!isReady) {
         console.log(`${logPrefix} DECISION_BLOCKED: !isReady`);
       } else if (decisionMade) {
@@ -191,7 +228,6 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // Don't navigate if we're on a bypass route
     if (bypassGate) {
       console.log(`${logPrefix} DECISION_BLOCKED: bypassGate=true`);
       return;
@@ -199,7 +235,6 @@ export default function RouteDecisionGate({ children }) {
 
     console.log(`${logPrefix} ROUTE_DECISION: Making routing decision for ${location.pathname}`);
 
-    // Helper to navigate and track it
     const performNavigation = (to, reason) => {
       console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → ${to} (${reason})`);
       navigationAttempted.current = true;
@@ -208,6 +243,13 @@ export default function RouteDecisionGate({ children }) {
       navigate(to, { replace: true });
       setDecisionMade(true);
     };
+
+    // TIMEOUT FALLBACK: gate gave up waiting — send to login
+    if (gateTimedOut) {
+      console.warn(`${logPrefix} TIMEOUT_REDIRECT: Routing to /login after 30s timeout`);
+      performNavigation('/login', 'gate timeout — eventsLoaded never resolved');
+      return;
+    }
 
     // Unauthenticated users → welcome
     if (!user) {
@@ -227,12 +269,8 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // At this point: user is authenticated, verified, and has a role
-    // Determine their landing page based on leagues/events
-
     // No league context → needs league selection or creation
     if (!selectedLeagueId || noLeague || !leagues || leagues.length === 0) {
-      // Only redirect if they're trying to access a protected page
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
@@ -253,8 +291,6 @@ export default function RouteDecisionGate({ children }) {
       }
     }
 
-    // If we're here, state is ready and current route is valid
-    // Let the user stay on their requested route - don't force redirects
     console.log(`${logPrefix} ROUTE_VALID: ${location.pathname} is valid, rendering content`);
     setDecisionMade(true);
 
@@ -262,6 +298,7 @@ export default function RouteDecisionGate({ children }) {
     isReady, 
     decisionMade, 
     bypassGate,
+    gateTimedOut,
     user,
     userRole,
     selectedLeagueId,
@@ -293,8 +330,6 @@ export default function RouteDecisionGate({ children }) {
     );
   }
 
-  // State is ready and decision made → render children
   console.log(`${logPrefix} RENDER_CHILDREN: Rendering route children for ${location.pathname}`);
   return children;
 }
-
