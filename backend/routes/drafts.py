@@ -3,13 +3,15 @@ Draft API Routes
 Handles draft creation, management, picks, and real-time state.
 """
 
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, Response
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
 from google.cloud.firestore_v1 import FieldFilter
+import csv
+import io
 import uuid
 import logging
 
@@ -403,6 +405,80 @@ async def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
     teams.sort(key=lambda t: t.get("pick_order", 999))
     
     return teams
+
+@router.get("/{draft_id}/teams/{team_id}/export")
+async def export_team_roster(draft_id: str, team_id: str, user: dict = Depends(get_current_user)):
+    """Export a team's drafted roster as CSV."""
+    db = get_firestore_client()
+
+    draft_doc = db.collection("drafts").document(draft_id).get()
+    if not draft_doc.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    team_ref = db.collection("draft_teams").document(team_id)
+    team_doc = team_ref.get()
+    if not team_doc.exists:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_data = team_doc.to_dict()
+    if team_data.get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Team does not belong to this draft")
+
+    picks_query = db.collection("draft_picks").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    ).where(
+        filter=FieldFilter("team_id", "==", team_id)
+    ).order_by("pick_number").stream()
+
+    picks = [p.to_dict() for p in picks_query]
+    player_ids = [p.get("player_id") for p in picks if p.get("player_id")]
+
+    players: Dict[str, Dict[str, Any]] = {}
+    for pid in player_ids:
+        player_doc = db.collection("players").document(pid).get()
+        if player_doc.exists:
+            players[pid] = player_doc.to_dict()
+
+    def _get_40m(player: Dict[str, Any]) -> Any:
+        scores = player.get("scores") or {}
+        return scores.get("40m_dash") or player.get("drill_40m_dash") or player.get("40m_dash")
+
+    def _get_vertical(player: Dict[str, Any]) -> Any:
+        scores = player.get("scores") or {}
+        return scores.get("vertical_jump") or player.get("vertical_jump")
+
+    def _get_composite(player: Dict[str, Any]) -> Any:
+        scores = player.get("scores") or {}
+        return player.get("composite_score") or scores.get("composite")
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Player Name",
+        "Jersey Number",
+        "Position",
+        "40m Time",
+        "Vertical",
+        "Composite Score"
+    ])
+
+    for pid in player_ids:
+        player = players.get(pid, {})
+        writer.writerow([
+            player.get("name") or f"{player.get('first_name', '')} {player.get('last_name', '')}".strip(),
+            player.get("number") or player.get("jersey_number") or "",
+            player.get("position") or "",
+            _get_40m(player) or "",
+            _get_vertical(player) or "",
+            _get_composite(player) or ""
+        ])
+
+    filename = f"{team_data.get('team_name', 'team').replace(' ', '_')}_roster.csv"
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @router.patch("/{draft_id}/teams/{team_id}")
 async def update_team(draft_id: str, team_id: str, team_in: TeamUpdate, user: dict = Depends(get_current_user)):
