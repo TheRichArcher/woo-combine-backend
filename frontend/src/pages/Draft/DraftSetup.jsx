@@ -12,6 +12,9 @@ import LoadingScreen from '../../components/LoadingScreen';
 import api from '../../lib/api';
 import {
   ArrowLeft,
+  Link2,
+  Copy,
+  Check,
   Plus,
   Trash2,
   GripVertical,
@@ -267,10 +270,26 @@ const handleStartDraft = () => {
                     <span className="w-6 h-6 flex items-center justify-center bg-blue-100 text-blue-700 text-xs font-bold rounded">
                       {idx + 1}
                     </span>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <p className="font-medium">{team.team_name}</p>
                       {team.coach_name && (
                         <p className="text-xs text-gray-500">{team.coach_name}</p>
+                      )}
+                      {team.coach_user_id ? (
+                        <p className="text-xs text-green-600 flex items-center gap-1">
+                          <Check size={12} /> Coach joined
+                        </p>
+                      ) : team.invite_token && (
+                        <button
+                          onClick={() => {
+                            const url = `${window.location.origin}/draft/join/${team.invite_token}`;
+                            navigator.clipboard.writeText(url);
+                            showSuccess('Invite link copied!');
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 mt-1"
+                        >
+                          <Link2 size={12} /> Copy invite link
+                        </button>
                       )}
                     </div>
                     <button

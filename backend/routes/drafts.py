@@ -512,6 +512,7 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
         "coach_name": team_in.coach_name,
         "pick_order": current_count + 1,
         "pre_slotted_player_ids": [],
+        "invite_token": generate_invite_token(),  # For coach invite links
         "created_at": now_iso()
     }
     
@@ -1398,3 +1399,175 @@ async def remove_draft_player(
     player_ref.delete()
     
     return {"status": "ok", "deleted": player_id}
+
+
+# ============================================================================
+# Coach Invite Links
+# ============================================================================
+
+import secrets
+
+def generate_invite_token() -> str:
+    """Generate a short, URL-safe invite token."""
+    return secrets.token_urlsafe(12)  # ~16 chars, URL-safe
+
+
+class JoinTeamResponse(BaseModel):
+    status: str
+    team_id: str
+    team_name: str
+    draft_id: str
+    draft_name: str
+
+
+@router.get("/join/{invite_token}")
+async def get_invite_info(invite_token: str):
+    """Get info about an invite link (no auth required)."""
+    db = get_firestore_client()
+    
+    # Find team with this token
+    teams_query = db.collection("draft_teams").where(
+        filter=FieldFilter("invite_token", "==", invite_token)
+    ).limit(1).stream()
+    
+    teams = list(teams_query)
+    if not teams:
+        raise HTTPException(status_code=404, detail="Invalid or expired invite link")
+    
+    team_data = teams[0].to_dict()
+    draft_id = team_data.get("draft_id")
+    
+    # Get draft info
+    draft_doc = db.collection("drafts").document(draft_id).get()
+    if not draft_doc.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    draft_data = draft_doc.to_dict()
+    
+    return {
+        "team_id": team_data.get("id"),
+        "team_name": team_data.get("team_name"),
+        "coach_name": team_data.get("coach_name"),
+        "draft_id": draft_id,
+        "draft_name": draft_data.get("name"),
+        "draft_status": draft_data.get("status"),
+        "already_claimed": team_data.get("coach_user_id") is not None
+    }
+
+
+@router.post("/join/{invite_token}")
+async def join_team_via_invite(
+    invite_token: str, 
+    user: dict = Depends(get_current_user)
+) -> JoinTeamResponse:
+    """Claim a team spot using an invite link."""
+    db = get_firestore_client()
+    
+    # Find team with this token
+    teams_query = db.collection("draft_teams").where(
+        filter=FieldFilter("invite_token", "==", invite_token)
+    ).limit(1).stream()
+    
+    teams = list(teams_query)
+    if not teams:
+        raise HTTPException(status_code=404, detail="Invalid or expired invite link")
+    
+    team_doc = teams[0]
+    team_data = team_doc.to_dict()
+    team_id = team_data.get("id")
+    draft_id = team_data.get("draft_id")
+    
+    # Check if already claimed
+    if team_data.get("coach_user_id"):
+        if team_data.get("coach_user_id") == user["uid"]:
+            # Already claimed by this user - just return success
+            pass
+        else:
+            raise HTTPException(status_code=400, detail="This team has already been claimed by another coach")
+    
+    # Get draft info
+    draft_doc = db.collection("drafts").document(draft_id).get()
+    if not draft_doc.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    
+    draft_data = draft_doc.to_dict()
+    
+    # Check draft status - can only join during setup
+    if draft_data.get("status") not in ["setup", "active"]:
+        raise HTTPException(status_code=400, detail="Cannot join - draft has ended")
+    
+    # Claim the team
+    db.collection("draft_teams").document(team_id).update({
+        "coach_user_id": user["uid"],
+        "coach_email": user.get("email"),
+        "claimed_at": now_iso()
+    })
+    
+    logger.info(f"Coach {user['uid']} claimed team {team_id} in draft {draft_id}")
+    
+    return JoinTeamResponse(
+        status="ok",
+        team_id=team_id,
+        team_name=team_data.get("team_name"),
+        draft_id=draft_id,
+        draft_name=draft_data.get("name")
+    )
+
+
+@router.post("/{draft_id}/teams/{team_id}/regenerate-invite")
+async def regenerate_invite_token(
+    draft_id: str,
+    team_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Regenerate invite token for a team (invalidates old link)."""
+    db = get_firestore_client()
+    _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+    
+    team_ref = db.collection("draft_teams").document(team_id)
+    team_doc = team_ref.get()
+    
+    if not team_doc.exists:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    if team_doc.to_dict().get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Team not in this draft")
+    
+    new_token = generate_invite_token()
+    team_ref.update({
+        "invite_token": new_token,
+        "invite_regenerated_at": now_iso()
+    })
+    
+    return {"status": "ok", "invite_token": new_token}
+
+
+@router.post("/{draft_id}/teams/{team_id}/remove-coach")
+async def remove_coach_from_team(
+    draft_id: str,
+    team_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Remove coach assignment from a team (admin only)."""
+    db = get_firestore_client()
+    _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+    
+    team_ref = db.collection("draft_teams").document(team_id)
+    team_doc = team_ref.get()
+    
+    if not team_doc.exists:
+        raise HTTPException(status_code=404, detail="Team not found")
+    
+    if team_doc.to_dict().get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Team not in this draft")
+    
+    # Clear coach and regenerate invite
+    new_token = generate_invite_token()
+    team_ref.update({
+        "coach_user_id": None,
+        "coach_email": None,
+        "claimed_at": None,
+        "invite_token": new_token
+    })
+    
+    return {"status": "ok", "message": "Coach removed, new invite link generated"}
