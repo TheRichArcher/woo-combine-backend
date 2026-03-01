@@ -65,7 +65,7 @@ def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool =
 
 class DraftCreate(BaseModel):
     name: str
-    event_id: str
+    event_id: Optional[str] = None  # Optional for standalone drafts
     age_group: Optional[str] = None  # U8, U10, U12, etc. None = all
     draft_type: str = "snake"  # snake | linear
     num_rounds: Optional[int] = None  # Auto-calculate if not provided
@@ -211,22 +211,25 @@ async def create_draft(draft_in: DraftCreate, user: dict = Depends(require_role(
     """Create a new draft for an event."""
     db = get_firestore_client()
     
-    # Verify event exists and user has access
-    event_ref = db.collection("events").document(draft_in.event_id)
-    event_doc = event_ref.get()
-    if not event_doc.exists:
-        raise HTTPException(status_code=404, detail="Event not found")
-    
-    event_data = event_doc.to_dict()
-    league_id = event_data.get("league_id")
-    
-    # Verify user has organizer access to the league
-    if league_id:
-        ensure_league_access(
-            user["uid"], league_id,
-            allowed_roles={"organizer"},
-            operation_name="create draft"
-        )
+    # Verify event exists (if provided) and user has access
+    league_id = None
+    if draft_in.event_id:
+        event_ref = db.collection("events").document(draft_in.event_id)
+        event_doc = event_ref.get()
+        if not event_doc.exists:
+            raise HTTPException(status_code=404, detail="Event not found")
+        
+        event_data = event_doc.to_dict()
+        league_id = event_data.get("league_id")
+        
+        # Verify user has organizer access to the league
+        if league_id:
+            ensure_league_access(
+                user["uid"], league_id,
+                allowed_roles={"organizer"},
+                operation_name="create draft"
+            )
+    # Standalone draft - no event required
     
     draft_id = generate_id("draft_")
     draft_data = {
@@ -277,7 +280,7 @@ async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depend
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -285,10 +288,7 @@ async def update_draft(draft_id: str, draft_in: DraftUpdate, user: dict = Depend
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -313,7 +313,7 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -321,10 +321,7 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -377,7 +374,7 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -385,10 +382,7 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -411,12 +405,9 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     # Calculate rounds if not set
     num_rounds = draft_data.get("num_rounds")
     if not num_rounds:
-        # Get player count for age group
-        players_query = db.collection("players").where(filter=FieldFilter("event_id", "==", draft_data["event_id"]))
-        if draft_data.get("age_group"):
-            players_query = players_query.where(filter=FieldFilter("age_group", "==", draft_data["age_group"]))
-        player_count = len(list(players_query.stream()))
-        num_rounds = max(1, player_count // len(teams))
+        # Get player count (from event or standalone players)
+        player_count = get_draft_player_count(db, draft_data)
+        num_rounds = max(1, player_count // len(teams)) if len(teams) > 0 else 1
     
     # Set pick deadline if timer enabled
     pick_deadline = None
@@ -491,7 +482,7 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -499,10 +490,7 @@ async def add_team(draft_id: str, team_in: TeamCreate, user: dict = Depends(get_
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -573,7 +561,7 @@ async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_curr
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -581,10 +569,7 @@ async def remove_team(draft_id: str, team_id: str, user: dict = Depends(get_curr
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -615,7 +600,7 @@ async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -623,10 +608,7 @@ async def reorder_teams(draft_id: str, team_ids: List[str], user: dict = Depends
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -998,12 +980,28 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
     event_id = draft_data.get("event_id")
     age_group = draft_data.get("age_group")
     
-    # Get all players for event
-    players_query = db.collection("players").where(filter=FieldFilter("event_id", "==", event_id))
-    if age_group:
-        players_query = players_query.where(filter=FieldFilter("age_group", "==", age_group))
+    all_players = {}
     
-    all_players = {p.id: p.to_dict() for p in players_query.stream()}
+    # Get players from event (if linked to combine)
+    if event_id:
+        players_query = db.collection("players").where(filter=FieldFilter("event_id", "==", event_id))
+        if age_group:
+            players_query = players_query.where(filter=FieldFilter("age_group", "==", age_group))
+        for p in players_query.stream():
+            pdata = p.to_dict()
+            pdata["source"] = "combine"
+            all_players[p.id] = pdata
+    
+    # Get players added directly to this draft (standalone mode)
+    draft_players_query = db.collection("draft_players").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    )
+    if age_group:
+        draft_players_query = draft_players_query.where(filter=FieldFilter("age_group", "==", age_group))
+    for p in draft_players_query.stream():
+        pdata = p.to_dict()
+        pdata["source"] = "manual"
+        all_players[p.id] = pdata
     
     # Get drafted player IDs
     picks_query = db.collection("draft_picks").where(filter=FieldFilter("draft_id", "==", draft_id)).stream()
@@ -1052,7 +1050,7 @@ async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depen
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -1060,10 +1058,7 @@ async def add_pre_slot(draft_id: str, slot_in: PreSlotCreate, user: dict = Depen
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -1095,7 +1090,7 @@ async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dic
     if draft_data.get("status") != "setup":
 
     # Payment check (if enabled)
-    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT
+    from .draft_pricing import PAYMENTS_ENABLED, is_draft_free, FREE_PLAYER_LIMIT, get_draft_player_count
     
     if PAYMENTS_ENABLED:
         payment_status = draft_data.get("payment_status", "not_required")
@@ -1103,10 +1098,7 @@ async def remove_pre_slot(draft_id: str, team_id: str, player_id: str, user: dic
             filter=FieldFilter("draft_id", "==", draft_id)
         ).stream())
         num_teams_price = len(teams_for_price)
-        players_for_price = list(db.collection("players").where(
-            filter=FieldFilter("event_id", "==", draft_data["event_id"])
-        ).stream())
-        num_players_price = len(players_for_price)
+        num_players_price = get_draft_player_count(db, draft_data)
         
         if not is_draft_free(num_teams_price, num_players_price) and payment_status not in ["paid", "bypassed"]:
             raise HTTPException(
@@ -1295,3 +1287,114 @@ async def _create_team_rosters(db, draft_id: str, draft_data: dict):
         db.collection("team_rosters").document(roster_id).set(roster_data)
     
     logger.info(f"Created {len(team_players)} team rosters from draft {draft_id}")
+
+
+# ============================================================================
+# Standalone Draft Players (no combine required)
+# ============================================================================
+
+class DraftPlayerCreate(BaseModel):
+    """Add a player directly to a draft (no combine required)."""
+    name: str
+    number: Optional[str] = None  # Jersey number
+    position: Optional[str] = None
+    age_group: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class DraftPlayerBulkCreate(BaseModel):
+    """Bulk add players to a draft."""
+    players: List[DraftPlayerCreate]
+
+
+@router.post("/{draft_id}/players")
+async def add_draft_player(
+    draft_id: str, 
+    player_in: DraftPlayerCreate, 
+    user: dict = Depends(get_current_user)
+):
+    """Add a player directly to a draft (for standalone drafts without combine)."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+    
+    if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Can only add players during setup")
+    
+    player_id = generate_id("dplayer_")
+    player_data = {
+        "id": player_id,
+        "draft_id": draft_id,
+        "name": player_in.name,
+        "number": player_in.number,
+        "position": player_in.position,
+        "age_group": player_in.age_group,
+        "notes": player_in.notes,
+        "source": "manual",  # vs "combine" for event-linked players
+        "created_at": now_iso(),
+        "created_by": user["uid"]
+    }
+    
+    db.collection("draft_players").document(player_id).set(player_data)
+    
+    return player_data
+
+
+@router.post("/{draft_id}/players/bulk")
+async def add_draft_players_bulk(
+    draft_id: str,
+    bulk_in: DraftPlayerBulkCreate,
+    user: dict = Depends(get_current_user)
+):
+    """Bulk add players to a draft."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+    
+    if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Can only add players during setup")
+    
+    added = []
+    for p in bulk_in.players:
+        player_id = generate_id("dplayer_")
+        player_data = {
+            "id": player_id,
+            "draft_id": draft_id,
+            "name": p.name,
+            "number": p.number,
+            "position": p.position,
+            "age_group": p.age_group,
+            "notes": p.notes,
+            "source": "manual",
+            "created_at": now_iso(),
+            "created_by": user["uid"]
+        }
+        db.collection("draft_players").document(player_id).set(player_data)
+        added.append(player_data)
+    
+    return {"added": len(added), "players": added}
+
+
+@router.delete("/{draft_id}/players/{player_id}")
+async def remove_draft_player(
+    draft_id: str,
+    player_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Remove a manually-added player from a draft."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+    
+    if draft_data.get("status") != "setup":
+        raise HTTPException(status_code=400, detail="Can only remove players during setup")
+    
+    player_ref = db.collection("draft_players").document(player_id)
+    player_doc = player_ref.get()
+    
+    if not player_doc.exists:
+        raise HTTPException(status_code=404, detail="Player not found")
+    
+    if player_doc.to_dict().get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Player not in this draft")
+    
+    player_ref.delete()
+    
+    return {"status": "ok", "deleted": player_id}

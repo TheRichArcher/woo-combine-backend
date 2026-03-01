@@ -56,3 +56,48 @@ DEV ONLY: Bypass payment for testing.
 
 ## Testing Payment Flow
 With payments disabled, the payment page shows "Free" and allows starting immediately.
+
+## Standalone Drafts (No Combine Required)
+
+You can now use the draft feature without running a combine first.
+
+### Creating a Standalone Draft
+- `event_id` is now optional when creating a draft
+- Add players directly via `POST /api/drafts/{draft_id}/players`
+- Or bulk add via `POST /api/drafts/{draft_id}/players/bulk`
+
+### API Endpoints for Standalone Players
+
+**Add single player:**
+```bash
+POST /api/drafts/{draft_id}/players
+{
+  "name": "John Smith",
+  "number": "23",
+  "position": "Guard",
+  "age_group": "U12"
+}
+```
+
+**Bulk add players:**
+```bash
+POST /api/drafts/{draft_id}/players/bulk
+{
+  "players": [
+    {"name": "Player 1", "number": "1"},
+    {"name": "Player 2", "number": "2"}
+  ]
+}
+```
+
+**Remove player:**
+```bash
+DELETE /api/drafts/{draft_id}/players/{player_id}
+```
+
+### Mixed Mode
+You can also use both:
+- Link to an event (combine data)
+- AND add additional players manually
+
+The player pool will combine both sources.

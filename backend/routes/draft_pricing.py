@@ -90,13 +90,8 @@ async def get_draft_pricing(draft_id: str, user: dict = Depends(get_current_user
     teams = list(db.collection("draft_teams").where("draft_id", "==", draft_id).stream())
     num_teams = len(teams)
     
-    # Get player count from event
-    event_id = draft.get("event_id")
-    if event_id:
-        players = list(db.collection("players").where("event_id", "==", event_id).stream())
-        num_players = len(players)
-    else:
-        num_players = 0
+    # Get player count (from event or direct draft players)
+    num_players = get_draft_player_count(db, draft)
     
     tier = get_pricing_tier(num_teams)
     is_free = is_draft_free(num_teams, num_players)
@@ -237,3 +232,22 @@ async def bypass_payment(draft_id: str, user: dict = Depends(get_current_user)):
     })
     
     return {"status": "ok", "message": "Payment bypassed for testing"}
+
+
+def get_draft_player_count(db, draft_data: dict) -> int:
+    """Get total player count for a draft (from event or direct players)."""
+    count = 0
+    
+    # Count from event (combine)
+    event_id = draft_data.get("event_id")
+    if event_id:
+        players = list(db.collection("players").where("event_id", "==", event_id).stream())
+        count += len(players)
+    
+    # Count from draft_players (standalone)
+    draft_id = draft_data.get("id")
+    if draft_id:
+        draft_players = list(db.collection("draft_players").where("draft_id", "==", draft_id).stream())
+        count += len(draft_players)
+    
+    return count
