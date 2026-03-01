@@ -42,7 +42,7 @@ import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
 
 // Draft Feature Pages
-import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft } from "./pages/Draft";
+import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft, MyDrafts } from "./pages/Draft";
 import SessionExpiredGate from "./components/SessionExpiredGate";
 import BootGate from "./components/BootGate";
 import { NavigationLogger } from "./hooks/useTrackedNavigate";
@@ -190,6 +190,14 @@ function App() {
                 <Route
                   path="/draft/join/:inviteToken"
                   element={<JoinDraft />}
+                />
+                <Route
+                  path="/drafts"
+                  element={
+                    <RequireAuth>
+                      <MyDrafts />
+                    </RequireAuth>
+                  }
                 />
                 <Route 
                   path="/sport-templates" 

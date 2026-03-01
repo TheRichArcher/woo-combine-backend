@@ -573,7 +573,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
           </button>
 
           <button
-            onClick={() => navigate('/draft/create')}
+            onClick={() => navigate('/drafts')}
             className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
           >
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
