@@ -280,7 +280,9 @@ def warmup_endpoint(request: Request):
     def warmup_auth():
         try:
             from . import auth  # noqa: F401 - intentional preload
-            from firebase_admin import auth as admin_auth  # noqa: F401 - intentional preload
+            from firebase_admin import (
+                auth as admin_auth,
+            )  # noqa: F401 - intentional preload
 
             # Test that auth module is importable and Firebase Admin is initialized
             logging.info("[WARMUP] Auth module pre-initialized")
