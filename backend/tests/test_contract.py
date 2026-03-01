@@ -25,5 +25,3 @@ def test_meta():
     assert r.status_code == 200
     data = r.json()
     assert "version" in data
-
-

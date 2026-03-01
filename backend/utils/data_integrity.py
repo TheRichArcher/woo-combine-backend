@@ -83,4 +83,3 @@ def enforce_event_league_relationship(
             )
 
     return event_doc
-

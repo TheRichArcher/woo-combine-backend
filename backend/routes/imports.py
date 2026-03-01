@@ -19,6 +19,7 @@ from ..utils.event_schema import get_event_schema
 
 router = APIRouter()
 
+
 class ImportParseResponse(BaseModel):
     valid_rows: List[Dict[str, Any]]
     errors: List[Dict[str, Any]]
@@ -26,6 +27,7 @@ class ImportParseResponse(BaseModel):
     detected_sport: str = "football"
     confidence: str = "low"
     sheets: List[Dict[str, Any]] = []
+
 
 @router.post("/events/{event_id}/parse-import")
 @write_rate_limit()
@@ -37,10 +39,10 @@ def parse_import_file(
     text: Optional[str] = Form(None),
     url: Optional[str] = Form(None),
     sheet_name: Optional[str] = Form(None),
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_role("organizer", "coach")),
 ):
     """
-    Parse an uploaded file (CSV/Excel) or pasted text into structured data 
+    Parse an uploaded file (CSV/Excel) or pasted text into structured data
     for review before importing. Does NOT save to database.
     Now includes:
     - Sport detection
@@ -53,9 +55,9 @@ def parse_import_file(
     try:
         # Enforce access
         enforce_event_league_relationship(event_id=event_id)
-        
+
         result = None
-        
+
         # Fetch event configuration (disabled drills + actual sport)
         disabled_drills = []
         event_sport = None
@@ -65,41 +67,62 @@ def parse_import_file(
             if event_doc.exists:
                 event_data = event_doc.to_dict()
                 disabled_drills = event_data.get("disabled_drills", [])
-                event_sport = event_data.get("drillTemplate") or event_data.get("sport")  # Use actual event sport
+                event_sport = event_data.get("drillTemplate") or event_data.get(
+                    "sport"
+                )  # Use actual event sport
                 logging.info(f"[IMPORT] Event {event_id} has sport: {event_sport}")
         except Exception as e:
             # Fallback if fetch fails, proceed with full schema
             logging.warning(f"[IMPORT] Failed to fetch event config: {e}")
             pass
-        
+
         if file:
             content = file.file.read()
             filename = file.filename.lower()
-            
-            if filename.endswith('.csv'):
-                result = DataImporter.parse_csv(content, event_id=event_id, disabled_drills=disabled_drills)
-            elif filename.endswith(('.xls', '.xlsx')):
-                result = DataImporter.parse_excel(content, sheet_name=sheet_name, event_id=event_id, disabled_drills=disabled_drills)
-            elif filename.endswith(('.jpg', '.jpeg', '.png', '.heic')):
-                result = DataImporter.parse_image(content, event_id=event_id, disabled_drills=disabled_drills)
+
+            if filename.endswith(".csv"):
+                result = DataImporter.parse_csv(
+                    content, event_id=event_id, disabled_drills=disabled_drills
+                )
+            elif filename.endswith((".xls", ".xlsx")):
+                result = DataImporter.parse_excel(
+                    content,
+                    sheet_name=sheet_name,
+                    event_id=event_id,
+                    disabled_drills=disabled_drills,
+                )
+            elif filename.endswith((".jpg", ".jpeg", ".png", ".heic")):
+                result = DataImporter.parse_image(
+                    content, event_id=event_id, disabled_drills=disabled_drills
+                )
             else:
-                raise HTTPException(status_code=400, detail="Unsupported file format. Please use CSV, Excel, or Image.")
-                
+                raise HTTPException(
+                    status_code=400,
+                    detail="Unsupported file format. Please use CSV, Excel, or Image.",
+                )
+
         elif url:
             from ..utils.sheets import fetch_url_content
+
             try:
                 content = fetch_url_content(url)
                 # Assume CSV content from URL
-                result = DataImporter.parse_csv(content, event_id=event_id, disabled_drills=disabled_drills)
+                result = DataImporter.parse_csv(
+                    content, event_id=event_id, disabled_drills=disabled_drills
+                )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
-        
+
         elif text:
-            result = DataImporter.parse_text(text, event_id=event_id, disabled_drills=disabled_drills)
-            
+            result = DataImporter.parse_text(
+                text, event_id=event_id, disabled_drills=disabled_drills
+            )
+
         else:
-            raise HTTPException(status_code=400, detail="No file, text, or URL provided")
-        
+            raise HTTPException(
+                status_code=400, detail="No file, text, or URL provided"
+            )
+
         # Handle multi-sheet response (pause parsing)
         if result.sheets:
             return {
@@ -108,9 +131,9 @@ def parse_import_file(
                 "summary": {"total_rows": 0, "valid_count": 0, "error_count": 0},
                 "detected_sport": "unknown",
                 "confidence": "low",
-                "sheets": result.sheets
+                "sheets": result.sheets,
             }
-            
+
         # --- DUPLICATE DETECTION ---
         # Fetch existing players to check for conflicts
         # This is efficient for typical event sizes (< 500 players)
@@ -118,32 +141,36 @@ def parse_import_file(
         existing_players = execute_with_timeout(
             lambda: list(players_ref.stream()),
             timeout=10,
-            operation_name="fetch players for duplicate check"
+            operation_name="fetch players for duplicate check",
         )
-        
+
         # Create a set of existing IDs for fast lookup
         existing_ids = {p.id for p in existing_players}
-        
+
         # Check each valid row
         for row in result.valid_rows:
             data = row["data"]
             first = data.get("first_name", "")
             last = data.get("last_name", "")
-            
+
             # Robust parsing for player number to match players.py logic
             try:
                 raw_num = data.get("jersey_number")
-                number = int(float(str(raw_num).strip())) if raw_num not in (None, "") else None
+                number = (
+                    int(float(str(raw_num).strip()))
+                    if raw_num not in (None, "")
+                    else None
+                )
             except Exception:
                 number = None
-            
+
             # Generate ID deterministically
             pid = generate_player_id(event_id, first, last, number)
-            
+
             if pid in existing_ids:
                 row["is_duplicate"] = True
                 row["existing_player_id"] = pid
-                # We could also fetch the existing data to show diffs, 
+                # We could also fetch the existing data to show diffs,
                 # but that might be too much data for this response.
             else:
                 row["is_duplicate"] = False
@@ -155,27 +182,32 @@ def parse_import_file(
             "summary": {
                 "total_rows": len(result.valid_rows) + len(result.errors),
                 "valid_count": len(result.valid_rows),
-                "error_count": len(result.errors)
+                "error_count": len(result.errors),
             },
             # CRITICAL FIX: If event has a defined sport, use it instead of auto-detection
             # This prevents "Detected Sport: football" appearing on Soccer events
             "detected_sport": event_sport if event_sport else result.detected_sport,
-            "confidence": "event" if event_sport else result.confidence,  # "event" = known, not detected
-            "sheets": []
+            "confidence": (
+                "event" if event_sport else result.confidence
+            ),  # "event" = known, not detected
+            "sheets": [],
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Import parse error for event {event_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to parse import data: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to parse import data: {str(e)}"
+        )
+
 
 @router.get("/meta/schema")
 @read_rate_limit()
 def get_import_schema(
     request: Request,
     sport: Optional[str] = "football",
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_role("organizer", "coach")),
 ):
     """
     Return the schema definition for import mapping.
@@ -184,59 +216,72 @@ def get_import_schema(
     schema_def = SchemaRegistry.get_schema(sport)
     if not schema_def:
         schema_def = SchemaRegistry.get_schema("football")
-        
+
     schema = []
-    
+
     # Player Identity Fields
-    schema.append({
-        "key": "first_name",
-        "label": "First Name",
-        "required": True,
-        "type": "string",
-        "aliases": ["first", "fname", "firstname"]
-    })
-    schema.append({
-        "key": "last_name",
-        "label": "Last Name",
-        "required": True,
-        "type": "string",
-        "aliases": ["last", "lname", "lastname"]
-    })
-    schema.append({
-        "key": "jersey_number",
-        "label": "Player Number",
-        "required": False,
-        "type": "number",
-        "aliases": ["jersey", "number", "no", "#"]
-    })
-    schema.append({
-        "key": "external_id",
-        "label": "Bib / External ID",
-        "required": False,
-        "type": "string",
-        "aliases": ["bib", "id", "athlete_id", "external_id"]
-    })
-    schema.append({
-        "key": "age_group",
-        "label": "Age Group",
-        "required": False,
-        "type": "string",
-        "aliases": ["age", "group", "division"]
-    })
-    
-    # Drill Fields from Schema
-    for drill in schema_def.drills:
-        schema.append({
-            "key": drill.key,
-            "label": drill.label,
+    schema.append(
+        {
+            "key": "first_name",
+            "label": "First Name",
+            "required": True,
+            "type": "string",
+            "aliases": ["first", "fname", "firstname"],
+        }
+    )
+    schema.append(
+        {
+            "key": "last_name",
+            "label": "Last Name",
+            "required": True,
+            "type": "string",
+            "aliases": ["last", "lname", "lastname"],
+        }
+    )
+    schema.append(
+        {
+            "key": "jersey_number",
+            "label": "Player Number",
             "required": False,
             "type": "number",
-            "min": drill.min_value,
-            "max": drill.max_value,
-            "unit": drill.unit
-        })
-        
+            "aliases": ["jersey", "number", "no", "#"],
+        }
+    )
+    schema.append(
+        {
+            "key": "external_id",
+            "label": "Bib / External ID",
+            "required": False,
+            "type": "string",
+            "aliases": ["bib", "id", "athlete_id", "external_id"],
+        }
+    )
+    schema.append(
+        {
+            "key": "age_group",
+            "label": "Age Group",
+            "required": False,
+            "type": "string",
+            "aliases": ["age", "group", "division"],
+        }
+    )
+
+    # Drill Fields from Schema
+    for drill in schema_def.drills:
+        schema.append(
+            {
+                "key": drill.key,
+                "label": drill.label,
+                "required": False,
+                "type": "number",
+                "min": drill.min_value,
+                "max": drill.max_value,
+                "unit": drill.unit,
+            }
+        )
+
     return {"sport": sport, "fields": schema}
+
 
 @router.get("/events/{event_id}/import-template")
 @read_rate_limit()
@@ -244,8 +289,8 @@ def get_import_schema(
 def get_import_template(
     request: Request,
     event_id: str,
-    format: str = "csv", # csv or excel (future)
-    current_user=Depends(require_role("organizer", "coach"))
+    format: str = "csv",  # csv or excel (future)
+    current_user=Depends(require_role("organizer", "coach")),
 ):
     """
     Download a pre-filled template with existing players (if any)
@@ -253,57 +298,66 @@ def get_import_template(
     """
     try:
         enforce_event_league_relationship(event_id=event_id)
-        
+
         # Fetch Schema for Event
         schema = get_event_schema(event_id)
-        
+
         # Define headers
-        identity_headers = ["First Name", "Last Name", "Player Number", "Bib / External ID", "Age Group"]
+        identity_headers = [
+            "First Name",
+            "Last Name",
+            "Player Number",
+            "Bib / External ID",
+            "Age Group",
+        ]
         drill_headers = [d.label for d in schema.drills]
         all_headers = identity_headers + drill_headers
-        
+
         # Fetch existing players
         players_ref = db.collection("events").document(event_id).collection("players")
         players = execute_with_timeout(
             lambda: list(players_ref.stream()),
             timeout=10,
-            operation_name="fetch players for template"
+            operation_name="fetch players for template",
         )
-        
+
         # Sort players (by name? number?)
         players_list = [p.to_dict() for p in players]
-        players_list.sort(key=lambda x: (x.get('last', ''), x.get('first', '')))
-        
+        players_list.sort(key=lambda x: (x.get("last", ""), x.get("first", "")))
+
         # Create CSV in memory
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(all_headers)
-        
+
         for p in players_list:
             row = [
-                p.get('first', ''),
-                p.get('last', ''),
-                p.get('number', ''),
-                p.get('external_id', ''),
-                p.get('age_group', '')
+                p.get("first", ""),
+                p.get("last", ""),
+                p.get("number", ""),
+                p.get("external_id", ""),
+                p.get("age_group", ""),
             ]
             # Empty drill columns
-            row.extend(['' for _ in drill_headers])
+            row.extend(["" for _ in drill_headers])
             writer.writerow(row)
-            
+
         output.seek(0)
-        
+
         return StreamingResponse(
             iter([output.getvalue()]),
             media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename=event_{event_id}_template.csv"}
+            headers={
+                "Content-Disposition": f"attachment; filename=event_{event_id}_template.csv"
+            },
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
         logging.error(f"Template generation error: {e}")
         raise HTTPException(status_code=500, detail="Failed to generate template")
+
 
 @router.get("/events/{event_id}/history")
 @read_rate_limit()
@@ -312,25 +366,27 @@ def get_import_history(
     request: Request,
     event_id: str,
     limit: int = 20,
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_role("organizer", "coach")),
 ):
     """
     Get import audit history for the event.
     """
     try:
         enforce_event_league_relationship(event_id=event_id)
-        
+
         imports_ref = db.collection("events").document(event_id).collection("imports")
-        query = imports_ref.order_by("timestamp", direction=db.Query.DESCENDING).limit(limit)
-        
+        query = imports_ref.order_by("timestamp", direction=db.Query.DESCENDING).limit(
+            limit
+        )
+
         history = execute_with_timeout(
             lambda: list(query.stream()),
             timeout=5,
-            operation_name="fetch import history"
+            operation_name="fetch import history",
         )
-        
+
         return [dict(doc.to_dict(), id=doc.id) for doc in history]
-        
+
     except HTTPException:
         raise
     except Exception as e:

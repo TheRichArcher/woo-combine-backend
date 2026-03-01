@@ -5,7 +5,10 @@ from fastapi import HTTPException
 
 from ..middleware.observability import record_firestore_call
 
-def execute_with_timeout(func, timeout=5, operation_name="database operation", *args, **kwargs):
+
+def execute_with_timeout(
+    func, timeout=5, operation_name="database operation", *args, **kwargs
+):
     """
     Execute a potentially-blocking function with a hard timeout. Designed to
     protect cold-start sequences from hanging on first Firestore calls.
@@ -33,9 +36,15 @@ def execute_with_timeout(func, timeout=5, operation_name="database operation", *
                 return result
             except concurrent.futures.TimeoutError:
                 logging.warning(f"{operation_name} timed out after {timeout}s")
-                raise HTTPException(status_code=504, detail=f"{operation_name} timed out")
+                raise HTTPException(
+                    status_code=504, detail=f"{operation_name} timed out"
+                )
     except HTTPException:
         raise
     except Exception as e:
-        logging.error(f"{operation_name} failed: {getattr(func, '__name__', 'callable')} - {str(e)}")
-        raise HTTPException(status_code=500, detail=f"{operation_name} failed: {str(e)}")
+        logging.error(
+            f"{operation_name} failed: {getattr(func, '__name__', 'callable')} - {str(e)}"
+        )
+        raise HTTPException(
+            status_code=500, detail=f"{operation_name} failed: {str(e)}"
+        )

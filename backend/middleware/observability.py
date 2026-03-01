@@ -13,6 +13,7 @@ from starlette.responses import Response
 import contextvars
 import importlib
 
+
 def _import_sentry():
     try:
         sdk = importlib.import_module("sentry_sdk")
@@ -22,12 +23,24 @@ def _import_sentry():
 
 
 # Context variables to aggregate per-request metrics
-request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="")
-user_id_hash_var: contextvars.ContextVar[str] = contextvars.ContextVar("user_id_hash", default="")
-firestore_calls_var: contextvars.ContextVar[int] = contextvars.ContextVar("firestore_calls", default=0)
-firestore_total_ms_var: contextvars.ContextVar[float] = contextvars.ContextVar("firestore_total_ms", default=0.0)
-cache_hits_delta_var: contextvars.ContextVar[int] = contextvars.ContextVar("cache_hits_delta", default=0)
-cache_misses_delta_var: contextvars.ContextVar[int] = contextvars.ContextVar("cache_misses_delta", default=0)
+request_id_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default=""
+)
+user_id_hash_var: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "user_id_hash", default=""
+)
+firestore_calls_var: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "firestore_calls", default=0
+)
+firestore_total_ms_var: contextvars.ContextVar[float] = contextvars.ContextVar(
+    "firestore_total_ms", default=0.0
+)
+cache_hits_delta_var: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "cache_hits_delta", default=0
+)
+cache_misses_delta_var: contextvars.ContextVar[int] = contextvars.ContextVar(
+    "cache_misses_delta", default=0
+)
 
 
 def set_user_id_for_request(user_id: Optional[str]) -> None:
@@ -70,14 +83,21 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):  # type: ignore[override]
         # Accept client correlation ID or generate one
-        req_id = request.headers.get("X-Request-ID") or request.headers.get("X-Correlation-ID") or str(uuid.uuid4())
+        req_id = (
+            request.headers.get("X-Request-ID")
+            or request.headers.get("X-Correlation-ID")
+            or str(uuid.uuid4())
+        )
         request_id_var.set(req_id)
 
         # Attach to Sentry scope and set common tags
         _s = _import_sentry()
         if _s:
             try:
-                release = os.getenv("RELEASE") or f"backend@{os.getenv('GIT_COMMIT','unknown')}"
+                release = (
+                    os.getenv("RELEASE")
+                    or f"backend@{os.getenv('GIT_COMMIT','unknown')}"
+                )
                 with _s.configure_scope() as scope:  # type: ignore[attr-defined]
                     scope.set_tag("request_id", req_id)
                     scope.set_tag("endpoint", request.url.path)
@@ -173,5 +193,3 @@ __all__ = [
     "record_firestore_call",
     "add_cache_deltas",
 ]
-
-

@@ -16,7 +16,10 @@ def cache_with_metrics(maxsize: int = 256):
             key = args + tuple(sorted(kwargs.items())) if kwargs else args
             try:
                 # Probe using cache info by calling and comparing hits delta
-                hits_before, misses_before = cached.cache_info().hits, cached.cache_info().misses
+                hits_before, misses_before = (
+                    cached.cache_info().hits,
+                    cached.cache_info().misses,
+                )
                 result = cached(*args, **kwargs)
                 info = cached.cache_info()
                 if info.hits > hits_before:
@@ -32,5 +35,3 @@ def cache_with_metrics(maxsize: int = 256):
         return wrapper
 
     return decorator
-
-

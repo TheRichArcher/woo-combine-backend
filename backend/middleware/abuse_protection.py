@@ -51,14 +51,23 @@ class AbuseProtectionMiddleware(BaseHTTPMiddleware):
 
         env = os.getenv("ENVIRONMENT", "").lower()
         default_enabled = env in ("prod", "production")
-        self.enabled = _parse_bool(os.getenv("ABUSE_PROTECTION_ENABLED", "true" if default_enabled else "false"), default_enabled)
+        self.enabled = _parse_bool(
+            os.getenv(
+                "ABUSE_PROTECTION_ENABLED", "true" if default_enabled else "false"
+            ),
+            default_enabled,
+        )
 
         self.window_seconds = int(os.getenv("ABUSE_WINDOW_SECONDS", "30"))
         self.max_requests = int(os.getenv("ABUSE_MAX_REQUESTS", "10"))
         self.difficulty = int(os.getenv("ABUSE_CHALLENGE_DIFFICULTY", "4"))
 
-        prefixes_env = os.getenv("ABUSE_SENSITIVE_PATH_PREFIXES", "/api/users,/api/test-auth")
-        self.sensitive_prefixes = [p.strip() for p in prefixes_env.split(",") if p.strip()]
+        prefixes_env = os.getenv(
+            "ABUSE_SENSITIVE_PATH_PREFIXES", "/api/users,/api/test-auth"
+        )
+        self.sensitive_prefixes = [
+            p.strip() for p in prefixes_env.split(",") if p.strip()
+        ]
 
         # per-client request timestamps
         self.client_requests = defaultdict(deque)
@@ -113,7 +122,11 @@ class AbuseProtectionMiddleware(BaseHTTPMiddleware):
                 "X-Abuse-Nonce": nonce,
                 "Retry-After": "10",
             }
-            return JSONResponse(status_code=429, content={"detail": "Challenge required", "challenge": challenge}, headers=headers)
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Challenge required", "challenge": challenge},
+                headers=headers,
+            )
 
         return await call_next(request)
 
@@ -132,5 +145,3 @@ class AbuseProtectionMiddleware(BaseHTTPMiddleware):
 def add_abuse_protection_middleware(app):
     app.add_middleware(AbuseProtectionMiddleware)
     logging.info("Abuse protection middleware configured")
-
-

@@ -6,6 +6,7 @@ import json
 
 def import_app():
     import sys
+
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     sys.path.insert(0, os.path.dirname(root))
     mod = importlib.import_module("backend.main")
@@ -25,7 +26,7 @@ def _fake_jwt(uid="test-user", email="user@example.com", email_verified=True):
             }
         ).encode()
     ).rstrip(b"=")
-    return b".".join([header, payload, b""]) .decode()
+    return b".".join([header, payload, b""]).decode()
 
 
 def test_protected_requires_auth(monkeypatch):
@@ -52,7 +53,9 @@ def test_role_enforced_on_write(monkeypatch):
         return data
 
     monkeypatch.setattr(auth_mod.auth, "verify_id_token", lambda t: fake_verify(t))
-    monkeypatch.setattr(auth_mod, "_verify_id_token_strict", lambda token: fake_verify(token))
+    monkeypatch.setattr(
+        auth_mod, "_verify_id_token_strict", lambda token: fake_verify(token)
+    )
     monkeypatch.setattr(auth_mod, "_enforce_session_max_age", lambda decoded: None)
 
     # Mock Firestore client to avoid real calls
@@ -111,7 +114,6 @@ def test_role_enforced_on_write(monkeypatch):
     monkeypatch.setattr(fsc, "get_firestore_client", fake_get_client)
     monkeypatch.setattr(auth_mod, "get_firestore_client", fake_get_client)
 
-
     app = import_app()
     client = TestClient(app)
 
@@ -131,6 +133,3 @@ def test_role_enforced_on_write(monkeypatch):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r2.status_code in (200, 500, 403)
-
-
-

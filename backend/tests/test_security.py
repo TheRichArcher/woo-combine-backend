@@ -5,6 +5,7 @@ import importlib
 def import_app():
     # Ensure backend is importable
     import sys
+
     root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     sys.path.insert(0, os.path.dirname(root))
     mod = importlib.import_module("backend.main")
@@ -60,5 +61,3 @@ def test_health_rate_limit_enforced(monkeypatch):
     assert r2.status_code in (200, 429)
     if r2.status_code == 429:
         assert r2.json().get("category") == "rate_limit"
-
-

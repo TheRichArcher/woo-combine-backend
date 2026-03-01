@@ -1,6 +1,7 @@
 from backend.routes.players import calculate_composite_score
 from backend.schemas import SportSchema, DrillDefinition
 
+
 def test_golden_ranking_evan():
     """
     Verify ranking calculation matches the "Golden Example" (Evan).
@@ -15,12 +16,45 @@ def test_golden_ranking_evan():
         name="Test",
         description="Test",
         drills=[
-            DrillDefinition(key="free_throws", label="FT", unit="%", category="shooting", min_value=0.0, max_value=100.0, default_weight=0.20),
-            DrillDefinition(key="three_point", label="3PT", unit="%", category="shooting", min_value=0.0, max_value=100.0, default_weight=0.20),
-            DrillDefinition(key="vertical_jump", label="VJ", unit="in", category="power", min_value=0.0, max_value=50.0, default_weight=0.20),
-            DrillDefinition(key="lane_agility", label="LA", unit="s", category="agility", min_value=8.0, max_value=20.0, lower_is_better=True, default_weight=0.15),
+            DrillDefinition(
+                key="free_throws",
+                label="FT",
+                unit="%",
+                category="shooting",
+                min_value=0.0,
+                max_value=100.0,
+                default_weight=0.20,
+            ),
+            DrillDefinition(
+                key="three_point",
+                label="3PT",
+                unit="%",
+                category="shooting",
+                min_value=0.0,
+                max_value=100.0,
+                default_weight=0.20,
+            ),
+            DrillDefinition(
+                key="vertical_jump",
+                label="VJ",
+                unit="in",
+                category="power",
+                min_value=0.0,
+                max_value=50.0,
+                default_weight=0.20,
+            ),
+            DrillDefinition(
+                key="lane_agility",
+                label="LA",
+                unit="s",
+                category="agility",
+                min_value=8.0,
+                max_value=20.0,
+                lower_is_better=True,
+                default_weight=0.15,
+            ),
             # Disabled drills (dribbling, defensive_slide) omitted for this test to match "active drills"
-        ]
+        ],
     )
 
     # 2. Define Golden Player Data
@@ -28,7 +62,7 @@ def test_golden_ranking_evan():
         "free_throws": 95.0,
         "three_point": 64.0,
         "vertical_jump": 40.0,
-        "lane_agility": 12.26
+        "lane_agility": 12.26,
     }
 
     # 3. Calculate
@@ -38,7 +72,3 @@ def test_golden_ranking_evan():
     # Expected: 76.63
     print(f"Computed Score: {score}")
     assert score == 76.63, f"Expected 76.63, got {score}"
-
-
-
-

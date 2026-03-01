@@ -4,6 +4,7 @@
 from pydantic import BaseModel, Field, model_validator
 from typing import Optional, Any, Dict, List
 
+
 # Pydantic schemas for API responses
 class PlayerSchema(BaseModel):
     id: str  # Firestore document ID
@@ -13,27 +14,27 @@ class PlayerSchema(BaseModel):
     photo_url: Optional[str] = None
     event_id: Optional[str] = None
     created_at: Optional[str] = None
-    external_id: Optional[str] = None # Added explicit field for combine bibs/ids
-    
+    external_id: Optional[str] = None  # Added explicit field for combine bibs/ids
+
     # Dynamic Scores Map (Phase 2)
     # This replaces the fixed fields below for all new sports/drills
     scores: Dict[str, float] = Field(default_factory=dict)
-    
+
     # LEGACY FIELDS (Deprecated - Maintained for Football backward compatibility)
     drill_40m_dash: Optional[float] = Field(None, alias="40m_dash")
     vertical_jump: Optional[float] = None
     catching: Optional[float] = None
     throwing: Optional[float] = None
     agility: Optional[float] = None
-    
+
     composite_score: Optional[float] = None
-    
+
     class Config:
         populate_by_name = True  # Replaces allow_population_by_field_name in V2
         validate_assignment = True
         extra = "allow"  # Allow dynamic drill fields to pass through API response
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def sync_scores_and_legacy_fields(self):
         """
         Bidirectional sync between dynamic 'scores' map and legacy fields.
@@ -46,14 +47,14 @@ class PlayerSchema(BaseModel):
             "vertical_jump": self.vertical_jump,
             "catching": self.catching,
             "throwing": self.throwing,
-            "agility": self.agility
+            "agility": self.agility,
         }
-        
+
         # Update scores map if needed
         for key, value in legacy_map.items():
             if value is not None and key not in self.scores:
                 self.scores[key] = value
-        
+
         # 2. Map Scores Map -> Legacy Fields (for backward compatibility)
         # Use direct __dict__ access to bypass validation hooks
         legacy_keys = {
@@ -61,9 +62,9 @@ class PlayerSchema(BaseModel):
             "vertical_jump": "vertical_jump",
             "catching": "catching",
             "throwing": "throwing",
-            "agility": "agility"
+            "agility": "agility",
         }
-        
+
         for score_key, field_name in legacy_keys.items():
             if score_key in self.scores:
                 val = self.scores[score_key]
@@ -71,10 +72,11 @@ class PlayerSchema(BaseModel):
                 if getattr(self, field_name) != val:
                     self.__dict__[field_name] = val
                     # Also update private attributes if Pydantic uses them (V2 uses __dict__ usually)
-                    # Note: In Pydantic V2, model fields are in __dict__. 
+                    # Note: In Pydantic V2, model fields are in __dict__.
                     # If using private attributes or slots, this might differ, but for BaseModel it's standard.
-        
+
         return self
+
 
 class DrillResultSchema(BaseModel):
     id: str
@@ -84,6 +86,7 @@ class DrillResultSchema(BaseModel):
     created_at: str
     evaluator_id: Optional[str] = None  # Firebase UID of evaluator
     evaluator_name: Optional[str] = None  # Display name of evaluator
+
 
 class EvaluatorSchema(BaseModel):
     id: str  # Firebase UID
@@ -95,8 +98,10 @@ class EvaluatorSchema(BaseModel):
     added_at: str
     active: bool = True
 
+
 class MultiEvaluatorDrillResult(BaseModel):
     """Aggregated drill result from multiple evaluators"""
+
     player_id: str
     drill_type: str
     evaluations: List[Dict[str, Any]]  # List of individual evaluations
@@ -107,6 +112,7 @@ class MultiEvaluatorDrillResult(BaseModel):
     final_score: float  # The score used for rankings (usually average)
     updated_at: str
 
+
 class EventSchema(BaseModel):
     id: str
     name: str
@@ -115,8 +121,9 @@ class EventSchema(BaseModel):
     league_id: Optional[str] = None
     live_entry_active: bool = False  # Controls locking of custom drills
     isLocked: bool = False  # Global combine lock - prevents all edits by non-organizers
-    drillTemplate: Optional[str] = "football" # Track which schema this event uses
+    drillTemplate: Optional[str] = "football"  # Track which schema this event uses
     disabled_drills: List[str] = []  # List of built-in drill keys to hide/disable
+
 
 class LeagueSchema(BaseModel):
     id: str
@@ -124,11 +131,13 @@ class LeagueSchema(BaseModel):
     created_by_user_id: str
     created_at: str
 
+
 class UserSchema(BaseModel):
     id: str  # Firebase UID
     email: str
     role: Optional[str] = None
     created_at: str
+
 
 class CustomDrillSchema(BaseModel):
     id: str
@@ -144,6 +153,7 @@ class CustomDrillSchema(BaseModel):
     created_by: str
     is_locked: Optional[bool] = False  # Derived from event status
 
+
 class CustomDrillCreateRequest(BaseModel):
     name: str
     unit: str
@@ -152,6 +162,7 @@ class CustomDrillCreateRequest(BaseModel):
     min_val: Optional[float] = None
     max_val: Optional[float] = None
     description: Optional[str] = None
+
 
 class CustomDrillUpdateRequest(BaseModel):
     name: Optional[str] = None

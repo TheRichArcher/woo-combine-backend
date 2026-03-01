@@ -79,9 +79,7 @@ def test_ensure_league_access_denies_non_member(monkeypatch):
 
 def test_ensure_event_access_inherits_league_roles(monkeypatch):
     store = {
-        "user_memberships/user-2": {
-            "leagues": {"league-abc": {"role": "organizer"}}
-        },
+        "user_memberships/user-2": {"leagues": {"league-abc": {"role": "organizer"}}},
         "events/event-9": {"league_id": "league-abc", "name": "Combine"},
     }
     _install_fakes(monkeypatch, store)
@@ -96,9 +94,7 @@ def test_ensure_event_access_inherits_league_roles(monkeypatch):
 
 def test_ensure_event_access_blocks_other_leagues(monkeypatch):
     store = {
-        "user_memberships/user-3": {
-            "leagues": {"league-xyz": {"role": "viewer"}}
-        },
+        "user_memberships/user-3": {"leagues": {"league-xyz": {"role": "viewer"}}},
         "events/event-10": {"league_id": "league-abc"},
     }
     _install_fakes(monkeypatch, store)
@@ -118,4 +114,3 @@ def test_permission_registry_matches_matrix():
         key = (record["resource"], record["action"])
         assert key in ACCESS_MATRIX
         assert record["allowed_roles"] == sorted(ACCESS_MATRIX[key])
-

@@ -4,6 +4,7 @@ Authorization helpers shared across route modules.
 Ensures that league-scoped endpoints enforce membership checks rather than
 relying solely on global user roles.
 """
+
 from fastapi import HTTPException
 import logging
 import time
@@ -13,7 +14,9 @@ from typing import Dict, Iterable, Optional, Set
 from ..firestore_client import db
 from .database import execute_with_timeout
 
-_denial_tracker: Dict[str, Dict[str, float]] = defaultdict(lambda: {"count": 0, "first": 0.0})
+_denial_tracker: Dict[str, Dict[str, float]] = defaultdict(
+    lambda: {"count": 0, "first": 0.0}
+)
 
 
 def _register_denial(key: str):
@@ -26,10 +29,16 @@ def _register_denial(key: str):
     if info["first"] == 0:
         info["first"] = now
     if info["count"] in (3, 5, 10):
-        logging.warning("[AUTHZ] Repeated permission denials for %s (%s in last 5m)", key, info["count"])
+        logging.warning(
+            "[AUTHZ] Repeated permission denials for %s (%s in last 5m)",
+            key,
+            info["count"],
+        )
 
 
-def _normalize_allowed_roles(allowed_roles: Optional[Iterable[str]]) -> Optional[Set[str]]:
+def _normalize_allowed_roles(
+    allowed_roles: Optional[Iterable[str]],
+) -> Optional[Set[str]]:
     if not allowed_roles:
         return None
     return {role.strip().lower() for role in allowed_roles if isinstance(role, str)}
@@ -86,7 +95,9 @@ def ensure_league_access(
                 league_id,
             )
             _register_denial(f"league:{league_id}")
-            raise HTTPException(status_code=403, detail="You do not have access to this league")
+            raise HTTPException(
+                status_code=403, detail="You do not have access to this league"
+            )
 
         # Check for disabled access (Kill Switch)
         if membership.get("disabled") is True:
@@ -98,8 +109,8 @@ def ensure_league_access(
             )
             _register_denial(f"league:{league_id}:disabled")
             raise HTTPException(
-                status_code=403, 
-                detail="You no longer have access to this league. Please contact the organizer."
+                status_code=403,
+                detail="You no longer have access to this league. Please contact the organizer.",
             )
 
         role = (membership.get("role") or "").lower()
@@ -113,7 +124,9 @@ def ensure_league_access(
                 league_id,
             )
             _register_denial(f"league:{league_id}:{operation_name}")
-            raise HTTPException(status_code=403, detail="Insufficient league permissions")
+            raise HTTPException(
+                status_code=403, detail="Insufficient league permissions"
+            )
 
         return membership
     except HTTPException:
@@ -125,7 +138,9 @@ def ensure_league_access(
             league_id,
             exc,
         )
-        raise HTTPException(status_code=500, detail="Failed to validate league permissions")
+        raise HTTPException(
+            status_code=500, detail="Failed to validate league permissions"
+        )
 
 
 def ensure_event_access(
@@ -178,5 +193,6 @@ def ensure_event_access(
             event_id,
             exc,
         )
-        raise HTTPException(status_code=500, detail="Failed to validate event permissions")
-
+        raise HTTPException(
+            status_code=500, detail="Failed to validate event permissions"
+        )

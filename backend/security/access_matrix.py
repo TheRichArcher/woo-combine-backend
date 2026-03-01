@@ -45,7 +45,10 @@ ACCESS_MATRIX: Dict[ResourceKey, RoleSet] = {
     ("invitations", "list"): ADMIN_ROLES,
     ("teams", "list"): VIEW_ROLES,
     ("league_members", "list"): ADMIN_ROLES,
-    ("league_members", "read"): VIEW_ROLES,  # Anyone in league can read member details (e.g., coaches checking their own permissions)
+    (
+        "league_members",
+        "read",
+    ): VIEW_ROLES,  # Anyone in league can read member details (e.g., coaches checking their own permissions)
     ("league_members", "update"): ADMIN_ROLES,
 }
 
@@ -110,12 +113,16 @@ def require_permission(
                 try:
                     target_id = target_getter(kwargs)
                 except Exception as exc:
-                    raise HTTPException(status_code=400, detail="Unable to determine target context") from exc
+                    raise HTTPException(
+                        status_code=400, detail="Unable to determine target context"
+                    ) from exc
             elif target_param:
                 target_id = kwargs.get(target_param)
 
             if not target_id:
-                raise HTTPException(status_code=400, detail="Target identifier is required")
+                raise HTTPException(
+                    status_code=400, detail="Target identifier is required"
+                )
 
             _ensure_target_access(
                 user_id=current_user["uid"],
@@ -136,12 +143,16 @@ def require_permission(
                 try:
                     target_id = target_getter(kwargs)
                 except Exception as exc:
-                    raise HTTPException(status_code=400, detail="Unable to determine target context") from exc
+                    raise HTTPException(
+                        status_code=400, detail="Unable to determine target context"
+                    ) from exc
             elif target_param:
                 target_id = kwargs.get(target_param)
 
             if not target_id:
-                raise HTTPException(status_code=400, detail="Target identifier is required")
+                raise HTTPException(
+                    status_code=400, detail="Target identifier is required"
+                )
 
             _ensure_target_access(
                 user_id=current_user["uid"],
@@ -164,12 +175,15 @@ def require_permission(
             "action": action,
             "allowed_roles": sorted(allowed_roles),
             "target": target,
-            "target_param": target_param or getattr(target_getter, "__name__", "callable"),
+            "target_param": target_param
+            or getattr(target_getter, "__name__", "callable"),
         }
         setattr(wrapper, "__required_permission__", metadata)
         REGISTERED_PERMISSIONS.append(metadata)
         logging.debug(
-            "[RBAC] Registered permission %s for %s", operation_name, metadata["endpoint"]
+            "[RBAC] Registered permission %s for %s",
+            operation_name,
+            metadata["endpoint"],
         )
         return wrapper
 
@@ -177,4 +191,3 @@ def require_permission(
 
 
 __all__ = ["require_permission", "ACCESS_MATRIX", "REGISTERED_PERMISSIONS"]
-

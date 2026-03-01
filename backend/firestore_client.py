@@ -8,60 +8,87 @@ import time
 # Singleton Firestore client to prevent multiple connections
 _firestore_client = None
 
+
 def get_firestore_client():
     global _firestore_client
     if _firestore_client is None:
         start_time = time.time()
         logging.info("[FIRESTORE] Starting client initialization...")
-        
+
         # Use the same credential handling logic as auth.py
         creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
-        
+
         if creds_json:
             try:
                 # Parse JSON credentials from environment variable
                 cred_dict = json.loads(creds_json)
-                credentials = service_account.Credentials.from_service_account_info(cred_dict)
-                
+                credentials = service_account.Credentials.from_service_account_info(
+                    cred_dict
+                )
+
                 # Initialize Firestore client with credentials
                 _firestore_client = firestore.Client(
-                    credentials=credentials, 
-                    project=cred_dict.get("project_id")
+                    credentials=credentials, project=cred_dict.get("project_id")
                 )
                 init_time = time.time() - start_time
-                logging.info(f"[FIRESTORE] Initialized with JSON credentials in {init_time:.2f}s")
+                logging.info(
+                    f"[FIRESTORE] Initialized with JSON credentials in {init_time:.2f}s"
+                )
             except json.JSONDecodeError as e:
-                logging.error(f"[FIRESTORE] Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON: {e}")
+                logging.error(
+                    f"[FIRESTORE] Invalid JSON in GOOGLE_APPLICATION_CREDENTIALS_JSON: {e}"
+                )
                 # Fallback to default credentials
                 try:
                     _firestore_client = firestore.Client()
                     init_time = time.time() - start_time
-                    logging.info(f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s")
+                    logging.info(
+                        f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s"
+                    )
                 except Exception as default_e:
-                    logging.error(f"[FIRESTORE] Failed to initialize with default credentials: {default_e}")
-                    raise RuntimeError(f"Unable to initialize Firestore client: {default_e}")
+                    logging.error(
+                        f"[FIRESTORE] Failed to initialize with default credentials: {default_e}"
+                    )
+                    raise RuntimeError(
+                        f"Unable to initialize Firestore client: {default_e}"
+                    )
             except Exception as e:
-                logging.error(f"[FIRESTORE] Failed to initialize with JSON credentials: {e}")
+                logging.error(
+                    f"[FIRESTORE] Failed to initialize with JSON credentials: {e}"
+                )
                 # Fallback to default credentials
                 try:
                     _firestore_client = firestore.Client()
                     init_time = time.time() - start_time
-                    logging.info(f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s")
+                    logging.info(
+                        f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s"
+                    )
                 except Exception as default_e:
-                    logging.error(f"[FIRESTORE] Failed to initialize with default credentials: {default_e}")
-                    raise RuntimeError(f"Unable to initialize Firestore client: {default_e}")
+                    logging.error(
+                        f"[FIRESTORE] Failed to initialize with default credentials: {default_e}"
+                    )
+                    raise RuntimeError(
+                        f"Unable to initialize Firestore client: {default_e}"
+                    )
         else:
             # Use default application credentials
             try:
                 _firestore_client = firestore.Client()
                 init_time = time.time() - start_time
-                logging.info(f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s")
+                logging.info(
+                    f"[FIRESTORE] Initialized with default credentials in {init_time:.2f}s"
+                )
             except Exception as e:
-                logging.error(f"[FIRESTORE] Failed to initialize with default credentials: {e}")
-                logging.error("[FIRESTORE] Make sure GOOGLE_APPLICATION_CREDENTIALS_JSON is set in environment")
+                logging.error(
+                    f"[FIRESTORE] Failed to initialize with default credentials: {e}"
+                )
+                logging.error(
+                    "[FIRESTORE] Make sure GOOGLE_APPLICATION_CREDENTIALS_JSON is set in environment"
+                )
                 raise RuntimeError(f"Unable to initialize Firestore client: {e}")
-    
+
     return _firestore_client
+
 
 # Lazy property that only creates client when first accessed
 class _FirestoreDB:
@@ -69,4 +96,5 @@ class _FirestoreDB:
         client = get_firestore_client()
         return getattr(client, name)
 
-db = _FirestoreDB() 
+
+db = _FirestoreDB()
