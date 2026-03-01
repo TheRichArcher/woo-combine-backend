@@ -531,7 +531,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         })()}
         
         {/* Primary Navigation Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
           <button
             onClick={() => navigate('/players')}
             className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
@@ -570,6 +570,16 @@ const CoachDashboard = React.memo(function CoachDashboard() {
               <ClipboardList className="w-5 h-5" />
             </div>
             <span className="text-xs font-semibold text-gray-700">Scorecards</span>
+          </button>
+
+          <button
+            onClick={() => navigate('/draft/create')}
+            className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
+          >
+            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-100 transition-colors">
+              <Trophy className="w-5 h-5" />
+            </div>
+            <span className="text-xs font-semibold text-gray-700">Draft</span>
           </button>
         </div>
 
