@@ -17,6 +17,7 @@ import {
   useCoachRankings
 } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
+import api from '../../lib/api';
 import { 
   Clock, 
   Users, 
@@ -32,7 +33,8 @@ import {
   Menu,
   X,
   ChevronDown,
-  ListOrdered
+  ListOrdered,
+  Download
 } from 'lucide-react';
 
 const DraftRoom = () => {
@@ -59,6 +61,7 @@ const DraftRoom = () => {
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [mobileTab, setMobileTab] = useState('players'); // players | board | myteam
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [exportingTeamId, setExportingTeamId] = useState(null);
   const autoPickTriggeredRef = useRef(false);
 
   // Timer countdown and auto-pick trigger
@@ -214,6 +217,30 @@ const DraftRoom = () => {
       showSuccess('Pick undone');
     } catch (err) {
       showError(err.message);
+    }
+  };
+
+  const handleExportRoster = async (team) => {
+    if (!team?.id) return;
+    setExportingTeamId(team.id);
+    try {
+      const res = await api.get(`/drafts/${draftId}/teams/${team.id}/export`, {
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${(team.team_name || 'team').replace(/\s+/g, '_')}_roster.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      showSuccess(`Exported ${team.team_name} roster`);
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to export roster');
+    } finally {
+      setExportingTeamId(null);
     }
   };
 
@@ -517,10 +544,20 @@ const DraftRoom = () => {
                 mobileTab !== 'myteam' ? 'hidden md:block' : ''
               }`}>
                 <div className="p-3 md:p-4 border-b bg-blue-50">
-                  <h3 className="font-semibold flex items-center gap-2">
-                    <Trophy size={18} className="text-blue-600" />
-                    My Team: {myTeam.team_name}
-                  </h3>
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Trophy size={18} className="text-blue-600" />
+                      My Team: {myTeam.team_name}
+                    </h3>
+                    <button
+                      onClick={() => handleExportRoster(myTeam)}
+                      disabled={exportingTeamId === myTeam.id}
+                      className="flex items-center gap-1 text-xs px-2 py-1 rounded bg-white text-blue-700 border border-blue-200 hover:bg-blue-50 disabled:opacity-50"
+                    >
+                      <Download size={12} />
+                      Export
+                    </button>
+                  </div>
                 </div>
                 <div className="p-3 md:p-4">
                   {(picksByTeam[myTeam.id] || []).length === 0 ? (
@@ -571,12 +608,24 @@ const DraftRoom = () => {
                       key={team.id}
                       className={`p-3 rounded-lg ${isOnClock ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'}`}
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2 gap-2">
                         <span className={`font-medium text-sm ${isOnClock ? 'text-blue-700' : ''}`}>
                           {team.team_name}
                           {isOnClock && <span className="ml-2 text-xs">⏳</span>}
                         </span>
-                        <span className="text-xs text-gray-500">{teamPicks.length} picks</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{teamPicks.length} picks</span>
+                          {isAdmin && (
+                            <button
+                              onClick={() => handleExportRoster(team)}
+                              disabled={exportingTeamId === team.id}
+                              className="text-xs px-2 py-0.5 rounded bg-white border border-gray-200 hover:bg-gray-100 disabled:opacity-50"
+                              title="Export roster"
+                            >
+                              <Download size={12} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                       
                       {/* Show recent picks */}
