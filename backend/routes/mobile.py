@@ -8,7 +8,7 @@ These endpoints are designed for:
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 import logging
 

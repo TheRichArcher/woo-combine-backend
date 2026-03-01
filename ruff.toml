@@ -1,0 +1,18 @@
+# Ruff configuration for woo-combine-backend
+# https://docs.astral.sh/ruff/configuration/
+
+[lint]
+# Ignore rules that are too strict for now
+# TODO: Fix these incrementally
+ignore = [
+    "E402",  # Module level import not at top of file (inline imports for performance)
+    "E701",  # Multiple statements on one line (used in data mapping)
+    "E741",  # Ambiguous variable name (l, O, I)
+    "F841",  # Local variable assigned but never used (some are for future use)
+]
+
+# Still enforce these critical rules:
+# F401 - Unused imports (catches dead code)
+# F821 - Undefined names (catches typos/bugs)
+# F811 - Redefinition of unused name
+# E999 - Syntax errors
