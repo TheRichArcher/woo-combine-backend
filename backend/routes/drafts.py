@@ -353,9 +353,6 @@ async def update_draft(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot modify draft after it has started"
-        )
 
     updates = {k: v for k, v in draft_in.dict().items() if v is not None}
     updates["updated_at"] = now_iso()
@@ -401,9 +398,6 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot delete draft after it has started"
-        )
 
     # Delete associated teams and picks
     teams = (
@@ -507,9 +501,6 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Draft already started or completed"
-        )
 
     # Get teams
     teams_query = (

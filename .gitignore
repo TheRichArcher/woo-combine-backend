@@ -127,3 +127,5 @@ assets/
 
 # Ignore Alembic template
 alembic/script.py.mako
+service-account.json
+tosh-credentials.md

@@ -51,7 +51,7 @@ const DraftSetup = () => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [addingPlayer, setAddingPlayer] = useState(false);
-  const [standalonePlayerCount, setStandalonePlayerCount] = useState(0);
+  const [draftPlayers, setDraftPlayers] = useState([]);
 
   // Settings form
   const [settings, setSettings] = useState({
@@ -156,7 +156,8 @@ const DraftSetup = () => {
       if (!draft?.event_id) {
         try {
           const res = await api.get(`/drafts/${draftId}/players`);
-          setDraftPlayers(res.data.filter(p => p.source === 'manual'));
+          const players = Array.isArray(res.data) ? res.data : res.data?.players || [];
+          setDraftPlayers(players.filter(p => p.source === 'manual'));
         } catch (err) {
           console.error('Failed to fetch draft players:', err);
         }
@@ -176,22 +177,6 @@ const DraftSetup = () => {
     }
   };
 
-  // Fetch standalone player count
-  useEffect(() => {
-    const fetchPlayerCount = async () => {
-      if (!draft?.event_id && draftId) {
-        try {
-          const res = await api.get(`/drafts/${draftId}/players`);
-          const manualPlayers = res.data.filter(p => p.source === 'manual');
-          setStandalonePlayerCount(manualPlayers.length);
-        } catch (err) {
-          console.error('Failed to fetch players:', err);
-        }
-      }
-    };
-    fetchPlayerCount();
-  }, [draftId, draft?.event_id]);
-
   const handleAddPlayer = async () => {
     if (!newPlayerName.trim()) {
       showError('Player name required');
@@ -199,14 +184,14 @@ const DraftSetup = () => {
     }
     setAddingPlayer(true);
     try {
-      await api.post(`/drafts/${draftId}/players`, {
+      const res = await api.post(`/drafts/${draftId}/players`, {
         name: newPlayerName.trim(),
         number: newPlayerNumber.trim() || null
       });
       setNewPlayerName('');
       setNewPlayerNumber('');
       setShowAddPlayer(false);
-      setStandalonePlayerCount(prev => prev + 1);
+      setDraftPlayers(prev => [...prev, res.data]);
       showSuccess('Player added');
     } catch (err) {
       showError(err.response?.data?.detail || 'Failed to add player');
@@ -418,7 +403,7 @@ const DraftSetup = () => {
               <div className="p-4 border-b flex items-center justify-between">
                 <h2 className="font-semibold flex items-center gap-2">
                   <Users size={18} />
-                  Players ({standalonePlayerCount})
+                  Players ({draftPlayers.length})
                 </h2>
                 <button
                   onClick={() => setShowAddPlayer(!showAddPlayer)}
@@ -471,7 +456,7 @@ const DraftSetup = () => {
                   </div>
                 )}
 
-                {standalonePlayerCount === 0 && !showAddPlayer && (
+                {draftPlayers.length === 0 && !showAddPlayer && (
                   <div className="text-center py-6 text-gray-500">
                     <Users size={32} className="mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No players added yet</p>
@@ -479,9 +464,9 @@ const DraftSetup = () => {
                   </div>
                 )}
 
-                {standalonePlayerCount > 0 && (
+                {draftPlayers.length > 0 && (
                   <p className="text-sm text-gray-600">
-                    {standalonePlayerCount} player{standalonePlayerCount !== 1 ? 's' : ''} ready for draft
+                    {draftPlayers.length} player{draftPlayers.length !== 1 ? 's' : ''} ready for draft
                   </p>
                 )}
               </div>
