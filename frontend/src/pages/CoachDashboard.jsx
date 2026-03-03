@@ -282,11 +282,18 @@ const CoachDashboard = React.memo(function CoachDashboard() {
     if (!leagues || leagues.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center min-h-[40vh] mt-20">
-                  <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
-          <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
-          <p className="text-cmf-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
+          <div className="bg-white rounded-2xl shadow-lg p-8 max-w-lg mx-auto text-center border-2 border-cmf-primary/30">
+            <h2 className="text-2xl font-bold text-cmf-secondary mb-4">Welcome to Woo-Combine!</h2>
+            <p className="text-cmf-secondary mb-2">It looks like you haven't created a league yet. That's totally normal for new organizers!</p>
             <p className="text-gray-700 mb-4">To get started, create your first league below:</p>
             <CreateLeagueForm onCreated={() => navigate('/onboarding/event', { replace: true })} />
+            <Link
+              to="/drafts"
+              className="inline-flex items-center gap-2 mt-4 text-sm font-semibold text-cmf-primary hover:text-cmf-secondary"
+            >
+              <Trophy className="w-4 h-4" />
+              Go to Drafts
+            </Link>
           </div>
         </div>
       );
@@ -345,6 +352,13 @@ const CoachDashboard = React.memo(function CoachDashboard() {
                     >
                       <Settings className="w-4 h-4" />
                       Event Settings
+                    </Link>
+                    <Link 
+                      to="/drafts" 
+                      className="flex items-center justify-center gap-2 w-full text-gray-600 hover:text-cmf-primary font-medium py-2 px-4 rounded-lg hover:bg-gray-50 border border-gray-200 transition"
+                    >
+                      <Trophy className="w-4 h-4" />
+                      Draft
                     </Link>
                   </div>
                 </div>
@@ -531,7 +545,7 @@ const CoachDashboard = React.memo(function CoachDashboard() {
         })()}
         
         {/* Primary Navigation Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-3 mb-6">
           <button
             onClick={() => navigate('/players')}
             className="flex flex-col items-center justify-center gap-2 p-4 bg-white border border-gray-200 rounded-xl shadow-sm hover:bg-gray-50 transition-colors group"
