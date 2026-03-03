@@ -2,7 +2,7 @@
  * CreateDraft - Create a new draft for an event
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useEvent } from '../../context/EventContext';
 import { useToast } from '../../context/ToastContext';
@@ -15,6 +15,8 @@ const CreateDraft = () => {
   const { showSuccess, showError } = useToast();
 
   const [loading, setLoading] = useState(false);
+  const [players, setPlayers] = useState([]);
+  const [customAgeGroup, setCustomAgeGroup] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     age_group: '',
@@ -22,6 +24,27 @@ const CreateDraft = () => {
     pick_timer_seconds: 60,
     trades_enabled: false
   });
+
+  // Fetch players to derive age groups dynamically
+  useEffect(() => {
+    if (!selectedEvent?.id) return;
+    api.get(`/players?event_id=${selectedEvent.id}`)
+      .then(res => {
+        const list = Array.isArray(res.data) ? res.data : res.data?.players || [];
+        setPlayers(list);
+      })
+      .catch(() => {}); // silent — age groups just won't auto-populate
+  }, [selectedEvent?.id]);
+
+  // Derive distinct age groups from player data
+  const ageGroups = useMemo(() => {
+    const groups = new Set();
+    players.forEach(p => {
+      const ag = (p.age_group || '').trim();
+      if (ag) groups.add(ag);
+    });
+    return [...groups].sort();
+  }, [players]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -109,22 +132,55 @@ const CreateDraft = () => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Age Group (Optional)
             </label>
-            <select
-              value={formData.age_group}
-              onChange={(e) => setFormData(f => ({ ...f, age_group: e.target.value }))}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">All Players</option>
-              <option value="U6">U6 (Under 6)</option>
-              <option value="U8">U8 (Under 8)</option>
-              <option value="U10">U10 (Under 10)</option>
-              <option value="U12">U12 (Under 12)</option>
-              <option value="U14">U14 (Under 14)</option>
-              <option value="U16">U16 (Under 16)</option>
-              <option value="U18">U18 (Under 18)</option>
-            </select>
+            {ageGroups.length > 0 ? (
+              <>
+                <select
+                  value={customAgeGroup ? '__custom__' : formData.age_group}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      setCustomAgeGroup(' ');
+                      setFormData(f => ({ ...f, age_group: '' }));
+                    } else {
+                      setCustomAgeGroup('');
+                      setFormData(f => ({ ...f, age_group: val }));
+                    }
+                  }}
+                  className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">All Players</option>
+                  {ageGroups.map(ag => (
+                    <option key={ag} value={ag}>{ag}</option>
+                  ))}
+                  <option value="__custom__">+ Enter custom age group...</option>
+                </select>
+                {customAgeGroup && (
+                  <input
+                    type="text"
+                    value={customAgeGroup.trim()}
+                    onChange={(e) => {
+                      setCustomAgeGroup(e.target.value || ' ');
+                      setFormData(f => ({ ...f, age_group: e.target.value.trim() }));
+                    }}
+                    placeholder="Type your age group name..."
+                    className="w-full px-4 py-2 mt-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    autoFocus
+                  />
+                )}
+              </>
+            ) : (
+              <input
+                type="text"
+                value={formData.age_group}
+                onChange={(e) => setFormData(f => ({ ...f, age_group: e.target.value }))}
+                placeholder="e.g., U10, Bantam, 9-10, Varsity"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            )}
             <p className="text-xs text-gray-500 mt-1">
-              Filter players by age group. Leave empty to include all players.
+              {ageGroups.length > 0
+                ? 'Showing age groups from your players. Leave empty for all players.'
+                : 'No players imported yet — type any age group name your league uses.'}
             </p>
           </div>
 
