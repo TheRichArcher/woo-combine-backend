@@ -448,6 +448,15 @@ export default function Navigation() {
                 Teams
               </Link>
             )}
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/drafts" 
+                onClick={(e) => handleRestrictedNav(e, '/drafts', 'Draft')}
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                🏆 Draft
+              </Link>
+            )}
 
             {userRole === 'organizer' && (
               <Link 
@@ -590,6 +599,15 @@ export default function Navigation() {
                 onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
               >
                 Teams
+              </Link>
+            )}
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/drafts" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/drafts', 'Draft')}
+              >
+                🏆 Draft
               </Link>
             )}
             {userRole === 'organizer' && (
