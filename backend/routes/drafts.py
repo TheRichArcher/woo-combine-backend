@@ -439,8 +439,8 @@ async def list_drafts(
         # Also include drafts where user is a coach
         drafts.append(draft)
 
-    # If not filtering, also get drafts where user is a team coach
-    if not event_id and not league_id and not mine:
+    # If listing "my" drafts (or unfiltered list), also include drafts where user is a team coach
+    if not event_id and not league_id:
         # Get teams where user is coach
         coach_teams = (
             db.collection("draft_teams")
@@ -636,9 +636,6 @@ async def add_team(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot add teams after draft has started"
-        )
 
     # Get current team count for pick order
     teams_query = (
@@ -748,9 +745,6 @@ async def remove_team(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot remove teams after draft has started"
-        )
 
     team_ref = db.collection("draft_teams").document(team_id)
     if not team_ref.get().exists:
@@ -808,9 +802,6 @@ async def reorder_teams(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot reorder teams after draft has started"
-        )
 
     # Update pick_order for each team
     for i, team_id in enumerate(team_ids):
@@ -947,6 +938,27 @@ async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
     )
 
     picks = [p.to_dict() for p in picks_query]
+
+    # Enrich with player data for UI convenience (supports both combine players and standalone draft players)
+    player_ids = [p.get("player_id") for p in picks if p.get("player_id")]
+    players_by_id: Dict[str, dict] = {}
+
+    for pid in set(player_ids):
+        # Try combine players first
+        player_doc = db.collection("players").document(pid).get()
+        if player_doc.exists:
+            players_by_id[pid] = player_doc.to_dict()
+            continue
+        # Fallback to standalone draft players
+        draft_player_doc = db.collection("draft_players").document(pid).get()
+        if draft_player_doc.exists:
+            players_by_id[pid] = draft_player_doc.to_dict()
+
+    for pick in picks:
+        pid = pick.get("player_id")
+        if pid and pid in players_by_id:
+            pick["player"] = players_by_id[pid]
+
     return picks
 
 
@@ -1004,15 +1016,25 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
     event_id = draft_data.get("event_id")
     age_group = draft_data.get("age_group")
 
-    players_query = db.collection("players").where(
-        filter=FieldFilter("event_id", "==", event_id)
-    )
-    if age_group:
-        players_query = players_query.where(
-            filter=FieldFilter("age_group", "==", age_group)
+    if event_id:
+        players_query = db.collection("players").where(
+            filter=FieldFilter("event_id", "==", event_id)
         )
-
-    all_players = {p.id: p.to_dict() for p in players_query.stream()}
+        if age_group:
+            players_query = players_query.where(
+                filter=FieldFilter("age_group", "==", age_group)
+            )
+        all_players = {p.id: p.to_dict() for p in players_query.stream()}
+    else:
+        # Standalone draft: players live in draft_players
+        players_query = db.collection("draft_players").where(
+            filter=FieldFilter("draft_id", "==", draft_id)
+        )
+        if age_group:
+            players_query = players_query.where(
+                filter=FieldFilter("age_group", "==", age_group)
+            )
+        all_players = {p.id: p.to_dict() for p in players_query.stream()}
 
     # Get already drafted players
     picks_query = (
@@ -1363,9 +1385,6 @@ async def add_pre_slot(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot add pre-slots after draft has started"
-        )
 
     team_ref = db.collection("draft_teams").document(slot_in.team_id)
     team_doc = team_ref.get()
@@ -1424,9 +1443,6 @@ async def remove_pre_slot(
                 status_code=402,
                 detail=f"Payment required. Drafts with {num_teams_price} teams and {num_players_price} players require payment. Drafts with <={FREE_PLAYER_LIMIT} players are free.",
             )
-        raise HTTPException(
-            status_code=400, detail="Cannot modify pre-slots after draft has started"
-        )
 
     team_ref = db.collection("draft_teams").document(team_id)
     team_doc = team_ref.get()

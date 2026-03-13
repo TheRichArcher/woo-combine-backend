@@ -52,7 +52,7 @@ const DraftPayment = () => {
     try {
       await api.post(`/drafts/${draftId}/start`);
       showSuccess('Draft started!');
-      navigate(`/draft/${draftId}/room`);
+      navigate(`/draft/${draftId}/live`);
     } catch (err) {
       if (err.response?.status === 402) {
         showError('Payment required before starting');
@@ -74,9 +74,9 @@ const DraftPayment = () => {
       });
       window.location.href = res.data.checkout_url;
     } catch (err) {
-      if (err.response?.status === 501) {
-        // Payments not implemented - bypass for testing
-        showError('Payments not yet enabled. Drafts are free for testing!');
+      if (err.response?.status === 501 || err.response?.status === 400) {
+        // Payments not enabled or Stripe not implemented yet - bypass for testing
+        showError('Payments not enabled yet. Drafts are free for testing!');
         await handleStartDraft();
       } else {
         showError(err.response?.data?.detail || 'Failed to create checkout');
