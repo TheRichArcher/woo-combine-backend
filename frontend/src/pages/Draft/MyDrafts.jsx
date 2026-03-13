@@ -105,7 +105,7 @@ const MyDrafts = () => {
                   onClick={() => navigate(
                     draft.status === 'setup' 
                       ? `/draft/${draft.id}/setup` 
-                      : `/draft/${draft.id}/room`
+                      : `/draft/${draft.id}/live`
                   )}
                   className="bg-white rounded-xl shadow-sm p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
