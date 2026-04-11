@@ -4,7 +4,6 @@ import re
 
 from ..auth import require_role
 from ..middleware.rate_limiting import write_rate_limit
-from ..utils.ocr import OCRProcessor
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +136,7 @@ async def ocr_image(
         )
 
     try:
+        from ..utils.ocr import OCRProcessor
         lines, confidence = OCRProcessor.extract_rows_from_image(content)
         raw_text = "\n".join(lines)
         numbers = _extract_numbers(raw_text)
