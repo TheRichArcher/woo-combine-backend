@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CombineLockedBanner from "../components/CombineLockedBanner";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit, Camera, Loader2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 import { useDrills } from '../hooks/useDrills';
@@ -65,6 +65,34 @@ export default function LiveEntry() {
 
   const [score, setScore] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // OCR Scanner state
+  const [ocrScanning, setOcrScanning] = useState(false);
+  const ocrFileRef = useRef(null);
+  
+  const handleOcrCapture = useCallback(async (file) => {
+    if (!file || !selectedDrill) return;
+    setOcrScanning(true);
+    try {
+      const form = new FormData();
+      form.append('image', file);
+      form.append('drill_type', selectedDrill);
+      const { data } = await api.post('/scanner/ocr', form, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      if (data?.value != null) {
+        setScore(String(data.value));
+        showSuccess(`OCR read: ${data.value} (${Math.round((data.confidence || 0) * 100)}% confidence)`);
+      } else {
+        showError('Could not read a number. Enter manually or try another photo.');
+      }
+    } catch {
+      showError('OCR failed. Enter score manually.');
+    } finally {
+      setOcrScanning(false);
+      if (ocrFileRef.current) ocrFileRef.current.value = '';
+    }
+  }, [selectedDrill, showSuccess, showError]);
   
   // Players data for auto-complete
   const [players, setPlayers] = useState([]);
@@ -1514,24 +1542,50 @@ export default function LiveEntry() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Score ({currentDrill.unit})
                   </label>
-                  <input
-                    ref={scoreRef}
-                    type="text"
-                    inputMode="decimal"
-                    value={score}
-                    onChange={(e) => setScore(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        await attemptSubmit();
-                      }
-                    }}
-                    onWheel={(e) => e.preventDefault()}
-                    placeholder={`Enter ${currentDrill.unit}`}
-                    className="w-full text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
-                    disabled={isCurrentDrillLocked || combineIsLocked}
-                    required
-                  />
+                  <div className="flex gap-2 items-stretch">
+                    <input
+                      ref={scoreRef}
+                      type="text"
+                      inputMode="decimal"
+                      value={score}
+                      onChange={(e) => setScore(e.target.value)}
+                      onKeyDown={async (e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          await attemptSubmit();
+                        }
+                      }}
+                      onWheel={(e) => e.preventDefault()}
+                      placeholder={`Enter ${currentDrill.unit}`}
+                      className="flex-1 text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
+                      disabled={isCurrentDrillLocked || combineIsLocked}
+                      required
+                    />
+                    <input
+                      ref={ocrFileRef}
+                      type="file"
+                      accept="image/*"
+                      capture="environment"
+                      className="hidden"
+                      onChange={(e) => handleOcrCapture(e.target.files?.[0])}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => ocrFileRef.current?.click()}
+                      disabled={ocrScanning || isCurrentDrillLocked || combineIsLocked}
+                      className="px-4 rounded-lg border-2 border-gray-300 hover:border-brand-primary hover:bg-brand-primary/5 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Scan score with camera"
+                    >
+                      {ocrScanning ? (
+                        <Loader2 className="w-7 h-7 text-brand-primary animate-spin" />
+                      ) : (
+                        <Camera className="w-7 h-7 text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                  {ocrScanning && (
+                    <p className="text-sm text-brand-primary mt-1 animate-pulse">Reading score from photo…</p>
+                  )}
                 </div>
 
                 {/* Optional note */}
