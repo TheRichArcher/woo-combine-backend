@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
 import logging
 import re
 
@@ -110,6 +110,7 @@ def _pick_best_value(numbers: list[float], drill_type: str) -> float | None:
 @router.post("/ocr", response_model=dict)
 @write_rate_limit()
 async def ocr_image(
+    request: Request,
     image: UploadFile = File(...),
     drill_type: str = Form(...),
     current_user=Depends(require_role("organizer", "coach")),
