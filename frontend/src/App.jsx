@@ -40,6 +40,7 @@ import ScorecardsPage from "./pages/ScorecardsPage";
 import LiveStandings from "./pages/LiveStandings";
 import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
+import CombineScanner from "./pages/CombineScanner";
 
 // Draft Feature Pages
 import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft, MyDrafts } from "./pages/Draft";
@@ -301,6 +302,16 @@ function App() {
                     <RequireAuth >
                       <AuthenticatedLayout>
                         <Analytics />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/events/:eventId/scanner"
+                  element={
+                    <RequireAuth allowedRoles={["organizer","coach"]}>
+                      <AuthenticatedLayout>
+                        <CombineScanner />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   }

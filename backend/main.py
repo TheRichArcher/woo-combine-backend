@@ -14,6 +14,7 @@ from .routes.migrations import router as migrations_router
 from .routes.drafts import router as drafts_router
 from .routes.draft_pricing import router as draft_pricing_router
 from .routes.mobile import router as mobile_router
+from .routes.scanner import router as scanner_router
 from .auth import get_current_user
 from .middleware.rate_limiting import add_rate_limiting, health_rate_limit
 from .middleware.abuse_protection import add_abuse_protection_middleware
@@ -163,6 +164,7 @@ app.include_router(draft_pricing_router, prefix="/api", tags=["Draft Payments"])
 app.include_router(schemas_router, prefix="/api", tags=["Schemas"])
 app.include_router(migrations_router, prefix="/api", tags=["Migrations"])
 app.include_router(mobile_router)  # Mobile API (includes /api/mobile prefix in router)
+app.include_router(scanner_router, prefix="/api/scanner", tags=["Scanner"])
 
 
 # Simple config/meta endpoint to help frontend adapt and for debugging

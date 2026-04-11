@@ -516,6 +516,11 @@ export default function Navigation() {
                       Event Sharing
                     </Link>
                   )}
+                  {selectedEvent?.id && ['organizer','coach'].includes(userRole) && (
+                    <Link to={`/events/${selectedEvent.id}/scanner`} onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, `/events/${selectedEvent.id}/scanner`, 'Combine Scanner'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Combine Scanner
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -687,6 +692,15 @@ export default function Navigation() {
                 onClick={(e) => handleRestrictedNav(e, '/event-sharing', 'Event Sharing')}
               >
                 Event Sharing
+              </Link>
+            )}
+            {selectedEvent?.id && ['organizer','coach'].includes(userRole) && (
+              <Link
+                to={`/events/${selectedEvent.id}/scanner`}
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => { closeMobile(); handleRestrictedNav(e, `/events/${selectedEvent.id}/scanner`, 'Combine Scanner'); }}
+              >
+                Combine Scanner
               </Link>
             )}
             <button
