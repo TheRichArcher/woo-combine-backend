@@ -525,7 +525,7 @@ export default function Navigation() {
           <div className="flex items-center gap-2">
             {/* Hamburger Menu - Always Visible */}
             <button 
-              className="p-2 rounded-lg hover:bg-gray-50 transition"
+              className="hidden sm:flex p-2 rounded-lg hover:bg-gray-50 transition"
               onClick={() => setMobileOpen(!mobileOpen)} 
               aria-label="Open menu"
               title="Menu"
@@ -711,6 +711,49 @@ export default function Navigation() {
         userRole={userRole}
         onLogout={handleLogout}
       />
+
+      {/* Mobile Bottom Nav (3-tab) */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
+        <div className="max-w-lg mx-auto grid grid-cols-3">
+          <Link
+            to="/coach"
+            className={
+              "flex flex-col items-center justify-center py-2 text-xs font-medium transition " +
+              (location.pathname.startsWith('/coach') ? 'text-brand-primary' : 'text-gray-500')
+            }
+            aria-label="Events"
+          >
+            <div className="text-lg">🏠</div>
+            Events
+          </Link>
+          <Link
+            to="/live-standings"
+            className={
+              "flex flex-col items-center justify-center py-2 text-xs font-medium transition " +
+              (location.pathname.startsWith('/live-standings') ? 'text-brand-primary' : 'text-gray-500')
+            }
+            aria-label="Rankings"
+          >
+            <div className="text-lg">🏆</div>
+            Rankings
+          </Link>
+          <Link
+            to="/more"
+            className={
+              "flex flex-col items-center justify-center py-2 text-xs font-medium transition " +
+              (location.pathname.startsWith('/more') ? 'text-brand-primary' : 'text-gray-500')
+            }
+            aria-label="More"
+          >
+            <div className="text-lg">⚙️</div>
+            More
+          </Link>
+        </div>
+      </div>
+
+      {/* Spacer so content isn't hidden behind bottom nav */}
+      <div className="sm:hidden h-14" />
+
     </>
   );
 }

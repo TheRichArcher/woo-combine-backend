@@ -423,6 +423,19 @@ export default function LiveEntry() {
     });
   }, [players]);
 
+  // Overall combine-day progress (any player with at least one score > 0)
+  const overallScoredPlayers = useMemo(() => {
+    if (!players.length || !drills.length) return 0;
+    return players.filter(p => {
+      for (const d of drills) {
+        const v = p?.[d.key];
+        if (typeof v === 'number' && v > 0) return true;
+        if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v)) && Number(v) > 0) return true;
+      }
+      return false;
+    }).length;
+  }, [players, drills]);
+
   // Memoize completion stats to avoid recalculation on every render
   const completionStats = useMemo(() => {
     const totalPlayers = players.length;
@@ -1020,6 +1033,18 @@ export default function LiveEntry() {
             </Link>
             <div>
               <h1 className="text-lg font-bold text-gray-900">Live Entry Mode</h1>
+              {/* LIVE badge + overall progress */}
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">LIVE</span>
+                <span className="text-xs text-gray-500">{overallScoredPlayers} of {players.length} players scored</span>
+              </div>
+              <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-indigo-600 transition-all duration-300"
+                  style={{ width: (players.length ? Math.round((overallScoredPlayers / players.length) * 100) : 0) + '%' }}
+                />
+              </div>
+              {/* /LIVE badge */}
               <p className="text-sm text-gray-600">{selectedEvent.name}</p>
             </div>
           </div>
@@ -1244,7 +1269,7 @@ export default function LiveEntry() {
                   <button
                     key={d.key}
                     onClick={() => handleDrillSwitch(d.key)}
-                    className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-brand-primary text-white border-brand-primary shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
+                    className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
                     aria-pressed={d.key === selectedDrill}
                     title={`Switch to ${d.label}`}
                   >
@@ -1631,10 +1656,15 @@ export default function LiveEntry() {
               )}
             </div>
             
-            <div className="flex justify-center -mt-2 mb-4">
-              <Link to="/live-standings" className="text-brand-primary hover:text-brand-secondary text-sm flex items-center gap-1 transition-colors">
-                <Target className="w-4 h-4" /> View Live Standings →
+            {/* Prominent Rankings Button */}
+            <div className="pt-2">
+              <Link
+                to="/live-standings"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl flex items-center justify-center gap-2 transition shadow"
+              >
+                View Rankings →
               </Link>
+              <div className="text-xs text-gray-500 text-center mt-2">Rankings update automatically as you enter scores.</div>
             </div>
 
             {/* Action Buttons - Forward-looking flow */}

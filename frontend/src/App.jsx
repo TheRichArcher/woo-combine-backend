@@ -41,6 +41,7 @@ import LiveStandings from "./pages/LiveStandings";
 import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
 import CombineScanner from "./pages/CombineScanner";
+import More from "./pages/More";
 
 // Draft Feature Pages
 import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft, MyDrafts } from "./pages/Draft";
@@ -292,6 +293,16 @@ function App() {
                     <RequireAuth >
                       <AuthenticatedLayout>
                         <LiveStandings />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/more"
+                  element={
+                    <RequireAuth>
+                      <AuthenticatedLayout>
+                        <More />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   }

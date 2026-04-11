@@ -211,11 +211,21 @@ export default function LiveStandings() {
              <Link to="/dashboard" className="text-gray-500 hover:text-gray-700">
                <ArrowLeft className="w-6 h-6" />
              </Link>
-             <div 
-               className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium cursor-help"
-               title="Standings auto-refresh every 30 seconds"
-             >
-               ✨ Live Updates
+             <div className="flex items-center gap-2">
+               <Link
+                 to="/players?tab=analyze"
+                 className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition"
+                 aria-label="Customize weights"
+                 title="Customize scoring weights"
+               >
+                 <Settings className="w-5 h-5 text-gray-600" />
+               </Link>
+               <div 
+                 className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium cursor-help"
+                 title="Standings auto-refresh every 30 seconds"
+               >
+                 ✨ Live Updates
+               </div>
              </div>
           </div>
           
@@ -223,6 +233,33 @@ export default function LiveStandings() {
             Live Standings
           </h1>
           <p className="text-gray-600 mb-4">{selectedEvent.name}</p>
+          
+          {/* Age Group Pills */}
+          {ageGroups.length > 1 && (
+            <div className="mb-4">
+              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                {ageGroups.map((g) => {
+                  const active = selectedAgeGroup === g;
+                  const label = g === 'ALL' ? 'All Ages' : g;
+                  return (
+                    <button
+                      key={g}
+                      onClick={() => setSelectedAgeGroup(g)}
+                      className={
+                        'whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-semibold border transition ' +
+                        (active
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50')
+                      }
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="text-xs text-gray-500">Filter rankings by age group.</div>
+            </div>
+          )}
           
           <div className="grid grid-cols-2 gap-2">
             {userRole !== 'viewer' && (
@@ -259,22 +296,34 @@ export default function LiveStandings() {
           
           {showControls && (
             <div className="p-4 border-t border-gray-200">
-              <div className="flex items-center justify-between gap-2 mb-4">
-                 <div className="flex items-center gap-2 w-full">
-                    <Filter className="w-4 h-4 text-gray-500" />
-                    <select
-                        value={selectedAgeGroup}
-                        onChange={(e) => setSelectedAgeGroup(e.target.value)}
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                    >
-                        {ageGroups.map(g => (
-                        <option key={g} value={g}>{g === 'ALL' ? 'All Ages' : g}</option>
-                        ))}
-                    </select>
-                 </div>
-              </div>
-              
               <div className="mb-4">
+                  {ageGroups.length > 1 && (
+                    <div className="mb-3">
+                      <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Age Group</div>
+                      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        {ageGroups.map((g) => {
+                          const active = selectedAgeGroup === g;
+                          const label = g === 'ALL' ? 'All Ages' : g;
+                          return (
+                            <button
+                              key={g}
+                              onClick={() => setSelectedAgeGroup(g)}
+                              className={
+                                'whitespace-nowrap px-3 py-1.5 rounded-full text-sm font-semibold border transition ' +
+                                (active
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50')
+                              }
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mb-4">
                   <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer p-2 bg-gray-50 rounded-lg">
                     <input
                       type="checkbox"
@@ -284,6 +333,7 @@ export default function LiveStandings() {
                     />
                     <span>Normalize scores across all players</span>
                   </label>
+              </div>
               </div>
 
               {/* Presets */}
@@ -456,6 +506,37 @@ export default function LiveStandings() {
           </div>
         )}
 
+
+        {/* Share / Export */}
+        <div className="mt-6 space-y-2">
+          <button
+            onClick={async () => {
+              const url = window.location.href;
+              try {
+                if (navigator.share) {
+                  await navigator.share({ title: 'WooCombine Rankings', url });
+                } else {
+                  await navigator.clipboard.writeText(url);
+                  alert('Link copied to clipboard');
+                }
+              } catch (e) {
+                // ignore cancellation
+              }
+            }}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition shadow"
+          >
+            Share Rankings
+          </button>
+          <button
+            onClick={() => {
+              const url = api.defaults.baseURL + '/events/' + selectedEvent.id + '/export-pdf';
+              window.open(url, '_blank');
+            }}
+            className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 rounded-xl transition border border-gray-200"
+          >
+            Export PDF
+          </button>
+        </div>
       </div>
     </div>
   );
