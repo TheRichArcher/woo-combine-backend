@@ -134,6 +134,18 @@ def _classify_drill(drill_type: str) -> str:
     return "score"
 
 
+def _is_vertical_jump(drill_type: str, raw_text: str = "") -> bool:
+    k = (drill_type or "").lower().strip()
+    if any(tok in k for tok in ["vert", "vertical", "vertical leap"]):
+        return True
+    t = (raw_text or "").lower()
+    # App screens often show these labels
+    if any(tok in t for tok in ["vert", "last jump", "avg high", "jump height"]):
+        return True
+    return False
+
+
+
 def _pick_best_value(numbers: list[float], drill_type: str) -> float | None:
     if not numbers:
         return None
@@ -202,8 +214,35 @@ async def ocr_image(
 
     try:
         from ..utils.ocr import OCRProcessor
+
+        # Vertical jump screens render the true result in a very large font.
+        # Use Vision text_annotations bounding boxes to pick the largest inches value.
+        if _is_vertical_jump(drill_type):
+            value, confidence, raw_text, candidates = (
+                OCRProcessor.extract_largest_inches_value_from_image(content)
+            )
+            return {
+                "value": value,
+                "confidence": float(confidence or 0.0),
+                "raw_text": raw_text,
+                "all_numbers": candidates,
+            }
+
         lines, confidence = OCRProcessor.extract_rows_from_image(content)
         raw_text = "\n".join(lines)
+
+        # Auto-detect vertical based on OCR text if drill_type is ambiguous
+        if _is_vertical_jump(drill_type, raw_text=raw_text):
+            value, _, raw_text2, candidates = (
+                OCRProcessor.extract_largest_inches_value_from_image(content)
+            )
+            return {
+                "value": value,
+                "confidence": float(confidence or 0.0),
+                "raw_text": raw_text2 or raw_text,
+                "all_numbers": candidates,
+            }
+
         numbers = _extract_numbers(raw_text)
         value = _pick_best_value(numbers, drill_type)
 

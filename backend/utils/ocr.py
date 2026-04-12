@@ -1,14 +1,24 @@
 import os
 import json
 import logging
-from typing import List, Tuple
+import re
+from typing import Any, List, Tuple
 
-from google.cloud import vision
-from google.oauth2 import service_account
 
 logger = logging.getLogger(__name__)
 
 _vision_client = None
+
+
+def _import_vision():
+    try:
+        from google.cloud import vision  # type: ignore
+        from google.oauth2 import service_account  # type: ignore
+        return vision, service_account
+    except Exception as e:  # pragma: no cover
+        raise RuntimeError(
+            "google-cloud-vision is not installed/configured in this environment"
+        ) from e
 
 
 def get_vision_client():
@@ -22,6 +32,7 @@ def get_vision_client():
         if creds_json:
             try:
                 cred_dict = json.loads(creds_json)
+                vision, service_account = _import_vision()
                 credentials = service_account.Credentials.from_service_account_info(
                     cred_dict
                 )
@@ -34,6 +45,7 @@ def get_vision_client():
                 )
 
         # Fallback to default environment (GOOGLE_APPLICATION_CREDENTIALS file path or GCE metadata)
+        vision, _ = _import_vision()
         _vision_client = vision.ImageAnnotatorClient()
         logger.info("[OCR] Initialized Vision client with default credentials")
         return _vision_client
@@ -44,6 +56,100 @@ def get_vision_client():
 
 
 class OCRProcessor:
+    @staticmethod
+    def _get_attr(obj: Any, name: str, default=None):
+        if obj is None:
+            return default
+        if isinstance(obj, dict):
+            return obj.get(name, default)
+        return getattr(obj, name, default)
+
+    @staticmethod
+    def _vertices_to_bbox(
+        vertices: list[Any],
+    ) -> tuple[float, float, float, float] | None:
+        """Return (min_x, min_y, max_x, max_y) from Vision vertices."""
+        if not vertices:
+            return None
+        xs: list[float] = []
+        ys: list[float] = []
+        for v in vertices:
+            x = OCRProcessor._get_attr(v, "x", None)
+            y = OCRProcessor._get_attr(v, "y", None)
+            if x is None or y is None:
+                continue
+            xs.append(float(x))
+            ys.append(float(y))
+        if not xs or not ys:
+            return None
+        return (min(xs), min(ys), max(xs), max(ys))
+
+    @staticmethod
+    def _bbox_area_from_annotation(annotation: Any) -> float:
+        bp = OCRProcessor._get_attr(annotation, "bounding_poly", None)
+        vertices = OCRProcessor._get_attr(bp, "vertices", None)
+        if vertices is None and isinstance(bp, dict):
+            vertices = bp.get("vertices")
+        bbox = OCRProcessor._vertices_to_bbox(vertices or [])
+        if not bbox:
+            return 0.0
+        min_x, min_y, max_x, max_y = bbox
+        w = max(0.0, max_x - min_x)
+        h = max(0.0, max_y - min_y)
+        return w * h
+
+    @staticmethod
+    def _parse_inches_token(token: str) -> float | None:
+        """Parse a token like 13.6, 13.6" or 13.6in into a float."""
+        if not token:
+            return None
+        t = token.strip().lower()
+        m = re.match(r"^(\d{1,3}(?:\.\d{1,2})?)\s*(?:\"|in)?$", t)
+        if not m:
+            return None
+        try:
+            return float(m.group(1))
+        except Exception:
+            return None
+
+    @staticmethod
+    def pick_largest_inches_from_text_annotations(
+        text_annotations: list[Any],
+    ) -> tuple[float | None, list[float], str]:
+        """Pick the largest (by bbox area) plausible inches value from Vision text_annotations.
+
+        Returns (value, all_candidates, raw_text).
+        """
+        if not text_annotations:
+            return None, [], ""
+
+        raw_text = (
+            OCRProcessor._get_attr(text_annotations[0], "description", "") or ""
+        ).strip()
+
+        scored: list[tuple[float, float]] = []  # (area, value)
+        all_candidates: list[float] = []
+
+        # Skip index 0 which is full text; per-token annotations start at 1.
+        for ann in text_annotations[1:]:
+            desc = OCRProcessor._get_attr(ann, "description", "")
+            if not desc:
+                continue
+            val = OCRProcessor._parse_inches_token(str(desc))
+            if val is None:
+                continue
+            if not (1.0 < val < 120.0):
+                continue
+            area = OCRProcessor._bbox_area_from_annotation(ann)
+            all_candidates.append(val)
+            scored.append((area, val))
+
+        if not scored:
+            return None, all_candidates, raw_text
+
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return scored[0][1], all_candidates, raw_text
+
     @staticmethod
     def extract_rows_from_image(content: bytes) -> Tuple[List[str], float]:
         """Extract text from image bytes.
@@ -57,6 +163,8 @@ class OCRProcessor:
         if not client:
             raise RuntimeError("Google Vision API client not available")
 
+        vision, _ = _import_vision()
+        vision, _ = _import_vision()
         image = vision.Image(content=content)
 
         # 1) document_text_detection tends to work best for dense/structured text.
@@ -99,6 +207,35 @@ class OCRProcessor:
         raise RuntimeError("OCR produced no text")
 
     @staticmethod
+    @staticmethod
+    def extract_text_annotations_from_image(content: bytes) -> list[Any]:
+        """Return Google Vision text_annotations for an image."""
+        client = get_vision_client()
+        if not client:
+            raise RuntimeError("Google Vision API client not available")
+
+        vision, _ = _import_vision()
+        image = vision.Image(content=content)
+        response = client.text_detection(image=image)
+        if response.error.message:
+            raise RuntimeError(f"OCR Error: {response.error.message}")
+        return list(response.text_annotations or [])
+
+    @staticmethod
+    def extract_largest_inches_value_from_image(
+        content: bytes,
+    ) -> tuple[float | None, float, str, list[float]]:
+        """Best-effort inches OCR for vertical leap.
+
+        Uses Vision's text_annotations bounding boxes and selects the candidate with the
+        largest bbox area.
+        """
+        anns = OCRProcessor.extract_text_annotations_from_image(content)
+        value, candidates, raw_text = OCRProcessor.pick_largest_inches_from_text_annotations(
+            anns
+        )
+        return value, 0.0, raw_text, candidates
+
     def lines_to_csv_string(lines: List[str]) -> str:
         """
         Convert OCR lines to a CSV-like string.
