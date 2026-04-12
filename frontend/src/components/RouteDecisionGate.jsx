@@ -274,7 +274,7 @@ export default function RouteDecisionGate({ children }) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
-        performNavigation('/dashboard', 'no league, will show fallback');
+        performNavigation('/coach', 'no league, will show fallback');
         return;
       }
     }
@@ -286,7 +286,7 @@ export default function RouteDecisionGate({ children }) {
       );
       
       if (needsEvent) {
-        performNavigation('/dashboard', 'no event selected');
+        performNavigation('/coach', 'no event selected');
         return;
       }
     }
