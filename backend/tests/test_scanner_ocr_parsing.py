@@ -13,6 +13,21 @@ def test_extract_numbers_plain_decimal():
     assert nums == [5.17]
 
 
+def test_extract_numbers_timer_with_trailing_punctuation():
+    nums = _extract_numbers("07.13.")
+    assert any(abs(n - 7.13) < 1e-6 for n in nums)
+
+
+def test_extract_numbers_timer_spaced_digits_and_decimal():
+    nums = _extract_numbers("0 7 . 1 3")
+    assert any(abs(n - 7.13) < 1e-6 for n in nums)
+
+
+def test_extract_numbers_timer_no_punctuation_fallback():
+    nums = _extract_numbers("0713")
+    assert any(abs(n - 7.13) < 1e-6 for n in nums)
+
+
 def test_pick_best_value_seconds_prefers_decimals_in_range():
     nums = [517.0, 5.17, 31.0, 0.2]
     val = _pick_best_value(nums, drill_type="40 yard dash")

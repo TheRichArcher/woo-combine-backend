@@ -31,6 +31,14 @@ def _extract_numbers(raw_text: str) -> list[float]:
         .replace("∶", ":")
     )
 
+    # Compact OCR that returns spaced digits/punctuation.
+    # Examples:
+    # - "0 7 . 1 3" -> "07.13"
+    # - "0: 0 5 . 2 3" -> "0:05.23"
+    compact = normalized
+    compact = re.sub(r"(?<=\d)\s+(?=\d)", "", compact)
+    compact = re.sub(r"\s*([\.:])\s*", r"\1", compact)
+
     numbers: list[float] = []
 
     # 1) Timer-style formats that OCR often returns using ':'
@@ -41,7 +49,7 @@ def _extract_numbers(raw_text: str) -> list[float]:
     # Extract these first so we can prefer precise candidates.
     for m in re.findall(
         r"(?<!\d)(\d{1,2})\s*:\s*(\d{2})\s*(?:[\.:]\s*(\d{1,3}))?(?!\d)",
-        normalized,
+        compact,
     ):
         try:
             minutes = int(m[0])
@@ -56,7 +64,7 @@ def _extract_numbers(raw_text: str) -> list[float]:
 
     # Pattern: S:FF where ':' is actually a decimal separator
     # Example: "5:23" => 5.23
-    for m in re.findall(r"(?<!\d)(\d{1,2})\s*:\s*(\d{1,3})(?!\d)", normalized):
+    for m in re.findall(r"(?<!\d)(\d{1,2})\s*:\s*(\d{1,3})(?!\d)", compact):
         try:
             whole = int(m[0])
             frac = m[1]
@@ -67,10 +75,22 @@ def _extract_numbers(raw_text: str) -> list[float]:
             continue
 
     # 2) Plain ints/floats
-    matches = re.findall(r"(?<!\d)(\d{1,4}(?:\.\d{1,3})?)(?!\d)", normalized)
+    # 3) Plain ints/floats (on compact text so spaced digits form a single token)
+    matches = re.findall(r"(?<!\d)(\d{1,4}(?:\.\d{1,3})?)(?!\d)", compact)
     for m in matches:
         try:
             numbers.append(float(m))
+        except Exception:
+            continue
+
+    # 4) SKLZ-style timer fallback when OCR drops punctuation entirely.
+    # Common output: "0713" meaning 7.13 seconds.
+    for token in re.findall(r"(?<!\d)(\d{3,4})(?!\d)", compact):
+        try:
+            val = float(f"{int(token[:-2])}.{token[-2:]}")
+            # Keep this heuristic conservative: only values that could plausibly be a sprint time.
+            if 0.5 < val < 60:
+                numbers.append(val)
         except Exception:
             continue
 
