@@ -244,13 +244,7 @@ function App() {
                 
                 <Route
                   path="/dashboard"
-                  element={
-                    <RequireAuth >
-                      <AuthenticatedLayout>
-                        <Home />
-                      </AuthenticatedLayout>
-                    </RequireAuth>
-                  }
+                  element={<Navigate to="/coach" replace />}
                 />
 
                 <Route
