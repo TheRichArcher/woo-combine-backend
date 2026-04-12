@@ -347,7 +347,32 @@ export function AuthProvider({ children }) {
         // to load events with a stale league ID — also getting 401 — and may
         // never set eventsLoaded=true, causing RouteDecisionGate to spin forever.
         if (error?.response?.status === 401) {
-          authLogger.warn('League fetch 401 — clearing stale selectedLeagueId to unblock EventContext');
+          authLogger.warn('League fetch 401 — retrying with fresh token');
+          // Force a fresh token and retry once before giving up
+          try {
+            const freshUser = auth.currentUser;
+            if (freshUser) {
+              const freshToken = await freshUser.getIdToken(true);
+              authLogger.info('Got fresh token, retrying league fetch');
+              const retryResp = await api.get('/leagues/me', {
+                headers: { Authorization: `Bearer ${freshToken}` },
+                signal: currentAbortController.signal,
+              });
+              const retryLeagues = retryResp?.data?.leagues;
+              if (Array.isArray(retryLeagues) && retryLeagues.length > 0) {
+                setLeagues(retryLeagues);
+                authLogger.info(`[League Fetch] RETRY SUCCESS - ${retryLeagues.length} leagues loaded`);
+                const targetLeagueId = retryLeagues[0].id;
+                setSelectedLeagueIdState(targetLeagueId);
+                localStorage.setItem('selectedLeagueId', targetLeagueId);
+                setRole(retryLeagues[0].role);
+                return retryLeagues;
+              }
+            }
+          } catch (retryErr) {
+            authLogger.warn('League fetch retry also failed', retryErr.message);
+          }
+          // If retry failed too, clear state
           setSelectedLeagueIdState('');
           localStorage.removeItem('selectedLeagueId');
           setLeagues([]);
