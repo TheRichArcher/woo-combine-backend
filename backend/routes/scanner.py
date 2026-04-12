@@ -21,15 +21,59 @@ def _extract_numbers(raw_text: str) -> list[float]:
     if not raw_text:
         return []
 
-    normalized = raw_text.replace(",", ".")
+    # Normalize common OCR variants
+    # - decimal comma -> dot
+    # - Unicode colon variants to ':'
+    normalized = (
+        raw_text.replace(",", ".")
+        .replace("：", ":")
+        .replace("﹕", ":")
+        .replace("∶", ":")
+    )
 
-    matches = re.findall(r"(?<!\d)(\d{1,4}(?:\.\d{1,3})?)(?!\d)", normalized)
     numbers: list[float] = []
+
+    # 1) Timer-style formats that OCR often returns using ':'
+    # Examples:
+    # - "5:23" -> 5.23 seconds (common for sprint timers)
+    # - "0:05.23" or "0:05:23" -> 5.23 seconds
+    # - "1:02.34" -> 62.34 seconds
+    # Extract these first so we can prefer precise candidates.
+    for m in re.findall(
+        r"(?<!\d)(\d{1,2})\s*:\s*(\d{2})\s*(?:[\.:]\s*(\d{1,3}))?(?!\d)",
+        normalized,
+    ):
+        try:
+            minutes = int(m[0])
+            seconds = int(m[1])
+            frac = m[2]
+            frac_val = int(frac) if frac else 0
+            denom = 10 ** (len(frac) if frac else 0)
+            total = minutes * 60 + seconds + (frac_val / denom if denom else 0.0)
+            numbers.append(float(total))
+        except Exception:
+            continue
+
+    # Pattern: S:FF where ':' is actually a decimal separator
+    # Example: "5:23" => 5.23
+    for m in re.findall(r"(?<!\d)(\d{1,2})\s*:\s*(\d{1,3})(?!\d)", normalized):
+        try:
+            whole = int(m[0])
+            frac = m[1]
+            frac_val = int(frac)
+            denom = 10 ** len(frac)
+            numbers.append(float(whole + frac_val / denom))
+        except Exception:
+            continue
+
+    # 2) Plain ints/floats
+    matches = re.findall(r"(?<!\d)(\d{1,4}(?:\.\d{1,3})?)(?!\d)", normalized)
     for m in matches:
         try:
             numbers.append(float(m))
         except Exception:
             continue
+
     return numbers
 
 

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from typing import List, Tuple
+
 from google.cloud import vision
 from google.oauth2 import service_account
 
@@ -49,43 +50,68 @@ class OCRProcessor:
         Extract text from image bytes.
         Returns (list of text lines, confidence score).
         """
-        client = get_vision_client()
-        if not client:
-            raise RuntimeError("Google Vision API client not available")
+        # Primary: Google Vision (best accuracy when configured)
+        try:
+            client = get_vision_client()
+            if not client:
+                raise RuntimeError("Google Vision API client not available")
 
-        image = vision.Image(content=content)
+            image = vision.Image(content=content)
 
-        # Use document text detection for better density/handwriting support
-        response = client.document_text_detection(image=image)
+            # Use document text detection for better density/handwriting support
+            response = client.document_text_detection(image=image)
 
-        if response.error.message:
-            raise RuntimeError(f"OCR Error: {response.error.message}")
+            if response.error.message:
+                raise RuntimeError(f"OCR Error: {response.error.message}")
 
-        # Calculate average confidence
-        total_conf = 0
-        count = 0
+            full_text = response.full_text_annotation.text
 
-        # Simple line extraction based on blocks/paragraphs
-        # This is a basic heuristic. For complex tables, we might need geometry analysis.
-        # For MVP, we'll rely on the API's "full_text_annotation.text" which usually preserves structure
-        # or build lines from the blocks if needed.
+            # Estimate confidence from pages -> blocks -> paragraphs -> words
+            total_conf = 0.0
+            count = 0
+            for page in response.full_text_annotation.pages:
+                for block in page.blocks:
+                    for paragraph in block.paragraphs:
+                        for word in paragraph.words:
+                            total_conf += float(word.confidence or 0.0)
+                            count += 1
 
-        full_text = response.full_text_annotation.text
+            confidence = (total_conf / count) if count > 0 else 0.0
 
-        # Estimate confidence from pages -> blocks -> paragraphs -> words
-        for page in response.full_text_annotation.pages:
-            for block in page.blocks:
-                for paragraph in block.paragraphs:
-                    for word in paragraph.words:
-                        total_conf += word.confidence
-                        count += 1
+            lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+            if lines:
+                return lines, float(confidence)
+        except Exception as e:
+            logger.warning(f"[OCR] Google Vision failed, falling back to Tesseract: {e}")
 
-        confidence = (total_conf / count) if count > 0 else 0.0
+        # Fallback: local Tesseract OCR
+        # This keeps the feature working even if Vision API is not enabled/authorized in prod.
+        try:
+            from io import BytesIO
 
-        # Split by newlines as Vision API usually respects line breaks in full_text
-        lines = [line.strip() for line in full_text.split("\n") if line.strip()]
+            from PIL import Image  # type: ignore
+            import pytesseract  # type: ignore
 
-        return lines, confidence
+            img = Image.open(BytesIO(content))
+            # Basic pre-processing helps with LED timer displays.
+            # - convert to grayscale
+            # - increase contrast via simple point transform (cheap)
+            gray = img.convert("L")
+
+            # Clamp to emphasize bright digits on dark background.
+            bw = gray.point(lambda p: 255 if p > 160 else 0)
+
+            config = "--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789:."
+            text = pytesseract.image_to_string(bw, config=config) or ""
+            lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+            # Tesseract doesn't provide reliable per-line confidence without extra calls.
+            # Use a conservative non-zero value so the UI can show "low confidence" instead of 0%.
+            confidence = 0.35 if lines else 0.0
+            return lines, confidence
+        except Exception as e:
+            logger.error(f"[OCR] Tesseract fallback failed: {e}")
+            raise
 
     @staticmethod
     def lines_to_csv_string(lines: List[str]) -> str:
