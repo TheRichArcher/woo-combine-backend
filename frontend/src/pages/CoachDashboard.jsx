@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Edit, Users } from 'lucide-react';
 
@@ -8,6 +8,7 @@ import { formatEventDate } from '../utils/dateUtils';
 import CreateEventModal from '../components/CreateEventModal';
 import EditEventModal from '../components/EditEventModal';
 import LeagueFallback from '../context/LeagueFallback';
+import api from '../lib/api';
 
 const sportEmojiFromTemplate = (drillTemplate) => {
   const t = (drillTemplate || '').toLowerCase();
@@ -47,28 +48,43 @@ export default function CoachDashboard() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored } }
+
+  // Fetch player counts for all events
+  useEffect(() => {
+    if (!Array.isArray(events) || events.length === 0) return;
+    let cancelled = false;
+
+    async function fetchCounts() {
+      const counts = {};
+      for (const event of events) {
+        if (!event.id) continue;
+        try {
+          const { data } = await api.get(`/players?event_id=${event.id}`);
+          const players = Array.isArray(data) ? data : [];
+          const scored = players.filter(p => {
+            const scores = p.scores || {};
+            return Object.values(scores).some(v => v !== null && v !== '' && Number(v) > 0);
+          }).length;
+          counts[event.id] = { total: players.length, scored };
+        } catch {
+          counts[event.id] = { total: 0, scored: 0 };
+        }
+      }
+      if (!cancelled) setPlayerCounts(counts);
+    }
+
+    fetchCounts();
+    return () => { cancelled = true; };
+  }, [events]);
 
   const normalizedEvents = useMemo(() => {
     const list = Array.isArray(events) ? [...events] : [];
 
     const enriched = list.map((e) => {
-      const playerCount =
-        e.player_count ??
-        e.playerCount ??
-        e.players_count ??
-        e.playersCount ??
-        e.roster_count ??
-        e.rosterCount ??
-        0;
-
-      const scoredCount =
-        e.scored_count ??
-        e.scoredCount ??
-        e.players_scored ??
-        e.playersScored ??
-        e.scored_players ??
-        e.scoredPlayers ??
-        0;
+      const fetched = playerCounts[e.id];
+      const playerCount = fetched ? fetched.total : 0;
+      const scoredCount = fetched ? fetched.scored : 0;
 
       const status = statusFromCounts({ playerCount, scoredCount });
       const next = nextActionFromCounts({ playerCount, scoredCount });
@@ -92,7 +108,7 @@ export default function CoachDashboard() {
     });
 
     return enriched;
-  }, [events]);
+  }, [events, playerCounts]);
 
   const handleOpenEvent = useCallback(
     (event, route) => {
