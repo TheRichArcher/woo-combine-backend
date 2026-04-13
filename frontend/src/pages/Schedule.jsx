@@ -126,16 +126,16 @@ export default function Schedule() {
       {/* Main Content */}
       <div className="max-w-4xl mx-auto px-4 py-6 mt-0">
         {/* Navigation Affordance */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
           <Link to="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900 transition-colors">
             <ArrowLeft className="w-5 h-5 mr-1" />
             <span className="font-medium">Back to Dashboard</span>
           </Link>
-          <div className="flex gap-3">
-            <Link to="/players" className="text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
+          <div className="flex gap-2 sm:gap-3 flex-wrap justify-end">
+            <Link to="/players" className="text-xs sm:text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
               Manage Players
             </Link>
-            <Link to="/live-entry" className="text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
+            <Link to="/live-entry" className="text-xs sm:text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
               Live Entry
             </Link>
           </div>
@@ -203,52 +203,57 @@ export default function Schedule() {
             </button>
           </div>
 
-          {/* Days of Week */}
-          <div className="grid grid-cols-7 border-b border-gray-200">
-            {daysOfWeek.map(day => (
-              <div key={day} className="px-2 py-2 text-center text-sm font-medium text-gray-600">
-                {day}
+          {/* Calendar Grid (h-scroll on small screens) */}
+          <div className="overflow-x-auto">
+            <div className="min-w-[560px] sm:min-w-0">
+              {/* Days of Week */}
+              <div className="grid grid-cols-7 border-b border-gray-200">
+                {daysOfWeek.map(day => (
+                  <div key={day} className="px-2 py-2 text-center text-xs sm:text-sm font-medium text-gray-600">
+                    {day}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7">
-            {days.map((day, index) => (
-              <div 
-                key={index} 
-                className="px-2 py-3 text-center text-sm border-r border-b border-gray-100 min-h-[64px] flex flex-col items-center justify-start relative hover:bg-gray-50 transition-colors"
-                title={day?.events?.length > 0 ? day.events.map(e => e.title).join(', ') : ''}
-              >
-                {day && (
-                  <>
-                    <span className={`${day.hasEvent ? 'font-bold text-brand-primary' : 'text-gray-900'} mb-1`}>
-                      {day.day}
-                    </span>
-                    {day.hasEvent && (
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {day.events.slice(0, 2).map((event, eventIndex) => (
-                          <div 
-                            key={eventIndex}
-                            className={`w-2 h-2 rounded-full ${
-                              event.type === 'PRACTICE' ? 'bg-brand-accent' :
-                              event.type === 'COMBINE' ? 'bg-brand-primary' :
-                              'bg-semantic-success'
-                            }`}
-                            title={event.title}
-                          ></div>
-                        ))}
-                        {day.events.length > 2 && (
-                          <div className="text-xs text-gray-500 font-medium">
-                            +{day.events.length - 2}
+              {/* Calendar Days */}
+              <div className="grid grid-cols-7">
+                {days.map((day, index) => (
+                  <div 
+                    key={index} 
+                    className="px-1 sm:px-2 py-2 sm:py-3 text-center text-xs sm:text-sm border-r border-b border-gray-100 min-h-[56px] sm:min-h-[64px] flex flex-col items-center justify-start relative hover:bg-gray-50 transition-colors"
+                    title={day?.events?.length > 0 ? day.events.map(e => e.title).join(', ') : ''}
+                  >
+                    {day && (
+                      <>
+                        <span className={`${day.hasEvent ? 'font-bold text-brand-primary' : 'text-gray-900'} mb-1`}>
+                          {day.day}
+                        </span>
+                        {day.hasEvent && (
+                          <div className="flex flex-wrap gap-1 justify-center">
+                            {day.events.slice(0, 2).map((event, eventIndex) => (
+                              <div 
+                                key={eventIndex}
+                                className={`w-2 h-2 rounded-full ${
+                                  event.type === 'PRACTICE' ? 'bg-brand-accent' :
+                                  event.type === 'COMBINE' ? 'bg-brand-primary' :
+                                  'bg-semantic-success'
+                                }`}
+                                title={event.title}
+                              ></div>
+                            ))}
+                            {day.events.length > 2 && (
+                              <div className="text-[10px] sm:text-xs text-gray-500 font-medium">
+                                +{day.events.length - 2}
+                              </div>
+                            )}
                           </div>
                         )}
-                      </div>
+                      </>
                     )}
-                  </>
-                )}
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
