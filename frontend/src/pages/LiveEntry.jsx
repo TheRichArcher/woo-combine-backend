@@ -1023,20 +1023,25 @@ export default function LiveEntry() {
   const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-brand-light/20 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-brand-light/20 to-white overflow-x-hidden">
       {/* Header (sticky) */}
-            <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900">
+      <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3 sticky top-0 z-20">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          {/* Left: title + progress */}
+          <div className="flex items-start gap-3 min-w-0">
+            <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 mt-0.5 shrink-0">
               <ArrowLeft className="w-6 h-6" />
             </Link>
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Live Entry Mode</h1>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-lg font-bold text-gray-900 whitespace-nowrap">Live Entry Mode</h1>
+              </div>
+
               {/* LIVE badge + overall progress */}
-              <div className="mt-1 flex items-center gap-2">
+              <div className="mt-1 flex items-center gap-2 flex-wrap">
                 <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">LIVE</span>
-                <span className="text-xs text-gray-500">{overallScoredPlayers} of {players.length} players scored</span>
+                <span className="text-xs text-gray-500 whitespace-nowrap">{overallScoredPlayers} of {players.length} players scored</span>
               </div>
               <div className="mt-2 h-2 bg-gray-100 rounded-full overflow-hidden">
                 <div
@@ -1044,16 +1049,18 @@ export default function LiveEntry() {
                   style={{ width: (players.length ? Math.round((overallScoredPlayers / players.length) * 100) : 0) + '%' }}
                 />
               </div>
-              {/* /LIVE badge */}
-              <p className="text-sm text-gray-600">{selectedEvent.name}</p>
+
+              {/* Event name */}
+              <p className="text-sm text-gray-600 truncate max-w-full">{selectedEvent.name}</p>
             </div>
           </div>
-            <div className="flex items-center gap-3">
-              {/* Drill selector - now visible on all screen sizes */}
-              <div className="block">
-                <select
+
+          {/* Right: controls (scroll on mobile rather than crush) */}
+          <div className="-mx-1 px-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <select
                 value={selectedDrill || ''}
-                onChange={(e) => { 
+                onChange={(e) => {
                   if (e.target.value) {
                     handleDrillSwitch(e.target.value);
                   } else {
@@ -1061,23 +1068,24 @@ export default function LiveEntry() {
                     setDrillConfirmed(false);
                   }
                 }}
-                className="p-2 border rounded-lg text-sm bg-white"
+                className="p-2 border rounded-lg text-sm bg-white max-w-[220px]"
               >
                 <option value="">Select drill…</option>
                 {drills.map((d) => (
                   <option key={d.key} value={d.key}>{d.label}</option>
                 ))}
               </select>
+
+              {selectedDrill && (
+                <button
+                  onClick={toggleCurrentDrillLock}
+                  className={`text-xs px-3 py-2 rounded-lg flex items-center gap-1 border ${isCurrentDrillLocked ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
+                >
+                  {isCurrentDrillLocked ? <Lock className="w-3 h-3" /> : <LockOpen className="w-3 h-3" />}
+                  {isCurrentDrillLocked ? 'Locked' : 'Recording Active'}
+                </button>
+              )}
             </div>
-                  {selectedDrill && (
-                    <button
-                      onClick={toggleCurrentDrillLock}
-                      className={`text-xs px-3 py-1 rounded-lg flex items-center gap-1 border ${isCurrentDrillLocked ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200'}`}
-                    >
-                      {isCurrentDrillLocked ? <Lock className="w-3 h-3" /> : <LockOpen className="w-3 h-3" />}
-                      {isCurrentDrillLocked ? 'Locked' : 'Recording Active'}
-                    </button>
-                  )}
           </div>
         </div>
       </div>
@@ -1213,14 +1221,14 @@ export default function LiveEntry() {
 
             {/* Slim Sticky Context Bar - Compact drill context while scrolling */}
             <div 
-              className="sticky top-16 z-10 shadow-lg -mx-4 px-4 py-2.5 border-b-2"
+              className="sticky top-16 z-10 shadow-lg px-3 py-2.5 border-b-2 rounded-lg overflow-hidden sm:px-4"
               style={{ 
                 backgroundColor: '#19c3e6',
                 borderBottomColor: '#008fa3',
                 color: '#ffffff'
               }}
             >
-              <div className="max-w-lg mx-auto flex items-center justify-between gap-2 text-sm">
+              <div className="flex items-center justify-between gap-2 text-sm">
                 {/* Left: Drill name + recording state */}
                 <div className="flex items-center gap-2 min-w-0 text-white">
                   <Target className="w-4 h-4 flex-shrink-0 text-white" />
@@ -1473,7 +1481,7 @@ export default function LiveEntry() {
                         }, 200);
                       }}
                       placeholder="Enter player # or name..."
-                      className={`w-full text-2xl p-4 border-2 rounded-lg text-center transition-colors
+                      className={`w-full text-2xl p-4 border-2 rounded-lg text-left sm:text-center transition-colors truncate pr-12 sm:pr-4
                         ${playerId 
                           ? 'border-green-500 bg-green-50 focus:border-green-500 focus:ring-green-500' 
                           : searchError 
@@ -1526,7 +1534,7 @@ export default function LiveEntry() {
                             ${idx === focusedMatchIndex ? 'bg-brand-primary/10 text-brand-primary' : 'hover:bg-gray-50'}`}
                         >
                           <span className="font-bold w-12 bg-gray-100 rounded px-2 py-1 text-center text-xs pointer-events-none">#{player.number}</span>
-                          <span className="flex-1 font-medium pointer-events-none">{player.name}</span>
+                          <span className="flex-1 min-w-0 font-medium pointer-events-none truncate">{player.name}</span>
                           <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded pointer-events-none">{player.age_group}</span>
                         </div>
                       ))}
@@ -1553,7 +1561,7 @@ export default function LiveEntry() {
                                          className="text-xs bg-white hover:bg-brand-light/30 text-gray-700 border border-gray-200 hover:border-brand-primary/30 rounded-full px-3 py-1.5 transition-all shadow-sm whitespace-nowrap flex items-center gap-1"
                                      >
                                          <span className="font-bold text-brand-primary">#{entry.playerNumber}</span>
-                                         <span>{entry.playerName}</span>
+                                         <span className="max-w-[12rem] truncate">{entry.playerName}</span>
                                      </button>
                                  );
                              })
@@ -1567,7 +1575,7 @@ export default function LiveEntry() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Score ({currentDrill.unit})
                   </label>
-                  <div className="flex gap-2 items-stretch">
+                  <div className="flex gap-2 items-stretch w-full max-w-full">
                     <input
                       ref={scoreRef}
                       type="text"
@@ -1582,7 +1590,7 @@ export default function LiveEntry() {
                       }}
                       onWheel={(e) => e.preventDefault()}
                       placeholder={`Enter ${currentDrill.unit}`}
-                      className="flex-1 text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
+                      className="flex-1 w-0 min-w-0 max-w-full box-border text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
                       disabled={isCurrentDrillLocked || combineIsLocked}
                       required
                     />

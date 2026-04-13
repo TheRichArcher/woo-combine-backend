@@ -644,7 +644,7 @@ export default function Players() {
 
                           {showCompactSliders && (
                             <div className="bg-white/10 rounded p-2 mb-2">
-                              <div className="grid grid-cols-5 gap-2 text-xs">
+                              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-xs">
                                 {allDrills.map((drill) => (
                                   <div key={drill.key} className="text-center">
                                     <div className="font-medium mb-1 truncate">{drill.label.replace(' ', '')}</div>

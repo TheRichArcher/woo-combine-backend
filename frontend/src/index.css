@@ -15,6 +15,7 @@ body {
   font-family: var(--font-sans);
   color: var(--color-text);
   background-color: var(--color-surface-subtle);
+  overflow-x: hidden;
 }
 
 /* Design tokens: shared radii and shadows */

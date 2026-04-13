@@ -525,7 +525,7 @@ export default function Navigation() {
           <div className="flex items-center gap-2">
             {/* Hamburger Menu - Always Visible */}
             <button 
-              className="hidden sm:flex p-2 rounded-lg hover:bg-gray-50 transition"
+              className="flex sm:hidden p-2 rounded-lg hover:bg-gray-50 transition"
               onClick={() => setMobileOpen(!mobileOpen)} 
               aria-label="Open menu"
               title="Menu"
