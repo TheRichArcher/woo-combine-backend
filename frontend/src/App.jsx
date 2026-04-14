@@ -155,7 +155,9 @@ function App() {
                   path="/draft/:draftId/setup" 
                   element={
                     <RequireAuth >
-                      <DraftSetup />
+                      <AuthenticatedLayout>
+                        <DraftSetup />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   } 
                 />
@@ -163,7 +165,9 @@ function App() {
                   path="/draft/:draftId/live" 
                   element={
                     <RequireAuth >
-                      <DraftRoom />
+                      <AuthenticatedLayout>
+                        <DraftRoom />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   } 
                 />
@@ -177,7 +181,9 @@ function App() {
                   path="/draft/:draftId/rankings"
                   element={
                     <RequireAuth>
-                      <CoachRankings />
+                      <AuthenticatedLayout>
+                        <CoachRankings />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -185,7 +191,9 @@ function App() {
                   path="/draft/:draftId/payment"
                   element={
                     <RequireAuth>
-                      <DraftPayment />
+                      <AuthenticatedLayout>
+                        <DraftPayment />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
@@ -197,7 +205,9 @@ function App() {
                   path="/drafts"
                   element={
                     <RequireAuth>
-                      <MyDrafts />
+                      <AuthenticatedLayout>
+                        <MyDrafts />
+                      </AuthenticatedLayout>
                     </RequireAuth>
                   }
                 />
