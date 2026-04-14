@@ -220,8 +220,8 @@ def upload_players_service(*, request: Request, req: Any, current_user: Dict[str
                 if num is not None and (num < 0 or num > 9999):
                     row_errors.append("number must be between 0 and 9999")
             except Exception as e:
-                logging.error(f"[NUMBER_EXTRACT] Row {idx + 1}: Exception during number extraction: {e}, player keys: {list(player.keys())}")
-                row_errors.append("Invalid number")
+                logging.warning(f"[NUMBER_EXTRACT] Row {idx + 1}: Could not parse number (non-fatal, treating as None): {e}, player keys: {list(player.keys())}")
+                num = None  # Number is optional — don't fail the row
                 
             if row_errors:
                 errors.append({"row": idx + 1, "message": ", ".join(row_errors)})
