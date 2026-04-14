@@ -1,0 +1,24 @@
+def test_get_current_user_profile(app_client, fake_db, coach_headers):
+    # coach_headers seeds /users/coach-1
+    r = app_client.get("/api/users/me", headers=coach_headers)
+    assert r.status_code == 200
+    assert r.json()["id"] == "coach-1"
+
+
+def test_set_user_role_valid_and_invalid(app_client, fake_db):
+    # Seed a user without role
+    uid = "new-1"
+    fake_db.collection("users").document(uid).set({"id": uid, "email": "n@example.com"})
+
+    from backend.tests.conftest import make_jwt
+
+    token = make_jwt(uid=uid, email="n@example.com", email_verified=True)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r_bad = app_client.post("/api/users/role", json={"role": "nope"}, headers=headers)
+    assert r_bad.status_code == 400
+
+    r_ok = app_client.post("/api/users/role", json={"role": "coach"}, headers=headers)
+    assert r_ok.status_code == 200, r_ok.text
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.to_dict().get("role") == "coach"
