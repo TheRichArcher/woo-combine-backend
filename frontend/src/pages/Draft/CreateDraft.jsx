@@ -11,12 +11,13 @@ import { ArrowLeft, Zap } from 'lucide-react';
 
 const CreateDraft = () => {
   const navigate = useNavigate();
-  const { selectedEvent } = useEvent();
+  const { selectedEvent, setSelectedEvent, events } = useEvent();
   const { showSuccess, showError } = useToast();
 
   const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState([]);
   const [customAgeGroup, setCustomAgeGroup] = useState('');
+  const [selectedEventId, setSelectedEventId] = useState(selectedEvent?.id || '');
   const [formData, setFormData] = useState({
     name: '',
     age_group: '',
@@ -25,16 +26,49 @@ const CreateDraft = () => {
     trades_enabled: false
   });
 
-  // Fetch players to derive age groups dynamically
+  const chosenEvent = useMemo(
+    () => events.find((event) => event.id === selectedEventId) || null,
+    [events, selectedEventId]
+  );
+
+  const sortedEvents = useMemo(() => {
+    return [...events].sort((a, b) => {
+      const aTime = a?.date ? new Date(a.date).getTime() : NaN;
+      const bTime = b?.date ? new Date(b.date).getTime() : NaN;
+      const hasAValidDate = Number.isFinite(aTime);
+      const hasBValidDate = Number.isFinite(bTime);
+
+      if (hasAValidDate && hasBValidDate && aTime !== bTime) {
+        return aTime - bTime;
+      }
+
+      if (hasAValidDate !== hasBValidDate) {
+        return hasAValidDate ? -1 : 1;
+      }
+
+      return (a?.name || '').localeCompare((b?.name || ''));
+    });
+  }, [events]);
+
   useEffect(() => {
     if (!selectedEvent?.id) return;
-    api.get(`/players?event_id=${selectedEvent.id}`)
+    setSelectedEventId((currentId) => currentId || selectedEvent.id);
+  }, [selectedEvent?.id]);
+
+  // Fetch players to derive age groups dynamically
+  useEffect(() => {
+    if (!selectedEventId) {
+      setPlayers([]);
+      return;
+    }
+
+    api.get(`/players?event_id=${selectedEventId}`)
       .then(res => {
         const list = Array.isArray(res.data) ? res.data : res.data?.players || [];
         setPlayers(list);
       })
       .catch(() => {}); // silent — age groups just won't auto-populate
-  }, [selectedEvent?.id]);
+  }, [selectedEventId]);
 
   // Derive distinct age groups from player data
   const ageGroups = useMemo(() => {
@@ -60,7 +94,7 @@ const CreateDraft = () => {
     try {
       const res = await api.post('/drafts', {
         ...formData,
-        event_id: selectedEvent?.id || null,
+        event_id: selectedEventId || null,
         name: formData.name.trim(),
         age_group: formData.age_group || null
       });
@@ -79,13 +113,13 @@ const CreateDraft = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Link to={selectedEvent ? "/coach" : "/drafts"} className="text-gray-500 hover:text-gray-700">
+            <Link to={chosenEvent ? "/coach" : "/drafts"} className="text-gray-500 hover:text-gray-700">
               <ArrowLeft size={20} />
             </Link>
             <div>
               <h1 className="text-xl font-bold">Create Draft</h1>
-              {selectedEvent && <p className="text-sm text-gray-500">for {selectedEvent.name}</p>}
-              {!selectedEvent && <p className="text-sm text-gray-500">Standalone draft (no combine)</p>}
+              {chosenEvent && <p className="text-sm text-gray-500">for {chosenEvent.name}</p>}
+              {!chosenEvent && <p className="text-sm text-gray-500">Standalone draft (no combine)</p>}
             </div>
           </div>
         </div>
@@ -93,6 +127,33 @@ const CreateDraft = () => {
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
+          {/* Event */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Event (Optional)
+            </label>
+            <select
+              value={selectedEventId}
+              onChange={(e) => {
+                const eventId = e.target.value;
+                setSelectedEventId(eventId);
+                const event = events.find((candidate) => candidate.id === eventId);
+                setSelectedEvent(event || null);
+              }}
+              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">No event (standalone draft)</option>
+              {sortedEvents.map((event) => (
+                <option key={event.id} value={event.id}>
+                  {event.date ? `${event.name} - ${event.date}` : event.name}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Defaults to your currently selected event, but you can switch to any event in your league.
+            </p>
+          </div>
+
           {/* Draft Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
