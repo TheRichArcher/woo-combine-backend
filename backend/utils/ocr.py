@@ -351,14 +351,68 @@ class OCRProcessor:
     ) -> tuple[float | None, float, str, list[float]]:
         """Best-effort seconds OCR for timed drills.
 
-        Uses Vision's text_annotations bounding boxes and selects the candidate with the
-        largest bbox area.
+        Uses document_text_detection which groups characters into proper words
+        (critical for LED/digital displays where text_detection splits digits).
+        Selects the word-level candidate with the largest bounding box area.
+        Returns real per-word confidence instead of 0.0.
         """
-        anns = OCRProcessor.extract_text_annotations_from_image(content)
-        value, candidates, raw_text = OCRProcessor.pick_largest_seconds_from_text_annotations(
-            anns
-        )
-        return value, 0.0, raw_text, candidates
+        client = get_vision_client()
+        if not client:
+            raise RuntimeError("Google Vision API client not available")
+
+        vision, _ = _import_vision()
+        image = vision.Image(content=content)
+
+        response = client.document_text_detection(image=image)
+        if response.error.message:
+            raise RuntimeError(f"OCR Error: {response.error.message}")
+
+        raw_text = (response.full_text_annotation.text or "").strip()
+
+        scored: list[tuple[float, float, float]] = []  # (area, value, confidence)
+        all_candidates: list[float] = []
+
+        for page in response.full_text_annotation.pages:
+            for block in page.blocks:
+                for paragraph in block.paragraphs:
+                    for word in paragraph.words:
+                        # Reconstruct word text from symbols
+                        word_text = "".join(
+                            s.text for s in word.symbols if s.text
+                        )
+                        if not word_text:
+                            continue
+
+                        val = OCRProcessor._parse_seconds_token(word_text)
+                        if val is None:
+                            continue
+                        if not (0.5 < val < 60.0):
+                            continue
+
+                        # Word-level bounding box area
+                        bbox = OCRProcessor._vertices_to_bbox(
+                            word.bounding_box.vertices if word.bounding_box else []
+                        )
+                        area = 0.0
+                        if bbox:
+                            w = max(0.0, bbox[2] - bbox[0])
+                            h = max(0.0, bbox[3] - bbox[1])
+                            area = w * h
+
+                        word_conf = float(word.confidence or 0.0)
+                        all_candidates.append(val)
+                        scored.append((area, val, word_conf))
+
+        if not scored:
+            # Fallback to text_annotations approach
+            anns = OCRProcessor.extract_text_annotations_from_image(content)
+            value, candidates, _ = OCRProcessor.pick_largest_seconds_from_text_annotations(anns)
+            return value, 0.0, raw_text, candidates
+
+        # Pick largest bbox
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        best_area, best_val, best_conf = scored[0]
+        return best_val, best_conf, raw_text, all_candidates
 
     def lines_to_csv_string(lines: List[str]) -> str:
         """
