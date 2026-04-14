@@ -166,8 +166,10 @@ def _pick_best_value(numbers: list[float], drill_type: str) -> float | None:
         if not candidates:
             return None
         decimals = [n for n in candidates if abs(n - round(n)) > 1e-6]
+        # Prefer values with a fractional part (timer readings) over integers (stray labels).
         pool = decimals or candidates
-        return sorted(pool, key=lambda n: (abs(n - 6.0), n))[0]
+        # Keep original OCR order; do not bias toward any particular time (e.g., 6.0).
+        return pool[0]
 
     if kind == "inches":
         candidates = [n for n in deduped if 1 < n < 200]
@@ -214,6 +216,27 @@ async def ocr_image(
 
     try:
         from ..utils.ocr import OCRProcessor
+
+        kind = _classify_drill(drill_type)
+
+        # Timed drills (sprint/shuttle) also render the true time in a large font.
+        # Use Vision text_annotations bounding boxes to pick the largest seconds value.
+        if kind == "seconds":
+            try:
+                value, confidence2, raw_text2, candidates2 = (
+                    OCRProcessor.extract_largest_seconds_value_from_image(content)
+                )
+                if value is not None:
+                    return {
+                        "value": value,
+                        "confidence": float(confidence2 or 0.0),
+                        "raw_text": raw_text2,
+                        "all_numbers": candidates2,
+                    }
+            except Exception:
+                # If Vision isn't configured (or in tests where OCRProcessor is monkeypatched),
+                # fall back to full-text OCR below.
+                pass
 
         # Vertical jump screens render the true result in a very large font.
         # Use Vision text_annotations bounding boxes to pick the largest inches value.

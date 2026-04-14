@@ -113,6 +113,79 @@ class OCRProcessor:
             return None
 
     @staticmethod
+    def _parse_seconds_token(token: str) -> float | None:
+        """Parse a token into seconds.
+
+        Supports common OCR outputs for sprint timers:
+        - "07.13", "7.13"
+        - "5:23" (colon-as-decimal)
+        - "0713" or "523" (SKLZ compact digits => 7.13 / 5.23)
+        - plain numbers: "6"
+        """
+        if not token:
+            return None
+
+        t = str(token).strip()
+        if not t:
+            return None
+
+        # Normalize common OCR punctuation variants
+        t = (
+            t.replace(",", ".")
+            .replace("：", ":")
+            .replace("﹕", ":")
+            .replace("∶", ":")
+        )
+        t = re.sub(r"\s+", "", t)
+        t = t.lower()
+
+        # Drop leading/trailing non-numeric chars, but keep digits/./:
+        t = re.sub(r"^[^0-9]+", "", t)
+        t = re.sub(r"[^0-9\.:]+$", "", t)
+
+        if not t:
+            return None
+
+        # Decimal seconds
+        m = re.match(r"^(\d{1,2})\.(\d{1,3})$", t)
+        if m:
+            try:
+                return float(f"{int(m.group(1))}.{m.group(2)}")
+            except Exception:
+                return None
+
+        # Colon as decimal separator (common in sprint timer OCR)
+        m = re.match(r"^(\d{1,2}):(\d{1,3})$", t)
+        if m:
+            try:
+                whole = int(m.group(1))
+                frac = m.group(2)
+                frac_val = int(frac)
+                denom = 10 ** len(frac)
+                return float(whole + frac_val / denom)
+            except Exception:
+                return None
+
+        # SKLZ compact digits: 3-4 digits => split last 2 as decimals
+        m = re.match(r"^(\d{3,4})$", t)
+        if m:
+            d = m.group(1)
+            try:
+                return float(f"{int(d[:-2])}.{d[-2:]}")
+            except Exception:
+                return None
+
+        # Plain integer seconds
+        m = re.match(r"^(\d{1,2})$", t)
+        if m:
+            try:
+                return float(int(m.group(1)))
+            except Exception:
+                return None
+
+        return None
+
+    @staticmethod
     def pick_largest_inches_from_text_annotations(
         text_annotations: list[Any],
     ) -> tuple[float | None, list[float], str]:
@@ -151,6 +224,44 @@ class OCRProcessor:
         return scored[0][1], all_candidates, raw_text
 
     @staticmethod
+    def pick_largest_seconds_from_text_annotations(
+        text_annotations: list[Any],
+    ) -> tuple[float | None, list[float], str]:
+        """Pick the largest (by bbox area) plausible seconds value from Vision text_annotations.
+
+        Returns (value, all_candidates, raw_text).
+        """
+        if not text_annotations:
+            return None, [], ""
+
+        raw_text = (
+            OCRProcessor._get_attr(text_annotations[0], "description", "") or ""
+        ).strip()
+
+        scored: list[tuple[float, float]] = []  # (area, value)
+        all_candidates: list[float] = []
+
+        # Skip index 0 which is full text; per-token annotations start at 1.
+        for ann in text_annotations[1:]:
+            desc = OCRProcessor._get_attr(ann, "description", "")
+            if not desc:
+                continue
+            val = OCRProcessor._parse_seconds_token(str(desc))
+            if val is None:
+                continue
+            if not (0.5 < val < 60.0):
+                continue
+            area = OCRProcessor._bbox_area_from_annotation(ann)
+            all_candidates.append(val)
+            scored.append((area, val))
+
+        if not scored:
+            return None, all_candidates, raw_text
+
+        scored.sort(key=lambda x: (x[0], x[1]), reverse=True)
+        return scored[0][1], all_candidates, raw_text
+
+    @staticmethod
     def extract_rows_from_image(content: bytes) -> Tuple[List[str], float]:
         """Extract text from image bytes.
 
@@ -163,7 +274,6 @@ class OCRProcessor:
         if not client:
             raise RuntimeError("Google Vision API client not available")
 
-        vision, _ = _import_vision()
         vision, _ = _import_vision()
         image = vision.Image(content=content)
 
@@ -207,7 +317,6 @@ class OCRProcessor:
         raise RuntimeError("OCR produced no text")
 
     @staticmethod
-    @staticmethod
     def extract_text_annotations_from_image(content: bytes) -> list[Any]:
         """Return Google Vision text_annotations for an image."""
         client = get_vision_client()
@@ -232,6 +341,21 @@ class OCRProcessor:
         """
         anns = OCRProcessor.extract_text_annotations_from_image(content)
         value, candidates, raw_text = OCRProcessor.pick_largest_inches_from_text_annotations(
+            anns
+        )
+        return value, 0.0, raw_text, candidates
+
+    @staticmethod
+    def extract_largest_seconds_value_from_image(
+        content: bytes,
+    ) -> tuple[float | None, float, str, list[float]]:
+        """Best-effort seconds OCR for timed drills.
+
+        Uses Vision's text_annotations bounding boxes and selects the candidate with the
+        largest bbox area.
+        """
+        anns = OCRProcessor.extract_text_annotations_from_image(content)
+        value, candidates, raw_text = OCRProcessor.pick_largest_seconds_from_text_annotations(
             anns
         )
         return value, 0.0, raw_text, candidates
