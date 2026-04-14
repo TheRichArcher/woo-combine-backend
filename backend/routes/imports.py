@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from typing import List, Dict, Any, Optional
+from types import SimpleNamespace
 from pydantic import BaseModel
 import csv
 import io
@@ -35,6 +36,7 @@ class ImportParseResponse(BaseModel):
 def parse_import_file(
     request: Request,
     event_id: str,
+    files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
     text: Optional[str] = Form(None),
     url: Optional[str] = Form(None),
@@ -76,30 +78,69 @@ def parse_import_file(
             logging.warning(f"[IMPORT] Failed to fetch event config: {e}")
             pass
 
+        upload_files: List[UploadFile] = []
+        if files:
+            upload_files.extend(files)
         if file:
-            content = file.file.read()
-            filename = file.filename.lower()
+            upload_files.append(file)
 
-            if filename.endswith(".csv"):
-                result = DataImporter.parse_csv(
-                    content, event_id=event_id, disabled_drills=disabled_drills
-                )
-            elif filename.endswith((".xls", ".xlsx")):
-                result = DataImporter.parse_excel(
-                    content,
-                    sheet_name=sheet_name,
-                    event_id=event_id,
-                    disabled_drills=disabled_drills,
-                )
-            elif filename.endswith((".jpg", ".jpeg", ".png", ".heic")):
-                result = DataImporter.parse_image(
-                    content, event_id=event_id, disabled_drills=disabled_drills
-                )
-            else:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Unsupported file format. Please use CSV, Excel, or Image.",
-                )
+        if upload_files:
+            result = SimpleNamespace(
+                valid_rows=[],
+                errors=[],
+                detected_sport="unknown",
+                confidence="low",
+                sheets=[],
+            )
+
+            for upload in upload_files:
+                content = upload.file.read()
+                filename = (upload.filename or "").lower()
+
+                if filename.endswith(".csv"):
+                    parsed_result = DataImporter.parse_csv(
+                        content, event_id=event_id, disabled_drills=disabled_drills
+                    )
+                elif filename.endswith((".xls", ".xlsx")):
+                    parsed_result = DataImporter.parse_excel(
+                        content,
+                        sheet_name=sheet_name,
+                        event_id=event_id,
+                        disabled_drills=disabled_drills,
+                    )
+                elif filename.endswith((".jpg", ".jpeg", ".png", ".heic")):
+                    parsed_result = DataImporter.parse_image(
+                        content, event_id=event_id, disabled_drills=disabled_drills
+                    )
+                else:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Unsupported file format. Please use CSV, Excel, or Image.",
+                    )
+
+                # Multi-sheet Excel selection is supported for single-file flow only.
+                if parsed_result.sheets and len(upload_files) > 1:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Multi-file import does not support workbook sheet selection yet. Please import that workbook separately.",
+                    )
+
+                for row in parsed_result.valid_rows:
+                    row["source_file"] = upload.filename
+                for row in parsed_result.errors:
+                    row["source_file"] = upload.filename
+
+                result.valid_rows.extend(parsed_result.valid_rows)
+                result.errors.extend(parsed_result.errors)
+                result.sheets.extend(parsed_result.sheets or [])
+
+                if (
+                    result.detected_sport in ("unknown", "", None)
+                    and parsed_result.detected_sport
+                ):
+                    result.detected_sport = parsed_result.detected_sport
+                if result.confidence in ("low", "", None) and parsed_result.confidence:
+                    result.confidence = parsed_result.confidence
 
         elif url:
             from ..utils.sheets import fetch_url_content

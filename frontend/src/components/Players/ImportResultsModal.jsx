@@ -36,7 +36,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
 
   const [method, setMethod] = useState('file'); // file, text
   const [importMode, setImportMode] = useState(initialMode); // create_or_update, scores_only
-  const [file, setFile] = useState(droppedFile); // Initialize with droppedFile if provided
+  const [files, setFiles] = useState(droppedFile ? [droppedFile] : []); // Initialize with droppedFile if provided
   const [text, setText] = useState('');
   const [url, setUrl] = useState('');
   const [parseResult, setParseResult] = useState(null);
@@ -183,11 +183,27 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       return [...baseOptions, ...drillMappingOptions];
   }, [intent, drillMappingOptions]);
 
+  const isValidImportFile = (candidateFile) => {
+    const validExtensions = ['.csv', '.xlsx', '.xls'];
+    const fileName = candidateFile?.name || '';
+    const extensionIndex = fileName.lastIndexOf('.');
+    if (extensionIndex === -1) return false;
+    const fileExtension = fileName.toLowerCase().substring(extensionIndex);
+    return validExtensions.includes(fileExtension);
+  };
+
   const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError(null);
+    const selectedFiles = Array.from(e.target.files || []);
+    if (selectedFiles.length === 0) return;
+
+    const invalidFiles = selectedFiles.filter((f) => !isValidImportFile(f));
+    if (invalidFiles.length > 0) {
+      setError(`Invalid file type: ${invalidFiles[0].name}. Please upload CSV or Excel files (.csv, .xlsx, .xls).`);
+      return;
     }
+
+    setFiles(selectedFiles);
+    setError(null);
   };
 
   // Drag and drop handlers
@@ -231,20 +247,15 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       return;
     }
     
-    const droppedFile = files[0];
-    
-    // Validate file type based on current method
-    // For file method, validate CSV/Excel
-    const validExtensions = ['.csv', '.xlsx', '.xls'];
-    const fileExtension = droppedFile.name.toLowerCase().substring(droppedFile.name.lastIndexOf('.'));
-    
-    if (!validExtensions.includes(fileExtension)) {
-      setError(`Invalid file type. Please upload a CSV or Excel file (${validExtensions.join(', ')})`);
+    const droppedFiles = Array.from(files);
+    const invalidFile = droppedFiles.find((f) => !isValidImportFile(f));
+    if (invalidFile) {
+      setError(`Invalid file type: ${invalidFile.name}. Please upload CSV or Excel files (.csv, .xlsx, .xls).`);
       return;
     }
     
-    // File is valid, set it and clear any previous errors
-    setFile(droppedFile);
+    // Files are valid, set them and clear any previous errors
+    setFiles(droppedFiles);
     setError(null);
   };
 
@@ -324,8 +335,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     
     // Check if required fields are validly mapped
   const handleParse = async (sheetName = null) => {
-    if (method === 'file' && !file) {
-      setError('Please select a file');
+    if (method === 'file' && files.length === 0) {
+      setError('Please select at least one file');
       return;
     }
     if (method === 'text' && !text.trim()) {
@@ -343,7 +354,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     try {
       const formData = new FormData();
       if (method === 'file') {
-        formData.append('file', file);
+        files.forEach((selectedFile) => {
+          formData.append('files', selectedFile);
+        });
       } else if (method === 'sheets') {
         formData.append('url', url);
       } else {
@@ -458,8 +471,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       console.error("Parse error:", err);
       setError(err.response?.data?.detail || "Failed to parse import data");
       setStep('input');
-      // Clear file to prevent re-trigger of auto-parse on error
-      setFile(null);
+      // Clear selected files to prevent re-trigger of auto-parse on error
+      setFiles([]);
     }
   };
   
@@ -468,7 +481,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   const hasAutoParseRef = useRef(false);
   
   useEffect(() => {
-    if (droppedFile && step === 'input' && file && !hasAutoParseRef.current) {
+    if (droppedFile && step === 'input' && files.length > 0 && !hasAutoParseRef.current) {
       hasAutoParseRef.current = true; // Mark as triggered
       // Small delay to allow modal animation to complete
       const timer = setTimeout(() => {
@@ -477,11 +490,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       return () => clearTimeout(timer);
     }
     // Reset flag when file changes to allow new files to be auto-parsed
-    if (!file) {
+    if (files.length === 0) {
       hasAutoParseRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [droppedFile, step, file]); // Track file changes to reset flag
+  }, [droppedFile, step, files]); // Track file changes to reset flag
 
     const [importSummary, setImportSummary] = useState(null);
     
@@ -1009,7 +1022,9 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         players: playersToUpload,
         skipped_count: skippedCount,
         method: method,
-        filename: file ? file.name : (url || 'paste'),
+        filename: method === 'file'
+          ? files.map((f) => f.name).join(', ')
+          : (url || 'paste'),
         mode: importMode
       });
       
@@ -1185,29 +1200,39 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
           onChange={handleFileChange}
           className="hidden"
           accept=".csv,.xlsx,.xls"
+          multiple
         />
         <Upload className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-        {file ? (
+        {files.length > 0 ? (
           <div>
-            <p className="font-medium text-cmf-primary text-lg">{file.name}</p>
-            <p className="text-sm text-gray-500 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
+            <p className="font-medium text-cmf-primary text-lg">
+              {files.length === 1 ? files[0].name : `${files.length} files selected`}
+            </p>
+            <p className="text-sm text-gray-500 mt-1">
+              {(files.reduce((total, currentFile) => total + currentFile.size, 0) / 1024).toFixed(1)} KB total
+            </p>
+            {files.length > 1 && (
+              <p className="text-xs text-gray-500 mt-2 truncate max-w-[320px] mx-auto">
+                {files.map((currentFile) => currentFile.name).join(', ')}
+              </p>
+            )}
             <button 
               onClick={(e) => {
                 e.stopPropagation();
-                setFile(null);
+                setFiles([]);
               }}
               className="mt-3 text-xs text-gray-500 hover:text-gray-700 underline"
             >
-              Choose different file
+              Choose different file(s)
             </button>
           </div>
         ) : (
           <div>
             <p className="font-semibold text-gray-900 text-lg mb-1">
-              {isDragging ? "Drop to upload" : "Click to choose a file or drag & drop"}
+              {isDragging ? "Drop to upload" : "Click to choose files or drag & drop"}
             </p>
             <p className="text-sm text-gray-500">
-              {isDragging ? "Release to upload your file" : "Supports CSV, Excel (.xlsx, .xls)"}
+              {isDragging ? "Release to upload your files" : "Supports CSV, Excel (.xlsx, .xls)"}
             </p>
           </div>
         )}
@@ -1290,7 +1315,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             <button
             onClick={() => handleParse()}
             disabled={
-              (method === 'file' && !file) || 
+              (method === 'file' && files.length === 0) || 
               (method === 'text' && !text.trim()) || 
               (method === 'sheets' && !url.trim()) ||
               !!schemaError
