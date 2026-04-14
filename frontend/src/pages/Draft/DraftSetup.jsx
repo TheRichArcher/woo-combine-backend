@@ -84,6 +84,10 @@ const DraftSetup = () => {
         const response = await api.get(`/drafts/${draftId}/players`);
         const playerList = Array.isArray(response.data) ? response.data : response.data?.players || [];
         setAvailablePlayers(playerList);
+        // For standalone drafts, also keep a dedicated list for the Players panel
+        if (!draft?.event_id) {
+          setDraftPlayers(playerList.filter(p => p.source === 'manual'));
+        }
       } catch (err) {
         showError(err.response?.data?.detail || 'Failed to load players');
       } finally {
@@ -92,7 +96,7 @@ const DraftSetup = () => {
     };
 
     loadPlayers();
-  }, [draftId, draft?.status, showError]);
+  }, [draftId, draft?.status, draft?.event_id, showError]);
 
   const handleAddTeam = async () => {
     if (!newTeamName.trim()) {
@@ -150,24 +154,6 @@ const DraftSetup = () => {
       showError('Failed to randomize order');
     }
   };
-
-
-
-  // Fetch draft-specific players (for standalone drafts)
-  useEffect(() => {
-    const fetchDraftPlayers = async () => {
-      if (draftEventIds.length === 0) {
-        try {
-          const res = await api.get(`/drafts/${draftId}/players`);
-          const players = Array.isArray(res.data) ? res.data : res.data?.players || [];
-          setDraftPlayers(players.filter(p => p.source === 'manual'));
-        } catch (err) {
-          console.error('Failed to fetch draft players:', err);
-        }
-      }
-    };
-    fetchDraftPlayers();
-  }, [draftId, draftEventIds.length]);
 
   const handleRemovePlayer = async (playerId) => {
     if (!confirm('Remove this player?')) return;
@@ -253,7 +239,7 @@ const DraftSetup = () => {
             This draft is {draft.status}. You can't modify settings anymore.
           </p>
           <Link
-            to={`/draft/${draftId}/live`}
+            to={`/draft/${draftId}/room`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Go to Draft Room

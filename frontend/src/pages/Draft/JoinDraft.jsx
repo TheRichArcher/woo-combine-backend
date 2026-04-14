@@ -56,7 +56,7 @@ const JoinDraft = () => {
     try {
       const res = await api.post(`/drafts/join/${inviteToken}`);
       showSuccess(`Joined ${res.data.team_name}!`);
-      navigate(`/draft/${res.data.draft_id}/live`);
+      navigate(`/draft/${res.data.draft_id}/room`);
     } catch (err) {
       showError(err.response?.data?.detail || 'Failed to join');
     } finally {
@@ -148,7 +148,7 @@ const JoinDraft = () => {
             </button>
           ) : (
             <button
-              onClick={() => navigate(`/draft/${inviteInfo.draft_id}/live`)}
+              onClick={() => navigate(`/draft/${inviteInfo.draft_id}/room`)}
               className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
             >
               Go to Draft Room

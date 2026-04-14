@@ -14,9 +14,87 @@ from ..utils.authorization import ensure_league_access
 from google.cloud.firestore_v1 import FieldFilter
 import uuid
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/drafts", tags=["drafts"])
+
+
+def _normalize_age_group(age_group: Optional[str]) -> Optional[str]:
+    """Normalize common age group variants to canonical format (e.g., "U8").
+
+    Handles: "U-8", "u8", "Under 8", "8U", "8u".
+    Returns None if input is blank/None.
+    """
+    if not age_group:
+        return None
+    s = str(age_group).strip()
+    if not s:
+        return None
+
+    s_up = s.upper().strip()
+    # "Under 8" / "UNDER-8" / etc.
+    m = re.search(r"\bUNDER\s*[- ]?\s*(\d{1,2})\b", s_up)
+    if m:
+        return f"U{int(m.group(1))}"
+
+    # "U-8" / "U 8" / "U8"
+    m = re.search(r"\bU\s*[- ]?\s*(\d{1,2})\b", s_up)
+    if m:
+        return f"U{int(m.group(1))}"
+
+    # "8U"
+    m = re.search(r"\b(\d{1,2})\s*U\b", s_up)
+    if m:
+        return f"U{int(m.group(1))}"
+
+    # Fallback: if it's just a number, treat as "U{n}"
+    m = re.fullmatch(r"\d{1,2}", s_up)
+    if m:
+        return f"U{int(s_up)}"
+
+    return s.strip()
+
+
+def _get_draft_event_ids(draft_data: dict) -> List[str]:
+    """Return all event ids associated with a draft (supports multi-combine drafts)."""
+    event_ids = draft_data.get("event_ids")
+    if isinstance(event_ids, list) and event_ids:
+        return [e for e in event_ids if e]
+    event_id = draft_data.get("event_id")
+    return [event_id] if event_id else []
+
+
+def _get_player_for_draft(db, draft_data: dict, player_id: str) -> Optional[dict]:
+    """Fetch a player doc for a draft.
+
+    - Combine players live in events/{event_id}/players/{player_id}
+    - Standalone draft players live in draft_players/{player_id}
+    """
+    # Try combine players (across all events)
+    for eid in _get_draft_event_ids(draft_data):
+        doc = (
+            db.collection("events")
+            .document(eid)
+            .collection("players")
+            .document(player_id)
+            .get()
+        )
+        if doc.exists:
+            pdata = doc.to_dict()
+            pdata.setdefault("id", doc.id)
+            pdata["source"] = "combine"
+            return pdata
+
+    # Fallback to standalone draft players
+    doc = db.collection("draft_players").document(player_id).get()
+    if doc.exists:
+        pdata = doc.to_dict()
+        pdata.setdefault("id", doc.id)
+        pdata["source"] = "manual"
+        return pdata
+
+    return None
 
 
 def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool = False):
@@ -73,7 +151,8 @@ def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool =
 
 class DraftCreate(BaseModel):
     name: str
-    event_ids: List[str] = Field(default_factory=list)  # Optional for standalone drafts
+    event_id: Optional[str] = None  # Optional for standalone drafts
+    event_ids: Optional[List[str]] = None  # Optional for multi-combine drafts
     age_group: Optional[str] = None  # U8, U10, U12, etc. None = all
     draft_type: str = "snake"  # snake | linear
     num_rounds: Optional[int] = None  # Auto-calculate if not provided
@@ -145,15 +224,6 @@ def generate_id(prefix: str = "") -> str:
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _get_draft_event_ids(draft_data: dict) -> List[str]:
-    """Normalize draft event links to a deduped list."""
-    raw_event_ids = draft_data.get("event_ids") or []
-    if raw_event_ids:
-        return list(dict.fromkeys([event_id for event_id in raw_event_ids if event_id]))
-    legacy_event_id = draft_data.get("event_id")
-    return [legacy_event_id] if legacy_event_id else []
 
 
 def calculate_snake_order(team_order: List[str], round_num: int) -> List[str]:
@@ -263,9 +333,15 @@ async def create_draft(
 
     # Verify events exist (if provided) and user has access
     league_id = None
-    normalized_event_ids = list(dict.fromkeys([event_id for event_id in draft_in.event_ids if event_id]))
-    if normalized_event_ids:
-        for event_id in normalized_event_ids:
+    # Multi-combine drafts: event_ids[] (preferred), plus back-compat event_id
+    event_ids = [e for e in (draft_in.event_ids or []) if e]
+    if draft_in.event_id and draft_in.event_id not in event_ids:
+        event_ids = [draft_in.event_id] + event_ids
+    # de-dupe while preserving order
+    event_ids = list(dict.fromkeys(event_ids))
+
+    if event_ids:
+        for event_id in event_ids:
             event_ref = db.collection("events").document(event_id)
             event_doc = event_ref.get()
             if not event_doc.exists:
@@ -291,12 +367,15 @@ async def create_draft(
     # Standalone draft - no event required
 
     draft_id = generate_id("draft_")
+    normalized_age_group = _normalize_age_group(draft_in.age_group)
     draft_data = {
         "id": draft_id,
-        "event_ids": normalized_event_ids,
+        # Keep event_id for back-compat, but store full list for multi-combine drafts
+        "event_id": event_ids[0] if event_ids else None,
+        "event_ids": event_ids,
         "league_id": league_id,
         "name": draft_in.name,
-        "age_group": draft_in.age_group,
+        "age_group": normalized_age_group,
         "status": "setup",
         "draft_type": draft_in.draft_type,
         "num_teams": 0,
@@ -319,7 +398,7 @@ async def create_draft(
     }
 
     db.collection("drafts").document(draft_id).set(draft_data)
-    logger.info(f"Draft created: {draft_id} with events {normalized_event_ids}")
+    logger.info(f"Draft created: {draft_id} for events {event_ids}")
 
     return draft_data
 
@@ -440,48 +519,52 @@ async def list_drafts(
     """List drafts, optionally filtered by event, league, or owned by user."""
     db = get_firestore_client()
 
-    query = db.collection("drafts")
+    drafts: List[dict] = []
+    seen_ids: set = set()
 
+    def _add_doc(doc):
+        if not doc or not getattr(doc, "exists", False):
+            return
+        data = doc.to_dict()
+        did = data.get("id") or doc.id
+        if did and did in seen_ids:
+            return
+        if did:
+            seen_ids.add(did)
+        drafts.append(data)
+
+    # Primary list query
     if event_id:
-        legacy_query = query.where(filter=FieldFilter("event_id", "==", event_id))
-        drafts = [doc.to_dict() for doc in legacy_query.stream()]
-
-        array_query = query.where(filter=FieldFilter("event_ids", "array_contains", event_id))
-        for doc in array_query.stream():
-            draft = doc.to_dict()
-            if draft.get("id") not in {d.get("id") for d in drafts}:
-                drafts.append(draft)
-
-        return drafts
+        # Support both legacy event_id field and newer event_ids[]
+        q1 = db.collection("drafts").where(filter=FieldFilter("event_id", "==", event_id))
+        q2 = db.collection("drafts").where(filter=FieldFilter("event_ids", "array_contains", event_id))
+        for d in q1.stream():
+            _add_doc(d)
+        for d in q2.stream():
+            _add_doc(d)
     elif league_id:
-        query = query.where(filter=FieldFilter("league_id", "==", league_id))
+        q = db.collection("drafts").where(filter=FieldFilter("league_id", "==", league_id))
+        for d in q.stream():
+            _add_doc(d)
     elif mine:
-        # Return only drafts created by this user
-        query = query.where(filter=FieldFilter("created_by", "==", user["uid"]))
-
-    drafts = []
-    for doc in query.stream():
-        draft = doc.to_dict()
-        # Also include drafts where user is a coach
-        drafts.append(draft)
-
-    # If listing "my" drafts (or unfiltered list), also include drafts where user is a team coach
-    if not event_id and not league_id:
-        # Get teams where user is coach
+        # Drafts created by this user
+        q = db.collection("drafts").where(filter=FieldFilter("created_by", "==", user["uid"]))
+        for d in q.stream():
+            _add_doc(d)
+        # Also drafts where user is a team coach
         coach_teams = (
             db.collection("draft_teams")
             .where(filter=FieldFilter("coach_user_id", "==", user["uid"]))
             .stream()
         )
         coach_draft_ids = {t.to_dict().get("draft_id") for t in coach_teams}
-
-        # Add those drafts if not already in list
-        existing_ids = {d.get("id") for d in drafts}
-        for draft_id in coach_draft_ids:
-            if draft_id and draft_id not in existing_ids:
-                draft_doc = db.collection("drafts").document(draft_id).get()
-                if draft_doc.exists:
-                    drafts.append(draft_doc.to_dict())
+        for did in coach_draft_ids:
+            if did and did not in seen_ids:
+                _add_doc(db.collection("drafts").document(did).get())
+    else:
+        q = db.collection("drafts")
+        for d in q.stream():
+            _add_doc(d)
 
     return drafts
 
@@ -954,7 +1037,7 @@ async def make_pick(
 async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all picks for a draft."""
     db = get_firestore_client()
-    _verify_draft_access(db, draft_id, user)
+    _, draft_data = _verify_draft_access(db, draft_id, user)
 
     picks_query = (
         db.collection("draft_picks")
@@ -965,20 +1048,14 @@ async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
 
     picks = [p.to_dict() for p in picks_query]
 
-    # Enrich with player data for UI convenience (supports both combine players and standalone draft players)
+    # Enrich with player data for UI convenience (supports multi-combine + standalone players)
     player_ids = [p.get("player_id") for p in picks if p.get("player_id")]
     players_by_id: Dict[str, dict] = {}
 
     for pid in set(player_ids):
-        # Try combine players first
-        player_doc = db.collection("players").document(pid).get()
-        if player_doc.exists:
-            players_by_id[pid] = player_doc.to_dict()
-            continue
-        # Fallback to standalone draft players
-        draft_player_doc = db.collection("draft_players").document(pid).get()
-        if draft_player_doc.exists:
-            players_by_id[pid] = draft_player_doc.to_dict()
+        pdata = _get_player_for_draft(db, draft_data, pid)
+        if pdata:
+            players_by_id[pid] = pdata
 
     for pick in picks:
         pid = pick.get("player_id")
@@ -1040,30 +1117,33 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
 
     # Get available players
     event_ids = _get_draft_event_ids(draft_data)
-    age_group = draft_data.get("age_group")
+    age_group = _normalize_age_group(draft_data.get("age_group"))
 
     if event_ids:
+        # Combine players: events/{event_id}/players/{player_id}
         all_players = {}
         for event_id in event_ids:
-            players_query = db.collection("players").where(
-                filter=FieldFilter("event_id", "==", event_id)
+            players_query = (
+                db.collection("events").document(event_id).collection("players")
             )
-            if age_group:
-                players_query = players_query.where(
-                    filter=FieldFilter("age_group", "==", age_group)
-                )
-            for player_doc in players_query.stream():
-                all_players[player_doc.id] = player_doc.to_dict()
+            for p in players_query.stream():
+                pdata = p.to_dict()
+                pdata.setdefault("id", p.id)
+                if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+                    continue
+                all_players[p.id] = pdata
     else:
         # Standalone draft: players live in draft_players
+        all_players = {}
         players_query = db.collection("draft_players").where(
             filter=FieldFilter("draft_id", "==", draft_id)
         )
-        if age_group:
-            players_query = players_query.where(
-                filter=FieldFilter("age_group", "==", age_group)
-            )
-        all_players = {p.id: p.to_dict() for p in players_query.stream()}
+        for p in players_query.stream():
+            pdata = p.to_dict()
+            pdata.setdefault("id", p.id)
+            if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+                continue
+            all_players[p.id] = pdata
 
     # Get already drafted players
     picks_query = (
@@ -1293,35 +1373,32 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
     event_ids = _get_draft_event_ids(draft_data)
-    age_group = draft_data.get("age_group")
+    age_group = _normalize_age_group(draft_data.get("age_group"))
 
     all_players = {}
 
-    # Get players from event (if linked to combine)
-    if event_ids:
-        for event_id in event_ids:
-            players_query = db.collection("players").where(
-                filter=FieldFilter("event_id", "==", event_id)
-            )
-            if age_group:
-                players_query = players_query.where(
-                    filter=FieldFilter("age_group", "==", age_group)
-                )
-            for p in players_query.stream():
-                pdata = p.to_dict()
-                pdata["source"] = "combine"
-                all_players[p.id] = pdata
+    # Get players from event(s) (if linked to combine)
+    for event_id in event_ids:
+        players_query = (
+            db.collection("events").document(event_id).collection("players")
+        )
+        for p in players_query.stream():
+            pdata = p.to_dict()
+            pdata.setdefault("id", p.id)
+            if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+                continue
+            pdata["source"] = "combine"
+            all_players[p.id] = pdata
 
     # Get players added directly to this draft (standalone mode)
     draft_players_query = db.collection("draft_players").where(
         filter=FieldFilter("draft_id", "==", draft_id)
     )
-    if age_group:
-        draft_players_query = draft_players_query.where(
-            filter=FieldFilter("age_group", "==", age_group)
-        )
     for p in draft_players_query.stream():
         pdata = p.to_dict()
+        pdata.setdefault("id", p.id)
+        if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+            continue
         pdata["source"] = "manual"
         all_players[p.id] = pdata
 
@@ -1347,7 +1424,7 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
 async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all drafted players with their team assignments."""
     db = get_firestore_client()
-    _verify_draft_access(db, draft_id, user)
+    _, draft_data = _verify_draft_access(db, draft_id, user)
 
     picks_query = (
         db.collection("draft_picks")
@@ -1358,16 +1435,16 @@ async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_us
 
     picks = [p.to_dict() for p in picks_query]
 
-    # Enrich with player data
-    player_ids = [p.get("player_id") for p in picks]
-    players = {}
-    for pid in player_ids:
-        player_doc = db.collection("players").document(pid).get()
-        if player_doc.exists:
-            players[pid] = player_doc.to_dict()
+    # Enrich with player data (multi-combine + standalone)
+    player_ids = [p.get("player_id") for p in picks if p.get("player_id")]
+    players_by_id: Dict[str, dict] = {}
+    for pid in set(player_ids):
+        pdata = _get_player_for_draft(db, draft_data, pid)
+        if pdata:
+            players_by_id[pid] = pdata
 
     for pick in picks:
-        pick["player"] = players.get(pick.get("player_id"), {})
+        pick["player"] = players_by_id.get(pick.get("player_id"), {})
 
     return picks
 
@@ -1564,12 +1641,10 @@ async def create_trade(
 
 
 @router.get("/{draft_id}/trades")
-async def list_trades(draft_id: str):
-    """List all trades for a draft (public)."""
+async def list_trades(draft_id: str, user: dict = Depends(get_current_user)):
+    """List all trades for a draft."""
     db = get_firestore_client()
-    draft_doc = db.collection("drafts").document(draft_id).get()
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
+    _verify_draft_access(db, draft_id, user)
 
     trades_query = (
         db.collection("drafts")
@@ -1661,11 +1736,14 @@ async def _create_team_rosters(db, draft_id: str, draft_data: dict):
     for team_id, player_ids in team_players.items():
         team_data = teams.get(team_id, {})
 
+        event_ids = _get_draft_event_ids(draft_data)
+
         roster_id = generate_id("roster_")
         roster_data = {
             "id": roster_id,
             "draft_id": draft_id,
-            "event_ids": _get_draft_event_ids(draft_data),
+            "event_id": event_ids[0] if event_ids else None,
+            "event_ids": event_ids,
             "league_id": draft_data.get("league_id"),
             "team_name": team_data.get("team_name"),
             "coach_user_id": team_data.get("coach_user_id"),
@@ -1719,7 +1797,7 @@ async def add_draft_player(
         "name": player_in.name,
         "number": player_in.number,
         "position": player_in.position,
-        "age_group": player_in.age_group,
+        "age_group": _normalize_age_group(player_in.age_group),
         "notes": player_in.notes,
         "source": "manual",  # vs "combine" for event-linked players
         "created_at": now_iso(),
@@ -1753,7 +1831,7 @@ async def add_draft_players_bulk(
             "name": p.name,
             "number": p.number,
             "position": p.position,
-            "age_group": p.age_group,
+            "age_group": _normalize_age_group(p.age_group),
             "notes": p.notes,
             "source": "manual",
             "created_at": now_iso(),
