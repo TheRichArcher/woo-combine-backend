@@ -11,13 +11,15 @@ import { ArrowLeft, Zap } from 'lucide-react';
 
 const CreateDraft = () => {
   const navigate = useNavigate();
-  const { selectedEvent, setSelectedEvent, events } = useEvent();
+  const { selectedEvent, events } = useEvent();
   const { showSuccess, showError } = useToast();
 
   const [loading, setLoading] = useState(false);
   const [players, setPlayers] = useState([]);
+  const [playersLoading, setPlayersLoading] = useState(false);
+  const [playersByEvent, setPlayersByEvent] = useState({});
   const [customAgeGroup, setCustomAgeGroup] = useState('');
-  const [selectedEventId, setSelectedEventId] = useState(selectedEvent?.id || '');
+  const [selectedEventIds, setSelectedEventIds] = useState(selectedEvent?.id ? [selectedEvent.id] : []);
   const [formData, setFormData] = useState({
     name: '',
     age_group: '',
@@ -25,11 +27,6 @@ const CreateDraft = () => {
     pick_timer_seconds: 60,
     trades_enabled: false
   });
-
-  const chosenEvent = useMemo(
-    () => events.find((event) => event.id === selectedEventId) || null,
-    [events, selectedEventId]
-  );
 
   const sortedEvents = useMemo(() => {
     return [...events].sort((a, b) => {
@@ -50,25 +47,66 @@ const CreateDraft = () => {
     });
   }, [events]);
 
+  const selectedEvents = useMemo(
+    () => sortedEvents.filter((event) => selectedEventIds.includes(event.id)),
+    [sortedEvents, selectedEventIds]
+  );
+
   useEffect(() => {
     if (!selectedEvent?.id) return;
-    setSelectedEventId((currentId) => currentId || selectedEvent.id);
+    setSelectedEventIds((currentIds) => {
+      if (currentIds.length > 0) return currentIds;
+      return [selectedEvent.id];
+    });
   }, [selectedEvent?.id]);
 
   // Fetch players to derive age groups dynamically
   useEffect(() => {
-    if (!selectedEventId) {
+    if (!selectedEventIds.length) {
       setPlayers([]);
+      setPlayersByEvent({});
+      setPlayersLoading(false);
       return;
     }
 
-    api.get(`/players?event_id=${selectedEventId}`)
-      .then(res => {
-        const list = Array.isArray(res.data) ? res.data : res.data?.players || [];
-        setPlayers(list);
+    setPlayersLoading(true);
+    Promise.all(
+      selectedEventIds.map((eventId) => api.get(`/players?event_id=${eventId}`))
+    )
+      .then((responses) => {
+        const merged = [];
+        const seen = new Set();
+        const countsByEvent = {};
+        responses.forEach((res) => {
+          const list = Array.isArray(res.data) ? res.data : res.data?.players || [];
+          const eventId = list[0]?.event_id;
+          if (eventId) countsByEvent[eventId] = list.length;
+          list.forEach((player) => {
+            if (!player?.id || seen.has(player.id)) return;
+            seen.add(player.id);
+            merged.push(player);
+          });
+        });
+        // Fall back to request-order mapping if response player shape omits event_id.
+        if (Object.keys(countsByEvent).length !== selectedEventIds.length) {
+          responses.forEach((res, index) => {
+            const eventId = selectedEventIds[index];
+            if (countsByEvent[eventId] != null) return;
+            const list = Array.isArray(res.data) ? res.data : res.data?.players || [];
+            countsByEvent[eventId] = list.length;
+          });
+        }
+        setPlayers(merged);
+        setPlayersByEvent(countsByEvent);
       })
-      .catch(() => {}); // silent — age groups just won't auto-populate
-  }, [selectedEventId]);
+      .catch(() => {
+        setPlayers([]);
+        setPlayersByEvent({});
+      })
+      .finally(() => {
+        setPlayersLoading(false);
+      }); // silent — age groups just won't auto-populate
+  }, [selectedEventIds]);
 
   // Derive distinct age groups from player data
   const ageGroups = useMemo(() => {
@@ -94,7 +132,7 @@ const CreateDraft = () => {
     try {
       const res = await api.post('/drafts', {
         ...formData,
-        event_id: selectedEventId || null,
+        event_ids: selectedEventIds,
         name: formData.name.trim(),
         age_group: formData.age_group || null
       });
@@ -113,13 +151,17 @@ const CreateDraft = () => {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-4">
-            <Link to={chosenEvent ? "/coach" : "/drafts"} className="text-gray-500 hover:text-gray-700">
+            <Link to={selectedEvents.length ? "/coach" : "/drafts"} className="text-gray-500 hover:text-gray-700">
               <ArrowLeft size={20} />
             </Link>
             <div>
               <h1 className="text-xl font-bold">Create Draft</h1>
-              {chosenEvent && <p className="text-sm text-gray-500">for {chosenEvent.name}</p>}
-              {!chosenEvent && <p className="text-sm text-gray-500">Standalone draft (no combine)</p>}
+              {selectedEvents.length > 0 && (
+                <p className="text-sm text-gray-500">
+                  linked to {selectedEvents.length} combine{selectedEvents.length === 1 ? '' : 's'}
+                </p>
+              )}
+              {selectedEvents.length === 0 && <p className="text-sm text-gray-500">Standalone draft (no combine)</p>}
             </div>
           </div>
         </div>
@@ -127,31 +169,59 @@ const CreateDraft = () => {
 
       <div className="max-w-2xl mx-auto px-4 py-8">
         <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm p-6 space-y-6">
-          {/* Event */}
+          {/* Link to Combine */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Event (Optional)
+              Link to Combine
             </label>
-            <select
-              value={selectedEventId}
-              onChange={(e) => {
-                const eventId = e.target.value;
-                setSelectedEventId(eventId);
-                const event = events.find((candidate) => candidate.id === eventId);
-                setSelectedEvent(event || null);
-              }}
-              className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">No event (standalone draft)</option>
-              {sortedEvents.map((event) => (
-                <option key={event.id} value={event.id}>
-                  {event.date ? `${event.name} - ${event.date}` : event.name}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2 border rounded-lg p-3 max-h-52 overflow-y-auto">
+              {sortedEvents.length === 0 && (
+                <p className="text-sm text-gray-500">No combines found.</p>
+              )}
+              {sortedEvents.map((event) => {
+                const checked = selectedEventIds.includes(event.id);
+                return (
+                  <label key={event.id} className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const isChecked = e.target.checked;
+                        setSelectedEventIds((currentIds) => {
+                          if (isChecked) {
+                            return currentIds.includes(event.id) ? currentIds : [...currentIds, event.id];
+                          }
+                          return currentIds.filter((id) => id !== event.id);
+                        });
+                      }}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-700">
+                      {event.date ? `${event.name} - ${event.date}` : event.name}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
             <p className="text-xs text-gray-500 mt-1">
-              Defaults to your currently selected event, but you can switch to any event in your league.
+              Players from the selected combine will be available in your draft pool. Leave blank for a standalone draft where you add players manually.
             </p>
+            {selectedEventIds.length > 0 && (
+              <p className="text-sm text-emerald-700 mt-2">
+                {playersLoading
+                  ? 'Loading combine players...'
+                  : `✅ ${players.length} players from ${selectedEvents.length} combine${selectedEvents.length === 1 ? '' : 's'} will be in the draft pool`}
+              </p>
+            )}
+            {!playersLoading && selectedEvents.length > 0 && (
+              <ul className="mt-2 space-y-1 text-xs text-emerald-800">
+                {selectedEvents.map((event) => (
+                  <li key={event.id}>
+                    {event.name}: {playersByEvent[event.id] ?? 0} player{(playersByEvent[event.id] ?? 0) === 1 ? '' : 's'}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {/* Draft Name */}

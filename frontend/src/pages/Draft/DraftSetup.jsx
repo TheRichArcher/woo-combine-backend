@@ -2,10 +2,9 @@
  * DraftSetup - Configure and start a new draft
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useEvent } from '../../context/EventContext';
 import { useToast } from '../../context/ToastContext';
 import { useDraft, useDraftTeams, useDraftActions } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
@@ -31,7 +30,6 @@ const DraftSetup = () => {
   const { draftId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { selectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
 
   const { draft, loading: draftLoading } = useDraft(draftId);
@@ -52,6 +50,11 @@ const DraftSetup = () => {
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [draftPlayers, setDraftPlayers] = useState([]);
+  const draftEventIds = useMemo(() => (
+    Array.isArray(draft?.event_ids)
+      ? draft.event_ids.filter(Boolean)
+      : (draft?.event_id ? [draft.event_id] : [])
+  ), [draft?.event_ids, draft?.event_id]);
 
   // Settings form
   const [settings, setSettings] = useState({
@@ -153,7 +156,7 @@ const DraftSetup = () => {
   // Fetch draft-specific players (for standalone drafts)
   useEffect(() => {
     const fetchDraftPlayers = async () => {
-      if (!draft?.event_id) {
+      if (draftEventIds.length === 0) {
         try {
           const res = await api.get(`/drafts/${draftId}/players`);
           const players = Array.isArray(res.data) ? res.data : res.data?.players || [];
@@ -164,7 +167,7 @@ const DraftSetup = () => {
       }
     };
     fetchDraftPlayers();
-  }, [draftId, draft?.event_id]);
+  }, [draftId, draftEventIds.length]);
 
   const handleRemovePlayer = async (playerId) => {
     if (!confirm('Remove this player?')) return;
@@ -398,7 +401,7 @@ const DraftSetup = () => {
           </div>
 
           {/* Players Section - only for standalone drafts (no event) */}
-          {!draft?.event_id && (
+          {draftEventIds.length === 0 && (
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="p-4 border-b flex items-center justify-between">
                 <h2 className="font-semibold flex items-center gap-2">
@@ -697,7 +700,7 @@ const DraftSetup = () => {
             <li>✓ Click "Start Draft" when ready</li>
           </ul>
           <p className="text-xs text-blue-600 mt-3">
-            Players from "{selectedEvent?.name || 'your event'}" 
+            Players from {draftEventIds.length > 0 ? `${draftEventIds.length} linked combine${draftEventIds.length === 1 ? '' : 's'}` : 'manual draft entries'} 
             {draft.age_group ? ` (${draft.age_group})` : ''} will be available in the draft pool.
           </p>
         </div>

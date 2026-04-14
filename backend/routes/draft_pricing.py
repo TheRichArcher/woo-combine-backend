@@ -280,13 +280,19 @@ def get_draft_player_count(db, draft_data: dict) -> int:
     """Get total player count for a draft (from event or direct players)."""
     count = 0
 
-    # Count from event (combine)
-    event_id = draft_data.get("event_id")
-    if event_id:
-        players = list(
-            db.collection("players").where("event_id", "==", event_id).stream()
-        )
-        count += len(players)
+    # Count from linked combines
+    event_ids = draft_data.get("event_ids") or []
+    if not event_ids and draft_data.get("event_id"):
+        event_ids = [draft_data.get("event_id")]
+    event_ids = [event_id for event_id in event_ids if event_id]
+
+    if event_ids:
+        seen_player_ids = set()
+        for event_id in event_ids:
+            players = db.collection("players").where("event_id", "==", event_id).stream()
+            for player in players:
+                seen_player_ids.add(player.id)
+        count += len(seen_player_ids)
 
     # Count from draft_players (standalone)
     draft_id = draft_data.get("id")
