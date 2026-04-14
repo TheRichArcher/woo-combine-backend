@@ -633,6 +633,11 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     if not num_rounds:
         # Get player count (from event or standalone players)
         player_count = get_draft_player_count(db, draft_data)
+        if player_count == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="Cannot start draft with 0 players. Import players into the linked combine(s) first."
+            )
         num_rounds = max(1, player_count // len(teams)) if len(teams) > 0 else 1
 
     # Set pick deadline if timer enabled
@@ -662,6 +667,45 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     )
 
     return {**draft_data, **updates}
+
+
+@router.post("/{draft_id}/reset")
+async def reset_draft(draft_id: str, user: dict = Depends(get_current_user)):
+    """Reset a draft back to setup status. Deletes all picks."""
+    db = get_firestore_client()
+    draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+
+    if draft_data.get("status") == "setup":
+        raise HTTPException(status_code=400, detail="Draft is already in setup")
+
+    # Delete all picks
+    picks = db.collection("draft_picks").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    ).stream()
+    for pick in picks:
+        pick.reference.delete()
+
+    # Delete any team rosters created on completion
+    rosters = db.collection("draft_rosters").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    ).stream()
+    for roster in rosters:
+        roster.reference.delete()
+
+    draft_ref.update({
+        "status": "setup",
+        "current_round": None,
+        "current_pick": None,
+        "current_team_id": None,
+        "num_rounds": None,
+        "num_teams": None,
+        "team_order": None,
+        "pick_deadline": None,
+        "started_at": None,
+        "completed_at": None,
+    })
+
+    return {"status": "reset", "draft_id": draft_id}
 
 
 @router.post("/{draft_id}/pause")

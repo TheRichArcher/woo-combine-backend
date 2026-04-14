@@ -5,7 +5,8 @@
  */
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { 
@@ -40,6 +41,7 @@ import {
 
 const DraftRoom = () => {
   const { draftId } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
   
@@ -586,8 +588,22 @@ const DraftRoom = () => {
         </div>
       )}
       {draft.status === 'completed' && (
-        <div className="py-3 text-center bg-green-600 text-white font-semibold">
-          🏆 Draft Complete!
+        <div className="py-3 text-center bg-green-600 text-white font-semibold flex items-center justify-center gap-4">
+          <span>🏆 Draft Complete!</span>
+          <button
+            onClick={async () => {
+              if (!window.confirm('Reset this draft back to setup? All picks will be deleted.')) return;
+              try {
+                await api.post(`/drafts/${draftId}/reset`);
+                navigate(`/draft/${draftId}/setup`);
+              } catch (err) {
+                alert(err.response?.data?.detail || 'Failed to reset draft');
+              }
+            }}
+            className="px-3 py-1 bg-white text-red-600 text-sm font-medium rounded hover:bg-red-50"
+          >
+            Reset Draft
+          </button>
         </div>
       )}
 

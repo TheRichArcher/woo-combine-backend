@@ -238,12 +238,28 @@ const DraftSetup = () => {
           <p className="text-gray-600 mb-6">
             This draft is {draft.status}. You can't modify settings anymore.
           </p>
-          <Link
-            to={`/draft/${draftId}/room`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Go to Draft Room
-          </Link>
+          <div className="flex gap-3 justify-center">
+            <Link
+              to={`/draft/${draftId}/room`}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go to Draft Room
+            </Link>
+            <button
+              onClick={async () => {
+                if (!window.confirm('Reset this draft back to setup? All picks will be deleted.')) return;
+                try {
+                  await api.post(`/drafts/${draftId}/reset`);
+                  window.location.reload();
+                } catch (err) {
+                  alert(err.response?.data?.detail || 'Failed to reset draft');
+                }
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700"
+            >
+              Reset to Setup
+            </button>
+          </div>
         </div>
       </div>
     );
