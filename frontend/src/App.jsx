@@ -40,6 +40,7 @@ import ScorecardsPage from "./pages/ScorecardsPage";
 import LiveStandings from "./pages/LiveStandings";
 import EventSharing from "./pages/EventSharing";
 import Analytics from "./pages/Analytics";
+import CheckIn from "./pages/CheckIn";
 import CombineScanner from "./pages/CombineScanner";
 import More from "./pages/More";
 
@@ -263,6 +264,16 @@ function App() {
                     <RequireAuth >
                       <AuthenticatedLayout>
                         <Players />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
+                />
+                <Route
+                  path="/check-in"
+                  element={
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
+                      <AuthenticatedLayout>
+                        <CheckIn />
                       </AuthenticatedLayout>
                     </RequireAuth>
                   }

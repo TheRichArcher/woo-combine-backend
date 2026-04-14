@@ -13,7 +13,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
-import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench, ArrowRight } from 'lucide-react';
+import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench, ArrowRight, ClipboardCheck } from 'lucide-react';
 import EventSwitcher from './EventSwitcher';
 
 // Notification settings helper
@@ -415,6 +415,15 @@ export default function Navigation() {
             >
               <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
             </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link
+                to="/check-in"
+                onClick={(e) => handleRestrictedNav(e, '/check-in', 'Check-In')}
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
+              </Link>
+            )}
             <Link 
               to="/players?tab=analyze" 
               onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
@@ -570,6 +579,15 @@ export default function Navigation() {
             >
               <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
             </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link
+                to="/check-in"
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/check-in', 'Check-In')}
+              >
+                <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
+              </Link>
+            )}
             <Link 
               to="/players?tab=analyze" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
