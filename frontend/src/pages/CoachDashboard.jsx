@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Users } from 'lucide-react';
+import { Plus, Edit, Users, Trash2 } from 'lucide-react';
 
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { formatEventDate } from '../utils/dateUtils';
 import CreateEventModal from '../components/CreateEventModal';
 import EditEventModal from '../components/EditEventModal';
+import DeleteEventFlow from '../components/DeleteEventFlow';
 import LeagueFallback from '../context/LeagueFallback';
 import api from '../lib/api';
 
@@ -48,6 +49,7 @@ export default function CoachDashboard() {
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [deletingEvent, setDeletingEvent] = useState(null);
   const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored } }
 
   // Fetch player counts for all events
@@ -195,19 +197,34 @@ export default function CoachDashboard() {
                         </span>
 
                         {userRole === 'organizer' && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              setEditingEvent(event);
-                            }}
-                            className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
-                            aria-label={`Edit ${event.name}`}
-                            title="Edit event"
-                          >
-                            <Edit className="w-4 h-4 text-gray-600" />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingEvent(event);
+                              }}
+                              className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition"
+                              aria-label={`Edit ${event.name}`}
+                              title="Edit event"
+                            >
+                              <Edit className="w-4 h-4 text-gray-600" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDeletingEvent(event);
+                              }}
+                              className="p-2 rounded-lg border border-red-200 hover:bg-red-50 transition"
+                              aria-label={`Delete ${event.name}`}
+                              title="Delete event"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -234,6 +251,42 @@ export default function CoachDashboard() {
             setEditingEvent(null);
           }}
         />
+      )}
+
+      {deletingEvent && (
+        <div className="fixed inset-0 flex items-center justify-center wc-overlay z-50 p-4">
+          <div className="wc-card p-6 w-full max-w-2xl relative max-h-[90vh] overflow-y-auto">
+            <button
+              type="button"
+              onClick={() => setDeletingEvent(null)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-brand-primary text-2xl font-bold"
+              aria-label="Close delete modal"
+            >
+              ×
+            </button>
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Delete Event</h2>
+            </div>
+            <div className="pb-1">
+              <DeleteEventFlow
+                event={deletingEvent}
+                isCurrentlySelected={selectedEvent?.id === deletingEvent?.id}
+                onSuccess={() => {
+                  setDeletingEvent(null);
+                }}
+              />
+            </div>
+            <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDeletingEvent(null)}
+                  className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
+                >
+                  Close
+                </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
