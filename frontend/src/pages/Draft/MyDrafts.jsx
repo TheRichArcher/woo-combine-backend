@@ -15,7 +15,9 @@ import {
   CheckCircle, 
   Play,
   Settings,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  Loader2
 } from 'lucide-react';
 
 const statusColors = {
@@ -37,6 +39,7 @@ const MyDrafts = () => {
   const { user } = useAuth();
   const [drafts, setDrafts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingDraftId, setDeletingDraftId] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -52,6 +55,29 @@ const MyDrafts = () => {
     };
     fetchDrafts();
   }, []);
+
+  const handleDeleteDraft = async (e, draft) => {
+    e.stopPropagation();
+
+    if (draft.status !== 'setup') {
+      setError('Only setup drafts can be deleted');
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete "${draft.name}"? This cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingDraftId(draft.id);
+    setError(null);
+    try {
+      await api.delete(`/drafts/${draft.id}`);
+      setDrafts((prev) => prev.filter((d) => d.id !== draft.id));
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete draft');
+    } finally {
+      setDeletingDraftId(null);
+    }
+  };
 
   if (loading) return <LoadingScreen />;
 
@@ -136,8 +162,26 @@ const MyDrafts = () => {
                         )}
                       </div>
                     </div>
-                    
-                    <ArrowRight className="text-gray-400" size={20} />
+
+                    <div className="flex items-center gap-3">
+                      {isOwner && draft.status === 'setup' && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteDraft(e, draft)}
+                          disabled={deletingDraftId === draft.id}
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          aria-label={`Delete ${draft.name}`}
+                          title={deletingDraftId === draft.id ? 'Deleting...' : 'Delete draft'}
+                        >
+                          {deletingDraftId === draft.id ? (
+                            <Loader2 size={18} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={18} />
+                          )}
+                        </button>
+                      )}
+                      <ArrowRight className="text-gray-400" size={20} />
+                    </div>
                   </div>
                 </div>
               );
