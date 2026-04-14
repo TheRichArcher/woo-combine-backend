@@ -129,3 +129,4 @@ assets/
 alembic/script.py.mako
 service-account.json
 tosh-credentials.md
+.venv/
