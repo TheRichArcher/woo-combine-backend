@@ -290,9 +290,12 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
             setFullNameColumn(hasFullName);
         } else {
             // No name mapping detected - try to find likely candidates
+            // CRITICAL: Exclude parent/guardian/user columns from registration exports
+            const PARENT_PREFIXES = ['user ', 'parent ', 'guardian ', 'emergency'];
             const nameLikeColumns = sourceKeys.filter(key => {
                 const lower = key.toLowerCase();
-                return lower.includes('name') || lower.includes('player');
+                const isParentColumn = PARENT_PREFIXES.some(p => lower.startsWith(p));
+                return !isParentColumn && (lower.includes('name') || lower.includes('player'));
             });
             
             if (nameLikeColumns.length === 1) {

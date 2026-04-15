@@ -41,9 +41,21 @@ class DataImporter:
         "first": "first_name",
         "fname": "first_name",
         "firstname": "first_name",
+        "first_name": "first_name",
+        "player_first_name": "first_name",
+        "player_first": "first_name",
+        "participant_first_name": "first_name",
+        "athlete_first_name": "first_name",
+        "child_first_name": "first_name",
         "last": "last_name",
         "lname": "last_name",
         "lastname": "last_name",
+        "last_name": "last_name",
+        "player_last_name": "last_name",
+        "player_last": "last_name",
+        "participant_last_name": "last_name",
+        "athlete_last_name": "last_name",
+        "child_last_name": "last_name",
         "jersey": "jersey_number",
         "number": "jersey_number",
         "no": "jersey_number",
@@ -51,6 +63,7 @@ class DataImporter:
         "age": "age_group",
         "group": "age_group",
         "division": "age_group",
+        "division_name": "age_group",
         "pos": "position",
         "bib": "external_id",
         "bib_number": "external_id",
@@ -84,6 +97,17 @@ class DataImporter:
         # Remove units in parentheses (e.g., "Lane Agility (sec)" -> "Lane Agility")
         header_no_units = re.sub(r"\s*\([^)]*\)\s*", " ", str(header))
         clean = header_no_units.strip().lower().replace(" ", "_").replace("-", "_")
+
+        # BLOCKLIST: Parent/user columns from registration exports (e.g., SportsConnect)
+        # These should NEVER map to player fields — they contain guardian info
+        PARENT_COLUMN_PREFIXES = (
+            "user_first", "user_last", "user_name", "user_email",
+            "parent_first", "parent_last", "parent_name", "parent_email",
+            "guardian_first", "guardian_last", "guardian_name", "guardian_email",
+            "emergency_contact",
+        )
+        if clean.startswith(PARENT_COLUMN_PREFIXES):
+            return ""  # Return empty = unmapped, will be ignored
 
         # Check exact matches first
         if clean in DataImporter.FIELD_MAPPING:

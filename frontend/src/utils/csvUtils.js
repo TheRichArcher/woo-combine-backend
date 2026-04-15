@@ -31,8 +31,8 @@ let headerSynonymsCache = null;
 function getHeaderSynonyms() {
   if (!headerSynonymsCache) {
     headerSynonymsCache = {
-      first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'given name'],
-      last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'family name', 'last name'],
+      first_name: ['first_name', 'first', 'firstname', 'first name', 'fname', 'given', 'player first', 'player_first', 'player first name', 'player_first_name', 'participant first name', 'participant_first_name', 'athlete first name', 'athlete_first_name', 'child first name', 'child_first_name', 'given name'],
+      last_name: ['last_name', 'last', 'lastname', 'last name', 'lname', 'surname', 'player last', 'player_last', 'player last name', 'player_last_name', 'participant last name', 'participant_last_name', 'athlete last name', 'athlete_last_name', 'child last name', 'child_last_name', 'family name', 'last name'],
       age_group: ['age_group', 'age', 'agegroup', 'group', 'division', 'grade', 'team age', 'age grp', 'class', 'squad'],
       number: ['number', 'jersey_number', 'player_number', '#', 'jersey', 'jersey number', 'jersey #', 'uniform', 'uniform number', 'player #', 'player number', 'no', 'no.', 'uniform #', 'num', 'athlete_number', 'athlete number', 'athlete #'],
       external_id: ['external_id', 'external', 'playerid', 'player id', 'id'],
@@ -283,10 +283,20 @@ export function getMappingDescription(mappingType) {
 function calculateMatchScore(header, key, synonyms) {
   const normHeader = normalizeHeader(header);
   const normHeaderAggressive = normalizeHeaderAggressive(header);
+  const headerLower = header.toLowerCase();
+  
+  // BLOCKLIST: Parent/guardian/user columns from registration exports (e.g., SportsConnect)
+  // These contain guardian info and should NEVER map to player fields
+  const PARENT_PREFIXES = ['user first', 'user last', 'user name', 'user email',
+    'parent first', 'parent last', 'parent name', 'parent email',
+    'guardian first', 'guardian last', 'guardian name', 'guardian email',
+    'emergency contact'];
+  if (PARENT_PREFIXES.some(prefix => headerLower.startsWith(prefix))) {
+    return 0; // Never map parent/guardian columns to player fields
+  }
   
   // CRITICAL FIX: Prevent cross-category matches (name vs number)
   // If header contains "name" and key is "number", immediately return 0
-  const headerLower = header.toLowerCase();
   if (headerLower.includes('name') && key === 'number') {
     return 0; // Block player_name from matching to number field
   }
