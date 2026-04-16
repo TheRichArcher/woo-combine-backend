@@ -122,6 +122,10 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
 
   const generateReportHTML = () => {
     if (!player || !playerStats) return '';
+
+    const playerInfoLine = player.number
+      ? `Player #${player.number} — Age Group: ${player.age_group || 'N/A'}`
+      : `Age Group: ${player.age_group || 'N/A'}`;
     
     return `
       <!DOCTYPE html>
@@ -129,51 +133,60 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
         <head>
           <title>${player.name} - Player Scorecard</title>
           <style>
-            :root { --color-primary: #19c3e6; --color-border: #e5e7eb; --color-text: #111827; --color-text-muted: #6b7280; --color-surface-subtle: #f5f6fa; }
-            @media (prefers-color-scheme: dark) { :root { --color-text: #e5e7eb; --color-text-muted: #9ca3af; --color-border: #1f2937; --color-surface-subtle: #111318; } }
-            body { font-family: Arial, sans-serif; margin: 20px; color: var(--color-text); }
-            .header { text-align: center; border-bottom: 2px solid var(--color-primary); padding-bottom: 20px; margin-bottom: 30px; }
-            .logo { font-size: 24px; font-weight: bold; color: var(--color-primary); }
-            .player-info { display: flex; justify-content: space-between; margin-bottom: 30px; }
-            .section { margin-bottom: 30px; }
-            .section-title { font-size: 18px; font-weight: bold; color: var(--color-primary); border-bottom: 1px solid var(--color-border); padding-bottom: 5px; margin-bottom: 15px; }
-            .drill-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
-            .drill-card { border: 1px solid var(--color-border); border-radius: 8px; padding: 15px; }
-            .drill-title { font-weight: bold; margin-bottom: 10px; }
-            .score-large { font-size: 24px; font-weight: bold; color: var(--color-primary); }
-            .rank-info { font-size: 14px; color: var(--color-text-muted); margin-top: 5px; }
-            .recommendation { font-size: 12px; color: var(--color-text); margin-top: 10px; font-style: italic; }
-            .summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; margin-bottom: 20px; }
-            .stat-box { border: 1px solid var(--color-border); border-radius: 8px; padding: 15px; }
-            .stat-number { font-size: 28px; font-weight: bold; color: var(--color-primary); }
-            .stat-label { font-size: 12px; color: var(--color-text-muted); margin-top: 5px; }
-            .notes-section { background-color: var(--color-surface-subtle); border-radius: 8px; padding: 15px; }
-            .footer { text-align: center; margin-top: 40px; font-size: 12px; color: var(--color-text-muted); }
-            @media print { body { margin: 10px; } }
+            @page { size: letter; margin: 0.5in; }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 11px; line-height: 1.4; }
+            .header { text-align: center; border-bottom: 2px solid #19c3e6; padding-bottom: 12px; margin-bottom: 16px; }
+            .logo { font-size: 20px; font-weight: bold; color: #19c3e6; }
+            .header-sub { margin-top: 4px; font-size: 11px; color: #6b7280; }
+            .player-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+            .player-name { font-size: 22px; font-weight: bold; color: #111827; }
+            .player-meta { color: #6b7280; font-size: 11px; margin-top: 2px; }
+            .composite-score { font-size: 28px; font-weight: bold; color: #19c3e6; text-align: right; }
+            .composite-label { font-size: 10px; color: #6b7280; text-align: right; }
+            .summary-row { display: flex; gap: 12px; margin-bottom: 16px; }
+            .stat-box { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; }
+            .stat-number { font-size: 22px; font-weight: bold; color: #19c3e6; }
+            .stat-label { font-size: 9px; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+            .section { margin-bottom: 14px; }
+            .section-title { font-size: 13px; font-weight: bold; color: #19c3e6; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 8px; }
+            .drill-table { width: 100%; border-collapse: collapse; font-size: 10px; }
+            .drill-table th { text-align: left; padding: 4px 8px; background: #f3f4f6; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-weight: 600; font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; }
+            .drill-table td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; }
+            .drill-table tr:last-child td { border-bottom: none; }
+            .drill-score { font-weight: bold; color: #19c3e6; }
+            .drill-rec { font-style: italic; color: #6b7280; font-size: 9px; }
+            .notes-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; font-size: 11px; color: #111827; }
+            .summary-box { background: #f0fdff; border: 1px solid #19c3e6; border-radius: 6px; padding: 12px; font-size: 11px; }
+            .summary-box p { margin-bottom: 6px; }
+            .summary-box p:last-child { margin-bottom: 0; }
+            .footer { text-align: center; margin-top: 20px; font-size: 9px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 8px; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+              .section { page-break-inside: avoid; }
+              .drill-table { page-break-inside: auto; }
+              .drill-table tr { page-break-inside: avoid; }
+            }
           </style>
         </head>
         <body>
           <div class="header">
             <div class="logo">🏆 WooCombine Player Scorecard</div>
-              <div style="margin-top: 10px; font-size: 14px; color: var(--color-text-muted);">
-              ${selectedEvent?.name || 'Evaluation Event'} - ${new Date().toLocaleDateString()}
-            </div>
+            <div class="header-sub">${selectedEvent?.name || 'Evaluation Event'} — ${new Date().toLocaleDateString()}</div>
           </div>
           
-          <div class="player-info">
+          <div class="player-row">
             <div>
-              <h1 style="margin: 0; font-size: 28px;">${player.name}</h1>
-              <div style="color: var(--color-text-muted); margin-top: 5px;">
-                Player #${player.number || 'N/A'} - Age Group: ${player.age_group || 'N/A'}
-              </div>
+              <div class="player-name">${player.name}</div>
+              <div class="player-meta">${playerInfoLine}</div>
             </div>
-            <div style="text-align: right;">
-              <div class="score-large">${playerStats.compositeScore.toFixed(1)}</div>
-              <div style="font-size: 14px; color: var(--color-text-muted);">Composite Score</div>
+            <div>
+              <div class="composite-score">${playerStats.compositeScore.toFixed(1)}</div>
+              <div class="composite-label">Composite Score</div>
             </div>
           </div>
           
-          <div class="summary-stats">
+          <div class="summary-row">
             <div class="stat-box">
               <div class="stat-number">${playerStats.rank}</div>
               <div class="stat-label">Rank in Age Group</div>
@@ -190,39 +203,42 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           
           <div class="section">
             <div class="section-title">📊 Drill Performance Breakdown</div>
-            <div class="drill-grid">
-              ${drillAnalysis.map(drill => `
-                <div class="drill-card">
-                  <div class="drill-title">${drill.label}</div>
-                  <div class="score-large">
-                    ${drill.playerScore !== null && drill.playerScore !== undefined ? drill.playerScore + ' ' + drill.unit : 'Not Evaluated'}
-                  </div>
-                  ${drill.rank ? `
-                    <div class="rank-info">
-                      Rank: ${drill.rank} of ${allPlayers.filter(p => p.age_group === player.age_group && p[drill.key] !== null && p[drill.key] !== undefined).length} 
-                      (${drill.percentile}th percentile)
-                    </div>
-                  ` : ''}
-                  ${includeRecommendations ? `
-                    <div class="recommendation">${drill.recommendation}</div>
-                  ` : ''}
-                </div>
-              `).join('')}
-            </div>
+            <table class="drill-table">
+              <thead>
+                <tr>
+                  <th>Drill</th>
+                  <th>Score</th>
+                  <th>Rank</th>
+                  <th>Percentile</th>
+                  ${includeRecommendations ? '<th>Recommendation</th>' : ''}
+                </tr>
+              </thead>
+              <tbody>
+                ${drillAnalysis.map(drill => {
+                  const ageCount = allPlayers.filter(p => p.age_group === player.age_group && (p.scores?.[drill.key] ?? p[drill.key]) !== null && (p.scores?.[drill.key] ?? p[drill.key]) !== undefined).length;
+                  return `
+                  <tr>
+                    <td><strong>${drill.label}</strong></td>
+                    <td class="drill-score">${drill.playerScore !== null && drill.playerScore !== undefined ? drill.playerScore + ' ' + drill.unit : '—'}</td>
+                    <td>${drill.rank ? drill.rank + ' / ' + ageCount : '—'}</td>
+                    <td>${drill.percentile !== null && drill.percentile !== undefined ? drill.percentile + '%' : '—'}</td>
+                    ${includeRecommendations ? '<td class="drill-rec">' + drill.recommendation + '</td>' : ''}
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
           </div>
           
           ${coachNotes ? `
             <div class="section">
               <div class="section-title">💬 Coach Notes</div>
-              <div class="notes-section">
-                ${coachNotes.replace(/\n/g, '<br>')}
-              </div>
+              <div class="notes-box">${coachNotes.replace(/\n/g, '<br>')}</div>
             </div>
           ` : ''}
           
           <div class="section">
             <div class="section-title">🎯 ${template?.name || 'Evaluation'} Summary</div>
-            <div style="background-color: color-mix(in srgb, var(--color-primary) 10%, white); border: 1px solid var(--color-primary); border-radius: 8px; padding: 15px;">
+            <div class="summary-box">
               <p><strong>Overall Assessment:</strong> ${player.name} scored ${playerStats.compositeScore.toFixed(1)} 
               overall, ranking ${playerStats.rank} out of ${playerStats.totalInAgeGroup} players in the ${player.age_group} age group 
               (${playerStats.percentile}th percentile).</p>
@@ -239,7 +255,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           </div>
           
           <div class="footer">
-            Generated by WooCombine - ${new Date().toLocaleString()} - 
+            Generated by WooCombine — ${new Date().toLocaleString()} — 
             Event: ${selectedEvent?.name || 'N/A'}
           </div>
         </body>
@@ -274,30 +290,30 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     const subject = `${player.name} - Player Scorecard from ${selectedEvent?.name || 'Evaluation'}`;
     const body = `Hi,
 
-Please find ${player.name}'s evaluation scorecard attached.
+Here are ${player.name}'s evaluation highlights:
 
-Key Highlights:
-- Overall Score: ${playerStats.compositeScore.toFixed(1)}
+- Composite Score: ${playerStats.compositeScore.toFixed(1)}
 - Rank: ${playerStats.rank} of ${playerStats.totalInAgeGroup} in ${player.age_group} age group
 - Percentile: ${playerStats.percentile}th percentile
 
-Top Performing Areas:
-${drillAnalysis
-  .filter(drill => drill.percentile && drill.percentile >= 70)
-  .map(drill => `- ${drill.label}: ${drill.playerScore} ${drill.unit} (${drill.percentile}th percentile)`)
-  .join('\n')}
-
-${coachNotes ? `Coach Notes:\n${coachNotes}` : ''}
+Full scorecard PDF can be downloaded from WooCombine.
 
 Best regards,
-${selectedEvent?.name || 'Coaching Staff'}
-
-Generated by WooCombine - ${new Date().toLocaleDateString()}`;
+${selectedEvent?.name || 'Coaching Staff'}`;
 
     const mailtoLink = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoLink);
+    window.location.href = mailtoLink;
     
-    showSuccess('Email draft opened! You can attach the PDF scorecard to the email.');
+    showSuccess('Email client opened! Use "Download PDF" to generate the scorecard and attach it.');
+  };
+
+  const copyScoreToClipboard = () => {
+    const text = `${player.name} — WooCombine Scorecard\nComposite Score: ${playerStats.compositeScore.toFixed(1)} | Rank: ${playerStats.rank}/${playerStats.totalInAgeGroup} | ${playerStats.percentile}th percentile`;
+    navigator.clipboard.writeText(text).then(() => {
+      showSuccess('Player score summary copied to clipboard!');
+    }).catch(() => {
+      showSuccess('Could not copy to clipboard.');
+    });
   };
 
   if (!player) {
@@ -334,7 +350,7 @@ Generated by WooCombine - ${new Date().toLocaleDateString()}`;
             <div>
               <h3 className="font-bold text-blue-900">{player.name}</h3>
               <p className="text-sm text-blue-700">
-                #{player.number} - {player.age_group} - Score: {playerStats?.compositeScore.toFixed(1)}
+                {player.number ? `#${player.number} — ` : ''}{player.age_group} — Score: {playerStats?.compositeScore.toFixed(1)}
               </p>
             </div>
           </div>
@@ -401,6 +417,13 @@ Generated by WooCombine - ${new Date().toLocaleDateString()}`;
         >
           <Mail className="w-4 h-4" />
           Share via Email
+        </button>
+        <button
+          onClick={copyScoreToClipboard}
+          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          <Share2 className="w-4 h-4" />
+          Copy Summary
         </button>
         <button
           onClick={() => setShowPreview(!showPreview)}
