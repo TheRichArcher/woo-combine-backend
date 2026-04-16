@@ -17,6 +17,7 @@ import {
   Star,
   Info
 } from 'lucide-react';
+import Button from './ui/Button';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from '../utils/optimizedScoring';
 
@@ -341,24 +342,24 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
       </div>
 
       {/* Player Summary */}
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div className="mb-6 p-4 bg-brand-light/20 border border-brand-primary/20 rounded-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-full flex items-center justify-center">
+              <User className="w-6 h-6 text-brand-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-blue-900">{player.name}</h3>
-              <p className="text-sm text-blue-700">
-                {player.number ? `#${player.number} — ` : ''}{player.age_group} — Score: {playerStats?.compositeScore.toFixed(1)}
+              <h3 className="font-bold text-text">{player.name}</h3>
+              <p className="text-sm text-text-muted">
+                {player.number ? `#${player.number} · ` : ''}{player.age_group} · Score: {playerStats?.compositeScore.toFixed(1)}
               </p>
             </div>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-2xl font-bold text-brand-primary">
               #{playerStats?.rank}
             </div>
-            <div className="text-xs text-blue-700">
+            <div className="text-xs text-text-muted">
               of {playerStats?.totalInAgeGroup}
             </div>
           </div>
@@ -403,35 +404,23 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
       </div>
 
       {/* Action Buttons */}
-      <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={generatePDFReport}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <Button variant="primary" onClick={generatePDFReport} className="gap-2">
           <Download className="w-4 h-4" />
           Generate PDF
-        </button>
-        <button
-          onClick={shareViaEmail}
-          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="outline" onClick={shareViaEmail} className="gap-2">
           <Mail className="w-4 h-4" />
-          Share via Email
-        </button>
-        <button
-          onClick={copyScoreToClipboard}
-          className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
-        >
+          Email
+        </Button>
+        <Button variant="subtle" onClick={copyScoreToClipboard} className="gap-2">
           <Share2 className="w-4 h-4" />
           Copy Summary
-        </button>
-        <button
-          onClick={() => setShowPreview(!showPreview)}
-          className="flex items-center gap-2 border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded-lg transition-colors"
-        >
+        </Button>
+        <Button variant="subtle" onClick={() => setShowPreview(!showPreview)} className="gap-2">
           <FileText className="w-4 h-4" />
-          {showPreview ? 'Hide Preview' : 'Show Preview'}
-        </button>
+          {showPreview ? 'Hide Preview' : 'Preview'}
+        </Button>
       </div>
 
       {/* Preview */}
@@ -445,12 +434,12 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
       )}
 
       {/* Benefits Callout */}
-      <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div className="mt-6 p-4 bg-brand-light/20 border border-brand-primary/20 rounded-lg">
         <div className="flex items-start gap-3">
-          <Trophy className="w-5 h-5 text-green-600 mt-0.5" />
+          <Trophy className="w-5 h-5 text-brand-primary mt-0.5" />
           <div>
-            <h4 className="font-medium text-green-900 mb-1">Professional Player Communication</h4>
-            <ul className="text-sm text-green-800 space-y-1">
+            <h4 className="font-medium text-text mb-1">Professional Player Communication</h4>
+            <ul className="text-sm text-text-muted space-y-1">
               <li>- Share detailed performance analysis with players and parents</li>
               <li>- Provide clear improvement recommendations</li>
               <li>- Build trust through transparent evaluation results</li>
