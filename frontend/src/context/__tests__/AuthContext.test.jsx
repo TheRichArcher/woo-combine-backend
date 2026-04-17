@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock firebase before anything imports it
@@ -25,8 +25,13 @@ jest.mock('../../lib/api', () => ({
 
 jest.mock('../../lib/leagues', () => ({
   __esModule: true,
-  fetchLeagues: jest.fn().mockResolvedValue([]),
+  getMyLeagues: jest.fn().mockResolvedValue([]),
   createLeague: jest.fn(),
+}));
+
+jest.mock('../../constants/drillTemplates', () => ({
+  __esModule: true,
+  fetchSchemas: jest.fn().mockResolvedValue([]),
 }));
 
 jest.mock('../ToastContext', () => ({
@@ -50,6 +55,10 @@ jest.mock('firebase/auth', () => ({
 }));
 
 import { AuthProvider, useAuth } from '../AuthContext';
+import { EventProvider, useEvent } from '../EventContext';
+import api from '../../lib/api';
+import { onAuthStateChanged } from 'firebase/auth';
+import { getMyLeagues } from '../../lib/leagues';
 
 // Test component to access auth context
 const TestComponent = () => {
@@ -63,7 +72,27 @@ const TestComponent = () => {
   );
 };
 
+const RefreshContextHarness = () => {
+  const { selectedLeagueId, refreshLeagues } = useAuth();
+  const { selectedEvent } = useEvent();
+
+  return (
+    <div>
+      <div data-testid="selected-league">{selectedLeagueId || 'none'}</div>
+      <div data-testid="selected-event">{selectedEvent?.id || 'none'}</div>
+      <button onClick={() => refreshLeagues()} type="button">
+        refresh
+      </button>
+    </div>
+  );
+};
+
 describe('AuthContext', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+  });
+
   it('provides auth context to children', async () => {
     render(
       <BrowserRouter>
@@ -77,5 +106,72 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('user')).toBeInTheDocument();
     expect(screen.getByTestId('user')).toHaveTextContent('no-user');
     expect(screen.getByTestId('role')).toHaveTextContent('no-role');
+  });
+
+  it('preserves selected league and event after transient leagues refresh failure', async () => {
+    const mockUser = {
+      uid: 'user-1',
+      email: 'viewer@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    localStorage.setItem('userRole', 'viewer');
+    localStorage.setItem('userEmail', mockUser.email);
+    localStorage.setItem('selectedLeagueId', 'league-1');
+    localStorage.setItem('selectedEvent', JSON.stringify({
+      id: 'event-1',
+      league_id: 'league-1',
+      name: 'Joined Event',
+    }));
+
+    const unauthorizedError = { response: { status: 401 }, message: 'Unauthorized' };
+    getMyLeagues.mockRejectedValue(unauthorizedError);
+
+    api.get.mockImplementation((url) => {
+      if (url === '/leagues/me') {
+        return Promise.reject(unauthorizedError);
+      }
+      if (url === '/leagues/league-1/events') {
+        return Promise.resolve({ data: { events: [] } });
+      }
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: 'viewer' } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <EventProvider>
+            <RefreshContextHarness />
+          </EventProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selected-league')).toHaveTextContent('league-1');
+      expect(screen.getByTestId('selected-event')).toHaveTextContent('event-1');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'refresh' }));
+
+    await waitFor(() => {
+      expect(getMyLeagues).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('selected-league')).toHaveTextContent('league-1');
+      expect(screen.getByTestId('selected-event')).toHaveTextContent('event-1');
+    });
   });
 });

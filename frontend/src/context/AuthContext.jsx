@@ -372,10 +372,10 @@ export function AuthProvider({ children }) {
           } catch (retryErr) {
             authLogger.warn('League fetch retry also failed', retryErr.message);
           }
-          // If retry failed too, clear state
-          setSelectedLeagueIdState('');
-          localStorage.removeItem('selectedLeagueId');
-          setLeagues([]);
+          // If retry failed too, treat as transient while auth is still valid.
+          // Preserve existing league/event context so QR join flows don't
+          // immediately collapse into "No League Selected" fallback screens.
+          authLogger.warn('League fetch retry failed while authenticated - preserving existing league selection/context');
         }
 
         // Return empty array on error so consumers can handle gracefully
