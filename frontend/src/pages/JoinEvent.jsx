@@ -194,9 +194,9 @@ export default function JoinEvent() {
           // Clear any stored invitation data
           localStorage.removeItem('pendingEventJoin');
           
-          // Auto-redirect after 2 seconds
+          // Auto-redirect after 2 seconds to viewer-safe event stats
           setTimeout(() => {
-            navigate("/dashboard");
+            navigate("/live-standings");
           }, 2000);
         } else {
           throw new Error('Failed to set up event and league');
@@ -251,7 +251,7 @@ export default function JoinEvent() {
               </p>
             </div>
             <p className="text-gray-600 text-sm">
-              Redirecting to your dashboard...
+              Redirecting to event standings...
             </p>
           </div>
         )}

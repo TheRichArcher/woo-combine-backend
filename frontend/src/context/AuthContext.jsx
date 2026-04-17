@@ -595,6 +595,10 @@ function parseJwtPayload(token) {
         authLogger.warn('MFA guard check failed', mfaErr?.message);
       }
       
+      const buildPendingInvitePath = (inviteValue) => (
+        inviteValue.split('/').map(part => encodeURIComponent(part)).join('/')
+      );
+
       // Complete initialization inline to prevent dependency loops
       try {
         authLogger.debug('Starting role check for user', firebaseUser.email);
@@ -642,6 +646,7 @@ function parseJwtPayload(token) {
         
         // STEP 1: Role check with extended timeout for cold starts using backend API
         let userRole = cachedRole;
+        let restoredPendingInvite = localStorage.getItem('pendingEventJoin');
         
         // PERFORMANCE OPTIMIZATION: Skip API call completely if we have valid cached role
         if (!cachedRole || cachedEmail !== firebaseUser.email) {
@@ -671,6 +676,9 @@ function parseJwtPayload(token) {
               if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
                 authLogger.info('Restoring pending invite from server profile', userData.pending_invite);
                 localStorage.setItem('pendingEventJoin', userData.pending_invite);
+              }
+              if (userData.pending_invite) {
+                restoredPendingInvite = userData.pending_invite;
               }
             } else if (roleResponse?.status === 404) {
               authLogger.debug('User not found (404) - treating as new user');
@@ -772,6 +780,34 @@ function parseJwtPayload(token) {
         // This creates a clean single-decision flow: /login → /dashboard (gate) → /coach (final)
         const currentPath = window.location.pathname;
         if (currentPath === '/login') {
+          let pendingEventJoin = localStorage.getItem('pendingEventJoin') || restoredPendingInvite;
+
+          // On cached-role logins, we may not have called /users/me yet.
+          // Check server invite state before any fallback redirect.
+          if (!pendingEventJoin) {
+            try {
+              const token = await firebaseUser.getIdToken(false);
+              const profileResponse = await api.get(`/users/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+              });
+              const serverPendingInvite = profileResponse?.data?.pending_invite;
+              if (serverPendingInvite) {
+                authLogger.info('Restoring pending invite before fallback redirect', serverPendingInvite);
+                localStorage.setItem('pendingEventJoin', serverPendingInvite);
+                pendingEventJoin = serverPendingInvite;
+              }
+            } catch (inviteLookupError) {
+              authLogger.warn('Pending invite lookup before fallback redirect failed', inviteLookupError?.message);
+            }
+          }
+
+          if (pendingEventJoin) {
+            const safePath = buildPendingInvitePath(pendingEventJoin);
+            authLogger.debug('Auth complete from /login - redirecting to restored invited event join');
+            navigate(`/join-event/${safePath}`, { replace: true });
+            return;
+          }
+
           authLogger.debug('Auth complete from /login - navigating to /dashboard to trigger gate');
           navigate('/dashboard', { replace: true });
           } else {
