@@ -235,6 +235,7 @@ export default function RouteDecisionGate({ children }) {
 
     console.log(`${logPrefix} ROUTE_DECISION: Making routing decision for ${location.pathname}`);
     const hasSelectedEventContext = Boolean(selectedLeagueId && selectedEvent);
+    const isViewerEventContext = userRole === 'viewer' && !!selectedEvent;
 
     const performNavigation = (to, reason) => {
       console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → ${to} (${reason})`);
@@ -271,7 +272,7 @@ export default function RouteDecisionGate({ children }) {
     }
 
     // No league context → needs league selection or creation
-    if (!hasSelectedEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
+    if (!hasSelectedEventContext && !isViewerEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
