@@ -29,14 +29,15 @@ function statusFromCounts({ playerCount, scoredCount }) {
   return { label: 'Done', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
 }
 
-function nextActionFromCounts({ playerCount, scoredCount }) {
+function nextActionFromCounts({ playerCount, scoredCount, userRole }) {
+  const isStaff = userRole === 'organizer' || userRole === 'coach';
   if (playerCount <= 0) {
     return { text: 'Next: Add your players', route: '/players?action=import', tone: 'bg-amber-50 border-amber-200 text-amber-900' };
   }
-  if (scoredCount <= 0) {
+  if (isStaff && scoredCount <= 0) {
     return { text: 'Ready for Combine Day', route: '/live-entry', tone: 'bg-green-50 border-green-200 text-green-900' };
   }
-  if (scoredCount < playerCount) {
+  if (isStaff && scoredCount < playerCount) {
     return { text: `Continue scoring (${scoredCount}/${playerCount})`, route: '/live-entry', tone: 'bg-indigo-50 border-indigo-200 text-indigo-900' };
   }
   return { text: 'View Rankings', route: '/live-standings', tone: 'bg-green-50 border-green-200 text-green-900' };
@@ -89,7 +90,7 @@ export default function CoachDashboard() {
       const scoredCount = fetched ? fetched.scored : 0;
 
       const status = statusFromCounts({ playerCount, scoredCount });
-      const next = nextActionFromCounts({ playerCount, scoredCount });
+      const next = nextActionFromCounts({ playerCount, scoredCount, userRole });
       const isDone = status.label === 'Done';
 
       return {

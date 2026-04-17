@@ -2,10 +2,18 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import RequireAuth from '../RequireAuth';
 import { useAuth } from '../AuthContext';
+import api from '../../lib/api';
 
 jest.mock('../AuthContext', () => ({
   __esModule: true,
   useAuth: jest.fn(),
+}));
+
+jest.mock('../../lib/api', () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn(),
+  },
 }));
 
 jest.mock('react-router-dom', () => ({
@@ -25,6 +33,14 @@ const baseAuth = {
   authChecked: true,
   roleChecked: true,
 };
+
+function LiveEntryPlayersFetchProbe() {
+  React.useEffect(() => {
+    api.get('/players?event_id=test-event');
+  }, []);
+
+  return <div data-testid="live-entry-probe">live entry probe</div>;
+}
 
 describe('RequireAuth role enforcement', () => {
   it('allows organizer on staff-only routes', () => {
@@ -61,6 +77,20 @@ describe('RequireAuth role enforcement', () => {
     );
 
     expect(screen.getByTestId('navigate-target')).toHaveTextContent('/dashboard');
+  });
+
+  it('blocks viewer before live-entry players fetch effect can run', () => {
+    api.get.mockClear();
+    useAuth.mockReturnValue({ ...baseAuth, userRole: 'viewer' });
+
+    render(
+      <RequireAuth allowedRoles={['organizer', 'coach']}>
+        <LiveEntryPlayersFetchProbe />
+      </RequireAuth>
+    );
+
+    expect(screen.getByTestId('navigate-target')).toHaveTextContent('/dashboard');
+    expect(api.get).not.toHaveBeenCalled();
   });
 
   it('enforces /drafts access for organizer/coach and blocks viewer', () => {

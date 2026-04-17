@@ -24,4 +24,11 @@ describe('App route role guards', () => {
       /path="\/team-formation"[\s\S]*?<RequireAuth allowedRoles=\{\["organizer", "coach"\]\}>/m;
     expect(teamFormationGuardRegex.test(source)).toBe(true);
   });
+
+  it('restricts /live-entry to organizer and coach', () => {
+    const source = fs.readFileSync(appPath, 'utf8');
+    const liveEntryGuardRegex =
+      /path="\/live-entry"[\s\S]*?<RequireAuth allowedRoles=\{\["organizer", "coach"\]\}>/m;
+    expect(liveEntryGuardRegex.test(source)).toBe(true);
+  });
 });

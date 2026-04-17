@@ -295,7 +295,7 @@ function App() {
                 <Route
                   path="/live-entry"
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <LiveEntry />
                       </AuthenticatedLayout>

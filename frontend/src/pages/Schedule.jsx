@@ -10,7 +10,7 @@ import EventSelector from '../components/EventSelector';
 export default function Schedule() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const { selectedEvent, events } = useEvent();
-  const { selectedLeagueId } = useAuth();
+  const { selectedLeagueId, userRole } = useAuth();
 
   // Convert events to schedule format with safe date handling
   // CRITICAL: Defensive filter - never render soft-deleted events
@@ -135,9 +135,11 @@ export default function Schedule() {
             <Link to="/players" className="text-xs sm:text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
               Manage Players
             </Link>
-            <Link to="/live-entry" className="text-xs sm:text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
-              Live Entry
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link to="/live-entry" className="text-xs sm:text-sm font-medium text-brand-primary hover:text-brand-secondary bg-brand-light/10 px-3 py-1.5 rounded-lg border border-brand-primary/20">
+                Live Entry
+              </Link>
+            )}
           </div>
         </div>
 

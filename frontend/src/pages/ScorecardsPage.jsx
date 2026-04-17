@@ -205,11 +205,13 @@ const ScorecardsPage = () => {
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-gray-900">Quick Actions</h2>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Link to="/live-entry" className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition">
-              <Zap className="w-4 h-4 text-green-600" />
-              <span className="text-sm font-medium text-green-900">Continue Recording</span>
-            </Link>
+          <div className={`grid gap-2 ${(userRole === 'organizer' || userRole === 'coach') ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link to="/live-entry" className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition">
+                <Zap className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-medium text-green-900">Continue Recording</span>
+              </Link>
+            )}
             <Link to="/players?tab=analyze" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
               <Users className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">Full Player View</span>

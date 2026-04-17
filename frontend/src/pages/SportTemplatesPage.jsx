@@ -4,12 +4,14 @@ import DrillTemplateSelector from '../components/DrillTemplateSelector';
 import { Settings, Trophy, Star, CheckCircle, Zap } from 'lucide-react';
 import { getAllTemplates, getTemplateById } from '../constants/drillTemplates';
 import { useEvent } from '../context/EventContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import ErrorDisplay from '../components/ErrorDisplay';
 
 export default function SportTemplatesPage() {
   const { selectedEvent, updateEvent } = useEvent();
+  const { userRole } = useAuth();
   const { showSuccess } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || '');
   const [showDetails, setShowDetails] = useState(false);
@@ -52,10 +54,12 @@ export default function SportTemplatesPage() {
             <span className="text-gray-400">/</span>
             <span className="text-gray-600">Sport Templates</span>
           </nav>
-          <Link to="/live-entry" className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2">
-            <span>Start Live Entry</span>
-            <span>→</span>
-          </Link>
+          {(userRole === 'organizer' || userRole === 'coach') && (
+            <Link to="/live-entry" className="bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transition flex items-center gap-2">
+              <span>Start Live Entry</span>
+              <span>→</span>
+            </Link>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30">

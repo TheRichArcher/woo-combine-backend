@@ -262,7 +262,7 @@ export default function LiveStandings() {
           )}
           
           <div className="grid grid-cols-2 gap-2">
-            {userRole !== 'viewer' && (
+            {(userRole === 'organizer' || userRole === 'coach') && (
               <Link
                 to="/live-entry"
                 className="flex items-center justify-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-xl border border-semantic-success/20 transition text-semantic-success font-medium"
@@ -273,7 +273,7 @@ export default function LiveStandings() {
             )}
             <Link
               to="/players/rankings"
-              className={`flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium ${userRole === 'viewer' ? 'col-span-2' : ''}`}
+              className={`flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium ${(userRole === 'organizer' || userRole === 'coach') ? '' : 'col-span-2'}`}
             >
               <Users className="w-4 h-4 text-brand-primary" />
               <span>Players</span>
