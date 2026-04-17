@@ -133,7 +133,7 @@ function App() {
                 <Route 
                   path="/team-formation" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <TeamFormationPage />
                       </AuthenticatedLayout>
@@ -145,7 +145,7 @@ function App() {
                 <Route 
                   path="/draft/create" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <CreateDraft />
                       </AuthenticatedLayout>
@@ -155,7 +155,7 @@ function App() {
                 <Route 
                   path="/draft/:draftId/setup" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <DraftSetup />
                       </AuthenticatedLayout>
@@ -165,7 +165,7 @@ function App() {
                 <Route 
                   path="/draft/:draftId/live" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <DraftRoom />
                       </AuthenticatedLayout>
@@ -205,7 +205,7 @@ function App() {
                 <Route
                   path="/drafts"
                   element={
-                    <RequireAuth>
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <MyDrafts />
                       </AuthenticatedLayout>
@@ -245,7 +245,7 @@ function App() {
                 <Route 
                   path="/event-sharing" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer"]}>
                       <AuthenticatedLayout>
                         <EventSharing />
                       </AuthenticatedLayout>
@@ -261,7 +261,7 @@ function App() {
                 <Route
                   path="/players"
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <Players />
                       </AuthenticatedLayout>
@@ -325,7 +325,7 @@ function App() {
                 <Route 
                   path="/analytics" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <Analytics />
                       </AuthenticatedLayout>
@@ -405,7 +405,7 @@ function App() {
                     <SelectRole />
                   </RequireAuth>
                 } />
-                <Route path="/onboarding/event" element={<RequireAuth ><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
+                <Route path="/onboarding/event" element={<RequireAuth allowedRoles={["organizer"]}><AuthenticatedLayout><OnboardingEvent /></AuthenticatedLayout></RequireAuth>} />
                 <Route path="/join-event/:leagueId/:eventId/:role" element={<JoinEvent />} />
                 <Route path="/join-event/:leagueId/:eventId" element={<JoinEvent />} />
                 <Route path="/join-event/:eventId" element={<JoinEvent />} />

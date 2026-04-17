@@ -44,7 +44,25 @@ class FakeQuery:
     def __init__(self, docs):
         self._docs = list(docs)
 
-    def where(self, field, op, value):
+    @staticmethod
+    def _parse_filter_kwargs(kwargs):
+        ff = kwargs.get("filter")
+        if ff is None:
+            return None
+        field = getattr(ff, "field_path", None) or getattr(ff, "_field_path", None)
+        op = getattr(ff, "op_string", None) or getattr(ff, "_op_string", None)
+        value = getattr(ff, "value", None) or getattr(ff, "_value", None)
+        if field is None or op is None:
+            raise ValueError("Unsupported filter object")
+        return field, op, value
+
+    def where(self, field=None, op=None, value=None, **kwargs):
+        parsed = self._parse_filter_kwargs(kwargs)
+        if parsed is not None:
+            field, op, value = parsed
+        if field is None or op is None:
+            raise ValueError("where() requires field/op/value or filter=")
+
         def match(doc):
             d = doc.to_dict() or {}
             if op == "==":
@@ -131,8 +149,8 @@ class FakeCollection:
     def stream(self):
         return list(self._iter_docs())
 
-    def where(self, field, op, value):
-        return FakeQuery(self.stream()).where(field, op, value)
+    def where(self, field=None, op=None, value=None, **kwargs):
+        return FakeQuery(self.stream()).where(field, op, value, **kwargs)
 
     def order_by(self, field, direction=None):
         return FakeQuery(self.stream()).order_by(field, direction=direction)

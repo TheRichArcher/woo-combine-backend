@@ -57,6 +57,10 @@ jest.mock('../../context/ToastContext', () => ({
 import Navigation from '../Navigation';
 
 describe('Navigation', () => {
+  afterEach(() => {
+    mockAuthContext.userRole = 'organizer';
+  });
+
   it('renders navigation for authenticated user', () => {
     render(
       <BrowserRouter>
@@ -75,5 +79,18 @@ describe('Navigation', () => {
       </BrowserRouter>
     );
     expect(container).toBeTruthy();
+  });
+
+  it('hides /players navigation links for viewer role', () => {
+    mockAuthContext.userRole = 'viewer';
+
+    const { container } = render(
+      <BrowserRouter>
+        <Navigation />
+      </BrowserRouter>
+    );
+
+    const playerLinks = container.querySelectorAll('a[href^="/players"]');
+    expect(playerLinks.length).toBe(0);
   });
 });

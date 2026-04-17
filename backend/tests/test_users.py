@@ -22,3 +22,12 @@ def test_set_user_role_valid_and_invalid(app_client, fake_db):
     assert r_ok.status_code == 200, r_ok.text
     doc = fake_db.collection("users").document(uid).get()
     assert doc.to_dict().get("role") == "coach"
+
+
+def test_set_user_role_blocks_self_promotion_to_organizer(app_client, fake_db, coach_headers):
+    # Existing coach must not be able to self-promote to organizer.
+    r = app_client.post("/api/users/role", json={"role": "organizer"}, headers=coach_headers)
+    assert r.status_code == 403, r.text
+
+    coach_doc = fake_db.collection("users").document("coach-1").get()
+    assert coach_doc.to_dict().get("role") == "coach"

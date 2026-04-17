@@ -15,6 +15,7 @@ import logging
 from ..auth import get_current_user
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
+from ..utils.authorization import ensure_event_access
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/mobile", tags=["mobile"])
@@ -168,6 +169,14 @@ async def get_event_roster(event_id: str, current_user=Depends(get_current_user)
     - Last updated timestamp
     """
     try:
+        # Enforce event-level access: only league members with allowed viewer/staff roles.
+        ensure_event_access(
+            current_user["uid"],
+            event_id,
+            allowed_roles=("organizer", "coach", "viewer"),
+            operation_name="mobile roster access",
+        )
+
         # Get event from top-level collection
         event_ref = db.collection("events").document(event_id)
         event_doc = execute_with_timeout(
@@ -282,6 +291,16 @@ async def submit_batch_drill_results(
     uploads in batch when connection restored.
     """
     try:
+        # Authorize all referenced events up front to prevent cross-event writes.
+        event_ids = {result.get("event_id") for result in results if result.get("event_id")}
+        for event_id in event_ids:
+            ensure_event_access(
+                current_user["uid"],
+                event_id,
+                allowed_roles=("organizer", "coach"),
+                operation_name="mobile batch drill write",
+            )
+
         submitted = 0
         errors = []
 
@@ -317,6 +336,8 @@ async def submit_batch_drill_results(
 
         return {"submitted": submitted, "errors": errors}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error submitting batch results: {e}")
         raise HTTPException(status_code=500, detail="Batch submission failed")

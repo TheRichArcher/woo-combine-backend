@@ -1,4 +1,9 @@
 {
+  "scripts": {
+    "authz:backend": "./.venv313/bin/python -m pytest backend/tests/test_draft_policy_matrix.py -q",
+    "authz:frontend": "npm --prefix \"./frontend\" test -- --runInBand src/__tests__/DraftPolicyMatrix.test.jsx",
+    "authz:smoke": "npm run authz:backend && npm run authz:frontend"
+  },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.7"
   },

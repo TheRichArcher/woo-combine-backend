@@ -407,14 +407,16 @@ export default function Navigation() {
             >
               {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
             </Link>
-            <Link 
-              to="/players?tab=manage" 
-              onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-              title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
-              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-            >
-              <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/players?tab=manage" 
+                onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
+                title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
+              </Link>
+            )}
             {(userRole === 'organizer' || userRole === 'coach') && (
               <Link
                 to="/check-in"
@@ -424,14 +426,16 @@ export default function Navigation() {
                 <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
               </Link>
             )}
-            <Link 
-              to="/players?tab=analyze" 
-              onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
-              title="View and analyze rankings by age group"
-              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-            >
-              📊 Rankings
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/players?tab=analyze" 
+                onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
+                title="View and analyze rankings by age group"
+                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
+              >
+                📊 Rankings
+              </Link>
+            )}
             <Link 
               to="/schedule" 
               onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
@@ -571,14 +575,16 @@ export default function Navigation() {
             >
               {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
             </Link>
-            <Link 
-              to="/players?tab=manage" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-              title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
-            >
-              <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/players?tab=manage" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
+                title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
+              >
+                <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
+              </Link>
+            )}
             {(userRole === 'organizer' || userRole === 'coach') && (
               <Link
                 to="/check-in"
@@ -588,14 +594,16 @@ export default function Navigation() {
                 <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
               </Link>
             )}
-            <Link 
-              to="/players?tab=analyze" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
-              title="View and analyze rankings by age group"
-            >
-              📊 Rankings
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/players?tab=analyze" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
+                title="View and analyze rankings by age group"
+              >
+                📊 Rankings
+              </Link>
+            )}
             <Link 
               to="/schedule" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"

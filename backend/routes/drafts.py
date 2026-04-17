@@ -120,6 +120,11 @@ def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool =
             allowed_roles={"organizer", "coach", "viewer"},
             operation_name="view draft",
         )
+    elif not _has_explicit_draft_access(db, draft_id, user["uid"], draft_data):
+        raise HTTPException(
+            status_code=403,
+            detail="You do not have access to this draft",
+        )
 
     if require_admin:
         is_creator = draft_data.get("created_by") == user["uid"]
@@ -142,6 +147,21 @@ def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool =
             )
 
     return draft_ref, draft_data
+
+
+def _has_explicit_draft_access(db, draft_id: str, uid: str, draft_data: dict) -> bool:
+    """Allow explicit draft access outside league membership checks."""
+    if draft_data.get("created_by") == uid:
+        return True
+
+    teams = (
+        db.collection("draft_teams")
+        .where("draft_id", "==", draft_id)
+        .where("coach_user_id", "==", uid)
+        .limit(1)
+        .stream()
+    )
+    return len(list(teams)) > 0
 
 
 # ============================================================================
@@ -386,7 +406,7 @@ async def create_draft(
                 ensure_league_access(
                     user["uid"],
                     event_league_id,
-                    allowed_roles={"organizer"},
+                    allowed_roles={"organizer", "coach"},
                     operation_name="create draft",
                 )
                 if league_id is None:
@@ -500,6 +520,9 @@ async def list_drafts(
 ):
     """List drafts, optionally filtered by event, league, or owned by user."""
     db = get_firestore_client()
+    uid = user["uid"]
+    user_role = user.get("role")
+    can_use_explicit_draft_access = user_role in {"organizer", "coach"}
 
     drafts: List[dict] = []
     seen_ids: set = set()
@@ -548,7 +571,37 @@ async def list_drafts(
         for d in q.stream():
             _add_doc(d)
 
-    return drafts
+    visible: List[dict] = []
+    for draft in drafts:
+        draft_id = draft.get("id")
+        league_id_val = draft.get("league_id")
+
+        if league_id_val:
+            try:
+                ensure_league_access(
+                    uid,
+                    league_id_val,
+                    allowed_roles={"organizer", "coach"},
+                    operation_name="list drafts",
+                )
+                visible.append(draft)
+            except HTTPException:
+                if (
+                    can_use_explicit_draft_access
+                    and draft_id
+                    and _has_explicit_draft_access(db, draft_id, uid, draft)
+                ):
+                    visible.append(draft)
+            continue
+
+        if (
+            can_use_explicit_draft_access
+            and draft_id
+            and _has_explicit_draft_access(db, draft_id, uid, draft)
+        ):
+            visible.append(draft)
+
+    return visible
 
 
 # ============================================================================
@@ -779,12 +832,15 @@ async def update_team(
 ):
     """Update a team."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user, require_admin=True)
 
     team_ref = db.collection("draft_teams").document(team_id)
     team_doc = team_ref.get()
 
     if not team_doc.exists:
         raise HTTPException(status_code=404, detail="Team not found")
+    if team_doc.to_dict().get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Team not in this draft")
 
     updates = {k: v for k, v in team_in.dict().items() if v is not None}
     updates["updated_at"] = now_iso()
@@ -1239,6 +1295,7 @@ async def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
 async def get_my_rankings(draft_id: str, user: dict = Depends(get_current_user)):
     """Get the current user's player rankings for this draft."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user)
 
     ranking_query = (
         db.collection("coach_rankings")
@@ -1261,6 +1318,7 @@ async def save_rankings(
 ):
     """Save the current user's player rankings."""
     db = get_firestore_client()
+    _verify_draft_access(db, draft_id, user)
 
     # Check if ranking exists
     ranking_query = (
