@@ -115,9 +115,7 @@ export default function VerifyEmail() {
             if (!isActive) return;
             setIsVerified(true);
             setUser(firebaseUser);
-            if (!fromFirebase) {
-              routeAfterVerification();
-            }
+            routeAfterVerification();
           }
         } catch {
           // ignore
@@ -149,9 +147,7 @@ export default function VerifyEmail() {
             // Only update state if component is still active
             if (isActive) {
               setUser(auth.currentUser);
-              if (!fromFirebase) {
-                routeAfterVerification();
-              }
+              routeAfterVerification();
             }
           }
         } catch (error) {
@@ -163,6 +159,14 @@ export default function VerifyEmail() {
     
     // Initial check
     checkVerified();
+
+    const handleStorageVerification = (event) => {
+      if (!isActive) return;
+      if (event.key === 'email_verified' && event.newValue === 'true') {
+        checkVerified();
+      }
+    };
+    window.addEventListener('storage', handleStorageVerification);
     
     // Set up interval - check more frequently for better UX
     const interval = setInterval(checkVerified, 3000); // Check every 3 seconds instead of 10
@@ -172,6 +176,7 @@ export default function VerifyEmail() {
       isActive = false;
       clearInterval(interval);
       unsubscribe();
+      window.removeEventListener('storage', handleStorageVerification);
     };
   }, [fromFirebase, navigate, routeAfterVerification, setUser]);
 
@@ -203,9 +208,7 @@ export default function VerifyEmail() {
           // CRITICAL: Force token refresh so backend gets updated email_verified status
           await auth.currentUser.getIdToken(true);
           setUser(auth.currentUser);
-            if (!fromFirebase) {
-              routeAfterVerification();
-            }
+          routeAfterVerification();
         } else {
           setResendStatus("Still not verified. Please check your email.");
         }
