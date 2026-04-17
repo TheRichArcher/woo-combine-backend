@@ -132,21 +132,55 @@ export default function LiveEntry() {
   
   // Drill switch protection
   const [entriesInCurrentDrill, setEntriesInCurrentDrill] = useState(0);
-  const [pendingDrillSwitch, setPendingDrillSwitch] = useState(null); // { newDrillKey: string }
+  const [drillSwitchNotice, setDrillSwitchNotice] = useState(null); // { previousDrillLabel, restore }
   
   // Refs for auto-focus
   const playerNumberRef = useRef(null);
   const scoreRef = useRef(null);
+  const rapidEntryRef = useRef(null);
+  const refreshPlayersTimerRef = useRef(null);
+  const selectedEventIdRef = useRef(selectedEvent?.id || null);
+
+  useEffect(() => {
+    selectedEventIdRef.current = selectedEvent?.id || null;
+  }, [selectedEvent?.id]);
   
-  const fetchPlayers = useCallback(async () => {
-    if (!selectedEvent) return;
+  const fetchPlayers = useCallback(async (requestedEventId = selectedEvent?.id) => {
+    if (!requestedEventId) return;
     try {
-      const response = await api.get(`/players?event_id=${selectedEvent.id}`);
+      const response = await api.get(`/players?event_id=${requestedEventId}`);
+
+      // Drop stale responses that return after an event switch.
+      if (selectedEventIdRef.current !== requestedEventId) {
+        return;
+      }
+
       setPlayers(response.data);
           } catch {
         // Player fetch failed
     }
-  }, [selectedEvent]);
+  }, [selectedEvent?.id]);
+
+  // Keep player list refresh off the critical submit path.
+  // Small debounce prevents overlapping refreshes during rapid consecutive saves.
+  const schedulePlayersRefresh = useCallback(() => {
+    const requestedEventId = selectedEventIdRef.current;
+    if (refreshPlayersTimerRef.current) {
+      clearTimeout(refreshPlayersTimerRef.current);
+    }
+    refreshPlayersTimerRef.current = setTimeout(() => {
+      fetchPlayers(requestedEventId);
+      refreshPlayersTimerRef.current = null;
+    }, 120);
+  }, [fetchPlayers]);
+
+  useEffect(() => {
+    return () => {
+      if (refreshPlayersTimerRef.current) {
+        clearTimeout(refreshPlayersTimerRef.current);
+      }
+    };
+  }, []);
 
   // Local storage keys (per event)
   const storageKeys = useMemo(() => {
@@ -362,28 +396,76 @@ export default function LiveEntry() {
     }
   }, [selectedDrill, drillConfirmed]);
 
-  // Handle drill switching with protection after entries (MUST be before keyboard shortcuts useEffect)
+  // Handle drill switching (non-blocking).
+  // UX update: switching drills is always instant. If there is unsaved draft data, show
+  // an inline notice with Undo instead of blocking with a modal.
   const handleDrillSwitch = useCallback((newDrillKey) => {
-    // If no entries in current drill, switch immediately
-    if (entriesInCurrentDrill === 0) {
-      setSelectedDrill(newDrillKey);
-      setDrillConfirmed(true);
-      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
-      return;
+    const previousDrillKey = selectedDrill;
+    const previousDrillLabel = drills.find(d => d.key === previousDrillKey)?.label || "previous drill";
+
+    // Treat in-progress input as unsaved draft data.
+    const hasUnsavedDraft = Boolean(
+      rapidEntryMode
+        ? rapidEntryInput.trim()
+        : (inputValue.trim() || playerId || score.trim() || note.trim())
+    );
+
+    if (hasUnsavedDraft && previousDrillKey && previousDrillKey !== newDrillKey) {
+      const restore = {
+        previousDrillKey,
+        rapidEntryMode,
+        inputValue,
+        playerNumber,
+        playerName,
+        playerId,
+        score,
+        note,
+        showNote,
+        rapidEntryInput
+      };
+
+      // Clear draft to avoid carrying stale values into a different drill.
+      setInputValue("");
+      setPlayerNumber("");
+      setPlayerName("");
+      setPlayerId("");
+      setScore("");
+      setNote("");
+      setShowNote(false);
+      setRapidEntryInput("");
+      // Reset transient search UI so stale shortlist/error state does not carry across drills.
+      setShortlist([]);
+      setFocusedMatchIndex(-1);
+      setSearchError(null);
+
+      setDrillSwitchNotice({
+        previousDrillLabel,
+        restore
+      });
     }
-    
-    // If entries exist, require confirmation
-    setPendingDrillSwitch({ newDrillKey });
-  }, [entriesInCurrentDrill]);
-  
-  const confirmDrillSwitch = useCallback(() => {
-    if (pendingDrillSwitch) {
-      setSelectedDrill(pendingDrillSwitch.newDrillKey);
-      setDrillConfirmed(true);
-      setPendingDrillSwitch(null);
-      setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+
+    setSelectedDrill(newDrillKey);
+    setDrillConfirmed(true);
+    setTimeout(() => { playerNumberRef.current?.focus(); }, 100);
+  }, [selectedDrill, drills, rapidEntryMode, rapidEntryInput, inputValue, playerId, score, note, showNote, playerNumber, playerName]);
+
+  // Invalidate pending undo on first meaningful new edit in the current drill.
+  // This prevents undo from overwriting newly entered work.
+  useEffect(() => {
+    if (!drillSwitchNotice) return;
+
+    const hasMeaningfulNewEdit = Boolean(
+      inputValue.trim() ||
+      score.trim() ||
+      note.trim() ||
+      rapidEntryInput.trim() ||
+      playerId
+    );
+
+    if (hasMeaningfulNewEdit) {
+      setDrillSwitchNotice(null);
     }
-  }, [pendingDrillSwitch]);
+  }, [drillSwitchNotice, inputValue, score, note, rapidEntryInput, playerId]);
 
   // Keyboard shortcuts to switch drills when not typing
   useEffect(() => {
@@ -817,7 +899,16 @@ export default function LiveEntry() {
       }
     }
     
-    // Set the player and score temporarily
+    // Build explicit submit payload so rapid mode does not depend on freshly set component state.
+    const rapidSubmitPayload = {
+      playerId: player.id,
+      playerNumber: parsed.playerNumber,
+      playerName: player.name,
+      selectedDrill,
+      score: parsed.score
+    };
+    
+    // Keep existing state assignment for modal/review context and visual continuity.
     setPlayerId(player.id);
     setPlayerNumber(parsed.playerNumber);
     setPlayerName(player.name);
@@ -827,28 +918,55 @@ export default function LiveEntry() {
     const duplicate = checkForDuplicate(player.id, selectedDrill);
     if (duplicate) {
       if (autoReplaceDuplicates[selectedDrill]) {
-        await submitScore(true);
+        const saved = await submitScore(true, rapidSubmitPayload);
+        if (saved) {
+          setRapidEntryInput("");
+        }
       } else {
         setDuplicateData({ ...duplicate, newScore: numericScore });
         setShowDuplicateDialog(true);
         return;
       }
     } else {
-      await submitScore();
+      const saved = await submitScore(false, rapidSubmitPayload);
+      if (saved) {
+        setRapidEntryInput("");
+      }
     }
-    
-    // Clear rapid entry input after successful submit
-    setRapidEntryInput("");
   };
   
-  const submitScore = async (overrideDuplicate = false) => {
+  const submitScore = async (overrideDuplicate = false, payloadOverride = null) => {
+    // Early guard against duplicate submits from fast repeated key presses/clicks.
+    if (loading) return false;
+
+    const submitPayload = {
+      playerId: payloadOverride?.playerId ?? playerId,
+      playerNumber: payloadOverride?.playerNumber ?? playerNumber,
+      playerName: payloadOverride?.playerName ?? playerName,
+      drillKey: payloadOverride?.selectedDrill ?? selectedDrill,
+      scoreRaw: payloadOverride?.score ?? score,
+      noteValue: payloadOverride?.note ?? note
+    };
+
+    if (!submitPayload.playerId || !submitPayload.drillKey || submitPayload.scoreRaw == null || submitPayload.scoreRaw === "") {
+      return false;
+    }
+
+    const numericScore = typeof submitPayload.scoreRaw === 'number'
+      ? submitPayload.scoreRaw
+      : parseFloat(submitPayload.scoreRaw);
+
+    if (Number.isNaN(numericScore)) {
+      return false;
+    }
+
     setLoading(true);
     
     try {
       const response = await api.post('/drill-results/', {
-        player_id: playerId,
-        type: selectedDrill,
-        value: parseFloat(score),
+        player_id: submitPayload.playerId,
+        type: submitPayload.drillKey,
+        value: numericScore,
         event_id: selectedEvent.id
       });
       
@@ -856,14 +974,14 @@ export default function LiveEntry() {
       const entry = {
         id: Date.now(),
         drillResultId: response.data.id, // Capture backend ID for undo
-        playerId,
-        playerNumber,
-        playerName,
-        drill: drills.find(d => d.key === selectedDrill),
-        score: parseFloat(score),
+        playerId: submitPayload.playerId,
+        playerNumber: submitPayload.playerNumber,
+        playerName: submitPayload.playerName,
+        drill: drills.find(d => d.key === submitPayload.drillKey),
+        score: numericScore,
         timestamp: new Date(),
         overridden: overrideDuplicate,
-        note: note || ""
+        note: submitPayload.noteValue || ""
       };
       
       setRecentEntries(prev => [entry, ...prev.slice(0, 9)]); // Keep last 10
@@ -884,17 +1002,30 @@ export default function LiveEntry() {
       setShowNote(false);
       setShowDuplicateDialog(false);
       setDuplicateData(null);
+      // A successful save means current work is now committed; stale undo should be removed.
+      setDrillSwitchNotice(null);
       
       // Invalidate cache to ensure live standings update immediately
       cacheInvalidation.playersUpdated(selectedEvent.id);
-      
-      // Refresh players data
-      await fetchPlayers();
-      
-      // Auto-focus back to player number
+
+      // Small optimistic update avoids temporary stale completion/missing-player UI
+      // while deferred background refresh catches up with backend state.
+      setPlayers(prev => prev.map(p => (
+        p.id === submitPayload.playerId ? { ...p, [submitPayload.drillKey]: numericScore } : p
+      )));
+
+      // Auto-focus next-entry field immediately (critical path).
       setTimeout(() => {
-        playerNumberRef.current?.focus();
+        if (rapidEntryMode) {
+          rapidEntryRef.current?.focus();
+        } else {
+          playerNumberRef.current?.focus();
+        }
       }, 100);
+
+      // Defer player refresh so next entry is not blocked on network.
+      schedulePlayersRefresh();
+      return true;
       
     } catch (error) {
       // Check if error is due to combine being locked
@@ -908,6 +1039,7 @@ export default function LiveEntry() {
         // Generic error
         showError(userMessage);
       }
+      return false;
     } finally {
       setLoading(false);
     }
@@ -1147,7 +1279,12 @@ export default function LiveEntry() {
             <div className="relative mb-6">
               <select
                 value={selectedDrill || ''}
-                onChange={(e) => setSelectedDrill(e.target.value)}
+                onChange={(e) => {
+                  // UX simplification: selecting a drill immediately starts entry mode.
+                  // We intentionally remove the separate "Start Entry" confirmation step.
+                  setSelectedDrill(e.target.value);
+                  setDrillConfirmed(!!e.target.value);
+                }}
                 className="w-full p-3 pr-10 border-2 rounded-lg appearance-none bg-white text-left cursor-pointer transition-all duration-200 border-gray-300 hover:border-gray-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
               >
                 <option value="" disabled>Select a drill to begin...</option>
@@ -1160,49 +1297,8 @@ export default function LiveEntry() {
               <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             </div>
 
-            {/* Drill Preview - appears when drill is selected but not confirmed */}
-            {selectedDrill && !drillConfirmed && (
-              <div className="mt-4 bg-gradient-to-br from-brand-light/20 to-brand-primary/5 border-2 border-brand-primary/20 rounded-xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <Target className="w-6 h-6 text-brand-primary" />
-                    <div>
-                      <h4 className="text-lg font-bold text-brand-secondary">{currentDrill.label}</h4>
-                      <p className="text-sm text-brand-primary">Unit: {currentDrill.unit}</p>
-                    </div>
-                    <CheckCircle className="w-5 h-5 text-brand-primary ml-2" />
-                  </div>
-                </div>
-
-                <div className="bg-white bg-opacity-70 rounded-lg p-3 border border-brand-primary/20 mb-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Info className="w-4 h-4 text-brand-primary" />
-                    <span className="text-sm font-medium text-brand-secondary">Scoring</span>
-                  </div>
-                  <div className="text-sm text-brand-primary">
-                    {currentDrill.lowerIsBetter 
-                      ? "⬇️ Lower scores are better (faster times, etc.)" 
-                      : "⬆️ Higher scores are better (more points, distance, etc.)"
-                    }
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setSelectedDrill("")}
-                    className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors duration-200"
-                  >
-                    Change Drill
-                  </button>
-                  <button
-                    onClick={() => setDrillConfirmed(true)}
-                    className="flex-1 px-4 py-3 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg font-medium transition-colors duration-200"
-                  >
-                    Start Entry
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* The explicit preview/confirmation card was intentionally removed.
+                Drill selection above now transitions directly into entry mode. */}
           </div>
         ) : (
           <>
@@ -1238,52 +1334,13 @@ export default function LiveEntry() {
                   </span>
                 </div>
                 
-                {/* Right: Progress + drill pills */}
+                {/* Right: progress only.
+                    UX simplification: remove redundant drill switch controls from this bar. */}
                 <div className="flex items-center gap-3 flex-shrink-0 text-white">
                   <span className="text-xs font-medium whitespace-nowrap">
                     {completedForDrill}/{totalPlayers} ({completionPct}%)
                   </span>
-                  
-                  {/* Quick drill switch (compact) */}
-                  <select
-                    value={selectedDrill || ''}
-                    onChange={(e) => { 
-                      if (e.target.value) {
-                        handleDrillSwitch(e.target.value);
-                      }
-                    }}
-                    className="text-xs px-2 py-1 rounded border cursor-pointer transition"
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      borderColor: 'rgba(255, 255, 255, 0.4)',
-                      color: '#ffffff'
-                    }}
-                    title="Switch drill"
-                  >
-                    {drills.map((d) => (
-                      <option key={d.key} value={d.key} style={{ color: '#111827', backgroundColor: '#ffffff' }}>
-                        {d.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
-              </div>
-            </div>
-
-            {/* Optional: Quick Drill Pills (non-sticky, for reference at top) */}
-            <div className="mt-3 px-2">
-              <div className="flex gap-2 overflow-x-auto sm:flex-wrap sm:justify-center pb-2 no-scrollbar">
-                {drills.map((d) => (
-                  <button
-                    key={d.key}
-                    onClick={() => handleDrillSwitch(d.key)}
-                    className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-medium border transition-all ${d.key === selectedDrill ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm shadow-sm' : 'bg-transparent text-gray-500 border-gray-300 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-400'}`}
-                    aria-pressed={d.key === selectedDrill}
-                    title={`Switch to ${d.label}`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
               </div>
             </div>
 
@@ -1296,6 +1353,50 @@ export default function LiveEntry() {
                   onClick={() => { setShowDrillHint(false); try { if (storageKeys) localStorage.setItem(storageKeys.drillHint, '1'); } catch {} }}
                 >
                   Got it
+                </button>
+              </div>
+            )}
+
+            {/* Non-blocking drill switch notice for unsaved draft data */}
+            {drillSwitchNotice && (
+              <div className="mt-2 bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-lg p-2 text-xs flex items-center justify-between gap-3">
+                <span>Previous drill score not saved.</span>
+                <button
+                  type="button"
+                  className="text-yellow-900 underline hover:text-yellow-700 font-medium"
+                  onClick={() => {
+                    const restore = drillSwitchNotice.restore;
+                    setSelectedDrill(restore.previousDrillKey);
+                    setDrillConfirmed(true);
+                    // Restore mode first so the correct form renders before restoring its fields.
+                    setRapidEntryMode(restore.rapidEntryMode);
+                    setInputValue(restore.inputValue);
+                    setPlayerNumber(restore.playerNumber);
+                    setPlayerName(restore.playerName);
+                    setPlayerId(restore.playerId);
+                    setScore(restore.score);
+                    setNote(restore.note);
+                    setShowNote(restore.showNote);
+                    setRapidEntryInput(restore.rapidEntryInput);
+                    // Reset transient search UI on restore; search effect will recompute if needed.
+                    setShortlist([]);
+                    setFocusedMatchIndex(-1);
+                    setSearchError(null);
+                    setDrillSwitchNotice(null);
+                    setTimeout(() => {
+                      if (restore.rapidEntryMode) {
+                        rapidEntryRef.current?.focus();
+                        return;
+                      }
+                      if (restore.score) {
+                        scoreRef.current?.focus();
+                      } else {
+                        playerNumberRef.current?.focus();
+                      }
+                    }, 100);
+                  }}
+                >
+                  Undo
                 </button>
               </div>
             )}
@@ -1395,6 +1496,7 @@ export default function LiveEntry() {
                       Enter Player # and Score
                     </label>
                     <input
+                      ref={rapidEntryRef}
                       type="text"
                       inputMode="text"
                       value={rapidEntryInput}
@@ -1835,61 +1937,6 @@ export default function LiveEntry() {
           </>
         )}
       </div>
-      
-      {/* Drill Switch Confirmation Dialog */}
-      {pendingDrillSwitch && (
-        <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4">
-          <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                confirmDrillSwitch();
-              } else if (e.key === 'Escape') {
-                setPendingDrillSwitch(null);
-              }
-            }}
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-semantic-warning" />
-              <h3 className="text-lg font-bold text-gray-900">Switch Drills?</h3>
-            </div>
-            
-            <div className="mb-6">
-              <p className="text-gray-700 mb-3">
-                You've entered <strong>{entriesInCurrentDrill} score{entriesInCurrentDrill !== 1 ? 's' : ''}</strong> for <strong>{currentDrill.label}</strong>.
-              </p>
-              <p className="text-gray-700 mb-3">
-                Switching to <strong>{drills.find(d => d.key === pendingDrillSwitch.newDrillKey)?.label}</strong> will change the active drill.
-              </p>
-              
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm text-yellow-800">
-                  <strong>⚠️ Important:</strong> Make sure you've finished entering all scores for {currentDrill.label} before switching.
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => setPendingDrillSwitch(null)}
-                autoFocus
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-3 rounded-lg transition"
-              >
-                ← Stay on {currentDrill.label}
-              </button>
-              <button
-                onClick={confirmDrillSwitch}
-                className="flex-1 bg-brand-primary hover:bg-brand-secondary text-white font-bold py-3 rounded-lg shadow-lg transition"
-              >
-                Switch to {drills.find(d => d.key === pendingDrillSwitch.newDrillKey)?.label.split(' ')[0]} →
-              </button>
-            </div>
-            
-            <p className="text-xs text-gray-500 text-center mt-3">Press Enter to switch, Esc to cancel</p>
-          </div>
-        </div>
-      )}
       
       {/* Validation Warning Dialog */}
       {validationWarning && (
