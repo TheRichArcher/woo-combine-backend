@@ -6,6 +6,7 @@ import { QrCode, Copy, ArrowLeft, Users, UserPlus } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import QRCode from 'react-qr-code';
 import LoadingScreen from '../components/LoadingScreen';
+import EventSwitcher from '../components/EventSwitcher';
 
 export default function EventSharing() {
   const { user, userRole, selectedLeagueId } = useAuth();
@@ -13,6 +14,7 @@ export default function EventSharing() {
   const navigate = useNavigate();
   const { showSuccess, showInfo } = useToast();
   const [selectedRole, setSelectedRole] = useState('coach');
+  const [eventSwitcherOpen, setEventSwitcherOpen] = useState(false);
 
   // Auth and role checks
   if (!user || userRole !== 'organizer') {
@@ -37,25 +39,36 @@ export default function EventSharing() {
     );
   }
 
-  if (!selectedEvent || !selectedLeagueId) {
+  if (!selectedLeagueId) {
     return (
       <LoadingScreen 
-        title="Loading event details..." 
-        subtitle="Please wait while we prepare your sharing options" 
+        title="Loading league context..."
+        subtitle="Please wait while we prepare your sharing options"
         size="large" 
       />
     );
   }
 
+  const hasSelectedEvent = Boolean(selectedEvent?.id);
+
   // Generate invite links
-  const baseJoinUrl = `https://woo-combine.com/join-event/${selectedLeagueId}/${selectedEvent.id}`;
-  const roleJoinUrl = `${baseJoinUrl}/${selectedRole}`;
-  const joinCode = selectedEvent.join_code || selectedEvent.id?.slice(-6).toUpperCase() || 'ERROR';
-  const legacyJoinUrl = `https://woo-combine.com/join?code=${encodeURIComponent(joinCode)}`;
-  const legacyButtonLabel = legacyJoinUrl ? 'Copy Legacy Link (woo-combine.com/join)' : 'Copy General Link (No Role)';
+  const baseJoinUrl = hasSelectedEvent
+    ? `https://woo-combine.com/join-event/${selectedLeagueId}/${selectedEvent.id}`
+    : '';
+  const roleJoinUrl = hasSelectedEvent ? `${baseJoinUrl}/${selectedRole}` : '';
+  const joinCode = hasSelectedEvent
+    ? selectedEvent.join_code || selectedEvent.id?.slice(-6).toUpperCase() || 'ERROR'
+    : '';
+  const legacyJoinUrl = joinCode
+    ? `https://woo-combine.com/join?code=${encodeURIComponent(joinCode)}`
+    : '';
+  const legacyButtonLabel = legacyJoinUrl
+    ? 'Copy Legacy Link (woo-combine.com/join)'
+    : 'Copy General Link (No Role)';
 
   // Copy to clipboard functionality
   const copyToClipboard = (text) => {
+    if (!text) return;
     navigator.clipboard.writeText(text);
     showSuccess('📋 Copied to clipboard!');
   };
@@ -74,8 +87,36 @@ export default function EventSharing() {
           </button>
           <h1 className="text-3xl font-bold text-brand-secondary mb-2">Share Event QR Codes</h1>
           <p className="text-gray-600">
-            Share secure access links with your staff and participants for <strong>{selectedEvent.name}</strong>
+            Share secure access links with your staff and participants.
           </p>
+        </div>
+
+        {/* Event Context Card */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 border-2 border-brand-primary/30 relative">
+          <div className="flex items-start justify-between gap-4 mb-3">
+            <div>
+              <div className="text-xs font-semibold tracking-wide text-gray-500 uppercase">Current Event</div>
+              <div className="text-xl font-bold text-brand-secondary mt-1">
+                {hasSelectedEvent ? selectedEvent.name : 'No event selected'}
+              </div>
+            </div>
+            <button
+              onClick={() => setEventSwitcherOpen(prev => !prev)}
+              className="text-sm text-brand-primary hover:text-brand-secondary underline font-medium"
+            >
+              Change event
+            </button>
+          </div>
+          {!hasSelectedEvent ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              Select an event to generate a QR code.
+            </div>
+          ) : (
+            <div className="text-sm text-gray-600">
+              All links and QR codes on this page currently target <strong>{selectedEvent.name}</strong>.
+            </div>
+          )}
+          <EventSwitcher isOpen={eventSwitcherOpen} onClose={() => setEventSwitcherOpen(false)} />
         </div>
 
         {/* Event Join Code Card */}
@@ -89,7 +130,7 @@ export default function EventSharing() {
             <div className="mb-3">
               <div className="text-sm font-medium text-gray-700 mb-2">Simple Join Code:</div>
               <div className="text-3xl font-mono bg-white rounded-lg p-4 inline-block border-2 border-brand-primary/20 shadow-sm">
-                {joinCode}
+                {hasSelectedEvent ? joinCode : '—'}
               </div>
             </div>
             <p className="text-sm text-gray-600">
@@ -128,9 +169,15 @@ export default function EventSharing() {
 
           {/* QR Code Display */}
           <div className="text-center mb-6">
-            <div className="inline-block bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm">
-              <QRCode value={roleJoinUrl} size={200} />
-            </div>
+            {hasSelectedEvent ? (
+              <div className="inline-block bg-white p-6 rounded-xl border-2 border-gray-200 shadow-sm">
+                <QRCode value={roleJoinUrl} size={200} />
+              </div>
+            ) : (
+              <div className="inline-flex items-center justify-center w-[248px] h-[248px] bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl text-sm text-gray-500 px-6">
+                Select an event to preview QR code
+              </div>
+            )}
             <div className="mt-3">
               <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                 selectedRole === 'coach' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
@@ -138,17 +185,23 @@ export default function EventSharing() {
                 {selectedRole === 'coach' ? '🔵 COACH ACCESS QR CODE' : '🟢 VIEWER ACCESS QR CODE'}
               </span>
             </div>
+            <div className="mt-3 text-sm text-gray-700">
+              {hasSelectedEvent
+                ? `This QR gives ${selectedRole.toUpperCase()} access to: ${selectedEvent.name}`
+                : `This QR will give ${selectedRole.toUpperCase()} access once an event is selected.`}
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="space-y-3 mb-6">
             <button
               onClick={() => copyToClipboard(roleJoinUrl)}
+              disabled={!hasSelectedEvent}
               className={`w-full text-white px-6 py-4 rounded-xl font-semibold transition flex items-center justify-center gap-3 text-lg ${
                 selectedRole === 'coach' 
                   ? 'bg-blue-600 hover:bg-blue-700' 
                   : 'bg-green-600 hover:bg-green-700'
-              }`}
+              } disabled:bg-gray-300 disabled:cursor-not-allowed`}
             >
               <Copy className="w-5 h-5" />
               Copy {selectedRole === 'coach' ? 'Coach' : 'Viewer'} Link
@@ -156,6 +209,7 @@ export default function EventSharing() {
             
             <button
               onClick={() => copyToClipboard(legacyJoinUrl)}
+              disabled={!hasSelectedEvent}
               className="w-full bg-gray-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-600 transition flex items-center justify-center gap-2"
               title={legacyJoinUrl}
               aria-label={`Copy legacy join link ${legacyJoinUrl}`}
@@ -169,10 +223,10 @@ export default function EventSharing() {
           <div className="bg-gray-50 rounded-lg p-4 mb-4">
             <div className="text-xs text-gray-500 mb-1">Direct Link:</div>
             <div className="text-sm font-mono text-gray-700 break-all">
-              {roleJoinUrl}
+              {hasSelectedEvent ? roleJoinUrl : 'Select an event to generate a link'}
             </div>
             <div className="text-xs font-mono text-gray-600 break-all mt-2">
-              Legacy Link (woo-combine.com/join): {legacyJoinUrl}
+              Legacy Link (woo-combine.com/join): {hasSelectedEvent ? legacyJoinUrl : 'N/A'}
             </div>
           </div>
 

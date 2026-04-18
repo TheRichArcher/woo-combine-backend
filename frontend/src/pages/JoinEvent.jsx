@@ -114,9 +114,9 @@ export default function JoinEvent() {
           email: user.email,
           role: effectiveRole
         };
-        // Critical for scoped-viewer memberships: backend only appends viewer_event_ids
-        // when invited_event_id is present on league joins.
-        if (effectiveRole === 'viewer' && eventIdForInvite) {
+        // Critical for scoped coach/viewer memberships: backend only appends
+        // *_event_ids when invited_event_id is present on league joins.
+        if ((effectiveRole === 'viewer' || effectiveRole === 'coach') && eventIdForInvite) {
           payload.invited_event_id = eventIdForInvite;
         }
         return payload;
@@ -219,34 +219,38 @@ export default function JoinEvent() {
           } else {
             targetLeague = existingLeague;
             const effectiveRole = (intendedRole || userRole || existingLeague?.role || '').toLowerCase();
-            // If viewer already belongs to the league, still re-hit join endpoint so backend
-            // can merge invited_event_id into viewer_event_ids for event-scoped access.
-            if (effectiveRole === 'viewer') {
+            // If coach/viewer already belongs to the league, still re-hit join endpoint so backend
+            // can merge invited_event_id into *_event_ids for event-scoped access.
+            if (effectiveRole === 'viewer' || effectiveRole === 'coach') {
               try {
                 const joinPayload = buildJoinRequestPayload(actualEventId);
                 const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, joinPayload);
-                writeJoinStage('join-api-existing-viewer-scope-sync-success', {
+                writeJoinStage('join-api-existing-member-scope-sync-success', {
                   actualLeagueId,
                   actualEventId,
+                  effectiveRole,
                   joinPayload,
                   joinData: joinResponse?.data
                 });
-                qrDebug('Existing viewer scope sync success', {
+                qrDebug('Existing member scope sync success', {
                   url: `/leagues/join/${actualLeagueId}`,
                   status: joinResponse?.status,
+                  effectiveRole,
                   joinPayload,
                   joinData: joinResponse?.data
                 });
               } catch (joinError) {
-                writeJoinStage('join-api-existing-viewer-scope-sync-failure', {
+                writeJoinStage('join-api-existing-member-scope-sync-failure', {
                   actualLeagueId,
                   actualEventId,
+                  effectiveRole,
                   status: joinError?.response?.status,
                   message: joinError?.message
                 });
-                qrDebug('Existing viewer scope sync failed', {
+                qrDebug('Existing member scope sync failed', {
                   url: `/leagues/join/${actualLeagueId}`,
                   status: joinError?.response?.status,
+                  effectiveRole,
                   message: joinError?.message
                 });
                 throw joinError;
