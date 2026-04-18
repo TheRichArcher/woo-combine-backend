@@ -31,3 +31,24 @@ def test_set_user_role_blocks_self_promotion_to_organizer(app_client, fake_db, c
 
     coach_doc = fake_db.collection("users").document("coach-1").get()
     assert coach_doc.to_dict().get("role") == "coach"
+
+
+def test_set_user_role_simple_requires_authenticated_identity(app_client, fake_db, monkeypatch):
+    monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
+
+    # Missing auth header should be rejected.
+    missing = app_client.post("/api/users/role-simple", json={"role": "coach"})
+    assert missing.status_code == 401
+
+    # Authenticated request should bind role to token identity.
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-1"
+    token = make_jwt(uid=uid, email="simple@example.com", email_verified=True)
+    headers = {"Authorization": f"Bearer {token}"}
+    ok = app_client.post("/api/users/role-simple", json={"role": "coach"}, headers=headers)
+    assert ok.status_code == 200, ok.text
+
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.exists
+    assert doc.to_dict().get("role") == "coach"

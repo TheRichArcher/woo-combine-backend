@@ -338,7 +338,11 @@ async def debug_set_user_role(
 # Extremely permissive endpoint – guard with env flag and disable by default
 @router.post("/role-simple", summary="Simple role setting for onboarding issues")
 @auth_rate_limit()
-async def set_user_role_simple(role_data: SetRoleRequest, request: Request):
+async def set_user_role_simple(
+    role_data: SetRoleRequest,
+    request: Request,
+    current_user: dict = Depends(get_current_user_for_role_setting),
+):
     """
     Simplified role setting endpoint for Firebase configuration issues.
     Uses basic auth header extraction without complex verification.
@@ -351,42 +355,10 @@ async def set_user_role_simple(role_data: SetRoleRequest, request: Request):
 
     try:
         logging.info("[SIMPLE-ROLE] Starting simplified role setting")
-
-        # Extract auth header manually
-        auth_header = request.headers.get("authorization")
-        if not auth_header or not auth_header.startswith("Bearer "):
-            raise HTTPException(status_code=401, detail="No valid authorization header")
-
-        token = auth_header.replace("Bearer ", "")
-
-        # Try to decode token without verification to get UID
-        try:
-            import base64
-            import json
-
-            # JWT tokens have 3 parts separated by dots
-            parts = token.split(".")
-            if len(parts) != 3:
-                raise ValueError("Invalid token format")
-
-            # Decode the payload (second part)
-            # Add padding if needed
-            payload = parts[1]
-            payload += "=" * (4 - len(payload) % 4)
-            decoded_payload = base64.urlsafe_b64decode(payload)
-            token_data = json.loads(decoded_payload)
-
-            uid = token_data.get("user_id") or token_data.get("uid")
-            email = token_data.get("email", "")
-
-            if not uid:
-                raise ValueError("No UID found in token")
-
-            logging.info(f"[SIMPLE-ROLE] Extracted UID: {uid}, Email: {email}")
-
-        except Exception as token_error:
-            logging.error(f"[SIMPLE-ROLE] Token parsing failed: {token_error}")
-            raise HTTPException(status_code=401, detail="Invalid token format")
+        uid = current_user.get("uid")
+        email = current_user.get("email", "")
+        if not uid:
+            raise HTTPException(status_code=401, detail="Authentication required")
 
         role = role_data.role
         if not role or role not in ["organizer", "coach", "viewer", "player"]:

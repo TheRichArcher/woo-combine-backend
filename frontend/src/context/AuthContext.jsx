@@ -801,9 +801,11 @@ function parseJwtPayload(token) {
           } catch (error) {
             authLogger.error('Role check error', error.message);
             
-            // Check if we have a cached role in localStorage as fallback
+            // Check if we have a cached role in localStorage as fallback.
+            // Never trust cached role unless it is bound to the authenticated email.
             const fallbackCachedRole = sanitizeRole(localStorage.getItem('userRole'));
-            if (fallbackCachedRole) {
+            const fallbackCachedEmail = localStorage.getItem('userEmail');
+            if (fallbackCachedRole && fallbackCachedEmail === firebaseUser.email) {
               authLogger.debug('API failed, but found cached role', fallbackCachedRole);
               authLogger.warn(`API role check failed (${error.message}), using cached role: ${fallbackCachedRole}`);
               userRole = fallbackCachedRole;

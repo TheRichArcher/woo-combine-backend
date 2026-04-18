@@ -2,16 +2,17 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 const mockNavigate = jest.fn();
+const mockGetLocation = () => ({
+  pathname: globalThis.location?.pathname || '/',
+  search: globalThis.location?.search || '',
+  hash: '',
+  state: null,
+});
 
 jest.mock('react-router-dom', () => ({
   BrowserRouter: ({ children }) => children,
   useNavigate: () => mockNavigate,
-  useLocation: () => ({
-    pathname: window.location.pathname,
-    search: window.location.search,
-    hash: '',
-    state: null,
-  }),
+  useLocation: () => mockGetLocation(),
 }));
 
 // Mock firebase before anything imports it
@@ -289,5 +290,45 @@ describe('AuthContext', () => {
     });
     expect(mockNavigate).not.toHaveBeenCalledWith('/login', { replace: true });
     expect(localStorage.getItem('postLoginTarget')).toBeNull();
+  });
+
+  it('does not trust cached role from another identity when profile lookup fails', async () => {
+    const mockUser = {
+      uid: 'user-4',
+      email: 'actual@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    // Simulate stale cached role from a different account.
+    localStorage.setItem('userRole', 'coach');
+    localStorage.setItem('userEmail', 'different@example.com');
+
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.reject(new Error('profile lookup failed'));
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/select-role');
+    });
+    expect(screen.getByTestId('role')).toHaveTextContent('no-role');
   });
 });
