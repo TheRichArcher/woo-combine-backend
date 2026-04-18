@@ -41,7 +41,7 @@ export default function LiveStandings() {
   const { userRole, selectedLeagueId, setSelectedLeagueId } = useAuth();
   const navigate = useNavigate();
   const debugEnabled = isQrDebugEnabled();
-  const shouldAttemptViewerInviteRestore = userRole === 'viewer' && !selectedEventFromContext;
+  const shouldAttemptViewerInviteRestore = !selectedEventFromContext;
   let viewerInviteContextRaw = null;
   try {
     viewerInviteContextRaw = localStorage.getItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
@@ -71,17 +71,6 @@ export default function LiveStandings() {
   }, []);
 
   useEffect(() => {
-    if (userRole !== 'viewer') {
-      qrLiveDebug('Viewer invite restore skipped (not viewer role)', {
-        userRole: userRole || null
-      });
-      setViewerRestoreDebugSafe({
-        ran: true,
-        result: 'skipped',
-        skipReason: 'userRole is not viewer'
-      });
-      return;
-    }
     if (selectedEventFromContext) {
       qrLiveDebug('Viewer invite restore skipped (selectedEvent already in context)', {
         selectedEventFromContextId: selectedEventFromContext?.id || null
@@ -165,7 +154,6 @@ export default function LiveStandings() {
       setSelectedLeagueId(inviteLeagueId);
     }
   }, [
-    userRole,
     selectedEventFromContext,
     viewerInviteContextRaw,
     restoredViewerEvent,

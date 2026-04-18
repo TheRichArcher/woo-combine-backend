@@ -147,9 +147,8 @@ export function EventProvider({ children }) {
     const fetchAndApply = async () => {
       const eventsData = await cachedFetchEvents(leagueId);
       const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
-      const viewerInviteLock = getViewerInviteEventLock({ userRole });
+      const viewerInviteLock = getViewerInviteEventLock();
       const shouldScopeToInviteEvent = Boolean(
-        userRole === 'viewer' &&
         viewerInviteLock?.eventId &&
         (!viewerInviteLock.leagueId || viewerInviteLock.leagueId === leagueId)
       );

@@ -73,8 +73,6 @@ export const readViewerInviteEventContext = () => {
 };
 
 export const getViewerInviteEventLock = ({ userRole, inviteContext } = {}) => {
-  if (userRole && userRole !== 'viewer') return null;
-
   const context = inviteContext || readViewerInviteEventContext();
   if (!context) return null;
 

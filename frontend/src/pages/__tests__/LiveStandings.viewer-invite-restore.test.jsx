@@ -113,7 +113,7 @@ describe('LiveStandings viewer invite restoration', () => {
     expect(screen.getByText('Invite Restored Event')).toBeInTheDocument();
   });
 
-  test('restores after delayed role hydration to viewer', async () => {
+  test('restores even before delayed role hydration to viewer', async () => {
     currentRole = null;
     localStorage.setItem('viewerInviteEventContext', JSON.stringify({
       eventId: 'event-99',
@@ -125,7 +125,11 @@ describe('LiveStandings viewer invite restoration', () => {
     }));
 
     const { rerender } = render(<LiveStandings />);
-    expect(mockSetSelectedEvent).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(mockSetSelectedEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'event-99', name: 'Hydrated Event' })
+      );
+    });
 
     currentRole = 'viewer';
     rerender(<LiveStandings />);
@@ -165,6 +169,32 @@ describe('LiveStandings viewer invite restoration', () => {
       );
     });
     expect(mockSetSelectedLeagueId).toHaveBeenCalledWith('league-new');
+    expect(mockSetEvents).toHaveBeenCalled();
+  });
+
+  test('restores invite context even when global role is coach', async () => {
+    mockUseAuth.mockImplementation(() => ({
+      userRole: 'coach',
+      selectedLeagueId: '',
+      setSelectedLeagueId: mockSetSelectedLeagueId,
+    }));
+    localStorage.setItem('viewerInviteEventContext', JSON.stringify({
+      eventId: 'event-88',
+      leagueId: 'league-8',
+      role: 'viewer',
+      source: 'join-event',
+      event: { id: 'event-88', name: 'Cross Role Recovery Event', drillTemplate: 'football' },
+      timestamp: new Date().toISOString(),
+    }));
+
+    render(<LiveStandings />);
+
+    await waitFor(() => {
+      expect(mockSetSelectedEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'event-88', name: 'Cross Role Recovery Event' })
+      );
+    });
+    expect(mockSetSelectedLeagueId).toHaveBeenCalledWith('league-8');
     expect(mockSetEvents).toHaveBeenCalled();
   });
 });
