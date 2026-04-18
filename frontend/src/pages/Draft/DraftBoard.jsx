@@ -8,9 +8,12 @@ import { useParams } from 'react-router-dom';
 import { useDraft, useDraftPicks, useDraftTeams, useAvailablePlayers } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
 import { Clock, User, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { formatViewerPlayerName } from '../../utils/playerDisplayName';
 
 const DraftBoard = () => {
   const { draftId } = useParams();
+  const { userRole } = useAuth();
   
   const { draft, loading: draftLoading } = useDraft(draftId);
   const { picks } = useDraftPicks(draftId);
@@ -209,7 +212,7 @@ const DraftBoard = () => {
                             {player?.photo_url ? (
                               <img 
                                 src={player.photo_url}
-                                alt={player.name}
+                                alt={formatViewerPlayerName(player, userRole || 'public')}
                                 className="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-gray-600"
                               />
                             ) : (
@@ -219,7 +222,7 @@ const DraftBoard = () => {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">
-                                {player?.name || `Player`}
+                                {player ? formatViewerPlayerName(player, userRole || 'public') : 'Player'}
                               </p>
                               {pickForRound.pick_type === 'auto' && (
                                 <span className="text-xs text-orange-400">⚡ Auto</span>
@@ -258,7 +261,7 @@ const DraftBoard = () => {
             {lastPickPlayer?.photo_url ? (
               <img 
                 src={lastPickPlayer.photo_url}
-                alt={lastPickPlayer.name}
+                alt={formatViewerPlayerName(lastPickPlayer, userRole || 'public')}
                 className="w-12 h-12 rounded-full object-cover border-2 border-green-500"
               />
             ) : (
@@ -271,7 +274,7 @@ const DraftBoard = () => {
               <span className="font-bold text-lg text-white">{lastPickTeam.team_name}</span>
               <span className="text-gray-400"> selects </span>
               <span className="font-bold text-xl text-green-400">
-                {lastPickPlayer?.name || 'Player'}
+                {lastPickPlayer ? formatViewerPlayerName(lastPickPlayer, userRole || 'public') : 'Player'}
               </span>
               {lastPick.pick_type === 'auto' && (
                 <span className="ml-2 text-orange-400 text-sm">⚡ Auto-pick</span>

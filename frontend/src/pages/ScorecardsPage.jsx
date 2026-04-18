@@ -17,6 +17,7 @@ import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode,
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
+import { formatViewerPlayerName } from '../utils/playerDisplayName';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
@@ -271,8 +272,11 @@ const ScorecardsPage = () => {
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-medium text-gray-900 text-sm">{player.name}</div>
-                        <div className="text-xs text-gray-600">#{player.number} • {player.age_group}</div>
+                        <div className="font-medium text-gray-900 text-sm">{formatViewerPlayerName(player, userRole)}</div>
+                        <div className="text-xs text-gray-600">
+                          {player.number != null && player.number !== '' ? `#${player.number} • ` : ''}
+                          {player.age_group}
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                          {selectedPlayer?.id === player.id && (
@@ -302,8 +306,11 @@ const ScorecardsPage = () => {
               <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
                 <div className="bg-blue-600 px-6 py-4 text-white flex justify-between items-center">
                    <div>
-                      <h2 className="text-xl font-bold">{selectedPlayer.name}</h2>
-                      <p className="text-blue-100 text-sm">#{selectedPlayer.number} • {selectedPlayer.age_group}</p>
+                      <h2 className="text-xl font-bold">{formatViewerPlayerName(selectedPlayer, userRole)}</h2>
+                      <p className="text-blue-100 text-sm">
+                        {selectedPlayer.number != null && selectedPlayer.number !== '' ? `#${selectedPlayer.number} • ` : ''}
+                        {selectedPlayer.age_group}
+                      </p>
                    </div>
                    <div className="text-right">
                       {/* Controls embedded in panel */}

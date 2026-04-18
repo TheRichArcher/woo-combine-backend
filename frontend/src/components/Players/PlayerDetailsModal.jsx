@@ -2,6 +2,8 @@ import React, { useEffect, useMemo } from "react";
 import { X } from 'lucide-react';
 import PlayerDetailsPanel from './PlayerDetailsPanel';
 import { calculateOptimizedCompositeScore } from '../../utils/optimizedScoring';
+import { useAuth } from '../../context/AuthContext';
+import { formatViewerPlayerName } from '../../utils/playerDisplayName';
 
 const PlayerDetailsModal = React.memo(function PlayerDetailsModal({ 
   player, 
@@ -16,6 +18,8 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   drills = [],
   presets = {}
 }) {
+  const { userRole } = useAuth();
+
   // Lock body scroll when modal is open
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -38,8 +42,11 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
         <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center flex-shrink-0 bg-white">
           <div className="flex items-center gap-3">
           <div>
-              <h2 className="text-lg font-bold leading-tight text-gray-900">{player.name}</h2>
-              <p className="text-brand-light text-xs">#{player.number} • {player.age_group}</p>
+              <h2 className="text-lg font-bold leading-tight text-gray-900">{formatViewerPlayerName(player, userRole)}</h2>
+              <p className="text-brand-light text-xs">
+                {player.number != null && player.number !== '' ? `#${player.number} • ` : ''}
+                {player.age_group}
+              </p>
             </div>
             <div className="h-6 w-px bg-gray-200 mx-1 hidden sm:block"></div>
             <div className="hidden sm:block">

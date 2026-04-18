@@ -12,6 +12,7 @@ import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 import { readViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
+import { formatViewerPlayerName } from '../utils/playerDisplayName';
 
 const isQrDebugEnabled = () => {
   try {
@@ -662,9 +663,9 @@ export default function LiveStandings() {
                         {index + 1}
                         </div>
                         <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{player.name}</div>
+                        <div className="font-medium text-gray-900 truncate">{formatViewerPlayerName(player, userRole)}</div>
                         <div className="text-xs text-gray-500 flex items-center gap-2">
-                             <span>#{player.number}</span>
+                             {player.number != null && player.number !== '' && <span>#{player.number}</span>}
                              {player.age_group && <span className="px-1.5 py-0.5 bg-gray-100 rounded text-[10px]">{player.age_group}</span>}
                         </div>
                         </div>

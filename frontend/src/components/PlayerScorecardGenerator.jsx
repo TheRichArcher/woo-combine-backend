@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useEvent } from '../context/EventContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import {
   Share2,
@@ -20,9 +21,11 @@ import {
 import Button from './ui/Button';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from '../utils/optimizedScoring';
+import { formatViewerPlayerName } from '../utils/playerDisplayName';
 
 const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
   const { selectedEvent } = useEvent();
+  const { userRole } = useAuth();
   const { showSuccess } = useToast();
   
   const [showPreview, setShowPreview] = useState(false);
@@ -32,6 +35,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   
   const template = getTemplateById(selectedDrillTemplate);
   const drills = getDrillsFromTemplate(selectedDrillTemplate);
+  const displayName = formatViewerPlayerName(player, userRole);
   
   // Calculate player stats using optimized scoring
   const playerStats = React.useMemo(() => {
@@ -132,7 +136,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${player.name} - Player Scorecard</title>
+          <title>${displayName} - Player Scorecard</title>
           <style>
             @page { size: letter; margin: 0.5in; }
             * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -178,7 +182,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           
           <div class="player-row">
             <div>
-              <div class="player-name">${player.name}</div>
+              <div class="player-name">${displayName}</div>
               <div class="player-meta">${playerInfoLine}</div>
             </div>
             <div>
@@ -240,7 +244,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           <div class="section">
             <div class="section-title">🎯 ${template?.name || 'Evaluation'} Summary</div>
             <div class="summary-box">
-              <p><strong>Overall Assessment:</strong> ${player.name} scored ${playerStats.compositeScore.toFixed(1)} 
+              <p><strong>Overall Assessment:</strong> ${displayName} scored ${playerStats.compositeScore.toFixed(1)} 
               overall, ranking ${playerStats.rank} out of ${playerStats.totalInAgeGroup} players in the ${player.age_group} age group 
               (${playerStats.percentile}th percentile).</p>
               
@@ -288,10 +292,10 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   };
 
   const shareViaEmail = () => {
-    const subject = `${player.name} - Player Scorecard from ${selectedEvent?.name || 'Evaluation'}`;
+    const subject = `${displayName} - Player Scorecard from ${selectedEvent?.name || 'Evaluation'}`;
     const body = `Hi,
 
-Here are ${player.name}'s evaluation highlights:
+Here are ${displayName}'s evaluation highlights:
 
 - Composite Score: ${playerStats.compositeScore.toFixed(1)}
 - Rank: ${playerStats.rank} of ${playerStats.totalInAgeGroup} in ${player.age_group} age group
@@ -309,7 +313,7 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
   };
 
   const copyScoreToClipboard = () => {
-    const text = `${player.name} — WooCombine Scorecard\nComposite Score: ${playerStats.compositeScore.toFixed(1)} | Rank: ${playerStats.rank}/${playerStats.totalInAgeGroup} | ${playerStats.percentile}th percentile`;
+    const text = `${displayName} — WooCombine Scorecard\nComposite Score: ${playerStats.compositeScore.toFixed(1)} | Rank: ${playerStats.rank}/${playerStats.totalInAgeGroup} | ${playerStats.percentile}th percentile`;
     navigator.clipboard.writeText(text).then(() => {
       showSuccess('Player score summary copied to clipboard!');
     }).catch(() => {
@@ -336,7 +340,7 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
         <div>
           <h2 className="text-xl font-bold text-gray-900">Player Scorecard Generator</h2>
           <p className="text-sm text-gray-600">
-            Create professional scorecard for {player.name}
+            Create professional scorecard for {displayName}
           </p>
         </div>
       </div>
@@ -349,7 +353,7 @@ ${selectedEvent?.name || 'Coaching Staff'}`;
               <User className="w-6 h-6 text-brand-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-text">{player.name}</h3>
+              <h3 className="font-bold text-text">{displayName}</h3>
               <p className="text-sm text-text-muted">
                 {player.number ? `#${player.number} · ` : ''}{player.age_group} · Score: {playerStats?.compositeScore.toFixed(1)}
               </p>
