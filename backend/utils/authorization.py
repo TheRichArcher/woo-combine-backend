@@ -44,6 +44,27 @@ def _normalize_allowed_roles(
     return {role.strip().lower() for role in allowed_roles if isinstance(role, str)}
 
 
+def _extract_viewer_scoped_event_ids(membership: Optional[dict]) -> Set[str]:
+    if not isinstance(membership, dict):
+        return set()
+
+    if (membership.get("role") or "").lower() != "viewer":
+        return set()
+
+    raw_ids = membership.get("viewer_event_ids")
+    if not isinstance(raw_ids, list):
+        return set()
+
+    scoped_ids: Set[str] = set()
+    for value in raw_ids:
+        if value is None:
+            continue
+        normalized = str(value).strip()
+        if normalized:
+            scoped_ids.add(normalized)
+    return scoped_ids
+
+
 def ensure_league_access(
     user_id: str,
     league_id: str,
@@ -175,12 +196,29 @@ def ensure_event_access(
                 status_code=500, detail="Event is missing league association"
             )
 
-        ensure_league_access(
+        membership = ensure_league_access(
             user_id,
             league_id,
             allowed_roles=allowed_roles,
             operation_name=operation_name,
         )
+
+        scoped_event_ids = _extract_viewer_scoped_event_ids(membership)
+        if scoped_event_ids and event_id not in scoped_event_ids:
+            logging.warning(
+                "[AUTHZ] Scoped viewer %s denied %s for event %s in league %s "
+                "(allowed events: %s)",
+                user_id,
+                operation_name,
+                event_id,
+                league_id,
+                sorted(scoped_event_ids),
+            )
+            _register_denial(f"event:{event_id}:scoped-viewer")
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have access to this event",
+            )
 
         event_data["id"] = event_doc.id
         return event_data

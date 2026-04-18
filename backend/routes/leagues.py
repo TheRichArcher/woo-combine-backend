@@ -4,6 +4,7 @@ from ..auth import get_current_user, require_role
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
+from typing import Optional
 from google.cloud.firestore import Query as FirestoreQuery
 from ..utils.database import execute_with_timeout
 from ..security.access_matrix import require_permission
@@ -11,6 +12,56 @@ from ..security.access_matrix import require_permission
 # Fixed: Removed FieldPath import to resolve deployment issues
 
 router = APIRouter(prefix="/leagues")
+
+
+def _resolve_viewer_invited_event_id(
+    *,
+    role: str,
+    code: str,
+    req: dict | None,
+    joined_via_event_code: bool,
+) -> Optional[str]:
+    if role != "viewer":
+        return None
+
+    if joined_via_event_code:
+        return code
+
+    if not isinstance(req, dict):
+        return None
+
+    invited_event_id = req.get("invited_event_id")
+    if not invited_event_id:
+        return None
+
+    normalized = str(invited_event_id).strip()
+    return normalized or None
+
+
+def _validate_invited_event_scope(event_id: str, expected_league_id: str) -> None:
+    event_ref = db.collection("events").document(event_id)
+    event_doc = event_ref.get()
+    if not event_doc.exists:
+        raise HTTPException(status_code=400, detail="Invalid invited_event_id")
+
+    event_data = event_doc.to_dict() or {}
+    event_league_id = event_data.get("league_id")
+    if event_league_id != expected_league_id:
+        raise HTTPException(status_code=400, detail="Invited event does not belong to this league")
+    if event_data.get("deleted_at"):
+        raise HTTPException(status_code=400, detail="Invited event is no longer available")
+
+
+def _merge_event_scope(existing_ids, invited_event_id: str):
+    merged_ids = []
+    seen = set()
+    for value in list(existing_ids or []) + [invited_event_id]:
+        normalized = str(value).strip()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        merged_ids.append(normalized)
+    return merged_ids
 
 
 @router.get("/me")
@@ -322,6 +373,7 @@ def join_league(
     try:
         resolved_league_id = code
         joined_via_event_code = False
+        invited_event_id = None
 
         # PERFORMANCE: Attempt direct league lookup first
         league_ref = db.collection("leagues").document(resolved_league_id)
@@ -363,21 +415,65 @@ def join_league(
                     status_code=404, detail="League not found for this event code"
                 )
 
+        invited_event_id = _resolve_viewer_invited_event_id(
+            role=role,
+            code=code,
+            req=req,
+            joined_via_event_code=joined_via_event_code,
+        )
+        if invited_event_id:
+            _validate_invited_event_scope(
+                event_id=invited_event_id,
+                expected_league_id=resolved_league_id,
+            )
+
         member_ref = league_ref.collection("members").document(user_id)
         existing_member = member_ref.get()
+        existing_member_data = existing_member.to_dict() if existing_member.exists else {}
 
         league_data = league_doc.to_dict()
         league_name = league_data.get("name", "Unknown League")
 
         if existing_member.exists:
+            existing_role = (existing_member_data.get("role") or "").lower()
+            if existing_role == "viewer" and invited_event_id:
+                # Existing viewer can accumulate event-scoped invite access.
+                merged_event_ids = _merge_event_scope(
+                    existing_member_data.get("viewer_event_ids"), invited_event_id
+                )
+                batch = db.batch()
+                batch.set(member_ref, {"viewer_event_ids": merged_event_ids}, merge=True)
+
+                user_memberships_ref = db.collection("user_memberships").document(user_id)
+                user_memberships_doc = user_memberships_ref.get()
+                if user_memberships_doc.exists:
+                    memberships_data = user_memberships_doc.to_dict() or {}
+                    leagues_map = memberships_data.get("leagues", {})
+                    league_membership = leagues_map.get(resolved_league_id, {})
+                    existing_scoped_ids = league_membership.get("viewer_event_ids", [])
+                    merged_user_membership_ids = _merge_event_scope(
+                        existing_scoped_ids, invited_event_id
+                    )
+                    batch.set(
+                        user_memberships_ref,
+                        {
+                            f"leagues.{resolved_league_id}.viewer_event_ids": merged_user_membership_ids
+                        },
+                        merge=True,
+                    )
+                batch.commit()
+
             logging.warning(f"User {user_id} already in league {resolved_league_id}")
             # Return success with league name even if already a member
-            return {
+            response_payload = {
                 "joined": True,
                 "league_id": resolved_league_id,
                 "league_name": league_name,
                 "joined_via_event_code": joined_via_event_code,
             }
+            if existing_role == "viewer" and invited_event_id:
+                response_payload["invited_event_id"] = invited_event_id
+            return response_payload
 
         # PERFORMANCE OPTIMIZATION: Use batch write for atomic join operation
         join_time = datetime.utcnow().isoformat()
@@ -390,6 +486,8 @@ def join_league(
             "email": current_user.get("email"),
             "name": current_user.get("name", "Unknown"),
         }
+        if role == "viewer" and invited_event_id:
+            member_data["viewer_event_ids"] = [invited_event_id]
         batch.set(member_ref, member_data)
 
         # 2. Update user_memberships for fast lookup
@@ -399,14 +497,19 @@ def join_league(
                 "role": role,
                 "joined_at": join_time,
                 "league_name": league_name,
+                **(
+                    {"viewer_event_ids": [invited_event_id]}
+                    if role == "viewer" and invited_event_id
+                    else {}
+                ),
             }
         }
         batch.set(user_memberships_ref, membership_update, merge=True)
 
         # Execute both operations atomically
         logging.info("[BATCH] Preparing to write membership to paths:")
-        logging.info(f"  1. {member_ref.path}")
-        logging.info(f"  2. {user_memberships_ref.path} (update)")
+        logging.info(f"  1. {getattr(member_ref, 'path', f'leagues/{resolved_league_id}/members/{user_id}')}")
+        logging.info(f"  2. {getattr(user_memberships_ref, 'path', f'user_memberships/{user_id}')} (update)")
 
         logging.info(
             f"[BATCH] Executing atomic join operation for user {user_id} in league {resolved_league_id}"
@@ -426,6 +529,8 @@ def join_league(
         }
         if joined_via_event_code:
             response_payload["joined_via_event_code"] = True
+        if invited_event_id:
+            response_payload["invited_event_id"] = invited_event_id
         return response_payload
 
     except HTTPException:

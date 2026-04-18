@@ -1,3 +1,6 @@
+from backend.tests.conftest import make_jwt
+
+
 def test_create_league_creates_membership_and_returns_id(app_client, fake_db, organizer_headers):
     r = app_client.post(
         "/api/leagues/",
@@ -47,3 +50,23 @@ def test_join_league_forbids_organizer_role(app_client, fake_db, coach_headers):
         headers=coach_headers,
     )
     assert r.status_code == 403
+
+
+def test_join_league_persists_viewer_event_scope(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    fake_db.collection("events").document("event-1").set(
+        {"name": "Invited Event", "league_id": "league-1"}
+    )
+    uid = "new-viewer-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "viewer1@example.com", "role": "viewer"}
+    )
+    headers = {"Authorization": f"Bearer {make_jwt(uid=uid, email='viewer1@example.com', email_verified=True)}"}
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "viewer", "invited_event_id": "event-1"},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("invited_event_id") == "event-1"

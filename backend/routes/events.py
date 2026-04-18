@@ -7,6 +7,7 @@ from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
 from ..utils.database import execute_with_timeout
+from ..utils.authorization import ensure_league_access
 from ..utils.data_integrity import (
     ensure_league_document,
     enforce_event_league_relationship,
@@ -41,6 +42,22 @@ def list_events(
     Supports optional pagination with page and limit parameters.
     """
     try:
+        membership = ensure_league_access(
+            current_user["uid"],
+            league_id,
+            allowed_roles=("organizer", "coach", "viewer"),
+            operation_name="events:list",
+        )
+        scoped_event_ids = set()
+        if (membership.get("role") or "").lower() == "viewer":
+            raw_scoped_ids = membership.get("viewer_event_ids")
+            if isinstance(raw_scoped_ids, list):
+                scoped_event_ids = {
+                    str(value).strip()
+                    for value in raw_scoped_ids
+                    if str(value).strip()
+                }
+
         events_ref = db.collection("leagues").document(league_id).collection("events")
         # Add timeout to events retrieval and cap to reduce large payloads
         # Order newest first; use Firestore's Query constants explicitly to avoid FastAPI's Query name clash
@@ -58,6 +75,9 @@ def list_events(
             for e in events_stream
             if not e.to_dict().get("deleted_at")
         ]
+        if scoped_event_ids:
+            events_list = [event for event in events_list if event.get("id") in scoped_event_ids]
+
         # Optional in-memory pagination (non-breaking; only applies when provided)
         if page is not None and limit is not None:
             start = (page - 1) * limit
@@ -201,7 +221,7 @@ def create_event(
 
 @router.get("/leagues/{league_id}/events/{event_id}")
 @read_rate_limit()
-@require_permission("events", "read", target="league", target_param="league_id")
+@require_permission("events", "read", target="event", target_param="event_id")
 def get_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -390,7 +410,7 @@ def update_event(
 
 @router.get("/leagues/{league_id}/events/{event_id}/stats")
 @read_rate_limit()
-@require_permission("events", "read", target="league", target_param="league_id")
+@require_permission("events", "read", target="event", target_param="event_id")
 def get_event_stats(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -995,7 +1015,7 @@ def create_custom_drill(
 
 @router.get("/leagues/{league_id}/events/{event_id}/custom-drills")
 @read_rate_limit()
-@require_permission("events", "read", target="league", target_param="league_id")
+@require_permission("events", "read", target="event", target_param="event_id")
 def list_custom_drills(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
@@ -1188,7 +1208,7 @@ def delete_custom_drill(
 
 @router.get("/leagues/{league_id}/events/{event_id}/schema")
 @read_rate_limit()
-@require_permission("events", "read", target="league", target_param="league_id")
+@require_permission("events", "read", target="event", target_param="event_id")
 def get_league_event_schema_endpoint(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),

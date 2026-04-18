@@ -56,6 +56,21 @@ async def get_user_combines(current_user=Depends(get_current_user)):
 
         for league_id, membership_info in leagues_data.items():
             try:
+                scoped_event_ids = set()
+                membership_role = (
+                    membership_info.get("role", "viewer")
+                    if isinstance(membership_info, dict)
+                    else "viewer"
+                )
+                if membership_role == "viewer" and isinstance(membership_info, dict):
+                    raw_scoped = membership_info.get("viewer_event_ids")
+                    if isinstance(raw_scoped, list):
+                        scoped_event_ids = {
+                            str(value).strip()
+                            for value in raw_scoped
+                            if str(value).strip()
+                        }
+
                 # Get league name
                 league_ref = db.collection("leagues").document(league_id)
                 league_doc = execute_with_timeout(
@@ -95,6 +110,8 @@ async def get_user_combines(current_user=Depends(get_current_user)):
                     # Skip soft-deleted events
                     if event_data.get("deleted_at"):
                         continue
+                    if scoped_event_ids and event_doc.id not in scoped_event_ids:
+                        continue
 
                     # Count players (lightweight - just count)
                     try:
@@ -130,9 +147,7 @@ async def get_user_combines(current_user=Depends(get_current_user)):
                                 "live_entry_active", False
                             ),
                             "user_role": (
-                                membership_info.get("role", "viewer")
-                                if isinstance(membership_info, dict)
-                                else "viewer"
+                                membership_role
                             ),
                         }
                     )

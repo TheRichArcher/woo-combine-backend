@@ -1,4 +1,5 @@
 import os
+from backend.tests.conftest import make_jwt
 
 
 def test_create_list_get_update_delete_event_flow(app_client, fake_db, organizer_headers):
@@ -144,3 +145,114 @@ def test_set_combine_lock_noop(app_client, fake_db, organizer_headers):
     )
     assert r2.status_code == 200
     assert r2.json()["changed"] is False
+
+
+def _seed_two_events_in_league(fake_db, league_id="league-1"):
+    fake_db.collection("leagues").document(league_id).set(
+        {"name": "League", "created_at": "2024-01-01T00:00:00Z"}
+    )
+
+    fake_db.collection("events").document("event-1").set(
+        {
+            "name": "Invited Event",
+            "league_id": league_id,
+            "created_at": "2024-01-01T00:00:00Z",
+        }
+    )
+    fake_db.collection("events").document("event-2").set(
+        {
+            "name": "Other Event",
+            "league_id": league_id,
+            "created_at": "2024-01-02T00:00:00Z",
+        }
+    )
+
+    fake_db.collection("leagues").document(league_id).collection("events").document(
+        "event-1"
+    ).set(
+        {
+            "name": "Invited Event",
+            "league_id": league_id,
+            "created_at": "2024-01-01T00:00:00Z",
+        }
+    )
+    fake_db.collection("leagues").document(league_id).collection("events").document(
+        "event-2"
+    ).set(
+        {
+            "name": "Other Event",
+            "league_id": league_id,
+            "created_at": "2024-01-02T00:00:00Z",
+        }
+    )
+
+
+def _scoped_viewer_headers(fake_db):
+    uid = "viewer-locked"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "viewer@example.com", "role": "viewer"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {
+            "leagues": {
+                "league-1": {
+                    "role": "viewer",
+                    "viewer_event_ids": ["event-1"],
+                }
+            }
+        }
+    )
+    token = make_jwt(uid=uid, email="viewer@example.com", email_verified=True)
+    return {"Authorization": f"Bearer {token}"}
+
+
+def test_scoped_viewer_can_read_invited_event_only(app_client, fake_db):
+    _seed_two_events_in_league(fake_db)
+    viewer_headers = _scoped_viewer_headers(fake_db)
+
+    invited = app_client.get("/api/leagues/league-1/events/event-1", headers=viewer_headers)
+    assert invited.status_code == 200, invited.text
+    assert invited.json()["id"] == "event-1"
+
+    blocked = app_client.get("/api/leagues/league-1/events/event-2", headers=viewer_headers)
+    assert blocked.status_code == 403, blocked.text
+
+
+def test_scoped_viewer_event_list_excludes_uninvited_events(app_client, fake_db):
+    _seed_two_events_in_league(fake_db)
+    viewer_headers = _scoped_viewer_headers(fake_db)
+
+    response = app_client.get("/api/leagues/league-1/events", headers=viewer_headers)
+    assert response.status_code == 200, response.text
+    returned_ids = [event["id"] for event in response.json()["events"]]
+    assert returned_ids == ["event-1"]
+
+
+def test_staff_roles_keep_full_event_list_access(app_client, fake_db, organizer_headers, coach_headers):
+    _seed_two_events_in_league(fake_db)
+
+    organizer_response = app_client.get("/api/leagues/league-1/events", headers=organizer_headers)
+    assert organizer_response.status_code == 200, organizer_response.text
+    organizer_ids = {event["id"] for event in organizer_response.json()["events"]}
+    assert organizer_ids == {"event-1", "event-2"}
+
+    coach_response = app_client.get("/api/leagues/league-1/events", headers=coach_headers)
+    assert coach_response.status_code == 200, coach_response.text
+    coach_ids = {event["id"] for event in coach_response.json()["events"]}
+    assert coach_ids == {"event-1", "event-2"}
+
+
+def test_scoped_viewer_players_read_is_event_scoped(app_client, fake_db):
+    _seed_two_events_in_league(fake_db)
+    viewer_headers = _scoped_viewer_headers(fake_db)
+
+    # Seed at least one player so endpoint can return normally for invited event.
+    fake_db.collection("events").document("event-1").collection("players").document("p1").set(
+        {"name": "Player One", "scores": {}}
+    )
+
+    allowed = app_client.get("/api/players?event_id=event-1", headers=viewer_headers)
+    assert allowed.status_code == 200, allowed.text
+
+    blocked = app_client.get("/api/players?event_id=event-2", headers=viewer_headers)
+    assert blocked.status_code == 403, blocked.text
