@@ -99,6 +99,21 @@ export default function JoinEvent() {
         return;
       }
 
+      const buildJoinRequestPayload = (eventIdForInvite) => {
+        const effectiveRole = (intendedRole || userRole || 'coach').toLowerCase();
+        const payload = {
+          user_id: user.uid,
+          email: user.email,
+          role: effectiveRole
+        };
+        // Critical for scoped-viewer memberships: backend only appends viewer_event_ids
+        // when invited_event_id is present on league joins.
+        if (effectiveRole === 'viewer' && eventIdForInvite) {
+          payload.invited_event_id = eventIdForInvite;
+        }
+        return payload;
+      };
+
         // Check authentication first
         if (!user) {
         // Store invitation data for after login including intended role
@@ -147,21 +162,20 @@ export default function JoinEvent() {
             
             let joinData;
             try {
-              const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
-                user_id: user.uid,
-                email: user.email,
-                role: intendedRole || userRole || 'coach'
-              });
+              const joinPayload = buildJoinRequestPayload(actualEventId);
+              const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, joinPayload);
               joinData = joinResponse.data;
               writeJoinStage('join-api-success', {
                 actualLeagueId,
                 actualEventId,
                 intendedRole,
+                joinPayload,
                 joinData
               });
               qrDebug('Join API success', {
                 url: `/leagues/join/${actualLeagueId}`,
                 status: joinResponse?.status,
+                joinPayload,
                 joinData
               });
             } catch (joinError) {
@@ -253,18 +267,17 @@ export default function JoinEvent() {
           if (!targetEvent) {
             let joinResponse;
             try {
-              joinResponse = await api.post(`/leagues/join/${actualEventId}`, {
-                user_id: user.uid,
-                email: user.email,
-                role: intendedRole || userRole || 'coach'
-              });
+              const joinPayload = buildJoinRequestPayload(actualEventId);
+              joinResponse = await api.post(`/leagues/join/${actualEventId}`, joinPayload);
               writeJoinStage('legacy-join-api-success', {
                 actualEventId,
+                joinPayload,
                 joinData: joinResponse?.data
               });
               qrDebug('Join API success', {
                 url: `/leagues/join/${actualEventId}`,
                 status: joinResponse?.status,
+                joinPayload,
                 joinData: joinResponse?.data
               });
             } catch (joinError) {
@@ -325,6 +338,18 @@ export default function JoinEvent() {
             leagueId: targetLeague?.id || null,
             role: intendedRole || userRole || 'viewer',
             source: 'join-event'
+          });
+          writeJoinStage('viewer-invite-context-persisted', {
+            selectedLeagueId: targetLeague?.id || null,
+            selectedEventId: targetEvent?.id || null,
+            selectedEventLeagueId: targetEvent?.league_id || null,
+            persistedInviteContext
+          });
+          qrDebug('Viewer invite context persisted with ids', {
+            selectedLeagueId: targetLeague?.id || null,
+            selectedEventId: targetEvent?.id || null,
+            selectedEventLeagueId: targetEvent?.league_id || null,
+            persistedInviteContext
           });
           writeJoinStage('viewer-invite-context-persist-attempted', {
             storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
