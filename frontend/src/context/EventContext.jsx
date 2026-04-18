@@ -241,7 +241,7 @@ export function EventProvider({ children }) {
       }
       
       setError(errorMessage);
-      qrEventDebug('Clearing events + selectedEvent: loadEvents failure branch', {
+      qrEventDebug('Handling loadEvents failure branch', {
         leagueId,
         errorMessage,
         status: finalErr?.response?.status
@@ -252,8 +252,21 @@ export function EventProvider({ children }) {
         errorMessage
       });
       setEvents([]);
-      setSelectedEvent(null);
-      localStorage.removeItem('selectedEvent');
+      // Preserve selected event context on transient fetch failures when it still
+      // belongs to the requested league. This avoids dropping QR-joined coaches
+      // into no-context fallbacks due to temporary backend/network errors.
+      setSelectedEvent(current => {
+        if (current?.id && current?.league_id === leagueId) {
+          qrEventDebug('Preserving selectedEvent after loadEvents failure', {
+            selectedEventId: current.id,
+            selectedEventLeagueId: current.league_id,
+            leagueId
+          });
+          return current;
+        }
+        localStorage.removeItem('selectedEvent');
+        return null;
+      });
     } finally {
       setLoading(false);
       setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure

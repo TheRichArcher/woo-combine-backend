@@ -45,6 +45,20 @@ const getStorageSnapshot = () => {
   }
 };
 
+const getPendingJoinPath = () => {
+  try {
+    const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+    if (!pendingEventJoin) return null;
+    const safePath = pendingEventJoin
+      .split('/')
+      .map(part => encodeURIComponent(part))
+      .join('/');
+    return `/join-event/${safePath}`;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * RouteDecisionGate - Centralized routing logic to prevent flicker
  *
@@ -363,6 +377,11 @@ export default function RouteDecisionGate({ children }) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
+        const pendingJoinPath = getPendingJoinPath();
+        if (pendingJoinPath) {
+          performNavigation(pendingJoinPath, 'recover pending QR join with missing context');
+          return;
+        }
         performNavigation('/coach', 'no league, will show fallback');
         return;
       }

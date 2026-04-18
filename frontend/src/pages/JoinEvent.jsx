@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useEvent } from "../context/EventContext";
@@ -47,6 +47,7 @@ export default function JoinEvent() {
   const [event, setEvent] = useState(null);
   const [league, setLeague] = useState(null);
   const [status, setStatus] = useState("checking"); // checking, found, not_found, success
+  const handledJoinKeyRef = useRef(null);
 
   useEffect(() => {
     // Wait for auth initialization to complete
@@ -98,6 +99,13 @@ export default function JoinEvent() {
         setLoading(false);
         return;
       }
+
+      const joinKey = `${user?.uid || 'anon'}:${actualLeagueId || 'none'}:${actualEventId}:${intendedRole || 'none'}`;
+      if (handledJoinKeyRef.current === joinKey) {
+        qrDebug('Skipping duplicate join flow execution', { joinKey });
+        return;
+      }
+      handledJoinKeyRef.current = joinKey;
 
       const buildJoinRequestPayload = (eventIdForInvite) => {
         const effectiveRole = (intendedRole || userRole || 'coach').toLowerCase();
@@ -398,9 +406,15 @@ export default function JoinEvent() {
             name: targetEvent?.name,
             league_id: targetEvent?.league_id
           });
-          setSelectedEvent(targetEvent);
+          // Apply league before event to avoid stale-league mismatch clears.
           qrDebug('Calling setSelectedLeagueId', { id: targetLeague?.id });
           setSelectedLeagueId(targetLeague.id);
+          qrDebug('Calling setSelectedEvent', {
+            id: targetEvent?.id,
+            name: targetEvent?.name,
+            league_id: targetEvent?.league_id
+          });
+          setSelectedEvent(targetEvent);
           writeJoinStage('selection-state-written', {
             selectedLeagueId: targetLeague?.id || null,
             selectedEventId: targetEvent?.id || null,
@@ -413,19 +427,24 @@ export default function JoinEvent() {
           // Clear any stored invitation data
           localStorage.removeItem('pendingEventJoin');
           
-          // Auto-redirect after 2 seconds to viewer-safe event stats
+          // Auto-redirect after 2 seconds.
+          // Viewer goes to standings; staff goes to coach shell with selected context.
           setTimeout(() => {
             writeJoinStage('navigate-live-standings-timeout-fired', {
               from: window.location.pathname,
               selectedLeagueId: localStorage.getItem('selectedLeagueId'),
               selectedEventRaw: localStorage.getItem('selectedEvent')
             });
-            qrDebug('Navigating to /live-standings', {
+            const destination = (intendedRole || userRole || '').toLowerCase() === 'viewer'
+              ? '/live-standings'
+              : '/coach';
+            qrDebug('Navigating after join', {
+              destination,
               from: window.location.pathname,
               selectedLeagueId: targetLeague?.id,
               selectedEventId: targetEvent?.id
             });
-            navigate("/live-standings");
+            navigate(destination);
           }, 2000);
         } else {
           throw new Error('Failed to set up event and league');

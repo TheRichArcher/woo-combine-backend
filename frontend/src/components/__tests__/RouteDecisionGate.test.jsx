@@ -49,6 +49,7 @@ describe('RouteDecisionGate QR onboarding guard', () => {
 
   beforeEach(() => {
     navigateMock.mockClear();
+    localStorage.clear();
     useNavigate.mockReturnValue(navigateMock);
     useLocation.mockReturnValue({ pathname: '/live-standings' });
     useAuth.mockReturnValue(baseAuth);
@@ -90,6 +91,32 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/coach', { replace: true });
     });
+  });
+
+  it('recovers to pending join-event path for coach when context is missing', async () => {
+    localStorage.setItem('pendingEventJoin', 'league-1/event-1/coach');
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: 'coach',
+      selectedLeagueId: '',
+      leagues: [],
+    });
+    useEvent.mockReturnValue({
+      ...baseEvent,
+      selectedEvent: null,
+      noLeague: true,
+    });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/join-event/league-1/event-1/coach', { replace: true });
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/coach', { replace: true });
   });
 
   it('redirects viewer with missing event context to /live-standings instead of /coach', async () => {
