@@ -170,14 +170,32 @@ export function EventProvider({ children }) {
             return null;
           }
 
-          if (!current?.id) return current;
+          if (!current?.id) {
+            if (scopedEvents.length > 0) {
+              const firstEvent = scopedEvents[0];
+              localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
+              return firstEvent;
+            }
+            localStorage.removeItem('selectedEvent');
+            return null;
+          }
           const refreshedEvent = scopedEvents.find(e => e.id === current.id);
           if (refreshedEvent) {
             localStorage.setItem('selectedEvent', JSON.stringify(refreshedEvent));
             logger.info('EVENT-CONTEXT', `Synced selectedEvent after refresh: ${current.id}`);
             return refreshedEvent;
           }
-          return current;
+          if (scopedEvents.length > 0) {
+            const fallbackEvent = scopedEvents[0];
+            logger.warn(
+              'EVENT-CONTEXT',
+              `Replacing stale selectedEvent ${current.id} with scoped event ${fallbackEvent.id}`
+            );
+            localStorage.setItem('selectedEvent', JSON.stringify(fallbackEvent));
+            return fallbackEvent;
+          }
+          localStorage.removeItem('selectedEvent');
+          return null;
         });
       } else {
         setSelectedEvent(current => {
@@ -196,6 +214,22 @@ export function EventProvider({ children }) {
             const firstEvent = scopedEvents[0];
             localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
             return firstEvent;
+          }
+          if (current?.id) {
+            const currentStillAccessible = scopedEvents.find(e => e.id === current.id);
+            if (!currentStillAccessible) {
+              if (scopedEvents.length > 0) {
+                const fallbackEvent = scopedEvents[0];
+                logger.warn(
+                  'EVENT-CONTEXT',
+                  `Replacing inaccessible selectedEvent ${current.id} with ${fallbackEvent.id}`
+                );
+                localStorage.setItem('selectedEvent', JSON.stringify(fallbackEvent));
+                return fallbackEvent;
+              }
+              localStorage.removeItem('selectedEvent');
+              return null;
+            }
           }
           return current;
         });

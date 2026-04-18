@@ -104,4 +104,38 @@ describe('EventContext viewer invite scoping', () => {
       expect(screen.getByTestId('event-ids')).toHaveTextContent('event-1,event-2');
     });
   });
+
+  test('replaces stale coach selectedEvent with first accessible scoped event', async () => {
+    localStorage.setItem('selectedEvent', JSON.stringify({
+      id: 'event-2',
+      name: 'Stale Event',
+      league_id: 'league-1',
+    }));
+
+    mockApiGet.mockResolvedValue({
+      data: {
+        events: [
+          { id: 'event-1', name: 'Assigned Event', league_id: 'league-1' },
+        ],
+      },
+    });
+
+    mockUseAuth.mockReturnValue({
+      selectedLeagueId: 'league-1',
+      authChecked: true,
+      roleChecked: true,
+      userRole: 'coach',
+    });
+
+    render(
+      <EventProvider>
+        <TestHarness />
+      </EventProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('event-ids')).toHaveTextContent('event-1');
+      expect(screen.getByTestId('selected-event-id')).toHaveTextContent('event-1');
+    });
+  });
 });
