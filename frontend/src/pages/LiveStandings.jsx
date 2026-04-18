@@ -27,8 +27,8 @@ const qrLiveDebug = (message, payload) => {
 };
 
 export default function LiveStandings() {
-  const { selectedEvent: selectedEventFromContext, setSelectedEvent } = useEvent();
-  const { userRole } = useAuth();
+  const { selectedEvent: selectedEventFromContext, setSelectedEvent, events, setEvents } = useEvent();
+  const { userRole, selectedLeagueId, setSelectedLeagueId } = useAuth();
   const navigate = useNavigate();
   const shouldAttemptViewerInviteRestore = userRole === 'viewer' && !selectedEventFromContext;
   const viewerInviteContext = shouldAttemptViewerInviteRestore ? readViewerInviteEventContext() : null;
@@ -44,7 +44,28 @@ export default function LiveStandings() {
       restoredLeagueId: restoredViewerEvent.league_id || viewerInviteContext?.leagueId || null
     });
     setSelectedEvent(restoredViewerEvent);
-  }, [userRole, selectedEventFromContext, restoredViewerEvent, viewerInviteContext, setSelectedEvent]);
+    if (!Array.isArray(events) || !events.some(e => e?.id === restoredViewerEvent.id)) {
+      setEvents(prev => {
+        const safePrev = Array.isArray(prev) ? prev : [];
+        if (safePrev.some(e => e?.id === restoredViewerEvent.id)) return safePrev;
+        return [restoredViewerEvent, ...safePrev];
+      });
+    }
+    const inviteLeagueId = viewerInviteContext?.leagueId || restoredViewerEvent?.league_id || null;
+    if (!selectedLeagueId && inviteLeagueId) {
+      setSelectedLeagueId(inviteLeagueId);
+    }
+  }, [
+    userRole,
+    selectedEventFromContext,
+    restoredViewerEvent,
+    viewerInviteContext,
+    setSelectedEvent,
+    events,
+    setEvents,
+    selectedLeagueId,
+    setSelectedLeagueId
+  ]);
   
   // Fetch schema for active event
   useEffect(() => {

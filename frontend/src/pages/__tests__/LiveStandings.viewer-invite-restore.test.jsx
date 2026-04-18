@@ -3,6 +3,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import LiveStandings from '../LiveStandings';
 
 const mockSetSelectedEvent = jest.fn();
+const mockSetEvents = jest.fn();
+const mockSetSelectedLeagueId = jest.fn();
 const mockUseEvent = jest.fn();
 const mockUseAuth = jest.fn();
 const mockApiGet = jest.fn();
@@ -64,10 +66,16 @@ describe('LiveStandings viewer invite restoration', () => {
     localStorage.clear();
 
     currentRole = 'viewer';
-    mockUseAuth.mockImplementation(() => ({ userRole: currentRole }));
+    mockUseAuth.mockImplementation(() => ({
+      userRole: currentRole,
+      selectedLeagueId: '',
+      setSelectedLeagueId: mockSetSelectedLeagueId,
+    }));
     mockUseEvent.mockReturnValue({
       selectedEvent: null,
       setSelectedEvent: mockSetSelectedEvent,
+      events: [],
+      setEvents: mockSetEvents,
     });
     mockApiGet.mockImplementation((url) => {
       if (String(url).includes('/players?event_id=')) {
@@ -97,6 +105,8 @@ describe('LiveStandings viewer invite restoration', () => {
         expect.objectContaining({ id: 'event-42', name: 'Invite Restored Event' })
       );
     });
+    expect(mockSetSelectedLeagueId).toHaveBeenCalledWith('league-9');
+    expect(mockSetEvents).toHaveBeenCalled();
 
     expect(screen.queryByText('No Event Selected')).not.toBeInTheDocument();
     expect(screen.getByText('Live Standings')).toBeInTheDocument();
@@ -125,6 +135,8 @@ describe('LiveStandings viewer invite restoration', () => {
         expect.objectContaining({ id: 'event-99', name: 'Hydrated Event' })
       );
     });
+    expect(mockSetSelectedLeagueId).toHaveBeenCalledWith('league-5');
+    expect(mockSetEvents).toHaveBeenCalled();
 
     expect(screen.queryByText('No Event Selected')).not.toBeInTheDocument();
     expect(screen.getByText('Hydrated Event')).toBeInTheDocument();
