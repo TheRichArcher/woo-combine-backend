@@ -11,6 +11,7 @@ import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
+import { readViewerInviteEventContext } from '../lib/viewerInviteContext';
 
 const isQrDebugEnabled = () => {
   try {
@@ -26,10 +27,24 @@ const qrLiveDebug = (message, payload) => {
 };
 
 export default function LiveStandings() {
-  const { selectedEvent } = useEvent();
+  const { selectedEvent: selectedEventFromContext, setSelectedEvent } = useEvent();
   const { userRole } = useAuth();
   const navigate = useNavigate();
+  const shouldAttemptViewerInviteRestore = userRole === 'viewer' && !selectedEventFromContext;
+  const viewerInviteContext = shouldAttemptViewerInviteRestore ? readViewerInviteEventContext() : null;
+  const restoredViewerEvent = viewerInviteContext?.event || null;
+  const selectedEvent = selectedEventFromContext || restoredViewerEvent;
   const [activeSchema, setActiveSchema] = useState(null);
+
+  useEffect(() => {
+    if (userRole !== 'viewer') return;
+    if (selectedEventFromContext || !restoredViewerEvent?.id) return;
+    qrLiveDebug('Restoring selectedEvent from viewer invite context', {
+      restoredEventId: restoredViewerEvent.id,
+      restoredLeagueId: restoredViewerEvent.league_id || viewerInviteContext?.leagueId || null
+    });
+    setSelectedEvent(restoredViewerEvent);
+  }, [userRole, selectedEventFromContext, restoredViewerEvent, viewerInviteContext, setSelectedEvent]);
   
   // Fetch schema for active event
   useEffect(() => {
@@ -118,10 +133,12 @@ export default function LiveStandings() {
       pathname: window.location.pathname,
       selectedEventId: selectedEvent?.id || null,
       selectedEventLeagueId: selectedEvent?.league_id || null,
+      selectedEventFromContextId: selectedEventFromContext?.id || null,
       selectedLeagueId: selectedLeagueId || null,
-      selectedEventRaw
+      selectedEventRaw,
+      restoredViewerEventId: restoredViewerEvent?.id || null
     });
-  }, [selectedEvent]);
+  }, [selectedEvent, selectedEventFromContext, restoredViewerEvent]);
 
   // Initialize weights when drills change
   useEffect(() => {

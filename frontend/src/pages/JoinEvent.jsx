@@ -6,6 +6,7 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import api from '../lib/api';
+import { persistViewerInviteEventContext } from '../lib/viewerInviteContext';
 
 const isQrDebugEnabled = () => {
   try {
@@ -319,6 +320,12 @@ export default function JoinEvent() {
         if (targetEvent && targetLeague) {
           setEvent(targetEvent);
           setLeague(targetLeague);
+          persistViewerInviteEventContext({
+            event: targetEvent,
+            leagueId: targetLeague?.id || null,
+            role: intendedRole || userRole || 'viewer',
+            source: 'join-event'
+          });
           qrDebug('Calling setSelectedEvent', {
             id: targetEvent?.id,
             name: targetEvent?.name,
