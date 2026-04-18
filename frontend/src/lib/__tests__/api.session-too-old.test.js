@@ -56,7 +56,12 @@ describe('api 401 handling for stale sessions', () => {
 
     const err = {
       response: { status: 401, data: { detail: 'Session too old' } },
-      config: { url: '/leagues/me', headers: {} }
+      config: {
+        url: '/leagues/me',
+        headers: {},
+        _authGeneration: 0,
+        _authUidSnapshot: 'user-1'
+      }
     };
 
     await expect(authErrorHandler(err)).rejects.toBe(err);
@@ -71,6 +76,22 @@ describe('api 401 handling for stale sessions', () => {
     expect(expiredEventListener).toHaveBeenCalledTimes(1);
 
     window.removeEventListener('wc-session-expired', expiredEventListener);
+  });
+
+  test('stale pre-login "Session too old" response is ignored for logged-in user', async () => {
+    const { authErrorHandler, mockSignOut } = makeHarness({
+      currentUser: { uid: 'user-1' }
+    });
+
+    const err = {
+      response: { status: 401, data: { detail: 'Session too old' } },
+      // Represents a request started before login/user hydration.
+      config: { url: '/leagues/me', headers: {}, _authGeneration: 0, _authUidSnapshot: null }
+    };
+
+    await expect(authErrorHandler(err)).rejects.toBe(err);
+    expect(mockSignOut).not.toHaveBeenCalled();
+    expect(window.location.pathname + window.location.search).toBe('/dashboard?tab=leagues');
   });
 
   test('other 401s do not force sign-out when auth user exists', async () => {

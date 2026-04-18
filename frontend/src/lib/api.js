@@ -69,8 +69,14 @@ const decodeJwtPayload = (token) => {
 const LOGOUT_BROADCAST_KEY = 'wc-logout';
 const SESSION_STALE_KEY = 'wc-session-stale';
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const SESSION_STALE_GRACE_MS = 5000;
 let refreshPromise = null;
 let crossTabListenersInitialized = false;
+let authGeneration = 0;
+let lastSeenAuthUid;
+let lastSeenTokenIat = null;
+let lastLoginAtMs = 0;
+const inflightRequestControllers = new Set();
 const QR_DEBUG_KEY = 'debug_qr_flow';
 
 const isQrDebugEnabled = () => {
@@ -153,6 +159,75 @@ const emitSessionExpired = () => {
   }
 };
 
+const bumpAuthGeneration = (reason) => {
+  authGeneration += 1;
+  apiLogger.info(`[API] Auth generation -> ${authGeneration} (${reason})`);
+};
+
+const cancelInFlightRequests = (reason) => {
+  for (const controller of inflightRequestControllers) {
+    try {
+      controller.abort(reason);
+    } catch {
+      /* ignore */
+    }
+  }
+  inflightRequestControllers.clear();
+};
+
+const reconcileAuthGeneration = ({ uid, tokenIat }) => {
+  if (typeof lastSeenAuthUid === 'undefined') {
+    lastSeenAuthUid = uid;
+    lastSeenTokenIat = tokenIat || null;
+    return;
+  }
+
+  if (uid !== lastSeenAuthUid) {
+    bumpAuthGeneration('uid changed');
+    if (uid) {
+      lastLoginAtMs = Date.now();
+    }
+    lastSeenAuthUid = uid;
+    lastSeenTokenIat = tokenIat || null;
+    cancelInFlightRequests('auth uid transition');
+    return;
+  }
+
+  if (uid && tokenIat && lastSeenTokenIat && tokenIat !== lastSeenTokenIat) {
+    bumpAuthGeneration('token iat changed');
+    lastLoginAtMs = Date.now();
+    lastSeenTokenIat = tokenIat;
+    cancelInFlightRequests('auth token transition');
+    return;
+  }
+
+  if (uid && tokenIat && !lastSeenTokenIat) {
+    lastSeenTokenIat = tokenIat;
+  }
+};
+
+const attachRequestSessionSnapshot = (config, uid) => {
+  config._authGeneration = authGeneration;
+  config._authUidSnapshot = uid || null;
+  config._requestStartedAt = Date.now();
+};
+
+const registerInternalAbortController = (config) => {
+  // Respect caller-provided signal; only manage controllers for internal requests.
+  if (config.signal) return;
+  const controller = new AbortController();
+  config.signal = controller.signal;
+  config._internalAbortController = controller;
+  inflightRequestControllers.add(controller);
+};
+
+const releaseInternalAbortController = (config) => {
+  const controller = config?._internalAbortController;
+  if (!controller) return;
+  inflightRequestControllers.delete(controller);
+  config._internalAbortController = null;
+};
+
 const initCrossTabListeners = () => {
   if (crossTabListenersInitialized || typeof window === 'undefined') return;
   window.addEventListener('storage', (event) => {
@@ -212,9 +287,13 @@ const api = axios.create({
 
 // Enhanced retry logic with exponential backoff
 api.interceptors.response.use(
-  response => response,
+  response => {
+    releaseInternalAbortController(response?.config);
+    return response;
+  },
   async (error) => {
     const config = error.config;
+    releaseInternalAbortController(config);
     
     // Some network failures (CORS, browser cancellations) produce errors without config.
     // In those cases we can't retry, so fail fast to avoid undefined config access crashes.
@@ -294,6 +373,7 @@ api.interceptors.response.use(
 api.interceptors.request.use(async (config) => {
   // Add Authorization header if authenticated
   const user = auth.currentUser;
+  const uid = user?.uid || null;
   const reqPath = String(config?.url || '');
   const isAuthCriticalPath = reqPath.includes('/users/me') || reqPath.includes('/users/role') || reqPath.includes('/leagues/me');
   
@@ -306,6 +386,8 @@ api.interceptors.request.use(async (config) => {
 
       const token = await ensureFreshToken(isAuthCriticalPath);
       if (token) {
+        const payload = decodeJwtPayload(token);
+        reconcileAuthGeneration({ uid, tokenIat: payload?.iat || null });
         config.headers = config.headers || {};
         config.headers['Authorization'] = `Bearer ${token}`;
       }
@@ -313,8 +395,12 @@ api.interceptors.request.use(async (config) => {
       apiLogger.warn('Failed to get auth token', authError);
     }
   } else {
+    reconcileAuthGeneration({ uid: null, tokenIat: null });
     markSessionStale();
   }
+
+  attachRequestSessionSnapshot(config, uid);
+  registerInternalAbortController(config);
   
   // Return the config for the current request
   return config;
@@ -322,8 +408,12 @@ api.interceptors.request.use(async (config) => {
 
 // Enhanced error handling with user-friendly messages and auth handling
 api.interceptors.response.use(
-  response => response,
+  response => {
+    releaseInternalAbortController(response?.config);
+    return response;
+  },
   error => {
+    releaseInternalAbortController(error?.config);
     try {
       // Surface 429 with retry-after if present
       if (error.response?.status === 429) {
@@ -351,7 +441,24 @@ api.interceptors.response.use(
       const detail = error.response?.data?.detail;
       const isSessionTooOld = detail === 'Session too old';
       if (isSessionTooOld) {
+        const requestGeneration = error.config?._authGeneration;
+        const requestUid = error.config?._authUidSnapshot || null;
+        const currentUid = auth.currentUser?.uid || null;
+        const generationMatches = requestGeneration === authGeneration;
+        const uidMatches = requestUid === currentUid;
+        const withinLoginGrace = !!currentUid && (Date.now() - lastLoginAtMs) < SESSION_STALE_GRACE_MS;
+        const shouldForceLogout = !!currentUid && generationMatches && uidMatches && !withinLoginGrace;
+
+        if (!shouldForceLogout) {
+          apiLogger.info(
+            '[API] Ignoring stale-session 401 from non-current auth context',
+            { requestUid, currentUid, requestGeneration, currentGeneration: authGeneration, withinLoginGrace }
+          );
+          return Promise.reject(error);
+        }
+
         apiLogger.warn('401 Session too old - forcing re-authentication');
+        cancelInFlightRequests('stale-session logout');
         clearLocalAuthState();
         try { signOut(auth).catch(() => {}); } catch {}
         broadcastLogout();
