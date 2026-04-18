@@ -71,3 +71,26 @@ export const readViewerInviteEventContext = () => {
     return null;
   }
 };
+
+export const getViewerInviteEventLock = ({ userRole, inviteContext } = {}) => {
+  if (userRole && userRole !== 'viewer') return null;
+
+  const context = inviteContext || readViewerInviteEventContext();
+  if (!context) return null;
+
+  const role = (context.role || '').toLowerCase();
+  const source = (context.source || '').toLowerCase();
+  const eventId = context.eventId || context.event?.id || null;
+  const leagueId = context.leagueId || context.event?.league_id || null;
+
+  // Only lock sessions that originated from viewer invite flow.
+  if (role && role !== 'viewer') return null;
+  if (source !== 'join-event') return null;
+  if (!eventId) return null;
+
+  return { eventId, leagueId };
+};
+
+export const isViewerInviteEventScopedSession = (options = {}) => {
+  return Boolean(getViewerInviteEventLock(options));
+};

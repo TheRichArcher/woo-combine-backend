@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import api from '../lib/api';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
 import { logger } from '../utils/logger';
+import { getViewerInviteEventLock } from '../lib/viewerInviteContext';
 
 const EventContext = createContext();
 
@@ -35,7 +36,7 @@ const writeLastContextClear = (reason, payload = {}) => {
 };
 
 export function EventProvider({ children }) {
-  const { selectedLeagueId, authChecked, roleChecked } = useAuth();
+  const { selectedLeagueId, authChecked, roleChecked, userRole } = useAuth();
   const [events, setEvents] = useState([]);
   
   // Initialize selectedEvent from localStorage if available
@@ -146,12 +147,32 @@ export function EventProvider({ children }) {
     const fetchAndApply = async () => {
       const eventsData = await cachedFetchEvents(leagueId);
       const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
-      setEvents(activeEvents);
+      const viewerInviteLock = getViewerInviteEventLock({ userRole });
+      const shouldScopeToInviteEvent = Boolean(
+        userRole === 'viewer' &&
+        viewerInviteLock?.eventId &&
+        (!viewerInviteLock.leagueId || viewerInviteLock.leagueId === leagueId)
+      );
+      const scopedEvents = shouldScopeToInviteEvent
+        ? activeEvents.filter(event => event.id === viewerInviteLock.eventId)
+        : activeEvents;
+      setEvents(scopedEvents);
       
       if (options.syncSelectedEvent) {
         setSelectedEvent(current => {
+          if (shouldScopeToInviteEvent) {
+            const lockedEvent = scopedEvents.find(e => e.id === viewerInviteLock.eventId);
+            if (lockedEvent) {
+              localStorage.setItem('selectedEvent', JSON.stringify(lockedEvent));
+              return lockedEvent;
+            }
+            if (current?.id === viewerInviteLock.eventId) return current;
+            localStorage.removeItem('selectedEvent');
+            return null;
+          }
+
           if (!current?.id) return current;
-          const refreshedEvent = activeEvents.find(e => e.id === current.id);
+          const refreshedEvent = scopedEvents.find(e => e.id === current.id);
           if (refreshedEvent) {
             localStorage.setItem('selectedEvent', JSON.stringify(refreshedEvent));
             logger.info('EVENT-CONTEXT', `Synced selectedEvent after refresh: ${current.id}`);
@@ -161,8 +182,19 @@ export function EventProvider({ children }) {
         });
       } else {
         setSelectedEvent(current => {
-          if (!current && activeEvents.length > 0) {
-            const firstEvent = activeEvents[0];
+          if (shouldScopeToInviteEvent) {
+            const lockedEvent = scopedEvents.find(e => e.id === viewerInviteLock.eventId);
+            if (lockedEvent) {
+              localStorage.setItem('selectedEvent', JSON.stringify(lockedEvent));
+              return lockedEvent;
+            }
+            if (current?.id === viewerInviteLock.eventId) return current;
+            localStorage.removeItem('selectedEvent');
+            return null;
+          }
+
+          if (!current && scopedEvents.length > 0) {
+            const firstEvent = scopedEvents[0];
             localStorage.setItem('selectedEvent', JSON.stringify(firstEvent));
             return firstEvent;
           }
@@ -227,7 +259,7 @@ export function EventProvider({ children }) {
       setLoading(false);
       setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure
     }
-  }, []); // FIXED: No selectedEvent dep to prevent circular dependency
+  }, [cachedFetchEvents, selectedLeagueId, userRole]); // FIXED: No selectedEvent dep to prevent circular dependency
 
   // Load events when league changes, restoring previous selection if still valid
   useEffect(() => {

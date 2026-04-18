@@ -8,13 +8,14 @@
 //
 // Any changes to nav logic, layout, or visibility must go through checkpoint approval.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth, useLogout } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import { useToast } from '../context/ToastContext';
 import { Menu, ChevronDown, Settings, LogOut, X, Edit, Users, Plus, UserPlus, Bell, BellOff, CreditCard, HelpCircle, MessageCircle, Heart, QrCode, Wrench, ArrowRight, ClipboardCheck } from 'lucide-react';
 import EventSwitcher from './EventSwitcher';
+import { isViewerInviteEventScopedSession } from '../lib/viewerInviteContext';
 
 // Notification settings helper
 const NOTIFICATION_STORAGE_KEY = 'woo-combine-notifications-enabled';
@@ -29,7 +30,7 @@ const setNotificationSettings = (enabled) => {
 };
 
 // Profile Modal Component
-function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
+function ProfileModal({ isOpen, onClose, user, userRole, onLogout, hideEventSwitchActions = false }) {
   const navigate = useNavigate();
   const { showSuccess, showInfo } = useToast();
   const [notificationsEnabled, setNotificationsEnabled] = useState(getNotificationSettings());
@@ -109,13 +110,15 @@ function ProfileModal({ isOpen, onClose, user, userRole, onLogout }) {
         {/* Menu Items */}
         <div className="p-4 space-y-2">
           {/* My Events -> Switch Event */}
-          <button
-            onClick={() => handleNavigation('/select-league')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
-          >
-            <Users className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-900">Switch Event</span>
-          </button>
+          {!hideEventSwitchActions && (
+            <button
+              onClick={() => handleNavigation('/select-league')}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 rounded-lg transition"
+            >
+              <Users className="w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-900">Switch Event</span>
+            </button>
+          )}
 
           {/* Create an Event */}
           {userRole === 'organizer' && (
@@ -258,6 +261,7 @@ export default function Navigation() {
   const navigate = useNavigate();
   const location = useLocation();
   const { showInfo } = useToast();
+  const isViewerInviteLockedSession = isViewerInviteEventScopedSession({ userRole });
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -316,8 +320,15 @@ export default function Navigation() {
   };
 
   const handleEventDropdownClick = () => {
+    if (isViewerInviteLockedSession) return;
     setEventSwitcherOpen(!eventSwitcherOpen);
   };
+
+  useEffect(() => {
+    if (isViewerInviteLockedSession && eventSwitcherOpen) {
+      setEventSwitcherOpen(false);
+    }
+  }, [isViewerInviteLockedSession, eventSwitcherOpen]);
 
   const handleLogout = async () => {
     try {
@@ -361,7 +372,7 @@ export default function Navigation() {
           <div className="flex-1 flex justify-start min-w-0 mr-2 relative">
             <button
               onClick={handleEventDropdownClick}
-              className="flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-gray-50 transition min-w-0 max-w-full"
+              className={`flex items-center gap-1 px-2 py-2 rounded-lg transition min-w-0 max-w-full ${isViewerInviteLockedSession ? 'cursor-default' : 'hover:bg-gray-50'}`}
             >
               <div className="text-left min-w-0 flex-1">
                 <div className="font-bold text-sm md:text-lg text-gray-900 truncate">
@@ -373,11 +384,13 @@ export default function Navigation() {
                   </div>
                 )}
               </div>
-              <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0 transition-transform ${eventSwitcherOpen ? 'rotate-180' : ''}`} />
+              {!isViewerInviteLockedSession && (
+                <ChevronDown className={`w-4 h-4 md:w-5 md:h-5 text-gray-400 flex-shrink-0 transition-transform ${eventSwitcherOpen ? 'rotate-180' : ''}`} />
+              )}
             </button>
             
             {/* Event Switcher Dropdown */}
-            {eventSwitcherOpen && (
+            {!isViewerInviteLockedSession && eventSwitcherOpen && (
               <EventSwitcher 
                 isOpen={eventSwitcherOpen} 
                 onClose={() => setEventSwitcherOpen(false)} 
@@ -656,13 +669,15 @@ export default function Navigation() {
               </Link>
             )}
 
-            <Link 
-              to="/select-league" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={closeMobile}
-            >
-              Switch Event
-            </Link>
+            {!isViewerInviteLockedSession && (
+              <Link 
+                to="/select-league" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={closeMobile}
+              >
+                Switch Event
+              </Link>
+            )}
             <Link 
               to="/join" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -736,6 +751,7 @@ export default function Navigation() {
         user={user}
         userRole={userRole}
         onLogout={handleLogout}
+        hideEventSwitchActions={isViewerInviteLockedSession}
       />
 
       {/* Mobile Bottom Nav (3-tab) */}

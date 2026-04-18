@@ -22,6 +22,8 @@ import { Link } from 'react-router-dom';
 import { ChevronRight, Calendar } from 'lucide-react';
 import Navigation from '../Navigation';
 import { useEvent } from '../../context/EventContext';
+import { useAuth } from '../../context/AuthContext';
+import { isViewerInviteEventScopedSession } from '../../lib/viewerInviteContext';
 import { parseISO, isValid, format } from 'date-fns';
 
 export default function AppLayout({ 
@@ -34,6 +36,8 @@ export default function AppLayout({
   children 
 }) {
   const { selectedEvent } = useEvent();
+  const { userRole } = useAuth();
+  const hideEventSwitchLink = isViewerInviteEventScopedSession({ userRole });
 
   const maxWidthClasses = {
     sm: 'max-w-sm',
@@ -99,12 +103,14 @@ export default function AppLayout({
                     </div>
                   </div>
                 </div>
-                <Link
-                  to="/select-league"
-                  className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium"
-                >
-                  Switch Event
-                </Link>
+                {!hideEventSwitchLink && (
+                  <Link
+                    to="/select-league"
+                    className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium"
+                  >
+                    Switch Event
+                  </Link>
+                )}
               </div>
             </div>
           )}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
 // Mock firebase before anything imports it
@@ -35,6 +35,17 @@ const mockAuthContext = {
   loading: false,
 };
 
+const mockEventContext = {
+  events: [
+    { id: 'event-1', name: 'Invite Event', date: '2026-01-01' },
+    { id: 'event-2', name: 'Other League Event', date: '2026-01-02' },
+  ],
+  selectedEvent: { id: 'event-1', name: 'Invite Event', date: '2026-01-01' },
+  setSelectedEvent: jest.fn(),
+  setEvents: jest.fn(),
+  refreshEvents: jest.fn(),
+};
+
 jest.mock('../../context/AuthContext', () => ({
   __esModule: true,
   AuthProvider: ({ children }) => children,
@@ -45,7 +56,7 @@ jest.mock('../../context/AuthContext', () => ({
 jest.mock('../../context/EventContext', () => ({
   __esModule: true,
   EventProvider: ({ children }) => children,
-  useEvent: () => ({ events: [], selectedEvent: null }),
+  useEvent: () => mockEventContext,
 }));
 
 jest.mock('../../context/ToastContext', () => ({
@@ -59,6 +70,7 @@ import Navigation from '../Navigation';
 describe('Navigation', () => {
   afterEach(() => {
     mockAuthContext.userRole = 'organizer';
+    localStorage.clear();
   });
 
   it('renders navigation for authenticated user', () => {
@@ -92,5 +104,43 @@ describe('Navigation', () => {
 
     const playerLinks = container.querySelectorAll('a[href^="/players"]');
     expect(playerLinks.length).toBe(0);
+  });
+
+  it('prevents locked viewer from opening event switcher list', () => {
+    mockAuthContext.userRole = 'viewer';
+    localStorage.setItem('viewerInviteEventContext', JSON.stringify({
+      eventId: 'event-1',
+      leagueId: 'league1',
+      role: 'viewer',
+      source: 'join-event',
+      event: { id: 'event-1', name: 'Invite Event' },
+      timestamp: new Date().toISOString(),
+    }));
+
+    render(
+      <BrowserRouter>
+        <Navigation />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /invite event/i }));
+    expect(screen.queryByText('Switch Event')).not.toBeInTheDocument();
+    expect(screen.queryByText('Other League Event')).not.toBeInTheDocument();
+  });
+
+  it('allows organizer to view full event switcher list', async () => {
+    mockAuthContext.userRole = 'organizer';
+
+    render(
+      <BrowserRouter>
+        <Navigation />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /invite event/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Other League Event')).toBeInTheDocument();
+    });
   });
 });
