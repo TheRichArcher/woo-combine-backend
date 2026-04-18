@@ -285,6 +285,53 @@ def _is_draft_admin(user: dict, draft_data: dict) -> bool:
         return False
 
 
+def _is_staff_user(user: dict) -> bool:
+    return user.get("role") in {"organizer", "coach"}
+
+
+def _require_draft_staff(user: dict, *, operation_name: str) -> None:
+    # Global viewers are read-only even when they can view draft data.
+    if not _is_staff_user(user):
+        raise HTTPException(
+            status_code=403,
+            detail=f"{operation_name} is restricted to staff roles",
+        )
+
+
+def _ensure_team_coach_or_admin(
+    *,
+    db,
+    user: dict,
+    draft_data: dict,
+    team_id: str,
+    operation_name: str,
+) -> dict:
+    team_doc = db.collection("draft_teams").document(team_id).get()
+    if not team_doc.exists:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    team_data = team_doc.to_dict() or {}
+    if team_data.get("draft_id") != draft_data.get("id"):
+        raise HTTPException(status_code=400, detail="Team not in this draft")
+
+    is_admin = _is_draft_admin(user, draft_data)
+    is_team_coach = team_data.get("coach_user_id") == user["uid"]
+
+    if not is_admin and not is_team_coach:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Not authorized for {operation_name}",
+        )
+
+    if is_team_coach and not _is_staff_user(user):
+        raise HTTPException(
+            status_code=403,
+            detail=f"{operation_name} is restricted to staff roles",
+        )
+
+    return team_data
+
+
 def _get_pick_for_player(db, draft_id: str, player_id: str):
     pick_query = (
         db.collection("draft_picks")
@@ -922,18 +969,17 @@ async def make_pick(
         raise HTTPException(status_code=400, detail="Draft is not active")
 
     current_team_id = draft_data.get("current_team_id")
+    if not current_team_id:
+        raise HTTPException(status_code=400, detail="Draft is missing current team")
 
-    # Verify it's user's turn (or user is admin)
-    team_doc = db.collection("draft_teams").document(current_team_id).get()
-    if not team_doc.exists:
-        raise HTTPException(status_code=500, detail="Current team not found")
-
-    team_data = team_doc.to_dict()
-    is_admin = draft_data.get("created_by") == user["uid"]
-    is_coach = team_data.get("coach_user_id") == user["uid"]
-
-    if not is_admin and not is_coach:
-        raise HTTPException(status_code=403, detail="Not your turn to pick")
+    # Pick mutations are staff-only and must be team-owned or admin-authorized.
+    _ensure_team_coach_or_admin(
+        db=db,
+        user=user,
+        draft_data=draft_data,
+        team_id=current_team_id,
+        operation_name="pick submission",
+    )
 
     # Check player isn't already drafted
     existing_pick = (
@@ -1056,7 +1102,6 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
     """
     Trigger auto-pick for the current team if timer has expired.
     Uses coach's rankings if available, otherwise uses composite score.
-    Can be called by anyone (timer validation happens server-side).
     """
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
@@ -1077,13 +1122,16 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
             raise HTTPException(status_code=400, detail="Timer has not expired yet")
 
     current_team_id = draft_data.get("current_team_id")
+    if not current_team_id:
+        raise HTTPException(status_code=400, detail="Draft is missing current team")
 
-    # Get coach's rankings for this team
-    team_doc = db.collection("draft_teams").document(current_team_id).get()
-    if not team_doc.exists:
-        raise HTTPException(status_code=500, detail="Current team not found")
-
-    team_data = team_doc.to_dict()
+    team_data = _ensure_team_coach_or_admin(
+        db=db,
+        user=user,
+        draft_data=draft_data,
+        team_id=current_team_id,
+        operation_name="auto-pick",
+    )
     coach_user_id = team_data.get("coach_user_id")
 
     # Try to get coach rankings
@@ -1319,6 +1367,7 @@ async def save_rankings(
     """Save the current user's player rankings."""
     db = get_firestore_client()
     _verify_draft_access(db, draft_id, user)
+    _require_draft_staff(user, operation_name="Ranking updates")
 
     # Check if ranking exists
     ranking_query = (
@@ -1518,6 +1567,7 @@ async def create_trade(
     """Create a trade proposal."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
+    _require_draft_staff(user, operation_name="Trade proposals")
 
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -1549,6 +1599,21 @@ async def create_trade(
         )
 
     is_admin = _is_draft_admin(user, draft_data)
+    if not is_admin:
+        offering_team_doc = (
+            db.collection("draft_teams").document(trade_in.offering_team_id).get()
+        )
+        if not offering_team_doc.exists:
+            raise HTTPException(status_code=404, detail="Offering team not found")
+        offering_team_data = offering_team_doc.to_dict() or {}
+        if offering_team_data.get("draft_id") != draft_id:
+            raise HTTPException(status_code=400, detail="Offering team not in this draft")
+        if offering_team_data.get("coach_user_id") != user["uid"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Only the offering team's coach or draft admin can propose trades",
+            )
+
     requires_approval = draft_data.get("trades_require_approval", True)
 
     trade_id = generate_id("trade_")

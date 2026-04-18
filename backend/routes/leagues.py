@@ -366,7 +366,10 @@ def join_league(
 
     # Whitelist allowed roles
     if requested_role not in ["coach", "viewer", "player"]:
-        requested_role = "coach"  # Default safe fallback
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid role. Allowed roles are: coach, viewer, player",
+        )
 
     role = requested_role
 

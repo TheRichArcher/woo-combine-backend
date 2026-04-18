@@ -70,3 +70,15 @@ def test_join_league_persists_viewer_event_scope(app_client, fake_db):
     )
     assert r.status_code == 200, r.text
     assert r.json().get("invited_event_id") == "event-1"
+
+
+def test_join_league_invalid_role_returns_400(app_client, fake_db, coach_headers):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "superuser"},
+        headers=coach_headers,
+    )
+
+    assert r.status_code == 400, r.text

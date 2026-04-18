@@ -112,12 +112,10 @@ async def get_draft_pricing(
 ) -> PricingResponse:
     """Get pricing info for a draft."""
     db = get_firestore_client()
+    # Reuse draft access guard so pricing is only visible to authorized members.
+    from .drafts import _verify_draft_access
 
-    draft_doc = db.collection("drafts").document(draft_id).get()
-    if not draft_doc.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-
-    draft = draft_doc.to_dict()
+    _, draft = _verify_draft_access(db, draft_id, user)
 
     # Count teams and players
     teams = list(

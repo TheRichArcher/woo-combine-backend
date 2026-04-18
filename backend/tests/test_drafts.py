@@ -517,3 +517,268 @@ def test_rankings_outsider_write_blocked_and_not_persisted(app_client, fake_db):
         if doc.to_dict().get("draft_id") == draft_id
     ]
     assert ranking_docs == []
+
+
+def _seed_active_pickable_draft(
+    fake_db,
+    *,
+    draft_id: str,
+    team_id: str,
+    created_by: str,
+    team_coach_user_id: str,
+    auto_pick_on_timeout: bool = True,
+):
+    fake_db.collection("drafts").document(draft_id).set(
+        {
+            "id": draft_id,
+            "name": "Active Draft",
+            "league_id": "league-1",
+            "created_by": created_by,
+            "status": "active",
+            "draft_type": "snake",
+            "num_rounds": 1,
+            "num_teams": 1,
+            "team_order": [team_id],
+            "current_round": 1,
+            "current_pick": 1,
+            "current_team_id": team_id,
+            "pick_timer_seconds": 0,
+            "pick_deadline": None,
+            "auto_pick_on_timeout": auto_pick_on_timeout,
+            "trades_enabled": True,
+            "trades_require_approval": True,
+            "event_id": None,
+            "event_ids": [],
+        }
+    )
+    fake_db.collection("draft_teams").document(team_id).set(
+        {
+            "id": team_id,
+            "draft_id": draft_id,
+            "team_name": "Team One",
+            "coach_user_id": team_coach_user_id,
+            "coach_name": "Coach One",
+        }
+    )
+
+
+def _seed_viewer_headers(fake_db, *, uid: str):
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": f"{uid}@example.com", "role": "viewer"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "viewer"}}}
+    )
+    return {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email=f'{uid}@example.com', email_verified=True)}"
+    }
+
+
+def test_viewer_cannot_make_pick_even_if_team_assigned(app_client, fake_db):
+    draft_id = "viewer-pick-denied-draft"
+    team_id = "viewer-pick-denied-team"
+    viewer_uid = "viewer-pick-denied-1"
+    headers = _seed_viewer_headers(fake_db, uid=viewer_uid)
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id=viewer_uid,
+    )
+    fake_db.collection("draft_players").document("dp-viewer-pick").set(
+        {"id": "dp-viewer-pick", "draft_id": draft_id, "name": "Available Player"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "dp-viewer-pick"},
+        headers=headers,
+    )
+
+    assert r.status_code == 403, r.text
+
+
+def test_viewer_cannot_auto_pick_even_if_team_assigned(app_client, fake_db):
+    draft_id = "viewer-auto-denied-draft"
+    team_id = "viewer-auto-denied-team"
+    viewer_uid = "viewer-auto-denied-1"
+    headers = _seed_viewer_headers(fake_db, uid=viewer_uid)
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id=viewer_uid,
+        auto_pick_on_timeout=True,
+    )
+    fake_db.collection("draft_players").document("dp-viewer-auto").set(
+        {"id": "dp-viewer-auto", "draft_id": draft_id, "name": "Available Player"}
+    )
+
+    r = app_client.post(f"/api/drafts/{draft_id}/picks/auto", headers=headers)
+
+    assert r.status_code == 403, r.text
+
+
+def test_viewer_cannot_save_rankings(app_client, fake_db):
+    draft_id = "viewer-rankings-denied-draft"
+    viewer_uid = "viewer-rankings-denied-1"
+    headers = _seed_viewer_headers(fake_db, uid=viewer_uid)
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id="viewer-rankings-team",
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+
+    r = app_client.put(
+        f"/api/drafts/{draft_id}/rankings",
+        json={"ranked_player_ids": ["p1", "p2"]},
+        headers=headers,
+    )
+
+    assert r.status_code == 403, r.text
+
+
+def test_viewer_cannot_create_trade_even_if_offering_team_assigned(app_client, fake_db):
+    draft_id = "viewer-trade-denied-draft"
+    viewer_uid = "viewer-trade-denied-1"
+    headers = _seed_viewer_headers(fake_db, uid=viewer_uid)
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id="viewer-trade-team-offer",
+        created_by="org-1",
+        team_coach_user_id=viewer_uid,
+    )
+    fake_db.collection("draft_teams").document("viewer-trade-team-recv").set(
+        {
+            "id": "viewer-trade-team-recv",
+            "draft_id": draft_id,
+            "team_name": "Team Two",
+            "coach_user_id": "coach-2",
+        }
+    )
+    fake_db.collection("draft_picks").document("pick-viewer-offer").set(
+        {
+            "id": "pick-viewer-offer",
+            "draft_id": draft_id,
+            "team_id": "viewer-trade-team-offer",
+            "player_id": "player-offer",
+        }
+    )
+    fake_db.collection("draft_picks").document("pick-viewer-recv").set(
+        {
+            "id": "pick-viewer-recv",
+            "draft_id": draft_id,
+            "team_id": "viewer-trade-team-recv",
+            "player_id": "player-recv",
+        }
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/trades",
+        json={
+            "offering_team_id": "viewer-trade-team-offer",
+            "receiving_team_id": "viewer-trade-team-recv",
+            "offering_player_id": "player-offer",
+            "receiving_player_id": "player-recv",
+        },
+        headers=headers,
+    )
+
+    assert r.status_code == 403, r.text
+
+
+def test_admin_can_still_trigger_auto_pick_mutation(app_client, fake_db, organizer_headers):
+    draft_id = "admin-auto-allowed-draft"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id="admin-auto-team",
+        created_by="creator-x",
+        team_coach_user_id="coach-1",
+        auto_pick_on_timeout=True,
+    )
+    fake_db.collection("draft_players").document("dp-admin-auto").set(
+        {"id": "dp-admin-auto", "draft_id": draft_id, "name": "Available Player"}
+    )
+
+    r = app_client.post(f"/api/drafts/{draft_id}/picks/auto", headers=organizer_headers)
+
+    assert r.status_code == 200, r.text
+    assert r.json()["pick_type"] == "auto"
+
+
+def test_team_owner_coach_can_make_pick(app_client, fake_db, coach_headers):
+    draft_id = "coach-pick-allowed-draft"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id="coach-pick-team",
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("draft_players").document("dp-coach-pick").set(
+        {"id": "dp-coach-pick", "draft_id": draft_id, "name": "Available Player"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "dp-coach-pick"},
+        headers=coach_headers,
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["pick_type"] == "manual"
+
+
+def test_team_owner_coach_can_create_trade(app_client, fake_db, coach_headers):
+    draft_id = "coach-trade-allowed-draft"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id="coach-trade-team-offer",
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("draft_teams").document("coach-trade-team-recv").set(
+        {
+            "id": "coach-trade-team-recv",
+            "draft_id": draft_id,
+            "team_name": "Receiver Team",
+            "coach_user_id": "coach-2",
+        }
+    )
+    fake_db.collection("draft_picks").document("pick-coach-offer").set(
+        {
+            "id": "pick-coach-offer",
+            "draft_id": draft_id,
+            "team_id": "coach-trade-team-offer",
+            "player_id": "player-coach-offer",
+        }
+    )
+    fake_db.collection("draft_picks").document("pick-coach-recv").set(
+        {
+            "id": "pick-coach-recv",
+            "draft_id": draft_id,
+            "team_id": "coach-trade-team-recv",
+            "player_id": "player-coach-recv",
+        }
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/trades",
+        json={
+            "offering_team_id": "coach-trade-team-offer",
+            "receiving_team_id": "coach-trade-team-recv",
+            "offering_player_id": "player-coach-offer",
+            "receiving_player_id": "player-coach-recv",
+        },
+        headers=coach_headers,
+    )
+
+    assert r.status_code == 200, r.text
+    assert r.json()["status"] == "pending"
