@@ -11,7 +11,7 @@ import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
-import { readViewerInviteEventContext } from '../lib/viewerInviteContext';
+import { readViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
 
 const isQrDebugEnabled = () => {
   try {
@@ -26,24 +26,128 @@ const qrLiveDebug = (message, payload) => {
   console.log(`[QR_FLOW][LiveStandings] ${message}`, payload);
 };
 
+const parseJsonSafe = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+};
+
 export default function LiveStandings() {
   const { selectedEvent: selectedEventFromContext, setSelectedEvent, events, setEvents } = useEvent();
   const { userRole, selectedLeagueId, setSelectedLeagueId } = useAuth();
   const navigate = useNavigate();
+  const debugEnabled = isQrDebugEnabled();
   const shouldAttemptViewerInviteRestore = userRole === 'viewer' && !selectedEventFromContext;
+  let viewerInviteContextRaw = null;
+  try {
+    viewerInviteContextRaw = localStorage.getItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
+  } catch {
+    viewerInviteContextRaw = null;
+  }
   const viewerInviteContext = shouldAttemptViewerInviteRestore ? readViewerInviteEventContext() : null;
   const restoredViewerEvent = viewerInviteContext?.event || null;
   const selectedEvent = selectedEventFromContext || restoredViewerEvent;
   const [activeSchema, setActiveSchema] = useState(null);
+  const [viewerRestoreDebug, setViewerRestoreDebug] = useState({
+    ran: false,
+    result: 'not-run',
+    skipReason: ''
+  });
+  const setViewerRestoreDebugSafe = useCallback((nextState) => {
+    setViewerRestoreDebug((prev) => {
+      if (
+        prev.ran === nextState.ran &&
+        prev.result === nextState.result &&
+        prev.skipReason === nextState.skipReason
+      ) {
+        return prev;
+      }
+      return nextState;
+    });
+  }, []);
 
   useEffect(() => {
-    if (userRole !== 'viewer') return;
-    if (selectedEventFromContext || !restoredViewerEvent?.id) return;
+    if (userRole !== 'viewer') {
+      qrLiveDebug('Viewer invite restore skipped (not viewer role)', {
+        userRole: userRole || null
+      });
+      setViewerRestoreDebugSafe({
+        ran: true,
+        result: 'skipped',
+        skipReason: 'userRole is not viewer'
+      });
+      return;
+    }
+    if (selectedEventFromContext) {
+      qrLiveDebug('Viewer invite restore skipped (selectedEvent already in context)', {
+        selectedEventFromContextId: selectedEventFromContext?.id || null
+      });
+      setViewerRestoreDebugSafe({
+        ran: true,
+        result: 'skipped',
+        skipReason: 'selectedEvent already exists in context'
+      });
+      return;
+    }
+    if (!viewerInviteContextRaw) {
+      qrLiveDebug('Viewer invite restore skipped (storage key missing/empty)', {
+        storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+        storageRaw: viewerInviteContextRaw
+      });
+      setViewerRestoreDebugSafe({
+        ran: true,
+        result: 'skipped',
+        skipReason: `${VIEWER_INVITE_EVENT_CONTEXT_KEY} is missing/empty`
+      });
+      return;
+    }
+    if (!viewerInviteContext) {
+      qrLiveDebug('Viewer invite restore skipped (storage payload parse failed)', {
+        storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+        storageRaw: viewerInviteContextRaw
+      });
+      setViewerRestoreDebugSafe({
+        ran: true,
+        result: 'skipped',
+        skipReason: `${VIEWER_INVITE_EVENT_CONTEXT_KEY} parse failed`
+      });
+      return;
+    }
+    if (!restoredViewerEvent?.id) {
+      qrLiveDebug('Viewer invite restore skipped (parsed payload missing event.id)', {
+        storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+        parsedPayload: viewerInviteContext
+      });
+      setViewerRestoreDebugSafe({
+        ran: true,
+        result: 'skipped',
+        skipReason: 'parsed invite payload missing event.id'
+      });
+      return;
+    }
+
+    qrLiveDebug('Viewer invite restore evaluation', {
+      storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+      storageRaw: viewerInviteContextRaw,
+      parsedPayload: viewerInviteContext,
+      selectedEventFromContextId: selectedEventFromContext?.id || null
+    });
     qrLiveDebug('Restoring selectedEvent from viewer invite context', {
       restoredEventId: restoredViewerEvent.id,
       restoredLeagueId: restoredViewerEvent.league_id || viewerInviteContext?.leagueId || null
     });
     setSelectedEvent(restoredViewerEvent);
+    qrLiveDebug('setSelectedEvent(restoredViewerEvent) fired', {
+      restoredEventId: restoredViewerEvent.id
+    });
+    setViewerRestoreDebugSafe({
+      ran: true,
+      result: 'restored successfully',
+      skipReason: ''
+    });
     if (!Array.isArray(events) || !events.some(e => e?.id === restoredViewerEvent.id)) {
       setEvents(prev => {
         const safePrev = Array.isArray(prev) ? prev : [];
@@ -58,14 +162,31 @@ export default function LiveStandings() {
   }, [
     userRole,
     selectedEventFromContext,
+    viewerInviteContextRaw,
     restoredViewerEvent,
     viewerInviteContext,
     setSelectedEvent,
     events,
     setEvents,
     selectedLeagueId,
-    setSelectedLeagueId
+    setSelectedLeagueId,
+    setViewerRestoreDebugSafe
   ]);
+
+  let joinStageRaw = '';
+  let lastContextClearRaw = '';
+  let lastRedirectReasonRaw = '';
+  try {
+    joinStageRaw = localStorage.getItem('debug_qr_join_stage') || '';
+    lastContextClearRaw = localStorage.getItem('debug_qr_last_context_clear') || '';
+    lastRedirectReasonRaw = localStorage.getItem('debug_qr_last_redirect_reason') || '';
+  } catch {
+    // ignore storage failures
+  }
+
+  const joinStageParsed = parseJsonSafe(joinStageRaw);
+  const lastContextClearParsed = parseJsonSafe(lastContextClearRaw);
+  const lastRedirectReasonParsed = parseJsonSafe(lastRedirectReasonRaw);
   
   // Fetch schema for active event
   useEffect(() => {
@@ -157,9 +278,12 @@ export default function LiveStandings() {
       selectedEventFromContextId: selectedEventFromContext?.id || null,
       selectedLeagueId: selectedLeagueId || null,
       selectedEventRaw,
-      restoredViewerEventId: restoredViewerEvent?.id || null
+      restoredViewerEventId: restoredViewerEvent?.id || null,
+      viewerInviteStorageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+      viewerInviteStorageRaw: viewerInviteContextRaw,
+      viewerInviteParsed: viewerInviteContext || null
     });
-  }, [selectedEvent, selectedEventFromContext, restoredViewerEvent]);
+  }, [selectedEvent, selectedEventFromContext, restoredViewerEvent, viewerInviteContextRaw, viewerInviteContext]);
 
   // Initialize weights when drills change
   useEffect(() => {
@@ -276,6 +400,26 @@ export default function LiveStandings() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {debugEnabled && (
+        <div className="fixed top-2 left-2 z-[10000] max-w-md w-[95vw] bg-yellow-200 text-black border-2 border-red-600 p-3 text-xs font-mono shadow-2xl">
+          <div className="font-bold text-sm mb-1">QR DEBUG PANEL (LIVE STANDINGS)</div>
+          <div>userRole: {String(userRole || 'null')}</div>
+          <div>selectedLeagueId: {String(selectedLeagueId || 'null')}</div>
+          <div>selectedEvent.id: {String(selectedEvent?.id || 'null')}</div>
+          <div>selectedEvent.name: {String(selectedEvent?.name || 'null')}</div>
+          <div className="mt-1 font-bold">{VIEWER_INVITE_EVENT_CONTEXT_KEY} (raw):</div>
+          <div className="whitespace-pre-wrap break-all">{viewerInviteContextRaw || 'null'}</div>
+          <div className="mt-1">viewer restore logic ran: {viewerRestoreDebug.ran ? 'yes' : 'no'}</div>
+          <div>restore result: {viewerRestoreDebug.result}</div>
+          <div>skip reason: {viewerRestoreDebug.skipReason || 'n/a'}</div>
+          <div className="mt-1">last context clear reason: {lastContextClearParsed?.reason || 'n/a'}</div>
+          <div className="whitespace-pre-wrap break-all">last context clear raw: {lastContextClearRaw || 'null'}</div>
+          <div className="mt-1">last redirect reason: {lastRedirectReasonParsed?.reason || 'n/a'}</div>
+          <div className="whitespace-pre-wrap break-all">last redirect raw: {lastRedirectReasonRaw || 'null'}</div>
+          <div className="mt-1">join stage: {joinStageParsed?.stage || 'n/a'}</div>
+          <div className="whitespace-pre-wrap break-all">join stage raw: {joinStageRaw || 'null'}</div>
+        </div>
+      )}
       <div className="max-w-lg mx-auto px-4 sm:px-6 py-8">
         
         {/* Header Card */}

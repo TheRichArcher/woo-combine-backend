@@ -6,7 +6,7 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import api from '../lib/api';
-import { persistViewerInviteEventContext } from '../lib/viewerInviteContext';
+import { persistViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
 
 const isQrDebugEnabled = () => {
   try {
@@ -320,11 +320,19 @@ export default function JoinEvent() {
         if (targetEvent && targetLeague) {
           setEvent(targetEvent);
           setLeague(targetLeague);
-          persistViewerInviteEventContext({
+          const persistedInviteContext = persistViewerInviteEventContext({
             event: targetEvent,
             leagueId: targetLeague?.id || null,
             role: intendedRole || userRole || 'viewer',
             source: 'join-event'
+          });
+          writeJoinStage('viewer-invite-context-persist-attempted', {
+            storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+            persistedInviteContext
+          });
+          qrDebug('Viewer invite context persist result', {
+            storageKey: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+            persistedInviteContext
           });
           qrDebug('Calling setSelectedEvent', {
             id: targetEvent?.id,

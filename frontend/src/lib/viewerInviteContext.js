@@ -1,5 +1,18 @@
 export const VIEWER_INVITE_EVENT_CONTEXT_KEY = 'viewerInviteEventContext';
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrInviteDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][ViewerInviteContext] ${message}`, payload);
+};
+
 const parseJsonSafe = (raw) => {
   if (!raw || typeof raw !== 'string') return null;
   try {
@@ -10,7 +23,10 @@ const parseJsonSafe = (raw) => {
 };
 
 export const persistViewerInviteEventContext = ({ event, leagueId, role = 'viewer', source = 'join-event' }) => {
-  if (!event?.id) return;
+  if (!event?.id) {
+    qrInviteDebug('Skipping persist (missing event.id)', { event, leagueId, role, source });
+    return { written: false, key: VIEWER_INVITE_EVENT_CONTEXT_KEY, payload: null };
+  }
 
   const payload = {
     event,
@@ -23,16 +39,35 @@ export const persistViewerInviteEventContext = ({ event, leagueId, role = 'viewe
 
   try {
     localStorage.setItem(VIEWER_INVITE_EVENT_CONTEXT_KEY, JSON.stringify(payload));
+    qrInviteDebug('Persisted invite event context', {
+      key: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+      payload
+    });
+    return { written: true, key: VIEWER_INVITE_EVENT_CONTEXT_KEY, payload };
   } catch {
     // best-effort persistence for browser-recovery path
+    qrInviteDebug('Persist failed (storage write threw)', {
+      key: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+      payload
+    });
+    return { written: false, key: VIEWER_INVITE_EVENT_CONTEXT_KEY, payload };
   }
 };
 
 export const readViewerInviteEventContext = () => {
   try {
     const raw = localStorage.getItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
-    return parseJsonSafe(raw);
+    const parsed = parseJsonSafe(raw);
+    qrInviteDebug('Read invite event context', {
+      key: VIEWER_INVITE_EVENT_CONTEXT_KEY,
+      raw,
+      parsed
+    });
+    return parsed;
   } catch {
+    qrInviteDebug('Read failed (storage read threw)', {
+      key: VIEWER_INVITE_EVENT_CONTEXT_KEY
+    });
     return null;
   }
 };
