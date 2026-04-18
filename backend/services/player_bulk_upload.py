@@ -25,12 +25,10 @@ def upload_players_service(*, request: Request, req: Any, current_user: Dict[str
     try:
         enforce_event_league_relationship(event_id=req.event_id)
         
-        # Check write permission (organizer only for bulk upload, but still check lock)
-        user_role = current_user.get("role", "viewer")
+        # Check scoped write permission (membership role is authoritative).
         check_write_permission(
             event_id=req.event_id,
             user_id=current_user["uid"],
-            user_role=user_role,
             operation_name="upload players"
         )
             

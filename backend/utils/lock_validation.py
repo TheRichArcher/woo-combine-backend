@@ -25,13 +25,13 @@ from fastapi import HTTPException
 
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
-from ..utils.authorization import ensure_event_access
+from ..utils.authorization import ensure_league_access
 
 
 def check_write_permission(
     event_id: str,
     user_id: str,
-    user_role: str,
+    user_role: Optional[str] = None,
     league_id: Optional[str] = None,
     operation_name: str = "write operation",
 ) -> dict:
@@ -40,12 +40,8 @@ def check_write_permission(
 
     Returns membership dict if write is allowed, raises HTTPException otherwise.
 
-    Args:
-        event_id: The event being modified
-        user_id: Firebase UID of the user
-        user_role: User's role (organizer/coach/viewer)
-        league_id: Optional league ID for faster lookup
-        operation_name: Description of operation for error messages
+    Scoped league/event membership role is authoritative for write authorization.
+    Caller-provided user_role is treated as advisory only and never grants access.
 
     Raises:
         HTTPException 403: If event is locked or user doesn't have write permission
@@ -66,25 +62,8 @@ def check_write_permission(
     event_data = event_doc.to_dict()
     is_locked = event_data.get("isLocked", False)
 
-    # 2. Check global combine lock
-    # If event is locked, only organizers can proceed
-    if is_locked:
-        if user_role != "organizer":
-            logging.warning(
-                f"[LOCK] User {user_id} ({user_role}) attempted {operation_name} on locked event {event_id}"
-            )
-            raise HTTPException(
-                status_code=403,
-                detail="This combine has been locked. Results are final and cannot be edited. Contact the organizer if corrections are needed.",
-            )
-
-        # Organizer on locked event - allowed, but log it
-        logging.info(
-            f"[LOCK] Organizer {user_id} performing {operation_name} on locked event {event_id}"
-        )
-
-    # 3. Event is unlocked - check per-coach write permissions
-    # Get league_id from event if not provided
+    # 2. Resolve scoped league membership role (authoritative source of truth).
+    # Get league_id from event if not provided.
     if not league_id:
         league_id = event_data.get("league_id")
 
@@ -94,17 +73,51 @@ def check_write_permission(
         )
         raise HTTPException(status_code=500, detail="Event configuration error")
 
-    # Verify event access (handles Kill Switch and membership checks)
-    # Note: ensure_event_access gets league_id from event document internally
-    membership = ensure_event_access(
+    membership = ensure_league_access(
         user_id=user_id,
-        event_id=event_id,
+        league_id=league_id,
         allowed_roles=["organizer", "coach"],
         operation_name=operation_name,
     )
+    membership_role = (membership.get("role") or "").lower()
 
-    # 4. Check per-coach canWrite permission (only applies to coaches)
-    if user_role == "coach":
+    # Deny-by-default if scoped role cannot be established safely.
+    if membership_role not in {"organizer", "coach"}:
+        logging.warning(
+            "[LOCK] User %s denied %s on event %s due to invalid scoped role '%s'",
+            user_id,
+            operation_name,
+            event_id,
+            membership_role,
+        )
+        raise HTTPException(status_code=403, detail="Insufficient league permissions")
+
+    # 3. Check global combine lock using scoped membership role.
+    if is_locked and membership_role != "organizer":
+        logging.warning(
+            "[LOCK] User %s (%s) attempted %s on locked event %s",
+            user_id,
+            membership_role,
+            operation_name,
+            event_id,
+        )
+        raise HTTPException(
+            status_code=403,
+            detail="This combine has been locked. Results are final and cannot be edited. Contact the organizer if corrections are needed.",
+        )
+
+    # Log role drift for diagnostics only; never use caller role for authorization.
+    if user_role and user_role != membership_role:
+        logging.warning(
+            "[LOCK] Role drift for user %s on event %s: global role=%s, membership role=%s",
+            user_id,
+            event_id,
+            user_role,
+            membership_role,
+        )
+
+    # 4. Check per-coach canWrite permission (applies to scoped coach role).
+    if membership_role == "coach":
         can_write = membership.get(
             "canWrite", True
         )  # Default to True for backward compatibility
@@ -120,7 +133,11 @@ def check_write_permission(
 
     # 5. All checks passed
     logging.info(
-        f"[LOCK] Write permission granted for {user_id} ({user_role}) on event {event_id} for {operation_name}"
+        "[LOCK] Write permission granted for %s (%s) on event %s for %s",
+        user_id,
+        membership_role,
+        event_id,
+        operation_name,
     )
 
     return membership

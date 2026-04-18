@@ -70,7 +70,7 @@ def test_mobile_batch_drill_results_allows_valid_staff_member(
 ):
     _seed_event_and_player(fake_db)
     payload = [
-        {"player_id": "p1", "event_id": "event-1", "drill_key": "forty", "value": 4.4}
+        {"player_id": "p1", "event_id": "event-1", "drill_key": "40m_dash", "value": 4.4}
     ]
 
     r = app_client.post(
@@ -87,7 +87,7 @@ def test_mobile_batch_drill_results_allows_valid_staff_member(
         .get()
         .to_dict()
     )
-    assert updated.get("forty") == 4.4
+    assert updated.get("40m_dash") == 4.4
 
 
 def test_mobile_batch_drill_results_blocks_non_member_cross_event(app_client, fake_db):
@@ -110,7 +110,7 @@ def test_mobile_batch_drill_results_blocks_non_member_cross_event(app_client, fa
     token = make_jwt(uid=uid, email="coach1@example.com", email_verified=True)
     headers = {"Authorization": f"Bearer {token}"}
     payload = [
-        {"player_id": "p2", "event_id": "event-2", "drill_key": "forty", "value": 4.3}
+        {"player_id": "p2", "event_id": "event-2", "drill_key": "40m_dash", "value": 4.3}
     ]
 
     r = app_client.post("/api/mobile/drill-results/batch", json=payload, headers=headers)
@@ -139,7 +139,7 @@ def test_mobile_batch_drill_results_blocks_disallowed_role_member(app_client, fa
     token = make_jwt(uid=uid, email="viewer@example.com", email_verified=True)
     headers = {"Authorization": f"Bearer {token}"}
     payload = [
-        {"player_id": "p1", "event_id": "event-1", "drill_key": "forty", "value": 4.2}
+        {"player_id": "p1", "event_id": "event-1", "drill_key": "40m_dash", "value": 4.2}
     ]
 
     r = app_client.post("/api/mobile/drill-results/batch", json=payload, headers=headers)

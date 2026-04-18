@@ -74,9 +74,13 @@ def add_evaluator(
 ):
     """Add an evaluator to an event (requires organizer/coach role)"""
     try:
-        # Proper role checking is now enforced by the require_role decorator
-        # Only organizers and coaches can add evaluators
         enforce_event_league_relationship(event_id=event_id)
+        # Enforce scoped write authorization (event lock + membership canWrite).
+        check_write_permission(
+            event_id=event_id,
+            user_id=current_user["uid"],
+            operation_name="add evaluator",
+        )
 
         evaluator_data = {
             "name": payload.name,
@@ -127,12 +131,10 @@ def submit_drill_evaluation(
 
         enforce_event_league_relationship(event_id=event_id)
 
-        # Check write permission
-        user_role = current_user.get("role", "viewer")
+        # Check scoped write permission (membership role is authoritative).
         check_write_permission(
             event_id=event_id,
             user_id=current_user["uid"],
-            user_role=user_role,
             operation_name="submit drill evaluation",
         )
 

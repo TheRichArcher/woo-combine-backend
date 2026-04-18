@@ -8,7 +8,7 @@ These endpoints are designed for:
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List
+from typing import List, Dict, Set
 from datetime import datetime
 import logging
 
@@ -16,6 +16,8 @@ from ..auth import get_current_user
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
 from ..utils.authorization import ensure_event_access
+from ..utils.event_schema import get_event_schema
+from ..utils.lock_validation import check_write_permission
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/mobile", tags=["mobile"])
@@ -306,15 +308,40 @@ async def submit_batch_drill_results(
     uploads in batch when connection restored.
     """
     try:
+        if not isinstance(results, list) or not results:
+            raise HTTPException(
+                status_code=400, detail="Request must include at least one result"
+            )
+
+        user_id = current_user["uid"]
+
         # Authorize all referenced events up front to prevent cross-event writes.
         event_ids = {result.get("event_id") for result in results if result.get("event_id")}
+        if not event_ids:
+            raise HTTPException(
+                status_code=400, detail="At least one valid event_id is required"
+            )
+
+        allowed_drill_keys_by_event: Dict[str, Set[str]] = {}
         for event_id in event_ids:
             ensure_event_access(
-                current_user["uid"],
+                user_id,
                 event_id,
                 allowed_roles=("organizer", "coach"),
                 operation_name="mobile batch drill write",
             )
+            # Enforce same write model as other write routes (lock + canWrite).
+            check_write_permission(
+                event_id=event_id,
+                user_id=user_id,
+                operation_name="mobile batch drill write",
+            )
+            schema = get_event_schema(event_id)
+            if not schema:
+                raise HTTPException(
+                    status_code=400, detail=f"No schema found for event {event_id}"
+                )
+            allowed_drill_keys_by_event[event_id] = {drill.key for drill in schema.drills}
 
         submitted = 0
         errors = []
@@ -332,6 +359,26 @@ async def submit_batch_drill_results(
                     )
                     continue
 
+                if event_id not in allowed_drill_keys_by_event:
+                    errors.append(
+                        {"result": result, "error": "Unauthorized event context"}
+                    )
+                    continue
+
+                if drill_key not in allowed_drill_keys_by_event[event_id]:
+                    errors.append(
+                        {"result": result, "error": f"Invalid drill key: {drill_key}"}
+                    )
+                    continue
+
+                try:
+                    numeric_value = float(value)
+                except (TypeError, ValueError):
+                    errors.append(
+                        {"result": result, "error": "Drill value must be numeric"}
+                    )
+                    continue
+
                 # Update player document with drill score
                 player_ref = (
                     db.collection("events")
@@ -339,8 +386,25 @@ async def submit_batch_drill_results(
                     .collection("players")
                     .document(player_id)
                 )
+                player_doc = execute_with_timeout(
+                    lambda pr=player_ref: pr.get(),
+                    timeout=5,
+                    operation_name=f"batch drill result lookup - {player_id}",
+                )
+                if not player_doc.exists:
+                    errors.append({"result": result, "error": "Player not found"})
+                    continue
+
                 execute_with_timeout(
-                    lambda pr=player_ref, dk=drill_key, v=value: pr.update({dk: v}),
+                    lambda pr=player_ref, dk=drill_key, v=numeric_value: pr.update(
+                        {
+                            # Use schema-bounded drill keys only and write into scores map.
+                            f"scores.{dk}": v,
+                            # Keep legacy flat field in sync for older mobile/web views.
+                            dk: v,
+                            "updated_at": datetime.utcnow().isoformat(),
+                        }
+                    ),
                     timeout=5,
                     operation_name=f"batch drill result - {player_id}/{drill_key}",
                 )

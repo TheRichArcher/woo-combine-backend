@@ -1975,6 +1975,21 @@ async def join_team_via_invite(
         raise HTTPException(status_code=404, detail="Draft not found")
 
     draft_data = draft_doc.to_dict()
+    league_id = draft_data.get("league_id")
+
+    # Scoped league membership is authoritative for invite claims.
+    # Deny by default when league context cannot be safely validated.
+    if not league_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Draft invite is missing league context",
+        )
+    ensure_league_access(
+        user["uid"],
+        league_id,
+        allowed_roles={"organizer", "coach"},
+        operation_name="claim team invite",
+    )
 
     # Check draft status - can only join during setup
     if draft_data.get("status") not in ["setup", "active"]:

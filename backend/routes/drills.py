@@ -44,12 +44,10 @@ def create_drill_result(
     try:
         enforce_event_league_relationship(event_id=result.event_id)
 
-        # Check write permission (respects both global lock and per-coach permissions)
-        user_role = current_user.get("role", "viewer")
+        # Check scoped write permission (membership role is authoritative).
         check_write_permission(
             event_id=result.event_id,
             user_id=current_user["uid"],
-            user_role=user_role,
             operation_name="create drill result",
         )
 
@@ -155,12 +153,10 @@ def delete_drill_result(
     try:
         enforce_event_league_relationship(event_id=event_id)
 
-        # Check write permission
-        user_role = current_user.get("role", "viewer")
+        # Check scoped write permission (membership role is authoritative).
         check_write_permission(
             event_id=event_id,
             user_id=current_user["uid"],
-            user_role=user_role,
             operation_name="delete drill result",
         )
 

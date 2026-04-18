@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from fastapi.responses import StreamingResponse
 from ..auth import require_role
 from ..middleware.rate_limiting import read_rate_limit
+from ..utils.authorization import ensure_event_access
 from ..utils.data_integrity import enforce_event_league_relationship
 from ..utils.stats import calculate_event_stats
 from ..utils.pdf_generator import generate_event_pdf
@@ -22,6 +23,13 @@ def get_event_stats_endpoint(
     Get standardized stats for an event.
     """
     try:
+        # Enforce object-level membership to prevent cross-league ID-based access.
+        ensure_event_access(
+            current_user["uid"],
+            event_id,
+            allowed_roles=("organizer", "coach"),
+            operation_name="stats read",
+        )
         enforce_event_league_relationship(event_id=event_id)
 
         stats = calculate_event_stats(event_id)
@@ -45,6 +53,13 @@ def export_event_pdf(
     Generate and download PDF report.
     """
     try:
+        # Enforce object-level membership to prevent cross-league ID-based access.
+        ensure_event_access(
+            current_user["uid"],
+            event_id,
+            allowed_roles=("organizer", "coach"),
+            operation_name="stats pdf export",
+        )
         enforce_event_league_relationship(event_id=event_id)
 
         # Fetch event data
