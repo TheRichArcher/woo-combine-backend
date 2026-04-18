@@ -71,6 +71,24 @@ const SESSION_STALE_KEY = 'wc-session-stale';
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 let refreshPromise = null;
 let crossTabListenersInitialized = false;
+const QR_DEBUG_KEY = 'debug_qr_flow';
+
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem(QR_DEBUG_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const log403ContextClear = (requestUrl, branch) => {
+  if (!isQrDebugEnabled()) return;
+  console.warn('[QR_FLOW][api][403-clear]', {
+    branch,
+    requestUrl,
+    clearing: ['selectedEvent', 'selectedEventId', 'selectedLeagueId']
+  });
+};
 
 const broadcastLogout = () => {
   try {
@@ -80,9 +98,56 @@ const broadcastLogout = () => {
   }
 };
 
+const clearLocalAuthState = () => {
+  try {
+    localStorage.removeItem('selectedEvent');
+    localStorage.removeItem('selectedEventId');
+    localStorage.removeItem('selectedLeagueId');
+    localStorage.removeItem('userRole');
+  } catch {
+    /* ignore */
+  }
+};
+
 const markSessionStale = () => {
   try {
     localStorage.setItem(SESSION_STALE_KEY, Date.now().toString());
+  } catch {
+    /* ignore */
+  }
+};
+
+const redirectToSessionExpiredLogin = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    const currentPath = window.location?.pathname || '/';
+    const currentSearch = window.location?.search || '';
+    const onboarding = ['/login', '/signup', '/verify-email', '/welcome', '/'];
+    const target = onboarding.includes(currentPath) ? '/dashboard' : `${currentPath}${currentSearch}`;
+    localStorage.setItem('postLoginRedirect', target);
+  } catch {
+    /* ignore */
+  }
+
+  // Force login route in-app after stale-session logout.
+  const loginUrl = '/login?reason=session_expired';
+  try {
+    window.history.replaceState({}, '', loginUrl);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  } catch {
+    /* ignore */
+  }
+};
+
+const emitSessionExpired = () => {
+  try {
+    if (typeof window !== 'undefined') {
+      if (!window.__wcSessionExpiredShown) {
+        window.__wcSessionExpiredShown = true;
+      }
+      const ev = new CustomEvent('wc-session-expired');
+      window.dispatchEvent(ev);
+    }
   } catch {
     /* ignore */
   }
@@ -271,6 +336,7 @@ api.interceptors.response.use(
     // Handle 403 Forbidden - Clear stale state (e.g. removed from league)
     if (error.response?.status === 403) {
       try {
+        log403ContextClear(String(error.config?.url || ''), 'early-403-handler');
         console.warn("[API] 403 Forbidden - Clearing selected event/league state");
         localStorage.removeItem('selectedEvent');
         localStorage.removeItem('selectedEventId');
@@ -282,6 +348,19 @@ api.interceptors.response.use(
 
     // CRITICAL FIX: Handle 401 errors globally without redirect loops
     if (error.response?.status === 401) {
+      const detail = error.response?.data?.detail;
+      const isSessionTooOld = detail === 'Session too old';
+      if (isSessionTooOld) {
+        apiLogger.warn('401 Session too old - forcing re-authentication');
+        clearLocalAuthState();
+        try { signOut(auth).catch(() => {}); } catch {}
+        broadcastLogout();
+        markSessionStale();
+        emitSessionExpired();
+        redirectToSessionExpiredLogin();
+        return Promise.reject(error);
+      }
+
       // Try a one-time token refresh and retry the original request
       const original = error.config || {};
       const reqUrl = String(original.url || error.config?.url || '');
@@ -318,14 +397,8 @@ api.interceptors.response.use(
               // On refresh failure: sign out and trigger global session-expired modal
               try { signOut(auth).catch(() => {}); broadcastLogout(); } catch {}
               try {
-                if (typeof window !== 'undefined') {
-                  if (!window.__wcSessionExpiredShown) {
-                    window.__wcSessionExpiredShown = true;
-                  }
-                  markSessionStale();
-                  const ev = new CustomEvent('wc-session-expired');
-                  window.dispatchEvent(ev);
-                }
+                markSessionStale();
+                emitSessionExpired();
               } catch {}
             } else {
               // Permission issue, not auth failure - let component handle it
@@ -342,15 +415,7 @@ api.interceptors.response.use(
         try { signOut(auth).catch(() => {}); } catch {}
         broadcastLogout();
         markSessionStale();
-        try {
-          if (typeof window !== 'undefined') {
-            if (!window.__wcSessionExpiredShown) {
-              window.__wcSessionExpiredShown = true;
-            }
-            const ev = new CustomEvent('wc-session-expired');
-            window.dispatchEvent(ev);
-          }
-        } catch {}
+        emitSessionExpired();
       } else {
         // User is authenticated but getting 401 - likely a permission/context issue
         apiLogger.info('401 with valid auth - likely permission or context mismatch, not forcing logout');
@@ -382,6 +447,7 @@ api.interceptors.response.use(
       
       // General 403: Likely due to stale context (e.g. reading event from wrong league)
       // Force clear selectedEvent to allow user to recover by selecting a valid event
+      log403ContextClear(String(error.config?.url || ''), 'late-403-handler');
       console.warn('[API] 403 Forbidden - clearing potentially stale selection state');
       try {
         localStorage.removeItem('selectedEvent');

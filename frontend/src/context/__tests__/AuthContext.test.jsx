@@ -1,6 +1,19 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 
+const mockNavigate = jest.fn();
+
+jest.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }) => children,
+  useNavigate: () => mockNavigate,
+  useLocation: () => ({
+    pathname: window.location.pathname,
+    search: window.location.search,
+    hash: '',
+    state: null,
+  }),
+}));
+
 // Mock firebase before anything imports it
 jest.mock('../../firebase', () => ({
   auth: {
@@ -91,6 +104,7 @@ describe('AuthContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
+    window.history.replaceState({}, '', '/');
   });
 
   it('provides auth context to children', async () => {
@@ -173,5 +187,107 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('selected-league')).toHaveTextContent('league-1');
       expect(screen.getByTestId('selected-event')).toHaveTextContent('event-1');
     });
+  });
+
+  it('keeps pendingEventJoin priority over postLoginTarget after login', async () => {
+    const mockUser = {
+      uid: 'user-1',
+      email: 'coach@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/login?reason=session_expired');
+    localStorage.setItem('pendingEventJoin', 'league-1/event-1/coach');
+    localStorage.setItem('postLoginTarget', '/analytics?tab=team');
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/join-event/league-1/event-1/coach', { replace: true });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('/analytics?tab=team', { replace: true });
+  });
+
+  it('uses postLoginTarget when no pendingEventJoin exists', async () => {
+    const mockUser = {
+      uid: 'user-2',
+      email: 'viewer@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/login?reason=session_expired');
+    localStorage.setItem('postLoginTarget', '/live-standings?event=abc');
+    localStorage.setItem('userRole', 'viewer');
+    localStorage.setItem('userEmail', mockUser.email);
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/live-standings?event=abc', { replace: true });
+    });
+    expect(localStorage.getItem('postLoginTarget')).toBeNull();
+  });
+
+  it('never resumes to /login and falls back to /dashboard', async () => {
+    const mockUser = {
+      uid: 'user-3',
+      email: 'viewer2@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/login?reason=session_expired');
+    localStorage.setItem('postLoginTarget', '/login');
+    localStorage.setItem('userRole', 'viewer');
+    localStorage.setItem('userEmail', mockUser.email);
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('/login', { replace: true });
+    expect(localStorage.getItem('postLoginTarget')).toBeNull();
   });
 });

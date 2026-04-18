@@ -7,6 +7,19 @@ import { logger } from '../utils/logger';
 
 const EventContext = createContext();
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrEventDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][EventContext] ${message}`, payload);
+};
+
 export function EventProvider({ children }) {
   const { selectedLeagueId, authChecked, roleChecked } = useAuth();
   const [events, setEvents] = useState([]);
@@ -28,6 +41,7 @@ export function EventProvider({ children }) {
   // CRITICAL FIX: Track whether initial events fetch has completed
   // This prevents showing "create first event" modal before fetch finishes
   const [eventsLoaded, setEventsLoaded] = useState(false);
+  const prevNoLeagueRef = useRef(noLeague);
 
   // Safety timeout ref — ensures eventsLoaded is never stuck false forever
   const eventsLoadedTimeoutRef = useRef(null);
@@ -36,10 +50,35 @@ export function EventProvider({ children }) {
   useEffect(() => {
     if (selectedLeagueId && selectedEvent && selectedEvent.league_id && selectedEvent.league_id !== selectedLeagueId) {
         logger.warn('EVENT-CONTEXT', `Mismatch detected: Event ${selectedEvent.id} (League ${selectedEvent.league_id}) != Active League ${selectedLeagueId}. Clearing.`);
+        qrEventDebug('Clearing selectedEvent due to league mismatch', {
+          selectedLeagueId,
+          selectedEventId: selectedEvent?.id,
+          selectedEventLeagueId: selectedEvent?.league_id
+        });
         localStorage.removeItem('selectedEvent');
         setSelectedEvent(null);
     }
   }, [selectedLeagueId, selectedEvent]);
+
+  useEffect(() => {
+    qrEventDebug('State snapshot', {
+      selectedLeagueId: selectedLeagueId || null,
+      selectedEvent: selectedEvent ? { id: selectedEvent.id, name: selectedEvent.name } : null,
+      eventsLength: events.length,
+      noLeague
+    });
+  }, [selectedLeagueId, selectedEvent, events.length, noLeague]);
+
+  useEffect(() => {
+    if (prevNoLeagueRef.current !== noLeague) {
+      qrEventDebug('noLeague transition', {
+        from: prevNoLeagueRef.current,
+        to: noLeague,
+        selectedLeagueId: selectedLeagueId || null
+      });
+      prevNoLeagueRef.current = noLeague;
+    }
+  }, [noLeague, selectedLeagueId]);
 
   // Cached events fetcher: TTL 120s
   // NOTE: Does NOT retry on 401/403 — those require token refresh handled by loadEvents
@@ -74,6 +113,9 @@ export function EventProvider({ children }) {
   // On 401: forces Firebase token refresh and retries once before giving up.
   const loadEvents = useCallback(async (leagueId, options = {}) => {
     if (!leagueId) {
+      qrEventDebug('Clearing events + selectedEvent: no leagueId in loadEvents', {
+        leagueId
+      });
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
@@ -153,6 +195,11 @@ export function EventProvider({ children }) {
       }
       
       setError(errorMessage);
+      qrEventDebug('Clearing events + selectedEvent: loadEvents failure branch', {
+        leagueId,
+        errorMessage,
+        status: finalErr?.response?.status
+      });
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
@@ -180,6 +227,11 @@ export function EventProvider({ children }) {
       setSelectedEvent(current => {
         if (current && current.league_id && current.league_id !== selectedLeagueId) {
           console.log(`[EventContext] Clearing stale event ${current.id} (league ${current.league_id} != ${selectedLeagueId})`);
+          qrEventDebug('Clearing selectedEvent during league change guard', {
+            selectedLeagueId,
+            staleEventId: current?.id,
+            staleEventLeagueId: current?.league_id
+          });
           localStorage.removeItem('selectedEvent');
           return null;
         }
@@ -216,6 +268,9 @@ export function EventProvider({ children }) {
         }
       })();
     } else {
+      qrEventDebug('Clearing events + selectedEvent: selectedLeagueId missing in effect', {
+        selectedLeagueId: selectedLeagueId || null
+      });
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
@@ -293,6 +348,10 @@ export function EventProvider({ children }) {
       });
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
+      qrEventDebug('Clearing selectedEvent after deleteEvent', {
+        eventId,
+        selectedLeagueId: selectedLeagueId || null
+      });
       logger.info(`Event ${eventId} soft-deleted successfully and removed from context`);
       return response.data;
     } catch (error) {

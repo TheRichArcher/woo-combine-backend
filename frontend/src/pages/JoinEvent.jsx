@@ -7,6 +7,19 @@ import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import api from '../lib/api';
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][JoinEvent] ${message}`, payload);
+};
+
 export default function JoinEvent() {
   const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
@@ -43,6 +56,14 @@ export default function JoinEvent() {
         intendedRole = null;
       }
       
+      qrDebug('Route params parsed', {
+        leagueId,
+        eventId,
+        role,
+        actualLeagueId,
+        actualEventId,
+        intendedRole
+      });
 
       
       if (!actualEventId) {
@@ -96,13 +117,27 @@ export default function JoinEvent() {
             // Need to join the league first
 
             
+            let joinData;
+            try {
               const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, {
-              user_id: user.uid,
-              email: user.email,
+                user_id: user.uid,
+                email: user.email,
                 role: intendedRole || userRole || 'coach'
-            });
-
-            const joinData = joinResponse.data;
+              });
+              joinData = joinResponse.data;
+              qrDebug('Join API success', {
+                url: `/leagues/join/${actualLeagueId}`,
+                status: joinResponse?.status,
+                joinData
+              });
+            } catch (joinError) {
+              qrDebug('Join API failure', {
+                url: `/leagues/join/${actualLeagueId}`,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
+              throw joinError;
+            }
             
             // CRITICAL FIX: Refresh leagues from backend and USE RETURNED ARRAY
             // Cannot rely on context leagues state because React state updates are async
@@ -123,7 +158,18 @@ export default function JoinEvent() {
           try {
             const eventResponse = await api.get(`/leagues/${actualLeagueId}/events/${actualEventId}`);
             targetEvent = eventResponse.data;
+            qrDebug('Event fetch success', {
+              url: `/leagues/${actualLeagueId}/events/${actualEventId}`,
+              status: eventResponse?.status,
+              eventId: targetEvent?.id,
+              eventName: targetEvent?.name
+            });
           } catch (eventError) {
+            qrDebug('Event fetch failed', {
+              url: `/leagues/${actualLeagueId}/events/${actualEventId}`,
+              status: eventError?.response?.status,
+              message: eventError?.message
+            });
             if (eventError.response?.status === 404) {
               throw new Error('Event not found in league');
             }
@@ -139,8 +185,19 @@ export default function JoinEvent() {
               const response = await api.get(`/leagues/${userLeague.id}/events/${actualEventId}`);
               targetEvent = response.data;
               targetLeague = userLeague;
+              qrDebug('Event fetch success', {
+                url: `/leagues/${userLeague.id}/events/${actualEventId}`,
+                status: response?.status,
+                eventId: targetEvent?.id,
+                eventName: targetEvent?.name
+              });
               break;
             } catch (err) {
+              qrDebug('Event fetch failed', {
+                url: `/leagues/${userLeague.id}/events/${actualEventId}`,
+                status: err?.response?.status,
+                message: err?.message
+              });
               if (err.response?.status !== 404) {
                 // Non-404 errors indicate connection issues, not missing events
               }
@@ -150,11 +207,26 @@ export default function JoinEvent() {
 
           // If not found and user has no leagues, attempt to resolve via event code directly
           if (!targetEvent) {
-            const joinResponse = await api.post(`/leagues/join/${actualEventId}`, {
-              user_id: user.uid,
-              email: user.email,
-              role: intendedRole || userRole || 'coach'
-            });
+            let joinResponse;
+            try {
+              joinResponse = await api.post(`/leagues/join/${actualEventId}`, {
+                user_id: user.uid,
+                email: user.email,
+                role: intendedRole || userRole || 'coach'
+              });
+              qrDebug('Join API success', {
+                url: `/leagues/join/${actualEventId}`,
+                status: joinResponse?.status,
+                joinData: joinResponse?.data
+              });
+            } catch (joinError) {
+              qrDebug('Join API failure', {
+                url: `/leagues/join/${actualEventId}`,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
+              throw joinError;
+            }
 
             const resolvedLeagueId = joinResponse?.data?.league_id;
             if (!resolvedLeagueId) {
@@ -174,6 +246,12 @@ export default function JoinEvent() {
 
             const legacyEventResponse = await api.get(`/leagues/${resolvedLeagueId}/events/${actualEventId}`);
             targetEvent = legacyEventResponse.data;
+            qrDebug('Event fetch success', {
+              url: `/leagues/${resolvedLeagueId}/events/${actualEventId}`,
+              status: legacyEventResponse?.status,
+              eventId: targetEvent?.id,
+              eventName: targetEvent?.name
+            });
           }
 
           if (!targetEvent) {
@@ -185,7 +263,13 @@ export default function JoinEvent() {
         if (targetEvent && targetLeague) {
           setEvent(targetEvent);
           setLeague(targetLeague);
+          qrDebug('Calling setSelectedEvent', {
+            id: targetEvent?.id,
+            name: targetEvent?.name,
+            league_id: targetEvent?.league_id
+          });
           setSelectedEvent(targetEvent);
+          qrDebug('Calling setSelectedLeagueId', { id: targetLeague?.id });
           setSelectedLeagueId(targetLeague.id);
           setStatus("found");
           
@@ -196,6 +280,11 @@ export default function JoinEvent() {
           
           // Auto-redirect after 2 seconds to viewer-safe event stats
           setTimeout(() => {
+            qrDebug('Navigating to /live-standings', {
+              from: window.location.pathname,
+              selectedLeagueId: targetLeague?.id,
+              selectedEventId: targetEvent?.id
+            });
             navigate("/live-standings");
           }, 2000);
         } else {
@@ -203,6 +292,10 @@ export default function JoinEvent() {
         }
 
       } catch (err) {
+        qrDebug('Join flow failed', {
+          status: err?.response?.status,
+          message: err?.message
+        });
         if (err?.response?.status === 409) {
           setStatus("found");
           setError("This invite points to a different league than expected. Please try scanning the latest QR code or ask the organizer for a fresh link.");
@@ -213,6 +306,7 @@ export default function JoinEvent() {
         }
         setStatus("not_found");
       } finally {
+        qrDebug('Join flow completed', { status });
         setLoading(false);
       }
     };

@@ -29,6 +29,19 @@ function sanitizeRole(value) {
   return VALID_ROLES.includes(trimmed) ? trimmed : null;
 }
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrAuthDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][AuthContext] ${message}`, payload);
+};
+
 export function AuthProvider({ children }) {
   // Optimized state management with faster initial checks
   const [user, setUser] = useState(null);
@@ -189,6 +202,16 @@ export function AuthProvider({ children }) {
     }
     
     authLogger.debug(`Starting league fetch (role: ${roleParam})`);
+    qrAuthDebug('fetchLeaguesConcurrently start', {
+      firebaseUid: firebaseUser?.uid,
+      roleParam,
+      selectedLeagueId: localStorage.getItem('selectedLeagueId') || '',
+      authState: {
+        hasCurrentUser: !!auth.currentUser,
+        currentUserUid: auth.currentUser?.uid || null,
+        emailVerified: !!auth.currentUser?.emailVerified
+      }
+    });
     
     // Get token version for cache key
     // Use Firebase's stsTokenManager for reliable token versioning
@@ -291,9 +314,23 @@ export function AuthProvider({ children }) {
         
         // Use centralized getMyLeagues() that normalizes response
         // Pass abort signal so axios can actually cancel the request
-        const leagueArray = await getMyLeagues({ 
-          signal: currentAbortController.signal 
-        });
+        let leagueArray = [];
+        try {
+          leagueArray = await getMyLeagues({
+            signal: currentAbortController.signal
+          });
+          qrAuthDebug('/leagues/me success', {
+            via: 'getMyLeagues',
+            leaguesCount: leagueArray?.length || 0
+          });
+        } catch (leagueErr) {
+          qrAuthDebug('/leagues/me failure', {
+            via: 'getMyLeagues',
+            status: leagueErr?.response?.status,
+            message: leagueErr?.message
+          });
+          throw leagueErr;
+        }
         
         // CRITICAL: Check if fetch is still valid before committing state
         // Prevents stale responses from winning if role changed mid-flight
@@ -317,10 +354,30 @@ export function AuthProvider({ children }) {
         const currentSelectedLeagueId = (rawStored && rawStored !== 'null' && rawStored !== 'undefined' && rawStored.trim() !== '') ? rawStored : '';
         
         if (leagueArray.length > 0 && (!currentSelectedLeagueId || !leagueArray.some(l => l.id === currentSelectedLeagueId))) {
-           const targetLeagueId = leagueArray[0].id;
-           setSelectedLeagueIdState(targetLeagueId);
-           localStorage.setItem('selectedLeagueId', targetLeagueId);
-           setRole(leagueArray[0].role);
+          const targetLeagueId = leagueArray[0].id;
+          qrAuthDebug('selectedLeagueId replaced after /leagues/me', {
+            previousSelectedLeagueId: currentSelectedLeagueId || null,
+            nextSelectedLeagueId: targetLeagueId,
+            reason: !currentSelectedLeagueId ? 'missing previous' : 'previous not in fetched leagues',
+            authState: {
+              hasCurrentUser: !!auth.currentUser,
+              currentUserUid: auth.currentUser?.uid || null,
+              emailVerified: !!auth.currentUser?.emailVerified
+            }
+          });
+          setSelectedLeagueIdState(targetLeagueId);
+          localStorage.setItem('selectedLeagueId', targetLeagueId);
+          setRole(leagueArray[0].role);
+        } else {
+          qrAuthDebug('selectedLeagueId preserved after /leagues/me', {
+            selectedLeagueId: currentSelectedLeagueId || null,
+            leaguesCount: leagueArray.length,
+            authState: {
+              hasCurrentUser: !!auth.currentUser,
+              currentUserUid: auth.currentUser?.uid || null,
+              emailVerified: !!auth.currentUser?.emailVerified
+            }
+          });
         }
         
         // CRITICAL: Return the fetched array for consumers who need immediate access
@@ -359,10 +416,24 @@ export function AuthProvider({ children }) {
                 signal: currentAbortController.signal,
               });
               const retryLeagues = retryResp?.data?.leagues;
+              qrAuthDebug('/leagues/me success', {
+                via: 'retry api.get',
+                status: retryResp?.status,
+                leaguesCount: Array.isArray(retryLeagues) ? retryLeagues.length : 0
+              });
               if (Array.isArray(retryLeagues) && retryLeagues.length > 0) {
                 setLeagues(retryLeagues);
                 authLogger.info(`[League Fetch] RETRY SUCCESS - ${retryLeagues.length} leagues loaded`);
                 const targetLeagueId = retryLeagues[0].id;
+                qrAuthDebug('selectedLeagueId replaced after /leagues/me retry', {
+                  previousSelectedLeagueId: localStorage.getItem('selectedLeagueId') || null,
+                  nextSelectedLeagueId: targetLeagueId,
+                  authState: {
+                    hasCurrentUser: !!auth.currentUser,
+                    currentUserUid: auth.currentUser?.uid || null,
+                    emailVerified: !!auth.currentUser?.emailVerified
+                  }
+                });
                 setSelectedLeagueIdState(targetLeagueId);
                 localStorage.setItem('selectedLeagueId', targetLeagueId);
                 setRole(retryLeagues[0].role);
@@ -370,17 +441,39 @@ export function AuthProvider({ children }) {
               }
             }
           } catch (retryErr) {
+            qrAuthDebug('/leagues/me failure', {
+              via: 'retry api.get',
+              status: retryErr?.response?.status,
+              message: retryErr?.message
+            });
             authLogger.warn('League fetch retry also failed', retryErr.message);
           }
           // If retry failed too, treat as transient while auth is still valid.
           // Preserve existing league/event context so QR join flows don't
           // immediately collapse into "No League Selected" fallback screens.
           authLogger.warn('League fetch retry failed while authenticated - preserving existing league selection/context');
+          qrAuthDebug('selectedLeagueId preserved after /leagues/me retry failure', {
+            selectedLeagueId: localStorage.getItem('selectedLeagueId') || null,
+            authState: {
+              hasCurrentUser: !!auth.currentUser,
+              currentUserUid: auth.currentUser?.uid || null,
+              emailVerified: !!auth.currentUser?.emailVerified
+            }
+          });
         }
 
         // Return empty array on error so consumers can handle gracefully
         return [];
       } finally {
+        qrAuthDebug('fetchLeaguesConcurrently end', {
+          fetchKey,
+          selectedLeagueId: localStorage.getItem('selectedLeagueId') || '',
+          authState: {
+            hasCurrentUser: !!auth.currentUser,
+            currentUserUid: auth.currentUser?.uid || null,
+            emailVerified: !!auth.currentUser?.emailVerified
+          }
+        });
         setLeagueFetchInProgress(false);
         authLogger.info(`[League Fetch] FINISHED - leagueFetchInProgress: false`);
         
@@ -504,6 +597,13 @@ function parseJwtPayload(token) {
       
       if (!firebaseUser) {
         // User logged out
+        qrAuthDebug('selectedLeagueId cleared (no firebase user)', {
+          previousSelectedLeagueId: localStorage.getItem('selectedLeagueId') || null,
+          authState: {
+            hasCurrentUser: !!auth.currentUser,
+            currentUserUid: auth.currentUser?.uid || null
+          }
+        });
         setUser(null);
         setUserRole(null);
         setLeagues([]);
@@ -808,6 +908,17 @@ function parseJwtPayload(token) {
             return;
           }
 
+          const postLoginTarget = localStorage.getItem('postLoginTarget');
+          if (postLoginTarget && postLoginTarget !== '/login') {
+            authLogger.debug('Auth complete from /login - redirecting to postLoginTarget', postLoginTarget);
+            localStorage.removeItem('postLoginTarget');
+            navigate(postLoginTarget, { replace: true });
+            return;
+          }
+          if (postLoginTarget === '/login') {
+            localStorage.removeItem('postLoginTarget');
+          }
+
           authLogger.debug('Auth complete from /login - navigating to /dashboard to trigger gate');
           navigate('/dashboard', { replace: true });
           } else {
@@ -900,6 +1011,13 @@ function parseJwtPayload(token) {
   // Add logout function directly in AuthContext to avoid circular dependency
   const logout = useCallback(async () => {
     try {
+      qrAuthDebug('selectedLeagueId cleared (logout)', {
+        previousSelectedLeagueId: localStorage.getItem('selectedLeagueId') || null,
+        authState: {
+          hasCurrentUser: !!auth.currentUser,
+          currentUserUid: auth.currentUser?.uid || null
+        }
+      });
       await signOut(auth);
       // Clear all auth state
       setUser(null);

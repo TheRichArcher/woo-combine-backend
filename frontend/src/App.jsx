@@ -22,6 +22,7 @@ import JoinLeague from "./pages/JoinLeague";
 import Welcome from "./pages/Welcome";
 import WorkflowDemo from "./pages/WorkflowDemo";
 import RouteDecisionGate from "./components/RouteDecisionGate";
+import QrFlowDebugOverlay from "./components/QrFlowDebugOverlay";
 
 import SelectLeague from "./pages/SelectLeague";
 import SelectRole from "./pages/SelectRole";
@@ -91,6 +92,7 @@ function App() {
             <PlayerDetailsProvider>
             <div className="min-h-screen bg-gray-50">
               <SessionExpiredGate />
+              <QrFlowDebugOverlay />
               <BootGate>
                 <Routes>
                   <Route path="/" element={<Navigate to="/welcome" replace />} />

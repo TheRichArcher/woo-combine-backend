@@ -4,6 +4,33 @@ import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import LoadingScreen from './LoadingScreen';
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrGateDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][RouteDecisionGate] ${message}`, payload);
+};
+
+const LAST_REDIRECT_KEY = 'debug_qr_last_redirect_reason';
+
+const writeLastRedirectReason = (reasonPayload) => {
+  try {
+    const serialized = JSON.stringify(reasonPayload);
+    localStorage.setItem(LAST_REDIRECT_KEY, serialized);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('qr-flow-redirect-reason', { detail: reasonPayload }));
+    }
+  } catch {
+    // best-effort debug write
+  }
+};
+
 /**
  * RouteDecisionGate - Centralized routing logic to prevent flicker
  *
@@ -49,6 +76,19 @@ export default function RouteDecisionGate({ children }) {
   const targetRoute = useRef(null);
   const gateTimeoutRef = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
+  const hasSelectedEventContext = Boolean(selectedLeagueId && selectedEvent);
+  const isViewerEventContext = userRole === 'viewer' && !!selectedEvent;
+
+  const buildDecisionState = () => ({
+    pathname: location.pathname,
+    userRole: userRole || null,
+    selectedLeagueId: selectedLeagueId || null,
+    selectedEventId: selectedEvent?.id || null,
+    leaguesLength: leagues?.length || 0,
+    noLeague,
+    hasSelectedEventContext,
+    isViewerEventContext
+  });
 
   // Routes that are always allowed (public/auth routes)
   const publicRoutes = [
@@ -83,27 +123,34 @@ export default function RouteDecisionGate({ children }) {
 
   // Comprehensive state logging
   useEffect(() => {
-    const state = {
-      pathname: location.pathname,
+    qrGateDebug('Decision inputs', {
+      ...buildDecisionState(),
       user: !!user,
-      userRole,
       authChecked,
       roleChecked,
       initializing,
-      selectedLeagueId,
-      leaguesCount: leagues?.length || 0,
       leaguesLoading,
-      selectedEvent: !!selectedEvent,
       eventsLoaded,
       eventsLoading,
-      noLeague,
       bypassGate,
       isReady,
       decisionMade,
       gateTimedOut
-    };
-    
-    console.log(`${logPrefix} STATE:`, state);
+    });
+    console.log(`${logPrefix} STATE:`, {
+      ...buildDecisionState(),
+      user: !!user,
+      authChecked,
+      roleChecked,
+      initializing,
+      leaguesLoading,
+      eventsLoaded,
+      eventsLoading,
+      bypassGate,
+      isReady,
+      decisionMade,
+      gateTimedOut
+    });
   }, [
     location.pathname,
     user,
@@ -234,10 +281,18 @@ export default function RouteDecisionGate({ children }) {
     }
 
     console.log(`${logPrefix} ROUTE_DECISION: Making routing decision for ${location.pathname}`);
-    const hasSelectedEventContext = Boolean(selectedLeagueId && selectedEvent);
-    const isViewerEventContext = userRole === 'viewer' && !!selectedEvent;
+    qrGateDebug('Evaluating route decision', buildDecisionState());
 
     const performNavigation = (to, reason) => {
+      const redirectPayload = {
+        reason,
+        to,
+        from: location.pathname,
+        ...buildDecisionState(),
+        timestamp: new Date().toISOString()
+      };
+      qrGateDebug('Redirect decision', redirectPayload);
+      writeLastRedirectReason(redirectPayload);
       console.log(`${logPrefix} NAV_FROM: RouteDecisionGate → ${to} (${reason})`);
       navigationAttempted.current = true;
       targetRoute.current = to;
@@ -293,6 +348,7 @@ export default function RouteDecisionGate({ children }) {
       }
     }
 
+    qrGateDebug('Route valid; no redirect', buildDecisionState());
     console.log(`${logPrefix} ROUTE_VALID: ${location.pathname} is valid, rendering content`);
     setDecisionMade(true);
 
