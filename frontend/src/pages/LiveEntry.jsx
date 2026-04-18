@@ -76,6 +76,7 @@ export default function LiveEntry() {
     try {
       const form = new FormData();
       form.append('image', file);
+      form.append('event_id', selectedEvent.id);
       form.append('drill_type', selectedDrill);
       const { data } = await api.post('/scanner/ocr', form, {
         headers: { 'Content-Type': 'multipart/form-data' }

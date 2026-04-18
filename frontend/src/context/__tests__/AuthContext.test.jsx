@@ -101,6 +101,15 @@ const RefreshContextHarness = () => {
   );
 };
 
+const LogoutHarness = () => {
+  const { logout } = useAuth();
+  return (
+    <button onClick={() => logout()} type="button">
+      logout
+    </button>
+  );
+};
+
 describe('AuthContext', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -155,7 +164,11 @@ describe('AuthContext', () => {
         return Promise.reject(unauthorizedError);
       }
       if (url === '/leagues/league-1/events') {
-        return Promise.resolve({ data: { events: [] } });
+        return Promise.resolve({
+          data: {
+            events: [{ id: 'event-1', league_id: 'league-1', name: 'Joined Event' }],
+          },
+        });
       }
       if (url === '/users/me') {
         return Promise.resolve({ data: { role: 'viewer' } });
@@ -240,8 +253,12 @@ describe('AuthContext', () => {
 
     window.history.replaceState({}, '', '/login?reason=session_expired');
     localStorage.setItem('postLoginTarget', '/live-standings?event=abc');
-    localStorage.setItem('userRole', 'viewer');
-    localStorage.setItem('userEmail', mockUser.email);
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: 'viewer' } });
+      }
+      return Promise.resolve({ data: {} });
+    });
 
     render(
       <BrowserRouter>
@@ -274,8 +291,12 @@ describe('AuthContext', () => {
 
     window.history.replaceState({}, '', '/login?reason=session_expired');
     localStorage.setItem('postLoginTarget', '/login');
-    localStorage.setItem('userRole', 'viewer');
-    localStorage.setItem('userEmail', mockUser.email);
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: 'viewer' } });
+      }
+      return Promise.resolve({ data: {} });
+    });
 
     render(
       <BrowserRouter>
@@ -289,6 +310,45 @@ describe('AuthContext', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
     });
     expect(mockNavigate).not.toHaveBeenCalledWith('/login', { replace: true });
+    expect(localStorage.getItem('postLoginTarget')).toBeNull();
+  });
+
+  it('ignores unsafe postLoginTarget values and falls back to /dashboard', async () => {
+    const mockUser = {
+      uid: 'user-unsafe-target',
+      email: 'unsafe-target@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/login');
+    localStorage.setItem('postLoginTarget', 'https://evil.example/steal-session');
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: 'viewer' } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('https://evil.example/steal-session', { replace: true });
     expect(localStorage.getItem('postLoginTarget')).toBeNull();
   });
 
@@ -330,5 +390,69 @@ describe('AuthContext', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/select-role');
     });
     expect(screen.getByTestId('role')).toHaveTextContent('no-role');
+  });
+
+  it('does not trust same-identity cached role when backend role lookup fails', async () => {
+    const mockUser = {
+      uid: 'user-5',
+      email: 'cached@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    localStorage.setItem('userRole', 'coach');
+    localStorage.setItem('userEmail', mockUser.email);
+
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.reject(new Error('backend unavailable'));
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/select-role');
+    });
+    expect(screen.getByTestId('role')).toHaveTextContent('no-role');
+  });
+
+  it('clears viewer invite context on logout', async () => {
+    localStorage.setItem('viewerInviteEventContext', JSON.stringify({
+      eventId: 'event-1',
+      leagueId: 'league-1',
+      role: 'viewer',
+      source: 'join-event',
+    }));
+    localStorage.setItem('pendingEventJoin', 'league-1/event-1/viewer');
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LogoutHarness />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'logout' }));
+
+    await waitFor(() => {
+      expect(localStorage.getItem('viewerInviteEventContext')).toBeNull();
+      expect(localStorage.getItem('pendingEventJoin')).toBeNull();
+    });
   });
 });

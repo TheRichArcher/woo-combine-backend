@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import RouteDecisionGate from '../RouteDecisionGate';
 import { useAuth } from '../../context/AuthContext';
 import { useEvent } from '../../context/EventContext';
@@ -48,6 +48,7 @@ describe('RouteDecisionGate QR onboarding guard', () => {
   const navigateMock = jest.fn();
 
   beforeEach(() => {
+    jest.useRealTimers();
     navigateMock.mockClear();
     localStorage.clear();
     useNavigate.mockReturnValue(navigateMock);
@@ -69,7 +70,7 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
-  it('still redirects to /coach when league context is missing', async () => {
+  it('redirects coaches without league context to event-required flow', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,
       userRole: 'coach',
@@ -89,7 +90,7 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     );
 
     await waitFor(() => {
-      expect(navigateMock).toHaveBeenCalledWith('/coach', { replace: true });
+      expect(navigateMock).toHaveBeenCalledWith('/coach-event-required', { replace: true });
     });
   });
 
@@ -194,5 +195,72 @@ describe('RouteDecisionGate QR onboarding guard', () => {
       expect(screen.getByTestId('gate-child')).toBeInTheDocument();
     });
     expect(navigateMock).not.toHaveBeenCalledWith('/coach', { replace: true });
+  });
+
+  it('routes authenticated users to /dashboard when gate timeout fires', async () => {
+    jest.useFakeTimers();
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      user: { uid: 'u1', emailVerified: true },
+      authChecked: true,
+      roleChecked: true,
+      initializing: false,
+      leaguesLoading: false,
+    });
+    useEvent.mockReturnValue({
+      ...baseEvent,
+      eventsLoaded: false,
+      selectedEvent: null,
+      noLeague: false,
+    });
+    useLocation.mockReturnValue({ pathname: '/players' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(30050);
+    });
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/dashboard', { replace: true });
+    });
+  });
+
+  it('routes anonymous users to /welcome when gate timeout fires', async () => {
+    jest.useFakeTimers();
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      user: null,
+      userRole: null,
+      authChecked: true,
+      roleChecked: true,
+      initializing: false,
+      leaguesLoading: false,
+    });
+    useEvent.mockReturnValue({
+      ...baseEvent,
+      eventsLoaded: false,
+      selectedEvent: null,
+      noLeague: true,
+    });
+    useLocation.mockReturnValue({ pathname: '/players' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    act(() => {
+      jest.advanceTimersByTime(30050);
+    });
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/welcome', { replace: true });
+    });
   });
 });

@@ -25,7 +25,7 @@ from fastapi import HTTPException
 
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
-from ..utils.authorization import ensure_league_access
+from ..utils.authorization import ensure_event_access, ensure_league_access
 
 
 def check_write_permission(
@@ -72,6 +72,13 @@ def check_write_permission(
             f"[LOCK] Event {event_id} has no league_id - cannot check membership"
         )
         raise HTTPException(status_code=500, detail="Event configuration error")
+
+    ensure_event_access(
+        user_id=user_id,
+        event_id=event_id,
+        allowed_roles=["organizer", "coach"],
+        operation_name=operation_name,
+    )
 
     membership = ensure_league_access(
         user_id=user_id,

@@ -10,6 +10,7 @@ import { useToast } from './ToastContext';
 import { authLogger } from '../utils/logger';
 import { cacheInvalidation } from '../utils/dataCache';
 import { fetchSchemas } from '../constants/drillTemplates';
+import { VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
 
 const AuthContext = createContext();
 
@@ -27,6 +28,13 @@ function sanitizeRole(value) {
   if (value === undefined || value === null) return null;
   const trimmed = String(value).trim();
   return VALID_ROLES.includes(trimmed) ? trimmed : null;
+}
+
+function isSafeInternalPath(path) {
+  if (typeof path !== 'string') return false;
+  if (!path.startsWith('/')) return false;
+  if (path.startsWith('//')) return false;
+  return !/^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(path);
 }
 
 const isQrDebugEnabled = () => {
@@ -224,7 +232,7 @@ export function AuthProvider({ children }) {
         tokenSource = 'expirationTime';
         
         // PRODUCTION VERIFICATION: Log token version to confirm it changes on refresh
-        if (process.env.NODE_ENV === 'development' || true) {
+        if (process.env.NODE_ENV === 'development') {
           authLogger.debug('Token version from expirationTime', {
             expirationTime: tokenVersion,
             expiresIn: Math.round((tokenVersion - Date.now()) / 1000 / 60) + ' minutes'
@@ -236,7 +244,7 @@ export function AuthProvider({ children }) {
         const token = await firebaseUser.getIdToken(false);
         if (!token) {
           authLogger.warn('Skipping league fetch - no token available');
-          return;
+          return [];
         }
         const tokenPayload = parseJwtPayload(token);
         tokenVersion = tokenPayload?.iat;
@@ -614,6 +622,7 @@ function parseJwtPayload(token) {
         setInitializing(false);
         setError(null);
         localStorage.removeItem('selectedLeagueId');
+        localStorage.removeItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
         
         // Reset league fetch trigger refs to allow fresh fetch on next login
         leagueFetchTriggeredRef.current = false;
@@ -703,126 +712,77 @@ function parseJwtPayload(token) {
       try {
         authLogger.debug('Starting role check for user', firebaseUser.email);
         
-        // PERFORMANCE FIX: Use cached role ONLY if it exists for immediate UI load
+        // Treat cached role as a hint only. Backend /users/me remains authoritative.
         const cachedRole = sanitizeRole(localStorage.getItem('userRole'));
         const cachedEmail = localStorage.getItem('userEmail');
-        
         if (cachedRole && cachedEmail === firebaseUser.email) {
-          authLogger.debug('Using cached role for immediate startup', cachedRole);
-          setUserRole(cachedRole);
-          setRole(cachedRole);
-          setRoleChecked(true); // Only mark checked when we have a valid cached role
-          setInitializing(false); // Don't wait for API verification
-          
-          transitionTo(STATUS.READY, 'Cached role used');
-          // League fetch will be triggered by useEffect watching state transitions
-          
-          // Still verify role in background, but don't block UI
-          setTimeout(async () => {
-            try {
-              const token = await firebaseUser.getIdToken(false);
-              const response = await api.get(`/users/me`, { headers: { Authorization: `Bearer ${token}` } });
-              if (response?.data) {
-                const userData = response.data;
-                const serverRole = sanitizeRole(userData.role);
-                
-                // CRITICAL FIX: Restore pending invite from background check too
-                if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
-                   authLogger.info('Restoring pending invite from server profile (background)', userData.pending_invite);
-                   localStorage.setItem('pendingEventJoin', userData.pending_invite);
-                }
-
-                if (serverRole && serverRole !== cachedRole) {
-                  authLogger.debug('Role changed on server, updating cache');
-                  setUserRole(serverRole);
-                  localStorage.setItem('userRole', serverRole);
-                }
-              }
-            } catch (error) {
-              authLogger.warn('Background role verification failed', error.message);
-            }
-          }, 1000); // Verify in background after 1 second
+          authLogger.debug('Found cached role hint; awaiting backend confirmation', cachedRole);
         }
         
         // STEP 1: Role check with extended timeout for cold starts using backend API
-        let userRole = cachedRole;
+        let userRole = null;
         let restoredPendingInvite = localStorage.getItem('pendingEventJoin');
-        
-        // PERFORMANCE OPTIMIZATION: Skip API call completely if we have valid cached role
-        if (!cachedRole || cachedEmail !== firebaseUser.email) {
-          authLogger.debug('No valid cached role found, fetching from API');
+        authLogger.debug('Fetching role from backend /users/me');
+        try {
+          let token;
           try {
-            let token;
-            try {
-              // For role checking, always refresh token to ensure email_verified is current
-              // This is crucial after email verification
-              token = await firebaseUser.getIdToken(true);
-            } catch (refreshError) {
-              authLogger.error('Token refresh failed:', refreshError.message);
-              throw new Error('Firebase auth token unavailable');
-            }
-            
-            const apiUrl = `/users/me`;
-            authLogger.debug('Making API call to', apiUrl);
-            const roleResponse = await api.get(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
-            authLogger.debug('API Response status', roleResponse.status);
-            if (roleResponse?.data) {
-              const userData = roleResponse.data;
-              authLogger.debug('User data received', userData);
-              userRole = sanitizeRole(userData.role);
-              
-              // CRITICAL FIX: Restore pending invite from server if missing locally
-              // This handles the cross-device / incognito verification flow
-              if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
-                authLogger.info('Restoring pending invite from server profile', userData.pending_invite);
-                localStorage.setItem('pendingEventJoin', userData.pending_invite);
-              }
-              if (userData.pending_invite) {
-                restoredPendingInvite = userData.pending_invite;
-              }
-            } else if (roleResponse?.status === 404) {
-              authLogger.debug('User not found (404) - treating as new user');
-              userRole = null;
-            } else if (roleResponse?.status === 403) {
-              // Email verification required - redirect to verification page
-              const errorData = roleResponse.data || {};
-              if (errorData.detail?.includes('Email verification required')) {
-                authLogger.warn('Email verification required during role check');
-                setInitializing(false);
-                if (!isVerificationBridgeRoute) {
-                  navigate('/verify-email');
-                }
-                return;
-              }
-              throw new Error(`Role check failed: ${roleResponse?.status}`);
-            } else {
-              throw new Error(`Role check failed: ${roleResponse?.status}`);
-            }
-          } catch (error) {
-            authLogger.error('Role check error', error.message);
-            
-            // Check if we have a cached role in localStorage as fallback.
-            // Never trust cached role unless it is bound to the authenticated email.
-            const fallbackCachedRole = sanitizeRole(localStorage.getItem('userRole'));
-            const fallbackCachedEmail = localStorage.getItem('userEmail');
-            if (fallbackCachedRole && fallbackCachedEmail === firebaseUser.email) {
-              authLogger.debug('API failed, but found cached role', fallbackCachedRole);
-              authLogger.warn(`API role check failed (${error.message}), using cached role: ${fallbackCachedRole}`);
-              userRole = fallbackCachedRole;
-            } else {
-              if (error.message.includes('Role check timeout')) {
-                authLogger.warn('Role check timed out after 30s - no cached role available (backend may be cold starting)');
-              } else if (error.message.includes('Firebase auth token unavailable')) {
-                authLogger.error('Firebase token issue - no cached role available');
-              } else {
-                authLogger.debug('Role check error - no cached role available', error.message);
-              }
-              userRole = null;
-            }
+            // For role checking, always refresh token to ensure email_verified is current
+            // This is crucial after email verification
+            token = await firebaseUser.getIdToken(true);
+          } catch (refreshError) {
+            authLogger.error('Token refresh failed:', refreshError.message);
+            throw new Error('Firebase auth token unavailable');
           }
-        } else {
-          authLogger.debug('Using cached role for instant startup - skipping API call entirely');
-          userRole = cachedRole;
+          
+          const apiUrl = `/users/me`;
+          authLogger.debug('Making API call to', apiUrl);
+          const roleResponse = await api.get(apiUrl, { headers: { Authorization: `Bearer ${token}` } });
+          authLogger.debug('API Response status', roleResponse.status);
+          if (roleResponse?.data) {
+            const userData = roleResponse.data;
+            authLogger.debug('User data received', userData);
+            userRole = sanitizeRole(userData.role);
+            
+            // CRITICAL FIX: Restore pending invite from server if missing locally
+            // This handles the cross-device / incognito verification flow
+            if (userData.pending_invite && !localStorage.getItem('pendingEventJoin')) {
+              authLogger.info('Restoring pending invite from server profile', userData.pending_invite);
+              localStorage.setItem('pendingEventJoin', userData.pending_invite);
+            }
+            if (userData.pending_invite) {
+              restoredPendingInvite = userData.pending_invite;
+            }
+          } else {
+            throw new Error(`Role check failed: ${roleResponse?.status}`);
+          }
+        } catch (error) {
+          const statusCode = error?.response?.status;
+          if (statusCode === 404) {
+            authLogger.debug('User not found (404) - treating as new user');
+            userRole = null;
+          } else if (statusCode === 403) {
+            const detail = error?.response?.data?.detail || '';
+            if (String(detail).includes('Email verification required')) {
+              authLogger.warn('Email verification required during role check');
+              setInitializing(false);
+              if (!isVerificationBridgeRoute) {
+                navigate('/verify-email');
+              }
+              return;
+            }
+            authLogger.warn('Role check forbidden, treating as no role');
+            userRole = null;
+          } else {
+          authLogger.error('Role check error', error.message);
+          if (error.message.includes('Role check timeout')) {
+            authLogger.warn('Role check timed out after 30s');
+          } else if (error.message.includes('Firebase auth token unavailable')) {
+            authLogger.error('Firebase token issue');
+          } else {
+            authLogger.debug('Role check error', error.message);
+          }
+          userRole = null;
+          }
         }
 
         if (!userRole) {
@@ -911,13 +871,13 @@ function parseJwtPayload(token) {
           }
 
           const postLoginTarget = localStorage.getItem('postLoginTarget');
-          if (postLoginTarget && postLoginTarget !== '/login') {
+          if (postLoginTarget && postLoginTarget !== '/login' && isSafeInternalPath(postLoginTarget)) {
             authLogger.debug('Auth complete from /login - redirecting to postLoginTarget', postLoginTarget);
             localStorage.removeItem('postLoginTarget');
             navigate(postLoginTarget, { replace: true });
             return;
           }
-          if (postLoginTarget === '/login') {
+          if (postLoginTarget === '/login' || postLoginTarget) {
             localStorage.removeItem('postLoginTarget');
           }
 
@@ -1032,6 +992,7 @@ function parseJwtPayload(token) {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      localStorage.removeItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
       localStorage.removeItem('userRole');
       cacheInvalidation.userLoggedOut();
       // Reset league fetch trigger refs to allow fresh fetch on next login
@@ -1048,6 +1009,7 @@ function parseJwtPayload(token) {
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
+      localStorage.removeItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
       localStorage.removeItem('userRole');
       cacheInvalidation.userLoggedOut();
       // Reset league fetch trigger refs to allow fresh fetch on next login
@@ -1068,7 +1030,7 @@ function parseJwtPayload(token) {
       
       if (response?.data) {
         const userData = response.data;
-        const newRole = userData.role;
+        const newRole = sanitizeRole(userData.role);
         authLogger.debug('Refreshed user role', newRole);
         
         // CRITICAL FIX: Restore pending invite during manual refresh
@@ -1080,7 +1042,11 @@ function parseJwtPayload(token) {
         setUserRole(newRole);
         setRoleChecked(true); // Ensure role check is complete
         // Persist role to localStorage for browser refresh resilience
-        localStorage.setItem('userRole', newRole);
+        if (newRole) {
+          localStorage.setItem('userRole', newRole);
+        } else {
+          localStorage.removeItem('userRole');
+        }
         
         // CRITICAL FIX: Transition from ROLE_REQUIRED to READY after role is set
         if (newRole && status === STATUS.ROLE_REQUIRED) {

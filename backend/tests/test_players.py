@@ -55,3 +55,36 @@ def test_list_league_players_endpoint(app_client, fake_db, coach_headers):
     r = app_client.get("/api/leagues/league-1/players", headers=coach_headers)
     assert r.status_code == 200
     assert any(p.get("id") == "p1" for p in r.json().get("players", []))
+
+
+def test_create_player_requires_verified_email(app_client, fake_db):
+    from backend.tests.conftest import make_jwt
+
+    _seed_event(fake_db, event_id="event-1")
+    uid = "coach-unverified-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach-unverified@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "coach", "coach_event_ids": ["event-1"]}}}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='coach-unverified@example.com', email_verified=False)}"
+    }
+
+    response = app_client.post(
+        "/api/players?event_id=event-1",
+        json={"name": "Unverified Coach", "number": 8, "age_group": "U12"},
+        headers=headers,
+    )
+    assert response.status_code == 403, response.text
+
+
+def test_league_player_create_requires_organizer_scope(app_client, fake_db, coach_headers):
+    fake_db.collection("leagues").document("league-1").set({"name": "League"})
+    response = app_client.post(
+        "/api/leagues/league-1/players",
+        json={"name": "League Scoped Player"},
+        headers=coach_headers,
+    )
+    assert response.status_code == 403, response.text

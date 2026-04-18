@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Path
 from fastapi.responses import StreamingResponse
-from ..auth import require_role
+from ..auth import require_verified_user
 from ..middleware.rate_limiting import read_rate_limit
 from ..utils.authorization import ensure_event_access
 from ..utils.data_integrity import enforce_event_league_relationship
@@ -17,7 +17,7 @@ router = APIRouter()
 def get_event_stats_endpoint(
     request: Request,
     event_id: str = Path(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Get standardized stats for an event.
@@ -47,7 +47,7 @@ def get_event_stats_endpoint(
 def export_event_pdf(
     request: Request,
     event_id: str = Path(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Generate and download PDF report.

@@ -209,6 +209,20 @@ def ensure_event_access(
         )
 
         membership_role = (membership.get("role") or "").lower()
+        if membership_role not in {"organizer", "coach", "viewer"}:
+            logging.warning(
+                "[AUTHZ] User %s denied %s for event %s in league %s due to unsupported scoped role '%s'",
+                user_id,
+                operation_name,
+                event_id,
+                league_id,
+                membership_role or "unknown",
+            )
+            _register_denial(f"event:{event_id}:unsupported-role")
+            raise HTTPException(
+                status_code=403,
+                detail="Insufficient league permissions",
+            )
         scoped_event_ids = _extract_membership_scoped_event_ids(membership)
 
         coach_requires_explicit_assignment = membership_role == "coach"
@@ -237,6 +251,22 @@ def ensure_event_access(
                 sorted(scoped_event_ids),
             )
             _register_denial(f"event:{event_id}:coach-unassigned")
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have access to this event",
+            )
+
+        viewer_requires_explicit_scope = membership_role == "viewer"
+        if viewer_requires_explicit_scope and not scoped_event_ids:
+            logging.warning(
+                "[AUTHZ] Viewer %s denied %s for event %s in league %s "
+                "because membership has no viewer_event_ids",
+                user_id,
+                operation_name,
+                event_id,
+                league_id,
+            )
+            _register_denial(f"event:{event_id}:viewer-unassigned-empty")
             raise HTTPException(
                 status_code=403,
                 detail="You do not have access to this event",

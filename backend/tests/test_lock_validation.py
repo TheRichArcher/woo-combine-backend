@@ -22,11 +22,19 @@ def _seed_event(fake_db, event_id: str, league_id: str, *, is_locked: bool = Fal
 
 
 def _seed_membership(
-    fake_db, user_id: str, league_id: str, *, role: str, can_write: bool | None = None
+    fake_db,
+    user_id: str,
+    league_id: str,
+    *,
+    role: str,
+    can_write: bool | None = None,
+    coach_event_ids: list[str] | None = None,
 ):
     membership = {"role": role}
     if can_write is not None:
         membership["canWrite"] = can_write
+    if role == "coach":
+        membership["coach_event_ids"] = coach_event_ids or ["event-1"]
     fake_db.collection("user_memberships").document(user_id).set(
         {"leagues": {league_id: membership}}
     )
@@ -136,3 +144,27 @@ def test_check_write_permission_blocks_missing_membership(monkeypatch, fake_db):
     except HTTPException as exc:
         assert exc.status_code == 403
         assert "You do not have access to this league" in exc.detail
+
+
+def test_check_write_permission_blocks_coach_for_unassigned_event(monkeypatch, fake_db):
+    _patch_db(monkeypatch, fake_db)
+    _seed_event(fake_db, "event-2", "league-1", is_locked=False)
+    _seed_membership(
+        fake_db,
+        "user-1",
+        "league-1",
+        role="coach",
+        can_write=True,
+        coach_event_ids=["event-1"],
+    )
+
+    try:
+        lock_validation.check_write_permission(
+            event_id="event-2",
+            user_id="user-1",
+            operation_name="unassigned event write",
+        )
+        assert False, "Expected HTTPException"
+    except HTTPException as exc:
+        assert exc.status_code == 403
+        assert "access to this event" in exc.detail

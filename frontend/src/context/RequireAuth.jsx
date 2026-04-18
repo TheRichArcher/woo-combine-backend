@@ -35,10 +35,9 @@ export default function RequireAuth({ children, allowedRoles }) {
     return <Navigate to="/verify-email" replace />;
   }
   
-  // If no role yet, RouteDecisionGate handles the redirect to /select-role.
-  // We just render children and let the gate do its job.
+  // Deny-by-default: no role means onboarding is incomplete.
   if (!userRole) {
-    return children;
+    return <Navigate to="/select-role" replace state={{ from: location }} />;
   }
   
   // Role-based access control: if allowedRoles specified, enforce them

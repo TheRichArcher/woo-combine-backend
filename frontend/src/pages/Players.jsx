@@ -209,26 +209,16 @@ export default function Players() {
         userRole: userRole
       });
 
-      // Organizers always have full access
-      if (userRole === 'organizer') {
-        console.log('[PERMISSIONS] ✅ User is ORGANIZER - full edit access granted');
-        setPermissions({
-          canWrite: true,
-          isLocked: false, // Organizers ignore lock
-          loading: false,
-          resolved: true
-        });
-        return;
-      }
-
       // Fetch membership to get canWrite permission
-      let membershipCanWrite = true; // Default for backward compatibility
+      let membershipCanWrite = false; // Deny by default unless backend explicitly grants
       let membershipFound = false;
+      let membershipRole = null;
       
       try {
         const membershipRes = await api.get(`/leagues/${selectedLeagueId}/members/${user.uid}`);
         membershipFound = true;
-        membershipCanWrite = membershipRes.data?.canWrite !== undefined ? membershipRes.data.canWrite : true;
+        membershipCanWrite = membershipRes.data?.canWrite === true;
+        membershipRole = membershipRes.data?.role || null;
         
         console.log('[PERMISSIONS] Membership record found:', {
           userId: user.uid,
@@ -259,7 +249,8 @@ export default function Players() {
         });
       } catch (err) {
         console.error('[PERMISSIONS] Error fetching event lock status:', err);
-        // Don't throw - continue with unlocked assumption
+        // Fail closed on lock status lookup failures.
+        eventIsLocked = true;
       }
 
       // FINAL RESOLUTION LOGIC
@@ -269,7 +260,7 @@ export default function Players() {
       if (!membershipFound) {
         finalCanWrite = false;
         resolutionReason = 'NO_MEMBERSHIP_RECORD';
-      } else if (eventIsLocked && userRole === 'coach') {
+      } else if (eventIsLocked && membershipRole !== 'organizer') {
         finalCanWrite = false;
         resolutionReason = 'COMBINE_LOCKED';
       } else if (!membershipCanWrite) {

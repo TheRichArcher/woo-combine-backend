@@ -75,6 +75,7 @@ export const readViewerInviteEventContext = () => {
 export const getViewerInviteEventLock = ({ userRole, inviteContext } = {}) => {
   const context = inviteContext || readViewerInviteEventContext();
   if (!context) return null;
+  const normalizedUserRole = typeof userRole === 'string' ? userRole.toLowerCase() : '';
 
   const role = (context.role || '').toLowerCase();
   const source = (context.source || '').toLowerCase();
@@ -82,6 +83,8 @@ export const getViewerInviteEventLock = ({ userRole, inviteContext } = {}) => {
   const leagueId = context.leagueId || context.event?.league_id || null;
 
   // Only lock sessions that originated from viewer invite flow.
+  // If the current session role is known and is not viewer, never lock.
+  if (normalizedUserRole && normalizedUserRole !== 'viewer') return null;
   if (role && role !== 'viewer') return null;
   if (source !== 'join-event') return null;
   if (!eventId) return null;

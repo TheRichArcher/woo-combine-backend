@@ -8,9 +8,9 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
-from ..utils.authorization import ensure_league_access
+from ..utils.authorization import ensure_event_access, ensure_league_access
 from google.cloud.firestore_v1 import FieldFilter
 import uuid
 import logging
@@ -114,10 +114,16 @@ def _verify_draft_access(db, draft_id: str, user: dict, *, require_admin: bool =
 
     if league_id:
         # Verify user is a member of the league
-        ensure_league_access(
+        membership = ensure_league_access(
             user["uid"],
             league_id,
             allowed_roles={"organizer", "coach", "viewer"},
+            operation_name="view draft",
+        )
+        _enforce_draft_scope_for_membership(
+            user_id=user["uid"],
+            draft_data=draft_data,
+            membership=membership,
             operation_name="view draft",
         )
     elif not _has_explicit_draft_access(db, draft_id, user["uid"], draft_data):
@@ -285,17 +291,85 @@ def _is_draft_admin(user: dict, draft_data: dict) -> bool:
         return False
 
 
-def _is_staff_user(user: dict) -> bool:
-    return user.get("role") in {"organizer", "coach"}
+def _get_user_league_roles(db, uid: str) -> Dict[str, str]:
+    membership_doc = db.collection("user_memberships").document(uid).get()
+    if not membership_doc.exists:
+        return {}
+    leagues_data = (membership_doc.to_dict() or {}).get("leagues", {}) or {}
+    roles: Dict[str, str] = {}
+    for league_id, membership in leagues_data.items():
+        role = ((membership or {}).get("role") or "").lower()
+        if role:
+            roles[str(league_id)] = role
+    return roles
 
 
-def _require_draft_staff(user: dict, *, operation_name: str) -> None:
-    # Global viewers are read-only even when they can view draft data.
-    if not _is_staff_user(user):
-        raise HTTPException(
-            status_code=403,
-            detail=f"{operation_name} is restricted to staff roles",
+def _user_has_scoped_organizer_membership(db, uid: str) -> bool:
+    return any(role == "organizer" for role in _get_user_league_roles(db, uid).values())
+
+
+def _user_has_team_assignment(db, draft_id: str, uid: str) -> bool:
+    teams = (
+        db.collection("draft_teams")
+        .where("draft_id", "==", draft_id)
+        .where("coach_user_id", "==", uid)
+        .limit(1)
+        .stream()
+    )
+    return len(list(teams)) > 0
+
+
+def _enforce_draft_scope_for_membership(
+    *,
+    user_id: str,
+    draft_data: dict,
+    membership: dict,
+    operation_name: str,
+) -> None:
+    role = (membership.get("role") or "").lower()
+    if role not in {"organizer", "coach", "viewer"}:
+        raise HTTPException(status_code=403, detail="Insufficient league permissions")
+
+    if role == "organizer":
+        return
+
+    for event_id in _get_draft_event_ids(draft_data):
+        ensure_event_access(
+            user_id,
+            event_id,
+            allowed_roles={"organizer", "coach", "viewer"},
+            operation_name=operation_name,
         )
+
+
+def _require_draft_staff(db, user: dict, draft_data: dict, *, operation_name: str) -> None:
+    league_id = draft_data.get("league_id")
+    if league_id:
+        membership = ensure_league_access(
+            user["uid"],
+            league_id,
+            allowed_roles={"organizer", "coach"},
+            operation_name=operation_name,
+        )
+        scoped_role = (membership.get("role") or "").lower()
+        if scoped_role in {"organizer", "coach"}:
+            _enforce_draft_scope_for_membership(
+                user_id=user["uid"],
+                draft_data=draft_data,
+                membership=membership,
+                operation_name=operation_name,
+            )
+            return
+
+    # Standalone drafts: explicit draft scope only.
+    if draft_data.get("created_by") == user["uid"]:
+        return
+    if _user_has_team_assignment(db, draft_data.get("id"), user["uid"]):
+        return
+    raise HTTPException(
+        status_code=403,
+        detail=f"{operation_name} is restricted to draft owners or assigned team coaches",
+    )
 
 
 def _ensure_team_coach_or_admin(
@@ -323,12 +397,19 @@ def _ensure_team_coach_or_admin(
             detail=f"Not authorized for {operation_name}",
         )
 
-    if is_team_coach and not _is_staff_user(user):
-        raise HTTPException(
-            status_code=403,
-            detail=f"{operation_name} is restricted to staff roles",
-        )
+    if is_team_coach:
+        _require_draft_staff(db, user, draft_data, operation_name=operation_name)
 
+    return team_data
+
+
+def _get_team_for_draft(db, draft_id: str, team_id: str) -> dict:
+    team_doc = db.collection("draft_teams").document(team_id).get()
+    if not team_doc.exists:
+        raise HTTPException(status_code=404, detail="Team not found")
+    team_data = team_doc.to_dict() or {}
+    if team_data.get("draft_id") != draft_id:
+        raise HTTPException(status_code=400, detail="Team not in this draft")
     return team_data
 
 
@@ -425,7 +506,7 @@ def _check_payment_gate(db, draft_id: str, draft_data: dict):
 
 @router.post("")
 async def create_draft(
-    draft_in: DraftCreate, user: dict = Depends(require_role("organizer", "coach"))
+    draft_in: DraftCreate, user: dict = Depends(get_current_user)
 ):
     """Create a new draft for an event."""
     db = get_firestore_client()
@@ -450,9 +531,9 @@ async def create_draft(
             event_league_id = event_data.get("league_id")
 
             if event_league_id:
-                ensure_league_access(
+                ensure_event_access(
                     user["uid"],
-                    event_league_id,
+                    event_id,
                     allowed_roles={"organizer", "coach"},
                     operation_name="create draft",
                 )
@@ -463,6 +544,11 @@ async def create_draft(
                         status_code=400,
                         detail="All selected events must belong to the same league",
                     )
+    elif not _user_has_scoped_organizer_membership(db, user["uid"]):
+        raise HTTPException(
+            status_code=403,
+            detail="Standalone drafts are restricted to organizer memberships",
+        )
     # Standalone draft - no event required
 
     draft_id = generate_id("draft_")
@@ -568,8 +654,14 @@ async def list_drafts(
     """List drafts, optionally filtered by event, league, or owned by user."""
     db = get_firestore_client()
     uid = user["uid"]
-    user_role = user.get("role")
-    can_use_explicit_draft_access = user_role in {"organizer", "coach"}
+    user_league_roles = _get_user_league_roles(db, uid)
+
+    def _staff_league_ids() -> set[str]:
+        return {
+            league_id
+            for league_id, role in user_league_roles.items()
+            if role in {"organizer", "coach"}
+        }
 
     drafts: List[dict] = []
     seen_ids: set = set()
@@ -614,9 +706,24 @@ async def list_drafts(
             if did and did not in seen_ids:
                 _add_doc(db.collection("drafts").document(did).get())
     else:
-        q = db.collection("drafts")
+        for scoped_league_id in _staff_league_ids():
+            q = db.collection("drafts").where(
+                filter=FieldFilter("league_id", "==", scoped_league_id)
+            )
+            for d in q.stream():
+                _add_doc(d)
+        q = db.collection("drafts").where(filter=FieldFilter("created_by", "==", uid))
         for d in q.stream():
             _add_doc(d)
+        coach_teams = (
+            db.collection("draft_teams")
+            .where(filter=FieldFilter("coach_user_id", "==", uid))
+            .stream()
+        )
+        coach_draft_ids = {t.to_dict().get("draft_id") for t in coach_teams}
+        for did in coach_draft_ids:
+            if did and did not in seen_ids:
+                _add_doc(db.collection("drafts").document(did).get())
 
     visible: List[dict] = []
     for draft in drafts:
@@ -625,27 +732,24 @@ async def list_drafts(
 
         if league_id_val:
             try:
-                ensure_league_access(
+                membership = ensure_league_access(
                     uid,
                     league_id_val,
-                    allowed_roles={"organizer", "coach"},
+                    allowed_roles={"organizer", "coach", "viewer"},
+                    operation_name="list drafts",
+                )
+                _enforce_draft_scope_for_membership(
+                    user_id=uid,
+                    draft_data=draft,
+                    membership=membership,
                     operation_name="list drafts",
                 )
                 visible.append(draft)
             except HTTPException:
-                if (
-                    can_use_explicit_draft_access
-                    and draft_id
-                    and _has_explicit_draft_access(db, draft_id, uid, draft)
-                ):
-                    visible.append(draft)
+                pass
             continue
 
-        if (
-            can_use_explicit_draft_access
-            and draft_id
-            and _has_explicit_draft_access(db, draft_id, uid, draft)
-        ):
+        if draft_id and _has_explicit_draft_access(db, draft_id, uid, draft):
             visible.append(draft)
 
     return visible
@@ -913,8 +1017,7 @@ async def remove_team(
     _check_payment_gate(db, draft_id, draft_data)
 
     team_ref = db.collection("draft_teams").document(team_id)
-    if not team_ref.get().exists:
-        raise HTTPException(status_code=404, detail="Team not found")
+    _get_team_for_draft(db, draft_id, team_id)
 
     team_ref.delete()
 
@@ -947,6 +1050,7 @@ async def reorder_teams(
 
     # Update pick_order for each team
     for i, team_id in enumerate(team_ids):
+        _get_team_for_draft(db, draft_id, team_id)
         db.collection("draft_teams").document(team_id).update({"pick_order": i + 1})
 
     return {"status": "reordered", "order": team_ids}
@@ -1366,8 +1470,8 @@ async def save_rankings(
 ):
     """Save the current user's player rankings."""
     db = get_firestore_client()
-    _verify_draft_access(db, draft_id, user)
-    _require_draft_staff(user, operation_name="Ranking updates")
+    _, draft_data = _verify_draft_access(db, draft_id, user)
+    _require_draft_staff(db, user, draft_data, operation_name="Ranking updates")
 
     # Check if ranking exists
     ranking_query = (
@@ -1507,11 +1611,7 @@ async def add_pre_slot(
     _check_payment_gate(db, draft_id, draft_data)
 
     team_ref = db.collection("draft_teams").document(slot_in.team_id)
-    team_doc = team_ref.get()
-    if not team_doc.exists:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    team_data = team_doc.to_dict()
+    team_data = _get_team_for_draft(db, draft_id, slot_in.team_id)
     pre_slotted = team_data.get("pre_slotted_player_ids", [])
 
     if slot_in.player_id not in pre_slotted:
@@ -1541,11 +1641,7 @@ async def remove_pre_slot(
     _check_payment_gate(db, draft_id, draft_data)
 
     team_ref = db.collection("draft_teams").document(team_id)
-    team_doc = team_ref.get()
-    if not team_doc.exists:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-    team_data = team_doc.to_dict()
+    team_data = _get_team_for_draft(db, draft_id, team_id)
     pre_slotted = team_data.get("pre_slotted_player_ids", [])
 
     if player_id in pre_slotted:
@@ -1567,7 +1663,7 @@ async def create_trade(
     """Create a trade proposal."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
-    _require_draft_staff(user, operation_name="Trade proposals")
+    _require_draft_staff(db, user, draft_data, operation_name="Trade proposals")
 
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -1600,14 +1696,10 @@ async def create_trade(
 
     is_admin = _is_draft_admin(user, draft_data)
     if not is_admin:
-        offering_team_doc = (
-            db.collection("draft_teams").document(trade_in.offering_team_id).get()
+        offering_team_data = _get_team_for_draft(
+            db, draft_id, trade_in.offering_team_id
         )
-        if not offering_team_doc.exists:
-            raise HTTPException(status_code=404, detail="Offering team not found")
-        offering_team_data = offering_team_doc.to_dict() or {}
-        if offering_team_data.get("draft_id") != draft_id:
-            raise HTTPException(status_code=400, detail="Offering team not in this draft")
+        _get_team_for_draft(db, draft_id, trade_in.receiving_team_id)
         if offering_team_data.get("coach_user_id") != user["uid"]:
             raise HTTPException(
                 status_code=403,
@@ -1984,12 +2076,32 @@ async def join_team_via_invite(
             status_code=400,
             detail="Draft invite is missing league context",
         )
-    ensure_league_access(
+    membership = ensure_league_access(
         user["uid"],
         league_id,
         allowed_roles={"organizer", "coach"},
         operation_name="claim team invite",
     )
+    scoped_role = (membership.get("role") or "").lower()
+
+    # Coach claims require explicit draft event scope.
+    # League membership alone is never sufficient for coaches.
+    if scoped_role == "coach":
+        draft_event_ids = _get_draft_event_ids(draft_data)
+        if not draft_event_ids:
+            raise HTTPException(
+                status_code=403,
+                detail="Coach claims require explicit draft event scope",
+            )
+        for event_id in draft_event_ids:
+            ensure_event_access(
+                user["uid"],
+                event_id,
+                allowed_roles={"organizer", "coach"},
+                operation_name="claim team invite",
+            )
+    elif scoped_role != "organizer":
+        raise HTTPException(status_code=403, detail="Insufficient league permissions")
 
     # Check draft status - can only join during setup
     if draft_data.get("status") not in ["setup", "active"]:

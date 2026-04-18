@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Path, Query, Res
 from google.cloud import firestore
 from typing import Optional, List
 from ..firestore_client import db
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, require_verified_user
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 from datetime import datetime
 import logging
@@ -108,7 +108,7 @@ def create_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     req: EventCreateRequest | None = None,
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Create a new event/combine in a league.
@@ -320,7 +320,7 @@ def update_event(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     req: EventUpdateRequest | None = None,
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Update event details including name, date, location, notes, and drill configuration.
@@ -505,7 +505,7 @@ def issue_delete_intent_token(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Issue a short-lived delete intent token for event deletion.
@@ -572,7 +572,7 @@ def delete_event(
     request: Request,
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Soft-delete an event (requires organizer role).
@@ -796,7 +796,7 @@ def set_combine_lock_status(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     req: LockCombineRequest = None,
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Set global combine lock status (isLocked field).
@@ -950,7 +950,7 @@ def create_custom_drill(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     req: CustomDrillCreateRequest = None,
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Create a custom drill for an event.
@@ -1071,7 +1071,7 @@ def update_custom_drill(
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     drill_id: str = Path(..., regex=r"^.{1,50}$"),
     req: CustomDrillUpdateRequest = None,
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Update a custom drill's configuration.
@@ -1134,7 +1134,7 @@ def delete_custom_drill(
     league_id: str = Path(..., regex=r"^.{1,50}$"),
     event_id: str = Path(..., regex=r"^.{1,50}$"),
     drill_id: str = Path(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Delete a custom drill.

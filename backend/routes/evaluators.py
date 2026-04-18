@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List
 from pydantic import BaseModel
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, require_verified_user
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit
 import logging
 from ..firestore_client import db
@@ -70,7 +70,7 @@ def add_evaluator(
     request: Request,
     event_id: str,
     payload: AddEvaluatorRequest,
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """Add an evaluator to an event (requires organizer/coach role)"""
     try:
@@ -121,7 +121,7 @@ def submit_drill_evaluation(
     request: Request,
     event_id: str,
     evaluation: DrillEvaluationRequest,
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """Submit a drill evaluation from an evaluator"""
     try:

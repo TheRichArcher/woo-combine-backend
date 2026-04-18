@@ -75,7 +75,7 @@ AUTH_CHECK_REVOKED = os.getenv("AUTH_CHECK_REVOKED", "true").lower() in (
     "yes",
     "on",
 )
-AUTH_FALLBACK_NO_REVOKE = os.getenv("AUTH_FALLBACK_NO_REVOKE", "true").lower() in (
+AUTH_FALLBACK_NO_REVOKE = os.getenv("AUTH_FALLBACK_NO_REVOKE", "false").lower() in (
     "1",
     "true",
     "yes",
@@ -162,9 +162,9 @@ def _is_user_disabled_cached(uid: str, bucket: int) -> bool:
         user_record = auth.get_user(uid)
         return bool(getattr(user_record, "disabled", False))
     except Exception as e:
-        # Treat failures as not disabled; downstream logic is best-effort only
-        logging.debug(f"[AUTH] Disabled check skipped (cached) for {uid}: {e}")
-        return False
+        # Fail closed: if disabled-state lookup fails, deny access.
+        logging.error(f"[AUTH] Disabled check failed for {uid}: {e}")
+        return True
 
 
 def get_current_user(
@@ -506,3 +506,9 @@ def require_role(*allowed_roles):
         return user
 
     return wrapper
+
+
+def require_verified_user(user=Depends(get_current_user)):
+    if not user.get("email_verified", False):
+        raise HTTPException(status_code=403, detail="Email verification required")
+    return user

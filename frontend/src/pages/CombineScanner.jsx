@@ -125,6 +125,7 @@ export default function CombineScanner() {
     try {
       const form = new FormData();
       form.append('image', file);
+      form.append('event_id', eventId);
       form.append('drill_type', selectedDrill);
 
       const { data } = await api.post('/scanner/ocr', form, {

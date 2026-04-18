@@ -21,7 +21,41 @@ def _seed_draft_and_team(fake_db, *, draft_id="draft-1", team_id="team-1", creat
     )
 
 
-def test_create_and_get_draft_standalone(app_client, fake_db, coach_headers):
+def _seed_invite_claim_fixture(
+    fake_db,
+    *,
+    draft_id: str,
+    team_id: str,
+    invite_token: str,
+    event_id: str = "event-join-1",
+    league_id: str = "league-1",
+):
+    fake_db.collection("events").document(event_id).set(
+        {"id": event_id, "name": "Join Event", "league_id": league_id}
+    )
+    fake_db.collection("drafts").document(draft_id).set(
+        {
+            "id": draft_id,
+            "name": "Invite Draft",
+            "league_id": league_id,
+            "event_id": event_id,
+            "event_ids": [event_id],
+            "created_by": "org-1",
+            "status": "setup",
+        }
+    )
+    fake_db.collection("draft_teams").document(team_id).set(
+        {
+            "id": team_id,
+            "draft_id": draft_id,
+            "team_name": "Invite Team",
+            "coach_user_id": None,
+            "invite_token": invite_token,
+        }
+    )
+
+
+def test_create_and_get_draft_standalone(app_client, fake_db, organizer_headers):
     # Standalone draft: no event required
     r = app_client.post(
         "/api/drafts",
@@ -37,14 +71,62 @@ def test_create_and_get_draft_standalone(app_client, fake_db, coach_headers):
             "event_id": None,
             "event_ids": [],
         },
-        headers=coach_headers,
+        headers=organizer_headers,
     )
     assert r.status_code == 200, r.text
     draft_id = r.json()["id"]
 
-    r2 = app_client.get(f"/api/drafts/{draft_id}", headers=coach_headers)
+    r2 = app_client.get(f"/api/drafts/{draft_id}", headers=organizer_headers)
     assert r2.status_code == 200
     assert r2.json()["id"] == draft_id
+
+
+def test_create_standalone_draft_requires_scoped_organizer_membership(
+    app_client, fake_db, coach_headers
+):
+    r = app_client.post(
+        "/api/drafts",
+        json={
+            "name": "Coach Standalone Draft Attempt",
+            "draft_type": "snake",
+            "pick_timer_seconds": 30,
+            "auto_pick_on_timeout": False,
+            "trades_enabled": False,
+            "trades_require_approval": False,
+            "event_id": None,
+            "event_ids": [],
+        },
+        headers=coach_headers,
+    )
+    assert r.status_code == 403, r.text
+
+
+def test_create_standalone_draft_ignores_global_organizer_without_membership(
+    app_client, fake_db
+):
+    uid = "global-organizer-no-scope-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "global-organizer@example.com", "role": "organizer"}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='global-organizer@example.com', email_verified=True)}"
+    }
+
+    r = app_client.post(
+        "/api/drafts",
+        json={
+            "name": "No Scope Organizer Draft",
+            "draft_type": "snake",
+            "pick_timer_seconds": 30,
+            "auto_pick_on_timeout": False,
+            "trades_enabled": False,
+            "trades_require_approval": False,
+            "event_id": None,
+            "event_ids": [],
+        },
+        headers=headers,
+    )
+    assert r.status_code == 403, r.text
 
 
 def test_create_event_linked_draft_allows_coach_member(app_client, fake_db, coach_headers):
@@ -71,6 +153,46 @@ def test_create_event_linked_draft_allows_coach_member(app_client, fake_db, coac
     body = r.json()
     assert body["event_id"] == "event-1"
     assert body["league_id"] == "league-1"
+
+
+def test_create_event_linked_draft_blocks_unassigned_coach(app_client, fake_db):
+    fake_db.collection("events").document("event-2").set(
+        {"id": "event-2", "name": "Event 2", "league_id": "league-1"}
+    )
+    uid = "coach-unassigned-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach-unassigned@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {
+            "leagues": {
+                "league-1": {
+                    "role": "coach",
+                    "coach_event_ids": ["event-1"],
+                }
+            }
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='coach-unassigned@example.com', email_verified=True)}"
+    }
+
+    r = app_client.post(
+        "/api/drafts",
+        json={
+            "name": "Unauthorized Coach Event Draft",
+            "event_id": "event-2",
+            "event_ids": [],
+            "draft_type": "snake",
+            "pick_timer_seconds": 30,
+            "auto_pick_on_timeout": False,
+            "trades_enabled": False,
+            "trades_require_approval": False,
+        },
+        headers=headers,
+    )
+
+    assert r.status_code == 403, r.text
 
 
 def test_update_team_allows_organizer(app_client, fake_db, organizer_headers):
@@ -266,11 +388,10 @@ def test_list_drafts_coach_with_explicit_access_still_sees_draft(app_client, fak
 
     r = app_client.get("/api/drafts", headers=headers)
     assert r.status_code == 200, r.text
-    draft_ids = {d["id"] for d in r.json()}
-    assert draft_ids == {"draft-explicit-coach"}
+    assert r.json() == []
 
 
-def test_list_drafts_viewer_with_coach_assignment_still_sees_none(app_client, fake_db):
+def test_list_drafts_viewer_with_coach_assignment_sees_league_draft(app_client, fake_db):
     fake_db.collection("drafts").document("draft-explicit-viewer").set(
         {
             "id": "draft-explicit-viewer",
@@ -302,7 +423,8 @@ def test_list_drafts_viewer_with_coach_assignment_still_sees_none(app_client, fa
 
     r = app_client.get("/api/drafts", headers=headers)
     assert r.status_code == 200, r.text
-    assert r.json() == []
+    draft_ids = {d["id"] for d in r.json()}
+    assert draft_ids == {"draft-explicit-viewer"}
 
 
 def test_list_drafts_outsider_sees_none(app_client, fake_db):
@@ -517,6 +639,51 @@ def test_rankings_outsider_write_blocked_and_not_persisted(app_client, fake_db):
         if doc.to_dict().get("draft_id") == draft_id
     ]
     assert ranking_docs == []
+
+
+def test_global_coach_role_cannot_override_viewer_membership_for_rankings_write(
+    app_client, fake_db
+):
+    draft_id = "rankings-global-role-drift"
+    fake_db.collection("events").document("event-1").set(
+        {"id": "event-1", "name": "Event 1", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).set(
+        {
+            "id": draft_id,
+            "name": "League Draft",
+            "league_id": "league-1",
+            "event_id": "event-1",
+            "event_ids": ["event-1"],
+            "created_by": "org-1",
+            "status": "setup",
+        }
+    )
+
+    uid = "coach-role-viewer-scope-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "role-drift@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {
+            "leagues": {
+                "league-1": {
+                    "role": "viewer",
+                    "viewer_event_ids": ["event-1"],
+                }
+            }
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='role-drift@example.com', email_verified=True)}"
+    }
+
+    denied = app_client.put(
+        f"/api/drafts/{draft_id}/rankings",
+        headers=headers,
+        json={"ranked_player_ids": ["x1", "x2"]},
+    )
+    assert denied.status_code == 403, denied.text
 
 
 def _seed_active_pickable_draft(
@@ -735,6 +902,71 @@ def test_team_owner_coach_can_make_pick(app_client, fake_db, coach_headers):
     assert r.json()["pick_type"] == "manual"
 
 
+def test_unassigned_coach_cannot_make_pick_outside_event_scope(app_client, fake_db):
+    draft_id = "coach-out-of-scope-pick-draft"
+    team_id = "coach-out-of-scope-team"
+    uid = "coach-out-of-scope-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "out-of-scope@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {
+            "leagues": {
+                "league-1": {
+                    "role": "coach",
+                    "coach_event_ids": ["event-1"],
+                }
+            }
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='out-of-scope@example.com', email_verified=True)}"
+    }
+
+    fake_db.collection("events").document("event-2").set(
+        {"id": "event-2", "name": "Event 2", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).set(
+        {
+            "id": draft_id,
+            "name": "Scoped Draft",
+            "league_id": "league-1",
+            "event_id": "event-2",
+            "event_ids": ["event-2"],
+            "created_by": "org-1",
+            "status": "active",
+            "draft_type": "snake",
+            "num_rounds": 1,
+            "num_teams": 1,
+            "team_order": [team_id],
+            "current_round": 1,
+            "current_pick": 1,
+            "current_team_id": team_id,
+            "pick_timer_seconds": 0,
+            "pick_deadline": None,
+            "auto_pick_on_timeout": True,
+        }
+    )
+    fake_db.collection("draft_teams").document(team_id).set(
+        {
+            "id": team_id,
+            "draft_id": draft_id,
+            "team_name": "Scoped Team",
+            "coach_user_id": uid,
+        }
+    )
+    fake_db.collection("draft_players").document("dp-out-of-scope").set(
+        {"id": "dp-out-of-scope", "draft_id": draft_id, "name": "Available Player"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "dp-out-of-scope"},
+        headers=headers,
+    )
+    assert r.status_code == 403, r.text
+
+
 def test_team_owner_coach_can_create_trade(app_client, fake_db, coach_headers):
     draft_id = "coach-trade-allowed-draft"
     _seed_active_pickable_draft(
@@ -782,3 +1014,120 @@ def test_team_owner_coach_can_create_trade(app_client, fake_db, coach_headers):
 
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "pending"
+
+
+def test_join_invite_denies_coach_without_draft_event_scope(app_client, fake_db):
+    draft_id = "invite-scope-denied-draft"
+    team_id = "invite-scope-denied-team"
+    invite_token = "invite-token-scope-denied"
+    _seed_invite_claim_fixture(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        invite_token=invite_token,
+        event_id="event-join-2",
+    )
+
+    uid = "coach-in-league-but-unassigned-join-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach-unassigned-join@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "coach", "coach_event_ids": ["event-join-1"]}}}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='coach-unassigned-join@example.com', email_verified=True)}"
+    }
+
+    denied = app_client.post(f"/api/drafts/join/{invite_token}", headers=headers)
+    assert denied.status_code == 403, denied.text
+
+
+def test_join_invite_allows_coach_with_draft_event_scope(app_client, fake_db):
+    draft_id = "invite-scope-allowed-draft"
+    team_id = "invite-scope-allowed-team"
+    invite_token = "invite-token-scope-allowed"
+    _seed_invite_claim_fixture(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        invite_token=invite_token,
+        event_id="event-join-3",
+    )
+
+    uid = "coach-assigned-join-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach-assigned-join@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "coach", "coach_event_ids": ["event-join-3"]}}}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='coach-assigned-join@example.com', email_verified=True)}"
+    }
+
+    allowed = app_client.post(f"/api/drafts/join/{invite_token}", headers=headers)
+    assert allowed.status_code == 200, allowed.text
+    assert allowed.json()["status"] == "ok"
+    assert allowed.json()["team_id"] == team_id
+
+    team_doc = fake_db.collection("draft_teams").document(team_id).get()
+    assert team_doc.to_dict().get("coach_user_id") == uid
+
+
+def test_join_invite_allows_organizer_path(app_client, fake_db):
+    draft_id = "invite-organizer-allowed-draft"
+    team_id = "invite-organizer-allowed-team"
+    invite_token = "invite-token-organizer-allowed"
+    _seed_invite_claim_fixture(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        invite_token=invite_token,
+        event_id="event-join-4",
+    )
+
+    uid = "organizer-join-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "organizer-join@example.com", "role": "organizer"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "organizer"}}}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='organizer-join@example.com', email_verified=True)}"
+    }
+
+    allowed = app_client.post(f"/api/drafts/join/{invite_token}", headers=headers)
+    assert allowed.status_code == 200, allowed.text
+    assert allowed.json()["status"] == "ok"
+
+
+def test_join_invite_leaked_token_does_not_bypass_event_scope(app_client, fake_db):
+    draft_id = "invite-leaked-token-draft"
+    team_id = "invite-leaked-token-team"
+    invite_token = "invite-token-leaked-scope"
+    _seed_invite_claim_fixture(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        invite_token=invite_token,
+        event_id="event-join-5",
+    )
+
+    uid = "coach-global-role-leaked-token-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "leaked-token-coach@example.com", "role": "coach"}
+    )
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "coach", "coach_event_ids": ["event-other"]}}}
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='leaked-token-coach@example.com', email_verified=True)}"
+    }
+
+    denied = app_client.post(f"/api/drafts/join/{invite_token}", headers=headers)
+    assert denied.status_code == 403, denied.text
+
+    team_doc = fake_db.collection("draft_teams").document(team_id).get()
+    assert team_doc.to_dict().get("coach_user_id") is None

@@ -108,7 +108,7 @@ export default function JoinEvent() {
       handledJoinKeyRef.current = joinKey;
 
       const buildJoinRequestPayload = (eventIdForInvite) => {
-        const effectiveRole = (intendedRole || userRole || 'coach').toLowerCase();
+        const effectiveRole = (intendedRole ? intendedRole.toLowerCase() : 'viewer');
         const payload = {
           user_id: user.uid,
           email: user.email,
@@ -214,7 +214,7 @@ export default function JoinEvent() {
             targetLeague = refreshedLeagues.find(l => l.id === actualLeagueId) || { 
               id: actualLeagueId, 
               name: joinData.league_name || 'League', 
-              role: intendedRole || userRole || 'coach' 
+              role: (joinData?.role || intendedRole || userRole || 'viewer').toLowerCase()
             };
           } else {
             targetLeague = existingLeague;
@@ -357,7 +357,7 @@ export default function JoinEvent() {
             targetLeague = refreshedLeagues.find(l => l.id === resolvedLeagueId) || {
               id: resolvedLeagueId,
               name: joinResponse.data?.league_name || 'League',
-              role: intendedRole || userRole || 'coach'
+              role: (joinResponse?.data?.role || intendedRole || userRole || 'viewer').toLowerCase()
             };
 
             const legacyEventResponse = await api.get(`/leagues/${resolvedLeagueId}/events/${actualEventId}`);
@@ -480,7 +480,7 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
-  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing]);
+  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing, refreshLeagues]);
 
   if (loading || initializing) {
     return <LoadingScreen size="medium" />;
@@ -513,7 +513,7 @@ export default function JoinEvent() {
               </p>
             </div>
             <p className="text-gray-600 text-sm">
-              Redirecting to event standings...
+              Redirecting to your event dashboard...
             </p>
           </div>
         )}

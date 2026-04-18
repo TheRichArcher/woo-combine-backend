@@ -33,6 +33,22 @@ def test_set_user_role_blocks_self_promotion_to_organizer(app_client, fake_db, c
     assert coach_doc.to_dict().get("role") == "coach"
 
 
+def test_set_user_role_blocks_new_user_from_self_assigning_organizer(app_client, fake_db):
+    uid = "new-organizer-attempt-1"
+    fake_db.collection("users").document(uid).set({"id": uid, "email": "new-org@example.com"})
+
+    from backend.tests.conftest import make_jwt
+
+    token = make_jwt(uid=uid, email="new-org@example.com", email_verified=True)
+    headers = {"Authorization": f"Bearer {token}"}
+
+    r = app_client.post("/api/users/role", json={"role": "organizer"}, headers=headers)
+    assert r.status_code == 403, r.text
+
+    stored = fake_db.collection("users").document(uid).get().to_dict()
+    assert stored.get("role") is None
+
+
 def test_set_user_role_simple_requires_authenticated_identity(app_client, fake_db, monkeypatch):
     monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
 

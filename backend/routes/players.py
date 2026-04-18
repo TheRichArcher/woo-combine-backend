@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 from pydantic import BaseModel
-from ..auth import get_current_user, require_role
+from ..auth import get_current_user, require_verified_user
 from ..middleware.rate_limiting import read_rate_limit, write_rate_limit, bulk_rate_limit
 import logging
 from ..firestore_client import db
@@ -166,7 +166,7 @@ def create_player(
     request: Request,
     player: PlayerCreate,
     event_id: str = Query(...),
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_verified_user)
 ):
     try:
         logging.info(f"[CREATE_PLAYER] Starting player creation for event_id: {event_id}")
@@ -229,7 +229,7 @@ def update_player(
     player_id: str,
     player: PlayerCreate,
     event_id: str = Query(...),
-    current_user=Depends(require_role("organizer", "coach"))
+    current_user=Depends(require_verified_user)
 ):
     try:
         enforce_event_league_relationship(event_id=event_id)
@@ -294,7 +294,7 @@ class UploadRequest(BaseModel):
     target="event",
     target_getter=lambda kwargs: getattr(kwargs.get("req"), "event_id", None),
 )
-def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_role("organizer"))):
+def upload_players(request: Request, req: UploadRequest, current_user=Depends(require_verified_user)):
     return upload_players_service(request=request, req=req, current_user=current_user)
 
 
@@ -310,7 +310,7 @@ class RevertRequest(BaseModel):
     target="event",
     target_getter=lambda kwargs: getattr(kwargs.get("req"), "event_id", None),
 )
-def revert_import(request: Request, req: RevertRequest, current_user=Depends(require_role("organizer"))):
+def revert_import(request: Request, req: RevertRequest, current_user=Depends(require_verified_user)):
     """
     Revert a previous import using the provided undo log.
     Restores previous state or deletes created players.
@@ -379,7 +379,7 @@ def revert_import(request: Request, req: RevertRequest, current_user=Depends(req
 
 @router.delete("/players/reset")
 @require_permission("players", "reset", target="event", target_param="event_id")
-def reset_players(event_id: str = Query(...), current_user=Depends(require_role("organizer"))):
+def reset_players(event_id: str = Query(...), current_user=Depends(require_verified_user)):
     try:
         enforce_event_league_relationship(event_id=event_id)
         players_ref = db.collection("events").document(str(event_id)).collection("players")
@@ -534,7 +534,7 @@ def list_players(
 @router.post('/leagues/{league_id}/players')
 @write_rate_limit()
 @require_permission("league_players", "create", target="league", target_param="league_id")
-def add_player(request: Request, league_id: str, req: dict, current_user=Depends(require_role("organizer", "coach"))):
+def add_player(request: Request, league_id: str, req: dict, current_user=Depends(require_verified_user)):
     try:
         ensure_league_document(league_id)
         players_ref = db.collection("leagues").document(league_id).collection("players")

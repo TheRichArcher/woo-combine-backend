@@ -7,7 +7,7 @@ import csv
 import io
 import logging
 
-from ..auth import require_role
+from ..auth import require_verified_user
 from ..middleware.rate_limiting import write_rate_limit, read_rate_limit
 from ..utils.importers import DataImporter
 from ..utils.data_integrity import enforce_event_league_relationship
@@ -41,7 +41,7 @@ def parse_import_file(
     text: Optional[str] = Form(None),
     url: Optional[str] = Form(None),
     sheet_name: Optional[str] = Form(None),
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Parse an uploaded file (CSV/Excel) or pasted text into structured data
@@ -248,7 +248,7 @@ def parse_import_file(
 def get_import_schema(
     request: Request,
     sport: Optional[str] = "football",
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Return the schema definition for import mapping.
@@ -331,7 +331,7 @@ def get_import_template(
     request: Request,
     event_id: str,
     format: str = "csv",  # csv or excel (future)
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Download a pre-filled template with existing players (if any)
@@ -407,7 +407,7 @@ def get_import_history(
     request: Request,
     event_id: str,
     limit: int = 20,
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Get import audit history for the event.

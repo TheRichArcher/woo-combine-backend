@@ -111,15 +111,15 @@ async def set_user_role(
                 detail="Organizers cannot remove their own organizer role. Please contact support or another organizer.",
             )
 
-        # SECURITY CHECK: Prevent non-organizers from self-promoting to organizer.
-        # This endpoint is used for onboarding role selection, not privilege escalation.
-        if role == "organizer" and current_role not in (None, "organizer"):
+        # SECURITY CHECK: Prevent organizer self-promotion entirely.
+        # Organizer access must come from backend-controlled workflows (e.g. league creation/admin).
+        if role == "organizer" and current_role != "organizer":
             logging.warning(
-                f"User {uid} attempted unauthorized self-promotion from {current_role} to organizer. Blocked."
+                f"User {uid} attempted unauthorized organizer role assignment from {current_role}. Blocked."
             )
             raise HTTPException(
                 status_code=403,
-                detail="Only organizers can retain organizer role.",
+                detail="Organizer role must be assigned by an administrator.",
             )
 
         # Database operations with comprehensive error handling

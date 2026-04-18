@@ -340,10 +340,15 @@ export default function RouteDecisionGate({ children }) {
       setDecisionMade(true);
     };
 
-    // TIMEOUT FALLBACK: gate gave up waiting — send to login
+    // TIMEOUT FALLBACK: gate gave up waiting — route safely based on auth state.
     if (gateTimedOut) {
-      console.warn(`${logPrefix} TIMEOUT_REDIRECT: Routing to /login after 30s timeout`);
-      performNavigation('/login', 'gate timeout — eventsLoaded never resolved');
+      if (user) {
+        console.warn(`${logPrefix} TIMEOUT_REDIRECT: Authenticated session timed out waiting for context, routing to /dashboard`);
+        performNavigation('/dashboard', 'gate timeout with authenticated user');
+      } else {
+        console.warn(`${logPrefix} TIMEOUT_REDIRECT: Anonymous session timed out waiting for context, routing to /welcome`);
+        performNavigation('/welcome', 'gate timeout without authenticated user');
+      }
       return;
     }
 
@@ -400,7 +405,11 @@ export default function RouteDecisionGate({ children }) {
           performNavigation(pendingJoinPath, 'recover pending QR join with missing context');
           return;
         }
-        performNavigation('/coach', 'no league, will show fallback');
+        if (userRole === 'coach') {
+          performNavigation('/coach-event-required', 'coach missing required event assignment');
+          return;
+        }
+        performNavigation('/select-league', 'no league selected');
         return;
       }
     }

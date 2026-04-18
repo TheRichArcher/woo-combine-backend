@@ -141,6 +141,10 @@ export default function SelectRole() {
 
   // Guard 2: Redirect if role is already present
   if (userRole) {
+    if (pendingEventJoin) {
+      const safePath = pendingEventJoin.split('/').map(part => encodeURIComponent(part)).join('/');
+      return <Navigate to={`/join-event/${safePath}`} replace />;
+    }
     console.debug('[SelectRole] User already has role, redirecting to dashboard:', userRole);
     return <Navigate to="/dashboard" replace />;
   }

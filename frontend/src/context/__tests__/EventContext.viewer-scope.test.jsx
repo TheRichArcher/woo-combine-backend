@@ -105,6 +105,35 @@ describe('EventContext viewer invite scoping', () => {
     });
   });
 
+  test('does not apply viewer invite scoping for organizer when stale invite context exists', async () => {
+    localStorage.setItem('viewerInviteEventContext', JSON.stringify({
+      eventId: 'event-1',
+      leagueId: 'league-1',
+      role: 'viewer',
+      source: 'join-event',
+      event: { id: 'event-1', name: 'Invite Event', league_id: 'league-1' },
+      timestamp: new Date().toISOString(),
+    }));
+
+    mockUseAuth.mockReturnValue({
+      selectedLeagueId: 'league-1',
+      authChecked: true,
+      roleChecked: true,
+      userRole: 'organizer',
+    });
+
+    render(
+      <EventProvider>
+        <TestHarness />
+      </EventProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('event-ids')).toHaveTextContent('event-1,event-2');
+      expect(screen.getByTestId('selected-event-id')).toHaveTextContent('event-1');
+    });
+  });
+
   test('replaces stale coach selectedEvent with first accessible scoped event', async () => {
     localStorage.setItem('selectedEvent', JSON.stringify({
       id: 'event-2',

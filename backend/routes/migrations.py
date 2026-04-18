@@ -2,19 +2,26 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ..auth import require_role
 from ..firestore_client import db
 import logging
+import os
 
 router = APIRouter()
 
 
 @router.post("/migrations/migrate-scores")
 def migrate_legacy_scores_to_map(
-    request: Request, current_user=Depends(require_role("admin", "organizer"))
+    request: Request, current_user=Depends(require_role("admin"))
 ):
     """
     One-time migration script to move legacy fixed fields (40m_dash, vertical_jump, etc.)
     into the new dynamic 'scores' map for all players in all events.
     """
     try:
+        if os.getenv("ENABLE_SCORE_MIGRATIONS", "false").lower() not in (
+            "1",
+            "true",
+            "yes",
+        ):
+            raise HTTPException(status_code=404, detail="Not Found")
         logging.info("[MIGRATION] Starting score migration...")
         batch = db.batch()
         count = 0
@@ -78,6 +85,8 @@ def migrate_legacy_scores_to_map(
         logging.info(f"[MIGRATION] Completed. Updated {total_updated} players.")
         return {"status": "success", "updated_count": total_updated}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"[MIGRATION] Error: {e}")
         raise HTTPException(status_code=500, detail=f"Migration failed: {e}")

@@ -46,4 +46,18 @@ describe('viewer invite context persistence', () => {
     expect(getViewerInviteEventLock({ userRole: 'organizer' })).toBeNull();
     expect(isViewerInviteEventScopedSession({ userRole: 'organizer' })).toBe(false);
   });
+
+  test('still returns lock when session role is unknown but invite payload is viewer join-event', () => {
+    persistViewerInviteEventContext({
+      event: { id: 'event-123', name: 'Invite Event', league_id: 'league-77' },
+      leagueId: 'league-77',
+      role: 'viewer',
+      source: 'join-event'
+    });
+
+    expect(getViewerInviteEventLock()).toEqual({
+      eventId: 'event-123',
+      leagueId: 'league-77'
+    });
+  });
 });

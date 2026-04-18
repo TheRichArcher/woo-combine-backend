@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel
-from ..auth import require_role
+from ..auth import require_verified_user
 from ..middleware.rate_limiting import write_rate_limit
 from ..firestore_client import db
 from google.cloud import firestore
@@ -38,7 +38,7 @@ class DrillResultCreate(BaseModel):
 def create_drill_result(
     request: Request,
     result: DrillResultCreate,
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """Create a new drill result for a player"""
     try:
@@ -144,7 +144,7 @@ def delete_drill_result(
     result_id: str,
     event_id: str = Query(..., regex=r"^.{1,50}$"),
     player_id: str = Query(..., regex=r"^.{1,50}$"),
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """
     Delete a specific drill result and revert the player's current score

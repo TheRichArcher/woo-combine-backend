@@ -8,7 +8,7 @@ import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import Button from '../components/ui/Button';
 
 export default function JoinLeague() {
-  const { user, userRole, addLeague } = useAuth();
+  const { user, addLeague } = useAuth();
   const navigate = useNavigate();
   const { code: urlCode } = useParams();
   const [joinCode, setJoinCode] = useState(urlCode || '');
@@ -99,7 +99,8 @@ export default function JoinLeague() {
     setError('');
     setSuccess(false);
     try {
-      const requestedRole = (userRole || 'viewer').toLowerCase();
+      // League joins default to viewer. Elevated roles must come from scoped invites.
+      const requestedRole = 'viewer';
       const { data } = await api.post(`/leagues/join/${joinCode}`, {
         user_id: user?.uid,
         email: user?.email,
@@ -107,7 +108,9 @@ export default function JoinLeague() {
       });
       setLeagueName(data.league_name);
       setSuccess(true);
-      if (addLeague) addLeague({ id: joinCode, name: data.league_name, role: requestedRole });
+      if (addLeague && data?.league_id) {
+        addLeague({ id: data.league_id, name: data.league_name, role: requestedRole });
+      }
     } catch (err) {
       if (err?.response?.status === 404) {
         setError('We could not find a league with that code. If this was an event invite, we will try loading it now.');

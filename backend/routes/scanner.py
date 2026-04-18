@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 import logging
 import re
 
-from ..auth import require_role
+from ..auth import require_verified_user
 from ..middleware.rate_limiting import write_rate_limit
+from ..utils.authorization import ensure_event_access
+from ..utils.data_integrity import enforce_event_league_relationship
 
 logger = logging.getLogger(__name__)
 
@@ -190,10 +192,18 @@ def _pick_best_value(numbers: list[float], drill_type: str) -> float | None:
 async def ocr_image(
     request: Request,
     image: UploadFile = File(...),
+    event_id: str = Form(...),
     drill_type: str = Form(...),
-    current_user=Depends(require_role("organizer", "coach")),
+    current_user=Depends(require_verified_user),
 ):
     """OCR an uploaded image and extract the most likely numeric value."""
+    enforce_event_league_relationship(event_id=event_id)
+    ensure_event_access(
+        current_user["uid"],
+        event_id,
+        allowed_roles=("organizer", "coach"),
+        operation_name="scanner OCR",
+    )
 
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(

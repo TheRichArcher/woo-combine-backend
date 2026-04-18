@@ -124,7 +124,7 @@ def test_role_enforced_on_write(monkeypatch):
         json={"role": "organizer"},
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert r.status_code in (200, 500)  # allow 500 if fake client raises elsewhere
+    assert r.status_code in (200, 403, 500)  # organizer self-assignment is now denied-by-default
 
     # Create league requires organizer role; fake client returns minimal ok
     r2 = client.post(
@@ -133,3 +133,15 @@ def test_role_enforced_on_write(monkeypatch):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r2.status_code in (200, 500, 403)
+
+
+def test_disabled_lookup_failure_fails_closed(monkeypatch):
+    import backend.auth as auth_mod
+
+    auth_mod._is_user_disabled_cached.cache_clear()
+
+    def _boom(uid):
+        raise RuntimeError("firebase unavailable")
+
+    monkeypatch.setattr(auth_mod.auth, "get_user", _boom)
+    assert auth_mod._is_user_disabled_cached("user-disabled-check", 1) is True

@@ -137,7 +137,7 @@ export function EventProvider({ children }) {
       localStorage.removeItem('selectedEvent');
       setNoLeague(true);
       setEventsLoaded(true);
-      return;
+      return [];
     }
 
     setLoading(true);
@@ -147,7 +147,7 @@ export function EventProvider({ children }) {
     const fetchAndApply = async () => {
       const eventsData = await cachedFetchEvents(leagueId);
       const activeEvents = eventsData.filter(event => !event.deleted_at && !event.deletedAt);
-      const viewerInviteLock = getViewerInviteEventLock();
+      const viewerInviteLock = getViewerInviteEventLock({ userRole });
       const shouldScopeToInviteEvent = Boolean(
         viewerInviteLock?.eventId &&
         (!viewerInviteLock.leagueId || viewerInviteLock.leagueId === leagueId)
@@ -234,6 +234,7 @@ export function EventProvider({ children }) {
           return current;
         });
       }
+      return scopedEvents;
     };
 
     let finalErr = null;
@@ -252,7 +253,7 @@ export function EventProvider({ children }) {
           cacheInvalidation.eventsUpdated(leagueId);
           await fetchAndApply();
           // Success after refresh — return without setting error
-          return;
+          return [];
         } catch (retryErr) {
           logger.error('EVENT-CONTEXT', 'Events fetch failed after token refresh', retryErr);
           finalErr = retryErr;
@@ -301,6 +302,7 @@ export function EventProvider({ children }) {
         localStorage.removeItem('selectedEvent');
         return null;
       });
+      return [];
     } finally {
       setLoading(false);
       setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure
@@ -352,11 +354,11 @@ export function EventProvider({ children }) {
       }
 
       (async () => {
-        await loadEvents(selectedLeagueId);
+        const loadedEvents = await loadEvents(selectedLeagueId);
         if (previouslySelectedId) {
           setSelectedEvent(current => {
             if (current && current.id === previouslySelectedId) return current;
-            const found = events.find(e => e.id === previouslySelectedId);
+            const found = (loadedEvents || []).find(e => e.id === previouslySelectedId);
             if (found) {
               localStorage.setItem('selectedEvent', JSON.stringify(found));
               return found;
