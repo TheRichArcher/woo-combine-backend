@@ -31,6 +31,20 @@ const writeLastRedirectReason = (reasonPayload) => {
   }
 };
 
+const getStorageSnapshot = () => {
+  try {
+    return {
+      selectedLeagueId: localStorage.getItem('selectedLeagueId') || null,
+      selectedEventRaw: localStorage.getItem('selectedEvent') || null
+    };
+  } catch {
+    return {
+      selectedLeagueId: null,
+      selectedEventRaw: null
+    };
+  }
+};
+
 /**
  * RouteDecisionGate - Centralized routing logic to prevent flicker
  *
@@ -281,14 +295,24 @@ export default function RouteDecisionGate({ children }) {
     }
 
     console.log(`${logPrefix} ROUTE_DECISION: Making routing decision for ${location.pathname}`);
-    qrGateDebug('Evaluating route decision', buildDecisionState());
+    const decisionState = buildDecisionState();
+    const storageSnapshot = getStorageSnapshot();
+    qrGateDebug('Evaluating route decision', {
+      ...decisionState,
+      storageSnapshot
+    });
+    console.log(`${logPrefix} ROUTE_DECISION_SNAPSHOT:`, {
+      ...decisionState,
+      storageSnapshot
+    });
 
     const performNavigation = (to, reason) => {
       const redirectPayload = {
         reason,
         to,
         from: location.pathname,
-        ...buildDecisionState(),
+        ...decisionState,
+        storageSnapshot,
         timestamp: new Date().toISOString()
       };
       qrGateDebug('Redirect decision', redirectPayload);
@@ -326,8 +350,16 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // No league context → needs league selection or creation
-    if (!hasSelectedEventContext && !isViewerEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
+    // Viewer context guard: never send viewer into staff-oriented /coach fallback shell.
+    if (userRole === 'viewer' && !selectedEvent) {
+      if (!location.pathname.startsWith('/live-standings')) {
+        performNavigation('/live-standings', 'viewer missing event context');
+        return;
+      }
+    }
+
+    // No league context → needs league selection or creation (staff roles only)
+    if (userRole !== 'viewer' && !hasSelectedEventContext && !isViewerEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {

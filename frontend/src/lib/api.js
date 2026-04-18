@@ -2,6 +2,7 @@ import axios from 'axios';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { apiLogger } from '../utils/logger';
+import { evaluate403ContextPolicy } from './contextClearPolicy';
 
 /*
  * Centralized axios instance with proper cold start handling
@@ -96,6 +97,53 @@ const log403ContextClear = (requestUrl, branch) => {
   });
 };
 
+const markContextClear = (reason, payload = {}) => {
+  if (!isQrDebugEnabled()) return;
+  const snapshot = {
+    reason,
+    ...payload,
+    pathname: typeof window !== 'undefined' ? window.location?.pathname || null : null,
+    timestamp: new Date().toISOString()
+  };
+  console.warn('[QR_FLOW][api][context-clear]', snapshot);
+  try {
+    localStorage.setItem('debug_qr_last_context_clear', JSON.stringify(snapshot));
+  } catch {
+    // best-effort debug write
+  }
+};
+
+const apply403ContextPolicy = (error, branch) => {
+  const requestUrl = String(error?.config?.url || '');
+  const {
+    postJoinWindow,
+    definitiveEventLoss,
+    clearSelectedEvent,
+    clearSelectedLeague
+  } = evaluate403ContextPolicy(error);
+
+  markContextClear('403-policy-evaluated', {
+    branch,
+    requestUrl,
+    postJoinWindow,
+    definitiveEventLoss,
+    clearSelectedEvent,
+    clearSelectedLeague
+  });
+
+  try {
+    if (clearSelectedEvent) {
+      localStorage.removeItem('selectedEvent');
+      localStorage.removeItem('selectedEventId');
+    }
+    if (clearSelectedLeague) {
+      localStorage.removeItem('selectedLeagueId');
+    }
+  } catch (e) {
+    console.error('[API] Failed applying 403 context policy', e);
+  }
+};
+
 const broadcastLogout = () => {
   try {
     localStorage.setItem(LOGOUT_BROADCAST_KEY, Date.now().toString());
@@ -105,6 +153,10 @@ const broadcastLogout = () => {
 };
 
 const clearLocalAuthState = () => {
+  markContextClear('clearLocalAuthState', {
+    selectedLeagueIdBefore: localStorage.getItem('selectedLeagueId') || null,
+    selectedEventBefore: localStorage.getItem('selectedEvent') || null
+  });
   try {
     localStorage.removeItem('selectedEvent');
     localStorage.removeItem('selectedEventId');
@@ -427,10 +479,12 @@ api.interceptors.response.use(
     if (error.response?.status === 403) {
       try {
         log403ContextClear(String(error.config?.url || ''), 'early-403-handler');
-        console.warn("[API] 403 Forbidden - Clearing selected event/league state");
-        localStorage.removeItem('selectedEvent');
-        localStorage.removeItem('selectedEventId');
-        localStorage.removeItem('selectedLeagueId');
+        markContextClear('403-early-handler', {
+          requestUrl: String(error.config?.url || ''),
+          status: 403
+        });
+        console.warn("[API] 403 Forbidden - applying context clear policy");
+        apply403ContextPolicy(error, 'early-403-handler');
       } catch (e) {
         console.error("Failed to clear state on 403", e);
       }
@@ -555,12 +609,14 @@ api.interceptors.response.use(
       // General 403: Likely due to stale context (e.g. reading event from wrong league)
       // Force clear selectedEvent to allow user to recover by selecting a valid event
       log403ContextClear(String(error.config?.url || ''), 'late-403-handler');
-      console.warn('[API] 403 Forbidden - clearing potentially stale selection state');
+      markContextClear('403-late-handler', {
+        requestUrl: String(error.config?.url || ''),
+        status: 403,
+        detail
+      });
+      console.warn('[API] 403 Forbidden - applying late context clear policy');
       try {
-        localStorage.removeItem('selectedEvent');
-        localStorage.removeItem('selectedEventId'); // Clean up potential legacy keys
-        localStorage.removeItem('selectedLeagueId'); // Force league re-selection to be safe
-        // Dispatch event to notify EventContext if needed, or just rely on reload/re-render
+        apply403ContextPolicy(error, 'late-403-handler');
       } catch {}
       
       // Continue to reject so UI can show error if needed

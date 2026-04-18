@@ -20,6 +20,22 @@ const qrDebug = (message, payload) => {
   console.log(`[QR_FLOW][JoinEvent] ${message}`, payload);
 };
 
+const QR_JOIN_STAGE_KEY = 'debug_qr_join_stage';
+
+const writeJoinStage = (stage, payload = {}) => {
+  const snapshot = {
+    stage,
+    ...payload,
+    timestamp: new Date().toISOString()
+  };
+  qrDebug(`Stage: ${stage}`, snapshot);
+  try {
+    localStorage.setItem(QR_JOIN_STAGE_KEY, JSON.stringify(snapshot));
+  } catch {
+    // best-effort debug write
+  }
+};
+
 export default function JoinEvent() {
   const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
@@ -64,6 +80,15 @@ export default function JoinEvent() {
         actualEventId,
         intendedRole
       });
+      writeJoinStage('route-params-parsed', {
+        leagueId,
+        eventId,
+        role,
+        actualLeagueId,
+        actualEventId,
+        intendedRole,
+        userAgent: navigator.userAgent
+      });
 
       
       if (!actualEventId) {
@@ -83,6 +108,7 @@ export default function JoinEvent() {
           inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
         }
         localStorage.setItem('pendingEventJoin', inviteData);
+        writeJoinStage('redirect-signup-missing-user', { inviteData });
 
         // CRITICAL FIX: Redirect to signup for invited users (they're typically new)
         navigate("/signup");
@@ -98,6 +124,7 @@ export default function JoinEvent() {
             inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
           }
           localStorage.setItem('pendingEventJoin', inviteData);
+          writeJoinStage('redirect-select-role-missing-role', { inviteData });
           navigate('/select-role');
           return;
         }
@@ -125,12 +152,24 @@ export default function JoinEvent() {
                 role: intendedRole || userRole || 'coach'
               });
               joinData = joinResponse.data;
+              writeJoinStage('join-api-success', {
+                actualLeagueId,
+                actualEventId,
+                intendedRole,
+                joinData
+              });
               qrDebug('Join API success', {
                 url: `/leagues/join/${actualLeagueId}`,
                 status: joinResponse?.status,
                 joinData
               });
             } catch (joinError) {
+              writeJoinStage('join-api-failure', {
+                actualLeagueId,
+                actualEventId,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
               qrDebug('Join API failure', {
                 url: `/leagues/join/${actualLeagueId}`,
                 status: joinError?.response?.status,
@@ -143,6 +182,10 @@ export default function JoinEvent() {
             // Cannot rely on context leagues state because React state updates are async
             // Using returned value ensures we have fresh data immediately
             const refreshedLeagues = await refreshLeagues();
+            writeJoinStage('refresh-leagues-after-join', {
+              refreshedLeaguesCount: refreshedLeagues?.length || 0,
+              actualLeagueId
+            });
             
             // Find league in the RETURNED array (not stale context state)
             targetLeague = refreshedLeagues.find(l => l.id === actualLeagueId) || { 
@@ -214,12 +257,21 @@ export default function JoinEvent() {
                 email: user.email,
                 role: intendedRole || userRole || 'coach'
               });
+              writeJoinStage('legacy-join-api-success', {
+                actualEventId,
+                joinData: joinResponse?.data
+              });
               qrDebug('Join API success', {
                 url: `/leagues/join/${actualEventId}`,
                 status: joinResponse?.status,
                 joinData: joinResponse?.data
               });
             } catch (joinError) {
+              writeJoinStage('legacy-join-api-failure', {
+                actualEventId,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
               qrDebug('Join API failure', {
                 url: `/leagues/join/${actualEventId}`,
                 status: joinError?.response?.status,
@@ -236,6 +288,10 @@ export default function JoinEvent() {
             // CRITICAL FIX: Refresh leagues and USE RETURNED ARRAY
             // Cannot rely on context leagues state (React state updates are async)
             const refreshedLeagues = await refreshLeagues();
+            writeJoinStage('refresh-leagues-after-legacy-join', {
+              refreshedLeaguesCount: refreshedLeagues?.length || 0,
+              resolvedLeagueId
+            });
             
             // Find league in the RETURNED array (not stale context state)
             targetLeague = refreshedLeagues.find(l => l.id === resolvedLeagueId) || {
@@ -271,6 +327,11 @@ export default function JoinEvent() {
           setSelectedEvent(targetEvent);
           qrDebug('Calling setSelectedLeagueId', { id: targetLeague?.id });
           setSelectedLeagueId(targetLeague.id);
+          writeJoinStage('selection-state-written', {
+            selectedLeagueId: targetLeague?.id || null,
+            selectedEventId: targetEvent?.id || null,
+            selectedEventLeagueId: targetEvent?.league_id || null
+          });
           setStatus("found");
           
 
@@ -280,6 +341,11 @@ export default function JoinEvent() {
           
           // Auto-redirect after 2 seconds to viewer-safe event stats
           setTimeout(() => {
+            writeJoinStage('navigate-live-standings-timeout-fired', {
+              from: window.location.pathname,
+              selectedLeagueId: localStorage.getItem('selectedLeagueId'),
+              selectedEventRaw: localStorage.getItem('selectedEvent')
+            });
             qrDebug('Navigating to /live-standings', {
               from: window.location.pathname,
               selectedLeagueId: targetLeague?.id,
@@ -292,6 +358,10 @@ export default function JoinEvent() {
         }
 
       } catch (err) {
+        writeJoinStage('join-flow-failure', {
+          status: err?.response?.status,
+          message: err?.message
+        });
         qrDebug('Join flow failed', {
           status: err?.response?.status,
           message: err?.message
@@ -306,6 +376,7 @@ export default function JoinEvent() {
         }
         setStatus("not_found");
       } finally {
+        writeJoinStage('join-flow-finally', { status });
         qrDebug('Join flow completed', { status });
         setLoading(false);
       }

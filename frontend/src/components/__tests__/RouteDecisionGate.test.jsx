@@ -71,6 +71,7 @@ describe('RouteDecisionGate QR onboarding guard', () => {
   it('still redirects to /coach when league context is missing', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,
+      userRole: 'coach',
       selectedLeagueId: '',
       leagues: [],
     });
@@ -89,6 +90,32 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalledWith('/coach', { replace: true });
     });
+  });
+
+  it('redirects viewer with missing event context to /live-standings instead of /coach', async () => {
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: 'viewer',
+      selectedLeagueId: '',
+      leagues: [],
+    });
+    useEvent.mockReturnValue({
+      ...baseEvent,
+      selectedEvent: null,
+      noLeague: true,
+    });
+    useLocation.mockReturnValue({ pathname: '/players' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">viewer protected content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/live-standings', { replace: true });
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/coach', { replace: true });
   });
 
   it('does not redirect viewer away from /live-standings when selectedEvent exists without league', async () => {

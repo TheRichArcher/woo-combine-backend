@@ -20,6 +20,20 @@ const qrEventDebug = (message, payload) => {
   console.log(`[QR_FLOW][EventContext] ${message}`, payload);
 };
 
+const writeLastContextClear = (reason, payload = {}) => {
+  const snapshot = {
+    reason,
+    ...payload,
+    timestamp: new Date().toISOString()
+  };
+  qrEventDebug('Context clear snapshot', snapshot);
+  try {
+    localStorage.setItem('debug_qr_last_context_clear', JSON.stringify(snapshot));
+  } catch {
+    // best-effort debug write
+  }
+};
+
 export function EventProvider({ children }) {
   const { selectedLeagueId, authChecked, roleChecked } = useAuth();
   const [events, setEvents] = useState([]);
@@ -116,6 +130,7 @@ export function EventProvider({ children }) {
       qrEventDebug('Clearing events + selectedEvent: no leagueId in loadEvents', {
         leagueId
       });
+      writeLastContextClear('loadEvents:no-leagueId', { selectedLeagueId: selectedLeagueId || null });
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
@@ -200,6 +215,11 @@ export function EventProvider({ children }) {
         errorMessage,
         status: finalErr?.response?.status
       });
+      writeLastContextClear('loadEvents:error', {
+        leagueId,
+        status: finalErr?.response?.status || null,
+        errorMessage
+      });
       setEvents([]);
       setSelectedEvent(null);
       localStorage.removeItem('selectedEvent');
@@ -269,6 +289,9 @@ export function EventProvider({ children }) {
       })();
     } else {
       qrEventDebug('Clearing events + selectedEvent: selectedLeagueId missing in effect', {
+        selectedLeagueId: selectedLeagueId || null
+      });
+      writeLastContextClear('effect:missing-selectedLeagueId', {
         selectedLeagueId: selectedLeagueId || null
       });
       setEvents([]);
@@ -364,11 +387,19 @@ export function EventProvider({ children }) {
   const setSelectedEventWithPersistence = useCallback((event) => {
     setSelectedEvent(event);
     if (event) {
+      qrEventDebug('Persisting selectedEvent', {
+        selectedEventId: event?.id || null,
+        selectedEventLeagueId: event?.league_id || null,
+        selectedLeagueId: selectedLeagueId || null
+      });
       localStorage.setItem('selectedEvent', JSON.stringify(event));
     } else {
+      writeLastContextClear('setSelectedEvent:explicit-null', {
+        selectedLeagueId: selectedLeagueId || null
+      });
       localStorage.removeItem('selectedEvent');
     }
-  }, []);
+  }, [selectedLeagueId]);
 
   const contextValue = {
     events,

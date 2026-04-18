@@ -11,6 +11,38 @@ import DeleteEventFlow from '../components/DeleteEventFlow';
 import LeagueFallback from '../context/LeagueFallback';
 import api from '../lib/api';
 
+function ViewerEventUnavailable({ selectedEvent }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="w-full max-w-md bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center">
+        <h1 className="text-xl font-bold text-gray-900 mb-2">We couldn't load your event</h1>
+        <p className="text-sm text-gray-600 mb-6">
+          Please reopen your invite link or scan the event QR code again.
+        </p>
+        <div className="space-y-3">
+          {selectedEvent ? (
+            <button
+              onClick={() => navigate('/live-standings')}
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl transition"
+            >
+              Open Live Standings
+            </button>
+          ) : (
+            <button
+              onClick={() => navigate('/welcome')}
+              className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl transition"
+            >
+              Reopen Invite
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const sportEmojiFromTemplate = (drillTemplate) => {
   const t = (drillTemplate || '').toLowerCase();
   if (t.includes('football')) return '🏈';
@@ -126,6 +158,10 @@ export default function CoachDashboard() {
     setSelectedEvent(newEvent);
     setShowCreateModal(false);
   };
+
+  if (userRole === 'viewer') {
+    return <ViewerEventUnavailable selectedEvent={selectedEvent} />;
+  }
 
   if (noLeague) return <LeagueFallback />;
 

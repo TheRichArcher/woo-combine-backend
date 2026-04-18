@@ -12,6 +12,19 @@ import { logger } from '../utils/logger';
 import { calculateOptimizedRankings, calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
 import { getDrillsFromTemplate, getPresetsFromTemplate } from '../constants/drillTemplates';
 
+const isQrDebugEnabled = () => {
+  try {
+    return localStorage.getItem('debug_qr_flow') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const qrLiveDebug = (message, payload) => {
+  if (!isQrDebugEnabled()) return;
+  console.log(`[QR_FLOW][LiveStandings] ${message}`, payload);
+};
+
 export default function LiveStandings() {
   const { selectedEvent } = useEvent();
   const { userRole } = useAuth();
@@ -90,6 +103,25 @@ export default function LiveStandings() {
   const { selectedPlayer, openDetails, closeDetails } = usePlayerDetails();
   const [showControls, setShowControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
+
+  useEffect(() => {
+    let selectedEventRaw = null;
+    let selectedLeagueId = null;
+    try {
+      selectedEventRaw = localStorage.getItem('selectedEvent');
+      selectedLeagueId = localStorage.getItem('selectedLeagueId');
+    } catch {
+      // ignore storage failures in strict browser modes
+    }
+
+    qrLiveDebug('Render snapshot', {
+      pathname: window.location.pathname,
+      selectedEventId: selectedEvent?.id || null,
+      selectedEventLeagueId: selectedEvent?.league_id || null,
+      selectedLeagueId: selectedLeagueId || null,
+      selectedEventRaw
+    });
+  }, [selectedEvent]);
 
   // Initialize weights when drills change
   useEffect(() => {
@@ -188,6 +220,9 @@ export default function LiveStandings() {
   };
 
   if (!selectedEvent) {
+    qrLiveDebug('No selectedEvent at render-time fallback', {
+      pathname: window.location.pathname
+    });
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
