@@ -288,6 +288,8 @@ def organizer_headers(fake_db):
 def coach_headers(fake_db):
     uid = "coach-1"
     fake_db.collection("users").document(uid).set({"id": uid, "email": "c@example.com", "role": "coach"})
-    fake_db.collection("user_memberships").document(uid).set({"leagues": {"league-1": {"role": "coach"}}})
+    fake_db.collection("user_memberships").document(uid).set(
+        {"leagues": {"league-1": {"role": "coach", "coach_event_ids": ["event-1"]}}}
+    )
     token = make_jwt(uid=uid, email="c@example.com", email_verified=True)
     return {"Authorization": f"Bearer {token}"}

@@ -14,14 +14,14 @@ from ..security.access_matrix import require_permission
 router = APIRouter(prefix="/leagues")
 
 
-def _resolve_viewer_invited_event_id(
+def _resolve_scoped_invited_event_id(
     *,
     role: str,
     code: str,
     req: dict | None,
     joined_via_event_code: bool,
 ) -> Optional[str]:
-    if role != "viewer":
+    if role not in {"viewer", "coach"}:
         return None
 
     if joined_via_event_code:
@@ -418,7 +418,7 @@ def join_league(
                     status_code=404, detail="League not found for this event code"
                 )
 
-        invited_event_id = _resolve_viewer_invited_event_id(
+        invited_event_id = _resolve_scoped_invited_event_id(
             role=role,
             code=code,
             req=req,
@@ -439,13 +439,16 @@ def join_league(
 
         if existing_member.exists:
             existing_role = (existing_member_data.get("role") or "").lower()
-            if existing_role == "viewer" and invited_event_id:
-                # Existing viewer can accumulate event-scoped invite access.
+            if existing_role in {"viewer", "coach"} and invited_event_id:
+                # Existing scoped roles can accumulate event-scoped invite access.
+                scope_field = (
+                    "viewer_event_ids" if existing_role == "viewer" else "coach_event_ids"
+                )
                 merged_event_ids = _merge_event_scope(
-                    existing_member_data.get("viewer_event_ids"), invited_event_id
+                    existing_member_data.get(scope_field), invited_event_id
                 )
                 batch = db.batch()
-                batch.set(member_ref, {"viewer_event_ids": merged_event_ids}, merge=True)
+                batch.set(member_ref, {scope_field: merged_event_ids}, merge=True)
 
                 user_memberships_ref = db.collection("user_memberships").document(user_id)
                 user_memberships_doc = user_memberships_ref.get()
@@ -453,14 +456,14 @@ def join_league(
                     memberships_data = user_memberships_doc.to_dict() or {}
                     leagues_map = memberships_data.get("leagues", {})
                     league_membership = leagues_map.get(resolved_league_id, {})
-                    existing_scoped_ids = league_membership.get("viewer_event_ids", [])
+                    existing_scoped_ids = league_membership.get(scope_field, [])
                     merged_user_membership_ids = _merge_event_scope(
                         existing_scoped_ids, invited_event_id
                     )
                     batch.set(
                         user_memberships_ref,
                         {
-                            f"leagues.{resolved_league_id}.viewer_event_ids": merged_user_membership_ids
+                            f"leagues.{resolved_league_id}.{scope_field}": merged_user_membership_ids
                         },
                         merge=True,
                     )
@@ -474,7 +477,7 @@ def join_league(
                 "league_name": league_name,
                 "joined_via_event_code": joined_via_event_code,
             }
-            if existing_role == "viewer" and invited_event_id:
+            if existing_role in {"viewer", "coach"} and invited_event_id:
                 response_payload["invited_event_id"] = invited_event_id
             return response_payload
 
@@ -489,8 +492,9 @@ def join_league(
             "email": current_user.get("email"),
             "name": current_user.get("name", "Unknown"),
         }
-        if role == "viewer" and invited_event_id:
-            member_data["viewer_event_ids"] = [invited_event_id]
+        if role in {"viewer", "coach"} and invited_event_id:
+            scope_field = "viewer_event_ids" if role == "viewer" else "coach_event_ids"
+            member_data[scope_field] = [invited_event_id]
         batch.set(member_ref, member_data)
 
         # 2. Update user_memberships for fast lookup
@@ -501,8 +505,14 @@ def join_league(
                 "joined_at": join_time,
                 "league_name": league_name,
                 **(
-                    {"viewer_event_ids": [invited_event_id]}
-                    if role == "viewer" and invited_event_id
+                    {
+                        (
+                            "viewer_event_ids"
+                            if role == "viewer"
+                            else "coach_event_ids"
+                        ): [invited_event_id]
+                    }
+                    if role in {"viewer", "coach"} and invited_event_id
                     else {}
                 ),
             }

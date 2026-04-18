@@ -22,11 +22,16 @@ def test_mobile_combines_lists_events(app_client, fake_db, coach_headers):
     fake_db.collection("leagues").document("league-1").collection("events").document("event-1").set(
         {"name": "E1", "created_at": "2024-01-01T00:00:00Z"}
     )
+    fake_db.collection("leagues").document("league-1").collection("events").document("event-2").set(
+        {"name": "E2", "created_at": "2024-01-02T00:00:00Z"}
+    )
 
     r = app_client.get("/api/mobile/combines", headers=coach_headers)
     assert r.status_code == 200, r.text
     combines = r.json().get("combines")
     assert isinstance(combines, list)
+    combine_ids = {combine.get("event_id") for combine in combines}
+    assert combine_ids == {"event-1"}
 
 
 def test_mobile_roster_allows_valid_member(app_client, fake_db, coach_headers):
@@ -34,6 +39,19 @@ def test_mobile_roster_allows_valid_member(app_client, fake_db, coach_headers):
     r = app_client.get("/api/mobile/events/event-1/roster", headers=coach_headers)
     assert r.status_code == 200, r.text
     assert r.json()["event_id"] == "event-1"
+
+
+def test_mobile_roster_blocks_unassigned_coach_event(app_client, fake_db, coach_headers):
+    _seed_event_and_player(fake_db)
+    fake_db.collection("events").document("event-2").set(
+        {"name": "E2", "league_id": "league-1", "created_at": "2024-01-01T00:00:00Z"}
+    )
+    fake_db.collection("events").document("event-2").collection("players").document("p2").set(
+        {"name": "Player Two", "forty": 4.6}
+    )
+
+    r = app_client.get("/api/mobile/events/event-2/roster", headers=coach_headers)
+    assert r.status_code == 403, r.text
 
 
 def test_mobile_roster_blocks_non_member(app_client, fake_db):

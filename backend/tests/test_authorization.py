@@ -77,9 +77,16 @@ def test_ensure_league_access_denies_non_member(monkeypatch):
     assert exc.value.status_code == 403
 
 
-def test_ensure_event_access_inherits_league_roles(monkeypatch):
+def test_ensure_event_access_allows_scoped_coach_assignment(monkeypatch):
     store = {
-        "user_memberships/user-2": {"leagues": {"league-abc": {"role": "organizer"}}},
+        "user_memberships/user-2": {
+            "leagues": {
+                "league-abc": {
+                    "role": "coach",
+                    "coach_event_ids": ["event-9"],
+                }
+            }
+        },
         "events/event-9": {"league_id": "league-abc", "name": "Combine"},
     }
     _install_fakes(monkeypatch, store)
@@ -87,9 +94,32 @@ def test_ensure_event_access_inherits_league_roles(monkeypatch):
     event = authz.ensure_event_access(
         "user-2",
         "event-9",
-        allowed_roles=("organizer",),
+        allowed_roles=("organizer", "coach"),
     )
     assert event["league_id"] == "league-abc"
+
+
+def test_ensure_event_access_denies_unscoped_coach(monkeypatch):
+    store = {
+        "user_memberships/user-2": {
+            "leagues": {
+                "league-abc": {
+                    "role": "coach",
+                    "coach_event_ids": ["event-11"],
+                }
+            }
+        },
+        "events/event-9": {"league_id": "league-abc", "name": "Combine"},
+    }
+    _install_fakes(monkeypatch, store)
+
+    with pytest.raises(HTTPException) as exc:
+        authz.ensure_event_access(
+            "user-2",
+            "event-9",
+            allowed_roles=("organizer", "coach"),
+        )
+    assert exc.value.status_code == 403
 
 
 def test_ensure_event_access_blocks_other_leagues(monkeypatch):
@@ -109,6 +139,9 @@ def test_ensure_event_access_blocks_other_leagues(monkeypatch):
 
 
 def test_permission_registry_matches_matrix():
+    if not REGISTERED_PERMISSIONS:
+        import backend.main  # noqa: F401 - imports routes and registers decorators
+
     assert REGISTERED_PERMISSIONS, "No endpoints registered with RBAC decorator"
     for record in REGISTERED_PERMISSIONS:
         key = (record["resource"], record["action"])

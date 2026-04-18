@@ -15,7 +15,7 @@ import logging
 from ..auth import get_current_user
 from ..firestore_client import db
 from ..utils.database import execute_with_timeout
-from ..utils.authorization import ensure_event_access
+from ..utils.authorization import ensure_event_access, _extract_membership_scoped_event_ids
 from ..utils.event_schema import get_event_schema
 from ..utils.lock_validation import check_write_permission
 
@@ -58,20 +58,12 @@ async def get_user_combines(current_user=Depends(get_current_user)):
 
         for league_id, membership_info in leagues_data.items():
             try:
-                scoped_event_ids = set()
                 membership_role = (
                     membership_info.get("role", "viewer")
                     if isinstance(membership_info, dict)
                     else "viewer"
-                )
-                if membership_role == "viewer" and isinstance(membership_info, dict):
-                    raw_scoped = membership_info.get("viewer_event_ids")
-                    if isinstance(raw_scoped, list):
-                        scoped_event_ids = {
-                            str(value).strip()
-                            for value in raw_scoped
-                            if str(value).strip()
-                        }
+                ).lower()
+                scoped_event_ids = _extract_membership_scoped_event_ids(membership_info)
 
                 # Get league name
                 league_ref = db.collection("leagues").document(league_id)
@@ -111,6 +103,8 @@ async def get_user_combines(current_user=Depends(get_current_user)):
 
                     # Skip soft-deleted events
                     if event_data.get("deleted_at"):
+                        continue
+                    if membership_role == "coach" and event_doc.id not in scoped_event_ids:
                         continue
                     if scoped_event_ids and event_doc.id not in scoped_event_ids:
                         continue

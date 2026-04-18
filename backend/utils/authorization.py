@@ -44,24 +44,29 @@ def _normalize_allowed_roles(
     return {role.strip().lower() for role in allowed_roles if isinstance(role, str)}
 
 
-def _extract_viewer_scoped_event_ids(membership: Optional[dict]) -> Set[str]:
+def _extract_membership_scoped_event_ids(membership: Optional[dict]) -> Set[str]:
     if not isinstance(membership, dict):
         return set()
 
-    if (membership.get("role") or "").lower() != "viewer":
-        return set()
-
-    raw_ids = membership.get("viewer_event_ids")
-    if not isinstance(raw_ids, list):
+    role = (membership.get("role") or "").lower()
+    if role == "viewer":
+        candidate_fields = ("viewer_event_ids", "event_ids")
+    elif role == "coach":
+        candidate_fields = ("coach_event_ids", "event_ids")
+    else:
         return set()
 
     scoped_ids: Set[str] = set()
-    for value in raw_ids:
-        if value is None:
+    for field_name in candidate_fields:
+        raw_ids = membership.get(field_name)
+        if not isinstance(raw_ids, list):
             continue
-        normalized = str(value).strip()
-        if normalized:
-            scoped_ids.add(normalized)
+        for value in raw_ids:
+            if value is None:
+                continue
+            normalized = str(value).strip()
+            if normalized:
+                scoped_ids.add(normalized)
     return scoped_ids
 
 
@@ -203,16 +208,36 @@ def ensure_event_access(
             operation_name=operation_name,
         )
 
-        scoped_event_ids = _extract_viewer_scoped_event_ids(membership)
-        if scoped_event_ids and event_id not in scoped_event_ids:
+        membership_role = (membership.get("role") or "").lower()
+        scoped_event_ids = _extract_membership_scoped_event_ids(membership)
+
+        coach_requires_explicit_assignment = membership_role == "coach"
+        if coach_requires_explicit_assignment and event_id not in scoped_event_ids:
             logging.warning(
-                "[AUTHZ] Scoped viewer %s denied %s for event %s in league %s "
-                "(allowed events: %s)",
+                "[AUTHZ] Coach %s denied %s for unassigned event %s in league %s "
+                "(coach_event_ids: %s)",
                 user_id,
                 operation_name,
                 event_id,
                 league_id,
                 sorted(scoped_event_ids),
+            )
+            _register_denial(f"event:{event_id}:coach-unassigned")
+            raise HTTPException(
+                status_code=403,
+                detail="You do not have access to this event",
+            )
+
+        if scoped_event_ids and event_id not in scoped_event_ids:
+            logging.warning(
+                "[AUTHZ] Scoped member %s denied %s for event %s in league %s "
+                "(allowed events: %s, role=%s)",
+                user_id,
+                operation_name,
+                event_id,
+                league_id,
+                sorted(scoped_event_ids),
+                membership_role or "unknown",
             )
             _register_denial(f"event:{event_id}:scoped-viewer")
             raise HTTPException(

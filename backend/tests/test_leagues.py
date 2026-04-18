@@ -72,6 +72,67 @@ def test_join_league_persists_viewer_event_scope(app_client, fake_db):
     assert r.json().get("invited_event_id") == "event-1"
 
 
+def test_join_league_persists_coach_event_scope(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    fake_db.collection("events").document("event-1").set(
+        {"name": "Invited Event", "league_id": "league-1"}
+    )
+    uid = "new-coach-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach1@example.com", "role": "coach"}
+    )
+    headers = {"Authorization": f"Bearer {make_jwt(uid=uid, email='coach1@example.com', email_verified=True)}"}
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "coach", "invited_event_id": "event-1"},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("invited_event_id") == "event-1"
+
+    member_doc = (
+        fake_db.collection("leagues")
+        .document("league-1")
+        .collection("members")
+        .document(uid)
+        .get()
+    )
+    assert member_doc.exists
+    assert member_doc.to_dict().get("coach_event_ids") == ["event-1"]
+
+
+def test_join_league_event_code_scopes_coach_to_event(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    fake_db.collection("events").document("event-1").set(
+        {"name": "Invited Event", "league_id": "league-1"}
+    )
+    uid = "event-coach-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "eventcoach@example.com", "role": "coach"}
+    )
+    headers = {"Authorization": f"Bearer {make_jwt(uid=uid, email='eventcoach@example.com', email_verified=True)}"}
+
+    r = app_client.post(
+        "/api/leagues/join/event-1",
+        json={"role": "coach"},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("joined_via_event_code") is True
+    assert r.json().get("invited_event_id") == "event-1"
+
+    member_doc = (
+        fake_db.collection("leagues")
+        .document("league-1")
+        .collection("members")
+        .document(uid)
+        .get()
+    )
+    assert member_doc.exists
+    assert member_doc.to_dict().get("coach_event_ids") == ["event-1"]
+
+
 def test_join_league_invalid_role_returns_400(app_client, fake_db, coach_headers):
     fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
 

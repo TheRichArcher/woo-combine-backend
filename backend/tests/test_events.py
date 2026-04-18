@@ -218,6 +218,13 @@ def test_scoped_viewer_can_read_invited_event_only(app_client, fake_db):
     assert blocked.status_code == 403, blocked.text
 
 
+def test_coach_cannot_read_unassigned_event(app_client, fake_db, coach_headers):
+    _seed_two_events_in_league(fake_db)
+
+    blocked = app_client.get("/api/leagues/league-1/events/event-2", headers=coach_headers)
+    assert blocked.status_code == 403, blocked.text
+
+
 def test_scoped_viewer_event_list_excludes_uninvited_events(app_client, fake_db):
     _seed_two_events_in_league(fake_db)
     viewer_headers = _scoped_viewer_headers(fake_db)
@@ -228,7 +235,7 @@ def test_scoped_viewer_event_list_excludes_uninvited_events(app_client, fake_db)
     assert returned_ids == ["event-1"]
 
 
-def test_staff_roles_keep_full_event_list_access(app_client, fake_db, organizer_headers, coach_headers):
+def test_organizer_keeps_full_event_list_access(app_client, fake_db, organizer_headers):
     _seed_two_events_in_league(fake_db)
 
     organizer_response = app_client.get("/api/leagues/league-1/events", headers=organizer_headers)
@@ -236,10 +243,14 @@ def test_staff_roles_keep_full_event_list_access(app_client, fake_db, organizer_
     organizer_ids = {event["id"] for event in organizer_response.json()["events"]}
     assert organizer_ids == {"event-1", "event-2"}
 
+
+def test_coach_event_list_is_scoped_to_assigned_events(app_client, fake_db, coach_headers):
+    _seed_two_events_in_league(fake_db)
+
     coach_response = app_client.get("/api/leagues/league-1/events", headers=coach_headers)
     assert coach_response.status_code == 200, coach_response.text
     coach_ids = {event["id"] for event in coach_response.json()["events"]}
-    assert coach_ids == {"event-1", "event-2"}
+    assert coach_ids == {"event-1"}
 
 
 def test_scoped_viewer_players_read_is_event_scoped(app_client, fake_db):
