@@ -212,6 +212,20 @@ def ensure_event_access(
         scoped_event_ids = _extract_membership_scoped_event_ids(membership)
 
         coach_requires_explicit_assignment = membership_role == "coach"
+        if coach_requires_explicit_assignment and not scoped_event_ids:
+            logging.warning(
+                "[AUTHZ] Coach %s denied %s for event %s in league %s "
+                "because membership has no coach_event_ids",
+                user_id,
+                operation_name,
+                event_id,
+                league_id,
+            )
+            _register_denial(f"event:{event_id}:coach-unassigned-empty")
+            raise HTTPException(
+                status_code=403,
+                detail="You are not assigned to any events",
+            )
         if coach_requires_explicit_assignment and event_id not in scoped_event_ids:
             logging.warning(
                 "[AUTHZ] Coach %s denied %s for unassigned event %s in league %s "

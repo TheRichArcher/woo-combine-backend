@@ -119,6 +119,31 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     expect(navigateMock).not.toHaveBeenCalledWith('/coach', { replace: true });
   });
 
+  it('redirects coach with league but no event to event-required screen', async () => {
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: 'coach',
+      selectedLeagueId: 'league-1',
+      leagues: [{ id: 'league-1', role: 'coach' }],
+    });
+    useEvent.mockReturnValue({
+      ...baseEvent,
+      selectedEvent: null,
+      noLeague: false,
+    });
+    useLocation.mockReturnValue({ pathname: '/coach' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">coach content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/coach-event-required', { replace: true });
+    });
+  });
+
   it('redirects viewer with missing event context to /live-standings instead of /coach', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,

@@ -44,6 +44,7 @@ import Analytics from "./pages/Analytics";
 import CheckIn from "./pages/CheckIn";
 import CombineScanner from "./pages/CombineScanner";
 import More from "./pages/More";
+import CoachEventRequired from "./pages/CoachEventRequired";
 
 // Draft Feature Pages
 import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft, MyDrafts } from "./pages/Draft";
@@ -109,6 +110,16 @@ function App() {
                       </AuthenticatedLayout>
                     </RequireAuth>
                   } 
+                />
+                <Route
+                  path="/coach-event-required"
+                  element={
+                    <RequireAuth allowedRoles={["coach"]}>
+                      <AuthenticatedLayout>
+                        <CoachEventRequired />
+                      </AuthenticatedLayout>
+                    </RequireAuth>
+                  }
                 />
                 <Route 
                   path="/schedule" 

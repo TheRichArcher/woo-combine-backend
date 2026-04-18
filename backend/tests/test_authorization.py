@@ -122,6 +122,30 @@ def test_ensure_event_access_denies_unscoped_coach(monkeypatch):
     assert exc.value.status_code == 403
 
 
+def test_ensure_event_access_denies_coach_with_no_assignments(monkeypatch):
+    store = {
+        "user_memberships/user-2": {
+            "leagues": {
+                "league-abc": {
+                    "role": "coach",
+                    "joined_at": "2026-01-01T00:00:00Z",
+                }
+            }
+        },
+        "events/event-9": {"league_id": "league-abc", "name": "Combine"},
+    }
+    _install_fakes(monkeypatch, store)
+
+    with pytest.raises(HTTPException) as exc:
+        authz.ensure_event_access(
+            "user-2",
+            "event-9",
+            allowed_roles=("organizer", "coach"),
+        )
+    assert exc.value.status_code == 403
+    assert exc.value.detail == "You are not assigned to any events"
+
+
 def test_ensure_event_access_blocks_other_leagues(monkeypatch):
     store = {
         "user_memberships/user-3": {"leagues": {"league-xyz": {"role": "viewer"}}},

@@ -143,3 +143,21 @@ def test_join_league_invalid_role_returns_400(app_client, fake_db, coach_headers
     )
 
     assert r.status_code == 400, r.text
+
+
+def test_join_league_coach_requires_event_invite(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    uid = "coach-no-scope-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "coach-noscope@example.com", "role": "coach"}
+    )
+    headers = {"Authorization": f"Bearer {make_jwt(uid=uid, email='coach-noscope@example.com', email_verified=True)}"}
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "coach"},
+        headers=headers,
+    )
+
+    assert r.status_code == 400, r.text
+    assert r.json()["detail"] == "Coach must join via event invite"

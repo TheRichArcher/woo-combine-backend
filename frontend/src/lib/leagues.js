@@ -153,10 +153,21 @@ export async function deleteLeague(leagueId) {
  * Join league with invite code
  * 
  * @param {string} inviteCode - League invite code
+ * @param {Object} options
+ * @param {string} options.role - Requested role (viewer/coach/player)
+ * @param {string|null} options.invitedEventId - Required for scoped coach/viewer joins
  * @returns {Promise<Object>} League object
  */
-export async function joinLeague(inviteCode) {
-  const response = await api.post('/leagues/join', { code: inviteCode });
+export async function joinLeague(inviteCode, options = {}) {
+  const role = options.role || 'viewer';
+  const payload = { role };
+  if (
+    options.invitedEventId &&
+    (role === 'coach' || role === 'viewer')
+  ) {
+    payload.invited_event_id = options.invitedEventId;
+  }
+  const response = await api.post(`/leagues/join/${inviteCode}`, payload);
   return response.data;
 }
 

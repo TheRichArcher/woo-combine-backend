@@ -352,7 +352,8 @@ def join_league(
     user_id = current_user["uid"]
 
     # Security Check 2: Role Validation
-    requested_role = req.get("role", "coach") if req else "coach"
+    # Default to viewer to avoid implicit coach joins without event scoping.
+    requested_role = req.get("role", "viewer") if req else "viewer"
 
     # Strictly forbid joining as organizer via public code
     if requested_role == "organizer":
@@ -424,6 +425,13 @@ def join_league(
             req=req,
             joined_via_event_code=joined_via_event_code,
         )
+        if role == "coach" and not invited_event_id:
+            # Deny-by-default for coaches: they must join via event invite so
+            # membership is never created without scoped event access.
+            raise HTTPException(
+                status_code=400,
+                detail="Coach must join via event invite",
+            )
         if invited_event_id:
             _validate_invited_event_scope(
                 event_id=invited_event_id,

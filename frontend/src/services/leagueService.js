@@ -11,9 +11,12 @@ export const leagueService = {
     return api.post('/leagues', leagueData);
   },
 
-  // Join a league - FIX: Use URL path parameter structure that backend expects
-  joinLeague: (leagueCode, role = 'coach') => {
+  // Join a league by code. Coaches must supply invited_event_id elsewhere.
+  joinLeague: (leagueCode, role = 'viewer', invitedEventId = null) => {
     const payload = { role };
+    if (invitedEventId && (role === 'coach' || role === 'viewer')) {
+      payload.invited_event_id = invitedEventId;
+    }
     return api.post(`/leagues/join/${leagueCode}`, payload);
   },
 

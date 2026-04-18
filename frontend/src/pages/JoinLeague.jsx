@@ -8,7 +8,7 @@ import WelcomeLayout from '../components/layouts/WelcomeLayout';
 import Button from '../components/ui/Button';
 
 export default function JoinLeague() {
-  const { user, addLeague } = useAuth();
+  const { user, userRole, addLeague } = useAuth();
   const navigate = useNavigate();
   const { code: urlCode } = useParams();
   const [joinCode, setJoinCode] = useState(urlCode || '');
@@ -99,13 +99,15 @@ export default function JoinLeague() {
     setError('');
     setSuccess(false);
     try {
+      const requestedRole = (userRole || 'viewer').toLowerCase();
       const { data } = await api.post(`/leagues/join/${joinCode}`, {
         user_id: user?.uid,
         email: user?.email,
+        role: requestedRole
       });
       setLeagueName(data.league_name);
       setSuccess(true);
-      if (addLeague) addLeague({ id: joinCode, name: data.league_name, role: 'coach' });
+      if (addLeague) addLeague({ id: joinCode, name: data.league_name, role: requestedRole });
     } catch (err) {
       if (err?.response?.status === 404) {
         setError('We could not find a league with that code. If this was an event invite, we will try loading it now.');
@@ -113,6 +115,11 @@ export default function JoinLeague() {
         setTimeout(() => {
           navigate(`/join-event/${joinCode}`);
         }, 400);
+      } else if (
+        err?.response?.status === 400 &&
+        err?.response?.data?.detail === 'Coach must join via event invite'
+      ) {
+        setError('Coaches must join through an event invite. Scan an event QR code or use a /join-event link from your organizer.');
       } else {
         setError(err.message || 'Error joining league');
       }

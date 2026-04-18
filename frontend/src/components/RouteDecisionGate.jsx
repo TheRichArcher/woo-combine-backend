@@ -138,7 +138,8 @@ export default function RouteDecisionGate({ children }) {
   // Routes that need auth but not full state (role selection, join flows)
   const authOnlyRoutes = [
     '/select-role',
-    '/mfa-enroll'
+    '/mfa-enroll',
+    '/coach-event-required'
   ];
 
   // Join event routes need special handling
@@ -370,6 +371,23 @@ export default function RouteDecisionGate({ children }) {
         performNavigation('/live-standings', 'viewer missing event context');
         return;
       }
+    }
+
+    // Coach onboarding guard: deny access to staff shell unless an event
+    // context is selected. Coaches with no assigned events must join via invite.
+    if (
+      userRole === 'coach' &&
+      selectedLeagueId &&
+      !selectedEvent &&
+      location.pathname !== '/coach-event-required'
+    ) {
+      const pendingJoinPath = getPendingJoinPath();
+      if (pendingJoinPath) {
+        performNavigation(pendingJoinPath, 'coach missing event context, recover pending join');
+        return;
+      }
+      performNavigation('/coach-event-required', 'coach missing event context');
+      return;
     }
 
     // No league context → needs league selection or creation (staff roles only)
