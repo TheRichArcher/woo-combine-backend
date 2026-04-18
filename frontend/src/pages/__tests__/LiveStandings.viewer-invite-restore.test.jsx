@@ -141,4 +141,30 @@ describe('LiveStandings viewer invite restoration', () => {
     expect(screen.queryByText('No Event Selected')).not.toBeInTheDocument();
     expect(screen.getByText('Hydrated Event')).toBeInTheDocument();
   });
+
+  test('corrects mismatched selectedLeagueId from invite context', async () => {
+    mockUseAuth.mockImplementation(() => ({
+      userRole: 'viewer',
+      selectedLeagueId: 'league-old',
+      setSelectedLeagueId: mockSetSelectedLeagueId,
+    }));
+    localStorage.setItem('viewerInviteEventContext', JSON.stringify({
+      eventId: 'event-77',
+      leagueId: 'league-new',
+      role: 'viewer',
+      source: 'join-event',
+      event: { id: 'event-77', name: 'Mismatch Recovery Event', drillTemplate: 'football' },
+      timestamp: new Date().toISOString(),
+    }));
+
+    render(<LiveStandings />);
+
+    await waitFor(() => {
+      expect(mockSetSelectedEvent).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'event-77', name: 'Mismatch Recovery Event' })
+      );
+    });
+    expect(mockSetSelectedLeagueId).toHaveBeenCalledWith('league-new');
+    expect(mockSetEvents).toHaveBeenCalled();
+  });
 });

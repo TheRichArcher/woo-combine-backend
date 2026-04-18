@@ -210,6 +210,40 @@ export default function JoinEvent() {
             };
           } else {
             targetLeague = existingLeague;
+            const effectiveRole = (intendedRole || userRole || existingLeague?.role || '').toLowerCase();
+            // If viewer already belongs to the league, still re-hit join endpoint so backend
+            // can merge invited_event_id into viewer_event_ids for event-scoped access.
+            if (effectiveRole === 'viewer') {
+              try {
+                const joinPayload = buildJoinRequestPayload(actualEventId);
+                const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, joinPayload);
+                writeJoinStage('join-api-existing-viewer-scope-sync-success', {
+                  actualLeagueId,
+                  actualEventId,
+                  joinPayload,
+                  joinData: joinResponse?.data
+                });
+                qrDebug('Existing viewer scope sync success', {
+                  url: `/leagues/join/${actualLeagueId}`,
+                  status: joinResponse?.status,
+                  joinPayload,
+                  joinData: joinResponse?.data
+                });
+              } catch (joinError) {
+                writeJoinStage('join-api-existing-viewer-scope-sync-failure', {
+                  actualLeagueId,
+                  actualEventId,
+                  status: joinError?.response?.status,
+                  message: joinError?.message
+                });
+                qrDebug('Existing viewer scope sync failed', {
+                  url: `/leagues/join/${actualLeagueId}`,
+                  status: joinError?.response?.status,
+                  message: joinError?.message
+                });
+                throw joinError;
+              }
+            }
           }
 
           // Now fetch the event

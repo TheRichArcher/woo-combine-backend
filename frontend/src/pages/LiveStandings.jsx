@@ -157,7 +157,11 @@ export default function LiveStandings() {
       });
     }
     const inviteLeagueId = viewerInviteContext?.leagueId || restoredViewerEvent?.league_id || null;
-    if (!selectedLeagueId && inviteLeagueId) {
+    if (inviteLeagueId && selectedLeagueId !== inviteLeagueId) {
+      qrLiveDebug('Correcting selectedLeagueId from invite context', {
+        previousSelectedLeagueId: selectedLeagueId || null,
+        inviteLeagueId
+      });
       setSelectedLeagueId(inviteLeagueId);
     }
   }, [

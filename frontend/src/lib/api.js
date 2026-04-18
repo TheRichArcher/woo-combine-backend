@@ -80,6 +80,22 @@ let lastLoginAtMs = 0;
 const inflightRequestControllers = new Set();
 const QR_DEBUG_KEY = 'debug_qr_flow';
 
+const isCancellationError = (error) => {
+  if (!error) return false;
+
+  if (typeof axios !== 'undefined' && typeof axios.isCancel === 'function' && axios.isCancel(error)) {
+    return true;
+  }
+
+  if (error.code === 'ERR_CANCELED') return true;
+  if (error.name === 'CanceledError' || error.name === 'AbortError') return true;
+
+  const message = String(error.message || '').toLowerCase();
+  if (message === 'canceled' || message.includes('aborted')) return true;
+
+  return false;
+};
+
 const isQrDebugEnabled = () => {
   try {
     return localStorage.getItem(QR_DEBUG_KEY) === '1';
@@ -346,6 +362,15 @@ api.interceptors.response.use(
   async (error) => {
     const config = error.config;
     releaseInternalAbortController(config);
+
+    if (isCancellationError(error)) {
+      apiLogger.debug('Request canceled before retry handler', {
+        url: String(config?.url || ''),
+        method: String(config?.method || '').toLowerCase(),
+        canceledByInternalController: Boolean(config?._internalAbortController)
+      });
+      return Promise.reject(error);
+    }
     
     // Some network failures (CORS, browser cancellations) produce errors without config.
     // In those cases we can't retry, so fail fast to avoid undefined config access crashes.
@@ -466,6 +491,16 @@ api.interceptors.response.use(
   },
   error => {
     releaseInternalAbortController(error?.config);
+
+    if (isCancellationError(error)) {
+      apiLogger.debug('Request canceled (expected)', {
+        url: String(error?.config?.url || ''),
+        method: String(error?.config?.method || '').toLowerCase(),
+        canceledByInternalController: Boolean(error?.config?._internalAbortController)
+      });
+      return Promise.reject(error);
+    }
+
     try {
       // Surface 429 with retry-after if present
       if (error.response?.status === 429) {
