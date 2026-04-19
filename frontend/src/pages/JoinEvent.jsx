@@ -5,6 +5,7 @@ import { useEvent } from "../context/EventContext";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
+import axios from "axios";
 import api from '../lib/api';
 import { persistViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
 
@@ -52,6 +53,49 @@ export default function JoinEvent() {
   useEffect(() => {
     // Wait for auth initialization to complete
     if (initializing) return;
+    let isActive = true;
+    const joinFlowController = new AbortController();
+
+    const isCancellationError = (error) => (
+      (typeof axios !== "undefined" && typeof axios.isCancel === "function" && axios.isCancel(error)) ||
+      error?.code === "ERR_CANCELED" ||
+      error?.name === "CanceledError" ||
+      error?.name === "AbortError" ||
+      String(error?.message || "").toLowerCase().includes("aborted") ||
+      String(error?.message || "").toLowerCase() === "canceled"
+    );
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const withCancellationRetry = async (requestFactory, options = {}) => {
+      const retries = options.retries ?? 2;
+      const retryDelayMs = options.retryDelayMs ?? 150;
+      const label = options.label || "request";
+      let lastError = null;
+
+      for (let attempt = 0; attempt <= retries; attempt += 1) {
+        if (!isActive) {
+          return null;
+        }
+        try {
+          return await requestFactory();
+        } catch (error) {
+          lastError = error;
+          if (!isCancellationError(error) || attempt >= retries) {
+            throw error;
+          }
+          qrDebug("Retrying canceled request in JoinEvent", {
+            label,
+            attempt: attempt + 1,
+            retries,
+            message: error?.message || "canceled"
+          });
+          await sleep(retryDelayMs * (attempt + 1));
+        }
+      }
+
+      throw lastError;
+    };
 
     const handleEventJoin = async () => {
       // Clean parameter extraction - handle multiple URL formats
@@ -122,6 +166,53 @@ export default function JoinEvent() {
         return payload;
       };
 
+      const requestConfig = { signal: joinFlowController.signal };
+      const effectiveInviteRole = (intendedRole || userRole || '').toLowerCase();
+
+      const runJoinRequest = async (targetLeagueId) => {
+        const joinPayload = buildJoinRequestPayload(actualEventId);
+        const joinResponse = await withCancellationRetry(
+          () => api.post(`/leagues/join/${targetLeagueId}`, joinPayload, requestConfig),
+          { label: "join-league" }
+        );
+        return { joinResponse, joinPayload };
+      };
+
+      const runEventFetch = async (targetLeagueId) => (
+        withCancellationRetry(
+          () => api.get(`/leagues/${targetLeagueId}/events/${actualEventId}`, requestConfig),
+          { label: "get-event" }
+        )
+      );
+
+      const fetchEventWithScopeRecovery = async (targetLeagueId) => {
+        try {
+          return await runEventFetch(targetLeagueId);
+        } catch (eventError) {
+          const status = eventError?.response?.status;
+          if (
+            status === 403 &&
+            (effectiveInviteRole === "coach" || effectiveInviteRole === "viewer")
+          ) {
+            qrDebug("Event fetch hit 403 after join, retrying scope sync", {
+              targetLeagueId,
+              actualEventId,
+              effectiveInviteRole
+            });
+            const { joinResponse, joinPayload } = await runJoinRequest(targetLeagueId);
+            writeJoinStage('join-api-scope-recovery-success', {
+              actualLeagueId: targetLeagueId,
+              actualEventId,
+              effectiveInviteRole,
+              joinPayload,
+              joinData: joinResponse?.data
+            });
+            return runEventFetch(targetLeagueId);
+          }
+          throw eventError;
+        }
+      };
+
         // Check authentication first
         if (!user) {
         // Store invitation data for after login including intended role
@@ -170,8 +261,7 @@ export default function JoinEvent() {
             
             let joinData;
             try {
-              const joinPayload = buildJoinRequestPayload(actualEventId);
-              const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, joinPayload);
+              const { joinResponse, joinPayload } = await runJoinRequest(actualLeagueId);
               joinData = joinResponse.data;
               writeJoinStage('join-api-success', {
                 actualLeagueId,
@@ -223,8 +313,7 @@ export default function JoinEvent() {
             // can merge invited_event_id into *_event_ids for event-scoped access.
             if (effectiveRole === 'viewer' || effectiveRole === 'coach') {
               try {
-                const joinPayload = buildJoinRequestPayload(actualEventId);
-                const joinResponse = await api.post(`/leagues/join/${actualLeagueId}`, joinPayload);
+                const { joinResponse, joinPayload } = await runJoinRequest(actualLeagueId);
                 writeJoinStage('join-api-existing-member-scope-sync-success', {
                   actualLeagueId,
                   actualEventId,
@@ -260,7 +349,7 @@ export default function JoinEvent() {
 
           // Now fetch the event
           try {
-            const eventResponse = await api.get(`/leagues/${actualLeagueId}/events/${actualEventId}`);
+            const eventResponse = await fetchEventWithScopeRecovery(actualLeagueId);
             targetEvent = eventResponse.data;
             qrDebug('Event fetch success', {
               url: `/leagues/${actualLeagueId}/events/${actualEventId}`,
@@ -286,7 +375,7 @@ export default function JoinEvent() {
           // If user already has leagues, search them first
           for (const userLeague of leagues || []) {
             try {
-              const response = await api.get(`/leagues/${userLeague.id}/events/${actualEventId}`);
+              const response = await runEventFetch(userLeague.id);
               targetEvent = response.data;
               targetLeague = userLeague;
               qrDebug('Event fetch success', {
@@ -313,8 +402,8 @@ export default function JoinEvent() {
           if (!targetEvent) {
             let joinResponse;
             try {
-              const joinPayload = buildJoinRequestPayload(actualEventId);
-              joinResponse = await api.post(`/leagues/join/${actualEventId}`, joinPayload);
+              const { joinResponse: resolvedJoinResponse, joinPayload } = await runJoinRequest(actualEventId);
+              joinResponse = resolvedJoinResponse;
               writeJoinStage('legacy-join-api-success', {
                 actualEventId,
                 joinPayload,
@@ -360,7 +449,7 @@ export default function JoinEvent() {
               role: (joinResponse?.data?.role || intendedRole || userRole || 'viewer').toLowerCase()
             };
 
-            const legacyEventResponse = await api.get(`/leagues/${resolvedLeagueId}/events/${actualEventId}`);
+            const legacyEventResponse = await fetchEventWithScopeRecovery(resolvedLeagueId);
             targetEvent = legacyEventResponse.data;
             qrDebug('Event fetch success', {
               url: `/leagues/${resolvedLeagueId}/events/${actualEventId}`,
@@ -455,6 +544,12 @@ export default function JoinEvent() {
         }
 
       } catch (err) {
+        if (isCancellationError(err) || !isActive) {
+          qrDebug('Join flow canceled safely', {
+            message: err?.message || 'canceled'
+          });
+          return;
+        }
         writeJoinStage('join-flow-failure', {
           status: err?.response?.status,
           message: err?.message
@@ -473,6 +568,7 @@ export default function JoinEvent() {
         }
         setStatus("not_found");
       } finally {
+        if (!isActive) return;
         writeJoinStage('join-flow-finally', { status });
         qrDebug('Join flow completed', { status });
         setLoading(false);
@@ -480,6 +576,15 @@ export default function JoinEvent() {
     };
 
     handleEventJoin();
+
+    return () => {
+      isActive = false;
+      try {
+        joinFlowController.abort("join-event-cleanup");
+      } catch {
+        // no-op
+      }
+    };
   }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing, refreshLeagues]);
 
   if (loading || initializing) {
