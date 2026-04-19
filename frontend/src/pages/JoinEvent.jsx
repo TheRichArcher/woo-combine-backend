@@ -174,13 +174,37 @@ export default function JoinEvent() {
 
       const requestConfig = { signal: joinFlowController.signal };
       const effectiveInviteRole = (intendedRole || userRole || '').toLowerCase();
+      const hasPendingInvite = (() => {
+        try {
+          const raw = localStorage.getItem('pendingEventJoin');
+          return Boolean(raw && raw.trim());
+        } catch {
+          return false;
+        }
+      })();
+      const mustApplyInviteBeforeFetch = Boolean(
+        hasPendingInvite || intendedRole === 'coach' || intendedRole === 'viewer'
+      );
+      let inviteJoinConfirmed = false;
 
       const runJoinRequest = async (targetLeagueId) => {
         const joinPayload = buildJoinRequestPayload(actualEventId);
+        console.info('[JoinEvent] Invite join started', {
+          targetLeagueId,
+          actualEventId,
+          role: joinPayload?.role || null
+        });
         const joinResponse = await withCancellationRetry(
           () => api.post(`/leagues/join/${targetLeagueId}`, joinPayload, requestConfig),
           { label: "join-league" }
         );
+        console.info('[JoinEvent] Invite join succeeded', {
+          targetLeagueId,
+          actualEventId,
+          status: joinResponse?.status,
+          response: joinResponse?.data || null
+        });
+        inviteJoinConfirmed = true;
         return { joinResponse, joinPayload };
       };
 
@@ -192,6 +216,9 @@ export default function JoinEvent() {
       );
 
       const fetchEventWithScopeRecovery = async (targetLeagueId) => {
+        if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
+          throw new Error('Invite join must complete before event fetch');
+        }
         try {
           return await runEventFetch(targetLeagueId);
         } catch (eventError) {
@@ -317,7 +344,11 @@ export default function JoinEvent() {
             const effectiveRole = (intendedRole || userRole || existingLeague?.role || '').toLowerCase();
             // If coach/viewer already belongs to the league, still re-hit join endpoint so backend
             // can merge invited_event_id into *_event_ids for event-scoped access.
-            if (effectiveRole === 'viewer' || effectiveRole === 'coach') {
+            if (
+              mustApplyInviteBeforeFetch ||
+              effectiveRole === 'viewer' ||
+              effectiveRole === 'coach'
+            ) {
               try {
                 const { joinResponse, joinPayload } = await runJoinRequest(actualLeagueId);
                 writeJoinStage('join-api-existing-member-scope-sync-success', {
@@ -353,6 +384,10 @@ export default function JoinEvent() {
             }
           }
 
+          if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
+            throw new Error('Invite join did not complete. Please retry this invite link.');
+          }
+
           // Now fetch the event
           try {
             const eventResponse = await fetchEventWithScopeRecovery(actualLeagueId);
@@ -378,8 +413,52 @@ export default function JoinEvent() {
         // STRATEGY 2: Only eventId provided (old format)
         else {
 
+          if (mustApplyInviteBeforeFetch) {
+            let joinResponse;
+            try {
+              const { joinResponse: resolvedJoinResponse, joinPayload } = await runJoinRequest(actualEventId);
+              joinResponse = resolvedJoinResponse;
+              writeJoinStage('legacy-join-api-success', {
+                actualEventId,
+                joinPayload,
+                joinData: joinResponse?.data
+              });
+              qrDebug('Join API success', {
+                url: `/leagues/join/${actualEventId}`,
+                status: joinResponse?.status,
+                joinPayload,
+                joinData: joinResponse?.data
+              });
+            } catch (joinError) {
+              writeJoinStage('legacy-join-api-failure', {
+                actualEventId,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
+              qrDebug('Join API failure', {
+                url: `/leagues/join/${actualEventId}`,
+                status: joinError?.response?.status,
+                message: joinError?.message
+              });
+              throw joinError;
+            }
+
+            const resolvedLeagueId = joinResponse?.data?.league_id;
+            if (!resolvedLeagueId) {
+              throw new Error('Unable to resolve league for this event');
+            }
+            const refreshedLeagues = await refreshLeagues();
+            targetLeague = refreshedLeagues.find(l => l.id === resolvedLeagueId) || {
+              id: resolvedLeagueId,
+              name: joinResponse.data?.league_name || 'League',
+              role: (joinResponse?.data?.role || intendedRole || userRole || 'viewer').toLowerCase()
+            };
+            const legacyEventResponse = await fetchEventWithScopeRecovery(resolvedLeagueId);
+            targetEvent = legacyEventResponse.data;
+          }
+
           // If user already has leagues, search them first
-          for (const userLeague of leagues || []) {
+          for (const userLeague of (mustApplyInviteBeforeFetch ? [] : (leagues || []))) {
             try {
               const response = await runEventFetch(userLeague.id);
               targetEvent = response.data;
@@ -529,6 +608,11 @@ export default function JoinEvent() {
           // Auto-redirect after 2 seconds.
           // Viewer goes to standings; staff goes to coach shell with selected context.
           setTimeout(() => {
+            if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
+              setError('Invite join was not completed. Please retry the invite link.');
+              setStatus('not_found');
+              return;
+            }
             writeJoinStage('navigate-live-standings-timeout-fired', {
               from: window.location.pathname,
               selectedLeagueId: localStorage.getItem('selectedLeagueId'),
