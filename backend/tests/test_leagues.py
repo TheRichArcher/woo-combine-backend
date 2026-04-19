@@ -161,3 +161,42 @@ def test_join_league_coach_requires_event_invite(app_client, fake_db):
 
     assert r.status_code == 400, r.text
     assert r.json()["detail"] == "Coach must join via event invite"
+
+
+def test_join_league_existing_coach_creates_user_membership_scope(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    fake_db.collection("events").document("event-1").set(
+        {"name": "Invited Event", "league_id": "league-1"}
+    )
+    uid = "legacy-coach-no-fastpath"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "legacycoach@example.com", "role": "coach"}
+    )
+    fake_db.collection("leagues").document("league-1").collection("members").document(uid).set(
+        {
+            "role": "coach",
+            "email": "legacycoach@example.com",
+            "coach_event_ids": ["event-legacy"],
+            "joined_at": "2024-01-01T00:00:00Z",
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='legacycoach@example.com', email_verified=True)}"
+    }
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "coach", "invited_event_id": "event-1"},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("invited_event_id") == "event-1"
+
+    user_membership_doc = fake_db.collection("user_memberships").document(uid).get()
+    assert user_membership_doc.exists
+    league_membership = (user_membership_doc.to_dict().get("leagues") or {}).get("league-1") or {}
+    assert league_membership.get("role") == "coach"
+    assert set(league_membership.get("coach_event_ids") or []) == {
+        "event-legacy",
+        "event-1",
+    }

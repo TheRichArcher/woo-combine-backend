@@ -460,21 +460,28 @@ def join_league(
 
                 user_memberships_ref = db.collection("user_memberships").document(user_id)
                 user_memberships_doc = user_memberships_ref.get()
-                if user_memberships_doc.exists:
-                    memberships_data = user_memberships_doc.to_dict() or {}
-                    leagues_map = memberships_data.get("leagues", {})
-                    league_membership = leagues_map.get(resolved_league_id, {})
-                    existing_scoped_ids = league_membership.get(scope_field, [])
-                    merged_user_membership_ids = _merge_event_scope(
-                        existing_scoped_ids, invited_event_id
-                    )
-                    batch.set(
-                        user_memberships_ref,
-                        {
-                            f"leagues.{resolved_league_id}.{scope_field}": merged_user_membership_ids
-                        },
-                        merge=True,
-                    )
+                memberships_data = (
+                    (user_memberships_doc.to_dict() or {}) if user_memberships_doc.exists else {}
+                )
+                leagues_map = memberships_data.get("leagues", {})
+                league_membership = leagues_map.get(resolved_league_id, {})
+                existing_scoped_ids = league_membership.get(scope_field, [])
+                merged_user_membership_ids = _merge_event_scope(
+                    existing_scoped_ids, invited_event_id
+                )
+                membership_patch = {
+                    "role": existing_role,
+                    "league_name": league_name,
+                    scope_field: merged_user_membership_ids,
+                }
+                joined_at = league_membership.get("joined_at") or existing_member_data.get("joined_at")
+                if joined_at:
+                    membership_patch["joined_at"] = joined_at
+                batch.set(
+                    user_memberships_ref,
+                    {f"leagues.{resolved_league_id}": membership_patch},
+                    merge=True,
+                )
                 batch.commit()
 
             logging.warning(f"User {user_id} already in league {resolved_league_id}")
