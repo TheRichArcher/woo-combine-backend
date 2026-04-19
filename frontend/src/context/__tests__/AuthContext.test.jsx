@@ -101,6 +101,15 @@ const RefreshContextHarness = () => {
   );
 };
 
+const RefreshWithRoleOverrideHarness = () => {
+  const { refreshLeagues } = useAuth();
+  return (
+    <button onClick={() => refreshLeagues({ roleOverride: 'viewer' })} type="button">
+      refresh-with-role-override
+    </button>
+  );
+};
+
 const LogoutHarness = () => {
   const { logout } = useAuth();
   return (
@@ -234,6 +243,45 @@ describe('AuthContext', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/join-event/league-1/event-1/coach', { replace: true });
     });
     expect(mockNavigate).not.toHaveBeenCalledWith('/analytics?tab=team', { replace: true });
+  });
+
+  it('allows league refresh with role override when pre-join userRole is null', async () => {
+    const mockUser = {
+      uid: 'user-role-override',
+      email: 'viewer-override@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/join-event/league-1/event-1/viewer');
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: null, pending_invite: 'league-1/event-1/viewer' } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+    getMyLeagues.mockResolvedValue([{ id: 'league-1', role: 'viewer', name: 'Viewer League' }]);
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <RefreshWithRoleOverrideHarness />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'refresh-with-role-override' }));
+
+    await waitFor(() => {
+      expect(getMyLeagues).toHaveBeenCalled();
+    });
   });
 
   it('uses postLoginTarget when no pendingEventJoin exists', async () => {

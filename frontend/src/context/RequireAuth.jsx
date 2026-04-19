@@ -15,6 +15,13 @@ export default function RequireAuth({ children, allowedRoles }) {
   const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
   const pendingInvitePath = getPendingInviteJoinPath();
+  const inviteJoinInProgress = (() => {
+    try {
+      return localStorage.getItem('inviteJoinInProgress') === '1';
+    } catch {
+      return false;
+    }
+  })();
 
   // Wait for all auth state to be ready
   if (initializing || !authChecked || !roleChecked) {
@@ -43,6 +50,17 @@ export default function RequireAuth({ children, allowedRoles }) {
   
   // Deny-by-default: no role means onboarding is incomplete.
   if (!userRole) {
+    if (inviteJoinInProgress) {
+      console.info('[RequireAuth] Suppressing /select-role redirect during invite join hydration');
+      return (
+        <LoadingScreen
+          title="Finalizing invite access..."
+          subtitle="Syncing your account"
+          size="large"
+          showProgress={true}
+        />
+      );
+    }
     return <Navigate to="/select-role" replace state={{ from: location }} />;
   }
   

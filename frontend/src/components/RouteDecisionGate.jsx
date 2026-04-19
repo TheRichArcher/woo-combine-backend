@@ -59,6 +59,14 @@ const getPendingJoinPath = () => {
   }
 };
 
+const isInviteJoinHydrating = () => {
+  try {
+    return localStorage.getItem('inviteJoinInProgress') === '1';
+  } catch {
+    return false;
+  }
+};
+
   const hasPendingJoin = () => Boolean(getPendingJoinPath());
 
 /**
@@ -256,6 +264,11 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
+    if (minimalStateReady && !userRole && isInviteJoinHydrating()) {
+      console.log(`${logPrefix} MINIMAL_STATE_WAIT: Invite join hydration in progress, suppressing no-role redirect`);
+      return;
+    }
+
     if (minimalStateReady && !userRole && !hasPendingJoin()) {
       console.log(`${logPrefix} MINIMAL_STATE_READY: No role and no invite, can redirect to select-role`);
       setIsReady(true);
@@ -377,6 +390,11 @@ export default function RouteDecisionGate({ children }) {
     const pendingJoinPath = getPendingJoinPath();
     if (pendingJoinPath && !location.pathname.startsWith('/join-event/')) {
       performNavigation(pendingJoinPath, 'pending invite requires join flow');
+      return;
+    }
+
+    if (!userRole && isInviteJoinHydrating()) {
+      qrGateDebug('Suppressing no-role fallback during invite join hydration', buildDecisionState());
       return;
     }
 

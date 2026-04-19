@@ -60,6 +60,20 @@ describe('RequireAuth role enforcement', () => {
     expect(screen.getByTestId('navigate-target')).toHaveTextContent('/join-event/league-1/event-1/viewer');
   });
 
+  it('suppresses no-role redirect while invite join hydration is in progress', () => {
+    localStorage.setItem('inviteJoinInProgress', '1');
+    useAuth.mockReturnValue({ ...baseAuth, userRole: null });
+
+    render(
+      <RequireAuth>
+        <div data-testid="protected-page">protected</div>
+      </RequireAuth>
+    );
+
+    expect(screen.getByTestId('loading-screen')).toBeInTheDocument();
+    expect(screen.queryByTestId('navigate-target')).not.toBeInTheDocument();
+  });
+
   it('allows organizer on staff-only routes', () => {
     useAuth.mockReturnValue({ ...baseAuth, userRole: 'organizer' });
 

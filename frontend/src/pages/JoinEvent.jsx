@@ -43,7 +43,7 @@ const writeJoinStage = (stage, payload = {}) => {
 export default function JoinEvent() {
   const { leagueId, eventId, role } = useParams();
   const navigate = useNavigate();
-  const { user, leagues, setSelectedLeagueId, userRole, initializing, refreshLeagues } = useAuth();
+  const { user, leagues, setSelectedLeagueId, userRole, initializing, refreshLeagues, hydratePostJoinState } = useAuth();
   const { setSelectedEvent } = useEvent();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -355,7 +355,9 @@ export default function JoinEvent() {
             // CRITICAL FIX: Refresh leagues from backend and USE RETURNED ARRAY
             // Cannot rely on context leagues state because React state updates are async
             // Using returned value ensures we have fresh data immediately
-            const refreshedLeagues = await refreshLeagues();
+            const refreshedLeagues = await refreshLeagues({
+              roleOverride: intendedRole || joinData?.role || userRole || 'viewer'
+            });
             writeJoinStage('refresh-leagues-after-join', {
               refreshedLeaguesCount: refreshedLeagues?.length || 0,
               actualLeagueId
@@ -475,7 +477,9 @@ export default function JoinEvent() {
             if (!resolvedLeagueId) {
               throw new Error('Unable to resolve league for this event');
             }
-            const refreshedLeagues = await refreshLeagues();
+            const refreshedLeagues = await refreshLeagues({
+              roleOverride: intendedRole || joinResponse?.data?.role || userRole || 'viewer'
+            });
             targetLeague = refreshedLeagues.find(l => l.id === resolvedLeagueId) || {
               id: resolvedLeagueId,
               name: joinResponse.data?.league_name || 'League',
@@ -549,7 +553,9 @@ export default function JoinEvent() {
 
             // CRITICAL FIX: Refresh leagues and USE RETURNED ARRAY
             // Cannot rely on context leagues state (React state updates are async)
-            const refreshedLeagues = await refreshLeagues();
+            const refreshedLeagues = await refreshLeagues({
+              roleOverride: intendedRole || joinResponse?.data?.role || userRole || 'viewer'
+            });
             writeJoinStage('refresh-leagues-after-legacy-join', {
               refreshedLeaguesCount: refreshedLeagues?.length || 0,
               resolvedLeagueId
@@ -579,6 +585,22 @@ export default function JoinEvent() {
 
         // Success! Set up the event and league
         if (targetEvent && targetLeague) {
+          const hydrationResult = await hydratePostJoinState({
+            fallbackRole: intendedRole || targetLeague?.role || userRole || 'viewer'
+          });
+          writeJoinStage('post-join-hydration-result', {
+            ok: hydrationResult?.ok || false,
+            reason: hydrationResult?.reason || null,
+            hydratedRole: hydrationResult?.role || null,
+            hydratedLeaguesCount: hydrationResult?.leagues?.length || 0
+          });
+          qrDebug('Post-join hydration result', hydrationResult);
+          if (!hydrationResult?.ok) {
+            setError('Invite joined, but account setup is still syncing. Please retry this invite link in a few seconds.');
+            setStatus('not_found');
+            return;
+          }
+
           setEvent(targetEvent);
           setLeague(targetLeague);
           const persistedInviteContext = persistViewerInviteEventContext({
@@ -630,7 +652,7 @@ export default function JoinEvent() {
           
 
           
-          // Clear any stored invitation data
+          // Clear stored invitation after role + league hydration succeeds
           localStorage.removeItem('pendingEventJoin');
           
           // Auto-redirect after 2 seconds.
@@ -646,7 +668,7 @@ export default function JoinEvent() {
               selectedLeagueId: localStorage.getItem('selectedLeagueId'),
               selectedEventRaw: localStorage.getItem('selectedEvent')
             });
-            const destination = (intendedRole || userRole || '').toLowerCase() === 'viewer'
+            const destination = (hydrationResult?.role || intendedRole || userRole || '').toLowerCase() === 'viewer'
               ? '/live-standings'
               : '/coach';
             qrDebug('Navigating after join', {
@@ -711,7 +733,7 @@ export default function JoinEvent() {
       // We only gate state writes via isActive to avoid stale updates.
       isActive = false;
     };
-  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing, refreshLeagues]);
+  }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing, refreshLeagues, hydratePostJoinState]);
 
   if (loading || initializing) {
     return <LoadingScreen size="medium" />;

@@ -59,6 +59,8 @@ const hasPendingInviteJoin = () => {
   }
 };
 
+const INVITE_JOIN_IN_PROGRESS_KEY = 'inviteJoinInProgress';
+
 export function AuthProvider({ children }) {
   // Optimized state management with faster initial checks
   const [user, setUser] = useState(null);
@@ -987,13 +989,22 @@ function parseJwtPayload(token) {
   // Manual league refresh function for after joining via QR code
   // CRITICAL: Returns the fetched leagues array so consumers can use fresh data
   // immediately without waiting for React state to update
-  const refreshLeagues = useCallback(async () => {
-    if (!user || !userRole) {
-      authLogger.warn('Cannot refresh leagues - user or role not set');
+  const refreshLeagues = useCallback(async (options = {}) => {
+    const roleOverride = sanitizeRole(options?.roleOverride);
+    const effectiveRole = roleOverride || userRole;
+    if (!user || !effectiveRole) {
+      authLogger.warn('Cannot refresh leagues - user or role not set', {
+        hasUser: !!user,
+        userRole: userRole || null,
+        roleOverride: roleOverride || null
+      });
       return [];
     }
-    authLogger.info('Manual league refresh requested');
-    const freshLeagues = await fetchLeaguesConcurrently(user, userRole);
+    authLogger.info('Manual league refresh requested', {
+      role: effectiveRole,
+      source: roleOverride ? 'roleOverride' : 'userRole'
+    });
+    const freshLeagues = await fetchLeaguesConcurrently(user, effectiveRole);
     return freshLeagues || [];
   }, [user, userRole, fetchLeaguesConcurrently]);
 
@@ -1047,7 +1058,7 @@ function parseJwtPayload(token) {
 
   // Add function to refresh user role after it's been set via API
   const refreshUserRole = useCallback(async () => {
-    if (!user) return;
+    if (!user) return null;
     
     try {
       const token = await user.getIdToken(true); // Force refresh token
@@ -1081,11 +1092,68 @@ function parseJwtPayload(token) {
           transitionTo(STATUS.READY, 'Role selected');
           // League fetch will be triggered by useEffect watching state transitions
         }
+        return { role: newRole, userData };
       }
     } catch (error) {
       authLogger.error('Failed to refresh user role', error);
     }
-  }, [user, status, fetchLeaguesConcurrently, transitionTo]);
+    return null;
+  }, [user, status, transitionTo]);
+
+  const hydratePostJoinState = useCallback(async ({ fallbackRole = null } = {}) => {
+    if (!user) {
+      authLogger.warn('Post-join hydration skipped: no authenticated user');
+      return { ok: false, reason: 'no_user', role: null, leagues: [] };
+    }
+
+    try {
+      localStorage.setItem(INVITE_JOIN_IN_PROGRESS_KEY, '1');
+    } catch {
+      // best effort
+    }
+
+    try {
+      authLogger.info('[JoinHydration] Starting post-join hydration', {
+        uid: user.uid || null,
+        fallbackRole: fallbackRole || null
+      });
+
+      const profile = await refreshUserRole();
+      authLogger.info('[JoinHydration] /users/me response processed', {
+        roleFromProfile: profile?.role || null,
+        pendingInvite: profile?.userData?.pending_invite || null
+      });
+
+      const resolvedRole = sanitizeRole(profile?.role) || sanitizeRole(fallbackRole);
+      if (!resolvedRole) {
+        authLogger.warn('[JoinHydration] Missing role after profile refresh', {
+          profileRole: profile?.role || null,
+          fallbackRole: fallbackRole || null
+        });
+        return { ok: false, reason: 'role_missing', role: null, leagues: [] };
+      }
+
+      const refreshedLeagues = await refreshLeagues({ roleOverride: resolvedRole });
+      authLogger.info('[JoinHydration] Completed', {
+        resolvedRole,
+        leaguesCount: refreshedLeagues?.length || 0
+      });
+      return {
+        ok: true,
+        role: resolvedRole,
+        leagues: refreshedLeagues || []
+      };
+    } catch (error) {
+      authLogger.error('[JoinHydration] Failed', error);
+      return { ok: false, reason: 'exception', role: null, leagues: [] };
+    } finally {
+      try {
+        localStorage.removeItem(INVITE_JOIN_IN_PROGRESS_KEY);
+      } catch {
+        // best effort
+      }
+    }
+  }, [user, refreshUserRole, refreshLeagues]);
 
   // Expose state setters for logout functionality
   const contextValue = {
@@ -1125,6 +1193,7 @@ function parseJwtPayload(token) {
     setAuthChecked,
     setRoleChecked,
     refreshUserRole,
+    hydratePostJoinState,
     logout,
     status // Expose status for debugging/monitoring
   };

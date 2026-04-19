@@ -109,6 +109,26 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     });
   });
 
+  it('suppresses role-null redirect while invite join hydration is in progress', async () => {
+    localStorage.setItem('inviteJoinInProgress', '1');
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: null,
+    });
+    useLocation.mockReturnValue({ pathname: '/live-standings' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('loading-screen')).toBeInTheDocument();
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/select-role', { replace: true });
+  });
+
   it('redirects coaches without league context to event-required flow', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,
