@@ -237,9 +237,17 @@ async def get_event_roster(event_id: str, current_user=Depends(get_current_user)
 
             # Extract drill scores (anything not in non_drill_fields)
             drill_scores = {}
+            # Scores map is authoritative for modern writes.
+            scores_map = player_data.get("scores", {})
+            if isinstance(scores_map, dict):
+                for key, value in scores_map.items():
+                    if isinstance(value, (int, float)):
+                        drill_scores[key] = value
+
             for key, value in player_data.items():
                 if key not in non_drill_fields and isinstance(value, (int, float)):
-                    drill_scores[key] = value
+                    # Do not overwrite values already present in scores map.
+                    drill_scores.setdefault(key, value)
 
             players.append(
                 {

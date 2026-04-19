@@ -99,10 +99,17 @@ def create_drill_result(
         doc_ref = drill_results_ref.document()
         execute_with_timeout(lambda: doc_ref.set(drill_result_data), timeout=10)
 
-        # Update player document with the new drill score in scores map
-        # This triggers the schema-driven scoring engine on next read
+        # Update player document with the new drill score.
+        # Keep both scores map (source of truth) and legacy flat field in sync
+        # so older read paths never surface stale values.
         execute_with_timeout(
-            lambda: player_ref.update({f"scores.{result.type}": validated_value}),
+            lambda: player_ref.update(
+                {
+                    f"scores.{result.type}": validated_value,
+                    result.type: validated_value,
+                    "updated_at": now_iso,
+                }
+            ),
             timeout=10,
         )
 

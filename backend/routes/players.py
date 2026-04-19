@@ -139,9 +139,8 @@ def get_players(
             scores = player_dict.get("scores", {})
             if scores:
                 for k, v in scores.items():
-                    # Only set if not already present to allow scores to be the source of truth
-                    if k not in player_dict:
-                        player_dict[k] = v
+                    # Scores map is authoritative; override stale legacy flat values.
+                    player_dict[k] = v
             
             # Pass schema to scoring engine
             player_dict["composite_score"] = calculate_composite_score(player_dict, schema=schema)

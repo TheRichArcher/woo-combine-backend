@@ -80,6 +80,23 @@ def test_create_player_requires_verified_email(app_client, fake_db):
     assert response.status_code == 403, response.text
 
 
+def test_get_players_prefers_scores_map_over_legacy_flat_fields(app_client, fake_db, coach_headers):
+    _seed_event(fake_db, event_id="event-1")
+    fake_db.collection("events").document("event-1").collection("players").document("p1").set(
+        {
+            "name": "Player 1",
+            "agility": 5.0,
+            "scores": {"agility": 5.1},
+        }
+    )
+
+    response = app_client.get("/api/players?event_id=event-1", headers=coach_headers)
+    assert response.status_code == 200, response.text
+    players = response.json()
+    player = next(p for p in players if p["id"] == "p1")
+    assert player["agility"] == 5.1
+
+
 def test_league_player_create_requires_organizer_scope(app_client, fake_db, coach_headers):
     fake_db.collection("leagues").document("league-1").set({"name": "League"})
     response = app_client.post(

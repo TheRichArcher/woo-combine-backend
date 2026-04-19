@@ -42,6 +42,7 @@ def test_create_drill_result_validates_schema_and_updates_player(app_client, fak
         .get()
     )
     assert pdoc.to_dict()["scores.40yd"] == 5.2 or pdoc.to_dict().get("scores", {}).get("40yd") == 5.2
+    assert pdoc.to_dict().get("40yd") == 5.2
 
 
 def test_delete_drill_result_404(app_client, fake_db, coach_headers):
