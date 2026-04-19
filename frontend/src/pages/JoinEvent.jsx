@@ -7,6 +7,7 @@ import LoadingScreen from "../components/LoadingScreen";
 import { QrCode, CheckCircle, AlertCircle } from "lucide-react";
 import axios from "axios";
 import api from '../lib/api';
+import { auth } from '../firebase';
 import { persistViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
 
 const isQrDebugEnabled = () => {
@@ -186,6 +187,19 @@ export default function JoinEvent() {
         hasPendingInvite || intendedRole === 'coach' || intendedRole === 'viewer'
       );
       let inviteJoinConfirmed = false;
+      let inviteJoinTokenRefreshed = false;
+
+      const refreshTokenAfterJoin = async () => {
+        const firebaseUser = auth.currentUser || user;
+        if (!firebaseUser || typeof firebaseUser.getIdToken !== 'function') {
+          throw new Error('Authenticated user missing during invite token refresh');
+        }
+        await firebaseUser.getIdToken(true);
+        inviteJoinTokenRefreshed = true;
+        console.info('[JoinEvent] Invite token refresh completed', {
+          uid: firebaseUser.uid || null
+        });
+      };
 
       const runJoinRequest = async (targetLeagueId) => {
         const joinPayload = buildJoinRequestPayload(actualEventId);
@@ -205,19 +219,29 @@ export default function JoinEvent() {
           response: joinResponse?.data || null
         });
         inviteJoinConfirmed = true;
+        await refreshTokenAfterJoin();
         return { joinResponse, joinPayload };
       };
 
-      const runEventFetch = async (targetLeagueId) => (
-        withCancellationRetry(
+      const runEventFetch = async (targetLeagueId) => {
+        if (mustApplyInviteBeforeFetch && !inviteJoinTokenRefreshed) {
+          throw new Error('Invite token refresh must complete before event fetch');
+        }
+        console.info('[JoinEvent] Event fetch starting', {
+          targetLeagueId,
+          actualEventId,
+          inviteJoinConfirmed,
+          inviteJoinTokenRefreshed
+        });
+        return withCancellationRetry(
           () => api.get(`/leagues/${targetLeagueId}/events/${actualEventId}`, requestConfig),
           { label: "get-event" }
-        )
-      );
+        );
+      };
 
       const fetchEventWithScopeRecovery = async (targetLeagueId) => {
-        if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
-          throw new Error('Invite join must complete before event fetch');
+        if (mustApplyInviteBeforeFetch && (!inviteJoinConfirmed || !inviteJoinTokenRefreshed)) {
+          throw new Error('Invite join and token refresh must complete before event fetch');
         }
         try {
           return await runEventFetch(targetLeagueId);
@@ -384,8 +408,8 @@ export default function JoinEvent() {
             }
           }
 
-          if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
-            throw new Error('Invite join did not complete. Please retry this invite link.');
+          if (mustApplyInviteBeforeFetch && (!inviteJoinConfirmed || !inviteJoinTokenRefreshed)) {
+            throw new Error('Invite join did not complete with fresh auth. Please retry this invite link.');
           }
 
           // Now fetch the event
@@ -608,7 +632,7 @@ export default function JoinEvent() {
           // Auto-redirect after 2 seconds.
           // Viewer goes to standings; staff goes to coach shell with selected context.
           setTimeout(() => {
-            if (mustApplyInviteBeforeFetch && !inviteJoinConfirmed) {
+            if (mustApplyInviteBeforeFetch && (!inviteJoinConfirmed || !inviteJoinTokenRefreshed)) {
               setError('Invite join was not completed. Please retry the invite link.');
               setStatus('not_found');
               return;
