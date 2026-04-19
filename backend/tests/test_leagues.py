@@ -200,3 +200,64 @@ def test_join_league_existing_coach_creates_user_membership_scope(app_client, fa
         "event-legacy",
         "event-1",
     }
+
+
+def test_join_league_existing_member_uses_fast_path_role_for_scope_sync(app_client, fake_db):
+    fake_db.collection("leagues").document("league-1").set({"name": "Seed"})
+    fake_db.collection("events").document("event-1").set(
+        {"name": "Invited Event", "league_id": "league-1"}
+    )
+    uid = "legacy-member-role-missing"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "legacymissing@example.com", "role": "coach"}
+    )
+    # Legacy member doc exists but role field is missing/invalid.
+    fake_db.collection("leagues").document("league-1").collection("members").document(uid).set(
+        {
+            "email": "legacymissing@example.com",
+            "coach_event_ids": ["event-legacy"],
+            "joined_at": "2024-01-01T00:00:00Z",
+        }
+    )
+    # Fast path already knows this user is a coach in this league.
+    fake_db.collection("user_memberships").document(uid).set(
+        {
+            "leagues": {
+                "league-1": {
+                    "role": "coach",
+                    "joined_at": "2024-01-01T00:00:00Z",
+                    "coach_event_ids": ["event-legacy"],
+                }
+            }
+        }
+    )
+    headers = {
+        "Authorization": f"Bearer {make_jwt(uid=uid, email='legacymissing@example.com', email_verified=True)}"
+    }
+
+    r = app_client.post(
+        "/api/leagues/join/league-1",
+        json={"role": "coach", "invited_event_id": "event-1"},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    assert r.json().get("invited_event_id") == "event-1"
+
+    member_doc = (
+        fake_db.collection("leagues")
+        .document("league-1")
+        .collection("members")
+        .document(uid)
+        .get()
+    )
+    member_data = member_doc.to_dict() or {}
+    assert member_data.get("role") == "coach"
+    assert set(member_data.get("coach_event_ids") or []) == {"event-legacy", "event-1"}
+
+    user_membership_doc = fake_db.collection("user_memberships").document(uid).get()
+    league_membership = (user_membership_doc.to_dict().get("leagues") or {}).get("league-1") or {}
+    assert league_membership.get("role") == "coach"
+    assert set(league_membership.get("coach_event_ids") or []) == {
+        "event-legacy",
+        "event-1",
+    }

@@ -447,30 +447,43 @@ def join_league(
 
         if existing_member.exists:
             existing_role = (existing_member_data.get("role") or "").lower()
-            if existing_role in {"viewer", "coach"} and invited_event_id:
+            user_memberships_ref = db.collection("user_memberships").document(user_id)
+            user_memberships_doc = user_memberships_ref.get()
+            memberships_data = (
+                (user_memberships_doc.to_dict() or {}) if user_memberships_doc.exists else {}
+            )
+            leagues_map = memberships_data.get("leagues", {})
+            league_membership = leagues_map.get(resolved_league_id, {})
+            fast_path_role = (league_membership.get("role") or "").lower()
+            scoped_role = (
+                existing_role
+                if existing_role in {"viewer", "coach"}
+                else (
+                    fast_path_role
+                    if fast_path_role in {"viewer", "coach"}
+                    else (role if role in {"viewer", "coach"} else "")
+                )
+            )
+            if scoped_role in {"viewer", "coach"} and invited_event_id:
                 # Existing scoped roles can accumulate event-scoped invite access.
                 scope_field = (
-                    "viewer_event_ids" if existing_role == "viewer" else "coach_event_ids"
+                    "viewer_event_ids" if scoped_role == "viewer" else "coach_event_ids"
                 )
                 merged_event_ids = _merge_event_scope(
                     existing_member_data.get(scope_field), invited_event_id
                 )
                 batch = db.batch()
-                batch.set(member_ref, {scope_field: merged_event_ids}, merge=True)
+                member_patch = {scope_field: merged_event_ids}
+                if existing_role not in {"viewer", "coach"}:
+                    member_patch["role"] = scoped_role
+                batch.set(member_ref, member_patch, merge=True)
 
-                user_memberships_ref = db.collection("user_memberships").document(user_id)
-                user_memberships_doc = user_memberships_ref.get()
-                memberships_data = (
-                    (user_memberships_doc.to_dict() or {}) if user_memberships_doc.exists else {}
-                )
-                leagues_map = memberships_data.get("leagues", {})
-                league_membership = leagues_map.get(resolved_league_id, {})
                 existing_scoped_ids = league_membership.get(scope_field, [])
                 merged_user_membership_ids = _merge_event_scope(
                     existing_scoped_ids, invited_event_id
                 )
                 membership_patch = {
-                    "role": existing_role,
+                    "role": scoped_role,
                     "league_name": league_name,
                     scope_field: merged_user_membership_ids,
                 }
@@ -492,7 +505,7 @@ def join_league(
                 "league_name": league_name,
                 "joined_via_event_code": joined_via_event_code,
             }
-            if existing_role in {"viewer", "coach"} and invited_event_id:
+            if scoped_role in {"viewer", "coach"} and invited_event_id:
                 response_payload["invited_event_id"] = invited_event_id
             return response_payload
 
