@@ -4,6 +4,7 @@ import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import Button from "../components/ui/Button";
 import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { getPendingInviteJoinPath } from "../lib/pendingInviteRoute";
 
 // Simplified welcome content - no more confusing A/B testing
 const getWelcomeContent = () => {
@@ -26,6 +27,12 @@ export default function Welcome() {
     
     // If user is logged in
     if (user) {
+      const pendingInvitePath = getPendingInviteJoinPath();
+      if (pendingInvitePath) {
+        navigate(pendingInvitePath, { replace: true });
+        return;
+      }
+
       // If email not verified, go to verify-email
       if (!user.emailVerified) {
         navigate('/verify-email', { replace: true });

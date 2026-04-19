@@ -43,6 +43,23 @@ function LiveEntryPlayersFetchProbe() {
 }
 
 describe('RequireAuth role enforcement', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('prioritizes pending invite join flow over no-role redirect', () => {
+    localStorage.setItem('pendingEventJoin', 'league-1/event-1/viewer');
+    useAuth.mockReturnValue({ ...baseAuth, userRole: null });
+
+    render(
+      <RequireAuth>
+        <div data-testid="protected-page">protected</div>
+      </RequireAuth>
+    );
+
+    expect(screen.getByTestId('navigate-target')).toHaveTextContent('/join-event/league-1/event-1/viewer');
+  });
+
   it('allows organizer on staff-only routes', () => {
     useAuth.mockReturnValue({ ...baseAuth, userRole: 'organizer' });
 

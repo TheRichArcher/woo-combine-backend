@@ -2,6 +2,7 @@ import React from "react";
 import { useAuth } from "./AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import LoadingScreen from '../components/LoadingScreen';
+import { getPendingInviteJoinPath } from "../lib/pendingInviteRoute";
 
 /**
  * RequireAuth - Authentication and authorization gate for routes.
@@ -13,6 +14,7 @@ import LoadingScreen from '../components/LoadingScreen';
 export default function RequireAuth({ children, allowedRoles }) {
   const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
   const location = useLocation();
+  const pendingInvitePath = getPendingInviteJoinPath();
 
   // Wait for all auth state to be ready
   if (initializing || !authChecked || !roleChecked) {
@@ -26,6 +28,10 @@ export default function RequireAuth({ children, allowedRoles }) {
     );
   }
   
+  if (pendingInvitePath && !location.pathname.startsWith('/join-event/')) {
+    return <Navigate to={pendingInvitePath} replace />;
+  }
+
   if (!user) {
     return <Navigate to="/welcome" replace />;
   }

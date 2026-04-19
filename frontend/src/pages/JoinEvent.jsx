@@ -287,7 +287,9 @@ export default function JoinEvent() {
         return;
         }
 
-        // If authenticated but role not selected yet, push to role selection first
+        // If authenticated but role not selected yet, only redirect to role selection
+        // when invite role is unspecified. Invite-scoped links with explicit coach/viewer
+        // role should continue the join flow directly.
         if (user && !userRole) {
           let inviteData;
           if (intendedRole) {
@@ -296,9 +298,11 @@ export default function JoinEvent() {
             inviteData = actualLeagueId ? `${actualLeagueId}/${actualEventId}` : actualEventId;
           }
           localStorage.setItem('pendingEventJoin', inviteData);
-          writeJoinStage('redirect-select-role-missing-role', { inviteData });
-          navigate('/select-role');
-          return;
+          if (!intendedRole) {
+            writeJoinStage('redirect-select-role-missing-role', { inviteData });
+            navigate('/select-role', { replace: true });
+            return;
+          }
         }
 
       try {

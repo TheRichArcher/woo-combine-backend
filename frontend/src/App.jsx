@@ -51,6 +51,7 @@ import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPay
 import SessionExpiredGate from "./components/SessionExpiredGate";
 import BootGate from "./components/BootGate";
 import { NavigationLogger } from "./hooks/useTrackedNavigate";
+import RootRedirect from "./components/RootRedirect";
 
 // Authenticated Layout Component with Route Decision Gate
 function AuthenticatedLayout({ children }) {
@@ -96,7 +97,7 @@ function App() {
               <QrFlowDebugOverlay />
               <BootGate>
                 <Routes>
-                  <Route path="/" element={<Navigate to="/welcome" replace />} />
+                  <Route path="/" element={<RootRedirect />} />
                 <Route path="/welcome" element={<Welcome />} />
                             <Route path="/workflow-demo" element={<WorkflowDemo />} />
                 
