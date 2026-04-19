@@ -303,10 +303,12 @@ def create_league(
         # 3. User memberships for fast lookup
         user_memberships_ref = db.collection("user_memberships").document(user_id)
         membership_update = {
-            f"leagues.{league_ref.id}": {
-                "role": "organizer",
-                "joined_at": created_at,
-                "league_name": name,
+            "leagues": {
+                league_ref.id: {
+                    "role": "organizer",
+                    "joined_at": created_at,
+                    "league_name": name,
+                }
             }
         }
         batch.set(user_memberships_ref, membership_update, merge=True)
@@ -492,7 +494,7 @@ def join_league(
                     membership_patch["joined_at"] = joined_at
                 batch.set(
                     user_memberships_ref,
-                    {f"leagues.{resolved_league_id}": membership_patch},
+                    {"leagues": {resolved_league_id: membership_patch}},
                     merge=True,
                 )
                 batch.commit()
@@ -528,21 +530,23 @@ def join_league(
         # 2. Update user_memberships for fast lookup
         user_memberships_ref = db.collection("user_memberships").document(user_id)
         membership_update = {
-            f"leagues.{resolved_league_id}": {
-                "role": role,
-                "joined_at": join_time,
-                "league_name": league_name,
-                **(
-                    {
-                        (
-                            "viewer_event_ids"
-                            if role == "viewer"
-                            else "coach_event_ids"
-                        ): [invited_event_id]
-                    }
-                    if role in {"viewer", "coach"} and invited_event_id
-                    else {}
-                ),
+            "leagues": {
+                resolved_league_id: {
+                    "role": role,
+                    "joined_at": join_time,
+                    "league_name": league_name,
+                    **(
+                        {
+                            (
+                                "viewer_event_ids"
+                                if role == "viewer"
+                                else "coach_event_ids"
+                            ): [invited_event_id]
+                        }
+                        if role in {"viewer", "coach"} and invited_event_id
+                        else {}
+                    ),
+                }
             }
         }
         batch.set(user_memberships_ref, membership_update, merge=True)
