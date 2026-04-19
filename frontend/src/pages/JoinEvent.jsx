@@ -545,6 +545,7 @@ export default function JoinEvent() {
 
       } catch (err) {
         if (isCancellationError(err) || !isActive) {
+          handledJoinKeyRef.current = null;
           qrDebug('Join flow canceled safely', {
             message: err?.message || 'canceled'
           });
@@ -578,12 +579,9 @@ export default function JoinEvent() {
     handleEventJoin();
 
     return () => {
+      // Keep in-flight join requests alive across harmless dependency re-runs.
+      // We only gate state writes via isActive to avoid stale updates.
       isActive = false;
-      try {
-        joinFlowController.abort("join-event-cleanup");
-      } catch {
-        // no-op
-      }
     };
   }, [leagueId, eventId, role, user, leagues, navigate, setSelectedEvent, setSelectedLeagueId, userRole, initializing, refreshLeagues]);
 
