@@ -23,6 +23,7 @@ const qrDebug = (message, payload) => {
 };
 
 const QR_JOIN_STAGE_KEY = 'debug_qr_join_stage';
+const INVITE_JOIN_IN_PROGRESS_KEY = 'inviteJoinInProgress';
 
 const writeJoinStage = (stage, payload = {}) => {
   const snapshot = {
@@ -150,6 +151,11 @@ export default function JoinEvent() {
         return;
       }
       handledJoinKeyRef.current = joinKey;
+      try {
+        localStorage.setItem(INVITE_JOIN_IN_PROGRESS_KEY, '1');
+      } catch {
+        // best effort lock flag
+      }
 
       const buildJoinRequestPayload = (eventIdForInvite) => {
         const effectiveRole = (intendedRole ? intendedRole.toLowerCase() : 'viewer');
@@ -546,6 +552,11 @@ export default function JoinEvent() {
       } catch (err) {
         if (isCancellationError(err) || !isActive) {
           handledJoinKeyRef.current = null;
+          try {
+            localStorage.removeItem(INVITE_JOIN_IN_PROGRESS_KEY);
+          } catch {
+            // best effort cleanup
+          }
           qrDebug('Join flow canceled safely', {
             message: err?.message || 'canceled'
           });
@@ -569,6 +580,11 @@ export default function JoinEvent() {
         }
         setStatus("not_found");
       } finally {
+        try {
+          localStorage.removeItem(INVITE_JOIN_IN_PROGRESS_KEY);
+        } catch {
+          // best effort cleanup
+        }
         if (!isActive) return;
         writeJoinStage('join-flow-finally', { status });
         qrDebug('Join flow completed', { status });

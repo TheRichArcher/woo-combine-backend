@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./AuthContext";
+import { useLocation } from "react-router-dom";
 import { auth } from '../firebase';
 import api from '../lib/api';
 import { withCache, cacheInvalidation } from '../utils/dataCache';
@@ -21,6 +22,25 @@ const qrEventDebug = (message, payload) => {
   console.log(`[QR_FLOW][EventContext] ${message}`, payload);
 };
 
+const INVITE_JOIN_IN_PROGRESS_KEY = 'inviteJoinInProgress';
+
+const hasPendingInviteJoin = () => {
+  try {
+    const pendingInvite = localStorage.getItem('pendingEventJoin');
+    return Boolean(pendingInvite && pendingInvite.trim());
+  } catch {
+    return false;
+  }
+};
+
+const isInviteJoinInProgress = () => {
+  try {
+    return localStorage.getItem(INVITE_JOIN_IN_PROGRESS_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
 const writeLastContextClear = (reason, payload = {}) => {
   const snapshot = {
     reason,
@@ -37,6 +57,7 @@ const writeLastContextClear = (reason, payload = {}) => {
 
 export function EventProvider({ children }) {
   const { selectedLeagueId, authChecked, roleChecked, userRole } = useAuth();
+  const location = useLocation();
   const [events, setEvents] = useState([]);
   
   // Initialize selectedEvent from localStorage if available
@@ -127,6 +148,19 @@ export function EventProvider({ children }) {
   // Load events when league is selected.
   // On 401: forces Firebase token refresh and retries once before giving up.
   const loadEvents = useCallback(async (leagueId, options = {}) => {
+    const shouldDeferForInvite = (
+      !options.force &&
+      (location.pathname.startsWith('/join-event/') || hasPendingInviteJoin() || isInviteJoinInProgress())
+    );
+    if (shouldDeferForInvite) {
+      qrEventDebug('Deferring loadEvents until invite join completes', {
+        leagueId,
+        pathname: location.pathname
+      });
+      setEventsLoaded(true);
+      return [];
+    }
+
     if (!leagueId) {
       qrEventDebug('Clearing events + selectedEvent: no leagueId in loadEvents', {
         leagueId
@@ -307,7 +341,7 @@ export function EventProvider({ children }) {
       setLoading(false);
       setEventsLoaded(true); // CRITICAL: Mark as loaded regardless of success/failure
     }
-  }, [cachedFetchEvents, selectedLeagueId, userRole]); // FIXED: No selectedEvent dep to prevent circular dependency
+  }, [cachedFetchEvents, selectedLeagueId, userRole, location.pathname]); // FIXED: No selectedEvent dep to prevent circular dependency
 
   // Load events when league changes, restoring previous selection if still valid
   useEffect(() => {
@@ -321,6 +355,14 @@ export function EventProvider({ children }) {
     //   3. Effect never re-runs → eventsLoaded stuck false → infinite spinner
     // AuthContext already skips league fetching on /login etc., so by the time
     // roleChecked=true we are safe to proceed with event loading.
+    if (location.pathname.startsWith('/join-event/') || hasPendingInviteJoin() || isInviteJoinInProgress()) {
+      qrEventDebug('Skipping event hydration during invite join flow', {
+        pathname: location.pathname,
+        selectedLeagueId: selectedLeagueId || null
+      });
+      setEventsLoaded(true);
+      return;
+    }
     
     if (selectedLeagueId) {
       // Guard against stale selections from another league
@@ -380,7 +422,7 @@ export function EventProvider({ children }) {
       setNoLeague(true);
       setEventsLoaded(true); // CRITICAL: Unblock RouteDecisionGate even with no league
     }
-  }, [selectedLeagueId, authChecked, roleChecked, loadEvents]);
+  }, [selectedLeagueId, authChecked, roleChecked, loadEvents, location.pathname]);
 
   // SAFETY NET: If eventsLoaded never becomes true within 35s after auth completes,
   // force it true so RouteDecisionGate doesn't spin forever.

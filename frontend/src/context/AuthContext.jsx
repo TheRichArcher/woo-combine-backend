@@ -50,6 +50,15 @@ const qrAuthDebug = (message, payload) => {
   console.log(`[QR_FLOW][AuthContext] ${message}`, payload);
 };
 
+const hasPendingInviteJoin = () => {
+  try {
+    const pendingInvite = localStorage.getItem('pendingEventJoin');
+    return Boolean(pendingInvite && pendingInvite.trim());
+  } catch {
+    return false;
+  }
+};
+
 export function AuthProvider({ children }) {
   // Optimized state management with faster initial checks
   const [user, setUser] = useState(null);
@@ -562,6 +571,14 @@ function parseJwtPayload(token) {
     if (skipFetchRoutes.includes(currentPath)) {
       authLogger.debug(`[League Fetch Trigger] Skipping on onboarding route: ${currentPath}`);
       // Don't reset flag - might navigate away soon
+      return;
+    }
+
+    // GUARD 3.5: Invite-first sequencing. While invite join is pending or
+    // the user is on /join-event, block automatic context hydration.
+    // JoinEvent owns the join -> refresh ordering to avoid pre-join 403s.
+    if (currentPath.startsWith('/join-event/') || hasPendingInviteJoin()) {
+      authLogger.debug('[League Fetch Trigger] Skipping automatic fetch during pending invite join');
       return;
     }
     

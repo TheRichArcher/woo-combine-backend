@@ -370,6 +370,14 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
+    // Invite-first sequencing: if a pending invite exists, route into join flow
+    // before any staff/event pages can trigger context-driven event reads.
+    const pendingJoinPath = getPendingJoinPath();
+    if (pendingJoinPath && !location.pathname.startsWith('/join-event/')) {
+      performNavigation(pendingJoinPath, 'pending invite requires join flow');
+      return;
+    }
+
     // Viewer context guard: never send viewer into staff-oriented /coach fallback shell.
     if (userRole === 'viewer' && !selectedEvent) {
       if (!location.pathname.startsWith('/live-standings')) {
