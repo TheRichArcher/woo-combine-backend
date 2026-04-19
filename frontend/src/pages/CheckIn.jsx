@@ -190,6 +190,8 @@ export default function CheckIn() {
       const prevNumber = selectedPlayer.number ?? null;
 
       await api.put(`/players/${selectedPlayer.id}?event_id=${selectedPlayer.event_id}`, {
+        name: selectedPlayer.name,
+        age_group: selectedPlayer.age_group || null,
         number: parseInt(String(parsedNumber), 10),
       });
 
@@ -251,6 +253,8 @@ export default function CheckIn() {
     setSaving(true);
     try {
       await api.put(`/players/${p.id}?event_id=${p.event_id}`, {
+        name: p.name,
+        age_group: p.age_group || null,
         number: parseInt(String(entry.prevNumber), 10),
       });
 
