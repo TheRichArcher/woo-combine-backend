@@ -11,6 +11,8 @@ import { authLogger } from '../utils/logger';
 import { cacheInvalidation } from '../utils/dataCache';
 import { fetchSchemas } from '../constants/drillTemplates';
 import { VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
+import { getInviteHydrationState, setInviteHydrationState, clearInviteHydrationState } from '../lib/inviteHydrationState';
+import { logSelectRoleRedirect } from '../lib/selectRoleRedirectDebug';
 
 const AuthContext = createContext();
 
@@ -642,6 +644,7 @@ function parseJwtPayload(token) {
         setError(null);
         localStorage.removeItem('selectedLeagueId');
         localStorage.removeItem(VIEWER_INVITE_EVENT_CONTEXT_KEY);
+        clearInviteHydrationState();
         
         // Reset league fetch trigger refs to allow fresh fetch on next login
         leagueFetchTriggeredRef.current = false;
@@ -805,6 +808,16 @@ function parseJwtPayload(token) {
         }
 
         if (!userRole) {
+          const inviteHydration = getInviteHydrationState();
+          if (inviteHydration?.role) {
+            authLogger.warn('No backend role found, applying invite hydration fallback role', inviteHydration);
+            setUserRole(inviteHydration.role);
+            localStorage.setItem('userRole', inviteHydration.role);
+            setRoleChecked(true);
+            transitionTo(STATUS.READY, 'Invite hydration fallback role applied');
+            setInitializing(false);
+            return;
+          }
           if (restoredPendingInvite) {
             const safePath = buildPendingInvitePath(restoredPendingInvite);
             authLogger.debug('No user role found, but pending invite exists - routing to join flow first');
@@ -836,6 +849,14 @@ function parseJwtPayload(token) {
           console.log('[AuthContext] NAV_FROM: AuthContext → /select-role (no role)');
           authLogger.debug('Navigating to /select-role');
           if (!isVerificationBridgeRoute) {
+            logSelectRoleRedirect({
+              source: 'AuthContext',
+              reason: 'no role and no pending invite',
+              pathname: currentPath,
+              userRole: userRole || null,
+              leaguesLength: leagues?.length || 0,
+              selectedLeagueId: localStorage.getItem('selectedLeagueId') || null
+            });
             navigate("/select-role");
           }
           setInitializing(false);
@@ -931,6 +952,14 @@ function parseJwtPayload(token) {
             localStorage.setItem('pendingEventJoin', joinPath);
           }
           if (!isVerificationBridgeRoute) {
+            logSelectRoleRedirect({
+              source: 'AuthContext',
+              reason: 'role check timeout',
+              pathname: currentPath,
+              userRole: null,
+              leaguesLength: leagues?.length || 0,
+              selectedLeagueId: localStorage.getItem('selectedLeagueId') || null
+            });
             navigate("/select-role");
           }
         }
@@ -1026,6 +1055,7 @@ function parseJwtPayload(token) {
       setRole(null);
       setUserRole(null);
       setError(null);
+      clearInviteHydrationState();
       // Clear localStorage including invitation data
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
@@ -1044,6 +1074,7 @@ function parseJwtPayload(token) {
       setSelectedLeagueIdState('');
       setRole(null);
       setUserRole(null);
+      clearInviteHydrationState();
       localStorage.removeItem('selectedLeagueId');
       localStorage.removeItem('selectedEventId');
       localStorage.removeItem('pendingEventJoin');
@@ -1082,6 +1113,10 @@ function parseJwtPayload(token) {
         // Persist role to localStorage for browser refresh resilience
         if (newRole) {
           localStorage.setItem('userRole', newRole);
+          setInviteHydrationState({
+            role: newRole,
+            leagueId: localStorage.getItem('selectedLeagueId') || null
+          });
         } else {
           localStorage.removeItem('userRole');
         }
@@ -1137,6 +1172,10 @@ function parseJwtPayload(token) {
       authLogger.info('[JoinHydration] Completed', {
         resolvedRole,
         leaguesCount: refreshedLeagues?.length || 0
+      });
+      setInviteHydrationState({
+        role: resolvedRole,
+        leagueId: localStorage.getItem('selectedLeagueId') || null
       });
       return {
         ok: true,

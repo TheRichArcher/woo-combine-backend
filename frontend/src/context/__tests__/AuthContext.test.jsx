@@ -516,6 +516,49 @@ describe('AuthContext', () => {
     expect(mockNavigate).not.toHaveBeenCalledWith('/select-role');
   });
 
+  it('applies invite hydration fallback role when /users/me is temporarily null', async () => {
+    const mockUser = {
+      uid: 'user-fallback-role',
+      email: 'fallback-role@example.com',
+      emailVerified: true,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    localStorage.setItem('inviteJoinHydrationState', JSON.stringify({
+      role: 'viewer',
+      leagueId: 'league-1',
+      eventId: 'event-1',
+      timestamp: Date.now()
+    }));
+    window.history.replaceState({}, '', '/live-standings');
+    api.get.mockImplementation((url) => {
+      if (url === '/users/me') {
+        return Promise.resolve({ data: { role: null, pending_invite: null } });
+      }
+      return Promise.resolve({ data: {} });
+    });
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('role')).toHaveTextContent('viewer');
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('/select-role');
+  });
+
   it('routes to select-role when role is null and no pending invite exists', async () => {
     const mockUser = {
       uid: 'user-7',

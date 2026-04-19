@@ -9,6 +9,8 @@ import axios from "axios";
 import api from '../lib/api';
 import { auth } from '../firebase';
 import { persistViewerInviteEventContext, VIEWER_INVITE_EVENT_CONTEXT_KEY } from '../lib/viewerInviteContext';
+import { setInviteHydrationState } from '../lib/inviteHydrationState';
+import { logSelectRoleRedirect } from '../lib/selectRoleRedirectDebug';
 
 const isQrDebugEnabled = () => {
   try {
@@ -300,6 +302,14 @@ export default function JoinEvent() {
           localStorage.setItem('pendingEventJoin', inviteData);
           if (!intendedRole) {
             writeJoinStage('redirect-select-role-missing-role', { inviteData });
+            logSelectRoleRedirect({
+              source: 'JoinEvent',
+              reason: 'authenticated user missing role and invite role unspecified',
+              pathname: window.location.pathname,
+              userRole: userRole || null,
+              leaguesLength: leagues?.length || 0,
+              selectedLeagueId: localStorage.getItem('selectedLeagueId') || null
+            });
             navigate('/select-role', { replace: true });
             return;
           }
@@ -600,6 +610,12 @@ export default function JoinEvent() {
             setStatus('not_found');
             return;
           }
+
+          setInviteHydrationState({
+            role: hydrationResult.role,
+            leagueId: targetLeague?.id || null,
+            eventId: targetEvent?.id || null
+          });
 
           setEvent(targetEvent);
           setLeague(targetLeague);

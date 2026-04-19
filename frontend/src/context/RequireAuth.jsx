@@ -3,6 +3,8 @@ import { useAuth } from "./AuthContext";
 import { Navigate, useLocation } from "react-router-dom";
 import LoadingScreen from '../components/LoadingScreen';
 import { getPendingInviteJoinPath } from "../lib/pendingInviteRoute";
+import { getInviteHydrationState } from "../lib/inviteHydrationState";
+import { logSelectRoleRedirect } from "../lib/selectRoleRedirectDebug";
 
 /**
  * RequireAuth - Authentication and authorization gate for routes.
@@ -12,9 +14,11 @@ import { getPendingInviteJoinPath } from "../lib/pendingInviteRoute";
  *   If omitted, any authenticated user with a role can access.
  */
 export default function RequireAuth({ children, allowedRoles }) {
-  const { user, initializing, authChecked, roleChecked, userRole } = useAuth();
+  const { user, initializing, authChecked, roleChecked, userRole, leagues, selectedLeagueId } = useAuth();
   const location = useLocation();
   const pendingInvitePath = getPendingInviteJoinPath();
+  const inviteHydrationState = getInviteHydrationState();
+  const effectiveRole = userRole || inviteHydrationState?.role || null;
   const inviteJoinInProgress = (() => {
     try {
       return localStorage.getItem('inviteJoinInProgress') === '1';
@@ -49,7 +53,7 @@ export default function RequireAuth({ children, allowedRoles }) {
   }
   
   // Deny-by-default: no role means onboarding is incomplete.
-  if (!userRole) {
+  if (!effectiveRole) {
     if (inviteJoinInProgress) {
       console.info('[RequireAuth] Suppressing /select-role redirect during invite join hydration');
       return (
@@ -61,11 +65,19 @@ export default function RequireAuth({ children, allowedRoles }) {
         />
       );
     }
+    logSelectRoleRedirect({
+      source: 'RequireAuth',
+      reason: 'missing role in auth guard',
+      pathname: location.pathname,
+      userRole: effectiveRole,
+      leaguesLength: leagues?.length || 0,
+      selectedLeagueId: selectedLeagueId || null
+    });
     return <Navigate to="/select-role" replace state={{ from: location }} />;
   }
   
   // Role-based access control: if allowedRoles specified, enforce them
-  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(effectiveRole)) {
     // User has a role but it's not permitted for this route
     return <Navigate to="/dashboard" replace />;
   }

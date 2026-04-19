@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useEvent } from '../context/EventContext';
 import LoadingScreen from './LoadingScreen';
+import { getInviteHydrationState } from '../lib/inviteHydrationState';
+import { logSelectRoleRedirect } from '../lib/selectRoleRedirectDebug';
 
 const isQrDebugEnabled = () => {
   try {
@@ -114,12 +116,14 @@ export default function RouteDecisionGate({ children }) {
   const targetRoute = useRef(null);
   const gateTimeoutRef = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
+  const inviteHydrationRole = getInviteHydrationState()?.role || null;
+  const effectiveUserRole = userRole || inviteHydrationRole || null;
   const hasSelectedEventContext = Boolean(selectedLeagueId && selectedEvent);
-  const isViewerEventContext = userRole === 'viewer' && !!selectedEvent;
+  const isViewerEventContext = effectiveUserRole === 'viewer' && !!selectedEvent;
 
   const buildDecisionState = () => ({
     pathname: location.pathname,
-    userRole: userRole || null,
+    userRole: effectiveUserRole || null,
     selectedLeagueId: selectedLeagueId || null,
     selectedEventId: selectedEvent?.id || null,
     leaguesLength: leagues?.length || 0,
@@ -193,7 +197,7 @@ export default function RouteDecisionGate({ children }) {
   }, [
     location.pathname,
     user,
-    userRole,
+    effectiveUserRole,
     authChecked,
     roleChecked,
     initializing,
@@ -264,18 +268,18 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    if (minimalStateReady && !userRole && isInviteJoinHydrating()) {
+    if (minimalStateReady && !effectiveUserRole && isInviteJoinHydrating()) {
       console.log(`${logPrefix} MINIMAL_STATE_WAIT: Invite join hydration in progress, suppressing no-role redirect`);
       return;
     }
 
-    if (minimalStateReady && !userRole && !hasPendingJoin()) {
+    if (minimalStateReady && !effectiveUserRole && !hasPendingJoin()) {
       console.log(`${logPrefix} MINIMAL_STATE_READY: No role and no invite, can redirect to select-role`);
       setIsReady(true);
       return;
     }
 
-    if (minimalStateReady && !userRole && hasPendingJoin()) {
+    if (minimalStateReady && !effectiveUserRole && hasPendingJoin()) {
       console.log(`${logPrefix} MINIMAL_STATE_READY: No role but pending invite exists, can redirect to join flow`);
       setIsReady(true);
       return;
@@ -295,8 +299,8 @@ export default function RouteDecisionGate({ children }) {
       if (!authChecked) waiting.push('authChecked');
       if (!roleChecked) waiting.push('roleChecked');
       if (initializing) waiting.push('!initializing');
-      if (userRole && leaguesLoading) waiting.push('!leaguesLoading');
-      if (userRole && !eventsLoaded) waiting.push('eventsLoaded');
+      if (effectiveUserRole && leaguesLoading) waiting.push('!leaguesLoading');
+      if (effectiveUserRole && !eventsLoaded) waiting.push('eventsLoaded');
       
       console.log(`${logPrefix} WAITING: Still waiting for [${waiting.join(', ')}]`);
     }
@@ -308,7 +312,7 @@ export default function RouteDecisionGate({ children }) {
     leaguesLoading, 
     eventsLoaded,
     user,
-    userRole,
+    effectiveUserRole,
     location.pathname
   ]);
 
@@ -393,19 +397,28 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    if (!userRole && isInviteJoinHydrating()) {
+    if (!effectiveUserRole && isInviteJoinHydrating()) {
       qrGateDebug('Suppressing no-role fallback during invite join hydration', buildDecisionState());
       return;
     }
 
     // No role + no invite → role selection
-    if (!userRole) {
+    if (!effectiveUserRole) {
+      logSelectRoleRedirect({
+        source: 'RouteDecisionGate',
+        reason: 'no role and no pending invite',
+        pathname: location.pathname,
+        userRole: effectiveUserRole,
+        leaguesLength: leagues?.length || 0,
+        selectedLeagueId: selectedLeagueId || null,
+        selectedEventId: selectedEvent?.id || null
+      });
       performNavigation('/select-role', 'no role and no pending invite');
       return;
     }
 
     // Viewer context guard: never send viewer into staff-oriented /coach fallback shell.
-    if (userRole === 'viewer' && !selectedEvent) {
+    if (effectiveUserRole === 'viewer' && !selectedEvent) {
       if (!location.pathname.startsWith('/live-standings')) {
         performNavigation('/live-standings', 'viewer missing event context');
         return;
@@ -415,7 +428,7 @@ export default function RouteDecisionGate({ children }) {
     // Coach onboarding guard: deny access to staff shell unless an event
     // context is selected. Coaches with no assigned events must join via invite.
     if (
-      userRole === 'coach' &&
+      effectiveUserRole === 'coach' &&
       selectedLeagueId &&
       !selectedEvent &&
       location.pathname !== '/coach-event-required'
@@ -430,7 +443,7 @@ export default function RouteDecisionGate({ children }) {
     }
 
     // No league context → needs league selection or creation (staff roles only)
-    if (userRole !== 'viewer' && !hasSelectedEventContext && !isViewerEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
+    if (effectiveUserRole !== 'viewer' && !hasSelectedEventContext && !isViewerEventContext && (!selectedLeagueId || noLeague || !leagues || leagues.length === 0)) {
       const protectedRoutes = ['/dashboard', '/players', '/admin', '/live-entry', '/coach', '/analytics', '/scorecards', '/team-formation', '/evaluators', '/sport-templates', '/event-sharing', '/live-standings', '/schedule'];
       
       if (protectedRoutes.some(route => location.pathname.startsWith(route))) {
@@ -439,7 +452,7 @@ export default function RouteDecisionGate({ children }) {
           performNavigation(pendingJoinPath, 'recover pending QR join with missing context');
           return;
         }
-        if (userRole === 'coach') {
+        if (effectiveUserRole === 'coach') {
           performNavigation('/coach-event-required', 'coach missing required event assignment');
           return;
         }
@@ -470,7 +483,7 @@ export default function RouteDecisionGate({ children }) {
     bypassGate,
     gateTimedOut,
     user,
-    userRole,
+    effectiveUserRole,
     selectedLeagueId,
     noLeague,
     leagues,

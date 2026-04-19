@@ -129,6 +129,31 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     expect(navigateMock).not.toHaveBeenCalledWith('/select-role', { replace: true });
   });
 
+  it('uses invite hydration fallback role and does not redirect to /select-role', async () => {
+    localStorage.setItem('inviteJoinHydrationState', JSON.stringify({
+      role: 'viewer',
+      leagueId: 'league-1',
+      eventId: 'event-1',
+      timestamp: Date.now()
+    }));
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: null,
+    });
+    useLocation.mockReturnValue({ pathname: '/live-standings' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">viewer live standings</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('gate-child')).toBeInTheDocument();
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/select-role', { replace: true });
+  });
+
   it('redirects coaches without league context to event-required flow', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,

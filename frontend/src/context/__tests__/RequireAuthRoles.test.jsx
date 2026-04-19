@@ -74,6 +74,25 @@ describe('RequireAuth role enforcement', () => {
     expect(screen.queryByTestId('navigate-target')).not.toBeInTheDocument();
   });
 
+  it('uses invite hydration fallback role when context role is null', () => {
+    localStorage.setItem('inviteJoinHydrationState', JSON.stringify({
+      role: 'viewer',
+      leagueId: 'league-1',
+      eventId: 'event-1',
+      timestamp: Date.now()
+    }));
+    useAuth.mockReturnValue({ ...baseAuth, userRole: null });
+
+    render(
+      <RequireAuth>
+        <div data-testid="protected-page">protected</div>
+      </RequireAuth>
+    );
+
+    expect(screen.getByTestId('protected-page')).toBeInTheDocument();
+    expect(screen.queryByTestId('navigate-target')).not.toBeInTheDocument();
+  });
+
   it('allows organizer on staff-only routes', () => {
     useAuth.mockReturnValue({ ...baseAuth, userRole: 'organizer' });
 
