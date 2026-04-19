@@ -803,7 +803,17 @@ function parseJwtPayload(token) {
         }
 
         if (!userRole) {
-          authLogger.debug('No user role found - redirecting to select-role');
+          if (restoredPendingInvite) {
+            const safePath = buildPendingInvitePath(restoredPendingInvite);
+            authLogger.debug('No user role found, but pending invite exists - routing to join flow first');
+            setRoleChecked(true);
+            transitionTo(STATUS.ROLE_REQUIRED, 'Pending invite requires join flow before role selection');
+            navigate(`/join-event/${safePath}`, { replace: true });
+            setInitializing(false);
+            return;
+          }
+
+          authLogger.debug('No user role found and no pending invite - redirecting to select-role');
           setUserRole(null);
           localStorage.removeItem('userRole'); // Clear any stale role data
           setLeagues([]);

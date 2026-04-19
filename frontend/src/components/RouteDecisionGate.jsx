@@ -59,6 +59,8 @@ const getPendingJoinPath = () => {
   }
 };
 
+  const hasPendingJoin = () => Boolean(getPendingJoinPath());
+
 /**
  * RouteDecisionGate - Centralized routing logic to prevent flicker
  *
@@ -254,8 +256,14 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    if (minimalStateReady && !userRole) {
-      console.log(`${logPrefix} MINIMAL_STATE_READY: No role, can redirect to select-role`);
+    if (minimalStateReady && !userRole && !hasPendingJoin()) {
+      console.log(`${logPrefix} MINIMAL_STATE_READY: No role and no invite, can redirect to select-role`);
+      setIsReady(true);
+      return;
+    }
+
+    if (minimalStateReady && !userRole && hasPendingJoin()) {
+      console.log(`${logPrefix} MINIMAL_STATE_READY: No role but pending invite exists, can redirect to join flow`);
       setIsReady(true);
       return;
     }
@@ -364,17 +372,17 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // No role → role selection
-    if (!userRole) {
-      performNavigation('/select-role', 'no role');
-      return;
-    }
-
-    // Invite-first sequencing: if a pending invite exists, route into join flow
-    // before any staff/event pages can trigger context-driven event reads.
+    // Invite-first sequencing: pending invite must route into join flow
+    // before role-selection fallback to avoid onboarding dead-ends.
     const pendingJoinPath = getPendingJoinPath();
     if (pendingJoinPath && !location.pathname.startsWith('/join-event/')) {
       performNavigation(pendingJoinPath, 'pending invite requires join flow');
+      return;
+    }
+
+    // No role + no invite → role selection
+    if (!userRole) {
+      performNavigation('/select-role', 'no role and no pending invite');
       return;
     }
 

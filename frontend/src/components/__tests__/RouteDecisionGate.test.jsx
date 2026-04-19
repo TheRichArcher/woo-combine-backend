@@ -70,6 +70,45 @@ describe('RouteDecisionGate QR onboarding guard', () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 
+  it('routes role-null users with pending invite to join flow instead of /select-role', async () => {
+    localStorage.setItem('pendingEventJoin', 'league-1/event-1/viewer');
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: null,
+    });
+    useLocation.mockReturnValue({ pathname: '/dashboard' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/join-event/league-1/event-1/viewer', { replace: true });
+    });
+    expect(navigateMock).not.toHaveBeenCalledWith('/select-role', { replace: true });
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes role-null users without pending invite to /select-role', async () => {
+    useAuth.mockReturnValue({
+      ...baseAuth,
+      userRole: null,
+    });
+    useLocation.mockReturnValue({ pathname: '/dashboard' });
+
+    render(
+      <RouteDecisionGate>
+        <div data-testid="gate-child">protected content</div>
+      </RouteDecisionGate>
+    );
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledWith('/select-role', { replace: true });
+    });
+  });
+
   it('redirects coaches without league context to event-required flow', async () => {
     useAuth.mockReturnValue({
       ...baseAuth,
