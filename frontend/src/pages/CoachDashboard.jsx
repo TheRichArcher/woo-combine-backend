@@ -303,22 +303,24 @@ export default function CoachDashboard() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <div className="text-xl">{emoji}</div>
-                          <div className="font-bold text-gray-900 truncate">{event.name || 'Untitled Event'}</div>
+                        <div className="flex items-start gap-2">
+                          <div className="text-xl leading-none mt-0.5">{emoji}</div>
+                          <div className="font-bold text-gray-900 leading-tight line-clamp-2 break-words">
+                            {event.name || 'Untitled Event'}
+                          </div>
                         </div>
-                        <div className="mt-1 text-sm text-gray-500 flex items-center gap-2">
+                        <div className="mt-1 text-sm text-gray-500 flex items-center gap-2 flex-wrap">
                           <span>{dateText}</span>
                           <span className="text-gray-300">•</span>
                           <span>{event._isPlayersLoading ? 'Loading players...' : `${event._playerCount} players`}</span>
+                          <span className="text-gray-300">•</span>
+                          <span className={'text-[11px] font-bold px-2 py-0.5 rounded-full border ' + event._status.tone}>
+                            {event._status.label}
+                          </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={'text-xs font-bold px-2.5 py-1 rounded-full border ' + event._status.tone}>
-                          {event._status.label}
-                        </span>
-
                         {userRole === 'organizer' && (
                           <>
                             <button
