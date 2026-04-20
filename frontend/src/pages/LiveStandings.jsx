@@ -637,7 +637,19 @@ export default function LiveStandings() {
                 {liveRankings.slice(0, displayLimit).map((player, index) => (
                     <div 
                     key={player.id} 
-                    onClick={() => openDetails(player, { suppressGlobalModal: false })}
+                    onClick={() => openDetails(player, {
+                      allPlayers: filteredPlayers,
+                      persistedWeights: weights,
+                      sliderWeights: weights,
+                      persistSliderWeights: setWeights,
+                      handleWeightChange,
+                      activePreset,
+                      applyPreset,
+                      drills: allDrills,
+                      presets: currentPresets,
+                      normalizeAcrossAll: normalizeAcrossAll && selectedAgeGroup === 'ALL',
+                      suppressGlobalModal: false
+                    })}
                     className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:shadow-md transition-shadow ${
                         index === 0 ? 'bg-yellow-50 border-yellow-200' :
                         index === 1 ? 'bg-gray-50 border-gray-200' :

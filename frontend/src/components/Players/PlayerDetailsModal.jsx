@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { X } from 'lucide-react';
 import PlayerDetailsPanel from './PlayerDetailsPanel';
-import { calculateOptimizedCompositeScore } from '../../utils/optimizedScoring';
+import { calculateOptimizedCompositeScore, calculateOptimizedRankingsAcrossAll } from '../../utils/optimizedScoring';
 import { useAuth } from '../../context/AuthContext';
 import { formatViewerPlayerName } from '../../utils/playerDisplayName';
 
@@ -16,7 +16,8 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   activePreset, 
   applyPreset,
   drills = [],
-  presets = {}
+  presets = {},
+  normalizeAcrossAll = false
 }) {
   const { userRole } = useAuth();
 
@@ -31,8 +32,12 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   const compositeScore = useMemo(() => {
     if (!player || !allPlayers || !drills.length) return 0;
     // Use sliderWeights for immediate feedback when sliders are moved
+    if (normalizeAcrossAll) {
+      const rankings = calculateOptimizedRankingsAcrossAll(allPlayers, sliderWeights, drills);
+      return rankings.find((p) => p.id === player.id)?.compositeScore || 0;
+    }
     return calculateOptimizedCompositeScore(player, allPlayers, sliderWeights, drills);
-  }, [player, allPlayers, sliderWeights, drills]);
+  }, [player, allPlayers, sliderWeights, drills, normalizeAcrossAll]);
 
   if (!player) return null;
 
@@ -76,6 +81,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               applyPreset={applyPreset}
               drills={drills}
               presets={presets}
+              normalizeAcrossAll={normalizeAcrossAll}
            />
         </div>
       </div>

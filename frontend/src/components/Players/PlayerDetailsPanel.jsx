@@ -1,5 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import { TrendingUp, Settings, Award } from 'lucide-react';
+import {
+  calculateNormalizedDrillScore,
+  calculateOptimizedRankings,
+  calculateOptimizedRankingsAcrossAll,
+  getCachedDrillRanges
+} from '../../utils/optimizedScoring';
 
 const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({ 
   player, 
@@ -11,7 +17,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   activePreset, 
   applyPreset,
   drills = [],
-  presets = {}
+  presets = {},
+  normalizeAcrossAll = false
 }) {
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
@@ -60,12 +67,15 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
     if (!player || !allPlayers || allPlayers.length === 0) return {};
     
     const rankings = {};
+    const comparisonPlayers = normalizeAcrossAll
+      ? allPlayers
+      : allPlayers.filter(p => p && p.age_group === player.age_group);
+
     drills.forEach(drill => {
       try {
-        const validPlayers = allPlayers.filter(p => 
+        const validPlayers = comparisonPlayers.filter(p => 
           p && 
           p.id && 
-          p.age_group === player.age_group && 
           (p.scores?.[drill.key] ?? p[drill.key]) != null && 
           typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number'
         );
@@ -92,30 +102,23 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
       }
     });
     return rankings;
-  }, [allPlayers, player, drills]);
+  }, [allPlayers, player, drills, normalizeAcrossAll]);
 
   const weightedBreakdown = useMemo(() => {
     if (!player || !allPlayers || allPlayers.length === 0) return [];
-    
-    // Calculate drill ranges for normalization (same age group only)
-    const ageGroupPlayers = allPlayers.filter(p => 
-      p && p.age_group === player.age_group && 
-      drills.some(drill => (p.scores?.[drill.key] ?? p[drill.key]) != null && typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number')
+
+    const comparisonPlayers = normalizeAcrossAll
+      ? allPlayers
+      : allPlayers.filter((p) => p && p.age_group === player.age_group);
+    const drillRanges = getCachedDrillRanges(
+      comparisonPlayers,
+      normalizeAcrossAll ? 'ALL' : player.age_group,
+      drills
     );
-    
-    const drillRanges = {};
-    drills.forEach(drill => {
-      const values = ageGroupPlayers
-        .map(p => p.scores?.[drill.key] ?? p[drill.key])
-        .filter(val => val != null && typeof val === 'number');
-      
-      if (values.length > 0) {
-        drillRanges[drill.key] = {
-          min: Math.min(...values),
-          max: Math.max(...values)
-        };
-      }
-    });
+    const totalWeight = drills.reduce((sum, drill) => {
+      const weight = weights[drill.key] || 0;
+      return weight > 0 ? sum + weight : sum;
+    }, 0);
     
     return drills.map(drill => {
       try {
@@ -130,16 +133,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
         
         if (rawScore != null && drillRanges[drill.key]) {
           const range = drillRanges[drill.key];
-          
-          if (range.max === range.min) {
-            normalizedScore = 50;
-          } else if (drill.lowerIsBetter) {
-            normalizedScore = ((range.max - rawScore) / (range.max - range.min)) * 100;
-          } else {
-            normalizedScore = ((rawScore - range.min) / (range.max - range.min)) * 100;
-          }
-          
-          weightedScore = normalizedScore * (weight / 100);
+          normalizedScore = calculateNormalizedDrillScore(rawScore, range, drill.key, drill.lowerIsBetter);
+          weightedScore = totalWeight > 0 ? normalizedScore * (weight / totalWeight) : 0;
 
           if (player.name === 'Evan Echevarria') {
              debugInfo = {
@@ -175,7 +170,22 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
         };
       }
     });
-  }, [drillRankings, player, weights, allPlayers, drills]);
+  }, [drillRankings, player, weights, allPlayers, drills, normalizeAcrossAll]);
+
+  const rankedComparisonPlayers = useMemo(() => {
+    if (!allPlayers || allPlayers.length === 0) return [];
+    return normalizeAcrossAll
+      ? calculateOptimizedRankingsAcrossAll(allPlayers, weights, drills)
+      : calculateOptimizedRankings(allPlayers, weights, drills);
+  }, [allPlayers, weights, drills, normalizeAcrossAll]);
+
+  const currentRank = useMemo(() => {
+    if (!player?.id) return 1;
+    const rankEntry = rankedComparisonPlayers.find((p) => p.id === player.id);
+    return rankEntry?.rank || 1;
+  }, [rankedComparisonPlayers, player?.id]);
+
+  const comparisonCount = rankedComparisonPlayers.length || 1;
 
   if (!player || !allPlayers || allPlayers.length === 0) return null;
 
@@ -185,74 +195,6 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   if (player) {
       // console.log('[PlayerDetails] composite', totalWeightedScore);
       // console.log('[PlayerDetails] contribs', weightedBreakdown.map(d => ({ label: d.label, contrib: d.weightedScore })));
-  }
-
-  let currentRank = 1;
-  let ageGroupPlayers = [];
-  
-  try {
-    ageGroupPlayers = allPlayers.filter(p => 
-      p && 
-      p.id && 
-      p.age_group === player.age_group
-    );
-    
-    if (ageGroupPlayers.length > 0) {
-      // Calculate drill ranges for normalized scoring
-      const playersWithAnyScore = ageGroupPlayers.filter(p => 
-        drills.some(drill => (p.scores?.[drill.key] ?? p[drill.key]) != null && typeof (p.scores?.[drill.key] ?? p[drill.key]) === 'number')
-      );
-      
-      const drillRanges = {};
-      drills.forEach(drill => {
-        const values = playersWithAnyScore
-          .map(p => p.scores?.[drill.key] ?? p[drill.key])
-          .filter(val => val != null && typeof val === 'number');
-        
-        if (values.length > 0) {
-          drillRanges[drill.key] = {
-            min: Math.min(...values),
-            max: Math.max(...values)
-          };
-        }
-      });
-      
-      const playersWithScores = ageGroupPlayers.map(p => {
-        try {
-          const score = drills.reduce((sum, drill) => {
-            const drillScore = p.scores?.[drill.key] ?? p[drill.key];
-            if (drillScore == null || typeof drillScore !== 'number') return sum;
-            
-            const weight = weights[drill.key] || 0;
-            const range = drillRanges[drill.key];
-            
-            if (drillScore != null && range) {
-              let normalizedScore = 0;
-              
-              if (range.max === range.min) {
-                normalizedScore = 50;
-              } else if (drill.lowerIsBetter) {
-                normalizedScore = ((range.max - drillScore) / (range.max - range.min)) * 100;
-              } else {
-                normalizedScore = ((drillScore - range.min) / (range.max - range.min)) * 100;
-              }
-              
-              return sum + (normalizedScore * (weight / 100));
-            }
-            return sum;
-          }, 0);
-          return { ...p, currentScore: score };
-        } catch {
-          return { ...p, currentScore: 0 };
-        }
-      }).sort((a, b) => (b.currentScore || 0) - (a.currentScore || 0));
-      
-      const rankIndex = playersWithScores.findIndex(p => p.id === player.id);
-      currentRank = rankIndex >= 0 ? rankIndex + 1 : 1;
-    }
-  } catch {
-    currentRank = 1;
-    ageGroupPlayers = [player];
   }
 
   return (
@@ -405,7 +347,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
               <div className="space-y-1.5 text-[10px]">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Age Rank:</span>
-                  <span className="font-bold text-brand-primary">#{currentRank} of {ageGroupPlayers.length}</span>
+                  <span className="font-bold text-brand-primary">#{currentRank} of {comparisonCount}</span>
                 </div>
                 
                 <div className="flex justify-between">
