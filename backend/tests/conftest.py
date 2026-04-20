@@ -231,6 +231,17 @@ class FakeFirestore:
     def collection(self, name):
         return FakeCollection(self.store, name, id_seq=self._id_seq)
 
+    def collection_group(self, name):
+        docs = []
+        for path, data in list(self.store.items()):
+            parts = path.split("/")
+            if len(parts) < 2:
+                continue
+            if parts[-2] != name:
+                continue
+            docs.append(FakeSnapshot(self.store, path, data, exists=True))
+        return FakeQuery(docs)
+
     def batch(self):
         return FakeBatch()
 

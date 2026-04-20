@@ -27,8 +27,57 @@ class ParentLookupRequest(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=128)
 
 
-def _normalize_combine_number(value: str) -> str:
-    return str(value or "").strip()
+def _normalize_combine_number(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _canonicalize_number(value: Any) -> Optional[str]:
+    normalized = _normalize_combine_number(value)
+    if not normalized:
+        return None
+    if normalized.isdigit():
+        return normalized.lstrip("0") or "0"
+    return normalized
+
+
+def _number_query_values(input_number: str) -> List[Any]:
+    """
+    Build Firestore query candidates for player.number.
+    Check-in writes number as an int, but legacy/migrated rows may store strings.
+    """
+    normalized = _normalize_combine_number(input_number)
+    canonical = _canonicalize_number(input_number)
+    if not normalized:
+        return []
+
+    candidates: List[Any] = [normalized]
+    if canonical and canonical != normalized:
+        candidates.append(canonical)
+    if canonical and canonical.isdigit():
+        try:
+            candidates.append(int(canonical))
+        except ValueError:
+            pass
+
+    deduped: List[Any] = []
+    seen = set()
+    for candidate in candidates:
+        dedupe_key = (type(candidate).__name__, str(candidate))
+        if dedupe_key in seen:
+            continue
+        seen.add(dedupe_key)
+        deduped.append(candidate)
+    return deduped
+
+
+def _is_combine_number_match(input_number: str, stored_number: Any) -> bool:
+    input_canonical = _canonicalize_number(input_number)
+    stored_canonical = _canonicalize_number(stored_number)
+    if not input_canonical or not stored_canonical:
+        return False
+    return input_canonical == stored_canonical
 
 
 def _normalize_last_name(value: Any) -> Optional[str]:
@@ -102,27 +151,38 @@ def _is_tolerant_last_name_match(input_last_name: str, candidate_last_name: str)
 def parent_results_lookup(request: Request, payload: ParentLookupRequest):
     combine_number = _normalize_combine_number(payload.combine_number)
     normalized_last_name = _normalize_last_name(payload.last_name)
+    number_query_values = _number_query_values(combine_number)
 
-    if not combine_number or not normalized_last_name:
+    if not combine_number or not normalized_last_name or not number_query_values:
         raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
 
     try:
-        # Query by combine number first (cheap index), then apply normalized last-name match
-        # in memory to avoid exposing field-level match diagnostics.
-        candidate_docs = execute_with_timeout(
-            lambda: list(
-                db.collection_group("players")
-                .where("external_id", "==", combine_number)
-                .limit(10)
-                .stream()
-            ),
-            timeout=10,
-            operation_name="parent report lookup candidates",
-        )
+        # Query by check-in bib/combine number (`number`) first, then apply
+        # in-memory canonical matching + last-name check to avoid leaking details.
+        candidate_docs = []
+        seen_doc_ids = set()
+        for query_value in number_query_values:
+            docs_for_value = execute_with_timeout(
+                lambda qv=query_value: list(
+                    db.collection_group("players")
+                    .where("number", "==", qv)
+                    .limit(10)
+                    .stream()
+                ),
+                timeout=10,
+                operation_name="parent report lookup candidates",
+            )
+            for doc in docs_for_value:
+                if doc.id in seen_doc_ids:
+                    continue
+                seen_doc_ids.add(doc.id)
+                candidate_docs.append(doc)
 
         matches = []
         for doc in candidate_docs:
             player_data = doc.to_dict() or {}
+            if not _is_combine_number_match(combine_number, player_data.get("number")):
+                continue
             candidate_last_names = _candidate_last_names(player_data)
             if any(
                 _is_tolerant_last_name_match(normalized_last_name, candidate_last_name)
