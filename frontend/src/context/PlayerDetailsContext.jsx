@@ -108,6 +108,9 @@ export function PlayerDetailsProvider({ children }) {
       drills: effectiveDrills,
       presets: effectivePresets,
       normalizeAcrossAll: contextData.normalizeAcrossAll === true,
+      canManageResults: contextData.canManageResults === true,
+      manageResultsDisabledReason: contextData.manageResultsDisabledReason || "",
+      onResultsChanged: contextData.onResultsChanged,
       onClose: closeDetails
     };
   }, [

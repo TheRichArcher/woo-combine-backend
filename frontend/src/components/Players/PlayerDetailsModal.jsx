@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from "react";
 import { Download, Mail, X } from 'lucide-react';
 import PlayerDetailsPanel from './PlayerDetailsPanel';
+import RecordedResultsSection from './RecordedResultsSection';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankingsAcrossAll } from '../../utils/optimizedScoring';
 import { useAuth } from '../../context/AuthContext';
 import { useEvent } from '../../context/EventContext';
@@ -20,7 +21,10 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   applyPreset,
   drills = [],
   presets = {},
-  normalizeAcrossAll = false
+  normalizeAcrossAll = false,
+  canManageResults = false,
+  manageResultsDisabledReason = "",
+  onResultsChanged
 }) {
   const { userRole } = useAuth();
   const { selectedEvent } = useEvent();
@@ -116,6 +120,14 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               drills={drills}
               presets={presets}
               normalizeAcrossAll={normalizeAcrossAll}
+           />
+           <RecordedResultsSection
+             player={player}
+             drills={drills}
+             eventId={selectedEvent?.id}
+             canManageResults={canManageResults}
+             manageResultsDisabledReason={manageResultsDisabledReason}
+             onResultsChanged={onResultsChanged}
            />
         </div>
 

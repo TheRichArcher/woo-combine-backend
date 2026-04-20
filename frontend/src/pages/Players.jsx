@@ -13,7 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import api from '../lib/api';
-import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft, Trophy, CheckCircle } from 'lucide-react';
+import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft, Trophy, CheckCircle, Search } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
 import { calculateOptimizedRankingsAcrossAll } from '../utils/optimizedScoring';
@@ -85,13 +85,17 @@ export default function Players() {
     loading: true,
     resolved: false
   });
+  const manageResultsDisabledReason = permissions.isLocked
+    ? "This combine is locked. Recorded results can be viewed but not edited or deleted."
+    : "Your role is read-only for this event. Recorded results can be viewed but not edited or deleted.";
 
   // Redesign State
-  const [showRoster, setShowRoster] = useState(false);
+  const [showRoster, setShowRoster] = useState(true);
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
+  const [playerSearchQuery, setPlayerSearchQuery] = useState("");
   const rankingsRef = useRef(null);
   const lastHandledAnalyzeSearchRef = useRef(null);
   
@@ -185,11 +189,19 @@ export default function Players() {
             activePreset,
             applyPreset,
             drills: allDrills,
-            presets: currentPresets
+            presets: currentPresets,
+            canManageResults: permissions.canWrite,
+            manageResultsDisabledReason,
+            onResultsChanged: () => {
+              if (selectedEvent) {
+                cacheInvalidation.playersUpdated(selectedEvent.id);
+              }
+              fetchPlayers();
+            }
         });
       }
     }
-  }, [location.search, players, openDetails, persistedWeights, sliderWeights, persistSliderWeights, activePreset, applyPreset, allDrills, currentPresets]);
+  }, [location.search, players, openDetails, persistedWeights, sliderWeights, persistSliderWeights, activePreset, applyPreset, allDrills, currentPresets, permissions.canWrite, manageResultsDisabledReason, selectedEvent]);
 
   // Fetch backend rankings (Schema-driven engine)
   const fetchRankings = useCallback(async (weights, ageGroup) => {
@@ -426,8 +438,22 @@ export default function Players() {
   // Selected group players
   const selectedGroupPlayers = useMemo(() => {
     if (!selectedAgeGroup) return [];
-    return selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || []);
-  }, [selectedAgeGroup, players, grouped]);
+    const ageFilteredPlayers = selectedAgeGroup === 'all' ? players : (grouped[selectedAgeGroup] || []);
+    const normalizedSearch = playerSearchQuery.trim().toLowerCase();
+
+    if (!normalizedSearch) return ageFilteredPlayers;
+
+    return ageFilteredPlayers.filter((player) => {
+      const playerName = (player.name || '').toLowerCase();
+      const playerNumber = player.number != null ? String(player.number).toLowerCase() : '';
+      const playerAgeGroup = (player.age_group || '').toLowerCase();
+      return (
+        playerName.includes(normalizedSearch) ||
+        playerNumber.includes(normalizedSearch) ||
+        playerAgeGroup.includes(normalizedSearch)
+      );
+    });
+  }, [selectedAgeGroup, players, grouped, playerSearchQuery]);
 
   // Stats
   const selectedGroupScoredCount = useMemo(() => {
@@ -491,7 +517,15 @@ export default function Players() {
               activePreset,
               applyPreset,
               drills: allDrills,
-              presets: currentPresets
+              presets: currentPresets,
+              canManageResults: permissions.canWrite,
+              manageResultsDisabledReason,
+              onResultsChanged: () => {
+                if (selectedEvent) {
+                  cacheInvalidation.playersUpdated(selectedEvent.id);
+                }
+                fetchPlayers();
+              }
            });
         } else {
            // Player no longer exists or not found in list (maybe filtered?)
@@ -509,7 +543,7 @@ export default function Players() {
     } finally {
       setLoading(false);
     }
-  }, [selectedEvent, user, selectedLeagueId]);
+  }, [selectedEvent, user, selectedLeagueId, contextSelectedPlayer, openDetails, persistedWeights, sliderWeights, persistSliderWeights, activePreset, applyPreset, allDrills, currentPresets, permissions.canWrite, manageResultsDisabledReason]);
 
   useEffect(() => {
     fetchPlayers();
@@ -924,24 +958,50 @@ export default function Players() {
           {showRoster && (
             <div className="p-4 border-t border-gray-200">
               {/* Filters */}
-              <div className="flex items-center gap-3 mb-4">
-                <select
-                  value={selectedAgeGroup}
-                  onChange={e => setSelectedAgeGroup(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="all">All Players ({players.length})</option>
-                  {Object.keys(grouped).map(group => (
-                    <option key={group} value={group}>{group} ({grouped[group].length})</option>
-                  ))}
-                </select>
-                
-                <button
-                  onClick={expandRankings}
-                  className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1"
-                >
-                  View Ranking Preview <ArrowRight className="w-3 h-3" />
-                </button>
+              <div className="space-y-3 mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="search"
+                    value={playerSearchQuery}
+                    onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                    placeholder="Search by player name, jersey number, or age group"
+                    className="w-full rounded-lg border border-gray-300 pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                  <span>{selectedGroupPlayers.length} match{selectedGroupPlayers.length === 1 ? '' : 'es'}</span>
+                  {playerSearchQuery.trim() && (
+                    <button
+                      type="button"
+                      onClick={() => setPlayerSearchQuery('')}
+                      className="text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Clear search
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedAgeGroup}
+                    onChange={e => setSelectedAgeGroup(e.target.value)}
+                    className="flex-1 rounded-lg border border-gray-300 p-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Players ({players.length})</option>
+                    {Object.keys(grouped).map(group => (
+                      <option key={group} value={group}>{group} ({grouped[group].length})</option>
+                    ))}
+                  </select>
+                  
+                  <button
+                    onClick={expandRankings}
+                    className="bg-cmf-primary hover:bg-cmf-secondary text-white px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1"
+                  >
+                    View Ranking Preview <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
               
               <p className="text-xs text-gray-500 mt-2 text-center">Quick in-page summary & adjustments</p>
@@ -964,7 +1024,15 @@ export default function Players() {
                           activePreset,
                           applyPreset,
                           drills: allDrills,
-                          presets: currentPresets
+                          presets: currentPresets,
+                          canManageResults: permissions.canWrite,
+                          manageResultsDisabledReason,
+                          onResultsChanged: () => {
+                            if (selectedEvent) {
+                              cacheInvalidation.playersUpdated(selectedEvent.id);
+                            }
+                            fetchPlayers();
+                          }
                         })}
                         onEdit={() => setEditingPlayer(player)}
                         canEdit={permissions.canWrite}
@@ -1113,7 +1181,15 @@ export default function Players() {
                               activePreset,
                               applyPreset,
                               drills: allDrills,
-                              presets: currentPresets
+                              presets: currentPresets,
+                              canManageResults: permissions.canWrite,
+                              manageResultsDisabledReason,
+                              onResultsChanged: () => {
+                                if (selectedEvent) {
+                                  cacheInvalidation.playersUpdated(selectedEvent.id);
+                                }
+                                fetchPlayers();
+                              }
                             })}
                           />
                         );
