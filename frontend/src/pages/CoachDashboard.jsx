@@ -1,9 +1,10 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Users, Trash2 } from 'lucide-react';
+import { Plus, Edit, Users, Trash2, Lock, Unlock, Loader2 } from 'lucide-react';
 
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { formatEventDate } from '../utils/dateUtils';
 import CreateEventModal from '../components/CreateEventModal';
 import EditEventModal from '../components/EditEventModal';
@@ -54,16 +55,16 @@ const sportEmojiFromTemplate = (drillTemplate) => {
   return '🏆';
 };
 
-function statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount }) {
+function statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, isLocked }) {
   if (isPlayersLoading) return { label: 'Loading', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
   if (hasPlayersError) return { label: 'Unknown', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
   if (playerCount <= 0) return { label: 'Setup', tone: 'bg-amber-100 text-amber-800 border-amber-200' };
+  if (isLocked) return { label: 'Locked / Completed', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
   if (scoredCount <= 0) return { label: 'Ready', tone: 'bg-green-100 text-green-800 border-green-200' };
-  if (scoredCount < playerCount) return { label: 'Live', tone: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
-  return { label: 'Done', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
+  return { label: 'Live', tone: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
 }
 
-function nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole }) {
+function nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole, isLocked }) {
   if (isPlayersLoading) {
     return { text: 'Loading players...', route: '/dashboard', tone: 'bg-gray-50 border-gray-200 text-gray-700', isDisabled: true };
   }
@@ -71,8 +72,12 @@ function nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, 
     return { text: 'Player data unavailable', route: '/dashboard', tone: 'bg-gray-50 border-gray-200 text-gray-700', isDisabled: true };
   }
   const isStaff = userRole === 'organizer' || userRole === 'coach';
+  const isOrganizer = userRole === 'organizer';
   if (playerCount <= 0) {
     return { text: 'Next: Add your players', route: '/players?action=import', tone: 'bg-amber-50 border-amber-200 text-amber-900' };
+  }
+  if (isLocked) {
+    return { text: 'Scoring locked — view rankings', route: '/live-standings', tone: 'bg-gray-50 border-gray-200 text-gray-700' };
   }
   if (isStaff && scoredCount <= 0) {
     return { text: 'Ready for Combine Day', route: '/live-entry', tone: 'bg-green-50 border-green-200 text-green-900' };
@@ -80,18 +85,23 @@ function nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, 
   if (isStaff && scoredCount < playerCount) {
     return { text: `Continue scoring (${scoredCount}/${playerCount})`, route: '/live-entry', tone: 'bg-indigo-50 border-indigo-200 text-indigo-900' };
   }
+  if (isOrganizer && scoredCount >= playerCount) {
+    return { text: 'All players scored — lock results', route: '/admin', tone: 'bg-amber-50 border-amber-200 text-amber-900' };
+  }
   return { text: 'View Rankings', route: '/live-standings', tone: 'bg-green-50 border-green-200 text-green-900' };
 }
 
 export default function CoachDashboard() {
-  const { events, selectedEvent, setSelectedEvent, noLeague, setEvents } = useEvent();
+  const { events, selectedEvent, setSelectedEvent, noLeague, setEvents, refreshEvents } = useEvent();
   const { userRole } = useAuth();
+  const { showSuccess, showError } = useToast();
   const navigate = useNavigate();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deletingEvent, setDeletingEvent] = useState(null);
   const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored, isLoading, hasError } }
+  const [lockRequests, setLockRequests] = useState({}); // { eventId: boolean }
 
   // Fetch player counts for all events
   useEffect(() => {
@@ -145,10 +155,11 @@ export default function CoachDashboard() {
       const hasPlayersError = fetched ? fetched.hasError : false;
       const playerCount = fetched ? fetched.total : 0;
       const scoredCount = fetched ? fetched.scored : 0;
+      const isLocked = Boolean(e?.isLocked ?? e?.is_locked);
 
-      const status = statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount });
-      const next = nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole });
-      const isDone = status.label === 'Done';
+      const status = statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, isLocked });
+      const next = nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole, isLocked });
+      const isDone = isLocked;
 
       return {
         ...e,
@@ -156,6 +167,7 @@ export default function CoachDashboard() {
         _hasPlayersError: hasPlayersError,
         _playerCount: playerCount,
         _scoredCount: scoredCount,
+        _isLocked: isLocked,
         _status: status,
         _next: next,
         _isDone: isDone
@@ -179,6 +191,25 @@ export default function CoachDashboard() {
     },
     [setSelectedEvent, navigate]
   );
+
+  const handleToggleEventLock = useCallback(async (event) => {
+    if (!event?.id || !event?.league_id) {
+      showError('Missing event information');
+      return;
+    }
+    const nextLocked = !event._isLocked;
+    setLockRequests((prev) => ({ ...prev, [event.id]: true }));
+    try {
+      await api.patch(`/leagues/${event.league_id}/events/${event.id}/lock`, { isLocked: nextLocked });
+      await refreshEvents();
+      showSuccess(nextLocked ? 'Scoring locked for this event.' : 'Scoring unlocked for this event.');
+    } catch (error) {
+      const message = error?.response?.data?.detail || 'Unable to update scoring lock';
+      showError(message);
+    } finally {
+      setLockRequests((prev) => ({ ...prev, [event.id]: false }));
+    }
+  }, [refreshEvents, showError, showSuccess]);
 
   const handleEventCreated = (newEvent) => {
     setEvents((prev) => [newEvent, ...(Array.isArray(prev) ? prev : [])]);
@@ -299,7 +330,38 @@ export default function CoachDashboard() {
                       </div>
                     </div>
 
-                    <div className={'mt-3 rounded-xl border px-3 py-2 text-sm font-semibold ' + event._next.tone}>{event._next.text}</div>
+                    <div className="mt-3 flex items-center gap-2">
+                      <div className={'flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ' + event._next.tone}>
+                        {event._next.text}
+                      </div>
+                      {userRole === 'organizer' && event._playerCount > 0 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleEventLock(event);
+                          }}
+                          disabled={!!lockRequests[event.id]}
+                          className={
+                            'inline-flex items-center gap-1 rounded-xl border px-3 py-2 text-xs font-bold transition disabled:opacity-60 ' +
+                            (event._isLocked
+                              ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'
+                              : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100')
+                          }
+                          title={event._isLocked ? 'Unlock scoring' : 'Lock scoring'}
+                        >
+                          {lockRequests[event.id] ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : event._isLocked ? (
+                            <Unlock className="w-3.5 h-3.5" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5" />
+                          )}
+                          {lockRequests[event.id] ? 'Saving...' : event._isLocked ? 'Unlock' : 'Lock'}
+                        </button>
+                      )}
+                    </div>
                   </button>
                 </div>
               );
