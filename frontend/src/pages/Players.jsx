@@ -91,6 +91,7 @@ export default function Players() {
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
+  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const rankingsRef = useRef(null);
   const lastHandledAnalyzeSearchRef = useRef(null);
   
@@ -110,6 +111,20 @@ export default function Players() {
 
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets } = useDrills(selectedEvent);
+
+  // Optimized weights hook
+  const {
+    persistedWeights,
+    sliderWeights,
+    activePreset,
+    handleWeightChange,
+    applyPreset,
+    rankings: optimizedRankings,
+    liveRankings,
+    groupedRankings,
+    setSliderWeights,
+    persistSliderWeights
+  } = useOptimizedWeights(players, allDrills, currentPresets);
 
   const scrollToRankingsSection = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -359,22 +374,6 @@ export default function Players() {
       fetchFreshEvent();
     }
   }, [selectedEvent?.id, selectedEvent?.league_id, setSelectedEvent]);
-
-  const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
-
-  // Optimized weights hook
-  const {
-    persistedWeights,
-    sliderWeights,
-    activePreset,
-    handleWeightChange,
-    applyPreset,
-    rankings: optimizedRankings,
-    liveRankings,
-    groupedRankings,
-    setSliderWeights,
-    persistSliderWeights
-  } = useOptimizedWeights(players, allDrills, currentPresets);
 
   // Debounced fetch effect for rankings - moved after hook to use sliderWeights
   useEffect(() => {
