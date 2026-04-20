@@ -343,7 +343,6 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 ))}
               </div>
             </div>
-              </div>
             )}
             
             <div className="bg-white rounded p-2 border border-gray-200 flex-1 min-h-0">
