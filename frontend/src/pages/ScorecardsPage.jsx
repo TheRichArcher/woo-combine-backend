@@ -10,11 +10,8 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorDisplay from '../components/ErrorDisplay';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights'; // Import optimized weights
-import { 
-  getDefaultWeightsFromTemplate
-} from '../constants/drillTemplates';
-import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp, ArrowLeft, Download, Mail } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { FileText, Users, Search, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, Download, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { formatViewerPlayerName } from '../utils/playerDisplayName';
@@ -24,8 +21,7 @@ const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
   const { showError } = useToast();
-  const navigate = useNavigate();
-  const { openDetails, selectedPlayer: contextSelectedPlayer, closeDetails } = usePlayerDetails();
+  const { openDetails, selectedPlayer: contextSelectedPlayer } = usePlayerDetails();
   
   // Unified Drills Hook
   const { drills: currentDrills, loading: drillsLoading, presets } = useDrills(selectedEvent);
@@ -37,6 +33,7 @@ const ScorecardsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showGenerator, setShowGenerator] = useState(false);
+  const [showScoreDetails, setShowScoreDetails] = useState(false);
   
   // Use optimized weights hook
   const { 
@@ -153,6 +150,7 @@ const ScorecardsPage = () => {
   const handlePlayerSelect = (player) => {
     // Hide generator by default when switching players to keep view clean
     setShowGenerator(false);
+    setShowScoreDetails(false);
     
     // Open the global modal context but suppressed (so we use inline panel)
     openDetails(player, {
@@ -214,49 +212,22 @@ const ScorecardsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Uniform header to match Live Standings */}
       <div className="bg-white shadow-sm border-b border-gray-200 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-lg mx-auto flex items-center justify-between">
+          <div className="flex items-start gap-3">
             <Link to="/dashboard" className="text-gray-600 hover:text-gray-900 transition-colors">
               <ArrowLeft className="w-6 h-6" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Player Scorecards</h1>
-              <p className="text-sm text-gray-600">{selectedEvent.name}</p>
+              <h1 className="text-xl font-bold text-gray-900">Player Scorecards</h1>
+              <p className="text-sm text-gray-600">Select a player and generate a PDF or email report</p>
             </div>
           </div>
-          <div className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium">Reports</div>
+          <div className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium hidden sm:inline-flex">{selectedEvent.name}</div>
         </div>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-        {/* Quick Actions */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold text-gray-900">Quick Actions</h2>
-          </div>
-          <div className={`grid gap-2 ${(userRole === 'organizer' || userRole === 'coach') ? 'grid-cols-2' : 'grid-cols-1'}`}>
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link to="/live-entry" className="flex items-center gap-2 p-3 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition">
-                <Zap className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-900">Continue Recording</span>
-              </Link>
-            )}
-            <Link to="/players?tab=analyze" className="flex items-center gap-2 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition">
-              <Users className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Full Player View</span>
-            </Link>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Link to="/live-standings" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Live Standings</Link>
-            <Link to="/sport-templates" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Sport Templates</Link>
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link to="/team-formation" className="text-xs bg-white text-gray-700 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition font-medium">Create Teams</Link>
-            )}
-          </div>
-        </div>
-
         {/* Body */}
         {playersWithScores.length === 0 ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-6">
@@ -330,7 +301,7 @@ const ScorecardsPage = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                 <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Player Selected</h3>
-                <p className="text-gray-500">Select a player from the list above to view their stats and rankings.</p>
+                <p className="text-gray-500">Pick a player above, then use Generate PDF or Email Report.</p>
               </div>
             ) : (
               <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
@@ -343,31 +314,48 @@ const ScorecardsPage = () => {
                       </p>
                    </div>
                    <div className="text-right">
-                      {/* Controls embedded in panel */}
+                      <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full">Ready to send</div>
                    </div>
                 </div>
 
-                <div className="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                <div className="px-4 py-4 border-b border-gray-200 bg-blue-50">
                   <div className="flex flex-col sm:flex-row gap-2">
                     <button
                       onClick={handleDownloadScorecard}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold transition"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition"
                     >
                       <Download className="w-4 h-4" />
                       Generate PDF
                     </button>
                     <button
                       onClick={handleEmailScorecard}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2 text-sm font-medium hover:bg-blue-100 transition"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2.5 text-sm font-medium hover:bg-blue-100 transition"
                     >
                       <Mail className="w-4 h-4" />
                       Email Report
                     </button>
                   </div>
+                  <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <button
+                      onClick={() => setShowScoreDetails(!showScoreDetails)}
+                      className="text-sm font-medium text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
+                    >
+                      {showScoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {showScoreDetails ? 'Hide Score Details' : 'Show Score Details'}
+                    </button>
+                    <button
+                      onClick={() => setShowGenerator(!showGenerator)}
+                      className="text-sm text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
+                    >
+                      {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {showGenerator ? 'Hide Advanced Report Builder' : 'Open Advanced Report Builder'}
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="h-[600px] overflow-y-auto bg-white">
-                   <PlayerDetailsPanel 
+
+                {showScoreDetails && (
+                  <div className="h-[540px] overflow-y-auto bg-white border-t border-gray-100">
+                    <PlayerDetailsPanel
                       player={selectedPlayer}
                       allPlayers={players}
                       persistedWeights={persistedWeights}
@@ -378,19 +366,9 @@ const ScorecardsPage = () => {
                       applyPreset={applyPreset}
                       drills={currentDrills}
                       presets={presets}
-                   />
-                </div>
-
-                {/* Footer / Actions */}
-                <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 flex justify-between items-center">
-                   <button 
-                     onClick={() => setShowGenerator(!showGenerator)}
-                     className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                   >
-                     {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                     {showGenerator ? 'Hide Advanced Report Builder' : 'Open Advanced Report Builder'}
-                   </button>
-                </div>
+                    />
+                  </div>
+                )}
               </div>
             )}
 
