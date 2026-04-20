@@ -1,5 +1,5 @@
-import React, { useState, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import DrillTemplateSelector from '../components/DrillTemplateSelector';
 import { Settings, Trophy, Star, CheckCircle, Zap } from 'lucide-react';
 import { getAllTemplates, getTemplateById } from '../constants/drillTemplates';
@@ -12,6 +12,7 @@ import ErrorDisplay from '../components/ErrorDisplay';
 export default function SportTemplatesPage() {
   const { selectedEvent, updateEvent } = useEvent();
   const { userRole } = useAuth();
+  const navigate = useNavigate();
   const { showSuccess } = useToast();
   const [selectedTemplateId, setSelectedTemplateId] = useState(selectedEvent?.drillTemplate || '');
   const [showDetails, setShowDetails] = useState(false);
@@ -44,6 +45,22 @@ export default function SportTemplatesPage() {
       return await updateEvent(selectedEvent.id, updatedEventData);
     });
   }, [selectedEvent, hasChanges, executeApply, selectedTemplateId, updateEvent]);
+
+  useEffect(() => {
+    if (userRole === 'viewer') {
+      navigate('/live-standings', { replace: true });
+    }
+  }, [navigate, userRole]);
+
+  if (userRole === 'viewer') {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white border border-gray-200 rounded-2xl shadow-sm p-6 text-center">
+          <p className="text-sm font-medium text-gray-700">This section is only available to event organizers</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

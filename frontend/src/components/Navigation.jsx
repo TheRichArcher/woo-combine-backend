@@ -531,9 +531,11 @@ export default function Navigation() {
                       Live Standings
                     </Link>
                   )}
-                  <Link to="/sport-templates" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/sport-templates', 'Sport Templates'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
-                    Sport Templates
-                  </Link>
+                  {(userRole === 'organizer' || userRole === 'coach') && (
+                    <Link to="/sport-templates" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/sport-templates', 'Sport Templates'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Sport Templates
+                    </Link>
+                  )}
                   <Link to="/evaluators" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/evaluators', 'Evaluators'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                     Team Evaluations
                   </Link>
@@ -707,13 +709,15 @@ export default function Navigation() {
                 Live Standings
               </Link>
             )}
-            <Link 
-              to="/sport-templates" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/sport-templates', 'Sport Templates')}
-            >
-              Sport Templates
-            </Link>
+            {(userRole === 'organizer' || userRole === 'coach') && (
+              <Link 
+                to="/sport-templates" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/sport-templates', 'Sport Templates')}
+              >
+                Sport Templates
+              </Link>
+            )}
             <Link 
               to="/evaluators" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"

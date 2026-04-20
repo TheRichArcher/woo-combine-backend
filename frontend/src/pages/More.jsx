@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
+import { useAuth } from '../context/AuthContext';
 
 function Section({ title, children }) {
   return (
@@ -51,6 +52,7 @@ function Item({ to, onClick, icon, label, desc, disabled }) {
 
 export default function More() {
   const { selectedEvent } = useEvent();
+  const { userRole } = useAuth();
   const navigate = useNavigate();
 
   const scannerPath = useMemo(() => {
@@ -114,12 +116,14 @@ export default function More() {
             desc="Auto-balance teams from live results"
             to="/team-formation"
           />
-          <Item
-            icon="🏟️"
-            label="Sport Templates"
-            desc="Choose drills and presets per sport"
-            to="/sport-templates"
-          />
+          {(userRole === 'organizer' || userRole === 'coach') && (
+            <Item
+              icon="🏟️"
+              label="Sport Templates"
+              desc="Choose drills and presets per sport"
+              to="/sport-templates"
+            />
+          )}
           <Item
             icon="🔗"
             label="Event Sharing"

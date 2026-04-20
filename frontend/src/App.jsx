@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Link } from "react-router-dom";
 import { EventProvider } from "./context/EventContext";
 import { PlayerDetailsProvider } from "./context/PlayerDetailsContext";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ToastProvider } from "./context/ToastContext";
 import Navigation from "./components/Navigation";
 import ErrorBoundary from "./components/ErrorBoundary";
@@ -62,6 +62,24 @@ function AuthenticatedLayout({ children }) {
       {children}
       </RouteDecisionGate>
     </ErrorBoundary>
+  );
+}
+
+function SportTemplatesRoute() {
+  const { userRole } = useAuth();
+
+  if (userRole === "viewer") {
+    return <Navigate to="/live-standings" replace />;
+  }
+
+  if (userRole !== "organizer" && userRole !== "coach") {
+    return <Navigate to="/players" replace />;
+  }
+
+  return (
+    <AuthenticatedLayout>
+      <SportTemplatesPage />
+    </AuthenticatedLayout>
   );
 }
 
@@ -229,10 +247,8 @@ function App() {
                 <Route 
                   path="/sport-templates" 
                   element={
-                    <RequireAuth >
-                      <AuthenticatedLayout>
-                        <SportTemplatesPage />
-                      </AuthenticatedLayout>
+                    <RequireAuth>
+                      <SportTemplatesRoute />
                     </RequireAuth>
                   } 
                 />
