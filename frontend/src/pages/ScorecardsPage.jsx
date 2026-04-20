@@ -75,20 +75,6 @@ const ScorecardsPage = () => {
 
   // Ref for auto-scrolling to stats
   const statsRef = useRef(null);
-  const didInitSelectionRef = useRef(false);
-  const shouldScrollToStatsRef = useRef(false);
-
-  useEffect(() => {
-    if (!didInitSelectionRef.current) {
-      didInitSelectionRef.current = true;
-      return;
-    }
-
-    if (selectedPlayer && statsRef.current && shouldScrollToStatsRef.current) {
-      statsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      shouldScrollToStatsRef.current = false;
-    }
-  }, [selectedPlayer]);
   
   // Get drill template and weights from event
   const drillTemplate = selectedEvent?.drillTemplate;
@@ -155,7 +141,6 @@ const ScorecardsPage = () => {
   });
 
   const handlePlayerSelect = (player) => {
-    shouldScrollToStatsRef.current = true;
     setShowScoreDetails(true);
     
     // Open the global modal context but suppressed (so we use inline panel)
@@ -170,6 +155,14 @@ const ScorecardsPage = () => {
         drills: currentDrills,
         presets,
         suppressGlobalModal: true // Keep inline for this page
+    });
+
+    // Scroll only after a direct user selection on this page.
+    // This avoids post-mount jumps from persisted context state.
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        statsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     });
   };
 
