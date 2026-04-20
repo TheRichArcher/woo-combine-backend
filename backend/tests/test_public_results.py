@@ -54,7 +54,7 @@ def test_results_lookup_uses_checkin_number_field(app_client, fake_db, monkeypat
 
     r = app_client.post(
         "/api/public/results-lookup",
-        json={"combine_number": "007", "last_name": "Bradshaw"},
+        json={"event_id": "event-1", "combine_number": "007", "last_name": "Bradshaw"},
     )
     assert r.status_code == 200, r.text
     body = r.json()
@@ -102,10 +102,56 @@ def test_results_lookup_rejects_ambiguous_checkin_number_matches(app_client, fak
 
     r = app_client.post(
         "/api/public/results-lookup",
-        json={"combine_number": "22", "last_name": "bradshaw"},
+        json={"event_id": "event-1", "combine_number": "22", "last_name": "bradshaw"},
     )
     assert r.status_code == 404
     assert (
         r.json()["detail"]
         == "We couldn't find a matching participant with that Combine Number and Last Name."
     )
+
+
+def test_results_lookup_scopes_to_requested_event(app_client, fake_db, monkeypatch):
+    _seed_event(fake_db, event_id="event-1")
+    _seed_event(fake_db, event_id="event-2")
+
+    fake_db.collection("events").document("event-1").collection("players").document("p-1").set(
+        {
+            "name": "Taylor Jordan",
+            "last": "Jordan",
+            "number": 31,
+            "event_id": "event-1",
+            "age_group": "U14",
+            "scores": {},
+        }
+    )
+    fake_db.collection("events").document("event-2").collection("players").document("p-2").set(
+        {
+            "name": "Morgan Jordan",
+            "last": "Jordan",
+            "number": 31,
+            "event_id": "event-2",
+            "age_group": "U14",
+            "scores": {},
+        }
+    )
+
+    import backend.routes.public_results as public_results
+
+    monkeypatch.setattr(
+        public_results,
+        "get_event_schema",
+        lambda _event_id: SimpleNamespace(drills=[]),
+    )
+    monkeypatch.setattr(
+        public_results,
+        "calculate_composite_score",
+        lambda player, schema=None: float(player.get("number") or 0),
+    )
+
+    r = app_client.post(
+        "/api/public/results-lookup",
+        json={"event_id": "event-1", "combine_number": "31", "last_name": "jordan"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["player_name"] == "Taylor Jordan"

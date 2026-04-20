@@ -23,6 +23,7 @@ LOOKUP_FAILURE_MESSAGE = (
 
 
 class ParentLookupRequest(BaseModel):
+    event_id: str = Field(..., min_length=1, max_length=128)
     combine_number: str = Field(..., min_length=1, max_length=64)
     last_name: str = Field(..., min_length=1, max_length=128)
 
@@ -149,24 +150,35 @@ def _is_tolerant_last_name_match(input_last_name: str, candidate_last_name: str)
 @router.post("/results-lookup")
 @auth_rate_limit()
 def parent_results_lookup(request: Request, payload: ParentLookupRequest):
+    event_id = str(payload.event_id or "").strip()
     combine_number = _normalize_combine_number(payload.combine_number)
     normalized_last_name = _normalize_last_name(payload.last_name)
     number_query_values = _number_query_values(combine_number)
 
-    if not combine_number or not normalized_last_name or not number_query_values:
+    if not event_id or not combine_number or not normalized_last_name or not number_query_values:
         raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
 
     try:
-        # Query by check-in bib/combine number (`number`) first, then apply
-        # in-memory canonical matching + last-name check to avoid leaking details.
+        logger.debug(
+            "results_lookup input normalized: event_id=%s combine_number=%s normalized_last_name=%s number_query_values=%s",
+            event_id,
+            combine_number,
+            normalized_last_name,
+            number_query_values,
+        )
+
+        # Query only within requested event by check-in bib/combine number (`number`),
+        # then apply in-memory canonical + last-name checks.
         candidate_docs = []
         seen_doc_ids = set()
         for query_value in number_query_values:
             docs_for_value = execute_with_timeout(
                 lambda qv=query_value: list(
-                    db.collection_group("players")
+                    db.collection("events")
+                    .document(event_id)
+                    .collection("players")
                     .where("number", "==", qv)
-                    .limit(10)
+                    .limit(25)
                     .stream()
                 ),
                 timeout=10,
@@ -178,10 +190,32 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
                 seen_doc_ids.add(doc.id)
                 candidate_docs.append(doc)
 
+        candidate_debug = []
+        for doc in candidate_docs:
+            player_data = doc.to_dict() or {}
+            candidate_event_id = player_data.get("event_id") or event_id
+            candidate_debug.append(
+                {
+                    "player_id": doc.id,
+                    "name": player_data.get("name"),
+                    "event_id": candidate_event_id,
+                    "number": player_data.get("number"),
+                    "last_name_candidates": _candidate_last_names(player_data),
+                }
+            )
+        logger.debug(
+            "results_lookup candidates before final filtering: event_id=%s candidates=%s",
+            event_id,
+            candidate_debug,
+        )
+
         matches = []
+        number_mismatch_count = 0
+        last_name_mismatch_count = 0
         for doc in candidate_docs:
             player_data = doc.to_dict() or {}
             if not _is_combine_number_match(combine_number, player_data.get("number")):
+                number_mismatch_count += 1
                 continue
             candidate_last_names = _candidate_last_names(player_data)
             if any(
@@ -189,11 +223,14 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
                 for candidate_last_name in candidate_last_names
             ):
                 matches.append((doc, player_data))
+            else:
+                last_name_mismatch_count += 1
 
         # Require exactly one match to avoid leaking identities across duplicate identifiers.
         if len(matches) > 1:
             logger.debug(
-                "results_lookup ambiguity rejected: combine_number=%s normalized_last_name=%s matches=%s",
+                "results_lookup rejected_ambiguous: event_id=%s combine_number=%s normalized_last_name=%s matches=%s",
+                event_id,
                 combine_number,
                 normalized_last_name,
                 [
@@ -207,15 +244,29 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
             raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
 
         if len(matches) == 0:
+            rejection_reason = "no_number_candidates"
+            if candidate_docs:
+                if last_name_mismatch_count > 0:
+                    rejection_reason = "last_name_mismatch"
+                elif number_mismatch_count > 0:
+                    rejection_reason = "combine_number_canonical_mismatch"
+                else:
+                    rejection_reason = "no_final_match"
+            logger.debug(
+                "results_lookup rejected_no_match: event_id=%s combine_number=%s normalized_last_name=%s "
+                "reason=%s candidate_count=%s number_mismatch_count=%s last_name_mismatch_count=%s",
+                event_id,
+                combine_number,
+                normalized_last_name,
+                rejection_reason,
+                len(candidate_docs),
+                number_mismatch_count,
+                last_name_mismatch_count,
+            )
             raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
 
         matched_doc, matched_player = matches[0]
-        event_id = matched_player.get("event_id")
-        if not event_id:
-            parent_doc = matched_doc.reference.parent.parent
-            event_id = parent_doc.id if parent_doc else None
-        if not event_id:
-            raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
+        matched_event_id = matched_player.get("event_id") or event_id
 
         all_player_docs = execute_with_timeout(
             lambda: list(db.collection("events").document(event_id).collection("players").stream()),
@@ -232,6 +283,14 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
         target_player = next((p for p in all_players if p.get("id") == matched_doc.id), None)
         if not target_player:
             raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
+
+        logger.debug(
+            "results_lookup matched: event_id=%s player_id=%s player_name=%s player_event_id=%s",
+            event_id,
+            matched_doc.id,
+            target_player.get("name"),
+            matched_event_id,
+        )
 
         schema = get_event_schema(event_id)
         target_score = calculate_composite_score(target_player, schema=schema)

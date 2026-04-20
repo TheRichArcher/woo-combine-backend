@@ -688,7 +688,7 @@ export default function JoinEvent() {
               selectedEventRaw: localStorage.getItem('selectedEvent')
             });
             const destination = (hydrationResult?.role || intendedRole || userRole || '').toLowerCase() === 'viewer'
-              ? '/results-lookup'
+              ? `/results-lookup?event_id=${encodeURIComponent(targetEvent.id)}`
               : '/coach';
             qrDebug('Navigating after join', {
               destination,

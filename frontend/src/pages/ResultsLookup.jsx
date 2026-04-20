@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import api from "../lib/api";
+import { useEvent } from "../context/EventContext";
 
 const GENERIC_LOOKUP_ERROR =
   "We couldn't find a matching participant with that Combine Number and Last Name.";
@@ -65,15 +67,26 @@ function buildPrintableHtml(report) {
 }
 
 export default function ResultsLookup() {
+  const location = useLocation();
+  const { selectedEvent } = useEvent();
   const [combineNumber, setCombineNumber] = useState("");
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [report, setReport] = useState(null);
+  const eventIdFromQuery = useMemo(() => {
+    const params = new URLSearchParams(location.search || "");
+    return (params.get("event_id") || "").trim();
+  }, [location.search]);
+  const effectiveEventId = (eventIdFromQuery || selectedEvent?.id || "").toString().trim();
 
   const canSubmit = useMemo(
-    () => combineNumber.trim().length > 0 && lastName.trim().length > 0 && !loading,
-    [combineNumber, lastName, loading]
+    () =>
+      effectiveEventId.length > 0 &&
+      combineNumber.trim().length > 0 &&
+      lastName.trim().length > 0 &&
+      !loading,
+    [effectiveEventId, combineNumber, lastName, loading]
   );
 
   const handleLookup = async (event) => {
@@ -86,6 +99,7 @@ export default function ResultsLookup() {
 
     try {
       const response = await api.post("/public/results-lookup", {
+        event_id: effectiveEventId,
         combine_number: combineNumber.trim(),
         last_name: lastName.trim(),
       });
@@ -117,6 +131,11 @@ export default function ResultsLookup() {
         <p className="text-sm text-gray-600 mb-6">
           Enter the participant&apos;s Combine Number and Last Name to view one report.
         </p>
+        {!effectiveEventId && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
+            This lookup link is missing event context. Please use the event-specific report link or QR code from your organizer.
+          </div>
+        )}
 
         <form onSubmit={handleLookup} className="space-y-4">
           <div>
