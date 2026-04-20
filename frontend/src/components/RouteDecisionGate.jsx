@@ -417,12 +417,10 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // Viewer context guard: never send viewer into staff-oriented /coach fallback shell.
-    if (effectiveUserRole === 'viewer' && !selectedEvent) {
-      if (!location.pathname.startsWith('/live-standings')) {
-        performNavigation('/live-standings', 'viewer missing event context');
-        return;
-      }
+    // Viewer mitigation: force viewers into single-purpose parent lookup flow.
+    if (effectiveUserRole === 'viewer' && location.pathname !== '/results-lookup') {
+      performNavigation('/results-lookup', 'viewer restricted to parent report lookup');
+      return;
     }
 
     // Coach onboarding guard: deny access to staff shell unless an event

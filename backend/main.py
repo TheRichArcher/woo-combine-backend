@@ -9,6 +9,7 @@ from .routes.evaluators import router as evaluators_router
 from .routes.batch import router as batch_router
 from .routes.imports import router as imports_router
 from .routes.stats import router as stats_router
+from .routes.public_results import router as public_results_router
 from .routes.schemas import router as schemas_router
 from .routes.migrations import router as migrations_router
 from .routes.drafts import router as drafts_router
@@ -159,6 +160,7 @@ app.include_router(evaluators_router, prefix="/api", tags=["Evaluators"])
 app.include_router(batch_router, prefix="/api", tags=["Batch Operations"])
 app.include_router(imports_router, prefix="/api", tags=["Imports"])
 app.include_router(stats_router, prefix="/api", tags=["Stats"])
+app.include_router(public_results_router, prefix="/api", tags=["Public Results"])
 app.include_router(drafts_router, prefix="/api", tags=["Drafts"])
 app.include_router(draft_pricing_router, prefix="/api", tags=["Draft Payments"])
 app.include_router(schemas_router, prefix="/api", tags=["Schemas"])

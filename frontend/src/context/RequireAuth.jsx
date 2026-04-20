@@ -79,6 +79,9 @@ export default function RequireAuth({ children, allowedRoles }) {
   // Role-based access control: if allowedRoles specified, enforce them
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(effectiveRole)) {
     // User has a role but it's not permitted for this route
+    if (effectiveRole === 'viewer') {
+      return <Navigate to="/results-lookup" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   

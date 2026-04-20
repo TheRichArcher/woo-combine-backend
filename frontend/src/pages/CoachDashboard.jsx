@@ -25,10 +25,10 @@ function ViewerEventUnavailable({ selectedEvent }) {
         <div className="space-y-3">
           {selectedEvent ? (
             <button
-              onClick={() => navigate('/live-standings')}
+              onClick={() => navigate('/results-lookup')}
               className="w-full bg-brand-primary hover:bg-brand-secondary text-white font-semibold px-4 py-3 rounded-xl transition"
             >
-              Open Live Standings
+              Open Parent Report Lookup
             </button>
           ) : (
             <button

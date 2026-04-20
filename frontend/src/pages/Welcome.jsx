@@ -44,6 +44,11 @@ export default function Welcome() {
         navigate('/select-role', { replace: true });
         return;
       }
+
+      if (userRole === 'viewer') {
+        navigate('/results-lookup', { replace: true });
+        return;
+      }
       
       // Authenticated with role - go to dashboard
       navigate('/coach', { replace: true });

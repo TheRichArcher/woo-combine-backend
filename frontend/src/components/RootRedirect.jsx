@@ -34,5 +34,9 @@ export default function RootRedirect() {
     return <Navigate to="/select-role" replace />;
   }
 
+  if (userRole === "viewer") {
+    return <Navigate to="/results-lookup" replace />;
+  }
+
   return <Navigate to="/coach" replace />;
 }

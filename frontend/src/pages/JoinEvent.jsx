@@ -685,7 +685,7 @@ export default function JoinEvent() {
               selectedEventRaw: localStorage.getItem('selectedEvent')
             });
             const destination = (hydrationResult?.role || intendedRole || userRole || '').toLowerCase() === 'viewer'
-              ? '/live-standings'
+              ? '/results-lookup'
               : '/coach';
             qrDebug('Navigating after join', {
               destination,

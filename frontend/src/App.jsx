@@ -45,6 +45,7 @@ import CheckIn from "./pages/CheckIn";
 import CombineScanner from "./pages/CombineScanner";
 import More from "./pages/More";
 import CoachEventRequired from "./pages/CoachEventRequired";
+import ResultsLookup from "./pages/ResultsLookup";
 
 // Draft Feature Pages
 import { CreateDraft, DraftSetup, DraftRoom, DraftBoard, CoachRankings, DraftPayment, JoinDraft, MyDrafts } from "./pages/Draft";
@@ -70,7 +71,7 @@ function SportTemplatesRoute() {
   const { userRole } = useAuth();
 
   if (userRole === "viewer") {
-    return <Navigate to="/live-standings" replace />;
+    return <Navigate to="/results-lookup" replace />;
   }
 
   if (userRole !== "organizer") {
@@ -88,7 +89,7 @@ function EvaluatorsRoute() {
   const { userRole } = useAuth();
 
   if (userRole === "viewer") {
-    return <Navigate to="/live-standings" replace />;
+    return <Navigate to="/results-lookup" replace />;
   }
 
   if (userRole !== "organizer") {
@@ -137,6 +138,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<RootRedirect />} />
                 <Route path="/welcome" element={<Welcome />} />
+                <Route path="/results-lookup" element={<ResultsLookup />} />
                             <Route path="/workflow-demo" element={<WorkflowDemo />} />
                 
                 {/* New Feature Routes */}
@@ -273,7 +275,7 @@ function App() {
                 <Route 
                   path="/scorecards" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <ScorecardsPage />
                       </AuthenticatedLayout>
@@ -283,7 +285,7 @@ function App() {
                 <Route 
                   path="/players/rankings" 
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <ScorecardsPage />
                       </AuthenticatedLayout>
@@ -353,7 +355,7 @@ function App() {
                 <Route
                   path="/live-standings"
                   element={
-                    <RequireAuth >
+                    <RequireAuth allowedRoles={["organizer", "coach"]}>
                       <AuthenticatedLayout>
                         <LiveStandings />
                       </AuthenticatedLayout>
