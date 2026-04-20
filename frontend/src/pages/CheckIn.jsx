@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, Search, AlertTriangle, Save, Undo2 } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Search, AlertTriangle, Save, Undo2, UserPlus } from 'lucide-react';
 
 import api from '../lib/api';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import AddPlayerModal from '../components/Players/AddPlayerModal';
 
 import Input from '../components/ui/Input';
 import Button from '../components/ui/Button';
@@ -29,7 +30,7 @@ function matchesQuery(player, q) {
 
 export default function CheckIn() {
   const { selectedEvent } = useEvent();
-  const { userRole } = useAuth();
+  const { user, selectedLeagueId, userRole } = useAuth();
   const { showError, showSuccess, showInfo } = useToast();
 
   // Roster
@@ -50,8 +51,17 @@ export default function CheckIn() {
   const [duplicateConfirmed, setDuplicateConfirmed] = useState(false);
 
   const [recent, setRecent] = useState([]); // [{id, playerId, name, age_group, number, prevNumber, ts}]
+  const [showAddPlayerModal, setShowAddPlayerModal] = useState(false);
+
+  const [permissions, setPermissions] = useState({
+    canWrite: true,
+    isLocked: false,
+    loading: true,
+    resolved: false,
+  });
 
   const canUse = userRole === 'organizer' || userRole === 'coach';
+  const canAddWalkUpPlayer = canUse && permissions.canWrite;
 
   const fetchPlayers = useCallback(async () => {
     if (!selectedEvent?.id) return;
@@ -81,9 +91,82 @@ export default function CheckIn() {
     }
   }, [selectedEvent?.id]);
 
+  const fetchPermissions = useCallback(async () => {
+    if (!user || !selectedLeagueId || !selectedEvent?.id) {
+      return;
+    }
+
+    try {
+      let membershipFound = false;
+      let membershipCanWrite = false;
+      let membershipRole = null;
+
+      try {
+        const membershipRes = await api.get(`/leagues/${selectedLeagueId}/members/${user.uid}`);
+        membershipFound = true;
+        membershipRole = membershipRes.data?.role || null;
+
+        const normalizedRole = (membershipRole || '').toLowerCase();
+        const backendCanWrite = membershipRes.data?.canWrite;
+
+        if (normalizedRole === 'organizer') {
+          membershipCanWrite = true;
+        } else if (typeof backendCanWrite === 'boolean') {
+          membershipCanWrite = backendCanWrite;
+        } else {
+          membershipCanWrite = true;
+        }
+      } catch (err) {
+        if (err.response?.status === 404) {
+          membershipFound = false;
+          membershipCanWrite = false;
+        } else {
+          throw err;
+        }
+      }
+
+      let eventIsLocked = false;
+      try {
+        const eventRes = await api.get(`/leagues/${selectedLeagueId}/events/${selectedEvent.id}`);
+        eventIsLocked = eventRes.data?.isLocked ?? eventRes.data?.is_locked ?? false;
+      } catch (err) {
+        eventIsLocked = true;
+      }
+
+      let finalCanWrite = false;
+      if (!membershipFound) {
+        finalCanWrite = false;
+      } else if (eventIsLocked && membershipRole !== 'organizer') {
+        finalCanWrite = false;
+      } else if (!membershipCanWrite) {
+        finalCanWrite = false;
+      } else {
+        finalCanWrite = true;
+      }
+
+      setPermissions({
+        canWrite: finalCanWrite,
+        isLocked: eventIsLocked,
+        loading: false,
+        resolved: true,
+      });
+    } catch {
+      setPermissions({
+        canWrite: false,
+        isLocked: false,
+        loading: false,
+        resolved: true,
+      });
+    }
+  }, [selectedEvent?.id, selectedLeagueId, user]);
+
   useEffect(() => {
     fetchPlayers();
   }, [fetchPlayers]);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
 
   // Autofocus: search by default; number after selection
   useEffect(() => {
@@ -282,6 +365,12 @@ export default function CheckIn() {
               <h1 className="text-xl font-bold text-gray-900">Check-In</h1>
             </div>
             <p className="text-sm text-gray-600">Select an event to begin.</p>
+            <div className="mt-4">
+              <Button variant="subtle" disabled className="w-full">
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Walk-Up Player
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -308,6 +397,26 @@ export default function CheckIn() {
               <div className="text-xs text-gray-500">Numbers assigned</div>
             </div>
           </div>
+          {canUse && (
+            <div className="mt-4">
+              <Button
+                variant="primary"
+                className="w-full sm:w-auto"
+                onClick={() => setShowAddPlayerModal(true)}
+                disabled={!canAddWalkUpPlayer || !selectedEvent?.id}
+              >
+                <UserPlus className="w-4 h-4 mr-2" />
+                Add Walk-Up Player
+              </Button>
+              {!permissions.loading && !permissions.canWrite && (
+                <p className="text-xs text-orange-700 mt-2">
+                  {permissions.isLocked
+                    ? 'This combine is locked. Contact the organizer to add players.'
+                    : 'You currently have read-only access. Contact the organizer to add players.'}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Restricted role */}
@@ -532,6 +641,16 @@ export default function CheckIn() {
             <div>Save anyway to override and assign it to <span className="font-semibold">{selectedPlayer?.name}</span>.</div>
           </div>
         </Modal>
+      )}
+
+      {showAddPlayerModal && (
+        <AddPlayerModal
+          allPlayers={players}
+          onClose={() => setShowAddPlayerModal(false)}
+          onSave={() => {
+            fetchPlayers();
+          }}
+        />
       )}
     </div>
   );
