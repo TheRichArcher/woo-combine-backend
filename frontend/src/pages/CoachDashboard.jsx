@@ -272,10 +272,20 @@ export default function CoachDashboard() {
                     (event._isDone ? ' opacity-80' : '')
                   }
                 >
-                  <button
+                  <div
+                    role="button"
+                    tabIndex={event._next.isDisabled ? -1 : 0}
+                    aria-disabled={event._next.isDisabled ? 'true' : 'false'}
                     onClick={() => {
                       if (event._next.isDisabled) return;
                       handleOpenEvent(event, event._next.route);
+                    }}
+                    onKeyDown={(e) => {
+                      if (event._next.isDisabled) return;
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpenEvent(event, event._next.route);
+                      }
                     }}
                     className="w-full text-left p-4"
                   >
@@ -302,7 +312,6 @@ export default function CoachDashboard() {
                             <button
                               type="button"
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
                                 setEditingEvent(event);
                               }}
@@ -315,7 +324,6 @@ export default function CoachDashboard() {
                             <button
                               type="button"
                               onClick={(e) => {
-                                e.preventDefault();
                                 e.stopPropagation();
                                 setDeletingEvent(event);
                               }}
@@ -338,7 +346,6 @@ export default function CoachDashboard() {
                         <button
                           type="button"
                           onClick={(e) => {
-                            e.preventDefault();
                             e.stopPropagation();
                             handleToggleEventLock(event);
                           }}
@@ -362,7 +369,7 @@ export default function CoachDashboard() {
                         </button>
                       )}
                     </div>
-                  </button>
+                  </div>
                 </div>
               );
             })}
