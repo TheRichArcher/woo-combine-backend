@@ -92,6 +92,7 @@ export default function Players() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const rankingsRef = useRef(null);
+  const lastHandledAnalyzeSearchRef = useRef(null);
   
   // Completion metrics for state-aware CTA
   const totalScoresCount = useMemo(() => {
@@ -110,21 +111,32 @@ export default function Players() {
   // Unified Drills Hook
   const { drills: allDrills, presets: currentPresets } = useDrills(selectedEvent);
 
-  // Handle deep linking to sections
+  const scrollToRankingsSection = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        rankingsRef.current?.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  }, []);
+
+  // Handle deep-link flags that should react to URL changes.
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const tabParam = urlParams.get('tab');
     const actionParam = urlParams.get('action');
-    const playerIdParam = urlParams.get('playerId');
 
     if (tabParam === 'analyze') {
       setShowRankings(true);
       setShowRoster(true);
-      setTimeout(() => {
-        rankingsRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      if (lastHandledAnalyzeSearchRef.current !== location.search) {
+        lastHandledAnalyzeSearchRef.current = location.search;
+        scrollToRankingsSection();
+      }
     } else if (tabParam === 'manage') {
       setShowRoster(true);
+      lastHandledAnalyzeSearchRef.current = null;
+    } else {
+      lastHandledAnalyzeSearchRef.current = null;
     }
 
     // MANDATORY GUARDRAIL: Import Players must always be tied to a confirmed selected event
@@ -141,7 +153,12 @@ export default function Players() {
         });
       }
     }
+  }, [location.search, selectedEvent?.id, scrollToRankingsSection]);
 
+  // Handle deep-link player selection only after players load.
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const playerIdParam = urlParams.get('playerId');
     if (playerIdParam && players.length > 0) {
       const playerToSelect = players.find(p => p.id === playerIdParam);
       if (playerToSelect) {
@@ -157,7 +174,7 @@ export default function Players() {
         });
       }
     }
-  }, [location.search, players]);
+  }, [location.search, players, openDetails, persistedWeights, sliderWeights, persistSliderWeights, activePreset, applyPreset, allDrills, currentPresets]);
 
   // Fetch backend rankings (Schema-driven engine)
   const fetchRankings = useCallback(async (weights, ageGroup) => {
@@ -514,9 +531,7 @@ export default function Players() {
   // Helper to expand and scroll to ranking preview section
   const expandRankings = () => {
     setShowRankings(true);
-    setTimeout(() => {
-      rankingsRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    scrollToRankingsSection();
   };
 
   // CSV Export Helper
