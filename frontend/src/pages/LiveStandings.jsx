@@ -421,7 +421,7 @@ export default function LiveStandings() {
              <Link to="/dashboard" className="text-gray-500 hover:text-gray-700">
                <ArrowLeft className="w-6 h-6" />
              </Link>
-             <div className="flex items-center gap-2">
+             <div className="flex items-center">
                <Link
                  to="/players?tab=analyze"
                  className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition"
@@ -430,12 +430,6 @@ export default function LiveStandings() {
                >
                  <Settings className="w-5 h-5 text-gray-600" />
                </Link>
-               <div 
-                 className="text-xs bg-semantic-success/10 text-semantic-success px-3 py-1 rounded-full font-medium cursor-help"
-                 title="Standings auto-refresh every 30 seconds"
-               >
-                 ✨ Live Updates
-               </div>
              </div>
           </div>
           
