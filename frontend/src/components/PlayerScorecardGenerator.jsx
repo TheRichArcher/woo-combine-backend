@@ -57,6 +57,10 @@ const PlayerScorecardGenerator = ({
   const playerStats = scorecardPayload?.playerStats;
   const drillAnalysis = scorecardPayload?.drillAnalysis || [];
 
+  if (userRole === 'viewer') {
+    return null;
+  }
+
   const previewHTML = useMemo(() => {
     if (!player || !playerStats) return '';
     return generatePlayerScorecardHTML({

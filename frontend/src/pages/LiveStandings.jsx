@@ -257,6 +257,8 @@ export default function LiveStandings() {
   const [showCompactSliders, setShowCompactSliders] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { showError } = useToast();
+  const isViewerReadOnly = userRole === 'viewer';
+  const canUseStaffTools = !isViewerReadOnly;
 
   useEffect(() => {
     let selectedEventRaw = null;
@@ -441,16 +443,18 @@ export default function LiveStandings() {
              <Link to="/dashboard" className="text-gray-500 hover:text-gray-700">
                <ArrowLeft className="w-6 h-6" />
              </Link>
-             <div className="flex items-center">
-               <Link
-                 to="/players?tab=analyze"
-                 className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition"
-                 aria-label="Customize weights"
-                 title="Customize scoring weights"
-               >
-                 <Settings className="w-5 h-5 text-gray-600" />
-               </Link>
-             </div>
+             {canUseStaffTools && (
+               <div className="flex items-center">
+                 <Link
+                   to="/players?tab=analyze"
+                   className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 transition"
+                   aria-label="Customize weights"
+                   title="Customize scoring weights"
+                 >
+                   <Settings className="w-5 h-5 text-gray-600" />
+                 </Link>
+               </div>
+             )}
           </div>
           
           <h1 className="text-2xl font-bold text-cmf-secondary mb-2">
@@ -506,7 +510,8 @@ export default function LiveStandings() {
         </div>
 
         {/* Controls & Filters (Collapsible) */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
+        {canUseStaffTools && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 overflow-hidden">
            <button 
             onClick={() => setShowControls(!showControls)}
             className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
@@ -609,6 +614,7 @@ export default function LiveStandings() {
             </div>
           )}
         </div>
+        )}
 
         {/* Live Rankings List */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -744,33 +750,35 @@ export default function LiveStandings() {
 
 
         {/* Share / Export */}
-        <div className="mt-6 space-y-2">
-          <button
-            onClick={async () => {
-              const url = window.location.href;
-              try {
-                if (navigator.share) {
-                  await navigator.share({ title: 'WooCombine Rankings', url });
-                } else {
-                  await navigator.clipboard.writeText(url);
-                  alert('Link copied to clipboard');
+        {canUseStaffTools && (
+          <div className="mt-6 space-y-2">
+            <button
+              onClick={async () => {
+                const url = window.location.href;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: 'WooCombine Rankings', url });
+                  } else {
+                    await navigator.clipboard.writeText(url);
+                    alert('Link copied to clipboard');
+                  }
+                } catch (e) {
+                  // ignore cancellation
                 }
-              } catch (e) {
-                // ignore cancellation
-              }
-            }}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition shadow"
-          >
-            Share Rankings
-          </button>
-          <button
-            onClick={handleExportPdf}
-            disabled={isExportingPdf}
-            className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 rounded-xl transition border border-gray-200"
-          >
-            {isExportingPdf ? 'Exporting PDF...' : 'Export PDF'}
-          </button>
-        </div>
+              }}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-xl transition shadow"
+            >
+              Share Rankings
+            </button>
+            <button
+              onClick={handleExportPdf}
+              disabled={isExportingPdf}
+              className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 rounded-xl transition border border-gray-200"
+            >
+              {isExportingPdf ? 'Exporting PDF...' : 'Export PDF'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

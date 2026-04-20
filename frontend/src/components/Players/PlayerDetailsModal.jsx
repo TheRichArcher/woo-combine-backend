@@ -29,6 +29,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   const { userRole } = useAuth();
   const { selectedEvent } = useEvent();
   const { showSuccess } = useToast();
+  const canUseReportActions = userRole !== 'viewer';
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -120,6 +121,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               drills={drills}
               presets={presets}
               normalizeAcrossAll={normalizeAcrossAll}
+              readOnly={userRole === 'viewer'}
            />
            <RecordedResultsSection
              player={player}
@@ -131,22 +133,24 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
            />
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row gap-2">
-          <button
-            onClick={handleDownloadScorecard}
-            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary text-white px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
-          >
-            <Download className="w-4 h-4" />
-            Download Scorecard
-          </button>
-          <button
-            onClick={handleEmailScorecard}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-100 transition"
-          >
-            <Mail className="w-4 h-4" />
-            Email Report
-          </button>
-        </div>
+        {canUseReportActions && (
+          <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row gap-2">
+            <button
+              onClick={handleDownloadScorecard}
+              className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary text-white px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
+            >
+              <Download className="w-4 h-4" />
+              Download Scorecard
+            </button>
+            <button
+              onClick={handleEmailScorecard}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-100 transition"
+            >
+              <Mail className="w-4 h-4" />
+              Email Report
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

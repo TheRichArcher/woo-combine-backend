@@ -18,7 +18,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
   applyPreset,
   drills = [],
   presets = {},
-  normalizeAcrossAll = false
+  normalizeAcrossAll = false,
+  readOnly = false
 }) {
   const modalSliderRefs = useRef({});
   const [modalLocalWeights, setModalLocalWeights] = useState(sliderWeights);
@@ -216,7 +217,7 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
 
             <h3 className="text-xs font-semibold text-gray-900 mb-1 flex items-center gap-1">
               <TrendingUp className="w-3 h-3 text-brand-primary" />
-              Ranking Weight Controls
+              {readOnly ? 'Ranking Breakdown' : 'Ranking Weight Controls'}
             </h3>
       
             <div className="grid grid-cols-1 gap-1 flex-1 min-h-0">
@@ -277,31 +278,35 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                   </div>
             
                   <div className="flex items-center gap-1.5 pt-0.5">
-                    <span className="text-[9px] font-medium text-gray-400 hidden sm:block w-8">
-                      Less
-                    </span>
-                    <div className="touch-none flex-1">
-                      <input
-                        type="range"
-                        ref={(el) => (modalSliderRefs.current[drill.key] = el)}
-                        defaultValue={modalLocalWeights[drill.key] ?? 50}
-                        min={0}
-                        max={100}
-                        step={0.1}
-                        onInput={(e) => {
-                          const newWeight = parseFloat(e.target.value);
-                          onSliderChange(drill.key, newWeight);
-                        }}
-                        onPointerUp={persistModalWeights}
-                        name={drill.key}
-                        className="w-full h-1 rounded-lg cursor-pointer accent-brand-primary block"
-                      />
-                    </div>
-                    <span className="text-[9px] font-medium text-gray-400 text-right hidden sm:block w-8">
-                      More
-                    </span>
-                    <div className="text-[10px] font-bold text-brand-primary min-w-[24px] text-center">
-                      {(modalLocalWeights[drill.key] || 0).toFixed(0)}%
+                    {!readOnly && (
+                      <>
+                        <span className="text-[9px] font-medium text-gray-400 hidden sm:block w-8">
+                          Less
+                        </span>
+                        <div className="touch-none flex-1">
+                          <input
+                            type="range"
+                            ref={(el) => (modalSliderRefs.current[drill.key] = el)}
+                            defaultValue={modalLocalWeights[drill.key] ?? 50}
+                            min={0}
+                            max={100}
+                            step={0.1}
+                            onInput={(e) => {
+                              const newWeight = parseFloat(e.target.value);
+                              onSliderChange(drill.key, newWeight);
+                            }}
+                            onPointerUp={persistModalWeights}
+                            name={drill.key}
+                            className="w-full h-1 rounded-lg cursor-pointer accent-brand-primary block"
+                          />
+                        </div>
+                        <span className="text-[9px] font-medium text-gray-400 text-right hidden sm:block w-8">
+                          More
+                        </span>
+                      </>
+                    )}
+                    <div className="text-[10px] font-bold text-brand-primary min-w-[24px] text-center ml-auto">
+                      {readOnly ? 'Locked' : (modalLocalWeights[drill.key] || 0).toFixed(0) + '%'}
                     </div>
                   </div>
                 </div>
@@ -314,7 +319,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
         {/* Sidebar - Weight Scenarios and Analysis */}
         <div className="w-full lg:w-56 bg-gray-50 p-2 border-t lg:border-t-0 lg:border-l border-gray-200 flex-shrink-0 lg:h-full overflow-y-auto">
           <div className="flex flex-col gap-2">
-            <div>
+            {!readOnly && (
+              <div>
               <h3 className="text-xs font-semibold text-gray-900 mb-1.5 flex items-center gap-1">
                 <Settings className="w-3 h-3 text-brand-primary" />
                 Weight Scenarios
@@ -337,6 +343,8 @@ const PlayerDetailsPanel = React.memo(function PlayerDetailsPanel({
                 ))}
               </div>
             </div>
+              </div>
+            )}
             
             <div className="bg-white rounded p-2 border border-gray-200 flex-1 min-h-0">
               <h4 className="font-semibold text-gray-900 mb-1.5 flex items-center gap-1 text-xs">

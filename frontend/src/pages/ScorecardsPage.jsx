@@ -33,6 +33,8 @@ const ScorecardsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showScoreDetails, setShowScoreDetails] = useState(true);
+  const isViewerReadOnly = userRole === 'viewer';
+  const canUseReportActions = !isViewerReadOnly;
   
   // Use optimized weights hook
   const { 
@@ -219,7 +221,11 @@ const ScorecardsPage = () => {
             </Link>
             <div>
               <h1 className="text-xl font-bold text-gray-900">Player Scorecards</h1>
-              <p className="text-sm text-gray-600">Select a player and generate a PDF or email report</p>
+              <p className="text-sm text-gray-600">
+                {canUseReportActions
+                  ? 'Select a player and generate a PDF or email report'
+                  : 'Select a player to review score details'}
+              </p>
             </div>
           </div>
           <div className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-medium hidden sm:inline-flex">{selectedEvent.name}</div>
@@ -235,9 +241,15 @@ const ScorecardsPage = () => {
               <div>
                 <h3 className="font-semibold text-yellow-900 mb-2">No Players with Evaluation Scores</h3>
                 <p className="text-yellow-800 mb-3">Players need to have drill scores recorded before scorecards can be generated.</p>
-                <Link to="/players" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
-                  <Users className="w-4 h-4" /> Go to Players Page
-                </Link>
+                {canUseReportActions ? (
+                  <Link to="/players" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    <Users className="w-4 h-4" /> Go to Players Page
+                  </Link>
+                ) : (
+                  <Link to="/live-standings" className="inline-flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    <Users className="w-4 h-4" /> View Live Standings
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -319,7 +331,11 @@ const ScorecardsPage = () => {
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
                 <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                 <h3 className="text-lg font-medium text-gray-900 mb-1">No Player Selected</h3>
-                <p className="text-gray-500">Pick a player above, then use Generate PDF or Email Report.</p>
+                <p className="text-gray-500">
+                  {canUseReportActions
+                    ? 'Pick a player above, then use Generate PDF or Email Report.'
+                    : 'Pick a player above to review their ranking breakdown.'}
+                </p>
               </div>
             ) : (
               <div ref={statsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
@@ -332,27 +348,31 @@ const ScorecardsPage = () => {
                       </p>
                    </div>
                    <div className="text-right">
-                      <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full">Ready to send</div>
+                      <div className="text-xs bg-white/20 text-white px-2 py-1 rounded-full">
+                        {canUseReportActions ? 'Ready to send' : 'Read-only view'}
+                      </div>
                    </div>
                 </div>
 
                 <div className="px-4 py-4 border-b border-gray-200 bg-blue-50">
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <button
-                      onClick={handleDownloadScorecard}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition"
-                    >
-                      <Download className="w-4 h-4" />
-                      Quick Export PDF
-                    </button>
-                    <button
-                      onClick={handleEmailScorecard}
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2.5 text-sm font-medium hover:bg-blue-100 transition"
-                    >
-                      <Mail className="w-4 h-4" />
-                      Quick Email Report
-                    </button>
-                  </div>
+                  {canUseReportActions && (
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <button
+                        onClick={handleDownloadScorecard}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition"
+                      >
+                        <Download className="w-4 h-4" />
+                        Quick Export PDF
+                      </button>
+                      <button
+                        onClick={handleEmailScorecard}
+                        className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2.5 text-sm font-medium hover:bg-blue-100 transition"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Quick Email Report
+                      </button>
+                    </div>
+                  )}
                   <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <button
                       onClick={() => setShowScoreDetails(!showScoreDetails)}
@@ -377,6 +397,7 @@ const ScorecardsPage = () => {
                       applyPreset={applyPreset}
                       drills={currentDrills}
                       presets={presets}
+                      readOnly={isViewerReadOnly}
                     />
                   </div>
                 )}
@@ -384,7 +405,7 @@ const ScorecardsPage = () => {
             )}
 
             {/* Scorecard Generator (Embedded report options) */}
-            {selectedPlayer && (
+            {selectedPlayer && canUseReportActions && (
               <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                 <PlayerScorecardGenerator
                   player={selectedPlayer}

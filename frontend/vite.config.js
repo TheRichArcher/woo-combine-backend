@@ -11,6 +11,11 @@ const getGitHash = () => {
   }
 }
 
+// Production source maps are disabled by default to avoid exposing readable
+// source structure in public browser DevTools. Set this env var to "true"
+// only for controlled debugging builds.
+const enableProdSourceMaps = process.env.VITE_ENABLE_PROD_SOURCEMAPS === 'true'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
@@ -44,8 +49,8 @@ export default defineConfig({
       drop: ['debugger'],
       pure: ['console.log', 'console.debug'],
     },
-    // Source maps for production debugging
-    sourcemap: true
+    // Keep production maps off by default (explicit opt-in only).
+    sourcemap: enableProdSourceMaps
   },
   server: {
     port: 5173,
