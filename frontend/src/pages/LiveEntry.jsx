@@ -1155,6 +1155,14 @@ export default function LiveEntry() {
   const currentIndex = drills.findIndex(d => d.key === selectedDrill);
   const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
   const drillSequenceLabel = currentIndex >= 0 ? `Drill ${currentIndex + 1} of ${drills.length}` : null;
+  const selectedPlayerExistingScore =
+    playerId && selectedDrill
+      ? players.find((p) => p.id === playerId)?.[selectedDrill]
+      : null;
+  const showExistingScoreHint =
+    playerId &&
+    selectedPlayerExistingScore != null &&
+    score.trim() === "";
 
   const switchToPreviousDrill = () => {
     if (drills.length <= 1 || currentIndex < 0) return;
@@ -1710,8 +1718,16 @@ export default function LiveEntry() {
                         }
                       }}
                       onWheel={(e) => e.preventDefault()}
-                      placeholder={`Enter ${currentDrill.unit}`}
-                      className="flex-1 w-0 min-w-0 max-w-full box-border text-3xl p-4 border-2 border-gray-300 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center"
+                      placeholder={
+                        showExistingScoreHint
+                          ? `Current: ${selectedPlayerExistingScore} ${currentDrill.unit}`
+                          : `Enter ${currentDrill.unit}`
+                      }
+                      className={`flex-1 w-0 min-w-0 max-w-full box-border text-3xl p-4 border-2 rounded-lg focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 text-center ${
+                        showExistingScoreHint
+                          ? "border-amber-300 bg-amber-50 placeholder:text-amber-700"
+                          : "border-gray-300"
+                      }`}
                       disabled={isCurrentDrillLocked || combineIsLocked}
                       required
                     />
@@ -1739,6 +1755,11 @@ export default function LiveEntry() {
                   </div>
                   {ocrScanning && (
                     <p className="text-sm text-brand-primary mt-1 animate-pulse">Reading score from photo…</p>
+                  )}
+                  {showExistingScoreHint && (
+                    <p className="text-xs text-amber-700 mt-1">
+                      Existing score detected: {selectedPlayerExistingScore} {currentDrill.unit}. Submitting a new value will replace it.
+                    </p>
                   )}
                 </div>
 
