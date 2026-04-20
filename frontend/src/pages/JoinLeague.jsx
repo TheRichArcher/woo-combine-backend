@@ -18,6 +18,7 @@ export default function JoinLeague() {
   const [leagueName, setLeagueName] = useState('');
   const [showQrScanner, setShowQrScanner] = useState(false);
   const [qrError, setQrError] = useState('');
+  const [qrInitializing, setQrInitializing] = useState(false);
   const videoRef = useRef(null);
   const qrReaderRef = useRef(null);
 
@@ -28,65 +29,82 @@ export default function JoinLeague() {
     else if (urlCode) setJoinCode(urlCode);
   }, [urlCode]);
 
-  const handleStartScanner = async () => {
-    try {
-      // iOS requires getUserMedia to be called directly from a user gesture
-      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' } 
-        });
-        // We don't need to keep the stream, just triggering the permission prompt
-      }
-      setShowQrScanner(true);
-    } catch (err) {
-      console.error("Camera permission error:", err);
-      // We still show the scanner so the user sees the error state in the modal
-      setShowQrScanner(true);
-      setQrError('Camera permission is required. Please enable camera access in your browser settings.');
-    }
+  const handleStartScanner = () => {
+    // Open modal immediately so the click always gives visible feedback.
+    setQrError('');
+    setShowQrScanner(true);
   };
 
   // Start QR scanner when modal opens
   useEffect(() => {
-    if (showQrScanner && videoRef.current) {
-      setQrError('');
-      qrReaderRef.current = new BrowserQRCodeReader();
-      qrReaderRef.current.decodeFromVideoDevice(
-        undefined,
-        videoRef.current,
-        (result, err) => {
-          if (result) {
-            let code = '';
-            try {
-              const url = new URL(result.getText());
-              // Support both /join/CODE and /join-event/CODE formats
-              if (url.pathname.includes('/join-event/')) {
-                // Full event URL format
-                navigate(`/join-event${url.pathname.replace('/join-event', '')}${url.search}`);
-                setShowQrScanner(false);
-                qrReaderRef.current.reset();
-                return;
+    if (!showQrScanner || !videoRef.current) return undefined;
+
+    let cancelled = false;
+    setQrInitializing(true);
+    setQrError('');
+
+    const startScanner = async () => {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          setQrError('Camera is not supported in this browser. Please use a newer browser or paste the invite link.');
+          return;
+        }
+
+        qrReaderRef.current = new BrowserQRCodeReader();
+        await qrReaderRef.current.decodeFromVideoDevice(
+          undefined,
+          videoRef.current,
+          (result, err) => {
+            if (cancelled) return;
+            if (result) {
+              let code = '';
+              try {
+                const url = new URL(result.getText());
+                // Support both /join/CODE and /join-event/CODE formats
+                if (url.pathname.includes('/join-event/')) {
+                  // Full event URL format
+                  navigate(`/join-event${url.pathname.replace('/join-event', '')}${url.search}`);
+                  setShowQrScanner(false);
+                  qrReaderRef.current?.reset();
+                  return;
+                }
+                code = url.searchParams.get('code') || url.pathname.split('/').pop();
+              } catch {
+                // If URL parsing fails, treat the raw text as the code
+                code = result.getText();
               }
-              code = url.searchParams.get('code') || url.pathname.split('/').pop();
-            } catch {
-              // If URL parsing fails, treat the raw text as the code
-              code = result.getText();
-            }
-            setShowQrScanner(false);
-            qrReaderRef.current.reset();
-            navigate(`/join?code=${encodeURIComponent(code)}`);
-          } else if (err && err.name !== 'NotFoundException') {
-            // Ignore NotFoundException as it just means no QR code found in current frame
-            console.error("QR Scanner error:", err);
-            // Only show persistent errors, not temporary scanning errors
-            if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
-              setQrError('Camera error: ' + (err.message || err));
+              setShowQrScanner(false);
+              qrReaderRef.current?.reset();
+              navigate(`/join?code=${encodeURIComponent(code)}`);
+            } else if (err && err.name !== 'NotFoundException') {
+              // Ignore NotFoundException as it just means no QR code found in current frame
+              console.error("QR Scanner error:", err);
+              // Only show persistent errors, not temporary scanning errors
+              if (err.name === 'NotAllowedError') {
+                setQrError('Camera permission was denied. Enable camera access and try again.');
+              } else if (err.name === 'NotFoundError') {
+                setQrError('No camera device found.');
+              }
             }
           }
+        );
+      } catch (err) {
+        if (!cancelled) {
+          console.error("Camera permission error:", err);
+          setQrError('Unable to open camera. Please allow camera access and try again.');
         }
-      );
-    }
+      } finally {
+        if (!cancelled) {
+          setQrInitializing(false);
+        }
+      }
+    };
+
+    startScanner();
+
     return () => {
+      cancelled = true;
+      setQrInitializing(false);
       if (qrReaderRef.current) {
         qrReaderRef.current.reset();
       }
@@ -160,6 +178,11 @@ export default function JoinLeague() {
                 autoPlay 
                 muted 
               />
+              {qrInitializing && (
+                <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-sm px-4 text-center">
+                  Opening camera...
+                </div>
+              )}
             </div>
             {qrError && <div className="text-red-500 text-sm mb-2 text-center">{qrError}</div>}
             <Button onClick={() => setShowQrScanner(false)} className="w-full">Cancel</Button>
