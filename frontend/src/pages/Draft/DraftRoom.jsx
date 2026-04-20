@@ -36,7 +36,8 @@ import {
   ChevronDown,
   ListOrdered,
   ArrowLeftRight,
-  Bell
+  Bell,
+  AlertTriangle
 } from 'lucide-react';
 
 const DraftRoom = () => {
@@ -74,8 +75,15 @@ const DraftRoom = () => {
   const [notificationPermission, setNotificationPermission] = useState(() => (
     typeof Notification !== 'undefined' ? Notification.permission : 'unsupported'
   ));
+  const [advisoryBadge, setAdvisoryBadge] = useState(null);
   const autoPickTriggeredRef = useRef(false);
   const prevIsMyTurnRef = useRef(false);
+
+  useEffect(() => {
+    if (!advisoryBadge) return undefined;
+    const timeout = setTimeout(() => setAdvisoryBadge(null), 12000);
+    return () => clearTimeout(timeout);
+  }, [advisoryBadge]);
 
   // Timer countdown and auto-pick trigger
   useEffect(() => {
@@ -198,7 +206,13 @@ const DraftRoom = () => {
     }
 
     try {
-      await makePick(playerId);
+      const result = await makePick(playerId);
+      if (Array.isArray(result?.advisory_warnings) && result.advisory_warnings.length > 0) {
+        setAdvisoryBadge({
+          warnings: result.advisory_warnings,
+          source: 'manual'
+        });
+      }
       showSuccess('Pick made!');
     } catch (err) {
       showError(err.message || 'Failed to make pick');
@@ -209,6 +223,12 @@ const DraftRoom = () => {
   const handleAutoPick = async () => {
     try {
       const result = await autoPick();
+      if (Array.isArray(result?.advisory_warnings) && result.advisory_warnings.length > 0) {
+        setAdvisoryBadge({
+          warnings: result.advisory_warnings,
+          source: 'auto'
+        });
+      }
       showInfo(`Auto-pick: ${result.player_name || 'Player selected'}`);
     } catch (err) {
       // Timer might not have actually expired or draft state changed
@@ -604,6 +624,15 @@ const DraftRoom = () => {
           >
             Reset Draft
           </button>
+        </div>
+      )}
+      {advisoryBadge && (
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-200 text-amber-900 flex items-center justify-center gap-2 text-sm">
+          <AlertTriangle size={16} className="text-amber-700 flex-shrink-0" />
+          <span>
+            Advisory ({advisoryBadge.source === 'auto' ? 'auto-pick' : 'pick'}): {advisoryBadge.warnings[0]}
+            {advisoryBadge.warnings.length > 1 ? ` (+${advisoryBadge.warnings.length - 1} more)` : ''}
+          </span>
         </div>
       )}
 

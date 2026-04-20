@@ -2,7 +2,7 @@
  * DraftSetup - Configure and start a new draft
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -50,18 +50,91 @@ const DraftSetup = () => {
   const [newPlayerNumber, setNewPlayerNumber] = useState('');
   const [addingPlayer, setAddingPlayer] = useState(false);
   const [draftPlayers, setDraftPlayers] = useState([]);
+  const [groupActionLoading, setGroupActionLoading] = useState({});
   const draftEventIds = useMemo(() => (
     Array.isArray(draft?.event_ids)
       ? draft.event_ids.filter(Boolean)
       : (draft?.event_id ? [draft.event_id] : [])
   ), [draft?.event_ids, draft?.event_id]);
+  const isAdmin = draft?.created_by === user?.uid;
+
+  const siblingAndBuddySummary = useMemo(() => {
+    const playersList = Array.isArray(availablePlayers) ? availablePlayers : [];
+    const nameCounts = {};
+    playersList.forEach((player) => {
+      const normalizedName = String(player?.name || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (!normalizedName) return;
+      nameCounts[normalizedName] = (nameCounts[normalizedName] || 0) + 1;
+    });
+
+    const siblingGroups = {};
+    const buddyRows = [];
+    playersList.forEach((player) => {
+      const groupId = player?.siblingGroupId;
+      const forceSame = !!player?.forceSameTeamWithSibling;
+      if (groupId && forceSame) {
+        if (!siblingGroups[groupId]) {
+          siblingGroups[groupId] = {
+            id: groupId,
+            size: player?.siblingGroupSize || 0,
+            signals: player?.siblingInferenceSignals || [],
+            suspicious: !!player?.siblingInferenceSuspicious,
+            suspicionReasons: player?.siblingInferenceSuspicionReasons || [],
+            reviewStatus: player?.siblingReviewStatus || null,
+            reviewedBy: player?.siblingReviewedBy || null,
+            players: []
+          };
+        }
+        siblingGroups[groupId].players.push(player);
+      }
+      const buddyRaw = player?.buddyRequestRaw || '';
+      const buddyNormalized = String(player?.buddyRequestNormalized || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (buddyRaw && buddyNormalized) {
+        const matches = nameCounts[buddyNormalized] || 0;
+        let status = 'unmatched';
+        if (matches === 1) status = 'matched';
+        if (matches > 1) status = 'ambiguous_duplicate_name';
+        buddyRows.push({
+          playerId: player.id,
+          playerName: player.name,
+          requestRaw: buddyRaw,
+          status,
+          matchCount: matches
+        });
+      }
+    });
+
+    const groupedSiblingList = Object.values(siblingGroups).sort((a, b) => {
+      if ((b.players?.length || 0) !== (a.players?.length || 0)) {
+        return (b.players?.length || 0) - (a.players?.length || 0);
+      }
+      return String(a.id).localeCompare(String(b.id));
+    });
+
+    return {
+      siblingGroups: groupedSiblingList,
+      buddyRows
+    };
+  }, [availablePlayers]);
 
   // Settings form
   const [settings, setSettings] = useState({
     draft_type: 'snake',
     pick_timer_seconds: 60,
     auto_pick_on_timeout: true,
-    trades_enabled: false
+    trades_enabled: false,
+    max_players_per_team: '',
+    enforce_composite_balance: false,
+    max_composite_avg_gap: '',
+    composite_balance_blocking: false
   });
 
   useEffect(() => {
@@ -70,33 +143,74 @@ const DraftSetup = () => {
         draft_type: draft.draft_type || 'snake',
         pick_timer_seconds: draft.pick_timer_seconds ?? 60,
         auto_pick_on_timeout: draft.auto_pick_on_timeout ?? true,
-        trades_enabled: draft.trades_enabled ?? false
+        trades_enabled: draft.trades_enabled ?? false,
+        max_players_per_team: draft.max_players_per_team ?? '',
+        enforce_composite_balance: draft.enforce_composite_balance ?? false,
+        max_composite_avg_gap: draft.max_composite_avg_gap ?? '',
+        composite_balance_blocking: draft.composite_balance_blocking ?? false
       });
     }
   }, [draft]);
 
+  const activeRuleSummary = useMemo(() => {
+    const roundsCap = draft?.num_rounds || null;
+    const explicitCap = settings.max_players_per_team !== '' && settings.max_players_per_team != null
+      ? Number(settings.max_players_per_team)
+      : null;
+    const resolvedCap = explicitCap || roundsCap || null;
+    const compositeEnabled = !!settings.enforce_composite_balance;
+    const compositeBlocking = !!settings.composite_balance_blocking;
+    const compositeGap = settings.max_composite_avg_gap !== '' && settings.max_composite_avg_gap != null
+      ? Number(settings.max_composite_avg_gap)
+      : 20;
+    return {
+      resolvedCap,
+      explicitCap,
+      compositeEnabled,
+      compositeGap,
+      compositeBlocking
+    };
+  }, [draft?.num_rounds, settings.max_players_per_team, settings.enforce_composite_balance, settings.max_composite_avg_gap, settings.composite_balance_blocking]);
+
+  const fetchDraftPlayers = useCallback(async () => {
+    if (!draftId) return;
+    setPlayersLoading(true);
+    try {
+      const response = await api.get(`/drafts/${draftId}/players`);
+      const playerList = Array.isArray(response.data) ? response.data : response.data?.players || [];
+      setAvailablePlayers(playerList);
+      if (!draft?.event_id) {
+        setDraftPlayers(playerList.filter(p => p.source === 'manual'));
+      }
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to load players');
+    } finally {
+      setPlayersLoading(false);
+    }
+  }, [draftId, draft?.event_id, showError]);
+
   useEffect(() => {
     if (!draftId || draft?.status !== 'setup') return;
+    fetchDraftPlayers();
+  }, [draftId, draft?.status, fetchDraftPlayers]);
 
-    const loadPlayers = async () => {
-      setPlayersLoading(true);
-      try {
-        const response = await api.get(`/drafts/${draftId}/players`);
-        const playerList = Array.isArray(response.data) ? response.data : response.data?.players || [];
-        setAvailablePlayers(playerList);
-        // For standalone drafts, also keep a dedicated list for the Players panel
-        if (!draft?.event_id) {
-          setDraftPlayers(playerList.filter(p => p.source === 'manual'));
-        }
-      } catch (err) {
-        showError(err.response?.data?.detail || 'Failed to load players');
-      } finally {
-        setPlayersLoading(false);
-      }
-    };
-
-    loadPlayers();
-  }, [draftId, draft?.status, draft?.event_id, showError]);
+  const handleSiblingGroupAction = async (groupId, action, playerIds = null) => {
+    setGroupActionLoading(prev => ({ ...prev, [groupId]: action }));
+    try {
+      await api.post(`/drafts/${draftId}/sibling-groups/${groupId}/review`, {
+        action,
+        player_ids: playerIds
+      });
+      if (action === 'confirm') showSuccess(`Sibling group ${groupId} confirmed`);
+      if (action === 'clear_lock') showSuccess(`Sibling lock cleared for group ${groupId}`);
+      if (action === 'mark_separate') showSuccess(`Marked siblings as intentionally separate for group ${groupId}`);
+      await fetchDraftPlayers();
+    } catch (err) {
+      showError(err.response?.data?.detail || 'Failed to apply sibling group review action');
+    } finally {
+      setGroupActionLoading(prev => ({ ...prev, [groupId]: null }));
+    }
+  };
 
   const handleAddTeam = async () => {
     if (!newTeamName.trim()) {
@@ -135,7 +249,23 @@ const DraftSetup = () => {
 
   const handleUpdateSettings = async () => {
     try {
-      await api.patch(`/drafts/${draftId}`, settings);
+      const payload = {
+        draft_type: settings.draft_type,
+        pick_timer_seconds: settings.pick_timer_seconds,
+        auto_pick_on_timeout: settings.auto_pick_on_timeout,
+        trades_enabled: settings.trades_enabled,
+        enforce_composite_balance: settings.enforce_composite_balance,
+        composite_balance_blocking: settings.composite_balance_blocking,
+        max_players_per_team:
+          settings.max_players_per_team === '' || settings.max_players_per_team == null
+            ? null
+            : parseInt(settings.max_players_per_team, 10),
+        max_composite_avg_gap:
+          settings.max_composite_avg_gap === '' || settings.max_composite_avg_gap == null
+            ? null
+            : parseFloat(settings.max_composite_avg_gap)
+      };
+      await api.patch(`/drafts/${draftId}`, payload);
       showSuccess('Settings saved');
     } catch (err) {
       showError(err.response?.data?.detail || 'Failed to save settings');
@@ -273,6 +403,17 @@ const DraftSetup = () => {
   ));
   const preSlottedIds = new Set(preSlotEntries.map((entry) => entry.playerId));
   const availablePreSlotPlayers = availablePlayers.filter((player) => !preSlottedIds.has(player.id));
+  const signalLabel = (signal) => {
+    if (signal === 'parent_email') return 'Same parent email';
+    if (signal === 'cell_phone') return 'Same parent cell phone';
+    if (signal === 'street_parent_last_name') return 'Same street + parent last name';
+    return signal;
+  };
+  const suspicionLabel = (reason) => {
+    if (reason === 'large_group') return 'Large group (4+ players)';
+    if (reason === 'weak_signal_only') return 'Only weak signal used';
+    return reason;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -570,6 +711,107 @@ const DraftSetup = () => {
                 </label>
               </div>
 
+              {/* Team Cap */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Max Players Per Team (hard cap)
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={settings.max_players_per_team}
+                  onChange={(e) => setSettings(s => ({ ...s, max_players_per_team: e.target.value }))}
+                  placeholder={draft?.num_rounds ? `Default: ${draft.num_rounds}` : 'Leave blank to use rounds'}
+                  className="w-full px-3 py-2 border rounded-lg"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  If blank, the engine uses number of rounds as the per-team cap.
+                </p>
+              </div>
+
+              {/* Composite Balance Rule */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">
+                    Composite Balance Tracking
+                  </label>
+                  <p className="text-xs text-gray-500">
+                    Compute projected team composite-score average gap at pick time.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.enforce_composite_balance}
+                    onChange={(e) => setSettings(s => ({ ...s, enforce_composite_balance: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+              </div>
+              {settings.enforce_composite_balance && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Max Composite Avg Gap
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={settings.max_composite_avg_gap}
+                      onChange={(e) => setSettings(s => ({ ...s, max_composite_avg_gap: e.target.value }))}
+                      placeholder="Default: 20.0"
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-sm font-medium text-gray-700">
+                        Block on Composite Balance Violation (advanced)
+                      </label>
+                      <p className="text-xs text-gray-500">
+                        If off, composite balance remains advisory and will not block sibling guarantees.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.composite_balance_blocking}
+                        onChange={(e) => setSettings(s => ({ ...s, composite_balance_blocking: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </>
+              )}
+
+              {/* Active Enforcement Rules */}
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <p className="text-sm font-medium text-blue-900 mb-2">Active Draft Engine Validation Rules</p>
+                <ul className="text-xs text-blue-800 space-y-1">
+                  <li>
+                    Hard: per-team roster cap = {activeRuleSummary.resolvedCap ?? 'not set yet (depends on rounds)'}
+                    {activeRuleSummary.explicitCap ? ' (custom override)' : ' (derived from rounds)'}
+                  </li>
+                  <li>
+                    Hard: sibling same-team lock (when `forceSameTeamWithSibling=true`)
+                  </li>
+                  <li>
+                    Hard: sibling unit must fit within remaining overall draft slots
+                  </li>
+                  <li>
+                    {activeRuleSummary.compositeEnabled
+                      ? `${activeRuleSummary.compositeBlocking ? 'Hard' : 'Advisory'}: team average composite gap <= ${activeRuleSummary.compositeGap}`
+                      : 'Composite balance rule currently disabled'}
+                  </li>
+                  <li>
+                    Advisory only: buddy requests (soft preference in auto-pick scoring)
+                  </li>
+                </ul>
+              </div>
+
               <button
                 onClick={handleUpdateSettings}
                 className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
@@ -668,6 +910,140 @@ const DraftSetup = () => {
                         </div>
                       );
                     })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Sibling / Buddy Draft Prep Signals */}
+        {draft.status === 'setup' && (
+          <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Users size={18} />
+                Sibling & Buddy Signals
+              </h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Sibling groups are hard constraints; buddy requests are soft preferences only.
+              </p>
+            </div>
+
+            <div className="p-4 space-y-5">
+              <div>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                  Inferred sibling groups ({siblingAndBuddySummary.siblingGroups.length})
+                </h4>
+                {siblingAndBuddySummary.siblingGroups.length === 0 ? (
+                  <p className="text-sm text-gray-500">No inferred sibling groups found in current draft pool.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {siblingAndBuddySummary.siblingGroups.map((group) => (
+                      <div key={group.id} className={`border rounded-lg p-3 ${group.suspicious ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'}`}>
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          <span className="text-xs font-semibold text-gray-700">{group.id}</span>
+                          <span className="text-xs text-gray-500">{group.players.length} players</span>
+                          {group.reviewStatus && (
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">
+                              reviewed: {group.reviewStatus}
+                            </span>
+                          )}
+                          {group.suspicious && (
+                            <span className="text-[11px] px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                              Review recommended
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 mb-2">
+                          Signals: {(group.signals || []).map(signalLabel).join(', ') || 'n/a'}
+                        </div>
+                        {group.reviewedBy && (
+                          <div className="text-xs text-gray-500 mb-2">
+                            Last reviewed by: {group.reviewedBy}
+                          </div>
+                        )}
+                        {group.suspicious && (
+                          <div className="text-xs text-amber-800 mb-2">
+                            Flags: {(group.suspicionReasons || []).map(suspicionLabel).join(', ')}
+                          </div>
+                        )}
+                        <div className="flex flex-wrap gap-2">
+                          {group.players.map((player) => (
+                            <span key={player.id} className="text-xs bg-white border border-gray-200 rounded-full px-2 py-0.5">
+                              {player.number ? `#${player.number} ` : ''}{player.name}
+                              {player.siblingSeparationRequested ? ' (separation requested)' : ''}
+                            </span>
+                          ))}
+                        </div>
+                        {isAdmin && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              onClick={() => handleSiblingGroupAction(group.id, 'confirm')}
+                              disabled={!!groupActionLoading[group.id]}
+                              className="text-xs px-2.5 py-1 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                              title="Confirm inferred sibling lock for this group"
+                            >
+                              Confirm group
+                            </button>
+                            <button
+                              onClick={() => handleSiblingGroupAction(group.id, 'clear_lock')}
+                              disabled={!!groupActionLoading[group.id]}
+                              className="text-xs px-2.5 py-1 rounded bg-gray-700 text-white hover:bg-gray-800 disabled:opacity-60"
+                              title="Remove sibling lock and group association"
+                            >
+                              Clear sibling lock
+                            </button>
+                            <button
+                              onClick={() => handleSiblingGroupAction(group.id, 'mark_separate')}
+                              disabled={!!groupActionLoading[group.id]}
+                              className="text-xs px-2.5 py-1 rounded bg-amber-700 text-white hover:bg-amber-800 disabled:opacity-60"
+                              title="Mark players in this group as intentionally separate"
+                            >
+                              Mark intentionally separate
+                            </button>
+                            {groupActionLoading[group.id] && (
+                              <span className="text-xs text-gray-500 self-center">Applying...</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                  Buddy requests ({siblingAndBuddySummary.buddyRows.length})
+                </h4>
+                {siblingAndBuddySummary.buddyRows.length === 0 ? (
+                  <p className="text-sm text-gray-500">No buddy requests found in current draft pool.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {siblingAndBuddySummary.buddyRows.slice(0, 30).map((row) => (
+                      <div key={row.playerId} className="text-xs border border-gray-200 rounded p-2 flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-gray-700">{row.playerName}</span>
+                        <span className="text-gray-400">→</span>
+                        <span className="text-gray-700">{row.requestRaw}</span>
+                        {row.status === 'matched' && (
+                          <span className="px-2 py-0.5 rounded bg-green-100 text-green-800 border border-green-200">matched</span>
+                        )}
+                        {row.status === 'ambiguous_duplicate_name' && (
+                          <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">
+                            ambiguous duplicate name ({row.matchCount})
+                          </span>
+                        )}
+                        {row.status === 'unmatched' && (
+                          <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 border border-gray-200">unmatched</span>
+                        )}
+                      </div>
+                    ))}
+                    {siblingAndBuddySummary.buddyRows.length > 30 && (
+                      <p className="text-xs text-gray-500">
+                        Showing first 30 buddy requests. Total: {siblingAndBuddySummary.buddyRows.length}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

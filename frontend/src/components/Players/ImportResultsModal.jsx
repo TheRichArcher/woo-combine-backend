@@ -169,7 +169,14 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
       { key: 'team_name', label: 'Team Name' },
       { key: 'position', label: 'Position' },
       { key: 'external_id', label: 'External ID' },
-      { key: 'notes', label: 'Notes' }
+      { key: 'notes', label: 'Notes' },
+      { key: 'parent_first_name', label: 'Parent First Name' },
+      { key: 'parent_last_name', label: 'Parent Last Name' },
+      { key: 'parent_email', label: 'Parent Email' },
+      { key: 'cell_phone', label: 'Cell Phone' },
+      { key: 'street', label: 'Street Address' },
+      { key: 'buddy_request_raw', label: 'Buddy Request 1' },
+      { key: 'sibling_separation_requested', label: 'Sibling Separation Requested' }
   ];
 
   const MAPPING_OPTIONS = useMemo(() => {
@@ -726,7 +733,25 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         }).length;
 
         // Detect if there are potential drill columns (non-identity fields with numeric data)
-        const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'player_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
+        const identityFields = [
+            'first_name',
+            'last_name',
+            'name',
+            'jersey_number',
+            'player_number',
+            'age_group',
+            'team_name',
+            'position',
+            'external_id',
+            'notes',
+            'parent_first_name',
+            'parent_last_name',
+            'parent_email',
+            'cell_phone',
+            'street',
+            'buddy_request_raw',
+            'sibling_separation_requested'
+        ];
         const potentialDrillColumns = Object.keys(allRows?.[0]?.data || {}).filter(key => {
             // Not an identity field (check both exact match and substring)
             if (identityFields.some(id => key.toLowerCase() === id.toLowerCase() || key.toLowerCase().includes(id.toLowerCase()))) return false;
@@ -1421,7 +1446,7 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     // CRITICAL FIX: Always show ALL source columns for mapping, not just recognized ones
     // The user needs to be able to map ANY CSV column to ANY target field
     // Previous logic filtered out columns if they weren't in priorityKeys, preventing mapping of e.g. "player_name" → "first_name"
-    const priorityKeys = ['first_name', 'last_name', 'jersey_number', 'age_group'];
+    const priorityKeys = ['first_name', 'last_name', 'number', 'jersey_number', 'age_group'];
     const drillKeys = allKeys.filter(k => !priorityKeys.includes(k) && !k.endsWith('_raw') && k !== 'merge_strategy');
     
     // Show priority keys that exist, then all other keys
@@ -1433,7 +1458,24 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     const requiredFieldsComplete = requiredStatus.valid;
     
     // Detect unmapped drill columns (potential scores user might have missed)
-    const identityFields = ['first_name', 'last_name', 'name', 'jersey_number', 'age_group', 'team_name', 'position', 'external_id', 'notes'];
+    const identityFields = [
+        'first_name',
+        'last_name',
+        'name',
+        'jersey_number',
+        'age_group',
+        'team_name',
+        'position',
+        'external_id',
+        'notes',
+        'parent_first_name',
+        'parent_last_name',
+        'parent_email',
+        'cell_phone',
+        'street',
+        'buddy_request_raw',
+        'sibling_separation_requested'
+    ];
     const unmappedDrillColumns = requiredFieldsComplete && intent !== 'roster_only' ? sourceColumns.filter(key => {
         // Not an identity field
         if (identityFields.some(id => key.toLowerCase().includes(id.toLowerCase()))) return false;

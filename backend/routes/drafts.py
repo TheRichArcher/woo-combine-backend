@@ -186,6 +186,10 @@ class DraftCreate(BaseModel):
     auto_pick_on_timeout: bool = True
     trades_enabled: bool = False
     trades_require_approval: bool = True
+    max_players_per_team: Optional[int] = None  # None => derive from num_rounds
+    enforce_composite_balance: bool = False
+    max_composite_avg_gap: Optional[float] = None
+    composite_balance_blocking: bool = False  # Advanced: make balance violations hard errors
 
 
 class DraftUpdate(BaseModel):
@@ -196,6 +200,10 @@ class DraftUpdate(BaseModel):
     auto_pick_on_timeout: Optional[bool] = None
     trades_enabled: Optional[bool] = None
     trades_require_approval: Optional[bool] = None
+    max_players_per_team: Optional[int] = None
+    enforce_composite_balance: Optional[bool] = None
+    max_composite_avg_gap: Optional[float] = None
+    composite_balance_blocking: Optional[bool] = None
 
 
 class TeamCreate(BaseModel):
@@ -222,6 +230,11 @@ class PreSlotCreate(BaseModel):
     player_id: str
     team_id: str
     reason: Optional[str] = None  # e.g., "Coach's child"
+
+
+class SiblingGroupReviewUpdate(BaseModel):
+    action: str  # confirm | clear_lock | mark_separate
+    player_ids: Optional[List[str]] = None  # Optional subset inside the group
 
 
 class TradeCreate(BaseModel):
@@ -271,6 +284,455 @@ def get_pick_team(draft: dict, overall_pick: int) -> str:
         order = draft["team_order"]
 
     return order[pick_in_round]
+
+
+def _normalize_player_name_for_match(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    normalized = re.sub(r"[^a-z0-9\s]", " ", str(value).strip().lower())
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized or None
+
+
+def _load_draft_player_pool(db, draft_data: dict) -> Dict[str, dict]:
+    """Load all age-eligible players for this draft."""
+    event_ids = _get_draft_event_ids(draft_data)
+    age_group = _normalize_age_group(draft_data.get("age_group"))
+    all_players: Dict[str, dict] = {}
+
+    if event_ids:
+        for event_id in event_ids:
+            players_query = db.collection("events").document(event_id).collection("players")
+            for p in players_query.stream():
+                pdata = p.to_dict() or {}
+                pdata.setdefault("id", p.id)
+                if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+                    continue
+                all_players[p.id] = pdata
+    else:
+        players_query = db.collection("draft_players").where(
+            filter=FieldFilter("draft_id", "==", draft_data.get("id"))
+        )
+        for p in players_query.stream():
+            pdata = p.to_dict() or {}
+            pdata.setdefault("id", p.id)
+            if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
+                continue
+            all_players[p.id] = pdata
+
+    return all_players
+
+
+def _get_event_player_ref_for_draft(db, draft_data: dict, player_id: str):
+    """Return event player doc ref for a draft-scoped player id."""
+    for event_id in _get_draft_event_ids(draft_data):
+        ref = db.collection("events").document(event_id).collection("players").document(player_id)
+        if ref.get().exists:
+            return ref
+    return None
+
+
+def _list_draft_picks(db, draft_id: str) -> List[dict]:
+    picks_query = (
+        db.collection("draft_picks")
+        .where(filter=FieldFilter("draft_id", "==", draft_id))
+        .stream()
+    )
+    return [p.to_dict() for p in picks_query]
+
+
+def _validate_sibling_team_constraint(
+    *,
+    selected_player_id: str,
+    all_players: Dict[str, dict],
+    drafted_team_by_player: Dict[str, str],
+    current_team_id: str,
+) -> None:
+    selected = all_players.get(selected_player_id) or {}
+    sibling_group_id = selected.get("siblingGroupId")
+    force_same_team = bool(selected.get("forceSameTeamWithSibling"))
+    if not sibling_group_id or not force_same_team:
+        return
+
+    sibling_team_ids = {
+        drafted_team_by_player.get(pid)
+        for pid, pdata in all_players.items()
+        if pid != selected_player_id
+        and pdata.get("siblingGroupId") == sibling_group_id
+        and bool(pdata.get("forceSameTeamWithSibling"))
+        and drafted_team_by_player.get(pid)
+    }
+    sibling_team_ids.discard(None)
+    if sibling_team_ids and current_team_id not in sibling_team_ids:
+        forced_team = list(sibling_team_ids)[0]
+        raise HTTPException(
+            status_code=400,
+            detail=f"Sibling constraint: this player must be drafted to team {forced_team}",
+        )
+
+
+def _build_assignment_unit(
+    *,
+    selected_player_id: str,
+    all_players: Dict[str, dict],
+    drafted_player_ids: set[str],
+) -> List[str]:
+    """Return player ids assigned with the pick (forced sibling group)."""
+    selected = all_players.get(selected_player_id) or {}
+    sibling_group_id = selected.get("siblingGroupId")
+    force_same_team = bool(selected.get("forceSameTeamWithSibling"))
+    if not sibling_group_id or not force_same_team:
+        return [selected_player_id]
+
+    unit = []
+    for pid, pdata in all_players.items():
+        if pid in drafted_player_ids:
+            continue
+        if pdata.get("siblingGroupId") == sibling_group_id and bool(
+            pdata.get("forceSameTeamWithSibling")
+        ):
+            unit.append(pid)
+
+    if selected_player_id not in unit:
+        unit.append(selected_player_id)
+    return sorted(set(unit))
+
+
+def _team_player_ids_for_draft_picks(draft_picks: List[dict], team_id: str) -> List[str]:
+    return [
+        pick.get("player_id")
+        for pick in draft_picks
+        if pick.get("team_id") == team_id and pick.get("player_id")
+    ]
+
+
+def _remaining_draft_slots(draft_data: dict) -> int:
+    num_teams = int(draft_data.get("num_teams") or 0)
+    num_rounds = int(draft_data.get("num_rounds") or 0)
+    current_pick = int(draft_data.get("current_pick") or 1)
+    total_picks = num_teams * num_rounds
+    return max(0, (total_picks - current_pick) + 1)
+
+
+def _resolve_team_cap(draft_data: dict) -> Optional[int]:
+    explicit_cap = draft_data.get("max_players_per_team")
+    if explicit_cap is not None:
+        try:
+            cap = int(explicit_cap)
+            return cap if cap > 0 else None
+        except Exception:
+            return None
+    try:
+        num_rounds = int(draft_data.get("num_rounds") or 0)
+    except Exception:
+        num_rounds = 0
+    return num_rounds if num_rounds > 0 else None
+
+
+def _player_composite_for_balance(player: dict) -> float:
+    return float(
+        player.get("composite_score")
+        or (player.get("scores") or {}).get("composite")
+        or 0.0
+    )
+
+
+def _validate_team_level_constraints_for_unit(
+    *,
+    assignment_unit: List[str],
+    all_players: Dict[str, dict],
+    drafted_team_by_player: Dict[str, str],
+    current_team_id: str,
+    draft_data: dict,
+) -> List[str]:
+    advisory_warnings: List[str] = []
+    # 1) Hard per-team roster cap.
+    team_cap = _resolve_team_cap(draft_data)
+    if team_cap is not None:
+        current_team_count = sum(
+            1 for team_id in drafted_team_by_player.values() if team_id == current_team_id
+        )
+        projected_team_count = current_team_count + len(assignment_unit)
+        if projected_team_count > team_cap:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Pick rejected: per-team roster cap exceeded "
+                    f"for {current_team_id} "
+                    f"({projected_team_count} > {team_cap})"
+                ),
+            )
+
+    # 2) Optional composite balance check (advisory by default).
+    if not bool(draft_data.get("enforce_composite_balance")):
+        return advisory_warnings
+
+    raw_gap_limit = draft_data.get("max_composite_avg_gap")
+    try:
+        gap_limit = float(raw_gap_limit) if raw_gap_limit is not None else 20.0
+    except Exception:
+        gap_limit = 20.0
+    if gap_limit < 0:
+        return advisory_warnings
+
+    team_order = list(draft_data.get("team_order") or [])
+    if current_team_id not in team_order:
+        team_order.append(current_team_id)
+
+    team_counts: Dict[str, int] = {team_id: 0 for team_id in team_order}
+    team_scores: Dict[str, float] = {team_id: 0.0 for team_id in team_order}
+
+    for player_id, team_id in drafted_team_by_player.items():
+        if team_id not in team_counts:
+            continue
+        player = all_players.get(player_id)
+        if not player:
+            continue
+        team_counts[team_id] += 1
+        team_scores[team_id] += _player_composite_for_balance(player)
+
+    for player_id in assignment_unit:
+        player = all_players.get(player_id)
+        if not player:
+            continue
+        team_counts[current_team_id] = team_counts.get(current_team_id, 0) + 1
+        team_scores[current_team_id] = team_scores.get(current_team_id, 0.0) + _player_composite_for_balance(player)
+
+    populated_teams = [team_id for team_id, count in team_counts.items() if count > 0]
+    if len(populated_teams) < 2:
+        return advisory_warnings
+
+    averages = [team_scores[team_id] / team_counts[team_id] for team_id in populated_teams]
+    projected_gap = max(averages) - min(averages)
+    if projected_gap > gap_limit:
+        message = (
+            "Composite balance advisory: projected avg gap "
+            f"{projected_gap:.2f} exceeds limit {gap_limit:.2f}"
+        )
+        if bool(draft_data.get("composite_balance_blocking")):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Pick rejected: {message}",
+            )
+        advisory_warnings.append(message)
+
+    return advisory_warnings
+
+
+def _validate_assignment_unit_before_pick(
+    *,
+    assignment_unit: List[str],
+    all_players: Dict[str, dict],
+    drafted_player_ids: set[str],
+    drafted_team_by_player: Dict[str, str],
+    current_team_id: str,
+    draft_data: dict,
+) -> List[str]:
+    if not assignment_unit:
+        raise HTTPException(status_code=400, detail="No players in assignment unit")
+
+    remaining_slots = _remaining_draft_slots(draft_data)
+    if len(assignment_unit) > remaining_slots:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Sibling group cannot be assigned: not enough remaining draft slots "
+                f"({len(assignment_unit)} needed, {remaining_slots} available)"
+            ),
+        )
+
+    for pid in assignment_unit:
+        if pid in drafted_player_ids:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sibling group cannot be assigned: player already drafted ({pid})",
+            )
+        if pid not in all_players:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Sibling group contains ineligible player ({pid})",
+            )
+        _validate_sibling_team_constraint(
+            selected_player_id=pid,
+            all_players=all_players,
+            drafted_team_by_player=drafted_team_by_player,
+            current_team_id=current_team_id,
+        )
+
+    return _validate_team_level_constraints_for_unit(
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        drafted_team_by_player=drafted_team_by_player,
+        current_team_id=current_team_id,
+        draft_data=draft_data,
+    )
+
+
+def _apply_pick_unit_atomically(
+    *,
+    db,
+    draft_ref,
+    draft_id: str,
+    draft_data: dict,
+    assignment_unit: List[str],
+    all_players: Dict[str, dict],
+    current_team_id: str,
+    picked_by: str,
+    pick_type: str,
+) -> dict:
+    transaction = db.transaction()
+
+    # Read and validate draft + picks inside a transaction so overlapping pick
+    # attempts cannot both assign the same players.
+    draft_snapshot = transaction.get(draft_ref)
+    if not draft_snapshot.exists:
+        raise HTTPException(status_code=404, detail="Draft not found")
+
+    live_draft_data = draft_snapshot.to_dict() or {}
+    if live_draft_data.get("status") != "active":
+        raise HTTPException(status_code=400, detail="Draft is not active")
+    if live_draft_data.get("current_team_id") != current_team_id:
+        raise HTTPException(
+            status_code=409,
+            detail="Draft turn advanced. Refresh and try again.",
+        )
+
+    picks_query = db.collection("draft_picks").where(
+        filter=FieldFilter("draft_id", "==", draft_id)
+    )
+    pick_snapshots = list(transaction.get(picks_query))
+    drafted_player_ids = {
+        p.to_dict().get("player_id")
+        for p in pick_snapshots
+        if p.to_dict().get("player_id")
+    }
+    drafted_team_by_player = {
+        p.to_dict().get("player_id"): p.to_dict().get("team_id")
+        for p in pick_snapshots
+        if p.to_dict().get("player_id")
+    }
+
+    advisory_warnings = _validate_assignment_unit_before_pick(
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        drafted_player_ids=drafted_player_ids,
+        drafted_team_by_player=drafted_team_by_player,
+        current_team_id=current_team_id,
+        draft_data=live_draft_data,
+    )
+
+    overall_pick = int(live_draft_data.get("current_pick", 1))
+    num_teams = int(live_draft_data.get("num_teams", 1))
+    total_picks = int(live_draft_data.get("num_rounds", 1)) * num_teams
+    next_pick = overall_pick + len(assignment_unit)
+    last_assigned_pick = overall_pick + len(assignment_unit) - 1
+
+    first_pick_data = None
+    for offset, player_id in enumerate(assignment_unit):
+        pick_number = overall_pick + offset
+        pick_round = ((pick_number - 1) // num_teams) + 1
+        pick_in_round = pick_number - ((pick_round - 1) * num_teams)
+        pick_id = generate_id("pick_")
+        pick_data = {
+            "id": pick_id,
+            "draft_id": draft_id,
+            "round": pick_round,
+            "pick_number": pick_number,
+            "pick_in_round": pick_in_round,
+            "team_id": current_team_id,
+            "player_id": player_id,
+            "picked_by": picked_by,
+            "pick_type": pick_type,
+            "created_at": now_iso(),
+        }
+        if first_pick_data is None:
+            first_pick_data = dict(pick_data)
+        transaction.set(db.collection("draft_picks").document(pick_id), pick_data)
+
+    completed = next_pick > total_picks
+    if completed:
+        transaction.update(
+            draft_ref,
+            {
+                "status": "completed",
+                "completed_at": now_iso(),
+                "current_pick": last_assigned_pick,
+                "pick_deadline": None,
+            },
+        )
+    else:
+        next_round = ((next_pick - 1) // num_teams) + 1
+        next_team_id = get_pick_team(live_draft_data, next_pick)
+        pick_deadline = None
+        if live_draft_data.get("pick_timer_seconds", 0) > 0:
+            pick_deadline = (
+                datetime.now(timezone.utc)
+                + timedelta(seconds=live_draft_data["pick_timer_seconds"])
+            ).isoformat()
+        transaction.update(
+            draft_ref,
+            {
+                "current_round": next_round,
+                "current_pick": next_pick,
+                "current_team_id": next_team_id,
+                "pick_deadline": pick_deadline,
+            },
+        )
+
+    transaction.commit()
+
+    response_pick = first_pick_data or {}
+    response_pick["assigned_player_ids"] = assignment_unit
+    response_pick["completed"] = completed
+    response_pick["advisory_warnings"] = advisory_warnings
+    return response_pick
+
+
+def _build_buddy_preference_context(
+    *, all_players: Dict[str, dict], team_player_ids: List[str]
+) -> Dict[str, Dict[str, int]]:
+    team_name_counts: Dict[str, int] = {}
+    team_buddy_target_counts: Dict[str, int] = {}
+
+    for pid in team_player_ids:
+        pdata = all_players.get(pid) or {}
+        player_name = _normalize_player_name_for_match(pdata.get("name"))
+        if player_name:
+            team_name_counts[player_name] = team_name_counts.get(player_name, 0) + 1
+        buddy_target = _normalize_player_name_for_match(pdata.get("buddyRequestNormalized"))
+        if buddy_target:
+            team_buddy_target_counts[buddy_target] = (
+                team_buddy_target_counts.get(buddy_target, 0) + 1
+            )
+
+    return {
+        "team_name_counts": team_name_counts,
+        "team_buddy_target_counts": team_buddy_target_counts,
+    }
+
+
+def _calculate_buddy_preference_bonus(
+    *, candidate_player: dict, buddy_context: Dict[str, Dict[str, int]]
+) -> float:
+    buddy_name = _normalize_player_name_for_match(
+        candidate_player.get("buddyRequestNormalized")
+    )
+    player_name = _normalize_player_name_for_match(candidate_player.get("name"))
+    team_name_counts = buddy_context.get("team_name_counts", {})
+    team_buddy_target_counts = buddy_context.get("team_buddy_target_counts", {})
+
+    buddy_bonus = 0.0
+    if buddy_name:
+        direct_matches = team_name_counts.get(buddy_name, 0)
+        # Duplicate-name buddy targets are treated as ambiguous and do not get bonus.
+        if direct_matches == 1:
+            buddy_bonus += 0.5
+    if player_name:
+        reverse_requests = team_buddy_target_counts.get(player_name, 0)
+        # Multiple requests for same name still represent team preference.
+        if reverse_requests >= 1:
+            buddy_bonus += 0.25
+    return buddy_bonus
 
 
 def _is_draft_admin(user: dict, draft_data: dict) -> bool:
@@ -569,6 +1031,10 @@ async def create_draft(
         "auto_pick_on_timeout": draft_in.auto_pick_on_timeout,
         "trades_enabled": draft_in.trades_enabled,
         "trades_require_approval": draft_in.trades_require_approval,
+        "max_players_per_team": draft_in.max_players_per_team,
+        "enforce_composite_balance": draft_in.enforce_composite_balance,
+        "max_composite_avg_gap": draft_in.max_composite_avg_gap,
+        "composite_balance_blocking": draft_in.composite_balance_blocking,
         "team_order": [],
         "current_round": 0,
         "current_pick": 0,
@@ -609,7 +1075,9 @@ async def update_draft(
 
     _check_payment_gate(db, draft_id, draft_data)
 
-    updates = {k: v for k, v in draft_in.dict().items() if v is not None}
+    # Use exclude_unset so callers can explicitly clear nullable settings by
+    # sending null (e.g., max_players_per_team = null).
+    updates = draft_in.dict(exclude_unset=True)
     updates["updated_at"] = now_iso()
 
     draft_ref.update(updates)
@@ -1085,88 +1553,69 @@ async def make_pick(
         operation_name="pick submission",
     )
 
-    # Check player isn't already drafted
-    existing_pick = (
-        db.collection("draft_picks")
-        .where(filter=FieldFilter("draft_id", "==", draft_id))
-        .where(filter=FieldFilter("player_id", "==", pick_in.player_id))
-        .limit(1)
-        .stream()
-    )
+    all_players = _load_draft_player_pool(db, draft_data)
+    if pick_in.player_id not in all_players:
+        raise HTTPException(status_code=400, detail="Player is not draft-eligible")
 
-    if len(list(existing_pick)) > 0:
-        raise HTTPException(status_code=400, detail="Player already drafted")
-
-    # Calculate overall pick number
-    current_round = draft_data.get("current_round", 1)
-    num_teams = draft_data.get("num_teams", 1)
-    pick_in_round = draft_data.get("current_pick", 1) - (
-        (current_round - 1) * num_teams
-    )
-    overall_pick = draft_data.get("current_pick", 1)
-
-    # Record the pick
-    pick_id = generate_id("pick_")
-    pick_data = {
-        "id": pick_id,
-        "draft_id": draft_id,
-        "round": current_round,
-        "pick_number": overall_pick,
-        "pick_in_round": pick_in_round,
-        "team_id": current_team_id,
-        "player_id": pick_in.player_id,
-        "picked_by": user["uid"],
-        "pick_type": "manual",
-        "created_at": now_iso(),
+    draft_picks = _list_draft_picks(db, draft_id)
+    drafted_player_ids = {pick.get("player_id") for pick in draft_picks if pick.get("player_id")}
+    drafted_team_by_player = {
+        pick.get("player_id"): pick.get("team_id")
+        for pick in draft_picks
+        if pick.get("player_id")
     }
 
-    db.collection("draft_picks").document(pick_id).set(pick_data)
+    if pick_in.player_id in drafted_player_ids:
+        raise HTTPException(status_code=400, detail="Player already drafted")
 
-    # Advance draft state
-    next_pick = overall_pick + 1
-    total_picks = draft_data.get("num_rounds", 1) * num_teams
+    _validate_sibling_team_constraint(
+        selected_player_id=pick_in.player_id,
+        all_players=all_players,
+        drafted_team_by_player=drafted_team_by_player,
+        current_team_id=current_team_id,
+    )
 
-    if next_pick > total_picks:
-        # Draft complete
-        draft_ref.update(
-            {
-                "status": "completed",
-                "completed_at": now_iso(),
-                "current_pick": overall_pick,
-                "pick_deadline": None,
-            }
-        )
+    assignment_unit = _build_assignment_unit(
+        selected_player_id=pick_in.player_id,
+        all_players=all_players,
+        drafted_player_ids=drafted_player_ids,
+    )
+    if not assignment_unit:
+        assignment_unit = [pick_in.player_id]
 
-        # Create team rosters
+    _validate_assignment_unit_before_pick(
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        drafted_player_ids=drafted_player_ids,
+        drafted_team_by_player=drafted_team_by_player,
+        current_team_id=current_team_id,
+        draft_data=draft_data,
+    )
+
+    response_pick = _apply_pick_unit_atomically(
+        db=db,
+        draft_ref=draft_ref,
+        draft_id=draft_id,
+        draft_data=draft_data,
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        current_team_id=current_team_id,
+        picked_by=user["uid"],
+        pick_type="manual",
+    )
+
+    if response_pick.get("completed"):
         await _create_team_rosters(db, draft_id, draft_data)
-
-        logger.info(f"Draft completed: {draft_id}")
-    else:
-        # Advance to next pick
-        next_round = ((next_pick - 1) // num_teams) + 1
-        next_team_id = get_pick_team(draft_data, next_pick)
-
-        pick_deadline = None
-        if draft_data.get("pick_timer_seconds", 0) > 0:
-            pick_deadline = (
-                datetime.now(timezone.utc)
-                + timedelta(seconds=draft_data["pick_timer_seconds"])
-            ).isoformat()
-
-        draft_ref.update(
-            {
-                "current_round": next_round,
-                "current_pick": next_pick,
-                "current_team_id": next_team_id,
-                "pick_deadline": pick_deadline,
-            }
+        logger.info(
+            f"Draft completed: {draft_id} (pick unit size={len(assignment_unit)})"
         )
 
     logger.info(
-        f"Pick made: {pick_id} - Player {pick_in.player_id} to team {current_team_id}"
+        f"Pick made: team={current_team_id} player={pick_in.player_id} "
+        f"unit_size={len(assignment_unit)}"
     )
 
-    return pick_data
+    return response_pick
 
 
 @router.get("/{draft_id}/picks")
@@ -1253,43 +1702,14 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
         if rankings:
             ranked_player_ids = rankings[0].to_dict().get("ranked_player_ids", [])
 
-    # Get available players
-    event_ids = _get_draft_event_ids(draft_data)
-    age_group = _normalize_age_group(draft_data.get("age_group"))
-
-    if event_ids:
-        # Combine players: events/{event_id}/players/{player_id}
-        all_players = {}
-        for event_id in event_ids:
-            players_query = (
-                db.collection("events").document(event_id).collection("players")
-            )
-            for p in players_query.stream():
-                pdata = p.to_dict()
-                pdata.setdefault("id", p.id)
-                if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
-                    continue
-                all_players[p.id] = pdata
-    else:
-        # Standalone draft: players live in draft_players
-        all_players = {}
-        players_query = db.collection("draft_players").where(
-            filter=FieldFilter("draft_id", "==", draft_id)
-        )
-        for p in players_query.stream():
-            pdata = p.to_dict()
-            pdata.setdefault("id", p.id)
-            if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
-                continue
-            all_players[p.id] = pdata
-
-    # Get already drafted players
-    picks_query = (
-        db.collection("draft_picks")
-        .where(filter=FieldFilter("draft_id", "==", draft_id))
-        .stream()
-    )
-    drafted_ids = {p.to_dict().get("player_id") for p in picks_query}
+    all_players = _load_draft_player_pool(db, draft_data)
+    draft_picks = _list_draft_picks(db, draft_id)
+    drafted_ids = {p.get("player_id") for p in draft_picks if p.get("player_id")}
+    drafted_team_by_player = {
+        p.get("player_id"): p.get("team_id")
+        for p in draft_picks
+        if p.get("player_id")
+    }
 
     # Filter to available players
     available_ids = [pid for pid in all_players.keys() if pid not in drafted_ids]
@@ -1297,89 +1717,96 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
     if not available_ids:
         raise HTTPException(status_code=400, detail="No players available")
 
-    # Select best available player
-    selected_player_id = None
+    # Select best available player with sibling hard constraints and buddy soft preference.
+    ranking_index = {pid: idx for idx, pid in enumerate(ranked_player_ids)}
+    team_player_ids = _team_player_ids_for_draft_picks(draft_picks, current_team_id)
+    buddy_context = _build_buddy_preference_context(
+        all_players=all_players, team_player_ids=team_player_ids
+    )
 
-    # First, try coach rankings
-    for pid in ranked_player_ids:
-        if pid in available_ids:
-            selected_player_id = pid
-            break
+    def _candidate_score(pid: str) -> Optional[float]:
+        try:
+            _validate_sibling_team_constraint(
+                selected_player_id=pid,
+                all_players=all_players,
+                drafted_team_by_player=drafted_team_by_player,
+                current_team_id=current_team_id,
+            )
+        except HTTPException:
+            return None
 
-    # Fallback to highest composite score
-    if not selected_player_id:
-        available_players = [(pid, all_players[pid]) for pid in available_ids]
-        available_players.sort(
-            key=lambda x: x[1].get("composite_score")
-            or x[1].get("scores", {}).get("composite", 0)
-            or 0,
-            reverse=True,
+        pdata = all_players.get(pid) or {}
+        if pid in ranking_index:
+            base = 100000.0 - float(ranking_index[pid])
+        else:
+            base = float(
+                pdata.get("composite_score")
+                or pdata.get("scores", {}).get("composite", 0)
+                or 0
+            )
+        buddy_bonus = _calculate_buddy_preference_bonus(
+            candidate_player=pdata, buddy_context=buddy_context
         )
-        selected_player_id = available_players[0][0]
+        return base + buddy_bonus
 
-    # Record the pick
-    current_round = draft_data.get("current_round", 1)
-    overall_pick = draft_data.get("current_pick", 1)
-    num_teams = draft_data.get("num_teams", 1)
+    ranked_candidates = []
+    for pid in available_ids:
+        score = _candidate_score(pid)
+        if score is None:
+            continue
+        ranked_candidates.append((pid, score))
 
-    pick_id = generate_id("pick_")
-    pick_data = {
-        "id": pick_id,
-        "draft_id": draft_id,
-        "round": current_round,
-        "pick_number": overall_pick,
-        "team_id": current_team_id,
-        "player_id": selected_player_id,
-        "picked_by": "system",
-        "pick_type": "auto",
-        "created_at": now_iso(),
-    }
-
-    db.collection("draft_picks").document(pick_id).set(pick_data)
-
-    # Advance draft state
-    next_pick = overall_pick + 1
-    total_picks = draft_data.get("num_rounds", 1) * num_teams
-
-    if next_pick > total_picks:
-        # Draft complete
-        draft_ref.update(
-            {
-                "status": "completed",
-                "completed_at": now_iso(),
-                "current_pick": overall_pick,
-                "pick_deadline": None,
-            }
+    if not ranked_candidates:
+        raise HTTPException(
+            status_code=400,
+            detail="No eligible players available for this team (sibling constraints)",
         )
+
+    ranked_candidates.sort(key=lambda item: item[1], reverse=True)
+    selected_player_id = ranked_candidates[0][0]
+    assignment_unit = _build_assignment_unit(
+        selected_player_id=selected_player_id,
+        all_players=all_players,
+        drafted_player_ids=drafted_ids,
+    )
+    if not assignment_unit:
+        assignment_unit = [selected_player_id]
+
+    _validate_assignment_unit_before_pick(
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        drafted_player_ids=drafted_ids,
+        drafted_team_by_player=drafted_team_by_player,
+        current_team_id=current_team_id,
+        draft_data=draft_data,
+    )
+
+    base_pick = _apply_pick_unit_atomically(
+        db=db,
+        draft_ref=draft_ref,
+        draft_id=draft_id,
+        draft_data=draft_data,
+        assignment_unit=assignment_unit,
+        all_players=all_players,
+        current_team_id=current_team_id,
+        picked_by="system",
+        pick_type="auto",
+    )
+
+    if base_pick.get("completed"):
         await _create_team_rosters(db, draft_id, draft_data)
-        logger.info(f"Draft completed via auto-pick: {draft_id}")
-    else:
-        # Advance to next pick
-        next_round = ((next_pick - 1) // num_teams) + 1
-        next_team_id = get_pick_team(draft_data, next_pick)
-
-        pick_deadline = None
-        if draft_data.get("pick_timer_seconds", 0) > 0:
-            pick_deadline = (
-                datetime.now(timezone.utc)
-                + timedelta(seconds=draft_data["pick_timer_seconds"])
-            ).isoformat()
-
-        draft_ref.update(
-            {
-                "current_round": next_round,
-                "current_pick": next_pick,
-                "current_team_id": next_team_id,
-                "pick_deadline": pick_deadline,
-            }
+        logger.info(
+            f"Draft completed via auto-pick: {draft_id} "
+            f"(pick unit size={len(assignment_unit)})"
         )
 
     logger.info(
-        f"Auto-pick made: {pick_id} - Player {selected_player_id} to team {current_team_id}"
+        f"Auto-pick made: player={selected_player_id} "
+        f"team={current_team_id} unit_size={len(assignment_unit)}"
     )
 
     return {
-        **pick_data,
+        **base_pick,
         "player_name": all_players.get(selected_player_id, {}).get("name", "Unknown"),
     }
 
@@ -1588,6 +2015,115 @@ async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_us
         pick["player"] = players_by_id.get(pick.get("player_id"), {})
 
     return picks
+
+
+@router.post("/{draft_id}/sibling-groups/{sibling_group_id}/review")
+async def review_sibling_group(
+    draft_id: str,
+    sibling_group_id: str,
+    review_in: SiblingGroupReviewUpdate,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Operator review action for inferred sibling groups during draft setup.
+
+    Actions:
+    - confirm: keep sibling lock and mark as reviewed
+    - clear_lock: remove sibling lock/group association
+    - mark_separate: explicitly mark siblings as intentionally separate
+    """
+    db = get_firestore_client()
+    _, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
+
+    if draft_data.get("status") != "setup":
+        raise HTTPException(
+            status_code=400,
+            detail="Sibling group review is only allowed before draft start",
+        )
+
+    action = (review_in.action or "").strip().lower()
+    if action not in {"confirm", "clear_lock", "mark_separate"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid action. Use confirm, clear_lock, or mark_separate",
+        )
+
+    all_players = _load_draft_player_pool(db, draft_data)
+    group_players = [
+        p
+        for p in all_players.values()
+        if p.get("siblingGroupId") == sibling_group_id and p.get("id")
+    ]
+    if review_in.player_ids:
+        requested = set(review_in.player_ids)
+        group_players = [p for p in group_players if p.get("id") in requested]
+
+    if not group_players:
+        raise HTTPException(status_code=404, detail="Sibling group not found in draft scope")
+
+    reviewed_at = now_iso()
+    batch = db.batch()
+    updated_player_ids = []
+    for player in group_players:
+        player_id = player.get("id")
+        if not player_id:
+            continue
+        player_ref = _get_event_player_ref_for_draft(db, draft_data, player_id)
+        if not player_ref:
+            # Manual draft players are not inferred sibling entities.
+            continue
+
+        update_payload = {
+            "siblingReviewedAt": reviewed_at,
+            "siblingReviewedBy": user["uid"],
+            "siblingReviewDecision": action,
+        }
+
+        if action == "confirm":
+            update_payload.update(
+                {
+                    "forceSameTeamWithSibling": True,
+                    "siblingReviewStatus": "confirmed",
+                    "siblingInferenceSuspicious": False,
+                    "siblingInferenceSuspicionReasons": [],
+                }
+            )
+        elif action == "clear_lock":
+            update_payload.update(
+                {
+                    "forceSameTeamWithSibling": False,
+                    "siblingGroupId": None,
+                    "siblingReviewStatus": "cleared",
+                }
+            )
+        elif action == "mark_separate":
+            update_payload.update(
+                {
+                    "forceSameTeamWithSibling": False,
+                    "siblingGroupId": None,
+                    "siblingSeparationRequested": True,
+                    "siblingReviewStatus": "separate",
+                }
+            )
+
+        batch.set(player_ref, update_payload, merge=True)
+        updated_player_ids.append(player_id)
+
+    if not updated_player_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="No event-linked players in this sibling group were eligible for review",
+        )
+
+    batch.commit()
+
+    return {
+        "status": "ok",
+        "draft_id": draft_id,
+        "sibling_group_id": sibling_group_id,
+        "action": action,
+        "updated_player_ids": sorted(updated_player_ids),
+    }
 
 
 # ============================================================================

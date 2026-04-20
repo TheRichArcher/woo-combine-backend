@@ -902,6 +902,508 @@ def test_team_owner_coach_can_make_pick(app_client, fake_db, coach_headers):
     assert r.json()["pick_type"] == "manual"
 
 
+def test_manual_pick_assigns_entire_sibling_group(app_client, fake_db, organizer_headers):
+    draft_id = "sibling-pick-draft"
+    team_id = "sibling-pick-team"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("events").document("event-1").set(
+        {"id": "event-1", "name": "Event 1", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {"event_id": "event-1", "event_ids": ["event-1"], "num_rounds": 2}
+    )
+
+    fake_db.collection("events").document("event-1").collection("players").document("sib-1").set(
+        {
+            "id": "sib-1",
+            "name": "Alex Smith",
+            "age_group": "U10",
+            "siblingGroupId": "sg_abc123",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("events").document("event-1").collection("players").document("sib-2").set(
+        {
+            "id": "sib-2",
+            "name": "Avery Smith",
+            "age_group": "U10",
+            "siblingGroupId": "sg_abc123",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "sib-1"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert sorted(body["assigned_player_ids"]) == ["sib-1", "sib-2"]
+
+    picks = [
+        p.to_dict()
+        for p in fake_db.collection("draft_picks")
+        .where("draft_id", "==", draft_id)
+        .stream()
+    ]
+    assert len(picks) == 2
+    assert {p["player_id"] for p in picks} == {"sib-1", "sib-2"}
+    assert all(p["team_id"] == team_id for p in picks)
+
+
+def test_manual_pick_rejects_sibling_unit_when_slots_insufficient(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "sibling-capacity-draft"
+    team_id = "sibling-capacity-team"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("events").document("event-cap").set(
+        {"id": "event-cap", "name": "Event Cap", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {"event_id": "event-cap", "event_ids": ["event-cap"], "num_rounds": 1, "num_teams": 1}
+    )
+    fake_db.collection("events").document("event-cap").collection("players").document("sib-cap-1").set(
+        {
+            "id": "sib-cap-1",
+            "name": "Cap One",
+            "age_group": "U10",
+            "siblingGroupId": "sg_cap",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("events").document("event-cap").collection("players").document("sib-cap-2").set(
+        {
+            "id": "sib-cap-2",
+            "name": "Cap Two",
+            "age_group": "U10",
+            "siblingGroupId": "sg_cap",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "sib-cap-1"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 400, r.text
+    assert "not enough remaining draft slots" in r.json().get("detail", "")
+
+    picks = list(
+        fake_db.collection("draft_picks")
+        .where("draft_id", "==", draft_id)
+        .stream()
+    )
+    assert len(picks) == 0
+
+
+def test_manual_pick_rejects_when_sibling_already_on_other_team_without_partial_write(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "sibling-hard-constraint-draft"
+    team1 = "sibling-team-1"
+    team2 = "sibling-team-2"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team1,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("draft_teams").document(team2).set(
+        {"id": team2, "draft_id": draft_id, "team_name": "Team Two", "coach_user_id": "coach-2"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {"num_teams": 2, "num_rounds": 3, "team_order": [team1, team2]}
+    )
+    fake_db.collection("events").document("event-hard").set(
+        {"id": "event-hard", "name": "Event Hard", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {"event_id": "event-hard", "event_ids": ["event-hard"]}
+    )
+    fake_db.collection("events").document("event-hard").collection("players").document("sib-hard-1").set(
+        {
+            "id": "sib-hard-1",
+            "name": "Hard One",
+            "age_group": "U10",
+            "siblingGroupId": "sg_hard",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("events").document("event-hard").collection("players").document("sib-hard-2").set(
+        {
+            "id": "sib-hard-2",
+            "name": "Hard Two",
+            "age_group": "U10",
+            "siblingGroupId": "sg_hard",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("draft_picks").document("existing-hard-pick").set(
+        {
+            "id": "existing-hard-pick",
+            "draft_id": draft_id,
+            "round": 1,
+            "pick_number": 1,
+            "team_id": team2,
+            "player_id": "sib-hard-2",
+        }
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "sib-hard-1"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 400, r.text
+    assert "Sibling constraint" in r.json().get("detail", "")
+
+    picks = [
+        p.to_dict()
+        for p in fake_db.collection("draft_picks")
+        .where("draft_id", "==", draft_id)
+        .stream()
+    ]
+    assert len(picks) == 1
+    assert picks[0]["player_id"] == "sib-hard-2"
+
+
+def test_auto_pick_rejects_sibling_unit_when_slots_insufficient_without_partial_write(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "sibling-auto-capacity-draft"
+    team_id = "sibling-auto-capacity-team"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+        auto_pick_on_timeout=True,
+    )
+    fake_db.collection("events").document("event-auto-cap").set(
+        {"id": "event-auto-cap", "name": "Event Auto Cap", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {
+            "event_id": "event-auto-cap",
+            "event_ids": ["event-auto-cap"],
+            "num_rounds": 1,
+            "num_teams": 1,
+        }
+    )
+    fake_db.collection("events").document("event-auto-cap").collection("players").document("sib-auto-cap-1").set(
+        {
+            "id": "sib-auto-cap-1",
+            "name": "Auto Cap One",
+            "age_group": "U10",
+            "siblingGroupId": "sg_auto_cap",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("events").document("event-auto-cap").collection("players").document("sib-auto-cap-2").set(
+        {
+            "id": "sib-auto-cap-2",
+            "name": "Auto Cap Two",
+            "age_group": "U10",
+            "siblingGroupId": "sg_auto_cap",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+
+    r = app_client.post(f"/api/drafts/{draft_id}/picks/auto", headers=organizer_headers)
+    assert r.status_code == 400, r.text
+    assert "not enough remaining draft slots" in r.json().get("detail", "")
+
+    picks = list(
+        fake_db.collection("draft_picks")
+        .where("draft_id", "==", draft_id)
+        .stream()
+    )
+    assert len(picks) == 0
+
+
+def test_manual_pick_rejects_when_team_cap_would_be_exceeded(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "team-cap-hard-reject-draft"
+    team_id = "team-cap-hard-reject-team"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("events").document("event-team-cap").set(
+        {"id": "event-team-cap", "name": "Event Team Cap", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {
+            "event_id": "event-team-cap",
+            "event_ids": ["event-team-cap"],
+            "num_rounds": 3,
+            "num_teams": 1,
+            "max_players_per_team": 1,
+        }
+    )
+    fake_db.collection("events").document("event-team-cap").collection("players").document("team-cap-p1").set(
+        {"id": "team-cap-p1", "name": "Cap Candidate", "age_group": "U10"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "team-cap-p1"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 200, r.text
+
+    fake_db.collection("events").document("event-team-cap").collection("players").document("team-cap-p2").set(
+        {"id": "team-cap-p2", "name": "Cap Candidate 2", "age_group": "U10"}
+    )
+    r2 = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "team-cap-p2"},
+        headers=organizer_headers,
+    )
+    assert r2.status_code == 400, r2.text
+    assert "per-team roster cap exceeded" in r2.json().get("detail", "")
+
+
+def test_manual_pick_rejects_when_composite_balance_rule_would_be_exceeded(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "composite-balance-hard-reject-draft"
+    team1 = "composite-team-1"
+    team2 = "composite-team-2"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team1,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("draft_teams").document(team2).set(
+        {"id": team2, "draft_id": draft_id, "team_name": "Team Two", "coach_user_id": "coach-2"}
+    )
+    fake_db.collection("events").document("event-comp").set(
+        {"id": "event-comp", "name": "Event Composite", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {
+            "event_id": "event-comp",
+            "event_ids": ["event-comp"],
+            "num_teams": 2,
+            "num_rounds": 3,
+            "team_order": [team1, team2],
+            "current_pick": 3,
+            "current_round": 2,
+            "current_team_id": team1,
+            "enforce_composite_balance": True,
+            "max_composite_avg_gap": 5.0,
+            "composite_balance_blocking": True,
+        }
+    )
+
+    fake_db.collection("events").document("event-comp").collection("players").document("comp-a").set(
+        {"id": "comp-a", "name": "Comp A", "age_group": "U10", "composite_score": 50}
+    )
+    fake_db.collection("events").document("event-comp").collection("players").document("comp-b").set(
+        {"id": "comp-b", "name": "Comp B", "age_group": "U10", "composite_score": 50}
+    )
+    fake_db.collection("events").document("event-comp").collection("players").document("comp-c").set(
+        {"id": "comp-c", "name": "Comp C", "age_group": "U10", "composite_score": 100}
+    )
+    fake_db.collection("draft_picks").document("comp-pick-1").set(
+        {"id": "comp-pick-1", "draft_id": draft_id, "round": 1, "pick_number": 1, "team_id": team1, "player_id": "comp-a"}
+    )
+    fake_db.collection("draft_picks").document("comp-pick-2").set(
+        {"id": "comp-pick-2", "draft_id": draft_id, "round": 1, "pick_number": 2, "team_id": team2, "player_id": "comp-b"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "comp-c"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 400, r.text
+    assert "composite balance rule exceeded" in r.json().get("detail", "")
+
+
+def test_sibling_unit_allows_advisory_composite_balance_violation_when_non_blocking(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "composite-balance-advisory-draft"
+    team1 = "advisory-team-1"
+    team2 = "advisory-team-2"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team1,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("draft_teams").document(team2).set(
+        {"id": team2, "draft_id": draft_id, "team_name": "Team Two", "coach_user_id": "coach-2"}
+    )
+    fake_db.collection("events").document("event-advisory").set(
+        {"id": "event-advisory", "name": "Event Advisory", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {
+            "event_id": "event-advisory",
+            "event_ids": ["event-advisory"],
+            "num_teams": 2,
+            "num_rounds": 4,
+            "team_order": [team1, team2],
+            "current_pick": 3,
+            "current_round": 2,
+            "current_team_id": team1,
+            "enforce_composite_balance": True,
+            "max_composite_avg_gap": 5.0,
+            "composite_balance_blocking": False,
+        }
+    )
+    fake_db.collection("events").document("event-advisory").collection("players").document("adv-low-1").set(
+        {"id": "adv-low-1", "name": "Low One", "age_group": "U10", "composite_score": 50}
+    )
+    fake_db.collection("events").document("event-advisory").collection("players").document("adv-low-2").set(
+        {"id": "adv-low-2", "name": "Low Two", "age_group": "U10", "composite_score": 50}
+    )
+    fake_db.collection("events").document("event-advisory").collection("players").document("adv-sib-1").set(
+        {
+            "id": "adv-sib-1",
+            "name": "High Sib One",
+            "age_group": "U10",
+            "composite_score": 100,
+            "siblingGroupId": "sg_adv",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("events").document("event-advisory").collection("players").document("adv-sib-2").set(
+        {
+            "id": "adv-sib-2",
+            "name": "High Sib Two",
+            "age_group": "U10",
+            "composite_score": 100,
+            "siblingGroupId": "sg_adv",
+            "forceSameTeamWithSibling": True,
+        }
+    )
+    fake_db.collection("draft_picks").document("adv-pick-1").set(
+        {"id": "adv-pick-1", "draft_id": draft_id, "round": 1, "pick_number": 1, "team_id": team1, "player_id": "adv-low-1"}
+    )
+    fake_db.collection("draft_picks").document("adv-pick-2").set(
+        {"id": "adv-pick-2", "draft_id": draft_id, "round": 1, "pick_number": 2, "team_id": team2, "player_id": "adv-low-2"}
+    )
+
+    r = app_client.post(
+        f"/api/drafts/{draft_id}/picks",
+        json={"player_id": "adv-sib-1"},
+        headers=organizer_headers,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert sorted(body.get("assigned_player_ids") or []) == ["adv-sib-1", "adv-sib-2"]
+    warnings = body.get("advisory_warnings") or []
+    assert any("Composite balance advisory" in warning for warning in warnings)
+
+
+def test_admin_can_review_suspicious_sibling_group_actions(
+    app_client, fake_db, organizer_headers
+):
+    draft_id = "sibling-review-draft"
+    team_id = "sibling-review-team"
+    _seed_active_pickable_draft(
+        fake_db,
+        draft_id=draft_id,
+        team_id=team_id,
+        created_by="org-1",
+        team_coach_user_id="coach-1",
+    )
+    fake_db.collection("drafts").document(draft_id).update({"status": "setup"})
+    fake_db.collection("events").document("event-review").set(
+        {"id": "event-review", "name": "Event Review", "league_id": "league-1"}
+    )
+    fake_db.collection("drafts").document(draft_id).update(
+        {"event_id": "event-review", "event_ids": ["event-review"]}
+    )
+    fake_db.collection("events").document("event-review").collection("players").document("sib-review-1").set(
+        {
+            "id": "sib-review-1",
+            "name": "Review One",
+            "age_group": "U10",
+            "siblingGroupId": "sg_review",
+            "forceSameTeamWithSibling": True,
+            "siblingInferenceSuspicious": True,
+            "siblingInferenceSuspicionReasons": ["large_group"],
+        }
+    )
+    fake_db.collection("events").document("event-review").collection("players").document("sib-review-2").set(
+        {
+            "id": "sib-review-2",
+            "name": "Review Two",
+            "age_group": "U10",
+            "siblingGroupId": "sg_review",
+            "forceSameTeamWithSibling": True,
+            "siblingInferenceSuspicious": True,
+            "siblingInferenceSuspicionReasons": ["large_group"],
+        }
+    )
+
+    confirm = app_client.post(
+        f"/api/drafts/{draft_id}/sibling-groups/sg_review/review",
+        json={"action": "confirm"},
+        headers=organizer_headers,
+    )
+    assert confirm.status_code == 200, confirm.text
+
+    doc1 = (
+        fake_db.collection("events")
+        .document("event-review")
+        .collection("players")
+        .document("sib-review-1")
+        .get()
+        .to_dict()
+    )
+    assert doc1.get("siblingReviewStatus") == "confirmed"
+    assert doc1.get("forceSameTeamWithSibling") is True
+    assert doc1.get("siblingInferenceSuspicious") is False
+
+    separate = app_client.post(
+        f"/api/drafts/{draft_id}/sibling-groups/sg_review/review",
+        json={"action": "mark_separate"},
+        headers=organizer_headers,
+    )
+    assert separate.status_code == 200, separate.text
+    doc2 = (
+        fake_db.collection("events")
+        .document("event-review")
+        .collection("players")
+        .document("sib-review-2")
+        .get()
+        .to_dict()
+    )
+    assert doc2.get("siblingReviewStatus") == "separate"
+    assert doc2.get("forceSameTeamWithSibling") is False
+    assert doc2.get("siblingSeparationRequested") is True
+
+
 def test_unassigned_coach_cannot_make_pick_outside_event_scope(app_client, fake_db):
     draft_id = "coach-out-of-scope-pick-draft"
     team_id = "coach-out-of-scope-team"

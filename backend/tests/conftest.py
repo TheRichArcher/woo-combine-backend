@@ -184,6 +184,38 @@ class FakeBatch:
         return None
 
 
+class FakeTransaction:
+    def __init__(self):
+        self._ops = []
+
+    def get(self, ref_or_query):
+        # Firestore transaction.get supports DocumentReference and Query.
+        if hasattr(ref_or_query, "stream"):
+            return list(ref_or_query.stream())
+        if hasattr(ref_or_query, "get"):
+            return ref_or_query.get()
+        raise TypeError("Unsupported transaction.get target")
+
+    def set(self, doc_ref, data, **kwargs):
+        self._ops.append(("set", doc_ref, data, kwargs))
+
+    def update(self, doc_ref, data):
+        self._ops.append(("update", doc_ref, data, {}))
+
+    def delete(self, doc_ref):
+        self._ops.append(("delete", doc_ref, None, {}))
+
+    def commit(self):
+        for op, ref, data, kwargs in self._ops:
+            if op == "set":
+                ref.set(data, **kwargs)
+            elif op == "update":
+                ref.update(data)
+            elif op == "delete":
+                ref.delete()
+        return None
+
+
 class FakeFirestore:
     def __init__(self, store=None):
         self.store = store if store is not None else {}
@@ -201,6 +233,9 @@ class FakeFirestore:
 
     def batch(self):
         return FakeBatch()
+
+    def transaction(self):
+        return FakeTransaction()
 
     def get_all(self, doc_refs):
         return [ref.get() for ref in doc_refs]

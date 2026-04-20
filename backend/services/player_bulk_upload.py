@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, Request
 
@@ -13,12 +13,180 @@ from ..utils.database import execute_with_timeout
 from ..utils.event_schema import get_event_schema
 from ..utils.identity import generate_player_id
 from ..utils.lock_validation import check_write_permission
+from ..utils.participant_matching import (
+    has_explicit_sibling_separation_request,
+    infer_sibling_group_assignments,
+    normalize_buddy_request,
+    normalize_email,
+    normalize_person_name,
+    normalize_phone,
+    normalize_street,
+)
 
 
 """Bulk player upload service.
 
 Extracted from backend/routes/players.py (upload_players) as a pure refactor.
 """
+
+
+def _clean_optional_text(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    cleaned = str(value).strip()
+    return cleaned or None
+
+
+def _derive_household_and_buddy_fields(player: Dict[str, Any]) -> Dict[str, Any]:
+    buddy_raw = (
+        _clean_optional_text(player.get("buddy_request_raw"))
+        or _clean_optional_text(player.get("buddyRequestRaw"))
+        or _clean_optional_text(player.get("Buddy Request 1"))
+        or _clean_optional_text(player.get("buddy_request_1"))
+    )
+    notes = _clean_optional_text(player.get("notes"))
+    parent_first_name = _clean_optional_text(player.get("parent_first_name"))
+    parent_last_name = _clean_optional_text(player.get("parent_last_name"))
+    parent_email = (
+        _clean_optional_text(player.get("parent_email"))
+        or _clean_optional_text(player.get("email"))
+    )
+    cell_phone = (
+        _clean_optional_text(player.get("cell_phone"))
+        or _clean_optional_text(player.get("cellphone"))
+        or _clean_optional_text(player.get("phone"))
+    )
+    street = _clean_optional_text(player.get("street"))
+
+    sibling_separation_requested = has_explicit_sibling_separation_request(player, notes)
+
+    return {
+        "buddyRequestRaw": buddy_raw,
+        "buddyRequestNormalized": normalize_buddy_request(buddy_raw),
+        "parentFirstName": parent_first_name,
+        "parentLastName": parent_last_name,
+        "parentLastNameNormalized": normalize_person_name(parent_last_name),
+        "parentEmail": parent_email,
+        "parentEmailNormalized": normalize_email(parent_email),
+        "cellPhone": cell_phone,
+        "cellPhoneNormalized": normalize_phone(cell_phone),
+        "street": street,
+        "streetNormalized": normalize_street(street),
+        "siblingSeparationRequested": sibling_separation_requested,
+    }
+
+
+def _recalculate_sibling_groups(event_id: str) -> None:
+    players_ref = db.collection("events").document(event_id).collection("players")
+    player_docs = list(players_ref.stream())
+    if not player_docs:
+        return
+
+    players = []
+    for doc in player_docs:
+        pdata = doc.to_dict() or {}
+        pdata["id"] = doc.id
+        players.append(pdata)
+
+    assignments = infer_sibling_group_assignments(players, event_id=event_id)
+
+    suspicious_groups = {}
+    for player in players:
+        player_id = player.get("id")
+        if not player_id:
+            continue
+        assignment = assignments.get(player_id, {})
+        sibling_group_id = assignment.get("siblingGroupId")
+        if not sibling_group_id:
+            continue
+        if not assignment.get("siblingInferenceSuspicious"):
+            continue
+        group_entry = suspicious_groups.setdefault(
+            sibling_group_id,
+            {
+                "group_id": sibling_group_id,
+                "size": assignment.get("siblingGroupSize"),
+                "signals": assignment.get("siblingInferenceSignals", []),
+                "reasons": assignment.get("siblingInferenceSuspicionReasons", []),
+                "player_ids": [],
+            },
+        )
+        group_entry["player_ids"].append(player_id)
+
+    for group in suspicious_groups.values():
+        logging.warning(
+            "[SIBLING_INFERENCE_SUSPICIOUS] Event=%s Group=%s Size=%s Signals=%s Reasons=%s Players=%s",
+            event_id,
+            group["group_id"],
+            group["size"],
+            group["signals"],
+            group["reasons"],
+            sorted(group["player_ids"]),
+        )
+
+    batch = db.batch()
+    batch_count = 0
+    updates_applied = 0
+    for player in players:
+        player_id = player.get("id")
+        if not player_id:
+            continue
+        assignment = assignments.get(
+            player_id,
+            {
+                "siblingGroupId": None,
+                "forceSameTeamWithSibling": False,
+                "siblingInferenceSignals": [],
+                "siblingInferenceSuspicious": False,
+                "siblingInferenceSuspicionReasons": [],
+                "siblingGroupSize": 1,
+            },
+        )
+        if (
+            player.get("siblingGroupId") == assignment["siblingGroupId"]
+            and bool(player.get("forceSameTeamWithSibling"))
+            == bool(assignment["forceSameTeamWithSibling"])
+            and sorted(player.get("siblingInferenceSignals") or [])
+            == sorted(assignment.get("siblingInferenceSignals") or [])
+            and bool(player.get("siblingInferenceSuspicious"))
+            == bool(assignment.get("siblingInferenceSuspicious"))
+            and sorted(player.get("siblingInferenceSuspicionReasons") or [])
+            == sorted(assignment.get("siblingInferenceSuspicionReasons") or [])
+            and int(player.get("siblingGroupSize") or 1)
+            == int(assignment.get("siblingGroupSize") or 1)
+        ):
+            continue
+
+        batch.set(
+            players_ref.document(player_id),
+            {
+                "siblingGroupId": assignment["siblingGroupId"],
+                "forceSameTeamWithSibling": assignment["forceSameTeamWithSibling"],
+                "siblingInferenceSignals": assignment.get("siblingInferenceSignals", []),
+                "siblingInferenceSuspicious": bool(
+                    assignment.get("siblingInferenceSuspicious")
+                ),
+                "siblingInferenceSuspicionReasons": assignment.get(
+                    "siblingInferenceSuspicionReasons", []
+                ),
+                "siblingGroupSize": assignment.get("siblingGroupSize", 1),
+            },
+            merge=True,
+        )
+        batch_count += 1
+        updates_applied += 1
+
+        if batch_count >= 400:
+            execute_with_timeout(lambda: batch.commit(), timeout=10)
+            batch = db.batch()
+            batch_count = 0
+
+    if batch_count > 0:
+        execute_with_timeout(lambda: batch.commit(), timeout=10)
+
+    logging.info(
+        f"[SIBLING_INFERENCE] Event={event_id} updated_players={updates_applied}"
+    )
 
 
 def upload_players_service(*, request: Request, req: Any, current_user: Dict[str, Any]):
@@ -355,6 +523,7 @@ def upload_players_service(*, request: Request, req: Any, current_user: Dict[str
                 "created_at": datetime.utcnow().isoformat(),
                 "scores": {} # Start with empty scores
             }
+            player_data.update(_derive_household_and_buddy_fields(player))
 
             # PROCESS DYNAMIC SCORES
             
@@ -428,7 +597,35 @@ def upload_players_service(*, request: Request, req: Any, current_user: Dict[str
                 # New Logic for Scores Only: Strictly preserve identity fields
                 if req.mode == "scores_only":
                     # Keep only scores and non-identity fields from payload
-                    identity_fields = ["name", "first", "last", "number", "age_group", "team_name", "position", "photo_url", "external_id"]
+                    identity_fields = [
+                        "name",
+                        "first",
+                        "last",
+                        "number",
+                        "age_group",
+                        "team_name",
+                        "position",
+                        "photo_url",
+                        "external_id",
+                        "buddyRequestRaw",
+                        "buddyRequestNormalized",
+                        "siblingGroupId",
+                        "forceSameTeamWithSibling",
+                        "siblingSeparationRequested",
+                        "siblingInferenceSignals",
+                        "siblingInferenceSuspicious",
+                        "siblingInferenceSuspicionReasons",
+                        "siblingGroupSize",
+                        "parentFirstName",
+                        "parentLastName",
+                        "parentLastNameNormalized",
+                        "parentEmail",
+                        "parentEmailNormalized",
+                        "cellPhone",
+                        "cellPhoneNormalized",
+                        "street",
+                        "streetNormalized",
+                    ]
                     for f in identity_fields:
                         if f in player_data:
                             del player_data[f]
@@ -453,6 +650,10 @@ def upload_players_service(*, request: Request, req: Any, current_user: Dict[str
         # Commit remaining
         if batch_count > 0:
             execute_with_timeout(lambda: batch.commit(), timeout=10)
+
+        # Recompute sibling groups against the full event roster so partial uploads
+        # still converge to consistent family group assignments.
+        _recalculate_sibling_groups(event_id)
         
         # --- DETAILED IMPORT SUMMARY FOR DEBUGGING ---
         logging.info(f"[IMPORT_SUMMARY] Event {event_id}: {scores_written_total} total scores written across {len(scores_written_by_drill)} drills")

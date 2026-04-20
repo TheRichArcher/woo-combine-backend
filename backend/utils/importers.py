@@ -72,6 +72,23 @@ class DataImporter:
         "bibno": "external_id",
         "external_id": "external_id",
         "athlete_id": "external_id",
+        "buddy_request_1": "buddy_request_raw",
+        "buddy_request": "buddy_request_raw",
+        "buddy": "buddy_request_raw",
+        "user_first_name": "parent_first_name",
+        "user_last_name": "parent_last_name",
+        "email": "parent_email",
+        "parent_email": "parent_email",
+        "guardian_email": "parent_email",
+        "cellphone": "cell_phone",
+        "cell_phone": "cell_phone",
+        "phone": "cell_phone",
+        "street": "street",
+        "street_address": "street",
+        "address": "street",
+        "sibling_separation_requested": "sibling_separation_requested",
+        "separate_siblings": "sibling_separation_requested",
+        "keep_siblings_separate": "sibling_separation_requested",
     }
 
     @staticmethod
@@ -98,8 +115,10 @@ class DataImporter:
         header_no_units = re.sub(r"\s*\([^)]*\)\s*", " ", str(header))
         clean = header_no_units.strip().lower().replace(" ", "_").replace("-", "_")
 
-        # BLOCKLIST: Parent/user columns from registration exports (e.g., SportsConnect)
-        # These should NEVER map to player fields — they contain guardian info
+        # Keep parent/guardian columns for sibling inference.
+        # They should not map to athlete identity fields, but they still need to be
+        # preserved in parsed rows so import mapping can route them into household
+        # metadata fields.
         PARENT_COLUMN_PREFIXES = (
             "user_first", "user_last", "user_name", "user_email",
             "parent_first", "parent_last", "parent_name", "parent_email",
@@ -107,7 +126,7 @@ class DataImporter:
             "emergency_contact",
         )
         if clean.startswith(PARENT_COLUMN_PREFIXES):
-            return ""  # Return empty = unmapped, will be ignored
+            return clean
 
         # Check exact matches first
         if clean in DataImporter.FIELD_MAPPING:

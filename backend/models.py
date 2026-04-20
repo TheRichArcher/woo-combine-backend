@@ -15,6 +15,24 @@ class PlayerSchema(BaseModel):
     event_id: Optional[str] = None
     created_at: Optional[str] = None
     external_id: Optional[str] = None  # Added explicit field for combine bibs/ids
+    buddyRequestRaw: Optional[str] = None
+    buddyRequestNormalized: Optional[str] = None
+    siblingGroupId: Optional[str] = None
+    forceSameTeamWithSibling: Optional[bool] = None
+    siblingSeparationRequested: Optional[bool] = None
+    siblingInferenceSignals: Optional[List[str]] = None
+    siblingInferenceSuspicious: Optional[bool] = None
+    siblingInferenceSuspicionReasons: Optional[List[str]] = None
+    siblingGroupSize: Optional[int] = None
+    parentFirstName: Optional[str] = None
+    parentLastName: Optional[str] = None
+    parentLastNameNormalized: Optional[str] = None
+    parentEmail: Optional[str] = None
+    parentEmailNormalized: Optional[str] = None
+    cellPhone: Optional[str] = None
+    cellPhoneNormalized: Optional[str] = None
+    street: Optional[str] = None
+    streetNormalized: Optional[str] = None
 
     # Dynamic Scores Map (Phase 2)
     # This replaces the fixed fields below for all new sports/drills

@@ -6,7 +6,21 @@ export const REQUIRED_HEADERS = ["first_name", "last_name"];
 // Optional columns supported by backend
 // CRITICAL: Backend canonical field is "number" (not "jersey_number")
 // Using "number" as canonical ensures payload matches backend storage
-export const OPTIONAL_HEADERS = ["age_group", "number", "external_id", "team_name", "position", "notes"];
+export const OPTIONAL_HEADERS = [
+  "age_group",
+  "number",
+  "external_id",
+  "team_name",
+  "position",
+  "notes",
+  "parent_first_name",
+  "parent_last_name",
+  "parent_email",
+  "cell_phone",
+  "street",
+  "buddy_request_raw",
+  "sibling_separation_requested"
+];
 export const ALL_HEADERS = [...REQUIRED_HEADERS, ...OPTIONAL_HEADERS];
 
 // Function to get drill headers from schema (called with event schema)
@@ -39,6 +53,18 @@ function getHeaderSynonyms() {
       team_name: ['team_name', 'team', 'squad', 'club'],
       position: ['position', 'pos'],
       notes: ['notes', 'note', 'comments', 'comment', 'remarks'],
+      parent_first_name: ['parent_first_name', 'parent first name', 'user first name', 'guardian first name', 'user first', 'parent first', 'guardian first'],
+      parent_last_name: ['parent_last_name', 'parent last name', 'user last name', 'guardian last name', 'user last', 'parent last', 'guardian last'],
+      parent_email: ['parent_email', 'email', 'user email', 'parent email', 'guardian email', 'contact email'],
+      cell_phone: ['cell_phone', 'cellphone', 'cell phone', 'phone', 'mobile', 'mobile phone', 'contact phone'],
+      street: ['street', 'street address', 'address', 'home address'],
+      buddy_request_raw: ['buddy request 1', 'buddy request', 'buddy', 'buddy name'],
+      sibling_separation_requested: [
+        'sibling separation requested',
+        'separate siblings',
+        'keep siblings separate',
+        'separate sibling request'
+      ],
       // Common drill synonyms - these will be extended based on schema
       '40m_dash': ['40m_dash', '40m dash', '40 yard dash', '40-yard dash', '40yd dash', '40-dash', '40dash', 'sprint', 'speed', '40yd', '40 yard', '40 dash', '40'],
       'vertical_jump': ['vertical_jump', 'vertical jump', 'vert jump', 'vj', 'jump', 'vertical', 'vert'],
@@ -291,8 +317,9 @@ function calculateMatchScore(header, key, synonyms) {
     'parent first', 'parent last', 'parent name', 'parent email',
     'guardian first', 'guardian last', 'guardian name', 'guardian email',
     'emergency contact'];
-  if (PARENT_PREFIXES.some(prefix => headerLower.startsWith(prefix))) {
-    return 0; // Never map parent/guardian columns to player fields
+  const householdKeys = new Set(['parent_first_name', 'parent_last_name', 'parent_email', 'cell_phone', 'street']);
+  if (PARENT_PREFIXES.some(prefix => headerLower.startsWith(prefix)) && !householdKeys.has(key)) {
+    return 0; // Never map parent/guardian columns to athlete identity or drills
   }
   
   // CRITICAL FIX: Prevent cross-category matches (name vs number)
