@@ -13,11 +13,12 @@ import { useOptimizedWeights } from '../hooks/useOptimizedWeights'; // Import op
 import { 
   getDefaultWeightsFromTemplate
 } from '../constants/drillTemplates';
-import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { FileText, Users, Search, AlertTriangle, Zap, BarChart3, Wrench, QrCode, Grid2x2, ChevronDown, ChevronUp, ArrowLeft, Download, Mail } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { formatViewerPlayerName } from '../utils/playerDisplayName';
+import { createScorecardEmailDraft, downloadPlayerScorecardPdf } from '../utils/playerScorecardReport';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
@@ -46,6 +47,35 @@ const ScorecardsPage = () => {
     activePreset, 
     applyPreset 
   } = useOptimizedWeights([], currentDrills, presets); // We can pass empty players if we don't need rankings here (Panel handles it)
+
+  const handleDownloadScorecard = useCallback(() => {
+    if (!selectedPlayer) return;
+    const opened = downloadPlayerScorecardPdf({
+      player: selectedPlayer,
+      displayName: formatViewerPlayerName(selectedPlayer, userRole),
+      selectedEvent,
+      drills: currentDrills,
+      allPlayers: players,
+      weights: persistedWeights
+    });
+    if (!opened) {
+      showError('Unable to open scorecard. Please allow popups and try again.');
+    }
+  }, [selectedPlayer, userRole, selectedEvent, currentDrills, players, persistedWeights, showError]);
+
+  const handleEmailScorecard = useCallback(() => {
+    if (!selectedPlayer) return;
+    const mailtoLink = createScorecardEmailDraft({
+      player: selectedPlayer,
+      displayName: formatViewerPlayerName(selectedPlayer, userRole),
+      selectedEvent,
+      allPlayers: players,
+      weights: persistedWeights,
+      drills: currentDrills
+    });
+    if (!mailtoLink) return;
+    window.location.href = mailtoLink;
+  }, [selectedPlayer, userRole, selectedEvent, players, persistedWeights, currentDrills]);
 
   // Ref for auto-scrolling to stats
   const statsRef = useRef(null);
@@ -200,7 +230,7 @@ const ScorecardsPage = () => {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
         {/* Quick Actions */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between mb-3">
@@ -244,7 +274,7 @@ const ScorecardsPage = () => {
         ) : (
           <>
             {/* Selection */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-blue-600" />
@@ -316,6 +346,25 @@ const ScorecardsPage = () => {
                       {/* Controls embedded in panel */}
                    </div>
                 </div>
+
+                <div className="px-4 py-3 border-b border-gray-200 bg-blue-50">
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={handleDownloadScorecard}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-sm font-semibold transition"
+                    >
+                      <Download className="w-4 h-4" />
+                      Generate PDF
+                    </button>
+                    <button
+                      onClick={handleEmailScorecard}
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2 text-sm font-medium hover:bg-blue-100 transition"
+                    >
+                      <Mail className="w-4 h-4" />
+                      Email Report
+                    </button>
+                  </div>
+                </div>
                 
                 <div className="h-[600px] overflow-y-auto bg-white">
                    <PlayerDetailsPanel 
@@ -339,7 +388,7 @@ const ScorecardsPage = () => {
                      className="text-sm font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1"
                    >
                      {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                     {showGenerator ? 'Hide Report Generator' : 'Create PDF / Email Report'}
+                     {showGenerator ? 'Hide Advanced Report Builder' : 'Open Advanced Report Builder'}
                    </button>
                 </div>
               </div>

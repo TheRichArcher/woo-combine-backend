@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo } from "react";
-import { X } from 'lucide-react';
+import { Download, Mail, X } from 'lucide-react';
 import PlayerDetailsPanel from './PlayerDetailsPanel';
 import { calculateOptimizedCompositeScore, calculateOptimizedRankingsAcrossAll } from '../../utils/optimizedScoring';
 import { useAuth } from '../../context/AuthContext';
+import { useEvent } from '../../context/EventContext';
+import { useToast } from '../../context/ToastContext';
 import { formatViewerPlayerName } from '../../utils/playerDisplayName';
+import { createScorecardEmailDraft, downloadPlayerScorecardPdf } from '../../utils/playerScorecardReport';
 
 const PlayerDetailsModal = React.memo(function PlayerDetailsModal({ 
   player, 
@@ -20,6 +23,8 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   normalizeAcrossAll = false
 }) {
   const { userRole } = useAuth();
+  const { selectedEvent } = useEvent();
+  const { showSuccess } = useToast();
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -40,6 +45,35 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   }, [player, allPlayers, sliderWeights, drills, normalizeAcrossAll]);
 
   if (!player) return null;
+
+  const handleDownloadScorecard = () => {
+    const opened = downloadPlayerScorecardPdf({
+      player,
+      displayName: formatViewerPlayerName(player, userRole),
+      selectedEvent,
+      drills,
+      allPlayers,
+      weights: sliderWeights
+    });
+
+    if (opened) {
+      showSuccess('Scorecard generated! Use your browser print dialog to save as PDF.');
+    }
+  };
+
+  const handleEmailScorecard = () => {
+    const mailtoLink = createScorecardEmailDraft({
+      player,
+      displayName: formatViewerPlayerName(player, userRole),
+      selectedEvent,
+      allPlayers,
+      weights: sliderWeights,
+      drills
+    });
+    if (!mailtoLink) return;
+    window.location.href = mailtoLink;
+    showSuccess('Email client opened with scorecard summary.');
+  };
 
   return (
     <div className="fixed inset-0 wc-overlay flex items-center justify-center z-50 p-4 bg-black/50 backdrop-blur-sm" style={{zIndex: 9999}} onClick={onClose}>
@@ -83,6 +117,23 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               presets={presets}
               normalizeAcrossAll={normalizeAcrossAll}
            />
+        </div>
+
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={handleDownloadScorecard}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary text-white px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
+          >
+            <Download className="w-4 h-4" />
+            Download Scorecard
+          </button>
+          <button
+            onClick={handleEmailScorecard}
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white text-gray-700 px-4 py-2 text-sm font-medium hover:bg-gray-100 transition"
+          >
+            <Mail className="w-4 h-4" />
+            Email Report
+          </button>
         </div>
       </div>
     </div>
