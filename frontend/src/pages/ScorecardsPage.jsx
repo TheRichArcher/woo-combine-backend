@@ -33,7 +33,7 @@ const ScorecardsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showGenerator, setShowGenerator] = useState(false);
-  const [showScoreDetails, setShowScoreDetails] = useState(false);
+  const [showScoreDetails, setShowScoreDetails] = useState(true);
   
   // Use optimized weights hook
   const { 
@@ -150,7 +150,7 @@ const ScorecardsPage = () => {
   const handlePlayerSelect = (player) => {
     // Hide generator by default when switching players to keep view clean
     setShowGenerator(false);
-    setShowScoreDetails(false);
+    setShowScoreDetails(true);
     
     // Open the global modal context but suppressed (so we use inline panel)
     openDetails(player, {
@@ -253,17 +253,31 @@ const ScorecardsPage = () => {
                 </div>
                 <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{playersWithScores.length} available</div>
               </div>
+              <div className="mb-2">
+                <p className="text-sm font-medium text-gray-900">Find a player</p>
+                <p className="text-xs text-gray-600">
+                  Search by name, jersey number, or age group.
+                  {userRole === 'admin' ? ' Admin can search all players listed below.' : ''}
+                </p>
+              </div>
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Search players..."
+                  placeholder="Search by name, #, or age group..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   aria-label="Search players by name, number, or age group"
                 />
               </div>
+              {searchTerm.trim() && (
+                <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded-lg">
+                  <p className="text-xs text-blue-800">
+                    Showing {playersWithScores.length} matching player{playersWithScores.length === 1 ? '' : 's'} with evaluation scores.
+                  </p>
+                </div>
+              )}
               <div className="space-y-1 max-h-[20rem] overflow-y-auto">
                 {playersWithScores.map((player) => (
                   <div
@@ -288,6 +302,11 @@ const ScorecardsPage = () => {
                     </div>
                   </div>
                 ))}
+                {playersWithScores.length === 0 && searchTerm.trim() && (
+                  <div className="p-3 rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600">
+                    No matching players found. Try a different name, number, or age group.
+                  </div>
+                )}
               </div>
               {filteredPlayers.length !== playersWithScores.length && (
                 <div className="mt-3 p-2 bg-gray-50 rounded-lg">
@@ -341,7 +360,7 @@ const ScorecardsPage = () => {
                       className="text-sm font-medium text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
                     >
                       {showScoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {showScoreDetails ? 'Hide Ranking Breakdown' : 'Show Ranking Breakdown'}
+                      {showScoreDetails ? 'Collapse Ranking Breakdown' : 'Show Ranking Breakdown'}
                     </button>
                     <button
                       onClick={() => setShowGenerator(!showGenerator)}
