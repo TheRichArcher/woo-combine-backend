@@ -95,7 +95,7 @@ const PlayerScorecardGenerator = ({
   };
 
   const copyScoreToClipboard = () => {
-    const text = `${displayName} — WooCombine Scorecard\nComposite Score: ${playerStats.compositeScore.toFixed(1)} | Rank: ${playerStats.rank}/${playerStats.totalInAgeGroup} | ${playerStats.percentile}th percentile`;
+    const text = `${displayName} — WooCombine Scorecard\nComposite Score: ${playerStats.compositeScore.toFixed(1)} | Rank: ${playerStats.rank}/${playerStats.totalInAgeGroup} | Tier: ${playerStats.starDisplay || '—'} ${playerStats.starLabel || ''}`;
     navigator.clipboard.writeText(text).then(() => {
       showSuccess('Player score summary copied to clipboard!');
     }).catch(() => {

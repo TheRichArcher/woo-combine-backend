@@ -20,6 +20,7 @@ from ..utils.identity import generate_player_id
 from ..utils.lock_validation import check_write_permission
 from ..security.access_matrix import require_permission
 from ..services.player_bulk_upload import upload_players_service
+from ..utils.star_rating import get_star_rating_from_percentile, percentile_from_rank
 import hashlib
 import uuid
 
@@ -117,34 +118,68 @@ def get_players(
         # FETCH SCHEMA ONCE FOR BATCH SCORING
         schema = get_event_schema(event_id)
             
-        # Add timeout to players retrieval
-        def get_players_query():
-            query = db.collection("events").document(str(event_id)).collection("players")
-            
-            # Apply backend pagination if requested
-            if page is not None and limit is not None:
-                offset_val = (page - 1) * limit
-                query = query.offset(offset_val).limit(limit)
-            
-            return list(query.stream())
-        
-        players_stream = execute_with_timeout(get_players_query, timeout=15)
+        all_player_docs = execute_with_timeout(
+            lambda: list(
+                db.collection("events").document(str(event_id)).collection("players").stream()
+            ),
+            timeout=15,
+        )
 
-        result = []
-        for player in players_stream:
-            player_dict = player.to_dict()
-            player_dict["id"] = player.id
-            
+        all_players: List[Dict[str, Any]] = []
+        for player_doc in all_player_docs:
+            player_dict = player_doc.to_dict() or {}
+            player_dict["id"] = player_doc.id
+            player_dict.setdefault("event_id", str(event_id))
+
             # Flatten scores for frontend compatibility
             scores = player_dict.get("scores", {})
             if scores:
                 for k, v in scores.items():
                     # Scores map is authoritative; override stale legacy flat values.
                     player_dict[k] = v
-            
-            # Pass schema to scoring engine
+
+            # Backend canonical composite basis
             player_dict["composite_score"] = calculate_composite_score(player_dict, schema=schema)
-            result.append(player_dict)
+            all_players.append(player_dict)
+
+        # Canonical event-wide, age-group cohort ranking map.
+        canonical_by_player_id: Dict[str, Dict[str, Any]] = {}
+        age_group_buckets: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        for player_dict in all_players:
+            age_group_key = str(player_dict.get("age_group") or "")
+            age_group_buckets[age_group_key].append(player_dict)
+
+        for cohort in age_group_buckets.values():
+            sorted_cohort = sorted(
+                cohort,
+                key=lambda item: (
+                    -(item.get("composite_score") or 0.0),
+                    str(item.get("id") or ""),
+                ),
+            )
+            cohort_size = len(sorted_cohort)
+            for idx, player_dict in enumerate(sorted_cohort, start=1):
+                percentile = percentile_from_rank(idx, cohort_size)
+                stars = get_star_rating_from_percentile(percentile)
+                canonical_by_player_id[player_dict.get("id")] = {
+                    "canonical_rank": idx,
+                    "canonical_cohort_size": cohort_size,
+                    "canonical_percentile": percentile,
+                    "star_count": stars.get("star_count"),
+                    "star_label": stars.get("star_label"),
+                    "star_display": stars.get("star_display"),
+                }
+
+        # Preserve existing pagination behavior contract via page/limit params,
+        # but rank/stars are always computed against full event cohorts.
+        result = all_players
+        if page is not None and limit is not None:
+            offset_val = (page - 1) * limit
+            result = all_players[offset_val : offset_val + limit]
+
+        for player_dict in result:
+            player_dict.update(canonical_by_player_id.get(player_dict.get("id"), {}))
+
         return result
     except HTTPException:
         raise

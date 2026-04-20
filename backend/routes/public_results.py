@@ -10,6 +10,10 @@ from ..middleware.rate_limiting import auth_rate_limit
 from ..routes.players import calculate_composite_score
 from ..utils.database import execute_with_timeout
 from ..utils.event_schema import get_event_schema
+from ..utils.star_rating import (
+    get_star_rating_from_percentile,
+    percentile_from_rank,
+)
 logger = logging.getLogger(__name__)
 
 _PUNCTUATION_RE = re.compile(r"[^a-z0-9\s]")
@@ -307,7 +311,12 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
                     "composite_score": calculate_composite_score(player, schema=schema),
                 }
             )
-        composite_rankings.sort(key=lambda item: item.get("composite_score", 0.0), reverse=True)
+        composite_rankings.sort(
+            key=lambda item: (
+                -(item.get("composite_score", 0.0) or 0.0),
+                str(item.get("id") or ""),
+            )
+        )
         target_rank = next(
             (
                 index + 1
@@ -316,11 +325,8 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
             ),
             len(composite_rankings),
         )
-        overall_percentile = (
-            round(((len(composite_rankings) - target_rank + 1) / len(composite_rankings)) * 100)
-            if composite_rankings
-            else 0
-        )
+        overall_percentile = percentile_from_rank(target_rank, len(composite_rankings)) or 0
+        star_rating = get_star_rating_from_percentile(overall_percentile)
 
         drill_breakdown = []
         for drill in schema.drills:
@@ -366,6 +372,9 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
             "age_group": age_group,
             "overall_score": round(float(target_score), 1),
             "percentile": int(overall_percentile),
+            "star_count": star_rating.get("star_count"),
+            "star_label": star_rating.get("star_label"),
+            "star_display": star_rating.get("star_display"),
             "positive_highlight": _build_positive_highlight(int(overall_percentile)),
             "drill_breakdown": drill_breakdown,
         }

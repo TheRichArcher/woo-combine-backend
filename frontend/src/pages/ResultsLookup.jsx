@@ -3,26 +3,38 @@ import { useLocation } from "react-router-dom";
 import WelcomeLayout from "../components/layouts/WelcomeLayout";
 import api from "../lib/api";
 import { useEvent } from "../context/EventContext";
+import { getStarRatingFromPercentile } from "../utils/starRating";
 
 const GENERIC_LOOKUP_ERROR =
   "We couldn't find a matching participant with that Combine Number and Last Name.";
 
+function getReportStarTier(report) {
+  if (!report) return { starDisplay: "—", starLabel: "" };
+  if (report.star_display || report.star_label) {
+    return {
+      starDisplay: report.star_display || "—",
+      starLabel: report.star_label || "",
+    };
+  }
+  const fallback = getStarRatingFromPercentile(report?.percentile);
+  return {
+    starDisplay: fallback.starDisplay || "—",
+    starLabel: fallback.starLabel || "",
+  };
+}
+
 function buildPrintableHtml(report) {
+  const overallStar = getReportStarTier(report);
   const drillRows = (report?.drill_breakdown || [])
     .map((drill) => {
       const score =
         drill.score === null || drill.score === undefined
           ? "—"
           : `${drill.score} ${drill.unit || ""}`.trim();
-      const percentile =
-        drill.percentile === null || drill.percentile === undefined
-          ? "—"
-          : `${drill.percentile}th`;
       return `
         <tr>
           <td>${drill.drill_label}</td>
           <td>${score}</td>
-          <td>${percentile}</td>
         </tr>
       `;
     })
@@ -53,12 +65,12 @@ function buildPrintableHtml(report) {
         <div class="meta">Age Group: ${report.age_group || "N/A"}</div>
         <div class="summary">
           <div class="box"><div class="label">Overall Score</div><div class="value">${report.overall_score}</div></div>
-          <div class="box"><div class="label">Percentile</div><div class="value">${report.percentile}th</div></div>
+          <div class="box"><div class="label">Player Tier</div><div class="value">${overallStar.starDisplay || "—"}</div><div>${overallStar.starLabel || ""}</div></div>
         </div>
         ${report.positive_highlight ? `<div class="highlight">${report.positive_highlight}</div>` : ""}
         <h2>Drill Breakdown</h2>
         <table>
-          <thead><tr><th>Drill</th><th>Score</th><th>Percentile</th></tr></thead>
+          <thead><tr><th>Drill</th><th>Score</th></tr></thead>
           <tbody>${drillRows}</tbody>
         </table>
       </body>
@@ -79,6 +91,10 @@ export default function ResultsLookup() {
     return (params.get("event_id") || "").trim();
   }, [location.search]);
   const effectiveEventId = (eventIdFromQuery || selectedEvent?.id || "").toString().trim();
+  const overallStar = useMemo(
+    () => getReportStarTier(report),
+    [report]
+  );
 
   const canSubmit = useMemo(
     () =>
@@ -185,7 +201,7 @@ export default function ResultsLookup() {
               <div className="text-right">
                 <div className="text-sm text-gray-500">Overall Score</div>
                 <div className="text-2xl font-bold text-brand-primary">{report.overall_score}</div>
-                <div className="text-sm text-gray-600">{report.percentile}th percentile</div>
+                <div className="text-sm text-gray-600">{overallStar.starDisplay || "—"} {overallStar.starLabel || ""}</div>
               </div>
             </div>
 
@@ -199,7 +215,6 @@ export default function ResultsLookup() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-2 pr-2">Drill</th>
                     <th className="text-left py-2 pr-2">Score</th>
-                    <th className="text-left py-2">Percentile</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -210,11 +225,6 @@ export default function ResultsLookup() {
                         {drill.score === null || drill.score === undefined
                           ? "—"
                           : `${drill.score} ${drill.unit || ""}`.trim()}
-                      </td>
-                      <td className="py-2">
-                        {drill.percentile === null || drill.percentile === undefined
-                          ? "—"
-                          : `${drill.percentile}th`}
                       </td>
                     </tr>
                   ))}

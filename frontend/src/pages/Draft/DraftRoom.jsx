@@ -61,7 +61,7 @@ const DraftRoom = () => {
   } = useDraftActions(draftId);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('composite');
+  const [sortBy, setSortBy] = useState('stars');
   const [timeRemaining, setTimeRemaining] = useState(null);
   const [mobileTab, setMobileTab] = useState('players'); // players | board | myteam
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -181,9 +181,16 @@ const DraftRoom = () => {
         return (a.name || '').localeCompare(b.name || '');
       }
 
+      if (sortBy === 'stars') {
+        const aStars = a.draftStarCount ?? 0;
+        const bStars = b.draftStarCount ?? 0;
+        if (bStars !== aStars) return bStars - aStars;
+      }
+
       const aScore = a.composite_score ?? a.scores?.composite ?? 0;
       const bScore = b.composite_score ?? b.scores?.composite ?? 0;
-      return bScore - aScore;
+      if (bScore !== aScore) return bScore - aScore;
+      return (a.name || '').localeCompare(b.name || '');
     });
 
     return result;
@@ -309,6 +316,10 @@ const DraftRoom = () => {
   };
 
   const getScore = (player) => (player.composite_score ?? player.scores?.composite)?.toFixed(1) ?? '-';
+  const getStarTier = (player) => {
+    if (!player?.draftStarCount) return 'Not rated';
+    return `${player.draftStarDisplay} ${player.draftStarLabel}`;
+  };
   const get40m = (player) => (player.scores?.['40m_dash'] ?? player.drill_40m_dash)?.toFixed(2) ?? '-';
   const getVert = (player) => (player.scores?.vertical_jump ?? player.vertical_jump)?.toFixed(1) ?? '-';
 
@@ -684,6 +695,7 @@ const DraftRoom = () => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="text-sm border rounded-lg px-2 py-1"
                 >
+                  <option value="stars">Stars then Score</option>
                   <option value="composite">Score</option>
                   <option value="ranking">My Ranking</option>
                   <option value="name">Name</option>
@@ -735,6 +747,7 @@ const DraftRoom = () => {
                       </div>
                       <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                         {player.number && <span>#{player.number}</span>}
+                        <span>Tier: {getStarTier(player)}</span>
                         <span>Score: {getScore(player)}</span>
                         <span className="hidden sm:inline">40m: {get40m(player)}</span>
                         <span className="hidden sm:inline">Vert: {getVert(player)}</span>

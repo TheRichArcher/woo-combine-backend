@@ -1,5 +1,6 @@
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from './optimizedScoring';
 import { buildPlayerScorecardPdfFilename } from './pdfFilename';
+import { getStarRatingFromPercentile } from './starRating';
 
 function normalizeWeights(weights = {}, drills = []) {
   const normalized = {};
@@ -68,6 +69,17 @@ function buildDrillAnalysis(player, allPlayers, drills, includeRecommendations =
   });
 }
 
+function resolveCanonicalPercentile(player, allPlayers, fallbackPercentile) {
+  const direct = Number(player?.canonical_percentile);
+  if (Number.isFinite(direct)) return Math.round(direct);
+
+  const fromCohort = (allPlayers || []).find((p) => p?.id === player?.id);
+  const cohortPercentile = Number(fromCohort?.canonical_percentile);
+  if (Number.isFinite(cohortPercentile)) return Math.round(cohortPercentile);
+
+  return fallbackPercentile;
+}
+
 export function buildPlayerScorecardPayload({
   player,
   allPlayers = [],
@@ -89,13 +101,18 @@ export function buildPlayerScorecardPayload({
     totalInAgeGroup > 0
       ? Math.round(((totalInAgeGroup - rank + 1) / totalInAgeGroup) * 100)
       : 0;
+  const canonicalPercentile = resolveCanonicalPercentile(player, allPlayers, percentile);
+  const starRating = getStarRatingFromPercentile(canonicalPercentile);
 
   return {
     playerStats: {
       compositeScore,
       rank,
       totalInAgeGroup,
-      percentile
+      percentile: canonicalPercentile,
+      starCount: starRating.starCount,
+      starLabel: starRating.starLabel,
+      starDisplay: starRating.starDisplay
     },
     drillAnalysis: buildDrillAnalysis(player, allPlayers, drills, includeRecommendations)
   };
@@ -114,9 +131,9 @@ export function generatePlayerScorecardHTML({
   if (!player || !playerStats) return '';
 
   const positiveHighlight =
-    playerStats.percentile >= 90
+    playerStats.starCount >= 5
       ? 'Outstanding performance! Ranked among the top performers in your age group.'
-      : playerStats.percentile >= 75
+      : playerStats.starCount >= 4
         ? 'Great job! Strong performance compared to peers in your age group.'
         : '';
 
@@ -188,12 +205,12 @@ export function generatePlayerScorecardHTML({
               <div class="stat-label">Overall Score</div>
             </div>
             <div class="stat-box">
-              <div class="stat-number">${playerStats.percentile}th</div>
-              <div class="stat-label">Percentile</div>
+              <div class="stat-number">${playerStats.starDisplay || '—'}</div>
+              <div class="stat-label">${playerStats.starLabel || 'Star Tier'}</div>
             </div>
           </div>
           <div class="summary-explainer">
-            These results reflect your child's performance during the Woo Combine. Percentiles are calculated within their age group based on combine participants.
+            These results reflect your child's performance during the Woo Combine. Star tiers are based on age-group percentile bands and shared across WooCombine reports and draft views.
           </div>
           ${positiveHighlight ? `<div class="positive-highlight">${positiveHighlight}</div>` : ''}
         </div>
@@ -205,7 +222,6 @@ export function generatePlayerScorecardHTML({
               <tr>
                 <th>Drill</th>
                 <th>Score</th>
-                <th>Percentile</th>
               </tr>
             </thead>
             <tbody>
@@ -215,7 +231,6 @@ export function generatePlayerScorecardHTML({
                 <tr>
                   <td><strong>${drill.label}</strong></td>
                   <td class="drill-score">${drill.playerScore !== null && drill.playerScore !== undefined ? `${drill.playerScore} ${drill.unit}` : '—'}</td>
-                  <td>${drill.percentile !== null && drill.percentile !== undefined ? `${drill.percentile}th` : '—'}</td>
                 </tr>`;
                 })
                 .join('')}
@@ -227,7 +242,7 @@ export function generatePlayerScorecardHTML({
           <div class="section-title">🎯 ${templateName || 'Evaluation'} Summary</div>
           <div class="summary-box">
             <p><strong>Overall Assessment:</strong> ${displayName} scored ${playerStats.compositeScore.toFixed(1)}
-            overall in the ${player.age_group} age group (${playerStats.percentile}th percentile).</p>
+            overall in the ${player.age_group} age group (${playerStats.starDisplay || '—'} ${playerStats.starLabel || ''}).</p>
 
             <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${templateName || 'evaluation'}
             template with ${drills.length} drill assessments. Scores are weighted according to coaching preferences
@@ -328,7 +343,7 @@ export function createScorecardEmailDraft({
 Here are ${displayName}'s evaluation highlights:
 
 - Overall Score: ${playerStats.compositeScore.toFixed(1)}
-- Percentile: ${playerStats.percentile}th percentile
+- Tier: ${playerStats.starDisplay || '—'} ${playerStats.starLabel || ''}
 
 Full scorecard PDF can be downloaded from WooCombine.
 

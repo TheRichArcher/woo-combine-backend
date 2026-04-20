@@ -37,7 +37,7 @@ const CoachRankings = () => {
 
   const [rankedPlayers, setRankedPlayers] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('composite');
+  const [sortBy, setSortBy] = useState('stars');
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -70,9 +70,15 @@ const CoachRankings = () => {
       if (sortBy === 'name') {
         return (a.name || '').localeCompare(b.name || '');
       }
+      if (sortBy === 'stars') {
+        const aStars = a.draftStarCount ?? 0;
+        const bStars = b.draftStarCount ?? 0;
+        if (bStars !== aStars) return bStars - aStars;
+      }
       const aScore = a.composite_score ?? a.scores?.composite ?? 0;
       const bScore = b.composite_score ?? b.scores?.composite ?? 0;
-      return bScore - aScore;
+      if (bScore !== aScore) return bScore - aScore;
+      return (a.name || '').localeCompare(b.name || '');
     });
 
     return unranked;
@@ -141,6 +147,11 @@ const CoachRankings = () => {
   // Get player score display
   const getScore = (player) => {
     return (player.composite_score ?? player.scores?.composite)?.toFixed(1) ?? '-';
+  };
+
+  const getStarTier = (player) => {
+    if (!player?.draftStarCount) return 'Not rated';
+    return `${player.draftStarDisplay} ${player.draftStarLabel}`;
   };
 
   const get40m = (player) => {
@@ -254,7 +265,7 @@ const CoachRankings = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{player.name}</p>
                         <p className="text-xs text-gray-500">
-                          Score: {getScore(player)} | 40m: {get40m(player)} | Vert: {getVert(player)}
+                          Tier: {getStarTier(player)} | Score: {getScore(player)} | 40m: {get40m(player)} | Vert: {getVert(player)}
                         </p>
                       </div>
 
@@ -307,6 +318,7 @@ const CoachRankings = () => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="text-sm border rounded-lg px-2"
                 >
+                  <option value="stars">Stars then Score</option>
                   <option value="composite">Score</option>
                   <option value="name">Name</option>
                 </select>
@@ -342,7 +354,7 @@ const CoachRankings = () => {
                         <p className="font-medium truncate">{player.name}</p>
                         <p className="text-xs text-gray-500">
                           {player.number && `#${player.number} • `}
-                          Score: {getScore(player)}
+                          {getStarTier(player)} • Score: {getScore(player)}
                         </p>
                       </div>
 

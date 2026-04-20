@@ -10,7 +10,10 @@ from typing import Optional, List, Dict
 from datetime import datetime, timezone, timedelta
 from ..auth import get_current_user
 from ..firestore_client import get_firestore_client
+from ..routes.players import calculate_composite_score
 from ..utils.authorization import ensure_event_access, ensure_league_access
+from ..utils.event_schema import get_event_schema
+from ..utils.star_rating import get_star_rating_from_percentile, percentile_from_rank
 from google.cloud.firestore_v1 import FieldFilter
 import uuid
 import logging
@@ -1944,18 +1947,32 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
     age_group = _normalize_age_group(draft_data.get("age_group"))
 
     all_players = {}
+    event_players_by_event_and_age: Dict[str, Dict[str, List[dict]]] = {}
+    event_schema_cache: Dict[str, object] = {}
 
     # Get players from event(s) (if linked to combine)
     for event_id in event_ids:
+        if event_id not in event_schema_cache:
+            event_schema_cache[event_id] = get_event_schema(event_id)
+        event_players_by_event_and_age.setdefault(event_id, {})
+
         players_query = (
             db.collection("events").document(event_id).collection("players")
         )
         for p in players_query.stream():
             pdata = p.to_dict()
             pdata.setdefault("id", p.id)
+            pdata.setdefault("event_id", event_id)
             if age_group and _normalize_age_group(pdata.get("age_group")) != age_group:
                 continue
             pdata["source"] = "combine"
+            pdata["composite_score"] = calculate_composite_score(
+                pdata, schema=event_schema_cache[event_id]
+            )
+            age_group_key = str(pdata.get("age_group") or "")
+            event_players_by_event_and_age[event_id].setdefault(age_group_key, []).append(
+                pdata
+            )
             all_players[p.id] = pdata
 
     # Get players added directly to this draft (standalone mode)
@@ -1970,6 +1987,31 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
         pdata["source"] = "manual"
         all_players[p.id] = pdata
 
+    canonical_by_player_id: Dict[str, dict] = {}
+    for event_id, age_groups in event_players_by_event_and_age.items():
+        for age_group_key, cohort in age_groups.items():
+            sorted_cohort = sorted(
+                cohort,
+                key=lambda item: (
+                    -(item.get("composite_score") or 0.0),
+                    str(item.get("id") or ""),
+                ),
+            )
+            cohort_size = len(sorted_cohort)
+            for index, pdata in enumerate(sorted_cohort, start=1):
+                percentile = percentile_from_rank(index, cohort_size)
+                stars = get_star_rating_from_percentile(percentile)
+                canonical_by_player_id[pdata.get("id")] = {
+                    "canonical_rank": index,
+                    "canonical_cohort_size": cohort_size,
+                    "canonical_percentile": percentile,
+                    "star_count": stars.get("star_count"),
+                    "star_label": stars.get("star_label"),
+                    "star_display": stars.get("star_display"),
+                    "star_event_id": event_id,
+                    "star_age_group": age_group_key or None,
+                }
+
     # Get drafted player IDs
     picks_query = (
         db.collection("draft_picks")
@@ -1979,11 +2021,13 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
     drafted_ids = {p.to_dict().get("player_id") for p in picks_query}
 
     # Filter to available players
-    available = [
-        p
-        for pid, p in all_players.items()
-        if pid not in drafted_ids and p.get("id") not in drafted_ids
-    ]
+    available = []
+    for pid, pdata in all_players.items():
+        if pid in drafted_ids or pdata.get("id") in drafted_ids:
+            continue
+        enriched = dict(pdata)
+        enriched.update(canonical_by_player_id.get(pid, {}))
+        available.append(enriched)
 
     return available
 

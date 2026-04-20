@@ -174,7 +174,14 @@ export function useAvailablePlayers(draftId) {
 
     try {
       const res = await api.get(`/drafts/${draftId}/players`);
-      setPlayers(res.data);
+      const enrichedPlayers = (res.data || []).map((player) => ({
+        ...player,
+        draftPercentile: player.canonical_percentile ?? null,
+        draftStarCount: player.star_count ?? null,
+        draftStarLabel: player.star_label ?? '',
+        draftStarDisplay: player.star_display ?? ''
+      }));
+      setPlayers(enrichedPlayers);
       setError(null);
     } catch (err) {
       console.error('Players fetch error:', err);
