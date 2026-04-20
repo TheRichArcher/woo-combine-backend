@@ -100,6 +100,7 @@ export default function CoachDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deletingEvent, setDeletingEvent] = useState(null);
+  const [recentlyDeletedEventName, setRecentlyDeletedEventName] = useState('');
   const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored, isLoading, hasError } }
   const [lockRequests, setLockRequests] = useState({}); // { eventId: boolean }
 
@@ -241,6 +242,17 @@ export default function CoachDashboard() {
             New Event
           </button>
         </div>
+
+        {recentlyDeletedEventName && (
+          <div className="mb-4 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+            <p className="text-sm font-semibold text-green-900">
+              Combine deleted: "{recentlyDeletedEventName}"
+            </p>
+            <p className="text-xs text-green-700 mt-0.5">
+              The combine was removed from this list.
+            </p>
+          </div>
+        )}
 
         {normalizedEvents.length === 0 ? (
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 text-center">
@@ -410,7 +422,11 @@ export default function CoachDashboard() {
               <DeleteEventFlow
                 event={deletingEvent}
                 isCurrentlySelected={selectedEvent?.id === deletingEvent?.id}
-                onSuccess={() => {
+                navigateAfterDelete={false}
+                onSuccess={(result) => {
+                  if (result?.deletedEventName) {
+                    setRecentlyDeletedEventName(result.deletedEventName);
+                  }
                   setDeletingEvent(null);
                 }}
               />

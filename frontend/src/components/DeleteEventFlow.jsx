@@ -22,7 +22,7 @@ import { logger } from '../utils/logger';
  * - Soft delete with 30-day recovery window
  * - Backend enforced permissions
  */
-export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess }) {
+export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess, navigateAfterDelete = true }) {
   const { selectedLeagueId, userRole } = useAuth();
   const { events, selectedEvent, deleteEvent, setSelectedEvent } = useEvent();
   const { showSuccess, showError } = useToast();
@@ -243,13 +243,21 @@ export default function DeleteEventFlow({ event, isCurrentlySelected, onSuccess 
       
       // Close modal
       setShowFinalModal(false);
+      const remainingEvents = events.filter(e => e.id !== targetEvent.id);
       if (onSuccess) {
-        onSuccess();
+        onSuccess({
+          deletedEventName: targetEvent.name,
+          deletedEventId: targetEvent.id,
+          remainingEventsCount: remainingEvents.length
+        });
       }
       
+      if (!navigateAfterDelete) {
+        return;
+      }
+
       // CRITICAL: Force navigation to neutral landing page (NOT onboarding/import flows)
       // EventContext has already cleared selectedEvent and removed from events list
-      const remainingEvents = events.filter(e => e.id !== targetEvent.id);
       if (remainingEvents.length > 0) {
         // There are other events - navigate to admin (neutral, stable page)
         // DO NOT navigate to /dashboard (triggers redirects) or /players (onboarding CTA)
