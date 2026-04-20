@@ -32,7 +32,6 @@ const ScorecardsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showGenerator, setShowGenerator] = useState(false);
   const [showScoreDetails, setShowScoreDetails] = useState(true);
   
   // Use optimized weights hook
@@ -148,8 +147,6 @@ const ScorecardsPage = () => {
   });
 
   const handlePlayerSelect = (player) => {
-    // Hide generator by default when switching players to keep view clean
-    setShowGenerator(false);
     setShowScoreDetails(true);
     
     // Open the global modal context but suppressed (so we use inline panel)
@@ -362,13 +359,6 @@ const ScorecardsPage = () => {
                       {showScoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                       {showScoreDetails ? 'Collapse Ranking Breakdown' : 'Show Ranking Breakdown'}
                     </button>
-                    <button
-                      onClick={() => setShowGenerator(!showGenerator)}
-                      className="text-sm text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
-                    >
-                      {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {showGenerator ? 'Hide Report Customization' : 'Customize & Preview Report'}
-                    </button>
                   </div>
                 </div>
 
@@ -391,8 +381,8 @@ const ScorecardsPage = () => {
               </div>
             )}
 
-            {/* Scorecard Generator (Secondary) */}
-            {selectedPlayer && showGenerator && (
+            {/* Scorecard Generator (Embedded report options) */}
+            {selectedPlayer && (
               <div className="animate-in fade-in slide-in-from-top-4 duration-300">
                 <PlayerScorecardGenerator
                   player={selectedPlayer}

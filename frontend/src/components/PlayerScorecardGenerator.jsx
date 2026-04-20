@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -19,21 +19,31 @@ import {
   generatePlayerScorecardHTML
 } from '../utils/playerScorecardReport';
 
-const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selectedDrillTemplate = 'football' }) => {
+const PlayerScorecardGenerator = ({
+  player,
+  allPlayers = [],
+  weights = {},
+  selectedDrillTemplate = 'football',
+  drills: providedDrills = []
+}) => {
   const { selectedEvent } = useEvent();
   const { userRole } = useAuth();
   const { showSuccess } = useToast();
   
   const [showPreview, setShowPreview] = useState(false);
-  const [includeComparison, setIncludeComparison] = useState(true);
   const [includeRecommendations, setIncludeRecommendations] = useState(true);
   const [coachNotes, setCoachNotes] = useState('');
   
   const template = getTemplateById(selectedDrillTemplate);
-  const drills = getDrillsFromTemplate(selectedDrillTemplate);
+  const drills = useMemo(() => {
+    if (Array.isArray(providedDrills) && providedDrills.length > 0) {
+      return providedDrills;
+    }
+    return getDrillsFromTemplate(selectedDrillTemplate);
+  }, [providedDrills, selectedDrillTemplate]);
   const displayName = formatViewerPlayerName(player, userRole);
   
-  const scorecardPayload = React.useMemo(
+  const scorecardPayload = useMemo(
     () =>
       buildPlayerScorecardPayload({
         player,
@@ -47,7 +57,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   const playerStats = scorecardPayload?.playerStats;
   const drillAnalysis = scorecardPayload?.drillAnalysis || [];
 
-  const previewHTML = React.useMemo(() => {
+  const previewHTML = useMemo(() => {
     if (!player || !playerStats) return '';
     return generatePlayerScorecardHTML({
       player,
@@ -102,7 +112,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
       <div className="flex items-center gap-3 mb-6">
         <Award className="w-6 h-6 text-yellow-600" />
         <div>
@@ -140,16 +150,7 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
 
       {/* Generation Options */}
       <div className="mb-6 space-y-4">
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={includeComparison}
-              onChange={(e) => setIncludeComparison(e.target.checked)}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <span className="text-sm text-gray-700">Include age group comparison</span>
-          </label>
+        <div className="flex items-center">
           <label className="flex items-center gap-2">
             <input
               type="checkbox"
