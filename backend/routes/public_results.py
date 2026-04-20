@@ -1,3 +1,5 @@
+import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
@@ -8,7 +10,10 @@ from ..middleware.rate_limiting import auth_rate_limit
 from ..routes.players import calculate_composite_score
 from ..utils.database import execute_with_timeout
 from ..utils.event_schema import get_event_schema
-from ..utils.participant_matching import normalize_person_name
+logger = logging.getLogger(__name__)
+
+_PUNCTUATION_RE = re.compile(r"[^a-z0-9\s]")
+_SPACE_RE = re.compile(r"\s+")
 
 router = APIRouter(prefix="/public")
 
@@ -26,11 +31,20 @@ def _normalize_combine_number(value: str) -> str:
     return str(value or "").strip()
 
 
+def _normalize_last_name(value: Any) -> Optional[str]:
+    if value is None:
+        return None
+    normalized = str(value).strip().lower()
+    normalized = _PUNCTUATION_RE.sub(" ", normalized)
+    normalized = _SPACE_RE.sub(" ", normalized).strip()
+    return normalized or None
+
+
 def _candidate_last_names(player_data: Dict[str, Any]) -> List[str]:
     candidates: List[str] = []
 
     raw_last = player_data.get("last") or player_data.get("last_name")
-    normalized_last = normalize_person_name(raw_last)
+    normalized_last = _normalize_last_name(raw_last)
     if normalized_last:
         candidates.append(normalized_last)
 
@@ -38,7 +52,7 @@ def _candidate_last_names(player_data: Dict[str, Any]) -> List[str]:
     if full_name:
         full_name_parts = str(full_name).strip().split()
         if len(full_name_parts) > 1:
-            parsed_last = normalize_person_name(" ".join(full_name_parts[1:]))
+            parsed_last = _normalize_last_name(" ".join(full_name_parts[1:]))
             if parsed_last:
                 candidates.append(parsed_last)
 
@@ -73,11 +87,21 @@ def _build_positive_highlight(percentile: int) -> str:
     return ""
 
 
+def _is_tolerant_last_name_match(input_last_name: str, candidate_last_name: str) -> bool:
+    # Tolerant, directional matching for suffixes (e.g. "bradshaw" -> "bradshaw jr")
+    # while still anchored to combine_number exact lookup.
+    return (
+        candidate_last_name == input_last_name
+        or candidate_last_name.startswith(input_last_name)
+        or input_last_name.startswith(candidate_last_name)
+    )
+
+
 @router.post("/results-lookup")
 @auth_rate_limit()
 def parent_results_lookup(request: Request, payload: ParentLookupRequest):
     combine_number = _normalize_combine_number(payload.combine_number)
-    normalized_last_name = normalize_person_name(payload.last_name)
+    normalized_last_name = _normalize_last_name(payload.last_name)
 
     if not combine_number or not normalized_last_name:
         raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
@@ -99,11 +123,30 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
         matches = []
         for doc in candidate_docs:
             player_data = doc.to_dict() or {}
-            if normalized_last_name in _candidate_last_names(player_data):
+            candidate_last_names = _candidate_last_names(player_data)
+            if any(
+                _is_tolerant_last_name_match(normalized_last_name, candidate_last_name)
+                for candidate_last_name in candidate_last_names
+            ):
                 matches.append((doc, player_data))
 
         # Require exactly one match to avoid leaking identities across duplicate identifiers.
-        if len(matches) != 1:
+        if len(matches) > 1:
+            logger.debug(
+                "results_lookup ambiguity rejected: combine_number=%s normalized_last_name=%s matches=%s",
+                combine_number,
+                normalized_last_name,
+                [
+                    {
+                        "player_id": matched_doc.id,
+                        "name": (matched_player or {}).get("name"),
+                    }
+                    for matched_doc, matched_player in matches
+                ],
+            )
+            raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
+
+        if len(matches) == 0:
             raise HTTPException(status_code=404, detail=LOOKUP_FAILURE_MESSAGE)
 
         matched_doc, matched_player = matches[0]
