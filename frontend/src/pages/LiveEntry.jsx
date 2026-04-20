@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext";
 import DeleteConfirmModal from "../components/DeleteConfirmModal";
 import CombineLockedBanner from "../components/CombineLockedBanner";
 import api from '../lib/api';
-import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit, Camera, Loader2 } from 'lucide-react';
+import { Clock, Users, Undo2, CheckCircle, AlertTriangle, ArrowLeft, ArrowRight, Calendar, ChevronDown, ChevronRight, Target, Info, Lock, LockOpen, StickyNote, Search, BookOpen, Edit, Camera, Loader2 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { cacheInvalidation } from '../utils/dataCache';
 import { useDrills } from '../hooks/useDrills';
@@ -1154,6 +1154,19 @@ export default function LiveEntry() {
   const currentDrill = drills.find(d => d.key === selectedDrill);
   const currentIndex = drills.findIndex(d => d.key === selectedDrill);
   const nextDrill = currentIndex >= 0 ? drills[(currentIndex + 1) % drills.length] : null;
+  const drillSequenceLabel = currentIndex >= 0 ? `Drill ${currentIndex + 1} of ${drills.length}` : null;
+
+  const switchToPreviousDrill = () => {
+    if (drills.length <= 1 || currentIndex < 0) return;
+    const previousIndex = (currentIndex - 1 + drills.length) % drills.length;
+    handleDrillSwitch(drills[previousIndex].key);
+  };
+
+  const switchToNextDrill = () => {
+    if (drills.length <= 1 || currentIndex < 0) return;
+    const followingIndex = (currentIndex + 1) % drills.length;
+    handleDrillSwitch(drills[followingIndex].key);
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-light/20 to-white overflow-x-hidden">
@@ -1303,48 +1316,6 @@ export default function LiveEntry() {
           </div>
         ) : (
           <>
-            {/* Full Status Card (Non-Sticky) - For reassurance/motivation */}
-            <div className="bg-brand-primary text-white rounded-xl p-4 text-center shadow-md">
-              <h2 className="text-xl font-bold">{currentDrill.label}</h2>
-              <p className="text-sm text-white/70 mt-1">Entry Mode Active</p>
-              {/* Progress summary */}
-              <div className="mt-3 text-sm">
-                You've entered <span className="font-semibold">{completedForDrill}</span> / {totalPlayers} players ({completionPct}%).
-              </div>
-              <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
-                <div className="h-full bg-white/80 transition-all duration-300" style={{ width: `${Math.min(100, completionPct)}%` }} />
-              </div>
-            </div>
-
-            {/* Slim Sticky Context Bar - Compact drill context while scrolling */}
-            <div 
-              className="sticky top-16 z-10 shadow-lg px-3 py-2.5 border-b-2 rounded-lg overflow-hidden sm:px-4"
-              style={{ 
-                backgroundColor: '#19c3e6',
-                borderBottomColor: '#008fa3',
-                color: '#ffffff'
-              }}
-            >
-              <div className="flex items-center justify-between gap-2 text-sm">
-                {/* Left: Drill name + recording state */}
-                <div className="flex items-center gap-2 min-w-0 text-white">
-                  <Target className="w-4 h-4 flex-shrink-0 text-white" />
-                  <span className="font-bold truncate">{currentDrill.label}</span>
-                  <span className="text-white/80 text-xs flex-shrink-0">
-                    {isCurrentDrillLocked ? '🔒 Locked' : '● Recording'}
-                  </span>
-                </div>
-                
-                {/* Right: progress only.
-                    UX simplification: remove redundant drill switch controls from this bar. */}
-                <div className="flex items-center gap-3 flex-shrink-0 text-white">
-                  <span className="text-xs font-medium whitespace-nowrap">
-                    {completedForDrill}/{totalPlayers} ({completionPct}%)
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* One-time hint */}
             {showDrillHint && (
               <div className="mt-2 bg-brand-light/20 border border-brand-primary/20 text-brand-primary rounded-lg p-2 text-xs flex items-center justify-between">
@@ -1418,6 +1389,53 @@ export default function LiveEntry() {
             
             {/* Entry Form */}
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+              {/* Sticky drill context strip: remains visible while entering scores */}
+              <div className="sticky top-[72px] sm:top-16 z-10 -mx-6 px-6 py-3 mb-4 border-b border-gray-200 bg-white/95 backdrop-blur">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Target className="w-4 h-4 text-brand-primary shrink-0" />
+                      <p className="font-semibold text-gray-900 truncate">{currentDrill.label}</p>
+                    </div>
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                      {drillSequenceLabel && (
+                        <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                          {drillSequenceLabel}
+                        </span>
+                      )}
+                      <span className={`px-2 py-0.5 rounded-full border ${isCurrentDrillLocked ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                        {isCurrentDrillLocked ? 'Locked' : 'Recording Active'}
+                      </span>
+                      <span className="text-gray-500 font-medium">
+                        {completedForDrill}/{totalPlayers} scored
+                      </span>
+                    </div>
+                  </div>
+
+                  {drills.length > 1 && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={switchToPreviousDrill}
+                        className="px-2.5 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        aria-label="Previous drill"
+                      >
+                        Prev
+                      </button>
+                      <button
+                        type="button"
+                        onClick={switchToNextDrill}
+                        className="px-2.5 py-1.5 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 flex items-center gap-1"
+                        aria-label="Next drill"
+                      >
+                        Next
+                        <ArrowRight className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Rapid Entry Mode Selector - Segmented Control */}
               <div className="mb-4 pb-3 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-2">
