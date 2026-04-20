@@ -109,14 +109,19 @@ export function generatePlayerScorecardHTML({
   templateName,
   drills = [],
   playerStats,
-  drillAnalysis = [],
-  includeRecommendations = true,
-  coachNotes = ''
+  drillAnalysis = []
 }) {
   if (!player || !playerStats) return '';
 
+  const positiveHighlight =
+    playerStats.percentile >= 90
+      ? 'Outstanding performance! Ranked among the top performers in your age group.'
+      : playerStats.percentile >= 75
+        ? 'Great job! Strong performance compared to peers in your age group.'
+        : '';
+
   const playerInfoLine = player.number
-    ? `Player #${player.number} — Age Group: ${player.age_group || 'N/A'}`
+    ? `Player #${player.number}`
     : `Age Group: ${player.age_group || 'N/A'}`;
 
   return `
@@ -131,15 +136,16 @@ export function generatePlayerScorecardHTML({
           .header { text-align: center; border-bottom: 2px solid #19c3e6; padding-bottom: 12px; margin-bottom: 16px; }
           .logo { font-size: 20px; font-weight: bold; color: #19c3e6; }
           .header-sub { margin-top: 4px; font-size: 11px; color: #6b7280; }
-          .player-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-          .player-name { font-size: 22px; font-weight: bold; color: #111827; }
-          .player-meta { color: #6b7280; font-size: 11px; margin-top: 2px; }
-          .composite-score { font-size: 28px; font-weight: bold; color: #19c3e6; text-align: right; }
-          .composite-label { font-size: 10px; color: #6b7280; text-align: right; }
-          .summary-row { display: flex; gap: 12px; margin-bottom: 16px; }
-          .stat-box { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; }
+          .top-summary { border: 1px solid #d1f4fb; background: #f7feff; border-radius: 8px; padding: 14px; margin-bottom: 16px; }
+          .top-player-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
+          .player-name { font-size: 26px; font-weight: bold; color: #111827; line-height: 1.2; }
+          .player-meta { color: #6b7280; font-size: 11px; margin-top: 4px; }
+          .top-stat-row { display: flex; gap: 10px; }
+          .stat-box { flex: 1; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; text-align: center; background: #ffffff; }
           .stat-number { font-size: 22px; font-weight: bold; color: #19c3e6; }
           .stat-label { font-size: 9px; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .summary-explainer { margin-top: 10px; color: #374151; font-size: 10px; line-height: 1.35; }
+          .positive-highlight { margin-top: 8px; font-size: 11px; color: #065f46; font-weight: 600; }
           .section { margin-bottom: 14px; }
           .section-title { font-size: 13px; font-weight: bold; color: #19c3e6; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 8px; }
           .drill-table { width: 100%; border-collapse: collapse; font-size: 10px; }
@@ -147,8 +153,6 @@ export function generatePlayerScorecardHTML({
           .drill-table td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; }
           .drill-table tr:last-child td { border-bottom: none; }
           .drill-score { font-weight: bold; color: #19c3e6; }
-          .drill-rec { font-style: italic; color: #6b7280; font-size: 9px; }
-          .notes-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px; font-size: 11px; color: #111827; }
           .summary-box { background: #f0fdff; border: 1px solid #19c3e6; border-radius: 6px; padding: 12px; font-size: 11px; }
           .summary-box p { margin-bottom: 6px; }
           .summary-box p:last-child { margin-bottom: 0; }
@@ -167,30 +171,31 @@ export function generatePlayerScorecardHTML({
           <div class="header-sub">${selectedEvent?.name || 'Evaluation Event'} — ${new Date().toLocaleDateString()}</div>
         </div>
 
-        <div class="player-row">
-          <div>
-            <div class="player-name">${displayName}</div>
-            <div class="player-meta">${playerInfoLine}</div>
+        <div class="top-summary">
+          <div class="top-player-row">
+            <div>
+              <div class="player-name">${displayName}</div>
+              <div class="player-meta">${playerInfoLine}</div>
+            </div>
           </div>
-          <div>
-            <div class="composite-score">${playerStats.compositeScore.toFixed(1)}</div>
-            <div class="composite-label">Composite Score</div>
+          <div class="top-stat-row">
+            <div class="stat-box">
+              <div class="stat-number">${player.age_group || 'N/A'}</div>
+              <div class="stat-label">Age Group</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">${playerStats.compositeScore.toFixed(1)}</div>
+              <div class="stat-label">Overall Score</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-number">${playerStats.percentile}th</div>
+              <div class="stat-label">Percentile</div>
+            </div>
           </div>
-        </div>
-
-        <div class="summary-row">
-          <div class="stat-box">
-            <div class="stat-number">${playerStats.rank}</div>
-            <div class="stat-label">Rank in Age Group</div>
+          <div class="summary-explainer">
+            These results reflect your child's performance during the Woo Combine. Percentiles are calculated within their age group based on combine participants.
           </div>
-          <div class="stat-box">
-            <div class="stat-number">${playerStats.percentile}%</div>
-            <div class="stat-label">Percentile</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number">${playerStats.totalInAgeGroup}</div>
-            <div class="stat-label">Total in Age Group</div>
-          </div>
+          ${positiveHighlight ? `<div class="positive-highlight">${positiveHighlight}</div>` : ''}
         </div>
 
         <div class="section">
@@ -200,9 +205,7 @@ export function generatePlayerScorecardHTML({
               <tr>
                 <th>Drill</th>
                 <th>Score</th>
-                <th>Rank</th>
                 <th>Percentile</th>
-                ${includeRecommendations ? '<th>Recommendation</th>' : ''}
               </tr>
             </thead>
             <tbody>
@@ -212,9 +215,7 @@ export function generatePlayerScorecardHTML({
                 <tr>
                   <td><strong>${drill.label}</strong></td>
                   <td class="drill-score">${drill.playerScore !== null && drill.playerScore !== undefined ? `${drill.playerScore} ${drill.unit}` : '—'}</td>
-                  <td>${drill.rank ? `${drill.rank} / ${drill.ageCount || 1}` : '—'}</td>
-                  <td>${drill.percentile !== null && drill.percentile !== undefined ? `${drill.percentile}%` : '—'}</td>
-                  ${includeRecommendations ? `<td class="drill-rec">${drill.recommendation}</td>` : ''}
+                  <td>${drill.percentile !== null && drill.percentile !== undefined ? `${drill.percentile}th` : '—'}</td>
                 </tr>`;
                 })
                 .join('')}
@@ -222,32 +223,15 @@ export function generatePlayerScorecardHTML({
           </table>
         </div>
 
-        ${coachNotes
-          ? `
-          <div class="section">
-            <div class="section-title">💬 Coach Notes</div>
-            <div class="notes-box">${coachNotes.replace(/\n/g, '<br>')}</div>
-          </div>
-        `
-          : ''}
-
         <div class="section">
           <div class="section-title">🎯 ${templateName || 'Evaluation'} Summary</div>
           <div class="summary-box">
             <p><strong>Overall Assessment:</strong> ${displayName} scored ${playerStats.compositeScore.toFixed(1)}
-            overall, ranking ${playerStats.rank} out of ${playerStats.totalInAgeGroup} players in the ${player.age_group} age group
-            (${playerStats.percentile}th percentile).</p>
+            overall in the ${player.age_group} age group (${playerStats.percentile}th percentile).</p>
 
             <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${templateName || 'evaluation'}
             template with ${drills.length} drill assessments. Scores are weighted according to coaching preferences
             and normalized within the age group for fair comparison.</p>
-
-            ${includeRecommendations
-              ? `
-              <p><strong>Next Steps:</strong> Review the individual drill recommendations above for targeted
-              improvement areas. Focus on drills where percentile ranks are below 60% for maximum development impact.</p>
-            `
-              : ''}
           </div>
         </div>
 
@@ -293,9 +277,7 @@ export function downloadPlayerScorecardPdf({
     templateName,
     drills,
     playerStats: payload.playerStats,
-    drillAnalysis: payload.drillAnalysis,
-    includeRecommendations,
-    coachNotes
+    drillAnalysis: payload.drillAnalysis
   });
 
   const printWindow = window.open('', '_blank');
@@ -345,8 +327,7 @@ export function createScorecardEmailDraft({
 
 Here are ${displayName}'s evaluation highlights:
 
-- Composite Score: ${playerStats.compositeScore.toFixed(1)}
-- Rank: ${playerStats.rank} of ${playerStats.totalInAgeGroup} in ${player.age_group} age group
+- Overall Score: ${playerStats.compositeScore.toFixed(1)}
 - Percentile: ${playerStats.percentile}th percentile
 
 Full scorecard PDF can be downloaded from WooCombine.
