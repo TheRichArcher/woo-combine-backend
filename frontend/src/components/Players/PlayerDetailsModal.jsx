@@ -29,7 +29,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
   const { userRole } = useAuth();
   const { selectedEvent } = useEvent();
   const { showSuccess } = useToast();
-  const canUseReportActions = userRole !== 'viewer';
+  const canUseReportActions = userRole === 'organizer' || userRole === 'coach';
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -121,7 +121,7 @@ const PlayerDetailsModal = React.memo(function PlayerDetailsModal({
               drills={drills}
               presets={presets}
               normalizeAcrossAll={normalizeAcrossAll}
-              readOnly={userRole === 'viewer'}
+              readOnly={!canUseReportActions}
            />
            <RecordedResultsSection
              player={player}

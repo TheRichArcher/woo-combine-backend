@@ -57,7 +57,7 @@ const PlayerScorecardGenerator = ({
   const playerStats = scorecardPayload?.playerStats;
   const drillAnalysis = scorecardPayload?.drillAnalysis || [];
 
-  if (userRole === 'viewer') {
+  if (userRole !== 'organizer' && userRole !== 'coach') {
     return null;
   }
 

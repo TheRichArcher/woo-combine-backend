@@ -257,8 +257,7 @@ export default function LiveStandings() {
   const [showCompactSliders, setShowCompactSliders] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { showError } = useToast();
-  const isViewerReadOnly = userRole === 'viewer';
-  const canUseStaffTools = !isViewerReadOnly;
+  const canUseStaffTools = userRole === 'organizer' || userRole === 'coach';
 
   useEffect(() => {
     let selectedEventRaw = null;

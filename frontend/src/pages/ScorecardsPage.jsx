@@ -33,8 +33,8 @@ const ScorecardsPage = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showScoreDetails, setShowScoreDetails] = useState(true);
-  const isViewerReadOnly = userRole === 'viewer';
-  const canUseReportActions = !isViewerReadOnly;
+  const canUseReportActions = userRole === 'organizer' || userRole === 'coach';
+  const isViewerReadOnly = !canUseReportActions;
   
   // Use optimized weights hook
   const { 
