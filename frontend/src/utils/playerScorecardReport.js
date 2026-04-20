@@ -1,4 +1,5 @@
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from './optimizedScoring';
+import { buildPlayerScorecardPdfFilename } from './pdfFilename';
 
 function normalizeWeights(weights = {}, drills = []) {
   const normalized = {};
@@ -103,6 +104,7 @@ export function buildPlayerScorecardPayload({
 export function generatePlayerScorecardHTML({
   player,
   displayName,
+  documentTitle,
   selectedEvent,
   templateName,
   drills = [],
@@ -121,7 +123,7 @@ export function generatePlayerScorecardHTML({
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${displayName} - Player Scorecard</title>
+        <title>${documentTitle || `${displayName} - Player Scorecard`}</title>
         <style>
           @page { size: letter; margin: 0.5in; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -269,6 +271,11 @@ export function downloadPlayerScorecardPdf({
   includeRecommendations = true,
   coachNotes = ''
 }) {
+  const pdfFilename = buildPlayerScorecardPdfFilename({
+    eventName: selectedEvent?.name,
+    playerName: displayName
+  });
+
   const payload = buildPlayerScorecardPayload({
     player,
     allPlayers,
@@ -281,6 +288,7 @@ export function downloadPlayerScorecardPdf({
   const reportHtml = generatePlayerScorecardHTML({
     player,
     displayName,
+    documentTitle: pdfFilename,
     selectedEvent,
     templateName,
     drills,
