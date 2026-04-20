@@ -54,14 +54,22 @@ const sportEmojiFromTemplate = (drillTemplate) => {
   return '🏆';
 };
 
-function statusFromCounts({ playerCount, scoredCount }) {
+function statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount }) {
+  if (isPlayersLoading) return { label: 'Loading', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
+  if (hasPlayersError) return { label: 'Unknown', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
   if (playerCount <= 0) return { label: 'Setup', tone: 'bg-amber-100 text-amber-800 border-amber-200' };
   if (scoredCount <= 0) return { label: 'Ready', tone: 'bg-green-100 text-green-800 border-green-200' };
   if (scoredCount < playerCount) return { label: 'Live', tone: 'bg-indigo-100 text-indigo-800 border-indigo-200' };
   return { label: 'Done', tone: 'bg-gray-100 text-gray-700 border-gray-200' };
 }
 
-function nextActionFromCounts({ playerCount, scoredCount, userRole }) {
+function nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole }) {
+  if (isPlayersLoading) {
+    return { text: 'Loading players...', route: '/dashboard', tone: 'bg-gray-50 border-gray-200 text-gray-700', isDisabled: true };
+  }
+  if (hasPlayersError) {
+    return { text: 'Player data unavailable', route: '/dashboard', tone: 'bg-gray-50 border-gray-200 text-gray-700', isDisabled: true };
+  }
   const isStaff = userRole === 'organizer' || userRole === 'coach';
   if (playerCount <= 0) {
     return { text: 'Next: Add your players', route: '/players?action=import', tone: 'bg-amber-50 border-amber-200 text-amber-900' };
@@ -83,30 +91,45 @@ export default function CoachDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [deletingEvent, setDeletingEvent] = useState(null);
-  const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored } }
+  const [playerCounts, setPlayerCounts] = useState({}); // { eventId: { total, scored, isLoading, hasError } }
 
   // Fetch player counts for all events
   useEffect(() => {
-    if (!Array.isArray(events) || events.length === 0) return;
+    if (!Array.isArray(events) || events.length === 0) {
+      setPlayerCounts({});
+      return;
+    }
     let cancelled = false;
 
+    const initialCounts = {};
+    for (const event of events) {
+      if (!event.id) continue;
+      initialCounts[event.id] = { total: 0, scored: 0, isLoading: true, hasError: false };
+    }
+    setPlayerCounts(initialCounts);
+
     async function fetchCounts() {
-      const counts = {};
-      for (const event of events) {
-        if (!event.id) continue;
-        try {
-          const { data } = await api.get(`/players?event_id=${event.id}`);
-          const players = Array.isArray(data) ? data : [];
-          const scored = players.filter(p => {
-            const scores = p.scores || {};
-            return Object.values(scores).some(v => v !== null && v !== '' && Number(v) > 0);
-          }).length;
-          counts[event.id] = { total: players.length, scored };
-        } catch {
-          counts[event.id] = { total: 0, scored: 0 };
-        }
+      const countEntries = await Promise.all(
+        events
+          .filter((event) => !!event.id)
+          .map(async (event) => {
+            try {
+              const { data } = await api.get(`/players?event_id=${event.id}`);
+              const players = Array.isArray(data) ? data : [];
+              const scored = players.filter(p => {
+                const scores = p.scores || {};
+                return Object.values(scores).some(v => v !== null && v !== '' && Number(v) > 0);
+              }).length;
+              return [event.id, { total: players.length, scored, isLoading: false, hasError: false }];
+            } catch {
+              return [event.id, { total: 0, scored: 0, isLoading: false, hasError: true }];
+            }
+          })
+      );
+
+      if (!cancelled) {
+        setPlayerCounts(Object.fromEntries(countEntries));
       }
-      if (!cancelled) setPlayerCounts(counts);
     }
 
     fetchCounts();
@@ -118,15 +141,19 @@ export default function CoachDashboard() {
 
     const enriched = list.map((e) => {
       const fetched = playerCounts[e.id];
+      const isPlayersLoading = fetched ? fetched.isLoading : true;
+      const hasPlayersError = fetched ? fetched.hasError : false;
       const playerCount = fetched ? fetched.total : 0;
       const scoredCount = fetched ? fetched.scored : 0;
 
-      const status = statusFromCounts({ playerCount, scoredCount });
-      const next = nextActionFromCounts({ playerCount, scoredCount, userRole });
+      const status = statusFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount });
+      const next = nextActionFromCounts({ isPlayersLoading, hasPlayersError, playerCount, scoredCount, userRole });
       const isDone = status.label === 'Done';
 
       return {
         ...e,
+        _isPlayersLoading: isPlayersLoading,
+        _hasPlayersError: hasPlayersError,
         _playerCount: playerCount,
         _scoredCount: scoredCount,
         _status: status,
@@ -143,7 +170,7 @@ export default function CoachDashboard() {
     });
 
     return enriched;
-  }, [events, playerCounts]);
+  }, [events, playerCounts, userRole]);
 
   const handleOpenEvent = useCallback(
     (event, route) => {
@@ -214,7 +241,13 @@ export default function CoachDashboard() {
                     (event._isDone ? ' opacity-80' : '')
                   }
                 >
-                  <button onClick={() => handleOpenEvent(event, event._next.route)} className="w-full text-left p-4">
+                  <button
+                    onClick={() => {
+                      if (event._next.isDisabled) return;
+                      handleOpenEvent(event, event._next.route);
+                    }}
+                    className="w-full text-left p-4"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -224,7 +257,7 @@ export default function CoachDashboard() {
                         <div className="mt-1 text-sm text-gray-500 flex items-center gap-2">
                           <span>{dateText}</span>
                           <span className="text-gray-300">•</span>
-                          <span>{event._playerCount} players</span>
+                          <span>{event._isPlayersLoading ? 'Loading players...' : `${event._playerCount} players`}</span>
                         </div>
                       </div>
 
