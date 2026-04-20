@@ -370,7 +370,7 @@ export default function CoachDashboard() {
                               ? 'bg-green-50 border-green-200 text-green-800 hover:bg-green-100'
                               : 'bg-red-50 border-red-200 text-red-800 hover:bg-red-100')
                           }
-                          title={event._isLocked ? 'Unlock scoring' : 'Lock scoring'}
+                          title={event._isLocked ? 'Click to unlock scoring' : 'Click to lock scoring'}
                         >
                           {lockRequests[event.id] ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -379,7 +379,7 @@ export default function CoachDashboard() {
                           ) : (
                             <Lock className="w-3.5 h-3.5" />
                           )}
-                          {lockRequests[event.id] ? 'Saving...' : event._isLocked ? 'Unlock' : 'Lock'}
+                          {lockRequests[event.id] ? 'Saving...' : event._isLocked ? 'Unlock Scoring' : 'Lock Scoring'}
                         </button>
                       )}
                     </div>
