@@ -76,6 +76,7 @@ If you believe you need a different implementation:
 **❌ DO NOT:**
 - Create inline forms when canonical modals exist
 - Use `window.confirm()` for delete actions (use `DeleteConfirmModal`)
+- Use `window.open(...)` or direct `<a href>` for protected API downloads
 - Build custom player card HTML (use `PlayerCard` component)
 - Copy/paste form validation (use shared utils)
 - Duplicate API calls (use `withCache` or context)
@@ -83,6 +84,7 @@ If you believe you need a different implementation:
 
 **✅ DO:**
 - Reuse canonical components
+- Use `downloadWithApiAuth` for protected file exports/downloads
 - Configure via props
 - Add variants if needed (after discussion)
 - Update canonical component if insufficient

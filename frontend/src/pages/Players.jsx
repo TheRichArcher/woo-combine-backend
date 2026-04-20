@@ -13,6 +13,7 @@ import { useAuth } from "../context/AuthContext";
 import { useToast } from "../context/ToastContext";
 import { usePlayerDetails } from "../context/PlayerDetailsContext";
 import api from '../lib/api';
+import { downloadWithApiAuth } from '../utils/authenticatedDownload';
 import { X, TrendingUp, Users, BarChart3, Download, Filter, ChevronDown, ChevronRight, ArrowRight, UserPlus, Upload, FileText, ArrowLeft, Trophy, CheckCircle, Search } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { parseISO, isValid, format } from 'date-fns';
@@ -93,6 +94,7 @@ export default function Players() {
   const [showRoster, setShowRoster] = useState(true);
   const [showRankings, setShowRankings] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [drillRefreshTrigger, setDrillRefreshTrigger] = useState(0);
   const [selectedAgeGroup, setSelectedAgeGroup] = useState("");
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
@@ -400,7 +402,7 @@ export default function Players() {
 
   const [showCustomControls, setShowCustomControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
-  const { showInfo, removeToast } = useToast();
+  const { showError } = useToast();
 
   // Grouped players
   const grouped = useMemo(() => {
@@ -592,6 +594,23 @@ export default function Players() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportResultsPdf = async () => {
+    if (!selectedEvent?.id || isExportingPdf) return;
+
+    setIsExportingPdf(true);
+    try {
+      const dateStamp = format(new Date(), 'yyyy-MM-dd');
+      const fallbackFilename = `${selectedEvent.name || 'event'}_results_${dateStamp}.pdf`;
+      await downloadWithApiAuth(api, `/events/${selectedEvent.id}/export-pdf`, fallbackFilename);
+      setShowExportModal(false);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      showError(detail || 'Failed to download results PDF. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // Render Loading
@@ -1272,20 +1291,17 @@ export default function Players() {
              <div className="space-y-3">
                {/* PDF Export Button */}
                <button
-                  onClick={() => {
-                    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/export-pdf`;
-                    window.open(url, '_blank');
-                    setShowExportModal(false);
-                  }}
+                  onClick={handleExportResultsPdf}
+                  disabled={isExportingPdf}
                   className="w-full p-4 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg text-left transition flex items-center justify-between mb-4"
                >
                  <div>
                     <div className="font-semibold text-teal-900 flex items-center gap-2">
-                        <FileText className="w-5 h-5" /> Download Results PDF
+                        <FileText className="w-5 h-5" /> {isExportingPdf ? 'Downloading Results PDF...' : 'Download Results PDF'}
                     </div>
                     <div className="text-sm text-teal-700">Formal report with rankings & stats</div>
                  </div>
-                 <Download className="w-5 h-5 text-teal-700" />
+                 {isExportingPdf ? <span className="text-sm text-teal-700">...</span> : <Download className="w-5 h-5 text-teal-700" />}
                </button>
 
                {/* Export All */}

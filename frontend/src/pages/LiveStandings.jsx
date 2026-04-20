@@ -4,8 +4,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEvent } from '../context/EventContext';
 import { useAuth } from '../context/AuthContext';
 import { usePlayerDetails } from '../context/PlayerDetailsContext';
+import { useToast } from '../context/ToastContext';
 import { ArrowLeft, Users, Target, Settings, Plus, BarChart3, TrendingUp, ChevronDown, ChevronRight, Filter } from 'lucide-react';
 import api from '../lib/api';
+import { downloadWithApiAuth } from '../utils/authenticatedDownload';
 // PERFORMANCE OPTIMIZATION: Add caching and optimized scoring for LiveStandings
 import { withCache } from '../utils/dataCache';
 import { logger } from '../utils/logger';
@@ -253,6 +255,8 @@ export default function LiveStandings() {
   const { selectedPlayer, openDetails, closeDetails } = usePlayerDetails();
   const [showControls, setShowControls] = useState(false);
   const [showCompactSliders, setShowCompactSliders] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const { showError } = useToast();
 
   useEffect(() => {
     let selectedEventRaw = null;
@@ -371,6 +375,22 @@ export default function LiveStandings() {
       });
       setWeights(newWeights);
       setActivePreset(presetKey);
+    }
+  };
+
+  const handleExportPdf = async () => {
+    if (!selectedEvent?.id || isExportingPdf) return;
+
+    setIsExportingPdf(true);
+    try {
+      const dateStamp = new Date().toISOString().slice(0, 10);
+      const fallbackFilename = `${selectedEvent.name || 'event'}_standings_${dateStamp}.pdf`;
+      await downloadWithApiAuth(api, `/events/${selectedEvent.id}/export-pdf`, fallbackFilename);
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      showError(detail || 'Failed to export PDF. Please try again.');
+    } finally {
+      setIsExportingPdf(false);
     }
   };
 
@@ -744,13 +764,11 @@ export default function LiveStandings() {
             Share Rankings
           </button>
           <button
-            onClick={() => {
-              const url = api.defaults.baseURL + '/events/' + selectedEvent.id + '/export-pdf';
-              window.open(url, '_blank');
-            }}
+            onClick={handleExportPdf}
+            disabled={isExportingPdf}
             className="w-full bg-white hover:bg-gray-50 text-gray-900 font-semibold py-3 rounded-xl transition border border-gray-200"
           >
-            Export PDF
+            {isExportingPdf ? 'Exporting PDF...' : 'Export PDF'}
           </button>
         </div>
       </div>

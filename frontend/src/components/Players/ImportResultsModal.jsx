@@ -4,6 +4,7 @@ import api from '../../lib/api';
 import { useEvent } from '../../context/EventContext';
 import { generateDefaultMapping, REQUIRED_HEADERS } from '../../utils/csvUtils';
 import { autoAssignPlayerNumbers } from '../../utils/playerNumbering';
+import { downloadWithApiAuth } from '../../utils/authenticatedDownload';
 
 export default function ImportResultsModal({ onClose, onSuccess, availableDrills = [], initialMode = 'create_or_update', intent = 'roster_and_scores', showModeSwitch = true, droppedFile = null }) {
   const { selectedEvent } = useEvent();
@@ -41,6 +42,8 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
   const [url, setUrl] = useState('');
   const [parseResult, setParseResult] = useState(null);
   const [error, setError] = useState(null);
+  const [isDownloadingTemplate, setIsDownloadingTemplate] = useState(false);
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
   const [undoLog, setUndoLog] = useState(null);
   const [undoing, setUndoing] = useState(false);
   const [conflictMode, setConflictMode] = useState('overwrite'); // overwrite, skip, merge
@@ -266,14 +269,42 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
     setError(null);
   };
 
-  const handleDownloadTemplate = () => {
-    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/import-template`;
-    window.open(url, '_blank');
+  const handleDownloadTemplate = async () => {
+    if (!selectedEvent?.id || isDownloadingTemplate) return;
+
+    setError(null);
+    setIsDownloadingTemplate(true);
+    try {
+      await downloadWithApiAuth(
+        api,
+        `/events/${selectedEvent.id}/import-template`,
+        `import_template_${selectedEvent.name || 'event'}.csv`
+      );
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setError(detail || 'Failed to download template. Please try again.');
+    } finally {
+      setIsDownloadingTemplate(false);
+    }
   };
 
-  const handleDownloadPDF = () => {
-    const url = `${api.defaults.baseURL}/events/${selectedEvent.id}/export-pdf`;
-    window.open(url, '_blank');
+  const handleDownloadPDF = async () => {
+    if (!selectedEvent?.id || isDownloadingPdf) return;
+
+    setError(null);
+    setIsDownloadingPdf(true);
+    try {
+      await downloadWithApiAuth(
+        api,
+        `/events/${selectedEvent.id}/export-pdf`,
+        `${selectedEvent.name || 'event'}_results.pdf`
+      );
+    } catch (err) {
+      const detail = err?.response?.data?.detail;
+      setError(detail || 'Failed to download PDF. Please try again.');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
   };
 
     const initializeRequiredFieldMappings = (mapping, sourceKeys) => {
@@ -1321,9 +1352,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
         <div className="flex gap-4">
             <button
                 onClick={handleDownloadTemplate}
+                disabled={isDownloadingTemplate}
                 className="text-sm text-cmf-primary hover:text-cmf-secondary font-medium flex items-center gap-2"
             >
-                <Download className="w-4 h-4" /> Template
+                {isDownloadingTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                {isDownloadingTemplate ? 'Downloading...' : 'Template'}
             </button>
             <button
                 onClick={fetchHistory}
@@ -2469,9 +2502,11 @@ export default function ImportResultsModal({ onClose, onSuccess, availableDrills
                        </button>
                        <button
                            onClick={handleDownloadPDF}
+                           disabled={isDownloadingPdf}
                            className="flex-1 px-4 py-2 bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2 transition-all"
                        >
-                           <FileText className="w-4 h-4" /> Download PDF
+                           {isDownloadingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                           {isDownloadingPdf ? 'Downloading...' : 'Download PDF'}
                        </button>
                    </div>
               </div>
