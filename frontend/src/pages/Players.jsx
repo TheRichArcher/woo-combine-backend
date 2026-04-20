@@ -217,8 +217,21 @@ export default function Players() {
       try {
         const membershipRes = await api.get(`/leagues/${selectedLeagueId}/members/${user.uid}`);
         membershipFound = true;
-        membershipCanWrite = membershipRes.data?.canWrite === true;
         membershipRole = membershipRes.data?.role || null;
+        const normalizedRole = (membershipRole || '').toLowerCase();
+        const backendCanWrite = membershipRes.data?.canWrite;
+
+        // Align frontend permission behavior with backend lock_validation defaults:
+        // - Organizers always have write access
+        // - Coaches default to write when canWrite is absent (legacy records)
+        // - Explicit canWrite=false still forces read-only
+        if (normalizedRole === 'organizer') {
+          membershipCanWrite = true;
+        } else if (typeof backendCanWrite === 'boolean') {
+          membershipCanWrite = backendCanWrite;
+        } else {
+          membershipCanWrite = true;
+        }
         
         console.log('[PERMISSIONS] Membership record found:', {
           userId: user.uid,
@@ -241,7 +254,8 @@ export default function Players() {
       let eventIsLocked = false;
       try {
         const eventRes = await api.get(`/leagues/${selectedLeagueId}/events/${selectedEvent.id}`);
-        eventIsLocked = eventRes.data?.is_locked || false;
+        // Support both field names during migration (`isLocked` is canonical backend field).
+        eventIsLocked = eventRes.data?.isLocked ?? eventRes.data?.is_locked ?? false;
         
         console.log('[PERMISSIONS] Event lock status:', {
           isLocked: eventIsLocked,
