@@ -72,8 +72,8 @@ function SportTemplatesRoute() {
     return <Navigate to="/live-standings" replace />;
   }
 
-  if (userRole !== "organizer" && userRole !== "coach") {
-    return <Navigate to="/players" replace />;
+  if (userRole !== "organizer") {
+    return <Navigate to="/coach" replace />;
   }
 
   return (
@@ -90,8 +90,8 @@ function EvaluatorsRoute() {
     return <Navigate to="/live-standings" replace />;
   }
 
-  if (userRole !== "organizer" && userRole !== "coach") {
-    return <Navigate to="/players" replace />;
+  if (userRole !== "organizer") {
+    return <Navigate to="/coach" replace />;
   }
 
   return (
@@ -371,7 +371,7 @@ function App() {
                 <Route 
                   path="/analytics" 
                   element={
-                    <RequireAuth allowedRoles={["organizer", "coach"]}>
+                    <RequireAuth allowedRoles={["organizer"]}>
                       <AuthenticatedLayout>
                         <Analytics />
                       </AuthenticatedLayout>

@@ -262,6 +262,9 @@ export default function Navigation() {
   const location = useLocation();
   const { showInfo } = useToast();
   const isViewerInviteLockedSession = isViewerInviteEventScopedSession({ userRole });
+  const isOrganizer = userRole === 'organizer';
+  const isCoach = userRole === 'coach';
+  const isStaff = isOrganizer || isCoach;
 
   const closeMobile = () => setMobileOpen(false);
 
@@ -356,8 +359,8 @@ export default function Navigation() {
 
           {/* Brand Logo */}
           <Link 
-            to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'} 
-            onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')} 
+            to={isStaff ? '/coach' : '/dashboard'} 
+            onClick={(e) => handleRestrictedNav(e, isStaff ? '/coach' : '/dashboard', 'Home')} 
             className="flex items-center flex-shrink-0" 
             aria-label="WooCombine Home"
           >
@@ -414,23 +417,23 @@ export default function Navigation() {
           {/* Center-Right: Main Navigation Links - Hidden on small mobile, shown on larger screens */}
           <div className="hidden sm:flex items-center gap-2 md:gap-4 flex-shrink-0">
             <Link 
-              to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'}
-              onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')}
+              to={isStaff ? '/coach' : '/dashboard'}
+              onClick={(e) => handleRestrictedNav(e, isStaff ? '/coach' : '/dashboard', 'Home')}
               className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
             >
-              {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
+              {isOrganizer ? 'Event Dashboard' : isCoach ? 'Coach Dashboard' : 'Home'}
             </Link>
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link 
                 to="/players?tab=manage" 
                 onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-                title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
+                title={isOrganizer ? "Manage your event’s player list" : "View roster"}
                 className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
               >
-                <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
+                <Users className="w-4 h-4 inline-block mr-1" /> {isOrganizer ? 'Manage Players' : 'Roster'}
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link
                 to="/check-in"
                 onClick={(e) => handleRestrictedNav(e, '/check-in', 'Check-In')}
@@ -439,7 +442,7 @@ export default function Navigation() {
                 <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link 
                 to="/players?tab=analyze" 
                 onClick={(e) => handleRestrictedNav(e, '/players', 'Rankings')}
@@ -449,15 +452,7 @@ export default function Navigation() {
                 📊 Rankings
               </Link>
             )}
-            <Link 
-              to="/schedule" 
-              onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
-              className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-            >
-              Schedule
-            </Link>
-
-            {/* Make advanced tools first-class: Scorecards for all, Teams for staff */}
+            {/* Keep Scorecards in primary workflow for coaches */}
             <Link 
               to="/scorecards" 
               onClick={(e) => handleRestrictedNav(e, '/scorecards', 'Scorecards')}
@@ -465,26 +460,7 @@ export default function Navigation() {
             >
               Scorecards
             </Link>
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link 
-                to="/team-formation" 
-                onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
-                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-              >
-                Teams
-              </Link>
-            )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link 
-                to="/drafts" 
-                onClick={(e) => handleRestrictedNav(e, '/drafts', 'Draft')}
-                className="text-gray-700 hover:text-brand-primary font-medium transition whitespace-nowrap text-xs md:text-sm"
-              >
-                🏆 Draft
-              </Link>
-            )}
-
-            {userRole === 'organizer' && (
+            {isOrganizer && (
               <Link 
                 to="/admin" 
                 onClick={(e) => handleRestrictedNav(e, '/admin', 'Admin')}
@@ -519,8 +495,22 @@ export default function Navigation() {
               </button>
               {toolsOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50" role="menu">
-                  {/* Analytics - Organizers & Coaches */}
-                  {(userRole === 'organizer' || userRole === 'coach') && (
+                  {isStaff && (
+                    <Link to="/schedule" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/schedule', 'Schedule'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Schedule
+                    </Link>
+                  )}
+                  {isStaff && (
+                    <Link to="/team-formation" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/team-formation', 'Teams'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Teams
+                    </Link>
+                  )}
+                  {isStaff && (
+                    <Link to="/drafts" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/drafts', 'Draft'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
+                      Draft
+                    </Link>
+                  )}
+                  {isOrganizer && (
                     <Link to="/analytics" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/analytics', 'Analytics'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                       Analytics Explorer
                     </Link>
@@ -531,17 +521,17 @@ export default function Navigation() {
                       Live Standings
                     </Link>
                   )}
-                  {(userRole === 'organizer' || userRole === 'coach') && (
+                  {isOrganizer && (
                     <Link to="/sport-templates" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/sport-templates', 'Sport Templates'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                       Sport Templates
                     </Link>
                   )}
-                  {(userRole === 'organizer' || userRole === 'coach') && (
+                  {isOrganizer && (
                     <Link to="/evaluators" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/evaluators', 'Evaluators'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                       Team Evaluations
                     </Link>
                   )}
-                  {userRole === 'organizer' && (
+                  {isOrganizer && (
                     <Link to="/event-sharing" onClick={(e) => { setToolsOpen(false); handleRestrictedNav(e, '/event-sharing', 'Event Sharing'); }} className="block px-4 py-2 text-gray-700 hover:bg-gray-50" role="menuitem">
                       Event Sharing
                     </Link>
@@ -586,23 +576,23 @@ export default function Navigation() {
 
             {/* Navigation Links on Mobile */}
             <Link 
-              to={userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard'}
+              to={isStaff ? '/coach' : '/dashboard'}
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, userRole === 'organizer' || userRole === 'coach' ? '/coach' : '/dashboard', 'Home')}
+              onClick={(e) => handleRestrictedNav(e, isStaff ? '/coach' : '/dashboard', 'Home')}
             >
-              {userRole === 'organizer' ? 'Event Dashboard' : userRole === 'coach' ? 'Coach Dashboard' : 'Home'}
+              {isOrganizer ? 'Event Dashboard' : isCoach ? 'Coach Dashboard' : 'Home'}
             </Link>
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link 
                 to="/players?tab=manage" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
                 onClick={(e) => handleRestrictedNav(e, '/players', 'Players')}
-                title={userRole === 'organizer' ? "Manage your event’s player list" : "View roster"}
+                title={isOrganizer ? "Manage your event’s player list" : "View roster"}
               >
-                <Users className="w-4 h-4 inline-block mr-1" /> {userRole === 'organizer' ? 'Manage Players' : 'Roster'}
+                <Users className="w-4 h-4 inline-block mr-1" /> {isOrganizer ? 'Manage Players' : 'Roster'}
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link
                 to="/check-in"
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -611,7 +601,7 @@ export default function Navigation() {
                 <ClipboardCheck className="w-4 h-4 inline-block mr-1" /> Check-In
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
               <Link 
                 to="/players?tab=analyze" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -622,38 +612,13 @@ export default function Navigation() {
               </Link>
             )}
             <Link 
-              to="/schedule" 
-              className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-              onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
-            >
-              Schedule
-            </Link>
-            <Link 
               to="/scorecards" 
               className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
               onClick={(e) => handleRestrictedNav(e, '/scorecards', 'Scorecards')}
             >
               Scorecards
             </Link>
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link 
-                to="/team-formation" 
-                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
-              >
-                Teams
-              </Link>
-            )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
-              <Link 
-                to="/drafts" 
-                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                onClick={(e) => handleRestrictedNav(e, '/drafts', 'Draft')}
-              >
-                🏆 Draft
-              </Link>
-            )}
-            {userRole === 'organizer' && (
+            {isOrganizer && (
               <Link 
                 to="/admin" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -691,8 +656,34 @@ export default function Navigation() {
             </Link>
             {/* Tools group on mobile */}
             <div className="px-4 pt-2 pb-1 text-xs font-semibold text-gray-500 uppercase">Tools</div>
-            {/* Analytics - Organizers & Coaches */}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isStaff && (
+              <Link 
+                to="/schedule" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/schedule', 'Schedule')}
+              >
+                Schedule
+              </Link>
+            )}
+            {isStaff && (
+              <Link 
+                to="/team-formation" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/team-formation', 'Teams')}
+              >
+                Teams
+              </Link>
+            )}
+            {isStaff && (
+              <Link 
+                to="/drafts" 
+                className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                onClick={(e) => handleRestrictedNav(e, '/drafts', 'Draft')}
+              >
+                Draft
+              </Link>
+            )}
+            {isOrganizer && (
               <Link 
                 to="/analytics" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -711,7 +702,7 @@ export default function Navigation() {
                 Live Standings
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isOrganizer && (
               <Link 
                 to="/sport-templates" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -720,7 +711,7 @@ export default function Navigation() {
                 Sport Templates
               </Link>
             )}
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {isOrganizer && (
               <Link 
                 to="/evaluators" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"
@@ -729,7 +720,7 @@ export default function Navigation() {
                 Team Evaluations
               </Link>
             )}
-            {userRole === 'organizer' && (
+            {isOrganizer && (
               <Link 
                 to="/event-sharing" 
                 className="px-4 py-3 text-gray-700 hover:bg-gray-50 border-b border-gray-100"

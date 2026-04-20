@@ -11,10 +11,10 @@ describe('App route role guards', () => {
     expect(playersGuardRegex.test(source)).toBe(true);
   });
 
-  it('restricts /analytics to organizer and coach', () => {
+  it('restricts /analytics to organizer only', () => {
     const source = fs.readFileSync(appPath, 'utf8');
     const analyticsGuardRegex =
-      /path="\/analytics"[\s\S]*?<RequireAuth allowedRoles=\{\["organizer", "coach"\]\}>/m;
+      /path="\/analytics"[\s\S]*?<RequireAuth allowedRoles=\{\["organizer"\]\}>/m;
     expect(analyticsGuardRegex.test(source)).toBe(true);
   });
 
@@ -30,6 +30,7 @@ describe('App route role guards', () => {
     expect(source.includes('function SportTemplatesRoute()')).toBe(true);
     expect(source.includes('if (userRole === "viewer")')).toBe(true);
     expect(source.includes('return <Navigate to="/live-standings" replace />;')).toBe(true);
+    expect(source.includes('if (userRole !== "organizer")')).toBe(true);
   });
 
   it('redirects viewers away from /evaluators at route level', () => {
@@ -37,6 +38,7 @@ describe('App route role guards', () => {
     expect(source.includes('function EvaluatorsRoute()')).toBe(true);
     expect(source.includes('if (userRole === "viewer")')).toBe(true);
     expect(source.includes('return <Navigate to="/live-standings" replace />;')).toBe(true);
+    expect(source.includes('if (userRole !== "organizer")')).toBe(true);
   });
 
   it('restricts /live-entry to organizer and coach', () => {

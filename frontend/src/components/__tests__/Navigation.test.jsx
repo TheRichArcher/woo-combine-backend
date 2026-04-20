@@ -132,6 +132,22 @@ describe('Navigation', () => {
     expect(evaluatorLinks.length).toBe(0);
   });
 
+  it('hides organizer-only tools for coach role', () => {
+    mockAuthContext.userRole = 'coach';
+
+    render(
+      <BrowserRouter>
+        <Navigation />
+      </BrowserRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /tools/i }));
+
+    expect(screen.queryByText('Sport Templates')).not.toBeInTheDocument();
+    expect(screen.queryByText('Analytics Explorer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Team Evaluations')).not.toBeInTheDocument();
+  });
+
   it('prevents locked viewer from opening event switcher list', () => {
     mockAuthContext.userRole = 'viewer';
     localStorage.setItem('viewerInviteEventContext', JSON.stringify({
