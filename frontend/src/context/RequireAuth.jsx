@@ -18,7 +18,6 @@ export default function RequireAuth({ children, allowedRoles }) {
   const location = useLocation();
   const pendingInvitePath = getPendingInviteJoinPath();
   const inviteHydrationState = getInviteHydrationState();
-  const effectiveRole = userRole || inviteHydrationState?.role || null;
   const inviteJoinInProgress = (() => {
     try {
       return localStorage.getItem('inviteJoinInProgress') === '1';
@@ -26,6 +25,7 @@ export default function RequireAuth({ children, allowedRoles }) {
       return false;
     }
   })();
+  const effectiveRole = userRole || (inviteJoinInProgress ? inviteHydrationState?.role || null : null) || null;
 
   // Wait for all auth state to be ready
   if (initializing || !authChecked || !roleChecked) {
@@ -79,7 +79,12 @@ export default function RequireAuth({ children, allowedRoles }) {
   // Role-based access control: if allowedRoles specified, enforce them
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(effectiveRole)) {
     // User has a role but it's not permitted for this route
-    if (effectiveRole === 'viewer') {
+    if (userRole === 'viewer') {
+      console.info('[RequireAuth] Redirecting confirmed viewer to results lookup', {
+        from: location.pathname,
+        userRole,
+        effectiveRole
+      });
       return <Navigate to="/results-lookup" replace />;
     }
     return <Navigate to="/dashboard" replace />;

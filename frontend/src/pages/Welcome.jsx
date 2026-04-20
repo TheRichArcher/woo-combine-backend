@@ -46,6 +46,10 @@ export default function Welcome() {
       }
 
       if (userRole === 'viewer') {
+        console.info('[Welcome] Redirecting confirmed viewer to results lookup', {
+          userRole,
+          from: '/welcome'
+        });
         navigate('/results-lookup', { replace: true });
         return;
       }

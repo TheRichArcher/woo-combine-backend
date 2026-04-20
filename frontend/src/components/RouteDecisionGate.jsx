@@ -116,8 +116,10 @@ export default function RouteDecisionGate({ children }) {
   const targetRoute = useRef(null);
   const gateTimeoutRef = useRef(null);
   const logPrefix = '[RouteDecisionGate]';
-  const inviteHydrationRole = getInviteHydrationState()?.role || null;
-  const effectiveUserRole = userRole || inviteHydrationRole || null;
+  const inviteHydrationState = getInviteHydrationState();
+  const inviteJoinInProgress = isInviteJoinHydrating();
+  const inviteHydrationRole = inviteHydrationState?.role || null;
+  const effectiveUserRole = userRole || (inviteJoinInProgress ? inviteHydrationRole : null) || null;
   const hasSelectedEventContext = Boolean(selectedLeagueId && selectedEvent);
   const isViewerEventContext = effectiveUserRole === 'viewer' && !!selectedEvent;
 
@@ -169,6 +171,9 @@ export default function RouteDecisionGate({ children }) {
     qrGateDebug('Decision inputs', {
       ...buildDecisionState(),
       user: !!user,
+      confirmedUserRole: userRole || null,
+      inviteHydrationRole: inviteHydrationRole || null,
+      inviteJoinInProgress,
       authChecked,
       roleChecked,
       initializing,
@@ -183,6 +188,9 @@ export default function RouteDecisionGate({ children }) {
     console.log(`${logPrefix} STATE:`, {
       ...buildDecisionState(),
       user: !!user,
+      confirmedUserRole: userRole || null,
+      inviteHydrationRole: inviteHydrationRole || null,
+      inviteJoinInProgress,
       authChecked,
       roleChecked,
       initializing,
@@ -197,6 +205,9 @@ export default function RouteDecisionGate({ children }) {
   }, [
     location.pathname,
     user,
+    userRole,
+    inviteHydrationRole,
+    inviteJoinInProgress,
     effectiveUserRole,
     authChecked,
     roleChecked,
@@ -417,8 +428,14 @@ export default function RouteDecisionGate({ children }) {
       return;
     }
 
-    // Viewer mitigation: force viewers into single-purpose parent lookup flow.
-    if (effectiveUserRole === 'viewer' && location.pathname !== '/results-lookup') {
+    // Viewer mitigation: only apply to confirmed viewer role.
+    if (userRole === 'viewer' && location.pathname !== '/results-lookup') {
+      console.info(`${logPrefix} VIEWER_REDIRECT`, {
+        from: location.pathname,
+        to: '/results-lookup',
+        confirmedUserRole: userRole,
+        effectiveUserRole
+      });
       performNavigation('/results-lookup', 'viewer restricted to parent report lookup');
       return;
     }
@@ -481,6 +498,7 @@ export default function RouteDecisionGate({ children }) {
     bypassGate,
     gateTimedOut,
     user,
+    userRole,
     effectiveUserRole,
     selectedLeagueId,
     noLeague,

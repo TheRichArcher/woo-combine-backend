@@ -809,14 +809,30 @@ function parseJwtPayload(token) {
 
         if (!userRole) {
           const inviteHydration = getInviteHydrationState();
-          if (inviteHydration?.role) {
-            authLogger.warn('No backend role found, applying invite hydration fallback role', inviteHydration);
+          const inviteJoinInProgress = (() => {
+            try {
+              return localStorage.getItem(INVITE_JOIN_IN_PROGRESS_KEY) === '1';
+            } catch {
+              return false;
+            }
+          })();
+          const currentPathForHydration = window.location.pathname || '/';
+          const allowInviteHydrationFallback = inviteJoinInProgress || currentPathForHydration.startsWith('/join-event/');
+          if (inviteHydration?.role && allowInviteHydrationFallback) {
+            authLogger.warn('No backend role found, applying invite hydration fallback role during active invite join', inviteHydration);
             setUserRole(inviteHydration.role);
             localStorage.setItem('userRole', inviteHydration.role);
             setRoleChecked(true);
             transitionTo(STATUS.READY, 'Invite hydration fallback role applied');
             setInitializing(false);
             return;
+          }
+          if (inviteHydration?.role && !allowInviteHydrationFallback) {
+            authLogger.warn('Ignoring stale invite hydration fallback role outside invite join', {
+              inviteHydration,
+              currentPath: currentPathForHydration,
+              inviteJoinInProgress
+            });
           }
           if (restoredPendingInvite) {
             const safePath = buildPendingInvitePath(restoredPendingInvite);
@@ -864,6 +880,7 @@ function parseJwtPayload(token) {
         }
 
         authLogger.debug('User role found', userRole);
+        clearInviteHydrationState();
         setUserRole(userRole);
         // Persist only valid roles to localStorage
         if (userRole && VALID_ROLES.includes(userRole)) {
@@ -1113,10 +1130,21 @@ function parseJwtPayload(token) {
         // Persist role to localStorage for browser refresh resilience
         if (newRole) {
           localStorage.setItem('userRole', newRole);
-          setInviteHydrationState({
-            role: newRole,
-            leagueId: localStorage.getItem('selectedLeagueId') || null
-          });
+          const inviteJoinInProgress = (() => {
+            try {
+              return localStorage.getItem(INVITE_JOIN_IN_PROGRESS_KEY) === '1';
+            } catch {
+              return false;
+            }
+          })();
+          if (inviteJoinInProgress) {
+            setInviteHydrationState({
+              role: newRole,
+              leagueId: localStorage.getItem('selectedLeagueId') || null
+            });
+          } else {
+            clearInviteHydrationState();
+          }
         } else {
           localStorage.removeItem('userRole');
         }

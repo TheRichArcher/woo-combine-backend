@@ -35,6 +35,10 @@ export default function RootRedirect() {
   }
 
   if (userRole === "viewer") {
+    console.info("[RootRedirect] Redirecting confirmed viewer to results lookup", {
+      userRole,
+      from: "/"
+    });
     return <Navigate to="/results-lookup" replace />;
   }
 

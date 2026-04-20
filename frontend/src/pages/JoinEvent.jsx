@@ -161,7 +161,10 @@ export default function JoinEvent() {
       }
 
       const buildJoinRequestPayload = (eventIdForInvite) => {
-        const effectiveRole = (intendedRole ? intendedRole.toLowerCase() : 'viewer');
+        const requestedRole = (intendedRole || userRole || 'viewer').toLowerCase();
+        const effectiveRole = ['organizer', 'coach', 'viewer', 'player'].includes(requestedRole)
+          ? requestedRole
+          : 'viewer';
         const payload = {
           user_id: user.uid,
           email: user.email,
