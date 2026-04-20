@@ -325,14 +325,14 @@ const ScorecardsPage = () => {
                       className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 text-sm font-semibold transition"
                     >
                       <Download className="w-4 h-4" />
-                      Generate PDF
+                      Quick Export PDF
                     </button>
                     <button
                       onClick={handleEmailScorecard}
                       className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 bg-white text-blue-700 px-4 py-2.5 text-sm font-medium hover:bg-blue-100 transition"
                     >
                       <Mail className="w-4 h-4" />
-                      Email Report
+                      Quick Email Report
                     </button>
                   </div>
                   <div className="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -341,14 +341,14 @@ const ScorecardsPage = () => {
                       className="text-sm font-medium text-blue-700 hover:text-blue-900 inline-flex items-center gap-1"
                     >
                       {showScoreDetails ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {showScoreDetails ? 'Hide Score Details' : 'Show Score Details'}
+                      {showScoreDetails ? 'Hide Ranking Breakdown' : 'Show Ranking Breakdown'}
                     </button>
                     <button
                       onClick={() => setShowGenerator(!showGenerator)}
                       className="text-sm text-gray-600 hover:text-gray-800 inline-flex items-center gap-1"
                     >
                       {showGenerator ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                      {showGenerator ? 'Hide Advanced Report Builder' : 'Open Advanced Report Builder'}
+                      {showGenerator ? 'Hide Report Customization' : 'Customize & Preview Report'}
                     </button>
                   </div>
                 </div>

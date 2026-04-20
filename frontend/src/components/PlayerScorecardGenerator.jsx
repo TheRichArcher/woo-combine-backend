@@ -5,25 +5,16 @@ import { useToast } from '../context/ToastContext';
 import {
   Share2,
   Download,
-  Mail,
   FileText,
   Award,
-  TrendingUp,
-  Target,
-  BarChart3,
   User,
-  Calendar,
-  MapPin,
-  Trophy,
-  Star,
-  Info
+  Trophy
 } from 'lucide-react';
 import Button from './ui/Button';
 import { getDrillsFromTemplate, getTemplateById } from '../constants/drillTemplates';
 import { formatViewerPlayerName } from '../utils/playerDisplayName';
 import {
   buildPlayerScorecardPayload,
-  createScorecardEmailDraft,
   downloadPlayerScorecardPdf,
   generatePlayerScorecardHTML
 } from '../utils/playerScorecardReport';
@@ -87,20 +78,6 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
     if (opened) {
       showSuccess('Scorecard generated! Use your browser\'s print function to save as PDF.');
     }
-  };
-
-  const shareViaEmail = () => {
-    const mailtoLink = createScorecardEmailDraft({
-      player,
-      displayName,
-      selectedEvent,
-      allPlayers,
-      weights,
-      drills
-    });
-    if (!mailtoLink) return;
-    window.location.href = mailtoLink;
-    showSuccess('Email client opened! Use "Generate PDF" to generate the scorecard and attach it.');
   };
 
   const copyScoreToClipboard = () => {
@@ -198,15 +175,11 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Custom export actions */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <Button variant="primary" onClick={generatePDFReport} className="gap-2">
           <Download className="w-4 h-4" />
-          Generate PDF
-        </Button>
-        <Button variant="outline" onClick={shareViaEmail} className="gap-2">
-          <Mail className="w-4 h-4" />
-          Email
+          Export with Custom Settings
         </Button>
         <Button variant="subtle" onClick={copyScoreToClipboard} className="gap-2">
           <Share2 className="w-4 h-4" />
@@ -217,6 +190,9 @@ const PlayerScorecardGenerator = ({ player, allPlayers = [], weights = {}, selec
           {showPreview ? 'Hide Preview' : 'Preview'}
         </Button>
       </div>
+      <p className="text-xs text-gray-500 mb-6">
+        Use Quick Email Report above for the email draft action.
+      </p>
 
       {/* Preview */}
       {showPreview && (
