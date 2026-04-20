@@ -52,6 +52,7 @@ import SessionExpiredGate from "./components/SessionExpiredGate";
 import BootGate from "./components/BootGate";
 import { NavigationLogger } from "./hooks/useTrackedNavigate";
 import RootRedirect from "./components/RootRedirect";
+import ScrollRestorationManager from "./components/ScrollRestorationManager";
 
 // Authenticated Layout Component with Route Decision Gate
 function AuthenticatedLayout({ children }) {
@@ -123,6 +124,7 @@ function App() {
   return (
     <BrowserRouter>
       <NavigationLogger />
+      <ScrollRestorationManager />
       <ErrorBoundary>
         <ToastProvider>
         <AuthProvider>

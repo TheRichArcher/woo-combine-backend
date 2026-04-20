@@ -75,10 +75,18 @@ const ScorecardsPage = () => {
 
   // Ref for auto-scrolling to stats
   const statsRef = useRef(null);
+  const didInitSelectionRef = useRef(false);
+  const shouldScrollToStatsRef = useRef(false);
 
   useEffect(() => {
-    if (selectedPlayer && statsRef.current) {
+    if (!didInitSelectionRef.current) {
+      didInitSelectionRef.current = true;
+      return;
+    }
+
+    if (selectedPlayer && statsRef.current && shouldScrollToStatsRef.current) {
       statsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      shouldScrollToStatsRef.current = false;
     }
   }, [selectedPlayer]);
   
@@ -147,6 +155,7 @@ const ScorecardsPage = () => {
   });
 
   const handlePlayerSelect = (player) => {
+    shouldScrollToStatsRef.current = true;
     setShowScoreDetails(true);
     
     // Open the global modal context but suppressed (so we use inline panel)
