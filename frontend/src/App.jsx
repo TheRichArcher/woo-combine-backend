@@ -83,6 +83,24 @@ function SportTemplatesRoute() {
   );
 }
 
+function EvaluatorsRoute() {
+  const { userRole } = useAuth();
+
+  if (userRole === "viewer") {
+    return <Navigate to="/live-standings" replace />;
+  }
+
+  if (userRole !== "organizer" && userRole !== "coach") {
+    return <Navigate to="/players" replace />;
+  }
+
+  return (
+    <AuthenticatedLayout>
+      <EvaluatorManagementPage />
+    </AuthenticatedLayout>
+  );
+}
+
 function App() {
   // Log build version on app load for deployment verification
   useEffect(() => {
@@ -155,10 +173,8 @@ function App() {
                 <Route 
                   path="/evaluators" 
                   element={
-                    <RequireAuth >
-                      <AuthenticatedLayout>
-                        <EvaluatorManagementPage />
-                      </AuthenticatedLayout>
+                    <RequireAuth>
+                      <EvaluatorsRoute />
                     </RequireAuth>
                   } 
                 />

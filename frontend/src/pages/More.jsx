@@ -104,12 +104,14 @@ export default function More() {
         </Section>
 
         <Section title="Management">
-          <Item
-            icon="🧑‍⚖️"
-            label="Evaluators"
-            desc="Multi-evaluator workflow and grading"
-            to="/evaluators"
-          />
+          {(userRole === 'organizer' || userRole === 'coach') && (
+            <Item
+              icon="🧑‍⚖️"
+              label="Evaluators"
+              desc="Multi-evaluator workflow and grading"
+              to="/evaluators"
+            />
+          )}
           <Item
             icon="🧩"
             label="Team Formation"

@@ -119,6 +119,19 @@ describe('Navigation', () => {
     expect(sportTemplateLinks.length).toBe(0);
   });
 
+  it('hides evaluators navigation links for viewer role', () => {
+    mockAuthContext.userRole = 'viewer';
+
+    const { container } = render(
+      <BrowserRouter>
+        <Navigation />
+      </BrowserRouter>
+    );
+
+    const evaluatorLinks = container.querySelectorAll('a[href="/evaluators"]');
+    expect(evaluatorLinks.length).toBe(0);
+  });
+
   it('prevents locked viewer from opening event switcher list', () => {
     mockAuthContext.userRole = 'viewer';
     localStorage.setItem('viewerInviteEventContext', JSON.stringify({

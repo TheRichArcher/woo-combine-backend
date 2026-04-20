@@ -32,6 +32,13 @@ describe('App route role guards', () => {
     expect(source.includes('return <Navigate to="/live-standings" replace />;')).toBe(true);
   });
 
+  it('redirects viewers away from /evaluators at route level', () => {
+    const source = fs.readFileSync(appPath, 'utf8');
+    expect(source.includes('function EvaluatorsRoute()')).toBe(true);
+    expect(source.includes('if (userRole === "viewer")')).toBe(true);
+    expect(source.includes('return <Navigate to="/live-standings" replace />;')).toBe(true);
+  });
+
   it('restricts /live-entry to organizer and coach', () => {
     const source = fs.readFileSync(appPath, 'utf8');
     const liveEntryGuardRegex =
