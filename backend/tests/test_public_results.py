@@ -59,6 +59,8 @@ def test_results_lookup_uses_checkin_number_field(app_client, fake_db, monkeypat
     assert r.status_code == 200, r.text
     body = r.json()
     assert body["player_name"] == "John Bradshaw Jr"
+    assert body["first_name"] == "John"
+    assert body["last_name"] == "Bradshaw Jr."
     assert body["age_group"] == "U12"
 
 
@@ -155,3 +157,42 @@ def test_results_lookup_scopes_to_requested_event(app_client, fake_db, monkeypat
     )
     assert r.status_code == 200, r.text
     assert r.json()["player_name"] == "Taylor Jordan"
+    assert r.json()["first_name"] == "Taylor"
+    assert r.json()["last_name"] == "Jordan"
+
+
+def test_results_lookup_name_fields_fallback_to_combined_name(app_client, fake_db, monkeypatch):
+    _seed_event(fake_db)
+
+    fake_db.collection("events").document("event-1").collection("players").document("p-1").set(
+        {
+            "name": "Casey Morgan",
+            "number": 9,
+            "event_id": "event-1",
+            "age_group": "U12",
+            "scores": {},
+        }
+    )
+
+    import backend.routes.public_results as public_results
+
+    monkeypatch.setattr(
+        public_results,
+        "get_event_schema",
+        lambda _event_id: SimpleNamespace(drills=[]),
+    )
+    monkeypatch.setattr(
+        public_results,
+        "calculate_composite_score",
+        lambda player, schema=None: float(player.get("number") or 0),
+    )
+
+    r = app_client.post(
+        "/api/public/results-lookup",
+        json={"event_id": "event-1", "combine_number": "9", "last_name": "morgan"},
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["player_name"] == "Casey Morgan"
+    assert body["first_name"] == "Casey"
+    assert body["last_name"] == "Morgan"

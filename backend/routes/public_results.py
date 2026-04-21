@@ -136,6 +136,46 @@ def _extract_score(player_data: Dict[str, Any], drill_key: str) -> Optional[floa
         return None
 
 
+def _normalize_name_part(value: Any) -> str:
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
+def _split_full_name(full_name: Any) -> tuple[str, str]:
+    normalized = _normalize_name_part(full_name)
+    if not normalized:
+        return "", ""
+    parts = normalized.split()
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], " ".join(parts[1:])
+
+
+def _resolve_name_fields(player_data: Dict[str, Any]) -> Dict[str, str]:
+    first_name = _normalize_name_part(
+        player_data.get("first_name") or player_data.get("first")
+    )
+    last_name = _normalize_name_part(player_data.get("last_name") or player_data.get("last"))
+    combined_name = _normalize_name_part(player_data.get("name"))
+
+    parsed_first, parsed_last = _split_full_name(combined_name)
+    if not first_name:
+        first_name = parsed_first
+    if not last_name:
+        last_name = parsed_last
+
+    display_name = " ".join(part for part in [first_name, last_name] if part).strip()
+    if not display_name:
+        display_name = combined_name or "Participant"
+
+    return {
+        "first_name": first_name,
+        "last_name": last_name,
+        "player_name": display_name,
+    }
+
+
 def _build_positive_highlight(percentile: int) -> str:
     if percentile >= 90:
         return "Outstanding performance! Ranked among the top performers in your age group."
@@ -330,6 +370,7 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
         )
         overall_percentile = percentile_from_rank(target_rank, len(composite_rankings)) or 0
         star_rating = get_star_rating_from_percentile(overall_percentile)
+        resolved_name_fields = _resolve_name_fields(target_player)
         canonical_drill_metrics = build_canonical_drill_metrics_for_cohort(
             age_group_players, schema
         )
@@ -355,7 +396,9 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
             )
 
         return {
-            "player_name": target_player.get("name") or "Participant",
+            "player_name": resolved_name_fields["player_name"],
+            "first_name": resolved_name_fields["first_name"],
+            "last_name": resolved_name_fields["last_name"],
             "age_group": age_group,
             "overall_score": round(float(target_score), 1),
             "percentile": int(overall_percentile),

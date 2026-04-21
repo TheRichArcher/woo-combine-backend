@@ -5,6 +5,56 @@ import { getStarRatingFromPercentile } from './starRating';
 const STAR_SYSTEM_EXPLANATION =
   "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on.";
 
+function normalizeNamePart(value) {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
+function splitFullName(fullName) {
+  const normalized = normalizeNamePart(fullName);
+  if (!normalized) return { firstName: '', lastName: '' };
+  const parts = normalized.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' };
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') };
+}
+
+function resolvePlayerName({ player = {}, displayName = '' }) {
+  const firstName = normalizeNamePart(player.first_name) || normalizeNamePart(player.first);
+  const lastName = normalizeNamePart(player.last_name) || normalizeNamePart(player.last);
+  const combinedFromFields = [firstName, lastName].filter(Boolean).join(' ').trim();
+  if (combinedFromFields) {
+    return { firstName, lastName, displayName: combinedFromFields };
+  }
+
+  const parsedFromPlayerName = splitFullName(player.name);
+  const parsedPlayerCombined = [parsedFromPlayerName.firstName, parsedFromPlayerName.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  if (parsedPlayerCombined) {
+    return {
+      firstName: parsedFromPlayerName.firstName,
+      lastName: parsedFromPlayerName.lastName,
+      displayName: parsedPlayerCombined
+    };
+  }
+
+  const parsedFromDisplayName = splitFullName(displayName);
+  const parsedDisplayCombined = [parsedFromDisplayName.firstName, parsedFromDisplayName.lastName]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+  if (parsedDisplayCombined) {
+    return {
+      firstName: parsedFromDisplayName.firstName,
+      lastName: parsedFromDisplayName.lastName,
+      displayName: parsedDisplayCombined
+    };
+  }
+
+  const fallbackDisplayName = normalizeNamePart(displayName) || 'Participant';
+  return { firstName: '', lastName: '', displayName: fallbackDisplayName };
+}
+
 function normalizeWeights(weights = {}, drills = []) {
   const normalized = {};
   drills.forEach((drill) => {
@@ -132,6 +182,7 @@ export function generatePlayerScorecardHTML({
   drillAnalysis = []
 }) {
   if (!player || !playerStats) return '';
+  const resolvedName = resolvePlayerName({ player, displayName });
 
   const playerInfoLine = player.number
     ? `Player #${player.number}`
@@ -141,7 +192,7 @@ export function generatePlayerScorecardHTML({
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${documentTitle || `${displayName} - Player Scorecard`}</title>
+        <title>${documentTitle || `${resolvedName.displayName} - Player Scorecard`}</title>
         <style>
           @page { size: letter; margin: 0.5in; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -186,7 +237,7 @@ export function generatePlayerScorecardHTML({
         <div class="top-summary">
           <div class="top-player-row">
             <div>
-              <div class="player-name">${displayName}</div>
+              <div class="player-name">${resolvedName.displayName}</div>
               <div class="player-meta">${playerInfoLine}</div>
             </div>
           </div>
@@ -237,7 +288,7 @@ export function generatePlayerScorecardHTML({
         <div class="section">
           <div class="section-title">🎯 ${templateName || 'Evaluation'} Summary</div>
           <div class="summary-box">
-            <p><strong>Overall Assessment:</strong> ${displayName} scored ${playerStats.compositeScore.toFixed(1)}
+            <p><strong>Overall Assessment:</strong> ${resolvedName.displayName} scored ${playerStats.compositeScore.toFixed(1)}
             overall in the ${player.age_group} age group (${playerStats.starDisplay || '—'}).</p>
 
             <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${templateName || 'evaluation'}
@@ -266,9 +317,10 @@ export function downloadPlayerScorecardPdf({
   includeRecommendations = true,
   coachNotes = ''
 }) {
+  const resolvedName = resolvePlayerName({ player, displayName });
   const pdfFilename = buildPlayerScorecardPdfFilename({
     eventName: selectedEvent?.name,
-    playerName: displayName
+    playerName: resolvedName.displayName
   });
 
   const payload = buildPlayerScorecardPayload({
@@ -282,7 +334,7 @@ export function downloadPlayerScorecardPdf({
 
   const reportHtml = generatePlayerScorecardHTML({
     player,
-    displayName,
+    displayName: resolvedName.displayName,
     documentTitle: pdfFilename,
     selectedEvent,
     templateName,
@@ -323,6 +375,7 @@ export function createScorecardEmailDraft({
   weights = {},
   drills = []
 }) {
+  const resolvedName = resolvePlayerName({ player, displayName });
   const payload = buildPlayerScorecardPayload({
     player,
     allPlayers,
@@ -333,10 +386,10 @@ export function createScorecardEmailDraft({
   if (!payload) return null;
 
   const { playerStats } = payload;
-  const subject = `${displayName} - Player Scorecard from ${selectedEvent?.name || 'Evaluation'}`;
+  const subject = `${resolvedName.displayName} - Player Scorecard from ${selectedEvent?.name || 'Evaluation'}`;
   const body = `Hi,
 
-Here are ${displayName}'s evaluation highlights:
+Here are ${resolvedName.displayName}'s evaluation highlights:
 
 - Overall Score: ${playerStats.compositeScore.toFixed(1)}
 - Stars: ${playerStats.starDisplay || '—'}

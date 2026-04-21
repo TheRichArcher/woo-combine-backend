@@ -29,8 +29,35 @@ function getDrillStarDisplay(drill) {
   return fallback.starDisplay || "—";
 }
 
+function normalizeNamePart(value) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function splitFullName(fullName) {
+  const normalized = normalizeNamePart(fullName);
+  if (!normalized) return { firstName: "", lastName: "" };
+  const parts = normalized.split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return {
+    firstName: parts[0],
+    lastName: parts.slice(1).join(" "),
+  };
+}
+
+function getReportDisplayName(report) {
+  const firstName = normalizeNamePart(report?.first_name);
+  const lastName = normalizeNamePart(report?.last_name);
+  const combinedFromParts = [firstName, lastName].filter(Boolean).join(" ").trim();
+  if (combinedFromParts) return combinedFromParts;
+
+  const parsed = splitFullName(report?.player_name);
+  const parsedCombined = [parsed.firstName, parsed.lastName].filter(Boolean).join(" ").trim();
+  return parsedCombined || "Participant";
+}
+
 function buildPrintableHtml(report) {
   const overallStar = getReportStarTier(report);
+  const displayName = getReportDisplayName(report);
   const drillRows = (report?.drill_breakdown || [])
     .map((drill) => {
       const score =
@@ -69,7 +96,7 @@ function buildPrintableHtml(report) {
         </style>
       </head>
       <body>
-        <h1>${report.player_name}</h1>
+        <h1>${displayName}</h1>
         <div class="meta">Age Group: ${report.age_group || "N/A"}</div>
         <div class="summary">
           <div class="box"><div class="label">Overall Score</div><div class="value">${report.overall_score}</div></div>
@@ -203,7 +230,7 @@ export default function ResultsLookup() {
           <div className="mt-6 border border-gray-200 rounded-xl p-5 bg-gray-50">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">{report.player_name}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{getReportDisplayName(report)}</h2>
                 <p className="text-sm text-gray-600">Age Group: {report.age_group || "N/A"}</p>
               </div>
               <div className="text-right">
