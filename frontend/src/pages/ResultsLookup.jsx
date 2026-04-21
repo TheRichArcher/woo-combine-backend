@@ -8,7 +8,7 @@ import { getStarRatingFromPercentile } from "../utils/starRating";
 const GENERIC_LOOKUP_ERROR =
   "We couldn't find a matching participant with that Combine Number and Last Name.";
 const STAR_SYSTEM_EXPLANATION =
-  "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on.";
+  "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on. Star ratings range from 1 to 5, with more stars indicating stronger performance in that drill or overall on the day of the combine.";
 
 function getReportStarTier(report) {
   if (!report) return { starDisplay: "—" };
