@@ -120,6 +120,7 @@ export default function ResultsLookup() {
   const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [formError, setFormError] = useState("");
   const [report, setReport] = useState(null);
   const eventIdFromQuery = useMemo(() => {
     const params = new URLSearchParams(location.search || "");
@@ -130,29 +131,55 @@ export default function ResultsLookup() {
     () => getReportStarTier(report),
     [report]
   );
+  const normalizedCombineNumber = combineNumber.trim();
+  const normalizedLastName = lastName.trim();
+  const combineHasLetters = /[a-z]/i.test(normalizedCombineNumber);
+  const lastNameHasNumbers = /\d/.test(normalizedLastName);
+  const looksReversed =
+    normalizedCombineNumber.length > 0 &&
+    normalizedLastName.length > 0 &&
+    combineHasLetters &&
+    /^\d+$/.test(normalizedLastName);
 
   const canSubmit = useMemo(
     () =>
       effectiveEventId.length > 0 &&
-      combineNumber.trim().length > 0 &&
-      lastName.trim().length > 0 &&
+      normalizedCombineNumber.length > 0 &&
+      normalizedLastName.length > 0 &&
+      !combineHasLetters &&
+      !lastNameHasNumbers &&
       !loading,
-    [effectiveEventId, combineNumber, lastName, loading]
+    [
+      effectiveEventId,
+      normalizedCombineNumber,
+      normalizedLastName,
+      combineHasLetters,
+      lastNameHasNumbers,
+      loading,
+    ]
   );
 
   const handleLookup = async (event) => {
     event.preventDefault();
-    if (!canSubmit) return;
+    setError("");
+    setFormError("");
+    setReport(null);
+
+    if (looksReversed) {
+      setFormError(
+        "It looks like the fields may be reversed. Please enter the number in Combine Number and the last name separately."
+      );
+      return;
+    }
+    if (combineHasLetters || lastNameHasNumbers || !canSubmit) return;
 
     setLoading(true);
-    setError("");
-    setReport(null);
 
     try {
       const response = await api.post("/public/results-lookup", {
         event_id: effectiveEventId,
-        combine_number: combineNumber.trim(),
-        last_name: lastName.trim(),
+        combine_number: normalizedCombineNumber,
+        last_name: normalizedLastName,
       });
       setReport(response.data || null);
     } catch {
@@ -182,6 +209,9 @@ export default function ResultsLookup() {
         <p className="text-sm text-gray-600 mb-6">
           Enter the participant&apos;s Combine Number and Last Name to view one report.
         </p>
+        <p className="text-xs text-gray-500 mb-4">
+          Use the number from your child&apos;s bib and their last name.
+        </p>
         {!effectiveEventId && (
           <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-4 py-3 text-sm">
             This lookup link is missing event context. Please use the event-specific report link or QR code from your organizer.
@@ -194,23 +224,43 @@ export default function ResultsLookup() {
             <input
               type="text"
               value={combineNumber}
-              onChange={(e) => setCombineNumber(e.target.value)}
+              onChange={(e) => {
+                setCombineNumber(e.target.value);
+                if (formError) setFormError("");
+              }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              placeholder="Enter number (e.g. 145)"
               autoComplete="off"
+              inputMode="numeric"
               required
             />
+            {combineHasLetters && (
+              <p className="mt-1 text-xs text-red-600">Combine Number must be a number</p>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
             <input
               type="text"
               value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
+              onChange={(e) => {
+                setLastName(e.target.value);
+                if (formError) setFormError("");
+              }}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
+              placeholder="Enter last name (e.g. Banfill)"
               autoComplete="family-name"
               required
             />
+            {lastNameHasNumbers && (
+              <p className="mt-1 text-xs text-red-600">Last Name should not contain numbers</p>
+            )}
           </div>
+          {formError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+              {formError}
+            </div>
+          )}
           <button
             type="submit"
             disabled={!canSubmit}
