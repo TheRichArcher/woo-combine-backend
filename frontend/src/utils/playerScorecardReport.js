@@ -222,15 +222,19 @@ export function generatePlayerScorecardHTML({
               <tr>
                 <th>Drill</th>
                 <th>Score</th>
+                <th>Stars</th>
               </tr>
             </thead>
             <tbody>
               ${drillAnalysis
                 .map((drill) => {
+                  const drillStarDisplay =
+                    getStarRatingFromPercentile(drill.percentile).starDisplay || '—';
                   return `
                 <tr>
                   <td><strong>${drill.label}</strong></td>
                   <td class="drill-score">${drill.playerScore !== null && drill.playerScore !== undefined ? `${drill.playerScore} ${drill.unit}` : '—'}</td>
+                  <td>${drillStarDisplay}</td>
                 </tr>`;
                 })
                 .join('')}

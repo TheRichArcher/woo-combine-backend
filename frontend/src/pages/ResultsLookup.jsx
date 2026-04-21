@@ -23,6 +23,12 @@ function getReportStarTier(report) {
   };
 }
 
+function getDrillStarDisplay(drill) {
+  if (drill?.drill_star_display) return drill.drill_star_display;
+  const fallback = getStarRatingFromPercentile(drill?.percentile);
+  return fallback.starDisplay || "—";
+}
+
 function buildPrintableHtml(report) {
   const overallStar = getReportStarTier(report);
   const drillRows = (report?.drill_breakdown || [])
@@ -31,10 +37,12 @@ function buildPrintableHtml(report) {
         drill.score === null || drill.score === undefined
           ? "—"
           : `${drill.score} ${drill.unit || ""}`.trim();
+      const drillStars = getDrillStarDisplay(drill);
       return `
         <tr>
           <td>${drill.drill_label}</td>
           <td>${score}</td>
+          <td>${drillStars}</td>
         </tr>
       `;
     })
@@ -70,7 +78,7 @@ function buildPrintableHtml(report) {
         ${report.positive_highlight ? `<div class="highlight">${report.positive_highlight}</div>` : ""}
         <h2>Drill Breakdown</h2>
         <table>
-          <thead><tr><th>Drill</th><th>Score</th></tr></thead>
+          <thead><tr><th>Drill</th><th>Score</th><th>Stars</th></tr></thead>
           <tbody>${drillRows}</tbody>
         </table>
       </body>
@@ -215,6 +223,7 @@ export default function ResultsLookup() {
                   <tr className="border-b border-gray-200">
                     <th className="text-left py-2 pr-2">Drill</th>
                     <th className="text-left py-2 pr-2">Score</th>
+                    <th className="text-left py-2">Stars</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -226,6 +235,7 @@ export default function ResultsLookup() {
                           ? "—"
                           : `${drill.score} ${drill.unit || ""}`.trim()}
                       </td>
+                      <td className="py-2">{getDrillStarDisplay(drill)}</td>
                     </tr>
                   ))}
                 </tbody>
