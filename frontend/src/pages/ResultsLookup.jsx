@@ -7,19 +7,19 @@ import { getStarRatingFromPercentile } from "../utils/starRating";
 
 const GENERIC_LOOKUP_ERROR =
   "We couldn't find a matching participant with that Combine Number and Last Name.";
+const STAR_SYSTEM_EXPLANATION =
+  "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on.";
 
 function getReportStarTier(report) {
-  if (!report) return { starDisplay: "—", starLabel: "" };
-  if (report.star_display || report.star_label) {
+  if (!report) return { starDisplay: "—" };
+  if (report.star_display) {
     return {
       starDisplay: report.star_display || "—",
-      starLabel: report.star_label || "",
     };
   }
   const fallback = getStarRatingFromPercentile(report?.percentile);
   return {
     starDisplay: fallback.starDisplay || "—",
-    starLabel: fallback.starLabel || "",
   };
 }
 
@@ -65,7 +65,7 @@ function buildPrintableHtml(report) {
           table { width: 100%; border-collapse: collapse; margin-top: 8px; }
           th, td { border-bottom: 1px solid #e5e7eb; text-align: left; padding: 8px; font-size: 13px; }
           th { background: #f9fafb; }
-          .highlight { margin: 14px 0; color: #065f46; font-weight: 600; }
+          .report-explainer { margin: 0 0 16px 0; color: #374151; font-size: 13px; line-height: 1.5; }
         </style>
       </head>
       <body>
@@ -73,9 +73,9 @@ function buildPrintableHtml(report) {
         <div class="meta">Age Group: ${report.age_group || "N/A"}</div>
         <div class="summary">
           <div class="box"><div class="label">Overall Score</div><div class="value">${report.overall_score}</div></div>
-          <div class="box"><div class="label">Player Tier</div><div class="value">${overallStar.starDisplay || "—"}</div><div>${overallStar.starLabel || ""}</div></div>
+          <div class="box"><div class="label">Stars</div><div class="value">${overallStar.starDisplay || "—"}</div></div>
         </div>
-        ${report.positive_highlight ? `<div class="highlight">${report.positive_highlight}</div>` : ""}
+        <div class="report-explainer">${STAR_SYSTEM_EXPLANATION}</div>
         <h2>Drill Breakdown</h2>
         <table>
           <thead><tr><th>Drill</th><th>Score</th><th>Stars</th></tr></thead>
@@ -209,13 +209,11 @@ export default function ResultsLookup() {
               <div className="text-right">
                 <div className="text-sm text-gray-500">Overall Score</div>
                 <div className="text-2xl font-bold text-brand-primary">{report.overall_score}</div>
-                <div className="text-sm text-gray-600">{overallStar.starDisplay || "—"} {overallStar.starLabel || ""}</div>
+                <div className="text-sm text-gray-600">{overallStar.starDisplay || "—"}</div>
               </div>
             </div>
 
-            {report.positive_highlight && (
-              <div className="mt-3 text-sm font-semibold text-green-700">{report.positive_highlight}</div>
-            )}
+            <p className="mt-3 text-sm text-gray-700 leading-6">{STAR_SYSTEM_EXPLANATION}</p>
 
             <div className="mt-4 overflow-x-auto">
               <table className="w-full border-collapse text-sm">

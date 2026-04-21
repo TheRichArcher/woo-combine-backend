@@ -2,6 +2,9 @@ import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from './
 import { buildPlayerScorecardPdfFilename } from './pdfFilename';
 import { getStarRatingFromPercentile } from './starRating';
 
+const STAR_SYSTEM_EXPLANATION =
+  "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on.";
+
 function normalizeWeights(weights = {}, drills = []) {
   const normalized = {};
   drills.forEach((drill) => {
@@ -130,13 +133,6 @@ export function generatePlayerScorecardHTML({
 }) {
   if (!player || !playerStats) return '';
 
-  const positiveHighlight =
-    playerStats.starCount >= 5
-      ? 'Outstanding performance! Ranked among the top performers in your age group.'
-      : playerStats.starCount >= 4
-        ? 'Great job! Strong performance compared to peers in your age group.'
-        : '';
-
   const playerInfoLine = player.number
     ? `Player #${player.number}`
     : `Age Group: ${player.age_group || 'N/A'}`;
@@ -162,7 +158,6 @@ export function generatePlayerScorecardHTML({
           .stat-number { font-size: 22px; font-weight: bold; color: #19c3e6; }
           .stat-label { font-size: 9px; color: #6b7280; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.5px; }
           .summary-explainer { margin-top: 10px; color: #374151; font-size: 10px; line-height: 1.35; }
-          .positive-highlight { margin-top: 8px; font-size: 11px; color: #065f46; font-weight: 600; }
           .section { margin-bottom: 14px; }
           .section-title { font-size: 13px; font-weight: bold; color: #19c3e6; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-bottom: 8px; }
           .drill-table { width: 100%; border-collapse: collapse; font-size: 10px; }
@@ -206,13 +201,10 @@ export function generatePlayerScorecardHTML({
             </div>
             <div class="stat-box">
               <div class="stat-number">${playerStats.starDisplay || '—'}</div>
-              <div class="stat-label">${playerStats.starLabel || 'Star Tier'}</div>
+              <div class="stat-label">Stars</div>
             </div>
           </div>
-          <div class="summary-explainer">
-            These results reflect your child's performance during the Woo Combine. Star tiers are based on age-group percentile bands and shared across WooCombine reports and draft views.
-          </div>
-          ${positiveHighlight ? `<div class="positive-highlight">${positiveHighlight}</div>` : ''}
+          <div class="summary-explainer">${STAR_SYSTEM_EXPLANATION}</div>
         </div>
 
         <div class="section">
@@ -246,7 +238,7 @@ export function generatePlayerScorecardHTML({
           <div class="section-title">🎯 ${templateName || 'Evaluation'} Summary</div>
           <div class="summary-box">
             <p><strong>Overall Assessment:</strong> ${displayName} scored ${playerStats.compositeScore.toFixed(1)}
-            overall in the ${player.age_group} age group (${playerStats.starDisplay || '—'} ${playerStats.starLabel || ''}).</p>
+            overall in the ${player.age_group} age group (${playerStats.starDisplay || '—'}).</p>
 
             <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${templateName || 'evaluation'}
             template with ${drills.length} drill assessments. Scores are weighted according to coaching preferences
@@ -347,7 +339,7 @@ export function createScorecardEmailDraft({
 Here are ${displayName}'s evaluation highlights:
 
 - Overall Score: ${playerStats.compositeScore.toFixed(1)}
-- Tier: ${playerStats.starDisplay || '—'} ${playerStats.starLabel || ''}
+- Stars: ${playerStats.starDisplay || '—'}
 
 Full scorecard PDF can be downloaded from WooCombine.
 
