@@ -8,6 +8,7 @@ STAR_BANDS = [
     {"min": 25, "max": 49, "star_count": 2, "star_label": "Mid-Major Contributor"},
     {"min": 0, "max": 24, "star_count": 1, "star_label": "Developmental Prospect"},
 ]
+MIN_COMPARABLE_SCORES_FOR_DRILL_RANKING = 2
 
 
 def normalize_percentile(percentile: Optional[float]) -> Optional[int]:
@@ -69,6 +70,19 @@ def _extract_drill_score(player_data: Dict[str, Any], drill_key: str) -> Optiona
         return None
 
 
+def _coerce_lower_is_better(drill: Any) -> bool:
+    raw_value = getattr(drill, "lower_is_better", False)
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, str):
+        normalized = raw_value.strip().lower()
+        if normalized in {"true", "1", "yes", "y"}:
+            return True
+        if normalized in {"false", "0", "no", "n", ""}:
+            return False
+    return bool(raw_value)
+
+
 def build_canonical_drill_metrics_for_cohort(
     cohort_players: List[Dict[str, Any]], schema: Any
 ) -> Dict[str, Dict[str, Dict[str, Optional[object]]]]:
@@ -87,10 +101,10 @@ def build_canonical_drill_metrics_for_cohort(
                 continue
             comparable.append({"id": player_id, "score": score})
 
-        if not comparable:
+        if len(comparable) < MIN_COMPARABLE_SCORES_FOR_DRILL_RANKING:
             continue
 
-        if getattr(drill, "lower_is_better", False):
+        if _coerce_lower_is_better(drill):
             comparable.sort(key=lambda item: (item["score"], str(item["id"])))
         else:
             comparable.sort(key=lambda item: (-item["score"], str(item["id"])))

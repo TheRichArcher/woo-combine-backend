@@ -11,6 +11,7 @@ from ..routes.players import calculate_composite_score
 from ..utils.database import execute_with_timeout
 from ..utils.event_schema import get_event_schema
 from ..utils.star_rating import (
+    build_canonical_drill_metrics_for_cohort,
     get_star_rating_from_percentile,
     percentile_from_rank,
 )
@@ -124,7 +125,9 @@ def _extract_score(player_data: Dict[str, Any], drill_key: str) -> Optional[floa
     scores_map = player_data.get("scores", {}) or {}
     raw_value = scores_map.get(drill_key)
     if raw_value is None:
-        raw_value = player_data.get(drill_key) or player_data.get(f"drill_{drill_key}")
+        raw_value = player_data.get(drill_key)
+    if raw_value is None:
+        raw_value = player_data.get(f"drill_{drill_key}")
     if raw_value is None or str(raw_value).strip() == "":
         return None
     try:
@@ -327,35 +330,16 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
         )
         overall_percentile = percentile_from_rank(target_rank, len(composite_rankings)) or 0
         star_rating = get_star_rating_from_percentile(overall_percentile)
+        canonical_drill_metrics = build_canonical_drill_metrics_for_cohort(
+            age_group_players, schema
+        )
+        target_drill_metrics = canonical_drill_metrics.get(target_player.get("id"), {})
 
         drill_breakdown = []
         for drill in schema.drills:
             player_score = _extract_score(target_player, drill.key)
-            drill_percentile: Optional[int] = None
-
-            if player_score is not None:
-                comparable = []
-                for player in age_group_players:
-                    candidate_score = _extract_score(player, drill.key)
-                    if candidate_score is not None:
-                        comparable.append({"id": player.get("id"), "score": candidate_score})
-
-                if comparable:
-                    comparable.sort(
-                        key=lambda item: item["score"],
-                        reverse=not drill.lower_is_better,
-                    )
-                    drill_rank = next(
-                        (
-                            idx + 1
-                            for idx, item in enumerate(comparable)
-                            if item["id"] == target_player.get("id")
-                        ),
-                        len(comparable),
-                    )
-                    drill_percentile = round(
-                        ((len(comparable) - drill_rank + 1) / len(comparable)) * 100
-                    )
+            drill_metrics = target_drill_metrics.get(drill.key, {})
+            drill_percentile: Optional[int] = drill_metrics.get("drill_percentile")
 
             drill_breakdown.append(
                 {
@@ -364,21 +348,9 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
                     "unit": drill.unit,
                     "score": player_score,
                     "percentile": drill_percentile,
-                    "drill_star_count": (
-                        get_star_rating_from_percentile(drill_percentile).get("star_count")
-                        if drill_percentile is not None
-                        else None
-                    ),
-                    "drill_star_label": (
-                        get_star_rating_from_percentile(drill_percentile).get("star_label")
-                        if drill_percentile is not None
-                        else ""
-                    ),
-                    "drill_star_display": (
-                        get_star_rating_from_percentile(drill_percentile).get("star_display")
-                        if drill_percentile is not None
-                        else ""
-                    ),
+                    "drill_star_count": drill_metrics.get("drill_star_count"),
+                    "drill_star_label": drill_metrics.get("drill_star_label", ""),
+                    "drill_star_display": drill_metrics.get("drill_star_display", ""),
                 }
             )
 
