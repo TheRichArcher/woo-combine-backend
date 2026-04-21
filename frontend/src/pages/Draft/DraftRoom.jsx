@@ -34,6 +34,7 @@ import {
   Menu,
   X,
   ChevronDown,
+  ChevronUp,
   ListOrdered,
   ArrowLeftRight,
   Bell,
@@ -66,6 +67,7 @@ const DraftRoom = () => {
   const [mobileTab, setMobileTab] = useState('players'); // players | board | myteam
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
+  const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => (
     localStorage.getItem('draft_notifications_enabled') === 'true'
   ));
@@ -324,6 +326,39 @@ const DraftRoom = () => {
     player?.draftDrillMetrics?.[drillKey]?.drill_star_display ||
     player?.canonical_drill_metrics?.[drillKey]?.drill_star_display ||
     '—';
+  const getRawDrillEntries = (player) => {
+    const entries = [];
+    const seen = new Set();
+    const addEntry = (rawKey, value) => {
+      if (value === null || value === undefined || value === '') return;
+      const normalizedKey = String(rawKey || '').replace(/^drill_/, '');
+      if (!normalizedKey || seen.has(normalizedKey)) return;
+      const numericValue = Number(value);
+      entries.push({
+        key: normalizedKey,
+        label: normalizedKey
+          .split('_')
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(' '),
+        value:
+          Number.isFinite(numericValue) && String(value).trim() !== ''
+            ? Number.isInteger(numericValue)
+              ? String(numericValue)
+              : numericValue.toFixed(2)
+            : String(value),
+      });
+      seen.add(normalizedKey);
+    };
+
+    if (player?.scores && typeof player.scores === 'object') {
+      Object.entries(player.scores).forEach(([key, value]) => addEntry(key, value));
+    }
+    Object.entries(player || {}).forEach(([key, value]) => {
+      if (key.startsWith('drill_')) addEntry(key, value);
+    });
+
+    return entries.sort((a, b) => a.label.localeCompare(b.label));
+  };
   const get40m = (player) => (player.scores?.['40m_dash'] ?? player.drill_40m_dash)?.toFixed(2) ?? '-';
   const getVert = (player) => (player.scores?.vertical_jump ?? player.vertical_jump)?.toFixed(1) ?? '-';
 
@@ -722,53 +757,84 @@ const DraftRoom = () => {
                 const rankIndex = rankings.indexOf(player.id);
                 const isRanked = rankIndex !== -1;
                 
+                const drillEntries = getRawDrillEntries(player);
+                const isExpanded = expandedPlayerId === player.id;
+
                 return (
-                  <div 
-                    key={player.id} 
-                    className={`flex items-center gap-3 p-3 border-b hover:bg-gray-50 ${isRanked ? 'bg-yellow-50' : ''}`}
-                  >
-                    {/* Player Photo */}
-                    {player.photo_url ? (
-                      <img 
-                        src={player.photo_url} 
-                        alt={player.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                        <User size={20} className="text-gray-400" />
+                  <div key={player.id} className={`border-b ${isRanked ? 'bg-yellow-50' : ''}`}>
+                    <div className="flex items-center gap-3 p-3 hover:bg-gray-50">
+                      {/* Player Photo */}
+                      {player.photo_url ? (
+                        <img 
+                          src={player.photo_url} 
+                          alt={player.name}
+                          className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                          <User size={20} className="text-gray-400" />
+                        </div>
+                      )}
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {isRanked && (
+                            <span className="text-xs bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded flex-shrink-0">
+                              #{rankIndex + 1}
+                            </span>
+                          )}
+                          <p className="font-medium truncate">{player.name}</p>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
+                          {player.number && <span>#{player.number}</span>}
+                          <span>Tier: {getStarTier(player)}</span>
+                          <span>Score: {getScore(player)}</span>
+                          <span className="hidden sm:inline">40m: {get40m(player)} ({getDrillStar(player, '40m_dash')})</span>
+                          <span className="hidden sm:inline">Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => setExpandedPlayerId(isExpanded ? null : player.id)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+                      >
+                        Details
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
+
+                      <button
+                        onClick={() => handlePick(player.id)}
+                        disabled={!isMyTurn && !isAdmin || actionLoading || draft.status !== 'active'}
+                        className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
+                          isMyTurn || isAdmin
+                            ? 'bg-blue-600 text-white hover:bg-blue-700'
+                            : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        Draft
+                      </button>
+                    </div>
+                    {isExpanded && (
+                      <div className="px-4 pb-3">
+                        <div className="rounded-lg border border-gray-200 bg-white p-3">
+                          {drillEntries.length === 0 ? (
+                            <p className="text-xs text-gray-500">No raw drill scores available for this player.</p>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                              {drillEntries.map((entry) => (
+                                <div key={entry.key} className="flex items-center justify-between text-xs text-gray-700 border border-gray-100 rounded px-2 py-1.5">
+                                  <span className="truncate pr-2">{entry.label}</span>
+                                  <span className="font-medium">
+                                    {entry.value} ({getDrillStar(player, entry.key)})
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        {isRanked && (
-                          <span className="text-xs bg-yellow-200 text-yellow-800 px-1.5 py-0.5 rounded flex-shrink-0">
-                            #{rankIndex + 1}
-                          </span>
-                        )}
-                        <p className="font-medium truncate">{player.name}</p>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
-                        {player.number && <span>#{player.number}</span>}
-                        <span>Tier: {getStarTier(player)}</span>
-                        <span>Score: {getScore(player)}</span>
-                        <span className="hidden sm:inline">40m: {get40m(player)} ({getDrillStar(player, '40m_dash')})</span>
-                        <span className="hidden sm:inline">Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})</span>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handlePick(player.id)}
-                      disabled={!isMyTurn && !isAdmin || actionLoading || draft.status !== 'active'}
-                      className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
-                        isMyTurn || isAdmin
-                          ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      }`}
-                    >
-                      Draft
-                    </button>
                   </div>
                 );
               })}
