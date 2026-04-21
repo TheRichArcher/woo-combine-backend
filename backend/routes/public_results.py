@@ -364,6 +364,21 @@ def parent_results_lookup(request: Request, payload: ParentLookupRequest):
                     "unit": drill.unit,
                     "score": player_score,
                     "percentile": drill_percentile,
+                    "drill_star_count": (
+                        get_star_rating_from_percentile(drill_percentile).get("star_count")
+                        if drill_percentile is not None
+                        else None
+                    ),
+                    "drill_star_label": (
+                        get_star_rating_from_percentile(drill_percentile).get("star_label")
+                        if drill_percentile is not None
+                        else ""
+                    ),
+                    "drill_star_display": (
+                        get_star_rating_from_percentile(drill_percentile).get("star_display")
+                        if drill_percentile is not None
+                        else ""
+                    ),
                 }
             )
 

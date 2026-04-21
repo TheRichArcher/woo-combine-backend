@@ -320,6 +320,10 @@ const DraftRoom = () => {
     if (!player?.draftStarCount) return 'Not rated';
     return `${player.draftStarDisplay} ${player.draftStarLabel}`;
   };
+  const getDrillStar = (player, drillKey) =>
+    player?.draftDrillMetrics?.[drillKey]?.drill_star_display ||
+    player?.canonical_drill_metrics?.[drillKey]?.drill_star_display ||
+    '—';
   const get40m = (player) => (player.scores?.['40m_dash'] ?? player.drill_40m_dash)?.toFixed(2) ?? '-';
   const getVert = (player) => (player.scores?.vertical_jump ?? player.vertical_jump)?.toFixed(1) ?? '-';
 
@@ -749,8 +753,8 @@ const DraftRoom = () => {
                         {player.number && <span>#{player.number}</span>}
                         <span>Tier: {getStarTier(player)}</span>
                         <span>Score: {getScore(player)}</span>
-                        <span className="hidden sm:inline">40m: {get40m(player)}</span>
-                        <span className="hidden sm:inline">Vert: {getVert(player)}</span>
+                        <span className="hidden sm:inline">40m: {get40m(player)} ({getDrillStar(player, '40m_dash')})</span>
+                        <span className="hidden sm:inline">Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})</span>
                       </div>
                     </div>
 

@@ -13,7 +13,11 @@ from ..firestore_client import get_firestore_client
 from ..routes.players import calculate_composite_score
 from ..utils.authorization import ensure_event_access, ensure_league_access
 from ..utils.event_schema import get_event_schema
-from ..utils.star_rating import get_star_rating_from_percentile, percentile_from_rank
+from ..utils.star_rating import (
+    build_canonical_drill_metrics_for_cohort,
+    get_star_rating_from_percentile,
+    percentile_from_rank,
+)
 from google.cloud.firestore_v1 import FieldFilter
 import uuid
 import logging
@@ -1997,6 +2001,9 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
                     str(item.get("id") or ""),
                 ),
             )
+            drill_metrics_by_player_id = build_canonical_drill_metrics_for_cohort(
+                sorted_cohort, event_schema_cache[event_id]
+            )
             cohort_size = len(sorted_cohort)
             for index, pdata in enumerate(sorted_cohort, start=1):
                 percentile = percentile_from_rank(index, cohort_size)
@@ -2010,6 +2017,9 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
                     "star_display": stars.get("star_display"),
                     "star_event_id": event_id,
                     "star_age_group": age_group_key or None,
+                    "canonical_drill_metrics": drill_metrics_by_player_id.get(
+                        pdata.get("id"), {}
+                    ),
                 }
 
     # Get drafted player IDs

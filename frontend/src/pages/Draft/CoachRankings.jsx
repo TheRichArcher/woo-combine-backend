@@ -153,6 +153,10 @@ const CoachRankings = () => {
     if (!player?.draftStarCount) return 'Not rated';
     return `${player.draftStarDisplay} ${player.draftStarLabel}`;
   };
+  const getDrillStar = (player, drillKey) =>
+    player?.draftDrillMetrics?.[drillKey]?.drill_star_display ||
+    player?.canonical_drill_metrics?.[drillKey]?.drill_star_display ||
+    '—';
 
   const get40m = (player) => {
     return (player.scores?.['40m_dash'] ?? player.drill_40m_dash)?.toFixed(2) ?? '-';
@@ -265,7 +269,7 @@ const CoachRankings = () => {
                       <div className="flex-1 min-w-0">
                         <p className="font-medium truncate">{player.name}</p>
                         <p className="text-xs text-gray-500">
-                          Tier: {getStarTier(player)} | Score: {getScore(player)} | 40m: {get40m(player)} | Vert: {getVert(player)}
+                          Tier: {getStarTier(player)} | Score: {getScore(player)} | 40m: {get40m(player)} ({getDrillStar(player, '40m_dash')}) | Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})
                         </p>
                       </div>
 
@@ -359,8 +363,8 @@ const CoachRankings = () => {
                       </div>
 
                       <div className="text-right text-xs text-gray-500 mr-2">
-                        <p>40m: {get40m(player)}</p>
-                        <p>Vert: {getVert(player)}</p>
+                        <p>40m: {get40m(player)} ({getDrillStar(player, '40m_dash')})</p>
+                        <p>Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})</p>
                       </div>
 
                       <button

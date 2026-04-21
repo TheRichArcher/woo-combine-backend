@@ -179,7 +179,8 @@ export function useAvailablePlayers(draftId) {
         draftPercentile: player.canonical_percentile ?? null,
         draftStarCount: player.star_count ?? null,
         draftStarLabel: player.star_label ?? '',
-        draftStarDisplay: player.star_display ?? ''
+        draftStarDisplay: player.star_display ?? '',
+        draftDrillMetrics: player.canonical_drill_metrics ?? {}
       }));
       setPlayers(enrichedPlayers);
       setError(null);

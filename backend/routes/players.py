@@ -20,7 +20,11 @@ from ..utils.identity import generate_player_id
 from ..utils.lock_validation import check_write_permission
 from ..security.access_matrix import require_permission
 from ..services.player_bulk_upload import upload_players_service
-from ..utils.star_rating import get_star_rating_from_percentile, percentile_from_rank
+from ..utils.star_rating import (
+    build_canonical_drill_metrics_for_cohort,
+    get_star_rating_from_percentile,
+    percentile_from_rank,
+)
 import hashlib
 import uuid
 
@@ -157,6 +161,9 @@ def get_players(
                     str(item.get("id") or ""),
                 ),
             )
+            drill_metrics_by_player_id = build_canonical_drill_metrics_for_cohort(
+                sorted_cohort, schema
+            )
             cohort_size = len(sorted_cohort)
             for idx, player_dict in enumerate(sorted_cohort, start=1):
                 percentile = percentile_from_rank(idx, cohort_size)
@@ -168,6 +175,9 @@ def get_players(
                     "star_count": stars.get("star_count"),
                     "star_label": stars.get("star_label"),
                     "star_display": stars.get("star_display"),
+                    "canonical_drill_metrics": drill_metrics_by_player_id.get(
+                        player_dict.get("id"), {}
+                    ),
                 }
 
         # Preserve existing pagination behavior contract via page/limit params,
