@@ -5,6 +5,27 @@ import { getStarRatingFromPercentile } from './starRating';
 const STAR_SYSTEM_EXPLANATION =
   "This report reflects your child’s performance at the Woo Combine on this specific day. Star ratings show how each result compares to other participants in the same age group. Every athlete develops at a different pace, and this is simply a snapshot to help understand strengths and areas to build on. Star ratings range from 1 to 5, with more stars indicating stronger performance in that drill or overall on the day of the combine.";
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => (
+    {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[char]
+  ));
+}
+
+function escapeHtmlWithLineBreaks(value) {
+  return escapeHtml(value).replace(/\r\n|\r|\n/g, '<br>');
+}
+
+function formatFixed(value, decimals = 1, fallback = 'N/A') {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric.toFixed(decimals) : fallback;
+}
+
 function normalizeNamePart(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
@@ -179,7 +200,8 @@ export function generatePlayerScorecardHTML({
   templateName,
   drills = [],
   playerStats,
-  drillAnalysis = []
+  drillAnalysis = [],
+  coachNotes = ''
 }) {
   if (!player || !playerStats) return '';
   const resolvedName = resolvePlayerName({ player, displayName });
@@ -187,12 +209,22 @@ export function generatePlayerScorecardHTML({
   const playerInfoLine = player.number
     ? `Player #${player.number}`
     : `Age Group: ${player.age_group || 'N/A'}`;
+  const reportTitle = documentTitle || `${resolvedName.displayName} - Player Scorecard`;
+  const eventName = selectedEvent?.name || 'Evaluation Event';
+  const generatedDate = new Date().toLocaleDateString();
+  const generatedDateTime = new Date().toLocaleString();
+  const compositeScore = formatFixed(playerStats.compositeScore);
+  const ageGroup = player.age_group || 'N/A';
+  const starDisplay = playerStats.starDisplay || '—';
+  const templateDisplayName = templateName || 'Evaluation';
+  const assessmentTemplateName = templateName || 'evaluation';
+  const safeCoachNotes = escapeHtmlWithLineBreaks(coachNotes).trim();
 
   return `
     <!DOCTYPE html>
     <html>
       <head>
-        <title>${documentTitle || `${resolvedName.displayName} - Player Scorecard`}</title>
+        <title>${escapeHtml(reportTitle)}</title>
         <style>
           @page { size: letter; margin: 0.5in; }
           * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -231,31 +263,31 @@ export function generatePlayerScorecardHTML({
       <body>
         <div class="header">
           <div class="logo">🏆 WooCombine Player Scorecard</div>
-          <div class="header-sub">${selectedEvent?.name || 'Evaluation Event'} — ${new Date().toLocaleDateString()}</div>
+          <div class="header-sub">${escapeHtml(eventName)} — ${escapeHtml(generatedDate)}</div>
         </div>
 
         <div class="top-summary">
           <div class="top-player-row">
             <div>
-              <div class="player-name">${resolvedName.displayName}</div>
-              <div class="player-meta">${playerInfoLine}</div>
+              <div class="player-name">${escapeHtml(resolvedName.displayName)}</div>
+              <div class="player-meta">${escapeHtml(playerInfoLine)}</div>
             </div>
           </div>
           <div class="top-stat-row">
             <div class="stat-box">
-              <div class="stat-number">${player.age_group || 'N/A'}</div>
+              <div class="stat-number">${escapeHtml(ageGroup)}</div>
               <div class="stat-label">Age Group</div>
             </div>
             <div class="stat-box">
-              <div class="stat-number">${playerStats.compositeScore.toFixed(1)}</div>
+              <div class="stat-number">${escapeHtml(compositeScore)}</div>
               <div class="stat-label">Overall Score</div>
             </div>
             <div class="stat-box">
-              <div class="stat-number">${playerStats.starDisplay || '—'}</div>
+              <div class="stat-number">${escapeHtml(starDisplay)}</div>
               <div class="stat-label">Stars</div>
             </div>
           </div>
-          <div class="summary-explainer">${STAR_SYSTEM_EXPLANATION}</div>
+          <div class="summary-explainer">${escapeHtml(STAR_SYSTEM_EXPLANATION)}</div>
         </div>
 
         <div class="section">
@@ -273,11 +305,15 @@ export function generatePlayerScorecardHTML({
                 .map((drill) => {
                   const drillStarDisplay =
                     getStarRatingFromPercentile(drill.percentile).starDisplay || '—';
+                  const drillScore =
+                    drill.playerScore !== null && drill.playerScore !== undefined
+                      ? `${drill.playerScore} ${drill.unit || ''}`.trim()
+                      : '—';
                   return `
                 <tr>
-                  <td><strong>${drill.label}</strong></td>
-                  <td class="drill-score">${drill.playerScore !== null && drill.playerScore !== undefined ? `${drill.playerScore} ${drill.unit}` : '—'}</td>
-                  <td>${drillStarDisplay}</td>
+                  <td><strong>${escapeHtml(drill.label || '')}</strong></td>
+                  <td class="drill-score">${escapeHtml(drillScore)}</td>
+                  <td>${escapeHtml(drillStarDisplay)}</td>
                 </tr>`;
                 })
                 .join('')}
@@ -285,21 +321,30 @@ export function generatePlayerScorecardHTML({
           </table>
         </div>
 
-        <div class="section">
-          <div class="section-title">🎯 ${templateName || 'Evaluation'} Summary</div>
-          <div class="summary-box">
-            <p><strong>Overall Assessment:</strong> ${resolvedName.displayName} scored ${playerStats.compositeScore.toFixed(1)}
-            overall in the ${player.age_group} age group (${playerStats.starDisplay || '—'}).</p>
+        ${
+          safeCoachNotes
+            ? `<div class="section">
+          <div class="section-title">Coach Notes</div>
+          <div class="summary-box">${safeCoachNotes}</div>
+        </div>`
+            : ''
+        }
 
-            <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${templateName || 'evaluation'}
-            template with ${drills.length} drill assessments. Scores are weighted according to coaching preferences
+        <div class="section">
+          <div class="section-title">🎯 ${escapeHtml(templateDisplayName)} Summary</div>
+          <div class="summary-box">
+            <p><strong>Overall Assessment:</strong> ${escapeHtml(resolvedName.displayName)} scored ${escapeHtml(compositeScore)}
+            overall in the ${escapeHtml(ageGroup)} age group (${escapeHtml(starDisplay)}).</p>
+
+            <p><strong>Evaluation Methodology:</strong> This scorecard is based on the ${escapeHtml(assessmentTemplateName)}
+            template with ${escapeHtml(drills.length)} drill assessments. Scores are weighted according to coaching preferences
             and normalized within the age group for fair comparison.</p>
           </div>
         </div>
 
         <div class="footer">
-          Generated by WooCombine — ${new Date().toLocaleString()} —
-          Event: ${selectedEvent?.name || 'N/A'}
+          Generated by WooCombine — ${escapeHtml(generatedDateTime)} —
+          Event: ${escapeHtml(selectedEvent?.name || 'N/A')}
         </div>
       </body>
     </html>
@@ -340,7 +385,8 @@ export function downloadPlayerScorecardPdf({
     templateName,
     drills,
     playerStats: payload.playerStats,
-    drillAnalysis: payload.drillAnalysis
+    drillAnalysis: payload.drillAnalysis,
+    coachNotes
   });
 
   const printWindow = window.open('', '_blank');

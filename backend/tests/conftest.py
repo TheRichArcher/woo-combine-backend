@@ -273,6 +273,7 @@ def app_client(monkeypatch, fake_db):
     monkeypatch.setattr(auth_mod.auth, "verify_id_token", fake_verify)
     monkeypatch.setattr(auth_mod, "_verify_id_token_strict", lambda t: fake_verify(t))
     monkeypatch.setattr(auth_mod, "_enforce_session_max_age", lambda decoded: None)
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", lambda _uid, _bucket: False)
 
     # Patch Firestore client getters used across modules
     import backend.firestore_client as fsc

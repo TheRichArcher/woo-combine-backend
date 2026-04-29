@@ -57,6 +57,7 @@ def test_role_enforced_on_write(monkeypatch):
         auth_mod, "_verify_id_token_strict", lambda token: fake_verify(token)
     )
     monkeypatch.setattr(auth_mod, "_enforce_session_max_age", lambda decoded: None)
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", lambda _uid, _bucket: False)
 
     # Mock Firestore client to avoid real calls
     class FakeDoc:
@@ -145,3 +146,47 @@ def test_disabled_lookup_failure_fails_closed(monkeypatch):
 
     monkeypatch.setattr(auth_mod.auth, "get_user", _boom)
     assert auth_mod._is_user_disabled_cached("user-disabled-check", 1) is True
+
+
+def test_get_current_user_rejects_disabled_user(app_client, fake_db, monkeypatch):
+    from backend.tests.conftest import make_jwt
+    import backend.auth as auth_mod
+
+    uid = "disabled-user-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "disabled@example.com", "role": "coach"}
+    )
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", lambda _uid, _bucket: True)
+
+    token = make_jwt(uid=uid, email="disabled@example.com", email_verified=True)
+    response = app_client.get(
+        "/api/users/me", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User disabled"
+
+
+def test_get_current_user_rejects_when_disabled_status_unavailable(
+    app_client, fake_db, monkeypatch
+):
+    from backend.tests.conftest import make_jwt
+    import backend.auth as auth_mod
+
+    uid = "disabled-check-failure-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "failure@example.com", "role": "coach"}
+    )
+
+    def _raise_disabled_check(_uid, _bucket):
+        raise RuntimeError("firebase admin unavailable")
+
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", _raise_disabled_check)
+
+    token = make_jwt(uid=uid, email="failure@example.com", email_verified=True)
+    response = app_client.get(
+        "/api/users/me", headers={"Authorization": f"Bearer {token}"}
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User disabled status unavailable"

@@ -6,7 +6,11 @@ from datetime import datetime
 from functools import lru_cache
 import time
 from firebase_admin import auth
-from ..auth import get_current_user, get_current_user_for_role_setting
+from ..auth import (
+    _enforce_user_not_disabled,
+    get_current_user,
+    get_current_user_for_role_setting,
+)
 from ..middleware.rate_limiting import auth_rate_limit, user_rate_limit
 from ..firestore_client import get_firestore_client
 from ..utils.database import execute_with_timeout
@@ -287,7 +291,10 @@ async def debug_set_user_role(
             decoded_token = auth.verify_id_token(token)
             uid = decoded_token["uid"]
             email = decoded_token.get("email", "")
+            _enforce_user_not_disabled(uid)
             logging.info(f"[DEBUG-ROLE] Token verified for UID: {uid}, Email: {email}")
+        except HTTPException:
+            raise
         except Exception as e:
             logging.error(f"[DEBUG-ROLE] Token verification failed: {e}")
             return {"error": f"Token verification failed: {str(e)}", "success": False}
@@ -326,6 +333,8 @@ async def debug_set_user_role(
                 "error_type": type(db_error).__name__,
             }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logging.error(f"[DEBUG-ROLE] Unexpected error: {e}")
         return {
@@ -364,7 +373,27 @@ async def set_user_role_simple(
         if not role or role not in ["organizer", "coach", "viewer", "player"]:
             raise HTTPException(status_code=400, detail="Invalid role")
 
+        current_role = current_user.get("role")
+        if current_role == "organizer" and role != "organizer":
+            logging.warning(
+                f"[SIMPLE-ROLE] Organizer {uid} attempted self-demotion to {role}. Blocked."
+            )
+            raise HTTPException(
+                status_code=400,
+                detail="Organizers cannot remove their own organizer role. Please contact support or another organizer.",
+            )
+
+        if role == "organizer" and current_role != "organizer":
+            logging.warning(
+                f"[SIMPLE-ROLE] User {uid} attempted unauthorized organizer role assignment from {current_role}. Blocked."
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Organizer role must be assigned by an administrator.",
+            )
+
         logging.info(f"[SIMPLE-ROLE] Setting role {role} for user {uid}")
+
 
         # Direct Firestore operation
         try:

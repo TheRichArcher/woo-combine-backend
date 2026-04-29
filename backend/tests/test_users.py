@@ -49,6 +49,27 @@ def test_set_user_role_blocks_new_user_from_self_assigning_organizer(app_client,
     assert stored.get("role") is None
 
 
+def test_set_user_role_rejects_disabled_user(app_client, fake_db, monkeypatch):
+    from backend.tests.conftest import make_jwt
+    import backend.auth as auth_mod
+
+    uid = "disabled-role-user-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "disabled-role@example.com"}
+    )
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", lambda _uid, _bucket: True)
+
+    token = make_jwt(uid=uid, email="disabled-role@example.com", email_verified=True)
+    response = app_client.post(
+        "/api/users/role",
+        json={"role": "coach"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User disabled"
+
+
 def test_set_user_role_simple_requires_authenticated_identity(app_client, fake_db, monkeypatch):
     monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
 
@@ -61,10 +82,170 @@ def test_set_user_role_simple_requires_authenticated_identity(app_client, fake_d
 
     uid = "simple-1"
     token = make_jwt(uid=uid, email="simple@example.com", email_verified=True)
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "pytest-role-simple-authenticated",
+    }
     ok = app_client.post("/api/users/role-simple", json={"role": "coach"}, headers=headers)
     assert ok.status_code == 200, ok.text
 
     doc = fake_db.collection("users").document(uid).get()
     assert doc.exists
     assert doc.to_dict().get("role") == "coach"
+
+
+def test_set_user_role_simple_disabled_by_default(app_client, fake_db):
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-disabled-env-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "simple-disabled-env@example.com"}
+    )
+    token = make_jwt(uid=uid, email="simple-disabled-env@example.com", email_verified=True)
+
+    response = app_client.post(
+        "/api/users/role-simple",
+        json={"role": "coach"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "pytest-role-simple-disabled-env",
+        },
+    )
+
+    assert response.status_code == 404
+
+
+def test_set_user_role_simple_blocks_self_promotion_to_organizer(
+    app_client, fake_db, monkeypatch
+):
+    monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
+
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-coach-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "simple-coach@example.com", "role": "coach"}
+    )
+    token = make_jwt(uid=uid, email="simple-coach@example.com", email_verified=True)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "pytest-role-simple-coach-promotion",
+    }
+
+    response = app_client.post(
+        "/api/users/role-simple", json={"role": "organizer"}, headers=headers
+    )
+
+    assert response.status_code == 403, response.text
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.to_dict().get("role") == "coach"
+
+
+def test_set_user_role_simple_blocks_new_user_from_assigning_organizer(
+    app_client, fake_db, monkeypatch
+):
+    monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
+
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-new-organizer-attempt-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "simple-new@example.com"}
+    )
+    token = make_jwt(uid=uid, email="simple-new@example.com", email_verified=True)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "pytest-role-simple-new-organizer",
+    }
+
+    response = app_client.post(
+        "/api/users/role-simple", json={"role": "organizer"}, headers=headers
+    )
+
+    assert response.status_code == 403, response.text
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.to_dict().get("role") is None
+
+
+def test_set_user_role_simple_allows_organizer_to_keep_organizer(
+    app_client, fake_db, monkeypatch
+):
+    monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
+
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-organizer-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "simple-organizer@example.com", "role": "organizer"}
+    )
+    token = make_jwt(uid=uid, email="simple-organizer@example.com", email_verified=True)
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "pytest-role-simple-organizer-keep",
+    }
+
+    response = app_client.post(
+        "/api/users/role-simple",
+        json={"role": "organizer"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200, response.text
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.to_dict().get("role") == "organizer"
+
+
+def test_set_user_role_simple_blocks_organizer_self_demotion(
+    app_client, fake_db, monkeypatch
+):
+    monkeypatch.setenv("ENABLE_ROLE_SIMPLE", "true")
+
+    from backend.tests.conftest import make_jwt
+
+    uid = "simple-organizer-demotion-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "simple-organizer-demotion@example.com", "role": "organizer"}
+    )
+    token = make_jwt(
+        uid=uid, email="simple-organizer-demotion@example.com", email_verified=True
+    )
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "User-Agent": "pytest-role-simple-organizer-demotion",
+    }
+
+    response = app_client.post(
+        "/api/users/role-simple",
+        json={"role": "coach"},
+        headers=headers,
+    )
+
+    assert response.status_code == 400, response.text
+    doc = fake_db.collection("users").document(uid).get()
+    assert doc.to_dict().get("role") == "organizer"
+
+
+def test_debug_role_rejects_disabled_user(app_client, fake_db, monkeypatch):
+    monkeypatch.setenv("ENABLE_DEBUG_ENDPOINTS", "true")
+
+    from backend.tests.conftest import make_jwt
+    import backend.auth as auth_mod
+
+    uid = "debug-disabled-1"
+    fake_db.collection("users").document(uid).set(
+        {"id": uid, "email": "debug-disabled@example.com", "role": "coach"}
+    )
+    monkeypatch.setattr(auth_mod, "_is_user_disabled_cached", lambda _uid, _bucket: True)
+    token = make_jwt(uid=uid, email="debug-disabled@example.com", email_verified=True)
+
+    response = app_client.post(
+        "/api/users/debug-role",
+        json={"role": "coach"},
+        headers={
+            "Authorization": f"Bearer {token}",
+            "User-Agent": "pytest-debug-role-disabled-user",
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.json()["detail"] == "User disabled"

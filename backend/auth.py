@@ -167,6 +167,24 @@ def _is_user_disabled_cached(uid: str, bucket: int) -> bool:
         return True
 
 
+def _enforce_user_not_disabled(uid: str) -> None:
+    try:
+        bucket = int(time.time() // 300)
+        if _is_user_disabled_cached(uid, bucket):
+            logging.warning(f"[AUTH] Disabled user attempted access: {uid}")
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="User disabled"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"[AUTH] Disabled check (cached) failed closed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User disabled status unavailable",
+        )
+
+
 def get_current_user(
     request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
@@ -250,15 +268,7 @@ def get_current_user(
         email = decoded_token.get("email", "")
 
         # Optional: deny disabled users using short-lived cached check (5-minute buckets)
-        try:
-            bucket = int(time.time() // 300)
-            if _is_user_disabled_cached(uid, bucket):
-                logging.warning(f"[AUTH] Disabled user attempted access: {uid}")
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED, detail="User disabled"
-                )
-        except Exception as e:
-            logging.debug(f"[AUTH] Disabled check (cached) non-fatal error: {e}")
+        _enforce_user_not_disabled(uid)
 
         # Simple direct Firestore lookup (ThreadPoolExecutor was causing delays)
         logging.info(f"[AUTH] Starting Firestore lookup for UID: {uid}")
@@ -400,6 +410,7 @@ def get_current_user_for_role_setting(
 
         uid = decoded_token["uid"]
         email = decoded_token.get("email", "")
+        _enforce_user_not_disabled(uid)
 
         # FOR ROLE SETTING: Check email verification but allow recent verifications
         email_verified = decoded_token.get("email_verified", False)
