@@ -665,6 +665,22 @@ function parseJwtPayload(token) {
       // This prevents "Server waking up" / "Loading leagues" messages on the verify-email page
       if (!firebaseUser.emailVerified) {
         authLogger.debug('User email not verified - skipping backend initialization');
+        if (initialPath.startsWith('/join-event/')) {
+          const rawJoinPath = initialPath.replace('/join-event/', '');
+          const joinPath = rawJoinPath
+            .split('/')
+            .map((part) => {
+              try {
+                return decodeURIComponent(part);
+              } catch {
+                return part;
+              }
+            })
+            .join('/');
+          if (joinPath) {
+            localStorage.setItem('pendingEventJoin', joinPath);
+          }
+        }
         setInitializing(false);
         // Ensure roleChecked is true so guards don't hang, but leave userRole null
         setRoleChecked(true); 

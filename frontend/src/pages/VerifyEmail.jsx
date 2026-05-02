@@ -102,6 +102,7 @@ export default function VerifyEmail() {
   // Auto-refresh every 10s to check verification
   useEffect(() => {
     let isActive = true; // Flag to prevent state updates after unmount
+    const intervalRef = { current: null };
     
     // Also listen for auth state changes (in case Firebase triggers a refresh after verification)
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -110,7 +111,7 @@ export default function VerifyEmail() {
         try {
           await firebaseUser.reload();
           if (firebaseUser.emailVerified) {
-            clearInterval(interval);
+            clearInterval(intervalRef.current);
             await firebaseUser.getIdToken(true);
             if (!isActive) return;
             setIsVerified(true);
@@ -139,7 +140,7 @@ export default function VerifyEmail() {
           setIsVerified(auth.currentUser.emailVerified);
           if (auth.currentUser.emailVerified) {
             // Clear the interval before navigating to prevent further runs
-            clearInterval(interval);
+            clearInterval(intervalRef.current);
             
             // CRITICAL: Force token refresh so backend gets updated email_verified status
             await auth.currentUser.getIdToken(true);
@@ -169,12 +170,12 @@ export default function VerifyEmail() {
     window.addEventListener('storage', handleStorageVerification);
     
     // Set up interval - check more frequently for better UX
-    const interval = setInterval(checkVerified, 3000); // Check every 3 seconds instead of 10
+    intervalRef.current = setInterval(checkVerified, 3000); // Check every 3 seconds instead of 10
     
     // Cleanup function
     return () => {
       isActive = false;
-      clearInterval(interval);
+      clearInterval(intervalRef.current);
       unsubscribe();
       window.removeEventListener('storage', handleStorageVerification);
     };
@@ -231,8 +232,14 @@ export default function VerifyEmail() {
         await auth.currentUser.reload();
         
         // Send email verification with continue URL so Firebase shows a "Continue" button
+        let continueUrl = window.location.origin + "/email-action?fromFirebase=1";
+        const pendingEventJoin = localStorage.getItem('pendingEventJoin');
+        if (pendingEventJoin) {
+          continueUrl += `&pendingEventJoin=${encodeURIComponent(pendingEventJoin)}`;
+        }
+
         const actionCodeSettings = {
-          url: window.location.origin + "/email-action?fromFirebase=1",
+          url: continueUrl,
           handleCodeInApp: true,
         };
         await sendEmailVerification(auth.currentUser, actionCodeSettings);

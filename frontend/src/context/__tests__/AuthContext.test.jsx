@@ -141,6 +141,37 @@ describe('AuthContext', () => {
     expect(screen.getByTestId('role')).toHaveTextContent('no-role');
   });
 
+  it('preserves join invite when an unverified user scans a QR link', async () => {
+    const mockUser = {
+      uid: 'user-unverified',
+      email: 'viewer@example.com',
+      emailVerified: false,
+      getIdToken: jest.fn().mockResolvedValue('token'),
+      stsTokenManager: { expirationTime: Date.now() + 60 * 60 * 1000 },
+      multiFactor: { enrolledFactors: [] },
+    };
+
+    onAuthStateChanged.mockImplementation((auth, callback) => {
+      callback(mockUser);
+      return jest.fn();
+    });
+
+    window.history.replaceState({}, '', '/join-event/league-1/event-2/viewer');
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <TestComponent />
+        </AuthProvider>
+      </BrowserRouter>
+    );
+
+    await waitFor(() => {
+      expect(localStorage.getItem('pendingEventJoin')).toBe('league-1/event-2/viewer');
+      expect(mockNavigate).toHaveBeenCalledWith('/verify-email');
+    });
+  });
+
   it('preserves selected league and event after transient leagues refresh failure', async () => {
     const mockUser = {
       uid: 'user-1',
@@ -537,6 +568,7 @@ describe('AuthContext', () => {
       eventId: 'event-1',
       timestamp: Date.now()
     }));
+    localStorage.setItem('inviteJoinInProgress', '1');
     window.history.replaceState({}, '', '/live-standings');
     api.get.mockImplementation((url) => {
       if (url === '/users/me') {

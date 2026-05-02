@@ -1,10 +1,10 @@
 import React from 'react';
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import VerifyEmail from '../VerifyEmail';
 import { useAuth, useLogout } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, sendEmailVerification } from 'firebase/auth';
 
 jest.mock('../../components/layouts/WelcomeLayout', () => ({
   __esModule: true,
@@ -63,10 +63,17 @@ describe('VerifyEmail auto-advance after verification', () => {
     getIdToken: jest.fn().mockResolvedValue('token'),
   });
 
+  const createUnverifiedUser = () => ({
+    emailVerified: false,
+    reload: jest.fn().mockResolvedValue(undefined),
+    getIdToken: jest.fn().mockResolvedValue('token'),
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
     sessionStorage.clear();
+    auth.currentUser = null;
 
     useNavigate.mockReturnValue(navigateMock);
     useAuth.mockReturnValue({
@@ -166,5 +173,25 @@ describe('VerifyEmail auto-advance after verification', () => {
       expect(setUserMock).toHaveBeenCalled();
     });
     expect(getConsoleOutput()).toMatch(/VerifyEmail\.jsx:\d+:\d+/);
+  });
+
+  it('includes pending viewer invite when resending verification email', async () => {
+    setMockLocation('/verify-email');
+    localStorage.setItem('pendingEventJoin', 'league-1/event-2/viewer');
+    auth.currentUser = createUnverifiedUser();
+    sendEmailVerification.mockResolvedValue(undefined);
+
+    render(<VerifyEmail />);
+    fireEvent.click(screen.getByText('Resend Email'));
+
+    await waitFor(() => {
+      expect(sendEmailVerification).toHaveBeenCalledWith(
+        auth.currentUser,
+        expect.objectContaining({
+          url: expect.stringContaining('pendingEventJoin=league-1%2Fevent-2%2Fviewer'),
+          handleCodeInApp: true,
+        })
+      );
+    });
   });
 });
