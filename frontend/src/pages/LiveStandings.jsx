@@ -40,7 +40,7 @@ const parseJsonSafe = (value) => {
 
 export default function LiveStandings() {
   const { selectedEvent: selectedEventFromContext, setSelectedEvent, events, setEvents } = useEvent();
-  const { userRole, selectedLeagueId, setSelectedLeagueId } = useAuth();
+  const { userRole, role, leagues, selectedLeagueId, setSelectedLeagueId } = useAuth();
   const navigate = useNavigate();
   const debugEnabled = isQrDebugEnabled();
   const shouldAttemptViewerInviteRestore = !selectedEventFromContext;
@@ -257,7 +257,12 @@ export default function LiveStandings() {
   const [showCompactSliders, setShowCompactSliders] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const { showError } = useToast();
-  const canUseStaffTools = userRole === 'organizer' || userRole === 'coach';
+  const selectedLeagueRole = useMemo(() => {
+    if (!selectedLeagueId || !Array.isArray(leagues)) return role || null;
+    return leagues.find((league) => league?.id === selectedLeagueId)?.role || role || null;
+  }, [leagues, role, selectedLeagueId]);
+  const effectiveStaffRole = selectedLeagueRole || userRole;
+  const canUseStaffTools = effectiveStaffRole === 'organizer' || effectiveStaffRole === 'coach';
 
   useEffect(() => {
     let selectedEventRaw = null;
@@ -489,7 +494,7 @@ export default function LiveStandings() {
           )}
           
           <div className="grid grid-cols-2 gap-2">
-            {(userRole === 'organizer' || userRole === 'coach') && (
+            {canUseStaffTools && (
               <Link
                 to="/live-entry"
                 className="flex items-center justify-center gap-2 p-3 bg-semantic-success/10 hover:bg-semantic-success/20 rounded-xl border border-semantic-success/20 transition text-semantic-success font-medium"
@@ -500,7 +505,7 @@ export default function LiveStandings() {
             )}
             <Link
               to="/players/rankings"
-              className={`flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium ${(userRole === 'organizer' || userRole === 'coach') ? '' : 'col-span-2'}`}
+              className={`flex items-center justify-center gap-2 p-3 bg-brand-light/20 hover:bg-brand-light/30 rounded-xl border border-brand-primary/20 transition text-brand-secondary font-medium ${canUseStaffTools ? '' : 'col-span-2'}`}
             >
               <Users className="w-4 h-4 text-brand-primary" />
               <span>Players</span>
@@ -717,7 +722,7 @@ export default function LiveStandings() {
         </div>
 
         {/* Access to Advanced Features */}
-        {(userRole === 'organizer' || userRole === 'coach') && liveRankings.length >= 3 && (
+        {canUseStaffTools && liveRankings.length >= 3 && (
           <div className="mt-6 bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4">
             <div className="flex items-start gap-3">
               <div className="text-brand-secondary bg-white p-2 rounded-lg border border-brand-primary/10 shadow-sm">
