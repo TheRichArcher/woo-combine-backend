@@ -10,17 +10,17 @@ import LoadingScreen from '../components/LoadingScreen';
 import ErrorDisplay from '../components/ErrorDisplay';
 import { useDrills } from '../hooks/useDrills';
 import { useOptimizedWeights } from '../hooks/useOptimizedWeights'; // Import optimized weights
-import { FileText, Users, Search, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, Download, Mail } from 'lucide-react';
+import { FileText, Users, Search, AlertTriangle, ChevronDown, ChevronUp, ArrowLeft, Download, Mail, Printer } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import api from '../lib/api';
 import { logger } from '../utils/logger';
 import { formatViewerPlayerName } from '../utils/playerDisplayName';
-import { createScorecardEmailDraft, downloadPlayerScorecardPdf } from '../utils/playerScorecardReport';
+import { createScorecardEmailDraft, downloadAllPlayerScorecardsPdf, downloadPlayerScorecardPdf } from '../utils/playerScorecardReport';
 
 const ScorecardsPage = () => {
   const { selectedEvent } = useEvent();
   const { user, selectedLeagueId, userRole } = useAuth();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const { openDetails, selectedPlayer: contextSelectedPlayer } = usePlayerDetails();
   
   // Unified Drills Hook
@@ -125,13 +125,13 @@ const ScorecardsPage = () => {
            ageGroup.includes(searchLower);
   });
 
-  // Filter players with at least some drill scores (with validation)
-  const playersWithScores = filteredPlayers.filter(player => {
+  const hasEvaluationScore = useCallback((player) => {
     try {
       if (!currentDrills.length) return false;
       return currentDrills.some(drill => {
         const value = player.scores?.[drill.key] ?? player[drill.key];
-        return value != null && 
+        return value !== null &&
+               value !== undefined &&
                typeof value === 'number' && 
                !isNaN(value) && 
                isFinite(value);
@@ -140,7 +140,32 @@ const ScorecardsPage = () => {
       logger.warn('SCORECARDS', 'Error filtering player scores', err);
       return false;
     }
-  });
+  }, [currentDrills]);
+
+  // Filter players with at least some drill scores (with validation)
+  const playersWithScores = filteredPlayers.filter(hasEvaluationScore);
+  const eventPlayersWithScores = players.filter(hasEvaluationScore);
+
+  const handlePrintAllScorecards = useCallback(() => {
+    if (eventPlayersWithScores.length === 0) {
+      showError('No scored players are available to print.');
+      return;
+    }
+
+    const opened = downloadAllPlayerScorecardsPdf({
+      players: eventPlayersWithScores,
+      selectedEvent,
+      drills: currentDrills,
+      allPlayers: players,
+      weights: persistedWeights
+    });
+
+    if (opened) {
+      showSuccess(`Opened ${eventPlayersWithScores.length} scorecards. Use your browser print dialog to save or print.`);
+    } else {
+      showError('Unable to open scorecards. Please allow popups and try again.');
+    }
+  }, [eventPlayersWithScores, selectedEvent, currentDrills, players, persistedWeights, showError, showSuccess]);
 
   const handlePlayerSelect = (player) => {
     setShowScoreDetails(true);
@@ -264,6 +289,16 @@ const ScorecardsPage = () => {
                 </div>
                 <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">{playersWithScores.length} available</div>
               </div>
+              {canUseReportActions && (
+                <button
+                  onClick={handlePrintAllScorecards}
+                  disabled={eventPlayersWithScores.length === 0}
+                  className="mb-4 w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:text-gray-600 text-white px-4 py-2.5 text-sm font-semibold transition"
+                >
+                  <Printer className="w-4 h-4" />
+                  Print All Scorecards
+                </button>
+              )}
               <div className="mb-2">
                 <p className="text-sm font-medium text-gray-900">Find a player</p>
                 <p className="text-xs text-gray-600">
@@ -300,7 +335,7 @@ const ScorecardsPage = () => {
                       <div>
                         <div className="font-medium text-gray-900 text-sm">{formatViewerPlayerName(player, userRole)}</div>
                         <div className="text-xs text-gray-600">
-                          {player.number != null && player.number !== '' ? `#${player.number} • ` : ''}
+                          {player.number !== null && player.number !== undefined && player.number !== '' ? `#${player.number} • ` : ''}
                           {player.age_group}
                         </div>
                       </div>
@@ -343,7 +378,7 @@ const ScorecardsPage = () => {
                    <div>
                       <h2 className="text-xl font-bold">{formatViewerPlayerName(selectedPlayer, userRole)}</h2>
                       <p className="text-blue-100 text-sm">
-                        {selectedPlayer.number != null && selectedPlayer.number !== '' ? `#${selectedPlayer.number} • ` : ''}
+                        {selectedPlayer.number !== null && selectedPlayer.number !== undefined && selectedPlayer.number !== '' ? `#${selectedPlayer.number} • ` : ''}
                         {selectedPlayer.age_group}
                       </p>
                    </div>

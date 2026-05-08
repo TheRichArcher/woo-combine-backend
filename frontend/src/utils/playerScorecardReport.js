@@ -1,5 +1,5 @@
 import { calculateOptimizedCompositeScore, calculateOptimizedRankings } from './optimizedScoring';
-import { buildPlayerScorecardPdfFilename } from './pdfFilename';
+import { buildEventScorecardsPdfFilename, buildPlayerScorecardPdfFilename } from './pdfFilename';
 import { getStarRatingFromPercentile } from './starRating';
 
 const STAR_SYSTEM_EXPLANATION =
@@ -19,6 +19,11 @@ function escapeHtml(value) {
 
 function escapeHtmlWithLineBreaks(value) {
   return escapeHtml(value).replace(/\r\n|\r|\n/g, '<br>');
+}
+
+function extractBodyContent(html) {
+  const match = String(html || '').match(/<body[^>]*>([\s\S]*)<\/body>/i);
+  return match ? match[1] : '';
 }
 
 function formatFixed(value, decimals = 1, fallback = 'N/A') {
@@ -393,6 +398,107 @@ export function downloadPlayerScorecardPdf({
   if (!printWindow) return false;
   printWindow.document.open();
   printWindow.document.write(reportHtml);
+  printWindow.document.close();
+
+  const handleLoad = () => {
+    try {
+      printWindow.focus();
+      printWindow.print();
+    } catch {
+      // ignore print errors
+    }
+  };
+
+  if (printWindow.document.readyState === 'complete') {
+    handleLoad();
+  } else {
+    printWindow.onload = handleLoad;
+  }
+
+  return true;
+}
+
+export function downloadAllPlayerScorecardsPdf({
+  players = [],
+  selectedEvent,
+  templateName,
+  drills = [],
+  allPlayers = [],
+  weights = {},
+  includeRecommendations = true
+}) {
+  const scoredPlayers = Array.isArray(players) ? players.filter(Boolean) : [];
+  if (scoredPlayers.length === 0) return false;
+
+  const pdfFilename = buildEventScorecardsPdfFilename({
+    eventName: selectedEvent?.name
+  });
+
+  const scorecardSections = scoredPlayers
+    .map((player) => {
+      const resolvedName = resolvePlayerName({ player });
+      const payload = buildPlayerScorecardPayload({
+        player,
+        allPlayers,
+        weights,
+        drills,
+        includeRecommendations
+      });
+      if (!payload) return '';
+
+      const reportHtml = generatePlayerScorecardHTML({
+        player,
+        displayName: resolvedName.displayName,
+        documentTitle: `${resolvedName.displayName} - Player Scorecard`,
+        selectedEvent,
+        templateName,
+        drills,
+        playerStats: payload.playerStats,
+        drillAnalysis: payload.drillAnalysis
+      });
+
+      const bodyContent = extractBodyContent(reportHtml);
+      return bodyContent ? `<section class="scorecard-page">${bodyContent}</section>` : '';
+    })
+    .filter(Boolean)
+    .join('');
+
+  if (!scorecardSections) return false;
+
+  const shellPayload = buildPlayerScorecardPayload({
+    player: scoredPlayers[0],
+    allPlayers,
+    weights,
+    drills,
+    includeRecommendations
+  });
+  if (!shellPayload) return false;
+
+  const shellHtml = generatePlayerScorecardHTML({
+    player: scoredPlayers[0],
+    documentTitle: pdfFilename,
+    selectedEvent,
+    templateName,
+    drills,
+    playerStats: shellPayload.playerStats,
+    drillAnalysis: shellPayload.drillAnalysis
+  });
+
+  const bulkHtml = shellHtml
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(pdfFilename)}</title>`)
+    .replace(
+      '</style>',
+      `
+          .scorecard-page { break-after: page; page-break-after: always; }
+          .scorecard-page:last-child { break-after: auto; page-break-after: auto; }
+        </style>`
+    )
+    .replace(/<body[^>]*>[\s\S]*<\/body>/i, `<body>${scorecardSections}</body>`);
+
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) return false;
+  printWindow.document.open();
+  printWindow.document.write(bulkHtml);
   printWindow.document.close();
 
   const handleLoad = () => {

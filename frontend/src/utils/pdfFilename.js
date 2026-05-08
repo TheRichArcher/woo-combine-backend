@@ -18,3 +18,8 @@ export function buildPlayerScorecardPdfFilename({ eventName, playerName } = {}) 
   const safePlayer = sanitizeFilenameSegment(playerName, DEFAULT_PLAYER_SEGMENT);
   return `WooCombine_${safeEvent}_${safePlayer}.pdf`;
 }
+
+export function buildEventScorecardsPdfFilename({ eventName } = {}) {
+  const safeEvent = sanitizeFilenameSegment(eventName, DEFAULT_EVENT_SEGMENT);
+  return `WooCombine_${safeEvent}_All_Player_Scorecards.pdf`;
+}
