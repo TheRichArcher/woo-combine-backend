@@ -962,7 +962,7 @@ def _check_payment_gate(db, draft_id: str, draft_data: dict):
 
 
 @router.post("")
-async def create_draft(
+def create_draft(
     draft_in: DraftCreate, user: dict = Depends(get_current_user)
 ):
     """Create a new draft for an event."""
@@ -1056,7 +1056,7 @@ def get_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.patch("/{draft_id}")
-async def update_draft(
+def update_draft(
     draft_id: str, draft_in: DraftUpdate, user: dict = Depends(get_current_user)
 ):
     """Update draft settings. Only allowed in 'setup' status."""
@@ -1081,7 +1081,7 @@ async def update_draft(
 
 
 @router.delete("/{draft_id}")
-async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Delete a draft. Only allowed in 'setup' status."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1108,7 +1108,7 @@ async def delete_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.get("")
-async def list_drafts(
+def list_drafts(
     event_id: Optional[str] = Query(None),
     league_id: Optional[str] = Query(None),
     mine: bool = Query(False),
@@ -1224,7 +1224,7 @@ async def list_drafts(
 
 
 @router.post("/{draft_id}/start")
-async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Start the draft. Requires at least 2 teams."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1299,7 +1299,7 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/reset")
-async def reset_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def reset_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Reset a draft back to setup status. Deletes all picks."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1329,7 +1329,7 @@ async def reset_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/pause")
-async def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Pause an active draft."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1345,7 +1345,7 @@ async def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/resume")
-async def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Resume a paused draft."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1368,7 +1368,7 @@ async def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/teams")
-async def add_team(
+def add_team(
     draft_id: str, team_in: TeamCreate, user: dict = Depends(get_current_user)
 ):
     """Add a team to the draft."""
@@ -1433,7 +1433,7 @@ def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.patch("/{draft_id}/teams/{team_id}")
-async def update_team(
+def update_team(
     draft_id: str,
     team_id: str,
     team_in: TeamUpdate,
@@ -1460,7 +1460,7 @@ async def update_team(
 
 
 @router.delete("/{draft_id}/teams/{team_id}")
-async def remove_team(
+def remove_team(
     draft_id: str, team_id: str, user: dict = Depends(get_current_user)
 ):
     """Remove a team from the draft."""
@@ -1492,7 +1492,7 @@ async def remove_team(
 
 
 @router.post("/{draft_id}/teams/reorder")
-async def reorder_teams(
+def reorder_teams(
     draft_id: str, team_ids: List[str], user: dict = Depends(get_current_user)
 ):
     """Reorder teams for the draft."""
@@ -1520,7 +1520,7 @@ async def reorder_teams(
 
 
 @router.post("/{draft_id}/picks")
-async def make_pick(
+def make_pick(
     draft_id: str, pick_in: PickCreate, user: dict = Depends(get_current_user)
 ):
     """Make a draft pick."""
@@ -1643,7 +1643,7 @@ def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/picks/auto")
-async def auto_pick(draft_id: str, turn_in: Optional[AutoPickRequest] = None, user: dict = Depends(get_current_user)):
+def auto_pick(draft_id: str, turn_in: Optional[AutoPickRequest] = None, user: dict = Depends(get_current_user)):
     """
     Trigger auto-pick for the current team if timer has expired.
     Uses coach's rankings if available, otherwise uses composite score.
@@ -1806,7 +1806,7 @@ async def auto_pick(draft_id: str, turn_in: Optional[AutoPickRequest] = None, us
 
 
 @router.post("/{draft_id}/picks/undo")
-async def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
+def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
     """Undo the last pick. Admin only."""
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
@@ -1848,7 +1848,7 @@ async def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.get("/{draft_id}/rankings")
-async def get_my_rankings(draft_id: str, user: dict = Depends(get_current_user)):
+def get_my_rankings(draft_id: str, user: dict = Depends(get_current_user)):
     """Get the current user's player rankings for this draft."""
     db = get_firestore_client()
     _verify_draft_access(db, draft_id, user)
@@ -1869,7 +1869,7 @@ async def get_my_rankings(draft_id: str, user: dict = Depends(get_current_user))
 
 
 @router.put("/{draft_id}/rankings")
-async def save_rankings(
+def save_rankings(
     draft_id: str, rankings_in: RankingsUpdate, user: dict = Depends(get_current_user)
 ):
     """Save the current user's player rankings."""
@@ -2067,7 +2067,7 @@ def get_drafted_players(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/sibling-groups/{sibling_group_id}/review")
-async def review_sibling_group(
+def review_sibling_group(
     draft_id: str,
     sibling_group_id: str,
     review_in: SiblingGroupReviewUpdate,
@@ -2184,7 +2184,7 @@ async def review_sibling_group(
 
 
 @router.post("/{draft_id}/pre-slots")
-async def add_pre_slot(
+def add_pre_slot(
     draft_id: str, slot_in: PreSlotCreate, user: dict = Depends(get_current_user)
 ):
     """Pre-assign a player to a team (e.g., coach's child)."""
@@ -2229,7 +2229,7 @@ async def add_pre_slot(
 
 
 @router.delete("/{draft_id}/pre-slots/{team_id}/{player_id}")
-async def remove_pre_slot(
+def remove_pre_slot(
     draft_id: str, team_id: str, player_id: str, user: dict = Depends(get_current_user)
 ):
     """Remove a pre-slotted player."""
@@ -2272,7 +2272,7 @@ async def remove_pre_slot(
 
 
 @router.post("/{draft_id}/trades")
-async def create_trade(
+def create_trade(
     draft_id: str, trade_in: TradeCreate, user: dict = Depends(get_current_user)
 ):
     """Create a trade proposal."""
@@ -2356,7 +2356,7 @@ async def create_trade(
 
 
 @router.get("/{draft_id}/trades")
-async def list_trades(draft_id: str, user: dict = Depends(get_current_user)):
+def list_trades(draft_id: str, user: dict = Depends(get_current_user)):
     """List all trades for a draft."""
     db = get_firestore_client()
     _verify_draft_access(db, draft_id, user)
@@ -2373,7 +2373,7 @@ async def list_trades(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.patch("/{draft_id}/trades/{trade_id}")
-async def update_trade(
+def update_trade(
     draft_id: str,
     trade_id: str,
     trade_in: TradeUpdate,
@@ -2419,7 +2419,7 @@ async def update_trade(
 # ============================================================================
 
 
-async def _create_team_rosters(db, draft_id: str, draft_data: dict):
+def _create_team_rosters(db, draft_id: str, draft_data: dict):
     """Create team roster records when draft completes."""
 
     # Get all picks grouped by team
@@ -2505,7 +2505,7 @@ class DraftPlayerBulkCreate(BaseModel):
 
 
 @router.post("/{draft_id}/players")
-async def add_draft_player(
+def add_draft_player(
     draft_id: str, player_in: DraftPlayerCreate, user: dict = Depends(get_current_user)
 ):
     """Add a player directly to a draft (for standalone drafts without combine)."""
@@ -2545,7 +2545,7 @@ async def add_draft_player(
 
 
 @router.post("/{draft_id}/players/bulk")
-async def add_draft_players_bulk(
+def add_draft_players_bulk(
     draft_id: str,
     bulk_in: DraftPlayerBulkCreate,
     user: dict = Depends(get_current_user),
@@ -2595,7 +2595,7 @@ async def add_draft_players_bulk(
 
 
 @router.delete("/{draft_id}/players/{player_id}")
-async def remove_draft_player(
+def remove_draft_player(
     draft_id: str, player_id: str, user: dict = Depends(get_current_user)
 ):
     """Remove a manually-added player from a draft."""
@@ -2640,7 +2640,7 @@ class JoinTeamResponse(BaseModel):
 
 
 @router.get("/join/{invite_token}")
-async def get_invite_info(invite_token: str):
+def get_invite_info(invite_token: str):
     """Get info about an invite link (no auth required)."""
     db = get_firestore_client()
 
@@ -2678,7 +2678,7 @@ async def get_invite_info(invite_token: str):
 
 
 @router.post("/join/{invite_token}")
-async def join_team_via_invite(
+def join_team_via_invite(
     invite_token: str, user: dict = Depends(get_current_user)
 ) -> JoinTeamResponse:
     """Claim a team spot using an invite link."""
@@ -2775,7 +2775,7 @@ async def join_team_via_invite(
 
 
 @router.post("/{draft_id}/teams/{team_id}/regenerate-invite")
-async def regenerate_invite_token(
+def regenerate_invite_token(
     draft_id: str, team_id: str, user: dict = Depends(get_current_user)
 ):
     """Regenerate invite token for a team (invalidates old link)."""
@@ -2798,7 +2798,7 @@ async def regenerate_invite_token(
 
 
 @router.post("/{draft_id}/teams/{team_id}/remove-coach")
-async def remove_coach_from_team(
+def remove_coach_from_team(
     draft_id: str, team_id: str, user: dict = Depends(get_current_user)
 ):
     """Remove coach assignment from a team (admin only)."""
