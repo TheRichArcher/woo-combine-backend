@@ -48,6 +48,7 @@ const JoinDraft = () => {
     if (!user) {
       // Save invite token and redirect to login
       sessionStorage.setItem('pendingInvite', inviteToken);
+      localStorage.setItem('postLoginTarget', `/draft/join/${inviteToken}`);
       navigate('/login?redirect=' + encodeURIComponent(`/draft/join/${inviteToken}`));
       return;
     }
