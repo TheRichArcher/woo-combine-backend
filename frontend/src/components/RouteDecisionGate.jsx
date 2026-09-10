@@ -1,3 +1,4 @@
+import { isDraftRouteWithoutEventContext } from '../lib/draftRouting';
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -164,7 +165,7 @@ export default function RouteDecisionGate({ children }) {
   // Check if current route bypasses the gate
   const bypassGate = publicRoutes.includes(location.pathname) || 
                      authOnlyRoutes.includes(location.pathname) ||
-                     isJoinEventRoute;
+                     isJoinEventRoute || isDraftRouteWithoutEventContext(location.pathname);
 
   // Comprehensive state logging
   useEffect(() => {
