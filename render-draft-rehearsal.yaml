@@ -7,8 +7,9 @@ services:
     repo: https://github.com/TheRichArcher/woo-combine-backend
     branch: codex/draft-readiness-20260909
     autoDeployTrigger: 'off'
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: frontend/dist
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
