@@ -1,0 +1,15 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import RequireAuth from '../RequireAuth';
+import { useAuth } from '../AuthContext';
+import { useLocation } from 'react-router-dom';
+jest.mock('../AuthContext', () => ({useAuth: jest.fn()}));
+jest.mock('react-router-dom', () => ({useLocation: jest.fn(), Navigate: ({to}) => <div data-testid="redirect">{to}</div>}));
+jest.mock('../../components/LoadingScreen', () => () => <div>Loading</div>);
+jest.mock('../../lib/pendingInviteRoute', () => ({getPendingInviteJoinPath: () => null}));
+jest.mock('../../lib/inviteHydrationState', () => ({getInviteHydrationState: () => null}));
+jest.mock('../../lib/selectRoleRedirectDebug', () => ({logSelectRoleRedirect: jest.fn()}));
+beforeEach(() => {localStorage.clear();useAuth.mockReturnValue({user:{uid:'qa',emailVerified:true},initializing:false,authChecked:true,roleChecked:true,userRole:null});});
+it('renders role selection for a verified account without a role', () => {useLocation.mockReturnValue({pathname:'/select-role'});render(<RequireAuth><div>Choose role</div></RequireAuth>);expect(screen.getByText('Choose role')).toBeInTheDocument();expect(screen.queryByTestId('redirect')).not.toBeInTheDocument();});
+it('continues blocking staff pages when role is missing', () => {useLocation.mockReturnValue({pathname:'/draft/x/live'});render(<RequireAuth><div>Draft controls</div></RequireAuth>);expect(screen.getByTestId('redirect')).toHaveTextContent('/select-role');expect(screen.queryByText('Draft controls')).not.toBeInTheDocument();});
+it('does not bypass explicit role restrictions even on the onboarding path', () => {useLocation.mockReturnValue({pathname:'/select-role'});render(<RequireAuth allowedRoles={['organizer']}><div>Restricted</div></RequireAuth>);expect(screen.queryByText('Restricted')).not.toBeInTheDocument();});
