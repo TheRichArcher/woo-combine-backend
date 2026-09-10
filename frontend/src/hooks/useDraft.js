@@ -17,6 +17,7 @@ export function useDraft(draftId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const pollRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   const fetchDraft = useCallback(async () => {
     if (!draftId) {
@@ -24,6 +25,8 @@ export function useDraft(draftId) {
       return;
     }
 
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await api.get(`/drafts/${draftId}`);
       setDraft(res.data);
@@ -36,6 +39,7 @@ export function useDraft(draftId) {
         setError(err.response?.data?.detail || err.message);
       }
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [draftId]);
@@ -69,6 +73,7 @@ export function useDraftPicks(draftId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const pollRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   const fetchPicks = useCallback(async () => {
     if (!draftId) {
@@ -76,6 +81,8 @@ export function useDraftPicks(draftId) {
       return;
     }
 
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await api.get(`/drafts/${draftId}/picks`);
       setPicks(res.data);
@@ -84,6 +91,7 @@ export function useDraftPicks(draftId) {
       console.error('Picks fetch error:', err);
       setError(err.message);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [draftId]);
@@ -117,6 +125,7 @@ export function useDraftTeams(draftId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const pollRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   const fetchTeams = useCallback(async () => {
     if (!draftId) {
@@ -124,6 +133,8 @@ export function useDraftTeams(draftId) {
       return;
     }
 
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await api.get(`/drafts/${draftId}/teams`);
       setTeams(res.data);
@@ -132,6 +143,7 @@ export function useDraftTeams(draftId) {
       console.error('Teams fetch error:', err);
       setError(err.message);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [draftId]);
@@ -165,6 +177,7 @@ export function useAvailablePlayers(draftId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const pollRef = useRef(null);
+  const inFlightRef = useRef(false);
 
   const fetchPlayers = useCallback(async () => {
     if (!draftId) {
@@ -172,6 +185,8 @@ export function useAvailablePlayers(draftId) {
       return;
     }
 
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
     try {
       const res = await api.get(`/drafts/${draftId}/players`);
       const enrichedPlayers = (res.data || []).map((player) => ({
@@ -188,6 +203,7 @@ export function useAvailablePlayers(draftId) {
       console.error('Players fetch error:', err);
       setError(err.message);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   }, [draftId]);
