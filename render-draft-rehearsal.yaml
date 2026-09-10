@@ -6,7 +6,7 @@ services:
     name: woo-draft-qa-20260909
     repo: https://github.com/TheRichArcher/woo-combine-backend
     branch: codex/draft-readiness-20260909
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
     buildCommand: cd frontend && npm ci && npm run build
     staticPublishPath: frontend/dist
     routes:
@@ -34,7 +34,7 @@ services:
     repo: https://github.com/TheRichArcher/woo-combine-backend
     branch: codex/draft-readiness-20260909
     plan: free
-    autoDeployTrigger: off
+    autoDeployTrigger: 'off'
     buildCommand: pip install -r requirements.txt
     startCommand: python scripts/rehearsal_entry.py
     healthCheckPath: /health
