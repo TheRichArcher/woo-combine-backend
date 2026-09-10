@@ -7,21 +7,22 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../../lib/api';
+import { serializeRosterCsv } from '../../utils/draftRosterCsv';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { 
-  useDraft, 
-  useDraftPicks, 
-  useDraftTeams, 
+import {
+  useDraft,
+  useDraftPicks,
+  useDraftTeams,
   useAvailablePlayers,
   useDraftActions,
   useCoachRankings
 } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
 import TradeModal from './TradeModal';
-import { 
-  Clock, 
-  Users, 
+import {
+  Clock,
+  Users,
   Trophy,
   Search,
   Pause,
@@ -46,19 +47,19 @@ const DraftRoom = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showSuccess, showError, showInfo } = useToast();
-  
-  const { draft, loading: draftLoading } = useDraft(draftId);
-  const { picks } = useDraftPicks(draftId);
-  const { teams } = useDraftTeams(draftId);
-  const { players, refetch: refetchPlayers } = useAvailablePlayers(draftId);
+
+  const { draft, loading: draftLoading, error: draftError, refetch: refetchDraft } = useDraft(draftId);
+  const { picks, error: picksError, refetch: refetchPicks } = useDraftPicks(draftId);
+  const { teams, error: teamsError, refetch: refetchTeams } = useDraftTeams(draftId);
+  const { players, error: playersError, refetch: refetchPlayers } = useAvailablePlayers(draftId);
   const { rankings } = useCoachRankings(draftId);
-  const { 
-    makePick, 
-    pauseDraft, 
-    resumeDraft, 
-    undoPick, 
+  const {
+    makePick,
+    pauseDraft,
+    resumeDraft,
+    undoPick,
     autoPick,
-    loading: actionLoading 
+    loading: actionLoading
   } = useDraftActions(draftId);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -86,36 +87,6 @@ const DraftRoom = () => {
     const timeout = setTimeout(() => setAdvisoryBadge(null), 12000);
     return () => clearTimeout(timeout);
   }, [advisoryBadge]);
-
-  // Timer countdown and auto-pick trigger
-  useEffect(() => {
-    if (!draft?.pick_deadline) {
-      setTimeRemaining(null);
-      autoPickTriggeredRef.current = false;
-      return;
-    }
-
-    const deadline = new Date(draft.pick_deadline).getTime();
-    
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
-      setTimeRemaining(remaining);
-      
-      // Auto-pick when timer hits 0
-      if (remaining <= 0 && !autoPickTriggeredRef.current && draft.auto_pick_on_timeout) {
-        autoPickTriggeredRef.current = true;
-        clearInterval(interval);
-        
-        // Only trigger if draft is still active
-        if (draft.status === 'active') {
-          handleAutoPick();
-        }
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [draft?.pick_deadline, draft?.auto_pick_on_timeout, draft?.status]);
 
   // Reset auto-pick trigger when pick changes
   useEffect(() => {
@@ -158,12 +129,14 @@ const DraftRoom = () => {
 
   // Filter and sort players
   const filteredPlayers = useMemo(() => {
-    let result = [...players];
+    const assignedIds = new Set(picks.map(pick => pick.player_id));
+    teams.forEach(team => (team.pre_slotted_player_ids || []).forEach(id => assignedIds.add(id)));
+    let result = players.filter(player => !assignedIds.has(player.id));
 
     // Search filter
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(p => 
+      result = result.filter(p =>
         p.name?.toLowerCase().includes(q) ||
         p.number?.toString().includes(q)
       );
@@ -178,7 +151,7 @@ const DraftRoom = () => {
         if (aRank !== -1) return -1;
         if (bRank !== -1) return 1;
       }
-      
+
       if (sortBy === 'name') {
         return (a.name || '').localeCompare(b.name || '');
       }
@@ -196,7 +169,7 @@ const DraftRoom = () => {
     });
 
     return result;
-  }, [players, searchQuery, sortBy, rankings]);
+  }, [players, picks, teams, searchQuery, sortBy, rankings]);
 
   // Group picks by team
   const picksByTeam = useMemo(() => {
@@ -207,6 +180,9 @@ const DraftRoom = () => {
     return grouped;
   }, [picks, teams]);
 
+  const syncError = draftError || picksError || teamsError || playersError;
+  const refreshDraft = () => Promise.all([refetchDraft(), refetchPicks(), refetchTeams(), refetchPlayers()]);
+
   // Handle pick
   const handlePick = async (playerId) => {
     if (!isMyTurn && !isAdmin) {
@@ -215,35 +191,66 @@ const DraftRoom = () => {
     }
 
     try {
-      const result = await makePick(playerId);
+      const result = await makePick(playerId, draft.current_pick);
       if (Array.isArray(result?.advisory_warnings) && result.advisory_warnings.length > 0) {
         setAdvisoryBadge({
           warnings: result.advisory_warnings,
           source: 'manual'
         });
       }
+      await refreshDraft();
       showSuccess('Pick made!');
     } catch (err) {
-      showError(err.message || 'Failed to make pick');
+      showError(err.response?.data?.detail || err.message || 'Failed to make pick');
     }
   };
 
   // Handle auto-pick
   const handleAutoPick = async () => {
     try {
-      const result = await autoPick();
+      const result = await autoPick(draft.current_pick);
       if (Array.isArray(result?.advisory_warnings) && result.advisory_warnings.length > 0) {
         setAdvisoryBadge({
           warnings: result.advisory_warnings,
           source: 'auto'
         });
       }
+      await refreshDraft();
       showInfo(`Auto-pick: ${result.player_name || 'Player selected'}`);
     } catch (err) {
-      // Timer might not have actually expired or draft state changed
-      console.log('Auto-pick failed:', err.message);
+      showError(err.response?.data?.detail || err.message || 'Auto-pick failed. Refresh and retry.');
     }
   };
+
+  // Timer countdown and auto-pick trigger
+  useEffect(() => {
+    if (!draft?.pick_deadline) {
+      setTimeRemaining(null);
+      autoPickTriggeredRef.current = false;
+      return;
+    }
+
+    const deadline = new Date(draft.pick_deadline).getTime();
+
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.floor((deadline - now) / 1000));
+      setTimeRemaining(remaining);
+
+      // Auto-pick when timer hits 0
+      if (remaining <= 0 && !autoPickTriggeredRef.current && draft.auto_pick_on_timeout) {
+        autoPickTriggeredRef.current = true;
+        clearInterval(interval);
+
+        // Only trigger if draft is still active
+        if (draft.status === 'active' && isMyTurn) {
+          handleAutoPick();
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [draft?.pick_deadline, draft?.auto_pick_on_timeout, draft?.status, isMyTurn]);
 
   const handleEnableNotifications = async () => {
     if (typeof Notification === 'undefined') {
@@ -286,13 +293,15 @@ const DraftRoom = () => {
     try {
       if (draft.status === 'active') {
         await pauseDraft();
+        await refreshDraft();
         showSuccess('Draft paused');
       } else {
         await resumeDraft();
+        await refreshDraft();
         showSuccess('Draft resumed');
       }
     } catch (err) {
-      showError(err.message);
+      showError(err.response?.data?.detail || err.message);
     }
   };
 
@@ -301,9 +310,10 @@ const DraftRoom = () => {
     if (!confirm('Undo the last pick?')) return;
     try {
       await undoPick();
+      await refreshDraft();
       showSuccess('Pick undone');
     } catch (err) {
-      showError(err.message);
+      showError(err.response?.data?.detail || err.message);
     }
   };
 
@@ -420,30 +430,10 @@ const DraftRoom = () => {
       'Vertical Jump'
     ];
 
-    const escapeValue = (value) => {
-      const str = String(value ?? '');
-      if (/[\",\\n]/.test(str)) {
-        return `\"${str.replace(/\"/g, '\"\"')}\"`;
-      }
-      return str;
-    };
-
-    const csvLines = [
-      headers.join(','),
-      ...rows.map((row) => ([
-        row.team,
-        row.coach,
-        row.round,
-        row.pickNumber,
-        row.name,
-        row.number,
-        row.composite,
-        row.dash40,
-        row.vertical
-      ].map(escapeValue).join(',')))
-    ];
-
-    const csvContent = csvLines.join('\\n');
+    const csvContent = serializeRosterCsv(headers, rows.map(row => [
+      row.team, row.coach, row.round, row.pickNumber, row.name, row.number,
+      row.composite, row.dash40, row.vertical
+    ]));
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -457,6 +447,12 @@ const DraftRoom = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {syncError && (
+        <div role="alert" className="bg-amber-100 text-amber-900 p-3 text-center">
+          Draft updates are unavailable. Displayed information may be out of date. Reconnecting automatically.
+          <button onClick={refreshDraft} className="ml-3 underline">Retry now</button>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-3">
@@ -470,11 +466,11 @@ const DraftRoom = () => {
                   {draft.name}
                 </h1>
                 <p className="text-xs md:text-sm text-gray-500">
-                  Round {draft.current_round}/{draft.num_rounds} • Pick #{draft.current_pick}
+                  {draft.status === 'completed' ? `${picks.length} players assigned` : `Round ${draft.current_round}/${draft.num_rounds} • Pick #${draft.current_pick}`}
                 </p>
               </div>
             </div>
-            
+
             {/* Desktop Actions */}
             <div className="hidden md:flex items-center gap-3">
               {notificationsEnabled && (
@@ -483,7 +479,7 @@ const DraftRoom = () => {
                   <span>✓</span>
                 </div>
               )}
-              <Link 
+              <Link
                 to={`/draft/${draftId}/rankings`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200"
               >
@@ -507,7 +503,7 @@ const DraftRoom = () => {
                   Export Rosters
                 </button>
               )}
-              <Link 
+              <Link
                 to={`/draft/${draftId}/board`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 rounded-lg hover:bg-gray-200"
               >
@@ -517,18 +513,18 @@ const DraftRoom = () => {
 
               {isAdmin && (
                 <>
-                  <button
+                  {['active', 'paused'].includes(draft.status) && <button
                     onClick={handlePauseResume}
                     className="flex items-center gap-2 px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200"
                     disabled={actionLoading}
                   >
                     {draft.status === 'active' ? <Pause size={16} /> : <Play size={16} />}
                     {draft.status === 'active' ? 'Pause' : 'Resume'}
-                  </button>
+                  </button>}
                   <button
                     onClick={handleUndo}
                     className="flex items-center gap-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
-                    disabled={actionLoading || picks.length === 0}
+                    disabled={actionLoading || !picks.some(pick => pick.pick_type !== 'safe')}
                   >
                     <RotateCcw size={16} />
                     Undo
@@ -545,7 +541,7 @@ const DraftRoom = () => {
                   <span>✓</span>
                 </div>
               )}
-              <button 
+              <button
                 className="p-2"
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
               >
@@ -557,7 +553,7 @@ const DraftRoom = () => {
           {/* Mobile Menu */}
           {showMobileMenu && (
             <div className="md:hidden mt-3 pt-3 border-t space-y-2">
-              <Link 
+              <Link
                 to={`/draft/${draftId}/rankings`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg"
               >
@@ -581,7 +577,7 @@ const DraftRoom = () => {
                   Export Rosters
                 </button>
               )}
-              <Link 
+              <Link
                 to={`/draft/${draftId}/board`}
                 className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 rounded-lg"
               >
@@ -590,18 +586,18 @@ const DraftRoom = () => {
               </Link>
               {isAdmin && (
                 <div className="flex gap-2">
-                  <button
+                  {['active', 'paused'].includes(draft.status) && <button
                     onClick={handlePauseResume}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-yellow-100 text-yellow-700 rounded-lg"
                     disabled={actionLoading}
                   >
                     {draft.status === 'active' ? <Pause size={16} /> : <Play size={16} />}
                     {draft.status === 'active' ? 'Pause' : 'Resume'}
-                  </button>
+                  </button>}
                   <button
                     onClick={handleUndo}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg"
-                    disabled={actionLoading || picks.length === 0}
+                    disabled={actionLoading || !picks.some(pick => pick.pick_type !== 'safe')}
                   >
                     <RotateCcw size={16} />
                     Undo
@@ -660,7 +656,7 @@ const DraftRoom = () => {
       {draft.status === 'completed' && (
         <div className="py-3 text-center bg-green-600 text-white font-semibold flex items-center justify-center gap-4">
           <span>🏆 Draft Complete!</span>
-          <button
+          {isAdmin && <button
             onClick={async () => {
               if (!window.confirm('Reset this draft back to setup? All picks will be deleted.')) return;
               try {
@@ -673,7 +669,7 @@ const DraftRoom = () => {
             className="px-3 py-1 bg-white text-red-600 text-sm font-medium rounded hover:bg-red-50"
           >
             Reset Draft
-          </button>
+          </button>}
         </div>
       )}
       {advisoryBadge && (
@@ -718,7 +714,7 @@ const DraftRoom = () => {
 
       <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
-          
+
           {/* Available Players */}
           <div className={`lg:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden ${
             mobileTab !== 'players' ? 'hidden md:block' : ''
@@ -756,7 +752,7 @@ const DraftRoom = () => {
               {filteredPlayers.map((player) => {
                 const rankIndex = rankings.indexOf(player.id);
                 const isRanked = rankIndex !== -1;
-                
+
                 const drillEntries = getRawDrillEntries(player);
                 const isExpanded = expandedPlayerId === player.id;
 
@@ -765,8 +761,8 @@ const DraftRoom = () => {
                     <div className="flex items-center gap-3 p-3 hover:bg-gray-50">
                       {/* Player Photo */}
                       {player.photo_url ? (
-                        <img 
-                          src={player.photo_url} 
+                        <img
+                          src={player.photo_url}
                           alt={player.name}
                           className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover flex-shrink-0"
                         />
@@ -792,6 +788,11 @@ const DraftRoom = () => {
                           <span className="hidden sm:inline">40m: {get40m(player)} ({getDrillStar(player, '40m_dash')})</span>
                           <span className="hidden sm:inline">Vert: {getVert(player)} ({getDrillStar(player, 'vertical_jump')})</span>
                         </div>
+                        {(player.parent_reported_ability || player.registration_previous_team || player.parent_reported_experience) && <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                          {player.parent_reported_ability && <p>Parent-reported ability (5 strongest): {player.parent_reported_ability}</p>}
+                          {player.registration_previous_team && <p>Previous team (registration): {player.registration_previous_team}</p>}
+                          {player.parent_reported_experience && <p>Seasons played (parent report): {player.parent_reported_experience}</p>}
+                        </div>}
                       </div>
 
                       <button
@@ -805,7 +806,7 @@ const DraftRoom = () => {
 
                       <button
                         onClick={() => handlePick(player.id)}
-                        disabled={!isMyTurn && !isAdmin || actionLoading || draft.status !== 'active'}
+                        disabled={!isMyTurn && !isAdmin || actionLoading || Boolean(syncError) || draft.status !== 'active'}
                         className={`px-3 md:px-4 py-1.5 text-sm font-medium rounded-lg transition-colors flex-shrink-0 ${
                           isMyTurn || isAdmin
                             ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -838,7 +839,7 @@ const DraftRoom = () => {
                   </div>
                 );
               })}
-              
+
               {filteredPlayers.length === 0 && (
                 <div className="p-8 text-center text-gray-500">
                   No players available
@@ -851,7 +852,7 @@ const DraftRoom = () => {
           <div className={`space-y-4 md:space-y-6 ${
             mobileTab === 'players' ? 'hidden md:block' : ''
           }`}>
-            
+
             {/* My Team - Mobile Tab or Desktop Card */}
             {myTeam && (mobileTab === 'myteam' || mobileTab !== 'board') && (
               <div className={`bg-white rounded-xl shadow-sm overflow-hidden ${
@@ -869,13 +870,13 @@ const DraftRoom = () => {
                   ) : (
                     <ul className="space-y-2">
                       {(picksByTeam[myTeam.id] || []).map((pick) => {
-                        const player = players.find(p => p.id === pick.player_id) || 
+                        const player = players.find(p => p.id === pick.player_id) ||
                           { name: pick.player?.name || pick.player_id };
                         return (
                           <li key={pick.id} className="flex items-center gap-3 text-sm">
                             <span className="text-xs text-gray-400 w-8">Rd {pick.round}</span>
                             {player.photo_url ? (
-                              <img 
+                              <img
                                 src={player.photo_url}
                                 alt={player.name}
                                 className="w-8 h-8 rounded-full object-cover"
@@ -906,9 +907,9 @@ const DraftRoom = () => {
                 {teams.map((team) => {
                   const teamPicks = picksByTeam[team.id] || [];
                   const isOnClock = team.id === draft.current_team_id;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={team.id}
                       className={`p-3 rounded-lg ${isOnClock ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'}`}
                     >
@@ -919,26 +920,23 @@ const DraftRoom = () => {
                         </span>
                         <span className="text-xs text-gray-500">{teamPicks.length} picks</span>
                       </div>
-                      
+
                       {/* Show recent picks */}
                       {teamPicks.length > 0 && (
                         <div className="flex flex-wrap gap-1">
-                          {teamPicks.slice(-4).map((pick) => {
+                          {teamPicks.map((pick) => {
                             const player = players.find(p => p.id === pick.player_id);
                             const name = player?.name || pick.player?.name || '...';
                             return (
-                              <span 
+                              <span
                                 key={pick.id}
-                                className="text-xs bg-white px-2 py-0.5 rounded border truncate max-w-[100px]"
+                                className="text-xs bg-white px-2 py-0.5 rounded border break-words"
                                 title={name}
                               >
-                                {name.split(' ').pop()}
+                                {name}{pick.pick_type === 'safe' ? ' (Safe Pick)' : ''}
                               </span>
                             );
                           })}
-                          {teamPicks.length > 4 && (
-                            <span className="text-xs text-gray-400">+{teamPicks.length - 4}</span>
-                          )}
                         </div>
                       )}
                     </div>

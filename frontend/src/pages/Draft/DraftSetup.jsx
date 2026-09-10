@@ -7,6 +7,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useDraft, useDraftTeams, useDraftActions } from '../../hooks/useDraft';
+import RegistrationImport from '../../components/RegistrationImport';
 import LoadingScreen from '../../components/LoadingScreen';
 import api from '../../lib/api';
 import {
@@ -153,11 +154,10 @@ const DraftSetup = () => {
   }, [draft]);
 
   const activeRuleSummary = useMemo(() => {
-    const roundsCap = draft?.num_rounds || null;
     const explicitCap = settings.max_players_per_team !== '' && settings.max_players_per_team != null
       ? Number(settings.max_players_per_team)
       : null;
-    const resolvedCap = explicitCap || roundsCap || null;
+    const resolvedCap = explicitCap || null;
     const compositeEnabled = !!settings.enforce_composite_balance;
     const compositeBlocking = !!settings.composite_balance_blocking;
     const compositeGap = settings.max_composite_avg_gap !== '' && settings.max_composite_avg_gap != null
@@ -170,7 +170,7 @@ const DraftSetup = () => {
       compositeGap,
       compositeBlocking
     };
-  }, [draft?.num_rounds, settings.max_players_per_team, settings.enforce_composite_balance, settings.max_composite_avg_gap, settings.composite_balance_blocking]);
+  }, [settings.max_players_per_team, settings.enforce_composite_balance, settings.max_composite_avg_gap, settings.composite_balance_blocking]);
 
   const fetchDraftPlayers = useCallback(async () => {
     if (!draftId) return;
@@ -334,6 +334,11 @@ const DraftSetup = () => {
       return;
     }
 
+    if ((teams.find(team => team.id === preSlotTeamId)?.pre_slotted_player_ids || []).length >= 3) {
+      showError('A team can have at most 3 Safe Picks, including the coach’s children.');
+      return;
+    }
+
     try {
       await api.post(`/drafts/${draftId}/pre-slots`, {
         player_id: preSlotPlayerId,
@@ -341,19 +346,19 @@ const DraftSetup = () => {
       });
       setPreSlotPlayerId('');
       refetchTeams();
-      showSuccess('Player pre-slotted');
+      showSuccess('Safe Pick assigned');
     } catch (err) {
-      showError(err.response?.data?.detail || 'Failed to pre-slot player');
+      showError(err.response?.data?.detail || 'Failed to assign Safe Pick');
     }
   };
 
   const handleRemovePreSlot = async (teamId, playerId) => {
     try {
-      await api.delete(`/drafts/${draftId}/pre-slots/${teamId}/${playerId}`);
+      const response = await api.delete(`/drafts/${draftId}/pre-slots/${teamId}/${playerId}`);
       refetchTeams();
-      showSuccess('Pre-slot removed');
+      showSuccess(response.data?.removed_player_ids?.length > 1 ? 'Safe Picks removed for this sibling group' : 'Safe Pick removed');
     } catch (err) {
-      showError(err.response?.data?.detail || 'Failed to remove pre-slot');
+      showError(err.response?.data?.detail || 'Failed to remove Safe Pick');
     }
   };
 
@@ -370,7 +375,7 @@ const DraftSetup = () => {
           </p>
           <div className="flex gap-3 justify-center">
             <Link
-              to={`/draft/${draftId}/room`}
+              to={`/draft/${draftId}/live`}
               className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Go to Draft Room
@@ -561,6 +566,7 @@ const DraftSetup = () => {
               </div>
 
               <div className="p-4">
+                <RegistrationImport draftId={draftId} ageGroup={draft.age_group} existingPlayers={availablePlayers} onImported={fetchDraftPlayers} />
                 {showAddPlayer && (
                   <div className="border rounded-lg p-3 mb-3 bg-gray-50">
                     <div className="space-y-2">
@@ -714,18 +720,18 @@ const DraftSetup = () => {
               {/* Team Cap */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Players Per Team (hard cap)
+                  Maximum Players Per Team (optional)
                 </label>
                 <input
                   type="number"
                   min="1"
                   value={settings.max_players_per_team}
                   onChange={(e) => setSettings(s => ({ ...s, max_players_per_team: e.target.value }))}
-                  placeholder={draft?.num_rounds ? `Default: ${draft.num_rounds}` : 'Leave blank to use rounds'}
+                  placeholder="Leave blank for no fixed maximum"
                   className="w-full px-3 py-2 border rounded-lg"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  If blank, the engine uses number of rounds as the per-team cap.
+                  Leave blank to draft the full player pool without a fixed team maximum.
                 </p>
               </div>
 
@@ -789,17 +795,16 @@ const DraftSetup = () => {
 
               {/* Active Enforcement Rules */}
               <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                <p className="text-sm font-medium text-blue-900 mb-2">Active Draft Engine Validation Rules</p>
+                <p className="text-sm font-medium text-blue-900 mb-2">Draft Rules</p>
                 <ul className="text-xs text-blue-800 space-y-1">
                   <li>
-                    Hard: per-team roster cap = {activeRuleSummary.resolvedCap ?? 'not set yet (depends on rounds)'}
-                    {activeRuleSummary.explicitCap ? ' (custom override)' : ' (derived from rounds)'}
+                    Maximum players per team: {activeRuleSummary.resolvedCap ?? 'No fixed maximum'}
                   </li>
                   <li>
-                    Hard: sibling same-team lock (when `forceSameTeamWithSibling=true`)
+                    Siblings stay together unless intentionally marked for separate teams.
                   </li>
                   <li>
-                    Hard: sibling unit must fit within remaining overall draft slots
+                    Each additional sibling uses that team’s next turn, even across round changes.
                   </li>
                   <li>
                     {activeRuleSummary.compositeEnabled
@@ -823,16 +828,16 @@ const DraftSetup = () => {
 
         </div>
 
-        {/* Pre-Slot Players */}
+        {/* Safe Picks */}
         {draft.status === 'setup' && (
           <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
             <div className="p-4 border-b">
               <h2 className="font-semibold flex items-center gap-2">
                 <UserPlus size={18} />
-                Pre-Slot Players
+                Safe Picks
               </h2>
               <p className="text-xs text-gray-500 mt-1">
-                Assign specific players to teams before the draft starts.
+                Up to 3 Safe Picks per team, including the coach’s children. These occupy rounds 1–3; one Safe Pick means the first live selection is in round 2.
               </p>
             </div>
 
@@ -878,15 +883,15 @@ const DraftSetup = () => {
                     className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 text-sm font-medium"
                   >
                     <Plus size={16} />
-                    Pre-Slot
+                    Add Safe Pick
                   </button>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-xs font-semibold text-gray-600 mb-2">Current Pre-Slots</h4>
+                <h4 className="text-xs font-semibold text-gray-600 mb-2">Current Safe Picks</h4>
                 {preSlotEntries.length === 0 ? (
-                  <p className="text-sm text-gray-500">No pre-slotted players yet.</p>
+                  <p className="text-sm text-gray-500">No Safe Picks assigned yet.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {preSlotEntries.map((entry) => {
@@ -903,7 +908,7 @@ const DraftSetup = () => {
                           <button
                             onClick={() => handleRemovePreSlot(entry.team.id, entry.playerId)}
                             className="ml-1 text-gray-500 hover:text-gray-700"
-                            title="Remove pre-slot"
+                            title="Remove Safe Pick"
                           >
                             <X size={14} />
                           </button>

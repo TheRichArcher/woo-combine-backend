@@ -1,0 +1,22 @@
+import React from 'react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import RegistrationImport from './RegistrationImport';
+import api from '../lib/api';
+jest.mock('../lib/api', () => ({ __esModule: true, default: { get: jest.fn(), post: jest.fn() } }));
+test('requires preview confirmation and sends only selected division with raw reports', async () => {
+  api.get.mockResolvedValue({data: {players: []}}); api.post.mockResolvedValue({data: {added: 1}});
+  const imported = jest.fn();
+  render(<RegistrationImport draftId="synthetic-draft" ageGroup="10U" existingPlayers={[]} onImported={imported} />);
+  const text = 'Player First Name,Player Last Name,Division Name,Please rate the athletic ability of your child (5 being the strongest)\nTest,One,10U,4\nTest,Two,12U,3';
+  fireEvent.change(screen.getByLabelText('Import SportsConnect CSV'), {target: {files: [{size: 200, text: async () => text}]}});
+  await screen.findByRole('combobox');
+  expect(api.post).not.toHaveBeenCalled();
+  fireEvent.change(screen.getByRole('combobox'), {target: {value: '10U'}});
+  fireEvent.click(screen.getByRole('button', {name: 'Confirm and import this division'}));
+  await waitFor(() => expect(imported).toHaveBeenCalled());
+  expect(api.get).toHaveBeenCalledWith('/drafts/synthetic-draft/players');
+  const [url, body] = api.post.mock.calls[0];
+  expect(url).toBe('/drafts/synthetic-draft/players/bulk');
+  expect(body.players).toHaveLength(1);
+  expect(body.players[0]).toMatchObject({name: 'Test One', age_group: '10U', parent_reported_ability: '4'});
+});

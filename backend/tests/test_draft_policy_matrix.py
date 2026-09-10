@@ -52,11 +52,11 @@ def test_draft_policy_matrix_list_and_mutation_access(app_client, fake_db):
     # Drafts:
     # - draft-league-1 visible to league-1 staff
     # - draft-coach-owned allows coach mutation as creator/admin
-    # - draft-explicit-coach in another league but with explicit coach assignment
+    # - standalone draft-explicit-coach with explicit coach assignment
     # - draft-explicit-viewer in another league with (bad data) viewer assigned as coach_user_id
     _seed_draft(fake_db, "draft-league-1", "league-1", "org-1")
     _seed_draft(fake_db, "draft-coach-owned", "league-1", "coach-1")
-    _seed_draft(fake_db, "draft-explicit-coach", "league-2", "org-2")
+    _seed_draft(fake_db, "draft-explicit-coach", None, "org-2")
     _seed_draft(fake_db, "draft-explicit-viewer", "league-2", "org-2")
 
     fake_db.collection("draft_teams").document("team-explicit-coach").set(

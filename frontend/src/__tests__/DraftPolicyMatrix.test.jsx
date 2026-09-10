@@ -25,6 +25,20 @@ describe("draft frontend route policy matrix", () => {
     }
   });
 
+  it("routes board, setup and accepted invitations to the registered live room", () => {
+    const expectedLinks = {
+      'DraftBoard.jsx': ['`/draft/${draftId}/live`'],
+      'DraftSetup.jsx': ['`/draft/${draftId}/live`'],
+      'JoinDraft.jsx': ['`/draft/${res.data.draft_id}/live`', '`/draft/${inviteInfo.draft_id}/live`'],
+    };
+    expect(source).toContain('path="/draft/:draftId/live"');
+    for (const [file, links] of Object.entries(expectedLinks)) {
+      const page = fs.readFileSync(path.resolve(__dirname, '../pages/Draft', file), 'utf8');
+      for (const link of links) expect(page).toContain(link);
+      expect(page).not.toContain('/room`');
+    }
+  });
+
   it("keeps invite route public for token-based entry", () => {
     const publicJoinRegex =
       /path="\/draft\/join\/:inviteToken"[\s\S]*?element=\{<JoinDraft \/>}/m;

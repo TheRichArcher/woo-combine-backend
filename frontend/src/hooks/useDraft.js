@@ -272,12 +272,13 @@ export function useDraftActions(draftId) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const makePick = useCallback(async (playerId) => {
+  const makePick = useCallback(async (playerId, expectedPickNumber) => {
     setLoading(true);
     setError(null);
     try {
       const res = await api.post(`/drafts/${draftId}/picks`, {
-        player_id: playerId
+        player_id: playerId,
+        expected_pick_number: expectedPickNumber
       });
       return res.data;
     } catch (err) {
@@ -341,10 +342,10 @@ export function useDraftActions(draftId) {
     }
   }, [draftId]);
 
-  const autoPick = useCallback(async () => {
+  const autoPick = useCallback(async (expectedPickNumber) => {
     setLoading(true);
     try {
-      const res = await api.post(`/drafts/${draftId}/picks/auto`);
+      const res = await api.post(`/drafts/${draftId}/picks/auto`, { expected_pick_number: expectedPickNumber });
       return res.data;
     } catch (err) {
       setError(err.response?.data?.detail || err.message);

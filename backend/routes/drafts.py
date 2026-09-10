@@ -4,6 +4,7 @@ Handles draft creation, management, picks, and real-time state.
 """
 
 import secrets
+import math
 from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
@@ -18,7 +19,7 @@ from ..utils.star_rating import (
     get_star_rating_from_percentile,
     percentile_from_rank,
 )
-from google.cloud.firestore_v1 import FieldFilter
+from google.cloud.firestore_v1 import FieldFilter, transactional
 import uuid
 import logging
 import re
@@ -227,6 +228,11 @@ class TeamUpdate(BaseModel):
 
 class PickCreate(BaseModel):
     player_id: str
+    expected_pick_number: Optional[int] = Field(default=None, ge=1)
+
+
+class AutoPickRequest(BaseModel):
+    expected_pick_number: Optional[int] = Field(default=None, ge=1)
 
 
 class RankingsUpdate(BaseModel):
@@ -327,6 +333,9 @@ def _load_draft_player_pool(db, draft_data: dict) -> Dict[str, dict]:
                 continue
             all_players[p.id] = pdata
 
+    if draft_data.get("eligible_player_ids") is not None:
+        eligible = set(draft_data["eligible_player_ids"])
+        all_players = {pid: player for pid, player in all_players.items() if pid in eligible}
     return all_players
 
 
@@ -348,6 +357,58 @@ def _list_draft_picks(db, draft_id: str) -> List[dict]:
     return [p.to_dict() for p in picks_query]
 
 
+def _siblings_together(player: dict) -> bool:
+    """A known sibling group stays together unless explicitly separated."""
+    return bool(player.get("siblingGroupId")) and not (
+        player.get("siblingSeparationRequested")
+        or player.get("siblingReviewStatus") in {"separate", "cleared"}
+        or player.get("siblingReviewDecision") in {"mark_separate", "clear_lock"}
+    )
+
+
+def _next_open_slot(draft, occupied, start=1, team_id=None):
+    if not draft.get("team_order"):
+        raise HTTPException(status_code=400, detail="Draft has no team order")
+    cap = draft.get("max_players_per_team")
+    full = set()
+    if cap:
+        counts = {team: sum(get_pick_team(draft, slot) == team for slot in occupied) for team in draft["team_order"]}
+        full = {team for team, count in counts.items() if count >= int(cap)}
+        if (team_id and team_id in full) or len(full) == len(draft["team_order"]):
+            raise HTTPException(status_code=400, detail="No remaining team capacity")
+    slot = max(1, start)
+    while slot in occupied or get_pick_team(draft, slot) in full or (team_id and get_pick_team(draft, slot) != team_id):
+        slot += 1
+    return slot
+
+
+def _pick_record(draft, draft_id, player_id, team_id, slot, user_id, kind, action_id):
+    count = len(draft["team_order"])
+    return {
+        "id": generate_id("pick_"), "draft_id": draft_id,
+        "round": (slot - 1) // count + 1, "pick_number": slot,
+        "pick_in_round": (slot - 1) % count + 1,
+        "team_id": team_id, "player_id": player_id, "picked_by": user_id,
+        "pick_type": kind, "action_id": action_id, "created_at": now_iso(),
+    }
+
+
+def _write_rosters(transaction, db, draft_id, draft, picks, teams):
+    """Stable roster ids, committed together with picks, including empty teams."""
+    for team in teams:
+        team_id = team["id"]
+        roster_id = f"{draft_id}_{team_id}"
+        transaction.set(db.collection("team_rosters").document(roster_id), {
+            "id": roster_id, "draft_id": draft_id, "team_id": team_id,
+            "event_id": (_get_draft_event_ids(draft) or [None])[0],
+            "event_ids": _get_draft_event_ids(draft), "league_id": draft.get("league_id"),
+            "team_name": team.get("team_name"), "coach_user_id": team.get("coach_user_id"),
+            "coach_name": team.get("coach_name"),
+            "player_ids": [p["player_id"] for p in sorted(picks, key=lambda p: p["pick_number"]) if p["team_id"] == team_id],
+            "created_from": "draft", "updated_at": now_iso(),
+        })
+
+
 def _validate_sibling_team_constraint(
     *,
     selected_player_id: str,
@@ -357,7 +418,7 @@ def _validate_sibling_team_constraint(
 ) -> None:
     selected = all_players.get(selected_player_id) or {}
     sibling_group_id = selected.get("siblingGroupId")
-    force_same_team = bool(selected.get("forceSameTeamWithSibling"))
+    force_same_team = _siblings_together(selected)
     if not sibling_group_id or not force_same_team:
         return
 
@@ -366,7 +427,7 @@ def _validate_sibling_team_constraint(
         for pid, pdata in all_players.items()
         if pid != selected_player_id
         and pdata.get("siblingGroupId") == sibling_group_id
-        and bool(pdata.get("forceSameTeamWithSibling"))
+        and _siblings_together(pdata)
         and drafted_team_by_player.get(pid)
     }
     sibling_team_ids.discard(None)
@@ -387,7 +448,7 @@ def _build_assignment_unit(
     """Return player ids assigned with the pick (forced sibling group)."""
     selected = all_players.get(selected_player_id) or {}
     sibling_group_id = selected.get("siblingGroupId")
-    force_same_team = bool(selected.get("forceSameTeamWithSibling"))
+    force_same_team = _siblings_together(selected)
     if not sibling_group_id or not force_same_team:
         return [selected_player_id]
 
@@ -395,14 +456,12 @@ def _build_assignment_unit(
     for pid, pdata in all_players.items():
         if pid in drafted_player_ids:
             continue
-        if pdata.get("siblingGroupId") == sibling_group_id and bool(
-            pdata.get("forceSameTeamWithSibling")
-        ):
+        if pdata.get("siblingGroupId") == sibling_group_id and _siblings_together(pdata):
             unit.append(pid)
 
     if selected_player_id not in unit:
         unit.append(selected_player_id)
-    return sorted(set(unit))
+    return [selected_player_id] + sorted(set(unit) - {selected_player_id})
 
 
 def _team_player_ids_for_draft_picks(draft_picks: List[dict], team_id: str) -> List[str]:
@@ -429,11 +488,7 @@ def _resolve_team_cap(draft_data: dict) -> Optional[int]:
             return cap if cap > 0 else None
         except Exception:
             return None
-    try:
-        num_rounds = int(draft_data.get("num_rounds") or 0)
-    except Exception:
-        num_rounds = 0
-    return num_rounds if num_rounds > 0 else None
+    return None
 
 
 def _player_composite_for_balance(player: dict) -> float:
@@ -519,7 +574,7 @@ def _validate_team_level_constraints_for_unit(
         if bool(draft_data.get("composite_balance_blocking")):
             raise HTTPException(
                 status_code=400,
-                detail=f"Pick rejected: {message}",
+                detail=f"Pick rejected: composite balance rule exceeded. {message}",
             )
         advisory_warnings.append(message)
 
@@ -537,16 +592,6 @@ def _validate_assignment_unit_before_pick(
 ) -> List[str]:
     if not assignment_unit:
         raise HTTPException(status_code=400, detail="No players in assignment unit")
-
-    remaining_slots = _remaining_draft_slots(draft_data)
-    if len(assignment_unit) > remaining_slots:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Sibling group cannot be assigned: not enough remaining draft slots "
-                f"({len(assignment_unit)} needed, {remaining_slots} available)"
-            ),
-        )
 
     for pid in assignment_unit:
         if pid in drafted_player_ids:
@@ -587,112 +632,55 @@ def _apply_pick_unit_atomically(
     picked_by: str,
     pick_type: str,
 ) -> dict:
-    transaction = db.transaction()
-
-    # Read and validate draft + picks inside a transaction so overlapping pick
-    # attempts cannot both assign the same players.
-    draft_snapshot = transaction.get(draft_ref)
-    if not draft_snapshot.exists:
-        raise HTTPException(status_code=404, detail="Draft not found")
-
-    live_draft_data = draft_snapshot.to_dict() or {}
-    if live_draft_data.get("status") != "active":
-        raise HTTPException(status_code=400, detail="Draft is not active")
-    if live_draft_data.get("current_team_id") != current_team_id:
-        raise HTTPException(
-            status_code=409,
-            detail="Draft turn advanced. Refresh and try again.",
+    @transactional
+    def commit_pick(transaction):
+        snapshot = draft_ref.get(transaction=transaction)
+        if not snapshot.exists:
+            raise HTTPException(status_code=404, detail="Draft not found")
+        live = snapshot.to_dict() or {}
+        if live.get("status") != "active":
+            raise HTTPException(status_code=409, detail="Draft is not active")
+        # Check both turn number and team: snake reversal can give a team two turns.
+        if (live.get("current_team_id") != current_team_id
+                or live.get("current_pick") != draft_data.get("current_pick")):
+            raise HTTPException(status_code=409, detail="Draft turn advanced. Refresh and try again.")
+        picks = [p.to_dict() for p in transaction.get(db.collection("draft_picks").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        teams = [t.to_dict() for t in transaction.get(db.collection("draft_teams").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        drafted = {p["player_id"]: p["team_id"] for p in picks}
+        warnings = _validate_assignment_unit_before_pick(
+            assignment_unit=assignment_unit, all_players=all_players,
+            drafted_player_ids=set(drafted), drafted_team_by_player=drafted,
+            current_team_id=current_team_id, draft_data=live,
         )
-
-    picks_query = db.collection("draft_picks").where(
-        filter=FieldFilter("draft_id", "==", draft_id)
-    )
-    pick_snapshots = list(transaction.get(picks_query))
-    drafted_player_ids = {
-        p.to_dict().get("player_id")
-        for p in pick_snapshots
-        if p.to_dict().get("player_id")
-    }
-    drafted_team_by_player = {
-        p.to_dict().get("player_id"): p.to_dict().get("team_id")
-        for p in pick_snapshots
-        if p.to_dict().get("player_id")
-    }
-
-    advisory_warnings = _validate_assignment_unit_before_pick(
-        assignment_unit=assignment_unit,
-        all_players=all_players,
-        drafted_player_ids=drafted_player_ids,
-        drafted_team_by_player=drafted_team_by_player,
-        current_team_id=current_team_id,
-        draft_data=live_draft_data,
-    )
-
-    overall_pick = int(live_draft_data.get("current_pick", 1))
-    num_teams = int(live_draft_data.get("num_teams", 1))
-    total_picks = int(live_draft_data.get("num_rounds", 1)) * num_teams
-    next_pick = overall_pick + len(assignment_unit)
-    last_assigned_pick = overall_pick + len(assignment_unit) - 1
-
-    first_pick_data = None
-    for offset, player_id in enumerate(assignment_unit):
-        pick_number = overall_pick + offset
-        pick_round = ((pick_number - 1) // num_teams) + 1
-        pick_in_round = pick_number - ((pick_round - 1) * num_teams)
-        pick_id = generate_id("pick_")
-        pick_data = {
-            "id": pick_id,
-            "draft_id": draft_id,
-            "round": pick_round,
-            "pick_number": pick_number,
-            "pick_in_round": pick_in_round,
-            "team_id": current_team_id,
-            "player_id": player_id,
-            "picked_by": picked_by,
-            "pick_type": pick_type,
-            "created_at": now_iso(),
+        occupied = {p["pick_number"] for p in picks}
+        slot = int(live.get("current_pick") or 1)
+        action_id = generate_id("action_")
+        added = []
+        for player_id in assignment_unit:
+            slot = _next_open_slot(live, occupied, slot, current_team_id)
+            record = _pick_record(live, draft_id, player_id, current_team_id, slot, picked_by, pick_type, action_id)
+            record["action_start_pick"] = live["current_pick"]
+            added.append(record)
+            occupied.add(slot)
+            transaction.set(db.collection("draft_picks").document(record["id"]), record)
+        final_picks = picks + added
+        eligible = set(live.get("eligible_player_ids") or all_players)
+        completed = eligible.issubset({p["player_id"] for p in final_picks})
+        next_slot = max(occupied, default=0) + 1 if completed else _next_open_slot(live, occupied, int(live["current_pick"]))
+        updates = {
+            "status": "completed" if completed else "active",
+            "current_pick": next_slot, "current_round": (next_slot - 1) // len(live["team_order"]) + 1,
+            "current_team_id": None if completed else get_pick_team(live, next_slot),
+            "num_rounds": max(int(live.get("num_rounds") or 1), max(p["round"] for p in final_picks)),
+            "completed_at": now_iso() if completed else None,
+            "pick_deadline": ((datetime.now(timezone.utc) + timedelta(seconds=live["pick_timer_seconds"])).isoformat()
+                              if not completed and live.get("pick_timer_seconds", 0) > 0 else None),
         }
-        if first_pick_data is None:
-            first_pick_data = dict(pick_data)
-        transaction.set(db.collection("draft_picks").document(pick_id), pick_data)
+        transaction.update(draft_ref, updates)
+        _write_rosters(transaction, db, draft_id, live, final_picks, teams)
+        return {**added[0], "assigned_player_ids": assignment_unit, "completed": completed, "advisory_warnings": warnings}
 
-    completed = next_pick > total_picks
-    if completed:
-        transaction.update(
-            draft_ref,
-            {
-                "status": "completed",
-                "completed_at": now_iso(),
-                "current_pick": last_assigned_pick,
-                "pick_deadline": None,
-            },
-        )
-    else:
-        next_round = ((next_pick - 1) // num_teams) + 1
-        next_team_id = get_pick_team(live_draft_data, next_pick)
-        pick_deadline = None
-        if live_draft_data.get("pick_timer_seconds", 0) > 0:
-            pick_deadline = (
-                datetime.now(timezone.utc)
-                + timedelta(seconds=live_draft_data["pick_timer_seconds"])
-            ).isoformat()
-        transaction.update(
-            draft_ref,
-            {
-                "current_round": next_round,
-                "current_pick": next_pick,
-                "current_team_id": next_team_id,
-                "pick_deadline": pick_deadline,
-            },
-        )
-
-    transaction.commit()
-
-    response_pick = first_pick_data or {}
-    response_pick["assigned_player_ids"] = assignment_unit
-    response_pick["completed"] = completed
-    response_pick["advisory_warnings"] = advisory_warnings
-    return response_pick
+    return commit_pick(db.transaction())
 
 
 def _build_buddy_preference_context(
@@ -1248,62 +1236,66 @@ async def start_draft(draft_id: str, user: dict = Depends(get_current_user)):
 
     _check_payment_gate(db, draft_id, draft_data)
 
-    # Get teams
-    teams_query = (
-        db.collection("draft_teams")
-        .where(filter=FieldFilter("draft_id", "==", draft_id))
-        .stream()
-    )
-    teams = [t.to_dict() for t in teams_query]
+    all_players = _load_draft_player_pool(db, draft_data)
+    if not all_players:
+        raise HTTPException(status_code=400, detail="Cannot start draft with 0 players")
 
-    if len(teams) < 2:
-        raise HTTPException(
-            status_code=400, detail="Need at least 2 teams to start draft"
-        )
+    @transactional
+    def start(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") != "setup":
+            raise HTTPException(status_code=409, detail="Draft has already started")
+        teams = [t.to_dict() for t in transaction.get(db.collection("draft_teams").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        teams.sort(key=lambda t: (t.get("pick_order", 999), t["id"]))
+        if len(teams) < 2:
+            raise HTTPException(status_code=400, detail="Need at least 2 teams to start draft")
+        old_picks = list(transaction.get(db.collection("draft_picks").where(filter=FieldFilter("draft_id", "==", draft_id))))
+        if old_picks:
+            raise HTTPException(status_code=409, detail="Draft has existing picks; reset before starting")
+        live = {**live, "team_order": [t["id"] for t in teams], "num_teams": len(teams)}
+        picks, assigned = [], {}
+        for team in teams:
+            safe = list(dict.fromkeys(team.get("pre_slotted_player_ids") or []))
+            # Siblings of a safe player count toward the same three-player limit.
+            expanded = list(safe)
+            for pid in safe:
+                for sibling in _build_assignment_unit(selected_player_id=pid, all_players=all_players, drafted_player_ids=set()):
+                    if sibling not in expanded:
+                        expanded.append(sibling)
+            if len(expanded) > 3:
+                raise HTTPException(status_code=400, detail="Maximum 3 safe players per team, including coach children and siblings")
+            for pid in expanded:
+                if pid not in all_players:
+                    raise HTTPException(status_code=400, detail="Safe player is not draft-eligible")
+                if pid in assigned:
+                    raise HTTPException(status_code=400, detail="Safe player assigned to more than one team")
+                assigned[pid] = team["id"]
+            for round_index, pid in enumerate(expanded):
+                slot = _next_open_slot(live, set(), round_index * len(teams) + 1, team["id"])
+                picks.append(_pick_record(live, draft_id, pid, team["id"], slot, user["uid"], "safe", "safe"))
+        occupied = {p["pick_number"] for p in picks}
+        completed = set(all_players).issubset(assigned)
+        cap = live.get("max_players_per_team")
+        if cap and (int(cap) * len(teams) < len(all_players) or any(sum(p["team_id"] == t["id"] for p in picks) > int(cap) for t in teams)):
+            raise HTTPException(status_code=400, detail="Roster cap cannot hold the player pool or safe players")
+        slot = max(occupied, default=0) + 1 if completed else _next_open_slot(live, occupied)
+        updates = {
+            "status": "completed" if completed else "active", "team_order": live["team_order"], "num_teams": len(teams),
+            "num_rounds": max(1, (len(all_players) + len(teams) - 1) // len(teams)),
+            "eligible_player_ids": list(all_players),
+            "current_round": (slot - 1) // len(teams) + 1, "current_pick": slot,
+            "current_team_id": None if completed else get_pick_team(live, slot),
+            "pick_deadline": ((datetime.now(timezone.utc) + timedelta(seconds=live["pick_timer_seconds"])).isoformat()
+                              if not completed and live.get("pick_timer_seconds", 0) > 0 else None),
+            "started_at": now_iso(), "completed_at": now_iso() if completed else None,
+        }
+        for pick in picks:
+            transaction.set(db.collection("draft_picks").document(pick["id"]), pick)
+        transaction.update(draft_ref, updates)
+        _write_rosters(transaction, db, draft_id, live, picks, teams)
+        return {**live, **updates}
 
-    # Sort by pick_order
-    teams.sort(key=lambda t: t.get("pick_order", 999))
-    team_order = [t["id"] for t in teams]
-
-    # Calculate rounds if not set
-    num_rounds = draft_data.get("num_rounds")
-    if not num_rounds:
-        # Get player count (from event or standalone players)
-        player_count = get_draft_player_count(db, draft_data)
-        if player_count == 0:
-            raise HTTPException(
-                status_code=400,
-                detail="Cannot start draft with 0 players. Import players into the linked combine(s) first."
-            )
-        num_rounds = max(1, player_count // len(teams)) if len(teams) > 0 else 1
-
-    # Set pick deadline if timer enabled
-    pick_deadline = None
-    if draft_data.get("pick_timer_seconds", 0) > 0:
-        pick_deadline = (
-            datetime.now(timezone.utc)
-            + timedelta(seconds=draft_data["pick_timer_seconds"])
-        ).isoformat()
-
-    updates = {
-        "status": "active",
-        "team_order": team_order,
-        "num_teams": len(teams),
-        "num_rounds": num_rounds,
-        "current_round": 1,
-        "current_pick": 1,
-        "current_team_id": team_order[0],
-        "pick_deadline": pick_deadline,
-        "started_at": now_iso(),
-    }
-
-    draft_ref.update(updates)
-
-    logger.info(
-        f"Draft started: {draft_id} with {len(teams)} teams, {num_rounds} rounds"
-    )
-
-    return {**draft_data, **updates}
+    return start(db.transaction())
 
 
 @router.post("/{draft_id}/reset")
@@ -1315,34 +1307,25 @@ async def reset_draft(draft_id: str, user: dict = Depends(get_current_user)):
     if draft_data.get("status") == "setup":
         raise HTTPException(status_code=400, detail="Draft is already in setup")
 
-    # Delete all picks
-    picks = db.collection("draft_picks").where(
-        filter=FieldFilter("draft_id", "==", draft_id)
-    ).stream()
-    for pick in picks:
-        pick.reference.delete()
+    @transactional
+    def reset(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") == "setup":
+            raise HTTPException(status_code=409, detail="Draft is already in setup")
+        snapshots = []
+        for collection in ("draft_picks", "team_rosters", "draft_rosters", "draft_trades"):
+            snapshots.extend(transaction.get(db.collection(collection).where(filter=FieldFilter("draft_id", "==", draft_id))))
+        for snapshot in snapshots:
+            transaction.delete(snapshot.reference)
+        transaction.update(draft_ref, {
+            "status": "setup", "current_round": None, "current_pick": None,
+            "current_team_id": None, "num_rounds": None, "num_teams": None,
+            "team_order": None, "pick_deadline": None, "started_at": None,
+            "completed_at": None, "eligible_player_ids": None,
+        })
+        return {"status": "reset", "draft_id": draft_id}
 
-    # Delete any team rosters created on completion
-    rosters = db.collection("draft_rosters").where(
-        filter=FieldFilter("draft_id", "==", draft_id)
-    ).stream()
-    for roster in rosters:
-        roster.reference.delete()
-
-    draft_ref.update({
-        "status": "setup",
-        "current_round": None,
-        "current_pick": None,
-        "current_team_id": None,
-        "num_rounds": None,
-        "num_teams": None,
-        "team_order": None,
-        "pick_deadline": None,
-        "started_at": None,
-        "completed_at": None,
-    })
-
-    return {"status": "reset", "draft_id": draft_id}
+    return reset(db.transaction())
 
 
 @router.post("/{draft_id}/pause")
@@ -1351,14 +1334,14 @@ async def pause_draft(draft_id: str, user: dict = Depends(get_current_user)):
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
 
-    if draft_data.get("status") != "active":
-        raise HTTPException(status_code=400, detail="Draft is not active")
-
-    draft_ref.update(
-        {"status": "paused", "pick_deadline": None}  # Clear timer while paused
-    )
-
-    return {"status": "paused", "draft_id": draft_id}
+    @transactional
+    def pause(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") != "active":
+            raise HTTPException(status_code=400, detail="Draft is not active")
+        transaction.update(draft_ref, {"status": "paused", "pick_deadline": None})
+        return {"status": "paused", "draft_id": draft_id}
+    return pause(db.transaction())
 
 
 @router.post("/{draft_id}/resume")
@@ -1367,20 +1350,16 @@ async def resume_draft(draft_id: str, user: dict = Depends(get_current_user)):
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
 
-    if draft_data.get("status") != "paused":
-        raise HTTPException(status_code=400, detail="Draft is not paused")
-
-    # Reset timer if enabled
-    pick_deadline = None
-    if draft_data.get("pick_timer_seconds", 0) > 0:
-        pick_deadline = (
-            datetime.now(timezone.utc)
-            + timedelta(seconds=draft_data["pick_timer_seconds"])
-        ).isoformat()
-
-    draft_ref.update({"status": "active", "pick_deadline": pick_deadline})
-
-    return {"status": "active", "draft_id": draft_id}
+    @transactional
+    def resume(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") != "paused":
+            raise HTTPException(status_code=400, detail="Draft is not paused")
+        deadline = ((datetime.now(timezone.utc) + timedelta(seconds=live["pick_timer_seconds"])).isoformat()
+                    if live.get("pick_timer_seconds", 0) > 0 else None)
+        transaction.update(draft_ref, {"status": "active", "pick_deadline": deadline})
+        return {"status": "active", "draft_id": draft_id}
+    return resume(db.transaction())
 
 
 # ============================================================================
@@ -1436,7 +1415,7 @@ async def add_team(
 async def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
     """List all teams in a draft."""
     db = get_firestore_client()
-    _verify_draft_access(db, draft_id, user)
+    _, draft_data = _verify_draft_access(db, draft_id, user)
 
     teams_query = (
         db.collection("draft_teams")
@@ -1445,6 +1424,10 @@ async def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
     )
     teams = [t.to_dict() for t in teams_query]
     teams.sort(key=lambda t: t.get("pick_order", 999))
+    if not _is_draft_admin(user, draft_data):
+        # A team invitation is a claim credential, not public board data.
+        for team in teams:
+            team.pop("invite_token", None)
 
     return teams
 
@@ -1547,6 +1530,9 @@ async def make_pick(
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
 
+    if pick_in.expected_pick_number is not None and pick_in.expected_pick_number != draft_data.get("current_pick"):
+        raise HTTPException(status_code=409, detail="Draft turn advanced. Refresh and try again.")
+
     current_team_id = draft_data.get("current_team_id")
     if not current_team_id:
         raise HTTPException(status_code=400, detail="Draft is missing current team")
@@ -1612,7 +1598,6 @@ async def make_pick(
     )
 
     if response_pick.get("completed"):
-        await _create_team_rosters(db, draft_id, draft_data)
         logger.info(
             f"Draft completed: {draft_id} (pick unit size={len(assignment_unit)})"
         )
@@ -1658,13 +1643,16 @@ async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
 
 
 @router.post("/{draft_id}/picks/auto")
-async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
+async def auto_pick(draft_id: str, turn_in: Optional[AutoPickRequest] = None, user: dict = Depends(get_current_user)):
     """
     Trigger auto-pick for the current team if timer has expired.
     Uses coach's rankings if available, otherwise uses composite score.
     """
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user)
+
+    if turn_in is not None and turn_in.expected_pick_number is not None and turn_in.expected_pick_number != draft_data.get("current_pick"):
+        raise HTTPException(status_code=409, detail="Draft turn advanced. Refresh and try again.")
 
     if draft_data.get("status") != "active":
         raise HTTPException(status_code=400, detail="Draft is not active")
@@ -1801,7 +1789,6 @@ async def auto_pick(draft_id: str, user: dict = Depends(get_current_user)):
     )
 
     if base_pick.get("completed"):
-        await _create_team_rosters(db, draft_id, draft_data)
         logger.info(
             f"Draft completed via auto-pick: {draft_id} "
             f"(pick unit size={len(assignment_unit)})"
@@ -1824,52 +1811,35 @@ async def undo_last_pick(draft_id: str, user: dict = Depends(get_current_user)):
     db = get_firestore_client()
     draft_ref, draft_data = _verify_draft_access(db, draft_id, user, require_admin=True)
 
-    if draft_data.get("status") not in ["active", "paused"]:
-        raise HTTPException(
-            status_code=400, detail="Cannot undo picks in current draft state"
-        )
+    @transactional
+    def undo(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") not in {"active", "paused", "completed"}:
+            raise HTTPException(status_code=400, detail="Cannot undo picks in current draft state")
+        snapshots = list(transaction.get(db.collection("draft_picks").where(filter=FieldFilter("draft_id", "==", draft_id))))
+        teams = [t.to_dict() for t in transaction.get(db.collection("draft_teams").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        picks = [p.to_dict() for p in snapshots]
+        live_picks = [p for p in picks if p.get("pick_type") != "safe"]
+        if not live_picks:
+            raise HTTPException(status_code=400, detail="No live picks to undo")
+        last = max(live_picks, key=lambda p: (p.get("action_start_pick", p["pick_number"]), p.get("created_at", "")))
+        removed = {p["id"] for p in live_picks if (p.get("action_id") == last.get("action_id") if last.get("action_id") else p["id"] == last["id"])}
+        remaining = [p for p in picks if p["id"] not in removed]
+        slot = _next_open_slot(live, {p["pick_number"] for p in remaining})
+        for snapshot in snapshots:
+            if snapshot.id in removed:
+                transaction.delete(snapshot.reference)
+        transaction.update(draft_ref, {
+            "status": "paused" if live["status"] == "paused" else "active",
+            "current_pick": slot, "current_round": (slot - 1) // len(live["team_order"]) + 1,
+            "current_team_id": get_pick_team(live, slot), "completed_at": None,
+            "pick_deadline": ((datetime.now(timezone.utc) + timedelta(seconds=live["pick_timer_seconds"])).isoformat()
+                              if live["status"] != "paused" and live.get("pick_timer_seconds", 0) > 0 else None),
+        })
+        _write_rosters(transaction, db, draft_id, live, remaining, teams)
+        return {"status": "undone", "pick_id": last["id"], "removed_pick_ids": sorted(removed)}
 
-    # Get last pick
-    picks_query = (
-        db.collection("draft_picks")
-        .where(filter=FieldFilter("draft_id", "==", draft_id))
-        .order_by("pick_number", direction="DESCENDING")
-        .limit(1)
-        .stream()
-    )
-
-    picks = list(picks_query)
-    if len(picks) == 0:
-        raise HTTPException(status_code=400, detail="No picks to undo")
-
-    last_pick = picks[0]
-    last_pick_data = last_pick.to_dict()
-
-    # Delete the pick
-    last_pick.reference.delete()
-
-    # Revert draft state
-    num_teams = draft_data.get("num_teams", 1)
-    reverted_pick = last_pick_data.get("pick_number")
-    reverted_round = ((reverted_pick - 1) // num_teams) + 1
-    reverted_team_id = last_pick_data.get("team_id")
-
-    draft_ref.update(
-        {
-            "current_round": reverted_round,
-            "current_pick": reverted_pick,
-            "current_team_id": reverted_team_id,
-            "status": (
-                "active"
-                if draft_data.get("status") == "completed"
-                else draft_data.get("status")
-            ),
-        }
-    )
-
-    logger.info(f"Pick undone: {last_pick_data.get('id')} from draft {draft_id}")
-
-    return {"status": "undone", "pick_id": last_pick_data.get("id")}
+    return undo(db.transaction())
 
 
 # ============================================================================
@@ -1994,8 +1964,33 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
     canonical_by_player_id: Dict[str, dict] = {}
     for event_id, age_groups in event_players_by_event_and_age.items():
         for age_group_key, cohort in age_groups.items():
+            def has_measurement(player):
+                for drill in event_schema_cache[event_id].drills:
+                    raw = (player.get("scores") or {}).get(drill.key)
+                    if raw is None:
+                        raw = player.get(drill.key)
+                    if raw is None:
+                        raw = player.get(f"drill_{drill.key}")
+                    try:
+                        if raw is not None and math.isfinite(float(raw)):
+                            return True
+                    except (TypeError, ValueError):
+                        pass
+                return False
+
+            measured_cohort = []
+            for player in cohort:
+                if has_measurement(player):
+                    measured_cohort.append(player)
+                else:
+                    canonical_by_player_id[player["id"]] = {
+                        "canonical_rank": None, "canonical_cohort_size": 0,
+                        "canonical_percentile": None, "star_count": None,
+                        "star_label": "", "star_display": "",
+                        "canonical_drill_metrics": {},
+                    }
             sorted_cohort = sorted(
-                cohort,
+                measured_cohort,
                 key=lambda item: (
                     -(item.get("composite_score") or 0.0),
                     str(item.get("id") or ""),
@@ -2124,8 +2119,11 @@ async def review_sibling_group(
             continue
         player_ref = _get_event_player_ref_for_draft(db, draft_data, player_id)
         if not player_ref:
-            # Manual draft players are not inferred sibling entities.
-            continue
+            manual_ref = db.collection("draft_players").document(player_id)
+            manual_doc = manual_ref.get()
+            if not manual_doc.exists or manual_doc.to_dict().get("draft_id") != draft_id:
+                continue
+            player_ref = manual_ref
 
         update_payload = {
             "siblingReviewedAt": reviewed_at,
@@ -2200,19 +2198,34 @@ async def add_pre_slot(
 
     _check_payment_gate(db, draft_id, draft_data)
 
-    team_ref = db.collection("draft_teams").document(slot_in.team_id)
-    team_data = _get_team_for_draft(db, draft_id, slot_in.team_id)
-    pre_slotted = team_data.get("pre_slotted_player_ids", [])
+    all_players = _load_draft_player_pool(db, draft_data)
+    if slot_in.player_id not in all_players:
+        raise HTTPException(status_code=400, detail="Safe player is not draft-eligible")
+    draft_ref = db.collection("drafts").document(draft_id)
 
-    if slot_in.player_id not in pre_slotted:
-        pre_slotted.append(slot_in.player_id)
-        team_ref.update({"pre_slotted_player_ids": pre_slotted})
+    @transactional
+    def reserve(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") != "setup":
+            raise HTTPException(status_code=409, detail="Cannot modify safe picks after draft start")
+        teams = [t.to_dict() for t in transaction.get(db.collection("draft_teams").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        team = next((t for t in teams if t["id"] == slot_in.team_id), None)
+        if team is None:
+            raise HTTPException(status_code=404, detail="Team not found in this draft")
+        reserved = list(dict.fromkeys(team.get("pre_slotted_player_ids") or []))
+        unit = [slot_in.player_id] + _build_assignment_unit(selected_player_id=slot_in.player_id, all_players=all_players, drafted_player_ids=set())
+        reserved = list(dict.fromkeys(reserved + unit))
+        if len(reserved) > 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 safe players per team, including coach children and siblings")
+        other_reserved = {pid for t in teams if t["id"] != team["id"] for pid in (t.get("pre_slotted_player_ids") or [])}
+        if other_reserved.intersection(reserved):
+            raise HTTPException(status_code=400, detail="Safe player or sibling already assigned to another team")
+        transaction.update(db.collection("draft_teams").document(team["id"]), {"pre_slotted_player_ids": reserved})
+        # The draft read/write serializes start and concurrent reservation changes.
+        transaction.update(draft_ref, {"setup_updated_at": now_iso()})
+        return {"status": "added", "team_id": team["id"], "player_id": slot_in.player_id, "pre_slotted_player_ids": reserved}
 
-    return {
-        "status": "added",
-        "team_id": slot_in.team_id,
-        "player_id": slot_in.player_id,
-    }
+    return reserve(db.transaction())
 
 
 @router.delete("/{draft_id}/pre-slots/{team_id}/{player_id}")
@@ -2230,15 +2243,27 @@ async def remove_pre_slot(
 
     _check_payment_gate(db, draft_id, draft_data)
 
-    team_ref = db.collection("draft_teams").document(team_id)
-    team_data = _get_team_for_draft(db, draft_id, team_id)
-    pre_slotted = team_data.get("pre_slotted_player_ids", [])
+    all_players = _load_draft_player_pool(db, draft_data)
+    draft_ref = db.collection("drafts").document(draft_id)
 
-    if player_id in pre_slotted:
-        pre_slotted.remove(player_id)
-        team_ref.update({"pre_slotted_player_ids": pre_slotted})
+    @transactional
+    def remove(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        team_ref = db.collection("draft_teams").document(team_id)
+        snapshot = team_ref.get(transaction=transaction)
+        if live.get("status") != "setup":
+            raise HTTPException(status_code=409, detail="Cannot modify safe picks after draft start")
+        if not snapshot.exists or snapshot.to_dict().get("draft_id") != draft_id:
+            raise HTTPException(status_code=404, detail="Team not found in this draft")
+        unit = set(_build_assignment_unit(selected_player_id=player_id, all_players=all_players, drafted_player_ids=set()))
+        previous = snapshot.to_dict().get("pre_slotted_player_ids", [])
+        reserved = [pid for pid in previous if pid not in unit]
+        removed_ids = [pid for pid in previous if pid in unit]
+        transaction.update(team_ref, {"pre_slotted_player_ids": reserved})
+        transaction.update(draft_ref, {"setup_updated_at": now_iso()})
+        return {"status": "removed", "team_id": team_id, "player_id": player_id, "removed_player_ids": removed_ids}
 
-    return {"status": "removed", "team_id": team_id, "player_id": player_id}
+    return remove(db.transaction())
 
 
 # ============================================================================
@@ -2457,10 +2482,20 @@ class DraftPlayerCreate(BaseModel):
     """Add a player directly to a draft (no combine required)."""
 
     name: str
+    parent_reported_ability: Optional[str] = None
+    registration_previous_team: Optional[str] = None
+    parent_reported_experience: Optional[str] = None
+    registration_source: Optional[str] = None
+    registration_source_id: Optional[str] = None
+    registration_division: Optional[str] = None
+    registration_program: Optional[str] = None
     number: Optional[str] = None  # Jersey number
     position: Optional[str] = None
     age_group: Optional[str] = None
     notes: Optional[str] = None
+    siblingGroupId: Optional[str] = None
+    forceSameTeamWithSibling: Optional[bool] = None
+    siblingSeparationRequested: bool = False
 
 
 class DraftPlayerBulkCreate(BaseModel):
@@ -2489,6 +2524,16 @@ async def add_draft_player(
         "position": player_in.position,
         "age_group": _normalize_age_group(player_in.age_group),
         "notes": player_in.notes,
+        "parent_reported_ability": player_in.parent_reported_ability,
+        "registration_previous_team": player_in.registration_previous_team,
+        "parent_reported_experience": player_in.parent_reported_experience,
+        "registration_source": player_in.registration_source,
+        "registration_source_id": player_in.registration_source_id,
+        "registration_division": player_in.registration_division,
+        "registration_program": player_in.registration_program,
+        "siblingGroupId": player_in.siblingGroupId,
+        "forceSameTeamWithSibling": player_in.forceSameTeamWithSibling,
+        "siblingSeparationRequested": player_in.siblingSeparationRequested,
         "source": "manual",  # vs "combine" for event-linked players
         "created_at": now_iso(),
         "created_by": user["uid"],
@@ -2512,25 +2557,41 @@ async def add_draft_players_bulk(
     if draft_data.get("status") != "setup":
         raise HTTPException(status_code=400, detail="Can only add players during setup")
 
-    added = []
-    for p in bulk_in.players:
-        player_id = generate_id("dplayer_")
-        player_data = {
-            "id": player_id,
-            "draft_id": draft_id,
-            "name": p.name,
-            "number": p.number,
-            "position": p.position,
-            "age_group": _normalize_age_group(p.age_group),
-            "notes": p.notes,
-            "source": "manual",
-            "created_at": now_iso(),
-            "created_by": user["uid"],
-        }
-        db.collection("draft_players").document(player_id).set(player_data)
-        added.append(player_data)
+    if not bulk_in.players or len(bulk_in.players) > 400:
+        raise HTTPException(status_code=400, detail="Import between 1 and 400 players per division")
 
-    return {"added": len(added), "players": added}
+    @transactional
+    def import_players(transaction):
+        live = draft_ref.get(transaction=transaction).to_dict()
+        if live.get("status") != "setup":
+            raise HTTPException(status_code=409, detail="Draft has started; player import is closed")
+        existing = [d.to_dict() for d in transaction.get(db.collection("draft_players").where(filter=FieldFilter("draft_id", "==", draft_id)))]
+        names = {_normalize_player_name_for_match(p.get("name")) for p in existing}
+        source_ids = {p.get("registration_source_id") for p in existing if p.get("registration_source_id")}
+        added = []
+        for player in bulk_in.players:
+            data = player.model_dump()
+            if not data["name"].strip():
+                raise HTTPException(status_code=400, detail="Every player needs a name")
+            if data.get("registration_source") == "SportsConnect":
+                name = _normalize_player_name_for_match(data["name"])
+                source_id = data.get("registration_source_id")
+                if name in names or (source_id and source_id in source_ids):
+                    raise HTTPException(status_code=409, detail="Duplicate registration or player name; review the source before importing again")
+                names.add(name)
+                if source_id:
+                    source_ids.add(source_id)
+            data.update({"id": generate_id("dplayer_"), "draft_id": draft_id,
+                         "age_group": _normalize_age_group(player.age_group), "source": "manual",
+                         "created_at": now_iso(), "created_by": user["uid"]})
+            added.append(data)
+        # Validate every row before writes; the shared draft update serializes import/start.
+        for data in added:
+            transaction.set(db.collection("draft_players").document(data["id"]), data)
+        transaction.update(draft_ref, {"setup_updated_at": now_iso()})
+        return {"added": len(added), "players": added}
+
+    return import_players(db.transaction())
 
 
 @router.delete("/{draft_id}/players/{player_id}")
@@ -2659,52 +2720,48 @@ async def join_team_via_invite(
     draft_data = draft_doc.to_dict()
     league_id = draft_data.get("league_id")
 
-    # Scoped league membership is authoritative for invite claims.
-    # Deny by default when league context cannot be safely validated.
-    if not league_id:
-        raise HTTPException(
-            status_code=400,
-            detail="Draft invite is missing league context",
+    # Standalone invitations grant only the named team, never league rights.
+    # An event-linked draft missing its league is corrupt, not standalone.
+    if not league_id and _get_draft_event_ids(draft_data):
+        raise HTTPException(status_code=400, detail="Draft invite is missing league context")
+    if league_id:
+        membership = ensure_league_access(
+            user["uid"], league_id, allowed_roles={"organizer", "coach"},
+            operation_name="claim team invite",
         )
-    membership = ensure_league_access(
-        user["uid"],
-        league_id,
-        allowed_roles={"organizer", "coach"},
-        operation_name="claim team invite",
-    )
-    scoped_role = (membership.get("role") or "").lower()
+        scoped_role = (membership.get("role") or "").lower()
+        if scoped_role == "coach":
+            draft_event_ids = _get_draft_event_ids(draft_data)
+            if not draft_event_ids:
+                raise HTTPException(status_code=403, detail="Coach claims require explicit draft event scope")
+            for event_id in draft_event_ids:
+                ensure_event_access(user["uid"], event_id,
+                    allowed_roles={"organizer", "coach"}, operation_name="claim team invite")
+        elif scoped_role != "organizer":
+            raise HTTPException(status_code=403, detail="Insufficient league permissions")
 
-    # Coach claims require explicit draft event scope.
-    # League membership alone is never sufficient for coaches.
-    if scoped_role == "coach":
-        draft_event_ids = _get_draft_event_ids(draft_data)
-        if not draft_event_ids:
-            raise HTTPException(
-                status_code=403,
-                detail="Coach claims require explicit draft event scope",
-            )
-        for event_id in draft_event_ids:
-            ensure_event_access(
-                user["uid"],
-                event_id,
-                allowed_roles={"organizer", "coach"},
-                operation_name="claim team invite",
-            )
-    elif scoped_role != "organizer":
-        raise HTTPException(status_code=403, detail="Insufficient league permissions")
-
-    # Check draft status - can only join during setup
-    if draft_data.get("status") not in ["setup", "active"]:
-        raise HTTPException(status_code=400, detail="Cannot join - draft has ended")
-
-    # Claim the team
-    db.collection("draft_teams").document(team_id).update(
-        {
-            "coach_user_id": user["uid"],
-            "coach_email": user.get("email"),
+    @transactional
+    def claim(transaction):
+        team_ref = db.collection("draft_teams").document(team_id)
+        live_team = team_ref.get(transaction=transaction)
+        live_draft = db.collection("drafts").document(draft_id).get(transaction=transaction)
+        if not live_team.exists or not live_draft.exists:
+            raise HTTPException(status_code=404, detail="Invalid or expired invite link")
+        current = live_team.to_dict()
+        current_draft = live_draft.to_dict()
+        if current.get("invite_token") != invite_token or current.get("draft_id") != draft_id:
+            raise HTTPException(status_code=404, detail="Invalid or expired invite link")
+        if current_draft.get("league_id") != league_id or _get_draft_event_ids(current_draft) != _get_draft_event_ids(draft_data):
+            raise HTTPException(status_code=409, detail="Draft changed. Refresh and try again.")
+        if current.get("coach_user_id") not in (None, "", user["uid"]):
+            raise HTTPException(status_code=400, detail="This team has already been claimed by another coach")
+        if current_draft.get("status") not in ["setup", "active"]:
+            raise HTTPException(status_code=400, detail="Cannot join - draft has ended")
+        transaction.update(team_ref, {
+            "coach_user_id": user["uid"], "coach_email": user.get("email"),
             "claimed_at": now_iso(),
-        }
-    )
+        })
+    claim(db.transaction())
 
     logger.info(f"Coach {user['uid']} claimed team {team_id} in draft {draft_id}")
 

@@ -974,7 +974,7 @@ def test_manual_pick_rejects_sibling_unit_when_slots_insufficient(
         {"id": "event-cap", "name": "Event Cap", "league_id": "league-1"}
     )
     fake_db.collection("drafts").document(draft_id).update(
-        {"event_id": "event-cap", "event_ids": ["event-cap"], "num_rounds": 1, "num_teams": 1}
+        {"event_id": "event-cap", "event_ids": ["event-cap"], "num_rounds": 1, "num_teams": 1, "max_players_per_team": 1}
     )
     fake_db.collection("events").document("event-cap").collection("players").document("sib-cap-1").set(
         {
@@ -1001,7 +1001,7 @@ def test_manual_pick_rejects_sibling_unit_when_slots_insufficient(
         headers=organizer_headers,
     )
     assert r.status_code == 400, r.text
-    assert "not enough remaining draft slots" in r.json().get("detail", "")
+    assert "per-team roster cap exceeded" in r.json().get("detail", "")
 
     picks = list(
         fake_db.collection("draft_picks")
@@ -1103,6 +1103,7 @@ def test_auto_pick_rejects_sibling_unit_when_slots_insufficient_without_partial_
         {
             "event_id": "event-auto-cap",
             "event_ids": ["event-auto-cap"],
+            "max_players_per_team": 1,
             "num_rounds": 1,
             "num_teams": 1,
         }
@@ -1128,7 +1129,7 @@ def test_auto_pick_rejects_sibling_unit_when_slots_insufficient_without_partial_
 
     r = app_client.post(f"/api/drafts/{draft_id}/picks/auto", headers=organizer_headers)
     assert r.status_code == 400, r.text
-    assert "not enough remaining draft slots" in r.json().get("detail", "")
+    assert "per-team roster cap exceeded" in r.json().get("detail", "")
 
     picks = list(
         fake_db.collection("draft_picks")
@@ -1166,16 +1167,16 @@ def test_manual_pick_rejects_when_team_cap_would_be_exceeded(
         {"id": "team-cap-p1", "name": "Cap Candidate", "age_group": "U10"}
     )
 
-    r = app_client.post(
-        f"/api/drafts/{draft_id}/picks",
-        json={"player_id": "team-cap-p1"},
-        headers=organizer_headers,
-    )
-    assert r.status_code == 200, r.text
-
     fake_db.collection("events").document("event-team-cap").collection("players").document("team-cap-p2").set(
         {"id": "team-cap-p2", "name": "Cap Candidate 2", "age_group": "U10"}
     )
+
+    # Existing assignment fills the explicit cap. Additional selection must not write.
+    fake_db.collection("draft_picks").document("cap-existing").set({
+        "id": "cap-existing", "draft_id": draft_id, "player_id": "team-cap-p1",
+        "team_id": team_id, "pick_number": 1, "round": 1,
+    })
+
     r2 = app_client.post(
         f"/api/drafts/{draft_id}/picks",
         json={"player_id": "team-cap-p2"},

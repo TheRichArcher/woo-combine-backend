@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useDraft, useDraftPicks, useDraftTeams, useAvailablePlayers } from '../../hooks/useDraft';
 import LoadingScreen from '../../components/LoadingScreen';
 import { Clock, User, Trophy } from 'lucide-react';
@@ -15,10 +15,10 @@ const DraftBoard = () => {
   const { draftId } = useParams();
   const { userRole } = useAuth();
   
-  const { draft, loading: draftLoading } = useDraft(draftId);
-  const { picks } = useDraftPicks(draftId);
-  const { teams } = useDraftTeams(draftId);
-  const { players } = useAvailablePlayers(draftId);
+  const { draft, loading: draftLoading, error: draftError } = useDraft(draftId);
+  const { picks, error: picksError } = useDraftPicks(draftId);
+  const { teams, error: teamsError } = useDraftTeams(draftId);
+  const { players, error: playersError } = useAvailablePlayers(draftId);
   
   const [timeRemaining, setTimeRemaining] = useState(null);
 
@@ -79,6 +79,8 @@ const DraftBoard = () => {
     return teams.find(t => t.id === draft.current_team_id);
   }, [draft?.current_team_id, teams]);
 
+  const syncError = draftError || picksError || teamsError || playersError;
+
   // Last pick info
   const lastPick = picks[picks.length - 1];
   const lastPickTeam = lastPick ? teams.find(t => t.id === lastPick.team_id) : null;
@@ -100,12 +102,16 @@ const DraftBoard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-900 to-gray-800 text-white overflow-hidden">
+      {syncError && <div role="alert" className="bg-amber-700 text-white p-3 text-center">Updates unavailable. This board may be out of date. Reconnecting automatically.</div>}
       {/* Header */}
       <header className="text-center py-6 bg-black/30">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{draft.name}</h1>
         <p className="text-xl text-gray-400 mt-2">
-          Round {draft.current_round} of {draft.num_rounds} • Pick #{draft.current_pick}
+          {draft.status === 'completed' ? `${picks.length} players assigned` : `Round ${draft.current_round} of ${draft.num_rounds} • Pick #${draft.current_pick}`}
         </p>
+        <Link to={`/draft/${draftId}/live`} className="inline-block mt-3 text-blue-300 underline">
+          View {players.length} remaining players and team rosters
+        </Link>
       </header>
 
       {/* On The Clock - Active */}
@@ -224,6 +230,7 @@ const DraftBoard = () => {
                               <p className="font-medium text-sm truncate">
                                 {player ? formatViewerPlayerName(player, userRole || 'public') : 'Player'}
                               </p>
+                              {pickForRound.pick_type === 'safe' && <span className="text-xs text-blue-300">Safe Pick</span>}
                               {pickForRound.pick_type === 'auto' && (
                                 <span className="text-xs text-orange-400">⚡ Auto</span>
                               )}
@@ -287,7 +294,7 @@ const DraftBoard = () => {
       {/* Auto-refresh indicator */}
       <div className="fixed top-4 right-4 flex items-center gap-2 text-gray-500 text-sm bg-black/50 px-3 py-1 rounded-full">
         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-        Live
+        {syncError ? 'Reconnecting' : 'Updating every 2 seconds'}
       </div>
 
       <style>{`

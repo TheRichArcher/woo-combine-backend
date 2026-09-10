@@ -1,6 +1,8 @@
 import base64
 import json
 import itertools
+import threading
+import copy
 import pytest
 
 
@@ -51,7 +53,9 @@ class FakeQuery:
             return None
         field = getattr(ff, "field_path", None) or getattr(ff, "_field_path", None)
         op = getattr(ff, "op_string", None) or getattr(ff, "_op_string", None)
-        value = getattr(ff, "value", None) or getattr(ff, "_value", None)
+        value = getattr(ff, "value", None)
+        if value is None:
+            value = getattr(ff, "_value", None)
         if field is None or op is None:
             raise ValueError("Unsupported filter object")
         return field, op, value
@@ -72,8 +76,11 @@ class FakeQuery:
                     return d.get(field) is not None and d.get(field) > value
                 except Exception:
                     return False
-            # Fallback: treat as field existence check
-            return d.get(field) is not None
+            if op == "array_contains":
+                return value in (d.get(field) or [])
+            if op == "in":
+                return d.get(field) in value
+            raise ValueError(f"Unsupported query operator: {op}")
 
         return FakeQuery([doc for doc in self._docs if match(doc)])
 
@@ -97,7 +104,9 @@ class FakeDocument:
     def id(self):
         return self._path.split("/")[-1]
 
-    def get(self):
+    def get(self, transaction=None, **kwargs):
+        if transaction is not None:
+            transaction._check_read()
         data = self._store.get(self._path)
         if data is None:
             return FakeSnapshot(self._store, self._path, {}, exists=False)
@@ -184,42 +193,63 @@ class FakeBatch:
         return None
 
 
-class FakeTransaction:
-    def __init__(self):
-        self._ops = []
+class FakeTransaction(FakeBatch):
+    """SDK-shaped unit-test transaction; emulator tests establish actual isolation."""
+    def __init__(self, db):
+        super().__init__()
+        self.db = db
+        self._read_only = False
+        self._max_attempts = 5
+        self._id = None
+        self._locked = False
+
+    def _check_read(self):
+        if self._ops:
+            raise ValueError("Attempted read after write in a transaction")
 
     def get(self, ref_or_query):
-        # Firestore transaction.get supports DocumentReference and Query.
+        self._check_read()
         if hasattr(ref_or_query, "stream"):
-            return list(ref_or_query.stream())
+            return iter(ref_or_query.stream())
         if hasattr(ref_or_query, "get"):
-            return ref_or_query.get()
+            return iter([ref_or_query.get(transaction=self)])
         raise TypeError("Unsupported transaction.get target")
 
-    def set(self, doc_ref, data, **kwargs):
-        self._ops.append(("set", doc_ref, data, kwargs))
+    def _clean_up(self):
+        self._ops = []
+        self._id = None
 
-    def update(self, doc_ref, data):
-        self._ops.append(("update", doc_ref, data, {}))
+    def _begin(self, retry_id=None):
+        self.db._lock.acquire()
+        self._locked = True
+        self._id = b"fake-transaction"
 
-    def delete(self, doc_ref):
-        self._ops.append(("delete", doc_ref, None, {}))
+    def _release(self):
+        if self._locked:
+            self.db._lock.release()
+            self._locked = False
 
-    def commit(self):
-        for op, ref, data, kwargs in self._ops:
-            if op == "set":
-                ref.set(data, **kwargs)
-            elif op == "update":
-                ref.update(data)
-            elif op == "delete":
-                ref.delete()
-        return None
+    def _commit(self):
+        original = copy.deepcopy(self.db.store)
+        try:
+            self.commit()
+        except BaseException:
+            self.db.store.clear()
+            self.db.store.update(original)
+            raise
+        finally:
+            self._release()
+
+    def _rollback(self):
+        self._ops = []
+        self._release()
 
 
 class FakeFirestore:
     def __init__(self, store=None):
         self.store = store if store is not None else {}
         self._id_seq = itertools.count(1)
+        self._lock = threading.RLock()
 
         # Minimal Firestore Query constants used in a few routes
         class _Query:
@@ -246,7 +276,7 @@ class FakeFirestore:
         return FakeBatch()
 
     def transaction(self):
-        return FakeTransaction()
+        return FakeTransaction(self)
 
     def get_all(self, doc_refs):
         return [ref.get() for ref in doc_refs]
