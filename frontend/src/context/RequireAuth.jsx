@@ -52,6 +52,11 @@ export default function RequireAuth({ children, allowedRoles }) {
     return <Navigate to="/verify-email" replace />;
   }
   
+  // Role selection must render before a role exists; keep all staff routes gated.
+  if (!effectiveRole && location.pathname === "/select-role" && !allowedRoles?.length) {
+    return children;
+  }
+
   // Deny-by-default: no role means onboarding is incomplete.
   if (!effectiveRole) {
     if (inviteJoinInProgress) {
