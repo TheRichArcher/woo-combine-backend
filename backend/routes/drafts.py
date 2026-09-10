@@ -1048,7 +1048,7 @@ async def create_draft(
 
 
 @router.get("/{draft_id}")
-async def get_draft(draft_id: str, user: dict = Depends(get_current_user)):
+def get_draft(draft_id: str, user: dict = Depends(get_current_user)):
     """Get draft details."""
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
@@ -1412,7 +1412,7 @@ async def add_team(
 
 
 @router.get("/{draft_id}/teams")
-async def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
+def list_teams(draft_id: str, user: dict = Depends(get_current_user)):
     """List all teams in a draft."""
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
@@ -1611,7 +1611,7 @@ async def make_pick(
 
 
 @router.get("/{draft_id}/picks")
-async def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
+def list_picks(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all picks for a draft."""
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
@@ -1913,7 +1913,7 @@ async def save_rankings(
 
 
 @router.get("/{draft_id}/players")
-async def get_available_players(draft_id: str, user: dict = Depends(get_current_user)):
+def get_available_players(draft_id: str, user: dict = Depends(get_current_user)):
     """Get available (undrafted) players for this draft."""
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
@@ -2038,7 +2038,7 @@ async def get_available_players(draft_id: str, user: dict = Depends(get_current_
 
 
 @router.get("/{draft_id}/players/drafted")
-async def get_drafted_players(draft_id: str, user: dict = Depends(get_current_user)):
+def get_drafted_players(draft_id: str, user: dict = Depends(get_current_user)):
     """Get all drafted players with their team assignments."""
     db = get_firestore_client()
     _, draft_data = _verify_draft_access(db, draft_id, user)
