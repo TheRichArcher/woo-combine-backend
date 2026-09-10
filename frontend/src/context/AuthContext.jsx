@@ -1,3 +1,4 @@
+import { getDraftInviteRedirect } from '../lib/draftRouting';
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { auth } from "../firebase";
 import { onAuthStateChanged, signOut, getIdTokenResult } from "firebase/auth";
@@ -953,7 +954,7 @@ function parseJwtPayload(token) {
             return;
           }
 
-          const postLoginTarget = localStorage.getItem('postLoginTarget');
+          const postLoginTarget = getDraftInviteRedirect(window.location.search) || localStorage.getItem('postLoginTarget');
           if (postLoginTarget && postLoginTarget !== '/login' && isSafeInternalPath(postLoginTarget)) {
             authLogger.debug('Auth complete from /login - redirecting to postLoginTarget', postLoginTarget);
             localStorage.removeItem('postLoginTarget');
