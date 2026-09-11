@@ -1,233 +1,27 @@
-/**
- * Draft hooks for managing draft state
- * Uses backend API polling instead of direct Firestore subscriptions
- */
-
+/** Shared, visibility-aware draft polling. */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import api from '../lib/api';
+import { getDraftSubscription } from '../lib/draftSubscription';
 
-// Polling interval for real-time updates (ms)
-const POLL_INTERVAL = 2000;
-
-/**
- * Hook to fetch and poll a draft's state
- */
-export function useDraft(draftId) {
-  const [draft, setDraft] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const pollRef = useRef(null);
-  const inFlightRef = useRef(false);
-
-  const fetchDraft = useCallback(async () => {
-    if (!draftId) {
-      setLoading(false);
-      return;
-    }
-
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      const res = await api.get(`/drafts/${draftId}`);
-      setDraft(res.data);
-      setError(null);
-    } catch (err) {
-      console.error('Draft fetch error:', err);
-      if (err.response?.status === 404) {
-        setError('Draft not found');
-      } else {
-        setError(err.response?.data?.detail || err.message);
-      }
-    } finally {
-      inFlightRef.current = false;
-      setLoading(false);
-    }
+function useDraftResource(draftId, key, empty) {
+  const [state, setState] = useState({ loading: Boolean(draftId), error: null });
+  const storeRef = useRef(null);
+  useEffect(() => {
+    if (!draftId) { setState({ loading: false, error: null }); return; }
+    const store = getDraftSubscription(draftId);
+    storeRef.current = store;
+    const update = () => setState(store.getSnapshot());
+    const unsubscribe = store.subscribe(update);
+    update();
+    return () => { storeRef.current = null; unsubscribe(); };
   }, [draftId]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchDraft();
-  }, [fetchDraft]);
-
-  // Polling for real-time updates
-  useEffect(() => {
-    if (!draftId) return;
-
-    pollRef.current = setInterval(fetchDraft, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-      }
-    };
-  }, [draftId, fetchDraft]);
-
-  return { draft, loading, error, refetch: fetchDraft };
+  const refetch = useCallback(() => storeRef.current?.refresh(true), []);
+  return { [key]: state[key] ?? empty, loading: state.loading, error: state.error, refetch };
 }
-
-/**
- * Hook to fetch and poll draft picks
- */
-export function useDraftPicks(draftId) {
-  const [picks, setPicks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const pollRef = useRef(null);
-  const inFlightRef = useRef(false);
-
-  const fetchPicks = useCallback(async () => {
-    if (!draftId) {
-      setLoading(false);
-      return;
-    }
-
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      const res = await api.get(`/drafts/${draftId}/picks`);
-      setPicks(res.data);
-      setError(null);
-    } catch (err) {
-      console.error('Picks fetch error:', err);
-      setError(err.message);
-    } finally {
-      inFlightRef.current = false;
-      setLoading(false);
-    }
-  }, [draftId]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchPicks();
-  }, [fetchPicks]);
-
-  // Polling for real-time updates
-  useEffect(() => {
-    if (!draftId) return;
-
-    pollRef.current = setInterval(fetchPicks, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-      }
-    };
-  }, [draftId, fetchPicks]);
-
-  return { picks, loading, error, refetch: fetchPicks };
-}
-
-/**
- * Hook to fetch and poll draft teams
- */
-export function useDraftTeams(draftId) {
-  const [teams, setTeams] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const pollRef = useRef(null);
-  const inFlightRef = useRef(false);
-
-  const fetchTeams = useCallback(async () => {
-    if (!draftId) {
-      setLoading(false);
-      return;
-    }
-
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      const res = await api.get(`/drafts/${draftId}/teams`);
-      setTeams(res.data);
-      setError(null);
-    } catch (err) {
-      console.error('Teams fetch error:', err);
-      setError(err.message);
-    } finally {
-      inFlightRef.current = false;
-      setLoading(false);
-    }
-  }, [draftId]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
-
-  // Polling for real-time updates
-  useEffect(() => {
-    if (!draftId) return;
-
-    pollRef.current = setInterval(fetchTeams, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-      }
-    };
-  }, [draftId, fetchTeams]);
-
-  return { teams, loading, error, refetch: fetchTeams };
-}
-
-/**
- * Hook to fetch available players for drafting
- */
-export function useAvailablePlayers(draftId) {
-  const [players, setPlayers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const pollRef = useRef(null);
-  const inFlightRef = useRef(false);
-
-  const fetchPlayers = useCallback(async () => {
-    if (!draftId) {
-      setLoading(false);
-      return;
-    }
-
-    if (inFlightRef.current) return;
-    inFlightRef.current = true;
-    try {
-      const res = await api.get(`/drafts/${draftId}/players`);
-      const enrichedPlayers = (res.data || []).map((player) => ({
-        ...player,
-        draftPercentile: player.canonical_percentile ?? null,
-        draftStarCount: player.star_count ?? null,
-        draftStarLabel: player.star_label ?? '',
-        draftStarDisplay: player.star_display ?? '',
-        draftDrillMetrics: player.canonical_drill_metrics ?? {}
-      }));
-      setPlayers(enrichedPlayers);
-      setError(null);
-    } catch (err) {
-      console.error('Players fetch error:', err);
-      setError(err.message);
-    } finally {
-      inFlightRef.current = false;
-      setLoading(false);
-    }
-  }, [draftId]);
-
-  // Initial fetch
-  useEffect(() => {
-    fetchPlayers();
-  }, [fetchPlayers]);
-
-  // Polling for real-time updates (to track who's been drafted)
-  useEffect(() => {
-    if (!draftId) return;
-
-    pollRef.current = setInterval(fetchPlayers, POLL_INTERVAL);
-
-    return () => {
-      if (pollRef.current) {
-        clearInterval(pollRef.current);
-      }
-    };
-  }, [draftId, fetchPlayers]);
-
-  return { players, loading, error, refetch: fetchPlayers };
-}
+export const useDraft = id => useDraftResource(id, 'draft', null);
+export const useDraftPicks = id => useDraftResource(id, 'picks', []);
+export const useDraftTeams = id => useDraftResource(id, 'teams', []);
+export const useAvailablePlayers = id => useDraftResource(id, 'players', []);
 
 /**
  * Hook to manage coach's personal rankings
