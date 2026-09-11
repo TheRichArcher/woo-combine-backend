@@ -69,6 +69,7 @@ const DraftRoom = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+  const [rosterExport, setRosterExport] = useState(null);
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => (
     localStorage.getItem('draft_notifications_enabled') === 'true'
@@ -435,6 +436,7 @@ const DraftRoom = () => {
       row.team, row.coach, row.round, row.pickNumber, row.name, row.number,
       row.composite, row.dash40, row.vertical
     ]));
+    setRosterExport(csvContent);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -982,6 +984,17 @@ const DraftRoom = () => {
           </div>
         </div>
       </div>
+
+      {rosterExport !== null && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="roster-export-title" className="bg-white rounded-xl p-6 max-w-3xl w-full shadow-xl">
+            <h2 id="roster-export-title" className="text-xl font-bold">Roster export</h2>
+            <p className="my-3">Your CSV download was requested. If your browser does not save it, select and copy the roster below into a CSV file.</p>
+            <textarea aria-label="Roster CSV" readOnly value={rosterExport} className="w-full h-64 border rounded p-3 font-mono text-sm" onFocus={event => event.target.select()} />
+            <button autoFocus onClick={() => setRosterExport(null)} className="mt-3 px-4 py-2 border rounded">Close export</button>
+          </div>
+        </div>
+      )}
 
       {showUndoConfirm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
