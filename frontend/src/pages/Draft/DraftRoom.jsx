@@ -68,6 +68,7 @@ const DraftRoom = () => {
   const [mobileTab, setMobileTab] = useState('players'); // players | board | myteam
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
+  const [showUndoConfirm, setShowUndoConfirm] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState(null);
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => (
     localStorage.getItem('draft_notifications_enabled') === 'true'
@@ -307,10 +308,10 @@ const DraftRoom = () => {
 
   // Handle undo
   const handleUndo = async () => {
-    if (!confirm('Undo the last pick?')) return;
     try {
       await undoPick();
       await refreshDraft();
+      setShowUndoConfirm(false);
       showSuccess('Pick undone');
     } catch (err) {
       showError(err.response?.data?.detail || err.message);
@@ -442,7 +443,8 @@ const DraftRoom = () => {
     document.body.appendChild(link);
     link.click();
     link.remove();
-    URL.revokeObjectURL(url);
+    // Keep the URL alive while the browser starts the download.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   return (
@@ -522,7 +524,7 @@ const DraftRoom = () => {
                     {draft.status === 'active' ? 'Pause' : 'Resume'}
                   </button>}
                   <button
-                    onClick={handleUndo}
+                    onClick={() => setShowUndoConfirm(true)}
                     className="flex items-center gap-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg hover:bg-red-200"
                     disabled={actionLoading || !picks.some(pick => pick.pick_type !== 'safe')}
                   >
@@ -595,7 +597,7 @@ const DraftRoom = () => {
                     {draft.status === 'active' ? 'Pause' : 'Resume'}
                   </button>}
                   <button
-                    onClick={handleUndo}
+                    onClick={() => setShowUndoConfirm(true)}
                     className="flex-1 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-100 text-red-700 rounded-lg"
                     disabled={actionLoading || !picks.some(pick => pick.pick_type !== 'safe')}
                   >
@@ -980,6 +982,19 @@ const DraftRoom = () => {
           </div>
         </div>
       </div>
+
+      {showUndoConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div role="dialog" aria-modal="true" aria-labelledby="undo-title" className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
+            <h2 id="undo-title" className="text-xl font-bold">Undo the last pick?</h2>
+            <p className="my-4">Return the last selection to the available pool and restore the previous turn.</p>
+            <div className="flex justify-end gap-3">
+              <button autoFocus disabled={actionLoading} onClick={() => setShowUndoConfirm(false)} className="px-4 py-2 border rounded">Cancel</button>
+              <button disabled={actionLoading} onClick={handleUndo} className="px-4 py-2 bg-blue-600 text-white rounded">{actionLoading ? 'Undoing…' : 'Confirm Undo'}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTradeModal && (
         <TradeModal
